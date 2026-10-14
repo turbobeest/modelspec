@@ -73,6 +73,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import cache
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Protocol
 from urllib.parse import urljoin
@@ -3971,16 +3972,53 @@ class LicenceSentenceTemplate(NamedTuple):
     label: str
 
 
+class _LicenceProseParser(HTMLParser):
+    """Remove markup once, preserving element text and literal angle brackets."""
+
+    _blocks = frozenset({"p", "li", "br", "div", "td", "th", "h1", "h2", "h3",
+                         "h4", "h5", "h6"})
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in self._blocks:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._blocks:
+            self.parts.append("\n")
+
+    def handle_comment(self, data: str) -> None:
+        # HTML comments are not rendered. Their words cannot alter the visible
+        # operative sentence, even when they contain tags, bans or negation.
+        pass
+
+
+def _licence_prose(text: str) -> str:
+    parser = _LicenceProseParser()
+    parser.feed(text)
+    parser.close()
+    return "".join(parser.parts)
+
+
+def _fold_licence_prose(prose: str) -> str:
+    return re.sub(r"\s+", " ", prose.translate(_LICENCE_QUOTE_CHARS)).strip().casefold()
+
+
 def normalise_licence_sentence(text: str) -> str:
-    """Fold whitespace, quote forms and case, retaining sentence punctuation."""
-    prose = _region_prose(text).translate(_LICENCE_QUOTE_CHARS)
-    return re.sub(r"\s+", " ", prose).strip().casefold()
+    """Fold visible text, whitespace, quote forms and case, retaining punctuation."""
+    return _fold_licence_prose(_licence_prose(text))
 
 
 def licence_sentences(text: str) -> tuple[str, ...]:
-    """Complete sentences or blocks; a question never becomes a statement."""
-    prose = _region_prose(text).translate(_LICENCE_QUOTE_CHARS)
-    return tuple(normalise_licence_sentence(part)
+    """Normalised plain sentences; decoded visible text is never parsed again."""
+    prose = _licence_prose(text)
+    return tuple(_fold_licence_prose(part)
                  for part in re.split(r"(?<=[.!?])\s+|\n+", prose) if part.strip())
 
 
@@ -4057,7 +4095,7 @@ class LicenceTermsExtractor:
     """
 
     actor = VerificationActor(
-        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="licence-terms@2",
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="licence-terms@3",
     )
 
     def __init__(self, *, templates: Sequence[LicenceSentenceTemplate] | None = None) -> None:
@@ -4068,7 +4106,8 @@ class LicenceTermsExtractor:
 
     def values(self, field: str, text: str, *, licence_url: str | None = None) -> set[str]:
         region_hash = licence_sentence_hash(text)
-        hashes = {licence_sentence_hash(sentence) for sentence in licence_sentences(text)}
+        hashes = {hashlib.sha256(sentence.encode("utf-8")).hexdigest()
+                  for sentence in licence_sentences(text)}
         values = {
             template.value for template in self.templates
             if template.source_url == licence_url and template.facet == field

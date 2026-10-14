@@ -86,7 +86,8 @@ def derive(root):
             result.append({
                 "source_family": family, "source_url": str(sources[sid].url),
                 "region_sha256": licence_sentence_hash(text),
-                "sentence_sha256": licence_sentence_hash(sentence),
+                # licence_sentences already returned normalised plain text.
+                "sentence_sha256": hashlib.sha256(sentence.encode("utf-8")).hexdigest(),
                 "facet": facet, "value": value, "label": label,
             })
     return result

@@ -653,7 +653,7 @@ def test_registered_exact_sentence_verifies_and_wrong_value_mismatches(registere
     readers = [verify.LicenceTermsExtractor(templates=(template,))]
     result = check(field, value, sentence, readers=readers)
     assert result.outcome == "verified", result
-    assert result.verification.verifier.method == "licence-terms@2"
+    assert result.verification.verifier.method == "licence-terms@3"
     wrong = "permitted" if field != "licence.output_training" else "prohibited"
     result = check(field, wrong, sentence, readers=readers)
     assert result.outcome == "mismatch", result
@@ -740,3 +740,132 @@ def test_conflicting_registered_values_produce_no_reading(registered_sentence):
     result = check(field, value, sentence,
                    readers=[verify.LicenceTermsExtractor(templates=(template, other))])
     assert result.outcome == "skipped", result
+
+
+@pytest.mark.parametrize("markup", [
+    "<b>not</b>", "<span>not</span>", "<em>except</em>", "<i>if</i>",
+    "< not >",
+])
+def test_registered_sentence_keeps_visible_tag_text(registered_sentence, markup):
+    field, value, sentence, template = registered_sentence
+    modified = sentence.replace(" use ", f" {markup} use ", 1) if " use " in sentence \
+        else sentence.replace(" modify ", f" {markup} modify ", 1)
+    result = check(field, value, modified,
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+@pytest.mark.parametrize("suffix", [
+    " <span>Commercial use is prohibited.</span>",
+    " <b>This prohibition is void.</b>",
+    " <span>Commercial use is prohibited. This prohibition is void.</span>",
+    " < Commercial use is prohibited. This prohibition is void. >",
+])
+def test_registered_sentence_keeps_visible_ban_and_repeal(registered_sentence, suffix):
+    field, value, sentence, template = registered_sentence
+    result = check(field, value, sentence + suffix,
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+@pytest.mark.parametrize("comment", [
+    "<!--not-->",
+    "<!-- Commercial use is prohibited. This prohibition is void. -->",
+    "<!-- <p>not</p> Commercial use is prohibited. > This prohibition is void. -->",
+])
+def test_registered_sentence_ignores_nonrendered_comments(registered_sentence, comment):
+    field, value, sentence, template = registered_sentence
+    readers = [verify.LicenceTermsExtractor(templates=(template,))]
+    for text in (sentence + comment, sentence.replace(" shall ", f" {comment} shall ")
+                 if " shall " in sentence else sentence.replace(" may ", f" may {comment}")):
+        result = check(field, value, text, readers=readers)
+        assert result.outcome == "verified", result
+
+
+def test_registered_sentence_cannot_reparse_escaped_visible_text(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    visible = sentence.replace(" use ", " <not> use ", 1) if " use " in sentence \
+        else sentence.replace(" modify ", " <not> modify ", 1)
+    markup = visible.replace("<not>", "&lt;not&gt;")
+    # Approve this synthetic region's visible text independently. The original
+    # sentence hash must still reject the visible insertion after entity decoding.
+    changed = template._replace(
+        region_sha256=hashlib.sha256(visible.casefold().encode()).hexdigest(),
+    )
+    result = check(field, value, markup,
+                   readers=[verify.LicenceTermsExtractor(templates=(changed,))])
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+def test_registered_sentence_accepts_markup_with_unchanged_visible_text(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    markup = '<p><b title="not > except">' + sentence + '</b></p>'
+    result = check(field, value, markup,
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "verified", result
+
+
+def test_mau_full_match_accepts_markup_with_unchanged_visible_text():
+    text = ("<p>If you exceed <b>200 million</b> monthly active users, "
+            '<span title="not > except">you must obtain</span> a separate licence.</p>')
+    result = check("licence.user_cap", 200_000_000, text)
+    assert result.outcome == "verified", result
+
+
+@pytest.mark.parametrize("markup", [
+    "<b>not</b>", "<span>not</span>", "<em>except</em>", "<i>if</i>",
+    "&lt;not&gt;", "< not >",
+])
+def test_mau_full_match_keeps_visible_tag_text(markup):
+    text = ("If you exceed 200 million monthly active users, "
+            f"you must {markup} obtain a separate licence.")
+    result = check("licence.user_cap", 200_000_000, text)
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+@pytest.mark.parametrize("suffix", [
+    " <span>Commercial use is prohibited.</span>",
+    " <b>This prohibition is void.</b>",
+    " <span>Commercial use is prohibited. This prohibition is void.</span>",
+    " < Commercial use is prohibited. This prohibition is void. >",
+])
+def test_mau_full_match_keeps_visible_ban_and_repeal(suffix):
+    text = ("If you exceed 200 million monthly active users, "
+            "you must obtain a separate licence.")
+    result = check("licence.user_cap", 200_000_000, text + suffix)
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+@pytest.mark.parametrize("comment", [
+    "<!--not-->",
+    "<!-- Commercial use is prohibited. This prohibition is void. -->",
+    "<!-- <p>not</p> Commercial use is prohibited. > This prohibition is void. -->",
+])
+def test_mau_full_match_ignores_nonrendered_comments(comment):
+    sentence = ("If you exceed 200 million monthly active users, "
+                "you must obtain a separate licence.")
+    for text in (sentence + comment, sentence.replace("must ", f"must {comment}")):
+        result = check("licence.user_cap", 200_000_000, text)
+        assert result.outcome == "verified", result
+
+
+def test_bare_not_tag_has_no_visible_word_in_registered_sentence_or_mau():
+    sentence = 'Subject to these terms, you may use the "Services" in your applications.'
+    digest = hashlib.sha256(sentence.casefold().encode()).hexdigest()
+    template = verify.LicenceSentenceTemplate(
+        source_family="synthetic-terms", source_url="https://example.test/terms",
+        region_sha256=digest, sentence_sha256=digest,
+        facet="licence.commercial_use", value="permitted_with_conditions",
+        label="Synthetic operative statement",
+    )
+    result = check(template.facet, template.value, sentence.replace("may ", "may <not>"),
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "verified", result
+    cap = ("If you exceed 200 million monthly active users, "
+           "you must <not>obtain a separate licence.")
+    assert check("licence.user_cap", 200_000_000, cap).outcome == "verified"
