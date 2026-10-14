@@ -21,7 +21,8 @@ readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
 completion function, and only from a source kind the facet permits.
 ``CanonicalLicenceExtractor`` reads a canonical MIT or Apache-2.0
 ``licence_text`` first, and the licence reader is not asked about a text it
-accepts. Other
+accepts. ``LicenceTermsExtractor`` reads explicit Gemma and provider clauses
+before the completion reader. It does not infer silence from prose. Other
 cited regions are binding pages, not readings. Deterministic extractors
 still read a ``licence_text`` source for every other claim. An absence
 verifies only from a source kind the facet permits; a ``licence.*`` absence
@@ -3982,21 +3983,29 @@ class LicenceTermsExtractor:
         values: set[str] = set()
         clauses = [re.sub(r"\s+", " ", clause).strip().casefold()
                    for clause in _CLAUSE_BREAK.split(prose)]
+
+        def affirmative(pattern: str) -> bool:
+            matches = list(re.finditer(pattern, corpus))
+            return bool(matches) and not any(re.search(
+                r"\b(?:not|never|false|untrue|incorrect|nothing)\b[^.!?]*$",
+                corpus[:match.start()],
+            ) for match in matches)
+
         gemma_grant = (
             "you may use, reproduce, modify, distribute gemma and model derivatives, "
             "subject to these terms" in clauses
-            or re.search(
+            or affirmative(
                 r"\byou may use, reproduce, modify, distribute(?:, perform or| and) display "
                 r"(?:any of the )?gemma services only in accordance with "
-                r"(?:the terms of )?this agreement\b", corpus,
-            ) is not None
+                r"(?:the terms of )?this agreement\b",
+            )
         )
         gemma_policy = (
             "you must comply with the gemma prohibited use policy" in clauses
-            or re.search(
+            or affirmative(
                 r"\byou must not use (?:any of the )?gemma services\b"
-                r"[^.!?]{0,130}\bgemma prohibited use policy\b", corpus,
-            ) is not None
+                r"[^.!?]{0,130}\bgemma prohibited use policy\b",
+            )
         )
         if re.search(
             r"\b(?:this|the) (?:restriction|threshold|grant|permission) "
@@ -4032,15 +4041,11 @@ class LicenceTermsExtractor:
                     r"in compliance with these terms)", clause,
                 ):
                     values.add("permitted_with_conditions")
-            grants = list(re.finditer(
+            grant = affirmative(
                 r"\bgrants? (?:you|customer) a non-exclusive right to access and use the services\b"
                 r"|\bgrants?(?: to)? customer a\b[^;.!?]{0,120}\blicen[cs]e during the term to: "
-                r"\(a\) access and use the services\b", corpus,
-            ))
-            if any(re.search(
-                r"\b(?:does? not|nothing\b[^.!?]{0,100})\s*$", corpus[:grant.start()],
-            ) for grant in grants):
-                return set()
+                r"\(a\) access and use the services\b",
+            )
             integration = re.search(
                 r"\bapi\b[^.!?]{0,240}\b(?:customer applications|end users|end-user)\b"
                 r"|\bdevelop other software applications\b[^.!?]{0,240}\bend users\b", corpus,
@@ -4049,7 +4054,7 @@ class LicenceTermsExtractor:
                 r"\b(?:subject to|in accordance with)\b[^.!?]{0,100}\b(?:terms|agreement)\b",
                 corpus,
             )
-            if grants and integration and conditioned:
+            if grant and integration and conditioned:
                 values.add("permitted_with_conditions")
             if re.search(
                 r"\buse of\b[^;.!?]{0,80}\bis for developers building with\b"
@@ -4088,10 +4093,21 @@ class LicenceTermsExtractor:
                     if not re.match(r"\((?:[a-z]|[ivx]+)\)", following):
                         break
                     actions.append(following)
-            for action in actions:
+            items = [item.strip() for action in actions for item in re.split(
+                r"\s*;?\s+(?=\((?:[a-z]|[ivx]+)\)\s)", action,
+            )]
+            for item in items:
+                action = re.sub(r"^\((?:[a-z]|[ivx]+)\)\s*", "", item)
+                if not re.match(r"(?:except [^,;.!?]{1,100}, )?use\b", action):
+                    continue
                 if re.search(
                     r"\boutputs?(?: of (?:the )?services)?(?:\s*\([^)]{0,60}\))?\s*,? "
-                    r"to (?:train\b|develop\b|perform model distillation\b)"
+                    r"to (?:train(?:,? (?:fine-tune|distill|or otherwise improve or create|"
+                    r"or otherwise improve|or create)){0,4} (?:any |a |an )?"
+                    r"(?:(?:artificial intelligence|machine learning|ai)"
+                    r"(?: or machine learning)? )?models?\b|"
+                    r"develop (?:artificial intelligence |machine learning |ai )?models?\b|"
+                    r"perform model distillation\b)"
                     r"[^;.!?]{0,360}\bcompet(?:e(?:s)?|ing)\b", action,
                 ):
                     values.add("restricted")
@@ -4112,7 +4128,8 @@ class LicenceTermsExtractor:
                     "model derivatives include models trained on synthetic data outputs of gemma "
                     "or by distillation" in clauses
                     or re.search(
-                        r'"?model derivatives"? means\b[^.!?]{0,850}'
+                        r'"?model derivatives"? means\b'
+                        r'(?:(?!\b(?:not|never|except|excluding)\b)[^.!?]){0,850}'
                         r"\bsynthetic data outputs by gemma for training that model\b", corpus,
                     ) is not None
                 )
@@ -4122,6 +4139,9 @@ class LicenceTermsExtractor:
                     "in section 3.2" in corpus
                 )
                 and gemma_policy
+                and not re.search(
+                    r"use restrictions in section 3\.2[^.!?]{0,100}\bexcept\b", corpus,
+                )
             ):
                 values.add("restricted")
         elif field == "licence.fine_tuning":
@@ -4460,7 +4480,8 @@ if _APPENDIX_HEAD in CANONICAL_LICENCE_BODIES["apache-2.0"]:
 #: Exact ``(before, after)`` text around a canonical body, after
 #: :func:`_canonical_form` and whitespace stripping. For Apache-2.0, ``after``
 #: is what remains once the canonical appendix is removed, so it is the
-#: copyright line between the how-to and the boilerplate.
+#: copyright line between the how-to and the boilerplate, or empty for complete
+#: operative terms without that optional appendix.
 #:
 #: DeepSeek-V4-Pro, DeepSeek-V4.1-Flash, and ``model-143-deepseek-v4-license``
 #: are the same retained bytes as DeepSeek-V3.1, so they share that pair.
@@ -4584,8 +4605,9 @@ def _canonical_licence_id(text: str) -> str | None:
     The signature has to match and the canonical body has to be present. The
     text before and after that body, after :func:`_canonical_form` and
     whitespace stripping, has to be a pair in :data:`CANONICAL_LICENCE_RESIDUALS`.
-    For Apache-2.0 the appendix how-to and boilerplate are removed first, and
-    the copyright line that was between them is the ``after`` value.
+    For Apache-2.0 an optional appendix how-to and boilerplate are removed first,
+    and the copyright line that was between them is the ``after`` value.
+    The complete operative terms alone have an empty residual pair.
 
     Returns ``None`` when the notice-retention rule is no longer the one this
     table applies, when a red-flag phrase is present, when the text outside
@@ -5585,7 +5607,8 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` takes a
     ``licence_text`` region whose text is the canonical MIT licence or the
     Apache License 2.0 terms, and the licence reader is not asked about that
-    text. ``LicenceExtractor`` reads every other permitted region. Any other
+    text. ``LicenceTermsExtractor`` reads explicit supported clauses before
+    ``LicenceExtractor`` on other permitted regions. Any other
     cited region is a binding page. It is not a reading, for a known value or
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
@@ -5770,7 +5793,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` reads a
     ``licence_text`` region when the text is the canonical MIT licence or the
     Apache License 2.0 terms, and ``LicenceExtractor`` is not asked about that
-    text. ``LicenceExtractor`` reads the other permitted regions. Other cited
+    text. ``LicenceTermsExtractor`` reads explicit supported clauses before
+    ``LicenceExtractor`` on the other permitted regions. Other cited
     regions are binding pages. A binding page gives
     no outcome while the claim also cites a permitted kind. It is a
     ``source_kind`` mismatch only when the claim cites no permitted kind.

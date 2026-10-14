@@ -90,16 +90,24 @@ reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic
 extractors still run first. On a `licence.*` claim, `CanonicalLicenceExtractor`
 reads a `licence_text` region when the retained text is the canonical MIT
-licence or the Apache License 2.0 terms. `LicenceExtractor` reads every other
-permitted region, and it is not asked about a text the canonical extractor
+licence or the Apache License 2.0 terms. The complete Apache operative terms
+can omit the optional application appendix. Added restrictions still fail the
+canonical match. `LicenceTermsExtractor`, `licence-terms@1`, reads explicit
+Gemma grants, prohibited-use duties, output-derived model restrictions, provider
+commercial grants, scoped output-training prohibitions, model-weight modification
+prohibitions, and explicit monthly-user agreement thresholds. It requires the
+same permitted source kind and model binding as the completion reader. It does
+not infer an absent cap or undisclosed fine-tuning rights from prose silence.
+`LicenceExtractor` reads every other permitted region, and it is not asked about
+a text the canonical extractor
 accepts. A `model.weights_openness` or `origin.*` claim on a
 `licence_text` source still uses the other deterministic extractors.
 
 A `licence.*` claim is read by `LicenceExtractor`
 (`licence-extract:<model>`) from a source kind in that facet's
 `permitted_source_kinds`, using the same completion function, cache and
-call budget as the prose reader. `licence.user_cap` permits only
-`licence_text`. The prompt gives the facet's definition, the
+call budget as the prose reader. All four licence facets permit
+`licence_text` and `provider_terms`. The prompt gives the facet's definition, the
 reading rule for that facet, and its allowed values, including `unbounded`
 for `licence.user_cap`, and asks for the value plus one or more verbatim
 clauses. It does not show the collector's value. The reading rule says when
@@ -136,7 +144,8 @@ extractor, so it is an independent second key. `modelspec verify` runs it
 with no `--llm-reader`. It accepts a `licence.*` claim whose cited region
 is `licence_text` when the retained text is the canonical MIT licence or
 the Apache License 2.0 terms. The licence reader is not asked about a text
-this extractor accepts. Any other text falls through to that reader.
+this extractor accepts. Other text first tries the explicit clause reader,
+then falls through to the completion reader.
 
 Recognition is a signature plus an exact residual list. MIT text contains
 "Permission is hereby granted, free of charge" and the warranty sentence
@@ -147,9 +156,10 @@ grant, the sentence that grants a copyright license to prepare Derivative
 Works. The text has to contain that licence's canonical body. The text before
 and after the body, once whitespace is collapsed and stripped, has to be one
 of the pairs in `CANONICAL_LICENCE_RESIDUALS`. Those pairs are the residuals
-of the retained copies reviewed for this extractor. For Apache-2.0 the how-to
-appendix and the boilerplate notice are removed first, and the copyright line
-that was between them is the `after` value, matched exactly. A longer addition
+of the retained copies reviewed for this extractor. For Apache-2.0 the optional
+how-to appendix and the boilerplate notice are removed first, and the copyright
+line that was between them is the `after` value, matched exactly. The complete
+operative terms without an appendix have an empty residual pair. A longer addition
 is not this licence. A text that contains "separate agreement", "monthly
 active users", "not intended for use", "prohibited use", or "acceptable use"
 is not this licence. A new canonical file with a different copyright line is

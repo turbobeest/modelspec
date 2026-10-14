@@ -316,3 +316,39 @@ def test_explicit_clause_still_requires_model_binding_and_permitted_source_kind(
     result = check("licence.user_cap", None, text, "lab_documentation")
     assert result.outcome == "mismatch", result
     assert result.diffs[0].field == "source_kind"
+
+
+@pytest.mark.parametrize("text", [
+    "Customer will not: (a) use Output to develop a competing calendar application.",
+    "Customer will not: (a) use Output to train employees of competing companies.",
+    "Customer will not: (a) claim that users may use Output to train competing models.",
+    "Customer will not: (a) resell access; (b) Customer may use Output to train competing models.",
+])
+def test_output_prohibition_requires_customer_model_training_action(text):
+    assert check("licence.output_training", "restricted", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("prefix", ["will not grant", "never grants", "does not grant"])
+def test_negated_provider_grants_remain_unread(prefix):
+    text = (f"Subject to these terms, Acme {prefix} Customer a non-exclusive right to access "
+            "and use the Services. Customer may use the API to integrate into Customer "
+            "Applications for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    GEMMA_DISTRIBUTION.replace(
+        "models made by distillation or synthetic data Outputs by Gemma for training that model",
+        "changes to weights, but never models made with synthetic data Outputs by Gemma "
+        "for training that model",
+    ),
+    GEMMA_DISTRIBUTION.replace("Section 3.2.", "Section 3.2, except models trained on Outputs."),
+])
+def test_gemma_output_definition_and_distribution_rule_cannot_exclude_output_models(text):
+    assert check("licence.output_training", "restricted", text, "licence_text").outcome == "skipped"
+
+
+def test_quoted_false_gemma_grant_remains_unread():
+    text = GEMMA_DISTRIBUTION.replace("You may use", "It is false that you may use")
+    for field in ("licence.commercial_use", "licence.fine_tuning"):
+        assert check(field, "permitted_with_conditions", text, "licence_text").outcome == "skipped"
