@@ -1,0 +1,10 @@
+Membership Pricing and Plan Overview
+The current China plans are Go, Plus, Pro, and Max. The tables below describe new plans; see the legacy-plan section for existing subscriptions. Check the membership pricing page for current prices, full benefits, and purchase eligibility.
+Monthly and annual pricing
+China membership pricing with annual billing, captured on October 12, 2026. The large prices are monthly equivalents; annual totals are billed upfront.
+Plan | Monthly billing | Annual total | Monthly equivalent with annual billing
+Go | ¥49/month | ¥468/year | ¥39/month
+Plus | ¥99/month | ¥948/year | ¥79/month
+Pro | ¥199/month | ¥1,908/year | ¥159/month
+Max | ¥699/month | ¥6,708/year | ¥559/month
+Annual billing is charged as one annual total. The monthly equivalent is for comparison and is not billed monthly. Save up to ¥1,680/year with annual billing.

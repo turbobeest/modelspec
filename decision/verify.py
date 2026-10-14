@@ -1065,7 +1065,7 @@ class SubscriptionPageExtractor:
         """Possible recrawl replacements, each requiring separate verification."""
         if claim.field != "offering.subscription.coverage_quote":
             raise ExtractorError("not a coverage quote")
-        if _HTML_TAG.search(text):
+        if _HTML_TAG.search(text.replace("<API Key>", "")):
             return []
         lines = [line.strip().lstrip("#").strip() for line in _content_block(text).splitlines()
                  if line.strip()]
@@ -1107,7 +1107,8 @@ class SubscriptionPageExtractor:
         if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
                 and "coding_tool:*" in claim.value:
             return []
-        if _HTML_TAG.search(text):
+        # Normalized code examples can contain this literal credential placeholder.
+        if _HTML_TAG.search(text.replace("<API Key>", "")):
             return []
         if claim.field == "offering.subscription.coverage_quote":
             return [r for r in self.quote_candidates(claim, text)

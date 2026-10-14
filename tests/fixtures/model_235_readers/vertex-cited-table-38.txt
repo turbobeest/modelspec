@@ -1,0 +1,3 @@
+Model | Type | Region | Request Type | Price /1k tokens (USD)
+Codey for Code Completion | Input | Global | Online requests | $0.00025
+| Output | Global | Online requests | $0.0005
