@@ -223,7 +223,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.17"
+    assert c.CONTRACT_VERSION == "2.18"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -793,10 +793,10 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
     from decision.bounded import project
 
     decision = c.Decision.model_validate(DECISION)
-    assert decision.model_dump(mode="json")["contract_version"] == "2.17"
+    assert decision.model_dump(mode="json")["contract_version"] == "2.18"
     bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
     assert bounded["bounded_version"] == "1.2"
-    assert bounded["projects_contract"] == "2.17"
+    assert bounded["projects_contract"] == "2.18"
     assert "contract_version" not in bounded
     c.BoundedDecision.model_validate(bounded)
 
@@ -1041,6 +1041,8 @@ def _samples() -> list:
                     order=[result.offering.model, "openai/gpt-6-sol"],
                     thin=["qwen/qwen3-8-max"]),
         plan_price,
+        c.PlanExclusion(plan="anthropic/subscription/max-20x",
+                        reason="Claude Max 20x is closed to new buyers."),
         plan_coverage,
         plan_allowance,
         c.PlanRoute(plan="anthropic/subscription/max-20x", name="Claude Max 20x",

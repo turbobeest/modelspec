@@ -2185,6 +2185,7 @@ BoundedDecision = create_model(
     relax_task_tokens=(TaskTokensHint | None, None),
     relax_single=(RelaxSingle | None, None),
     with_estate=(WithEstate | None, None),
+    excluded_plans=(list[PlanExclusion], Field(default_factory=list)),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
     #: One entry per answer member, in ``answer.members`` order, unless the
@@ -2297,7 +2298,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     NearMiss, FactInterval, ShownFact, HardwareEstimate, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     SingleGate, RelaxSingle,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
-    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
+    Access, PlanPrice, PlanExclusion, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
     CoveredClass, CoverageRefusal,
     ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence, NextMove,
     BoundedExplanation, BoundedDecision,

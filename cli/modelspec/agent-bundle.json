@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "1.0.0",
-  "guide_version": "1-31f80fb67e121e42",
+  "guide_version": "1-a3bb2bee669261e7",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -812,13 +812,13 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "3fc9b8dad06b282aeb92e04ab6b4ebdd2723879bfeb44fa92c1ec04767261250",
+    "pipeline/agent_copy.py": "c7a5d672de6355810f03c2f812075e1d34da7bd6907d2c2c45d2b6d6b71a6ccd",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "d870582d19dc557ca646b6eabf12054eede51d12a6497c94c9d86588f0e2fee2",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "421a3587d1fddf8f082e63b66ff82f3a3f23fff1ffd5f109ebf40877076baf2f",
     "api/worker/tiers.json": "488d2781f0a55c756be2f4b674c3f3234e85964ce9b917a6b7b6fc63b3e3b317",
-    "docs/decision-contract.schema.json": "a94de1ef23c6f365c65c6bffcbc17263916bf7d3796ef684844c4681c477e3df",
+    "docs/decision-contract.schema.json": "43ae38d4c956cd913bd61af1a02f93f5ffe44f76fd490bc6d97b9fbbad80a55c",
     "pyproject.toml": "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

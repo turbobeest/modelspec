@@ -156,7 +156,7 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     body["results"] = [] if detail else [
         {key: value for key, value in row.items() if key in fields} for row in data["results"]]
     body["may_qualify"] = [] if detail else data["may_qualify"][:10]
-    for key in ("reading", "coverage", "with_estate", "relax_task_tokens", "relax_single"):
+    for key in ("reading", "coverage", "with_estate", "relax_task_tokens", "relax_single", "excluded_plans"):
         if key in data:
             body[key] = data[key]
     omitted = {key: len(data[key]) for key in (
@@ -582,7 +582,7 @@ def _fit_agent_budget(body: dict) -> None:
             while _over(body) and estate_results:
                 estate_results.pop()
                 _omit(body, "with_estate.results")
-        for key in ("may_qualify", "gain"):
+        for key in ("may_qualify", "gain", "excluded_plans"):
             rows = estate.get(key)
             if not isinstance(rows, list):
                 continue
@@ -592,6 +592,10 @@ def _fit_agent_budget(body: dict) -> None:
         if _over(body):
             body.pop("with_estate", None)
             _omit(body, "with_estate")
+
+    while _over(body) and body.get("excluded_plans"):
+        body["excluded_plans"].pop()
+        _omit(body, "excluded_plans")
 
     for key in ("reading", "relax_task_tokens", "relax_single"):
         if not _over(body):
@@ -639,6 +643,8 @@ def _bound_detail(body: dict) -> None:
     omitted = body["explanation"]["omitted"]
     # Drop complete records, never trim their provenance or turn values into nulls.
     lists = [("model_evidence.contributions", detail["contributions"])]
+    if body.get("excluded_plans"):
+        lists.append(("excluded_plans", body["excluded_plans"]))
     lists += [("model_evidence.evidence.items", group["items"]) for group in detail["evidence"]]
     while True:
         _note_fetch(body)

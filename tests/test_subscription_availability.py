@@ -8,7 +8,7 @@ from decision.contract import parse_spec
 from decision.engine import decide
 from decision.snapshot import build_snapshot, load_snapshot_bytes
 from decision.vocabulary import build_vocabulary
-from tests.plan_records import CONTEXT, MAX, OPUS, PRO, SONNET, inputs
+from tests.plan_records import CONTEXT, CURSOR_PRO, MAX, OPUS, PRO, SONNET, inputs, vendor_inputs
 from tests.snapshot_records import fact
 
 AVAILABILITY = "offering.subscription.availability"
@@ -143,3 +143,69 @@ def test_vocabulary_lists_availability_facet_and_sourced_plan_value():
     plans = {plan["id"]: plan for plan in vocabulary["estate"]["plans"]}
     assert plans[MAX]["availability"] == "existing_subscribers_only"
     assert "availability" not in plans[PRO]
+
+
+def test_bounded_worker_answer_keeps_plan_exclusion_reason():
+    from tests.test_decision_plans import _service
+
+    status, body = _service().decide({
+        "spec_version": 1, "optimize": {"max": CONTEXT}, "access": "chat_app",
+        "explain": "none", "fields": ["model"],
+    }, snapshot_for("existing_subscribers_only"))
+
+    assert status == 200
+    [excluded] = body["excluded_plans"]
+    assert excluded["plan"] == MAX
+    assert "closed to new buyers" in excluded["reason"]
+
+
+def test_bounded_answer_counts_exclusion_records_removed_to_fit_budget():
+    import json
+
+    from decision.bounded import RESPONSE_BYTES, project
+    from decision.contract import PlanExclusion, ResponseOptions
+
+    decision = answer(snapshot_for("existing_subscribers_only"))
+    decision.excluded_plans = [
+        PlanExclusion(plan=f"anthropic/subscription/closed-{number}",
+                      reason="This plan is closed to new buyers. " * 50)
+        for number in range(80)
+    ]
+    body = project(decision, ResponseOptions(fields=["model"]), not_applied=[])
+
+    assert len(json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()) <= RESPONSE_BYTES
+    assert body["explanation"]["omitted"]["excluded_plans"] > 0
+    assert len(body["excluded_plans"]) + body["explanation"]["omitted"]["excluded_plans"] == 80
+
+
+@pytest.mark.parametrize("value", ["existing_subscribers_only", "retired"])
+def test_subscription_only_vendor_does_not_route_new_buyer_through_unavailable_plan(value):
+    catalogue = vendor_inputs()
+    catalogue.subscriptions[-1]["facts"].append(
+        fact("offering", CURSOR_PRO, AVAILABILITY, value, source="src-pricing")
+    )
+    data = build_snapshot(catalogue).to_bytes(key=KEY)
+    snapshot = load_snapshot_bytes(data, key=KEY, source="MODEL-384 vendor snapshot")
+    decision = answer(snapshot, {"kind": "coding_tool", "harness": "cursor"})
+
+    assert all(row.offering.provider is not None for row in decision.results)
+    assert all(route.plan != CURSOR_PRO for row in decision.results for route in row.plans)
+    assert CURSOR_PRO in {row.plan for row in decision.excluded_plans}
+
+
+def test_closed_plan_price_cannot_satisfy_new_buyers_monthly_price_filter():
+    decision = answer(snapshot_for("existing_subscribers_only"),
+                      where=["offering.plan.price_monthly >= 100"])
+
+    assert decision.results == []
+
+
+def test_exhausted_closed_plan_falls_back_to_held_key_without_purchase_suggestion():
+    held = answer(snapshot_for("existing_subscribers_only"), "coding_tool", {
+        "plans": [MAX], "providers": ["anthropic"], "exhausted": [MAX],
+    }).with_estate
+
+    assert held is not None
+    assert all(row.estate.via.kind == "provider" for row in held.results)
+    assert "closed to new buyers" not in held.gap.summary
+    assert MAX not in {item.add.id for item in held.gain}

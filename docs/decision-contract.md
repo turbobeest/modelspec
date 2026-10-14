@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.17**
+Contract version: **2.18**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
@@ -563,6 +563,27 @@ fact and two-key rules, each null until published:
 - **allowance**: `offering.subscription.allowance.relative_to` (a plan ID),
   `.multiplier`, `.window` and `.tokens`. `tokens` is null unless the provider
   publishes it; it is never derived.
+- **availability**: `offering.subscription.availability` is `open`,
+  `existing_subscribers_only` or `retired`, based only on an explicit sourced
+  statement. An absent or unknown fact preserves the previous routing. It
+  never implies closure. This record-only facet is listed in
+  `estate.plan_facets` in the vocabulary; it is not a Must or Prefer over
+  model offerings.
+
+Unrestricted routes admit only plans open to new buyers or with unknown
+availability. A plan marked `existing_subscribers_only` still routes through
+an existing `estate.plans` holding, but the unrestricted answer excludes it.
+A `retired` plan never routes, including for a holder. Neither closed nor
+retired plans appear as prospective purchases in `with_estate.gain`.
+
+A complete decision and its `with_estate` block may add `excluded_plans`, a
+list of `PlanExclusion` records with `plan` and a human-readable `reason`.
+The list is absent when no plan is excluded by availability. It reports
+availability exclusions before coverage and surfaces are evaluated. A held
+plan's `availability` field on `estate` optionally carries the known enum value; it is
+absent when unknown or when a key or device reaches the row. When a closed
+plan reaches a ranked estate result, `gap.summary` states that it is closed
+to new buyers and the caller's existing subscription remains usable.
 
 The vocabulary's `estate.plans` publishes each plan as this record: `price`,
 `surfaces`, `coverage` (each entry as below) and `allowance`, with null for
@@ -662,7 +683,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.17",
+  "contract_version": "2.18",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -805,7 +826,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.17"`. |
+| `contract_version` | `"2.18"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1151,13 +1172,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.17"`. Every field the bounded body does carry has that
+  currently `"2.18"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.17
+Requests with only `limit`, or `fields: null`, receive complete contract 2.18
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1177,13 +1198,19 @@ elimination or a missing fact. Use a complete response to inspect those
 sections. `explain` still controls which details the engine computes; selecting
 `contributions` with `explain: none` returns an empty list.
 
+The bounded body also carries optional `excluded_plans` when the complete
+decision has availability exclusions. Its byte budget can remove whole
+records, counted in `explanation.omitted.excluded_plans`, before the reporting
+guidance is removed. Estate exclusion records can be removed with the other
+estate lists. A drill-down can remove exclusion records to fit its own budget.
+
 `decision_url` is an optional HTTPS link to a read-only human summary page
 (MODEL-353, experimental). The Worker issues it only when
 `DECISION_LINK_ENABLED` is on, human-view configuration is ready, the inputs
 are shareable, and the link fits the existing byte budget. It is absent with
 the flag off and from complete decisions. Visibility and storage await Jamie's
 approval; see [the draft design](design/decision-link.md). Adding this optional
-field widens no existing field, so bounded 1.2 and complete 2.17 do not change.
+field widens no existing field, so bounded 1.2 and complete 2.18 do not change.
 
 `next_move` is optional and additive in bounded 1.2. It is present on
 `no_feasible`, `partial`, and an `answered` tie or null answer, and absent on
@@ -1674,7 +1701,7 @@ an explicit source-policy reason without retaining the excluded URL.
 The stored `model.fits_hardware` facet still controls reach.
 
 The bounded representation continues at `bounded_version: "1.2"` and
-names `projects_contract: "2.17"`. It does not carry `top`; fetch the complete
+names `projects_contract: "2.18"`. It does not carry `top`; fetch the complete
 answer without `fields` to inspect these facts and their provenance.
 
 ## Comparing named models (MODEL-364)
@@ -1697,8 +1724,8 @@ The named comparison has its own contract, version **1.0**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
-No Decision field changes range. The shared Decision contract is 2.17.
-The bounded projection stays at 1.2 with `projects_contract: "2.17"`.
+No Decision field changes range. The shared Decision contract is 2.18.
+The bounded projection stays at 1.2 with `projects_contract: "2.18"`.
 
 The success response is a `ModelComparison` with these fields:
 
@@ -1846,6 +1873,11 @@ it instead of carrying its own list of facets or benchmarks. Built by
   provider ID), `plans` (each subscription plan in the snapshot as `id`,
   `provider` and `name`) and `devices` (every hardware SKU ID). Adding it is
   compatible, so `vocabulary_version` remains `1`.
+  `plans[].availability` optionally carries a sourced availability value and
+  is absent when unknown. `plan_facets` lists record-only plan facet
+  descriptors, including `offering.subscription.availability`, with `id`,
+  `name`, `definition`, `value_type`, `allowed_values` and `addressable: false`.
+  Retrieve this descriptor with `section=estate` and its facet ID.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one
@@ -1888,6 +1920,14 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.18, MODEL-384:** Adds sourced subscription availability. Closed-to-new
+  plans route only for existing estate holders; retired plans never route.
+  Optional `excluded_plans` records explain availability exclusions, and
+  optional `EstateMark.availability` labels a known holding. The vocabulary
+  adds `estate.plan_facets` and optional plan availability values. No existing
+  field changes range. Bounded 1.2 adds optional `excluded_plans` and projects
+  complete contract 2.18; its own version stays 1.2.
 
 - **MODEL-210, under 2.17 without a version change:** `plan_surfaces` gains
   the registry token `coding_tool:*`. `PlanRoute.surface` stays an
