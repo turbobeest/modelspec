@@ -6,7 +6,7 @@ import json
 import os
 import shutil
 import subprocess
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -64,7 +64,8 @@ def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> No
 
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
     registry = default()
-    snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
+    snapshot = build_from_repo(
+        ROOT, premier=None, as_of=date.fromisoformat(data.as_of), gate=False)
     loaded = load_built_snapshot(snapshot, source="landing test build")
     cards = {model.model_id: model for model in load_models(ROOT)}
     expected: list[tuple[str, str, str, float]] = []
@@ -296,7 +297,8 @@ def test_the_landing_head_carries_the_current_headline(data: landing.LandingData
 def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) -> None:
     """Recompute the hero's tie from /decide's own answer and find it on the page."""
     registry = default()
-    snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
+    snapshot = build_from_repo(
+        ROOT, premier=None, as_of=date.fromisoformat(data.as_of), gate=False)
     loaded = load_built_snapshot(snapshot, source="landing headline test")
     answer = decide(parse_spec(landing.TIE_SPEC, facets=registry.facet), loaded,
                     facets=registry.facet)
@@ -327,6 +329,26 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     if cheapest.p_beats_leader is not None:
         assert f"a {cheapest.p_beats_leader:.0%} chance of scoring at least as well" in page
         assert f"At {bands.band_probability:.0%} or more" in page
+
+
+def test_the_headline_rebuild_uses_the_fixture_date_past_midnight(
+    data: landing.LandingData, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The rebuild keeps the fixture's as_of when the wall clock rolls forward."""
+    pinned = date.fromisoformat(data.as_of)
+    fromisoformat = date.fromisoformat
+
+    class NextDay:
+        @staticmethod
+        def today() -> date:
+            return pinned + timedelta(days=1)
+
+        @staticmethod
+        def fromisoformat(value: str) -> date:
+            return fromisoformat(value)
+
+    monkeypatch.setattr(f"{__name__}.date", NextDay)
+    test_the_headline_figures_come_from_the_engine(data)
 
 
 def test_the_positioning_copy_types_no_numbers(data: landing.LandingData) -> None:
