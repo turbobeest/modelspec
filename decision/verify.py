@@ -1075,6 +1075,15 @@ class SubscriptionPageExtractor:
                 for c in dict.fromkeys(candidates) if c]
 
     def accepts(self, text: str) -> bool:
+        return self._accepts_layout(text) or bool(re.search(
+            r"(?im)\bavailability\b|\bnew (?:subscribers|subscriptions|customers|buyers)\b|"
+            r"\bexisting subscribers\b|\bplan\b.{0,80}\bretired\b|"
+            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b",
+            text,
+        ))
+
+    def _accepts_layout(self, text: str) -> bool:
+        """The established page layouts for every other subscription facet."""
         return bool(re.search(
             r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
             r"everything in .+?, plus|\bcodex\b|claude code|more usage than pro|"
@@ -1106,6 +1115,8 @@ class SubscriptionPageExtractor:
                 return []
             claim = replace(claim, names=names)
         text = _content_block(text)
+        if claim.field == "offering.subscription.availability":
+            return _plan_availability(claim, text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
                      _vendor_layouts(claim, text)):
@@ -1367,6 +1378,92 @@ class SubscriptionPageExtractor:
         ]
         models = list(dict.fromkeys(models))
         return [Reading(subject=wanted, value=", ".join(models))] if models else []
+
+
+def _availability_value(statement: str) -> str | None:
+    """An explicit current availability statement, never a missing price or plan."""
+    if "?" in statement:
+        return None
+    wording = normalise_name(statement)
+    wording = re.sub(r"^(?:is (?:now )?|has been )", "", wording)
+    if wording in {"open", "existing subscribers only", "retired"}:
+        return wording.replace(" ", "_")
+    audience = r"new (?:subscribers|customers|buyers)"
+    if re.fullmatch(
+        rf"(?:open to {audience}|available to {audience}|available for new subscriptions)",
+        wording,
+    ):
+        return "open"
+    if re.fullmatch(
+        rf"(?:available only to existing subscribers|only available to existing subscribers|"
+        rf"closed to {audience}|(?:no longer|not) available "
+        rf"(?:to {audience}|for new subscriptions))",
+        wording,
+    ):
+        return "existing_subscribers_only"
+    if wording == "discontinued for all subscribers":
+        return "retired"
+    return None
+
+
+def _plan_availability(claim: Claim, text: str) -> list[Reading]:
+    """Availability in a named statement, plan section or labelled table cell.
+
+    A name must be the statement's subject or an exact heading/cell. Mentioning
+    the plan as the replacement's predecessor does not scope that statement.
+    """
+    aliases = {normalise_name(name) for name in claim.names}
+    names = "|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True))
+    named = re.compile(rf"^(?:the )?(?:{names})(?:\s+plan)?\s+(.+)$")
+    lines = [line.strip() for line in text.splitlines()]
+    statements: list[str] = []
+    header: list[str] = []
+    in_plan = False
+    for i, line in enumerate(lines):
+        if not line:
+            header = []
+            continue
+        if "|" in line:
+            in_plan = False
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            labels = [normalise_name(cell) for cell in cells]
+            if not header:
+                header = labels
+            elif "availability" in labels or labels[0] in {"plan", "features"}:
+                if labels[0] == "availability":
+                    statements += [cell for j, cell in enumerate(cells)
+                                   if j < len(header) and header[j] in aliases]
+                else:
+                    header = labels
+            elif labels[0] in aliases:
+                statements += [cell for j, cell in enumerate(cells)
+                               if j < len(header) and header[j] == "availability"]
+            continue
+        header = []
+        if _card_heading(line, aliases):
+            in_plan = True
+            header = []
+            continue
+        # Stop at the next plan section/card, including bare plan names.
+        if (line.startswith("#") or _PRICED_HEADING.match(line)
+                or re.fullmatch(r"[\w -]+ [Pp]lan(?: [\w -]+)?", line.strip("*_"))
+                or (len(line.split()) <= 3 and re.fullmatch(r"[\w -]+", line.strip("*_"))
+                    and _availability_value(line) is None)
+                or (len(line.split()) <= 3 and i + 1 < len(lines)
+                    and re.match(r"[$¥]\s?[0-9]", lines[i + 1]))):
+            in_plan = False
+            header = []
+        for sentence in _sentences(line):
+            if "?" in sentence:
+                continue
+            match = named.match(normalise_name(sentence))
+            if match:
+                statements.append(match.group(1))
+            elif in_plan:
+                statements.append(sentence)
+    values = list(dict.fromkeys(value for statement in statements
+                                if (value := _availability_value(statement)) is not None))
+    return [Reading(subject=claim.names[0], value=value) for value in values]
 
 
 #: An amount in a currency symbol; ``$ 50``, ``$117.6`` and ``¥99`` included.
@@ -5465,7 +5562,11 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
         )):
             continue
-        if extractor.accepts(text):
+        accepts = extractor.accepts
+        if isinstance(extractor, SubscriptionPageExtractor) \
+                and claim.field != "offering.subscription.availability":
+            accepts = extractor._accepts_layout
+        if accepts(text):
             chosen.append(extractor)
     return chosen
 

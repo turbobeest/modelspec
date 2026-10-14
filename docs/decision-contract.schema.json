@@ -555,7 +555,7 @@
           "title": "Answer"
         },
         "bounded_version": {
-          "const": "1.4",
+          "const": "1.5",
           "title": "Bounded Version",
           "type": "string"
         },
@@ -578,6 +578,13 @@
           "default": "",
           "title": "Decision Url",
           "type": "string"
+        },
+        "excluded_plans": {
+          "items": {
+            "$ref": "#/$defs/PlanExclusion"
+          },
+          "title": "Excluded Plans",
+          "type": "array"
         },
         "explain": {
           "enum": [
@@ -663,7 +670,7 @@
           "title": "Pick"
         },
         "projects_contract": {
-          "const": "2.17",
+          "const": "2.18",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -2062,8 +2069,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.17",
-          "default": "2.17",
+          "const": "2.18",
+          "default": "2.18",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2085,6 +2092,13 @@
         },
         "eliminated": {
           "$ref": "#/$defs/Eliminated"
+        },
+        "excluded_plans": {
+          "items": {
+            "$ref": "#/$defs/PlanExclusion"
+          },
+          "title": "Excluded Plans",
+          "type": "array"
         },
         "explain": {
           "enum": [
@@ -2462,6 +2476,23 @@
       "additionalProperties": false,
       "description": "How the estate reaches one row, and what one more task costs the caller.",
       "properties": {
+        "availability": {
+          "anyOf": [
+            {
+              "enum": [
+                "open",
+                "existing_subscribers_only",
+                "retired"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Availability"
+        },
         "cost_basis": {
           "enum": [
             "list_price",
@@ -4721,6 +4752,28 @@
       "title": "PlanCoverage",
       "type": "object"
     },
+    "PlanExclusion": {
+      "additionalProperties": false,
+      "description": "A subscription plan excluded because of its published availability.",
+      "properties": {
+        "plan": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Plan",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan",
+        "reason"
+      ],
+      "title": "PlanExclusion",
+      "type": "object"
+    },
     "PlanPrice": {
       "additionalProperties": false,
       "description": "A plan's published list price for one billing period. Added in 2.6.",
@@ -6344,6 +6397,13 @@
           "default": null,
           "title": "Answer"
         },
+        "excluded_plans": {
+          "items": {
+            "$ref": "#/$defs/PlanExclusion"
+          },
+          "title": "Excluded Plans",
+          "type": "array"
+        },
         "gain": {
           "items": {
             "$ref": "#/$defs/GainItem"
@@ -6414,5 +6474,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.17"
+  "x-contract-version": "2.18"
 }

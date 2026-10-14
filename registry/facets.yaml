@@ -1004,6 +1004,24 @@ facets:
     permitted_source_kinds: [provider_documentation, lab_documentation]
 
   # ── Offering: subscription plans ─────────────────────────────────────────
+  - id: offering.subscription.availability
+    label: Subscription availability
+    subject: offering
+    addressable: false
+    value_type: {kind: enum, values: [open, existing_subscribers_only, retired]}
+    value_labels:
+      open: Open to new buyers
+      existing_subscribers_only: Existing subscribers only
+      retired: Retired
+    definition: >-
+      Who can use this subscription plan: open admits new buyers,
+      existing_subscribers_only permits existing holders but is closed to new
+      buyers, and retired permits nobody. Only an explicit published statement
+      establishes availability. An absent or unknown fact preserves current
+      routing; it never implies that the plan is closed.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
   - id: offering.subscription.price
     label: Subscription price
     subject: offering

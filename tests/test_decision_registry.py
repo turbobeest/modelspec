@@ -154,9 +154,16 @@ def test_subscription_facets_are_record_only_until_holder_costs_exist(registry):
     ]
 
     # MODEL-173's five, MODEL-200's surfaces, families, quote and allowance,
-    # MODEL-201's CNY price, and MODEL-210's open coding-tool quote.
-    assert len(subscriptions) == 14
+    # MODEL-201's CNY price, MODEL-210's open coding-tool quote, and MODEL-384's availability.
+    assert len(subscriptions) == 15
     assert all(not facet.addressable for facet in subscriptions)
+    availability = registry.facet("offering.subscription.availability")
+    assert availability.subject == "offering"
+    assert availability.value_type.kind == "enum"
+    assert registry.allowed_values(availability) == frozenset({
+        "open", "existing_subscribers_only", "retired",
+    })
+    assert availability.addressable is False
 
 
 def test_parameterized_facet_ids_resolve_through_the_real_registry(registry):

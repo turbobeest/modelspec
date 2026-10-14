@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { fitDecideEnvelope } from "../src/server";
 
-it("uses contract 2.17 when a bounded trimmed body has neither version field", () => {
+it("uses contract 2.18 when a bounded trimmed body has neither version field", () => {
   const fitted = fitDecideEnvelope({
     origin: "https://api.modelspec.dev/v1/decide",
     status: 200,
@@ -16,15 +16,15 @@ it("uses contract 2.17 when a bounded trimmed body has neither version field", (
 
   expect(fitted.body).toMatchObject({
     representation: "bounded",
-    bounded_version: "1.4",
-    projects_contract: "2.17",
+    bounded_version: "1.5",
+    projects_contract: "2.18",
     status: "answered",
     answer: { kind: "tied", members: ["lab/a", "lab/b"] },
   });
   expect(Buffer.byteLength(JSON.stringify(fitted), "utf8")).toBeLessThanOrEqual(16_384);
 });
 
-it("uses contract 2.17 when empty versions reach the over-budget minimal fallback", () => {
+it("uses contract 2.18 when empty versions reach the over-budget minimal fallback", () => {
   const fitted = fitDecideEnvelope({
     origin: "https://api.modelspec.dev/v1/decide",
     status: 200,
@@ -42,8 +42,8 @@ it("uses contract 2.17 when empty versions reach the over-budget minimal fallbac
 
   expect(fitted.body).toMatchObject({
     representation: "bounded",
-    bounded_version: "1.4",
-    projects_contract: "2.17",
+    bounded_version: "1.5",
+    projects_contract: "2.18",
     status: "partial",
     answer: { kind: "tied", members: [] },
     explanation: { omitted: { trimmed: 2 } },

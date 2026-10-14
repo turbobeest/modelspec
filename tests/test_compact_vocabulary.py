@@ -125,8 +125,12 @@ def test_full_and_compact_cannot_escape_trim_allowances(scored):
     assert lookup(public, section="benchmarks", detail="full")["benchmarks"] == public["benchmarks"]
 
 
-def test_http_keeps_the_page_bytes_and_handles_optional_queries(monkeypatch, display):
+def test_http_keeps_the_page_bytes_and_handles_optional_queries(
+    monkeypatch, display, plan_availability_vocabulary,
+):
     from tests.test_feedback import entry as entry_fixture, Request
+    display = copy.deepcopy(display)
+    display["estate"] = trim(plan_availability_vocabulary, model_ids=set(), facet_values={})["estate"]
     # Whitespace deliberately differs from the lookup serializer.
     raw = (json.dumps(display, indent=3) + "\n").encode()
     monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=lambda path: raw
@@ -147,6 +151,14 @@ def test_http_keeps_the_page_bytes_and_handles_optional_queries(monkeypatch, dis
         assert fetch("?section=facets&search=CONTEXT").json()["facets"] == lookup(display, section="facets", search="CONTEXT")["facets"]
         selected = fetch("?section=facets&id=model.context_window&ids=model.class,missing&ids=model.class").json()["facets"]
         assert {row["id"] for row in selected} == {"model.context_window", "model.class"}
+        availability = fetch("?section=estate&id=offering.subscription.availability").json()
+        assert availability["estate"]["plan_facets"][0]["allowed_values"] == [
+            "existing_subscribers_only", "open", "retired"]
+        assert "unknown_ids" not in availability
+        assert fetch("?section=estate&search=Claude+Pro").json()["estate"]["plans"] == [{
+            "id": "anthropic/subscription/pro", "name": "Claude Pro",
+            "availability": "existing_subscribers_only",
+        }]
         assert fetch("?section=starter", "HEAD").body is None
         assert set(fetch("?section=starter").json()) == {"starter", "facets", "domains", "templates", "models", "estate", "next", "spec"}
         for query in ("?section=bad", "?detail=bad", "?limit=0", "?limit=21", "?offset=-1", "?offset=1.5"):
@@ -174,3 +186,110 @@ def test_lookup_caps_ids_and_tolerates_a_template_without_a_spec():
     with pytest.raises(ValueError):
         lookup(vocabulary, section="facets", ids=[str(i) for i in range(101)])
     assert lookup(vocabulary, section="facets", ids=["a", "a"])["facets"]
+
+
+@pytest.fixture
+def plan_availability_vocabulary():
+    return {
+        "estate": {
+            "providers": [],
+            "devices": [],
+            "plans": [
+                {"id": "anthropic/subscription/pro", "provider": "anthropic",
+                 "name": "Claude Pro", "availability": "existing_subscribers_only",
+                 "price": {"amount": 20, "currency": "USD", "period": "monthly"}},
+                {"id": "openai/subscription/plus", "provider": "openai",
+                 "name": "ChatGPT Plus"},
+            ],
+            "plan_facets": [{
+                "id": "offering.subscription.availability",
+                "name": "Subscription plan availability",
+                "definition": "Whether new buyers can subscribe to this plan.",
+                "value_type": "enum",
+                "allowed_values": ["existing_subscribers_only", "open", "retired"],
+                "addressable": False,
+            }],
+        },
+    }
+
+
+@pytest.mark.parametrize("section", ["estate", "starter"])
+def test_subscription_availability_resolves_by_its_exact_estate_facet_id(
+    plan_availability_vocabulary, section,
+):
+    result = lookup(plan_availability_vocabulary, section=section,
+                    ids=["offering.subscription.availability"])
+
+    assert result["estate"] == {
+        "providers": [], "devices": [], "plans": [],
+        "plan_facets": [{
+            "id": "offering.subscription.availability",
+            "name": "Subscription plan availability",
+            "definition": "Whether new buyers can subscribe to this plan.",
+            "value_type": "enum",
+            "allowed_values": ["existing_subscribers_only", "open", "retired"],
+            "addressable": False,
+        }],
+    }
+    assert result["matches"] == [{
+        "section": "estate", "id": "offering.subscription.availability",
+        "matched": "id", "label": "Subscription plan availability",
+    }]
+    assert "unknown_ids" not in result
+
+
+def test_trim_preserves_subscription_availability_without_other_plan_facts(
+    plan_availability_vocabulary,
+):
+    display = trim(plan_availability_vocabulary, model_ids=set(), facet_values={})
+
+    assert display["estate"] == {
+        "providers": [], "devices": [],
+        "plans": [
+            {"id": "anthropic/subscription/pro", "provider": "anthropic",
+             "name": "Claude Pro", "availability": "existing_subscribers_only"},
+            {"id": "openai/subscription/plus", "provider": "openai",
+             "name": "ChatGPT Plus"},
+        ],
+        "plan_facets": [{
+            "id": "offering.subscription.availability",
+            "name": "Subscription plan availability",
+            "definition": "Whether new buyers can subscribe to this plan.",
+            "value_type": "enum",
+            "allowed_values": ["existing_subscribers_only", "open", "retired"],
+            "addressable": False,
+        }],
+    }
+
+
+def test_compact_estate_plan_search_discloses_only_known_availability(
+    plan_availability_vocabulary,
+):
+    closed = lookup(plan_availability_vocabulary, section="estate", search="Claude Pro")
+    unknown = lookup(plan_availability_vocabulary, section="estate", search="ChatGPT")
+
+    assert closed["estate"]["plans"] == [{
+        "id": "anthropic/subscription/pro", "name": "Claude Pro",
+        "availability": "existing_subscribers_only",
+    }]
+    assert unknown["estate"]["plans"] == [{
+        "id": "openai/subscription/plus", "name": "ChatGPT Plus",
+    }]
+
+
+def test_plain_compact_estate_lists_the_subscription_availability_facet(
+    plan_availability_vocabulary,
+):
+    result = lookup(plan_availability_vocabulary, section="estate")
+
+    assert result["estate"] == {
+        "providers": [], "devices": [],
+        "plan_facets": [{
+            "id": "offering.subscription.availability",
+            "name": "Subscription plan availability",
+            "definition": "Whether new buyers can subscribe to this plan.",
+            "value_type": "enum",
+            "allowed_values": ["existing_subscribers_only", "open", "retired"],
+            "addressable": False,
+        }],
+    }
