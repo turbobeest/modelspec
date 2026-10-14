@@ -88,6 +88,64 @@ def test_reader_does_not_inherit_retirement_from_an_unpriced_bare_sibling(name, 
     assert verify.SubscriptionPageExtractor().extract(pro, page) == []
 
 
+def _tier(*names: str) -> verify.Claim:
+    return replace(claim(), subject="minimax/subscription/token-plus", names=names)
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        "Token Plan is no longer available for new purchases.",
+        "Token Plan is no longer available for new purchase.",
+        "With the launch of M Plan, Token Plan is no longer available for new purchases.",
+        "Token Plan is no longer offered to new customers.",
+        "Token Plan is closed to new sign-ups.",
+    ],
+)
+def test_family_purchase_statement_closes_the_named_tier(page):
+    reader = verify.SubscriptionPageExtractor()
+    tier = _tier("Token Plan Plus")
+
+    assert reader.accepts(page)
+    assert reader.extract(tier, page) == [
+        verify.Reading("Token Plan Plus", "existing_subscribers_only")]
+
+
+def test_family_purchase_statement_closes_the_catalogue_tier_name():
+    """The filed name is the vendor plus the family plus one tier word."""
+    reader = verify.SubscriptionPageExtractor()
+    tier = _tier("MiniMax Token Plan Plus", "Plus", "token-plus")
+    page = "With the launch of M Plan, Token Plan is no longer available for new purchases."
+
+    assert reader.accepts(page)
+    assert reader.extract(tier, page) == [
+        verify.Reading("MiniMax Token Plan Plus", "existing_subscribers_only")]
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        "M Plan is no longer available for new purchases.",
+        "Token Plan new purchases are now available.",
+        "Is Token Plan no longer available for new purchases?",
+        "Token Plan is no longer available for new purchases?",
+        "Token Pro is no longer available for new purchases.",
+        "MyToken Plan is no longer available for new purchases.",
+        "Token Plan is available for new purchases.",
+    ],
+)
+def test_family_purchase_statement_rejects_siblings_questions_and_open_wording(page):
+    assert verify.SubscriptionPageExtractor().extract(_tier("Token Plan Plus"), page) == []
+
+
+@pytest.mark.parametrize("names", [("M Plan",), ("Token Pro",)])
+def test_token_plan_family_statement_does_not_apply_to_another_plan(names):
+    other = _tier(*names)
+    page = "Token Plan is no longer available for new purchases."
+
+    assert verify.SubscriptionPageExtractor().extract(other, page) == []
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
