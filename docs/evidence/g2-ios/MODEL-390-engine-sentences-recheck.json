@@ -1,0 +1,51 @@
+{
+  "cited_licence_fact_count": 56,
+  "completion_calls": 0,
+  "current_verification_premier_gate": {
+    "gap_count": 26,
+    "gaps_by_facet": {
+      "licence.commercial_use": 5,
+      "licence.fine_tuning": 8,
+      "licence.output_training": 5,
+      "licence.user_cap": 8
+    },
+    "status": "fail"
+  },
+  "data_engine_pin": "60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa",
+  "data_sha": "4bc5f4cfa9c1f29689aaf3142be22cabc44454db",
+  "data_status_unchanged": true,
+  "engine_sha": "012c690b93cde331345ae4c59d92b25239da042f",
+  "engine_tracked_changes": false,
+  "fidelity_counts": {
+    "mismatch": 0,
+    "public_image_lag": 0,
+    "undetermined": 19,
+    "unreachable": 0,
+    "verified": 37
+  },
+  "fidelity_status": "pass",
+  "go_outcome": "verified",
+  "licence_counts": {
+    "mismatch": 2,
+    "not_disclosed": 8,
+    "skipped": 17,
+    "unreachable": 0,
+    "verified": 37
+  },
+  "licence_fact_count": 64,
+  "network_calls": 0,
+  "read_date": "2026-10-14",
+  "snapshot_as_of": "2026-10-14",
+  "source_kind_mismatches": 0,
+  "stored_premier_gate": {
+    "gap_count": 31,
+    "gaps_by_facet": {
+      "licence.commercial_use": 7,
+      "licence.fine_tuning": 8,
+      "licence.output_training": 8,
+      "licence.user_cap": 8
+    },
+    "status": "fail"
+  },
+  "unknown_source_kinds": 0
+}
