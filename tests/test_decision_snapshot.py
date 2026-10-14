@@ -16,8 +16,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from decision import snapshot as snap
-from decision.model import value_hash
 from decision.excluded import REMOVED_HOSTS
+from decision.model import value_hash
 from decision.registry import Registry
 from decision.registry import default as default_registry
 from decision.snapshot import (

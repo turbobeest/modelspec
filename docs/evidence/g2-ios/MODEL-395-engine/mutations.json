@@ -1,0 +1,18 @@
+{
+  "missing-file": {
+    "exit_code": 1,
+    "failed_tests": [
+      "tests/test_decision_model.py::test_repository_subscription_offerings_validate_against_the_real_registry",
+      "tests/test_decision_snapshot.py::test_production_snapshot_admits_supported_subscription_facts"
+    ],
+    "reason": "missing subscription files"
+  },
+  "unsourced-fact": {
+    "exit_code": 1,
+    "failed_tests": [
+      "tests/test_decision_model.py::test_repository_subscription_offerings_validate_against_the_real_registry",
+      "tests/test_decision_snapshot.py::test_production_snapshot_admits_supported_subscription_facts"
+    ],
+    "reason": "unsourced known subscription fact"
+  }
+}

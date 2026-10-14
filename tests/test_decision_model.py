@@ -680,7 +680,9 @@ def test_subscription_known_facts_require_sources(context):
         SubscriptionOffering.model_validate(data, context=context)
 
 
-def test_repository_subscription_offerings_validate_against_the_real_registry(subscription_repository):
+def test_repository_subscription_offerings_validate_against_the_real_registry(
+    subscription_repository,
+):
     from decision.model import load_subscription_offerings
     from decision.registry import default
     from tests.subscription_sources import json_record, source_subscriptions
@@ -732,7 +734,6 @@ def test_repository_subscription_offerings_validate_against_the_real_registry(su
         "model-173-xai-consumer-terms" in {source.source_id for source in fact.sources}
         for fact in xai_programmatic
     )
-
 
 
 def test_fake_offering_covers_provider_dependent_facts(context):
