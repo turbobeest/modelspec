@@ -44,7 +44,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.17"
+CONTRACT_VERSION = "2.18"
 MODEL_COMPARISON_VERSION = "1.0"
 
 # ── identifiers ────────────────────────────────────────────────────────────
@@ -1360,6 +1360,16 @@ class PlanPrice(_Strict):
     period: Literal["monthly", "annual"]
 
 
+PlanAvailability = Literal["open", "existing_subscribers_only", "retired"]
+
+
+class PlanExclusion(_Strict):
+    """A subscription plan excluded because of its published availability."""
+
+    plan: EstateId
+    reason: str
+
+
 class PlanCoverage(_Strict):
     """Why a plan counts as covering a model. Added in 2.6.
 
@@ -1863,6 +1873,8 @@ class EstateMark(_ExcludeIf):
     marginal_cost_per_task_usd: float | None = Field(default=None, ge=0)
     #: For a plan, why it covers this row's model. Added in 2.6.
     coverage: PlanCoverage | None = Field(default=None, exclude_if=lambda value: value is None)
+    availability: PlanAvailability | None = Field(
+        default=None, exclude_if=lambda value: value is None)
 
 
 class EstateResult(_Strict):
@@ -1905,6 +1917,8 @@ class WithEstate(_ExcludeIf):
     #: Codes about what the estate holds, such as ``plan_excludes_own_software``.
     #: Added in 2.6.
     warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    excluded_plans: list[PlanExclusion] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
 
 
 class ModelOffering(_Strict):
@@ -2059,6 +2073,8 @@ class Decision(_ExcludeIf):
     out_of_lineup: int = Field(default=0, ge=0)
     #: The same answer from what the spec's ``estate`` holds. Added in 2.3.
     with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
+    excluded_plans: list[PlanExclusion] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
     #: Where to report whether this answer held up. Added in 2.10 (MODEL-221).
     feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
     #: Optional reporting limits. Added in 2.12 (MODEL-284).
@@ -2158,12 +2174,12 @@ class BoundedExplanation(_Strict):
 #: it omits lists a complete Decision always carries (MODEL-59), so it never
 #: claims a `contract_version`. `projects_contract` names the complete contract
 #: its fields are projected from.
-BOUNDED_VERSION = "1.4"
+BOUNDED_VERSION = "1.5"
 
 BoundedDecision = create_model(
     "BoundedDecision", __base__=_Strict,
     representation=(Literal["bounded"], ...),
-    bounded_version=(Literal["1.4"], ...),
+    bounded_version=(Literal["1.5"], ...),
     projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
     **{name: (Decision.model_fields[name].annotation, ...) for name in (
         "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status", "answer",
@@ -2183,6 +2199,7 @@ BoundedDecision = create_model(
     relax_task_tokens=(TaskTokensHint | None, None),
     relax_single=(RelaxSingle | None, None),
     with_estate=(WithEstate | None, None),
+    excluded_plans=(list[PlanExclusion], Field(default_factory=list)),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
     #: One entry per answer member, in ``answer.members`` order, unless the
@@ -2299,7 +2316,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     NearMiss, FactInterval, ShownFact, HardwareEstimate, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     SingleGate, RelaxSingle,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
-    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
+    Access, PlanPrice, PlanExclusion, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
     CoveredClass, CoverageRefusal,
     ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence, NextMove,
     BoundedExplanation, BoundedDecision,

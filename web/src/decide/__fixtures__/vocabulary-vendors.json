@@ -1,6 +1,6 @@
 {
   "vocabulary_version": 1,
-  "contract_version": "2.17",
+  "contract_version": "2.18",
   "snapshot": "snap_0fdad8b995d919c7",
   "default_task_tokens": {
     "input": 40000,
@@ -3889,6 +3889,20 @@
       "nvidia_tesla_p40",
       "nvidia_vera_rubin_superchip",
       "qualcomm_snapdragon_x_elite"
+    ],
+    "plan_facets": [
+      {
+        "id": "offering.subscription.availability",
+        "name": "Subscription availability",
+        "definition": "Who can use this subscription plan: open admits new buyers, existing_subscribers_only permits existing holders but is closed to new buyers, and retired permits nobody. Only an explicit published statement establishes availability. An absent or unknown fact preserves current routing; it never implies that the plan is closed.",
+        "value_type": "enum",
+        "allowed_values": [
+          "existing_subscribers_only",
+          "open",
+          "retired"
+        ],
+        "addressable": false
+      }
     ]
   },
   "coverage": {

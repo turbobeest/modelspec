@@ -385,9 +385,9 @@ paths:
               limit: 3
       responses:
         '200':
-          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.17), with optional top[].hardware_estimates and
+          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.18), with optional top[].hardware_estimates and
             unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
-            1.4, no contract_version).'
+            1.5, no contract_version).'
           content:
             application/json:
               schema:
@@ -2164,8 +2164,8 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.4', title: Bounded Version, type: string}
-        projects_contract: {const: '2.17', title: Projects Contract, type: string}
+        bounded_version: {const: '1.5', title: Bounded Version, type: string}
+        projects_contract: {const: '2.18', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2195,6 +2195,7 @@ components:
         relax_task_tokens: {$ref: '#/components/schemas/DecisionResponse/properties/relax_task_tokens'}
         relax_single: {$ref: '#/components/schemas/DecisionResponse/properties/relax_single'}
         with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
+        excluded_plans: {$ref: '#/components/schemas/DecisionResponse/properties/excluded_plans'}
         explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
         model_evidence:
           anyOf:
@@ -2698,7 +2699,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.17', default: '2.17', title: Contract Version, type: string}
+        contract_version: {const: '2.18', default: '2.18', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2781,6 +2782,10 @@ components:
           - {$ref: '#/components/schemas/DecisionWithEstate'}
           - {type: 'null'}
           default: null
+        excluded_plans: &id053
+          items: {$ref: '#/components/schemas/DecisionPlanExclusion'}
+          title: Excluded Plans
+          type: array
         feedback: {$ref: '#/components/schemas/DecisionFeedbackPointer'}
         reading:
           anyOf:
@@ -2921,6 +2926,13 @@ components:
           - {$ref: '#/components/schemas/DecisionPlanCoverage'}
           - {type: 'null'}
           default: null
+        availability:
+          anyOf:
+          - enum: [open, existing_subscribers_only, retired]
+            type: string
+          - {type: 'null'}
+          default: null
+          title: Availability
       required: [via, cost_basis]
       title: EstateMark
       type: object
@@ -3763,6 +3775,15 @@ components:
       required: [rule]
       title: PlanCoverage
       type: object
+    DecisionPlanExclusion:
+      additionalProperties: false
+      description: A subscription plan excluded because of its published availability.
+      properties:
+        plan: {maxLength: 120, minLength: 1, title: Plan, type: string}
+        reason: {title: Reason, type: string}
+      required: [plan, reason]
+      title: PlanExclusion
+      type: object
     DecisionPlanPrice:
       additionalProperties: false
       description: A plan's published list price for one billing period. Added in 2.6.
@@ -4397,6 +4418,7 @@ components:
           title: Gain
           type: array
         warnings: *id028
+        excluded_plans: *id053
       required: [status, gap]
       title: WithEstate
       type: object
@@ -4420,11 +4442,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [decide]
-        snapshot: &id053
+        snapshot: &id054
           anyOf:
           - {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
           - {type: 'null'}
@@ -4442,8 +4464,8 @@ components:
               items: {type: object}
               description: Each issue has path, condition, field and reason. An issue about a value outside the facet's vocabulary also has value, value_type, allowed_values
                 (when the list is finite) and next, the vocabulary lookup for that facet.
-            requested: &id054 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
-            current: &id055 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
+            requested: &id055 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
+            current: &id056 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
             recovery:
               type: array
               maxItems: 5
@@ -4462,10 +4484,10 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.4']
+          enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [decide]
@@ -4489,10 +4511,10 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.4']
+          enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [decide]
@@ -4513,11 +4535,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [decide]
-        snapshot: *id053
+        snapshot: *id054
         error:
           type: object
           additionalProperties: false
@@ -4531,8 +4553,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id055
+            current: *id056
     DecisionSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4540,7 +4562,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [decide]
@@ -4556,11 +4578,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [compare]
-        snapshot: *id053
+        snapshot: *id054
         error:
           type: object
           additionalProperties: false
@@ -4574,8 +4596,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id055
+            current: *id056
     ComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4583,7 +4605,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [compare]
@@ -4603,7 +4625,7 @@ components:
         endpoint:
           type: string
           enum: [compare-models]
-        snapshot: *id053
+        snapshot: *id054
         error:
           type: object
           additionalProperties: false
@@ -4616,8 +4638,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id055
+            current: *id056
     ModelComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4723,7 +4745,7 @@ components:
           type: string
           enum: [facet]
         facet: {type: string}
-        offering: &id056
+        offering: &id057
           oneOf:
           - {$ref: '#/components/schemas/ComparisonOfferingRef'}
           - {$ref: '#/components/schemas/ComparisonOfferingChange'}
@@ -4737,7 +4759,7 @@ components:
         kind:
           type: string
           enum: [cost_per_task]
-        offering: *id056
+        offering: *id057
         old: {$ref: '#/components/schemas/ComparisonCostValue'}
         new: {$ref: '#/components/schemas/ComparisonCostValue'}
     ComparisonCapabilityChange:
@@ -4749,7 +4771,7 @@ components:
           type: string
           enum: [capability]
         domain: {type: string}
-        offering: *id056
+        offering: *id057
         old: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
         new: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
     ComparisonValueChange:
@@ -4810,7 +4832,7 @@ components:
           additionalProperties: false
           required: [old, new]
           properties:
-            old: &id057
+            old: &id058
               type: object
               additionalProperties: false
               required: [id, as_of]
@@ -4820,7 +4842,7 @@ components:
                   anyOf:
                   - {type: string}
                   - {type: 'null'}
-            new: *id057
+            new: *id058
         status:
           type: object
           additionalProperties: false
@@ -4855,7 +4877,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.17']
+          enum: ['2.18']
         endpoint:
           type: string
           enum: [compare]
@@ -5002,7 +5024,7 @@ components:
     PolicyCheckResponse:
       type: object
       properties:
-        build: &id059
+        build: &id060
           type: object
           properties:
             built_at: {type: string}
@@ -5054,7 +5076,7 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: &id060
+                commercial_use: &id061
                   type: object
                   properties:
                     accept_restricted: {type: boolean}
@@ -5080,7 +5102,7 @@ components:
                       type: array
                       items: {type: string}
                   required: [permitted_countries, prohibited_countries]
-                residency: &id061
+                residency: &id062
                   type: object
                   required: [match, required_regions]
                   properties:
@@ -5119,21 +5141,21 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: &id058
+                commercial_use: &id059
                   type: object
                   properties:
                     satisfied: {type: integer}
                     undetermined: {type: integer}
                     violated: {type: integer}
                   required: [satisfied, undetermined, violated]
-                licence: *id058
-                origin: *id058
-                residency: *id058
+                licence: *id059
+                origin: *id059
+                residency: *id059
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {description: 'Counted over models, not rows: passes somewhere, not everywhere.', type: integer}
             rows: {type: integer}
-            verdicts: &id062
+            verdicts: &id063
               type: object
               properties:
                 fail: {type: integer}
@@ -5450,7 +5472,7 @@ components:
     UndeterminedPresent:
       type: object
       properties:
-        build: *id059
+        build: *id060
         determinations:
           type: object
           properties:
@@ -5495,8 +5517,8 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: *id060
-                residency: *id061
+                commercial_use: *id061
+                residency: *id062
             name: {nullable: true}
             require_no_undetermined: {type: boolean}
           required: [constraints, name, require_no_undetermined]
@@ -5522,20 +5544,20 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: *id058
-                residency: *id058
+                commercial_use: *id059
+                residency: *id059
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {type: integer}
             rows: {type: integer}
-            verdicts: *id062
+            verdicts: *id063
           required: [by_constraint, models_checked, models_undetermined_somewhere, models_with_a_passing_platform, rows, verdicts]
       required: [build, determinations, endpoint, error, export_origin, policy, provenance, result, schema_version, service_commit, summary]
     DeterminationsUnavailable:
       type: object
       required: [build, endpoint, error, export_origin, result, schema_version, service_commit]
       properties:
-        build: *id059
+        build: *id060
         endpoint: {type: string}
         error:
           type: object
@@ -5677,12 +5699,12 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: &id063 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
-        provider: *id063
+        model_name: &id064 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
+        provider: *id064
         first_seen_url: {type: string, maxLength: 300, format: uri, pattern: '^https://(www\.)?(x\.com|twitter\.com)/'}
         timestamp: {type: string, maxLength: 300, format: date-time}
         confidence: {type: number, minimum: 0, maximum: 1}
-        signal_id: &id064 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
+        signal_id: &id065 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
     ReleaseDiscovery:
       title: ModelSpec release discovery v1
       description: 'A primary-source watcher discovery (MODEL-216). The same six fields as release-signal v1; the signal ID starts with watch: and first_seen_url
@@ -5691,8 +5713,8 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: *id063
-        provider: *id063
+        model_name: *id064
+        provider: *id064
         first_seen_url:
           type: string
           maxLength: 300
@@ -5707,7 +5729,7 @@ components:
       additionalProperties: false
       required: [signal_id, result]
       properties:
-        signal_id: *id064
+        signal_id: *id065
         result: {type: string, nullable: true}
         pr_url: {type: string, nullable: true, format: uri}
         recheck_due: {type: string, format: date}
@@ -5726,7 +5748,7 @@ components:
         status:
           type: string
           enum: [accepted, duplicate, acknowledged]
-        signal_id: *id064
+        signal_id: *id065
         recheck_days:
           type: array
           items:
@@ -5761,7 +5783,7 @@ components:
           enum: ['1']
         service_commit: {type: string}
         endpoint: {type: string}
-        error: &id065
+        error: &id066
           type: object
           required: [code, message]
           properties:
@@ -5922,7 +5944,7 @@ components:
     Sharede25eeefc86ea:
       properties:
         endpoint: {type: string}
-        error: *id065
+        error: *id066
         result:
           items: {}
           type: array

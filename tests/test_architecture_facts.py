@@ -87,7 +87,7 @@ def estimates(decision, mid):
 
 def test_spark_memory_uses_total_and_decode_uses_active_at_the_same_quant():
     decision = answer(fixture_snapshot(), access="own_hardware", estate={"devices": [SPARK]})
-    assert decision.contract_version == "2.17"
+    assert decision.contract_version == "2.18"
     assert decision.status == "answered"
     assert set(decision.with_estate.answer.members) == {"lab/dense", "lab/gemma"}
     for mid, weights, speed, interval, total, active in (
@@ -435,5 +435,5 @@ def test_optional_interval_is_absent_unless_set_and_bounded_version_is_unchanged
     assert "interval" not in bare and "device" not in bare
     with pytest.raises(ValueError, match="at least low"):
         FactInterval(low=10, high=1)
-    assert BOUNDED_VERSION == "1.4"  # MODEL-381 moved it; this slice does not
-    assert '"x-contract-version": "2.17"' in render_json_schema()
+    assert BOUNDED_VERSION == "1.5"  # MODEL-384 adds optional availability fields
+    assert '"x-contract-version": "2.18"' in render_json_schema()
