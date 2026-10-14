@@ -108,6 +108,8 @@ lists sentences that describe the former CLI and need review before release.
 modelspec decide --spec FILE.yaml --json
 modelspec decide --spec - --json
 modelspec decide --template ID --json
+modelspec decide --spec FILE.yaml --emit-router-config litellm|openrouter|json
+                 [--out PATH] [--include-rest] [--include-thin]
 modelspec compare LAB/MODEL LAB/MODEL [LAB/MODEL LAB/MODEL] [--json]
 modelspec compare --spec FILE|- --to SNAP [--json]
 modelspec compare --template ID --to SNAP [--json]
@@ -132,6 +134,29 @@ from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
 cached registry. Its Spec is validated the same way, and `fields` is added
 only when that Spec omits it.
+
+`decide --emit-router-config litellm|openrouter|json` adds the HTTP-only
+`router_config` control to that keyed request. The Worker renders from the
+complete decision before trimming its bounded response. LiteLLM uses verified
+provider API IDs, OpenRouter uses separately verified router slugs, and a
+missing ID stays a fail-closed `<...>` placeholder with its reason. The
+best band is always included. `--include-rest` adds the rest band and
+`--include-thin` adds models explicitly labelled as not enough evidence yet.
+Each model lists its ranked routes, with the band's offering first.
+There is no inference or router call, provider credential, or local engine.
+
+Without `--out`, stdout is the configuration text. With `--out PATH`, the
+CLI writes UTF-8 configuration there, reports the path on stderr, and prints
+the Worker response on stdout, including its `router_config` string. `--json`
+at either command level requires `--out`. An invalid format, or `--out`,
+`--include-rest` or `--include-thin` without `--emit-router-config`, returns
+`router_config_usage`, exit 1, before reading the Spec or making a request.
+A missing key still exits 5 first. An unwritable output returns `unwritable`,
+exit 1. Missing rendered text returns `unexpected_response`, exit 1, and
+writes nothing. Renderer refusals retain `no_qualifying_models`, `no_bands`
+or `empty_allow_list`, exit 1. A configuration that cannot fit the bounded
+16,384-byte budget is refused with `invalid_spec`; it is never truncated.
+These options also work with `--template` and do not add a local cache.
 
 `compare A B [C D]` puts 2 to 4 distinct model IDs side by side. Each ID
 is at most 128 characters and matches

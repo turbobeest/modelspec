@@ -1055,6 +1055,20 @@ snapshot` or `no verified offering.router_slug in this snapshot`. The generic
 JSON configuration carries the null identifier, its placeholder, and its
 reason for each route.
 
+The keyed CLI accepts `modelspec decide --spec FILE|- | --template ID
+--emit-router-config litellm|openrouter|json [--out PATH] [--include-rest]
+[--include-thin]`. It asks `/v1/decide` to render from the complete decision
+before response projection. The best band is always included. The rest and
+thin bands are included only when requested, with thin models labelled as
+not enough evidence yet. Each listed model carries its ranked offerings,
+with the band's offering first, including when response trimming removes
+those result rows. The config is printed on stdout, or written to `--out`.
+With `--out`, stdout keeps the Worker response body, including its rendered
+`router_config`. `--json` requires `--out` so stdout is one JSON document.
+Invalid formats and `--out`, `--include-rest` or `--include-thin` without
+`--emit-router-config` fail with `router_config_usage`, exit 1. The command
+requires a ModelSpec key and makes no router or vendor call.
+
 ### A result
 
 | Field | Meaning |
@@ -1115,7 +1129,7 @@ are empty.
 
 ### Bounded HTTP responses for agents (MODEL-293)
 
-`POST /v1/decide` also accepts two optional response controls alongside the
+`POST /v1/decide` also accepts three optional response controls alongside the
 spec. These controls are HTTP-only; the offline Spec and its canonical hash
 are unchanged. The existing `limit` remains 1–500, default 20. It limits ranked
 offering rows, not unique models, and never changes the full `answer.members`.
@@ -1135,10 +1149,23 @@ offering rows, not unique models, and never changes the full `answer.members`.
   null, domain `evidence`, objective `contributions`, `unknown` facets and
   elimination `reasons` and model-row `warnings`. It contains evidence for this model only. The ranking
   and answer still use the full feasible set; this is not a model filter.
+- `router_config`: `{format: litellm|openrouter|json, include_rest: false,
+  include_thin: false}`. `format` is required. Both band switches are optional
+  booleans, default false. A non-null value opts into bounded output even
+  with `fields: null`. The Worker renders the complete decision before
+  trimming and returns the text as optional `router_config`. It uses the
+  existing verified identifier and placeholder rules above. The spec hash
+  and ranking are unchanged. The configuration counts toward the existing
+  16,384-byte MCP text budget and is never shortened or omitted. If it cannot
+  fit with the essentials, HTTP 400 `invalid_spec` names `router_config` and
+  asks for fewer bands or a narrower spec. Empty selections return HTTP 400
+  with bounded identity and `no_qualifying_models`, `no_bands` or
+  `empty_allow_list`; these codes belong only to the new opt-in
+  `DecisionRouterConfigRefused` schema. Existing refusal enums are unchanged.
 
 #### A separate representation, versioned on its own
 
-Either non-null control opts into `BoundedDecision`, the **bounded
+Any non-null control opts into `BoundedDecision`, the **bounded
 representation, version 1.2**. It is not a 2.x minor version. A bounded body
 omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
 `number_origins` and the other explanation sections), and its rows omit fields
@@ -1157,7 +1184,7 @@ contract would need a major bump. It is a different representation instead:
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.17
+Requests with only `limit`, or only `fields: null`, receive complete contract 2.17
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1358,6 +1385,11 @@ three current explanation levels. Regenerate the MCP public fixture with
 
 #### Bounded representation change log
 
+- **bounded 1.2, MODEL-381:** Adds the optional HTTP `router_config` control
+  and rendered text field. The configuration uses full bands and verified
+  offering identifiers before projection, and stays intact within the
+  existing byte budget. Existing fields and refusal enums keep their ranges.
+  Complete decisions stay 2.17 and ordinary bounded responses stay unchanged.
 - **bounded 1.0 — MODEL-293:** First version. HTTP-only `fields` and
   `evidence_for` request controls; a `BoundedDecision` body with
   `representation`, `bounded_version` and `projects_contract`, projected rows,
