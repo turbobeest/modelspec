@@ -56,6 +56,9 @@ def test_reader_reads_explicit_plan_availability(page, value):
         "Token Plan\n$10/month\nIncludes coding tools",
         "Token Plan is no longer listed on the pricing page.",
         "Token Plan is not retired.",
+        "Token Plan is retired? No, it is still available to new subscribers.",
+        "## Token Plan\nRetired? No, the plan is still available to new subscribers.",
+        "Plan | Availability\nToken Plan | Retired?",
         "Token Plan will be retired next year.",
         "Premium Token Plan is retired.",
         "Token Plan Plus is closed to new subscribers.",
@@ -70,6 +73,19 @@ def test_reader_reads_explicit_plan_availability(page, value):
 )
 def test_reader_never_guesses_availability_or_uses_a_sibling_plan(page):
     assert verify.SubscriptionPageExtractor().extract(claim(), page) == []
+
+
+@pytest.mark.parametrize(
+    ("name", "page"),
+    [
+        ("Pro", "Pro\nNot disclosed\nPlus\nRetired"),
+        ("ChatGPT Pro", "ChatGPT Pro\nNot disclosed\nChatGPT Plus\nRetired"),
+    ],
+)
+def test_reader_does_not_inherit_retirement_from_an_unpriced_bare_sibling(name, page):
+    pro = replace(claim(), subject="openai/subscription/pro", names=(name,))
+
+    assert verify.SubscriptionPageExtractor().extract(pro, page) == []
 
 
 @pytest.mark.parametrize(

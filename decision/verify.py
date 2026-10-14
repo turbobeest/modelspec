@@ -1323,6 +1323,8 @@ class SubscriptionPageExtractor:
 
 def _availability_value(statement: str) -> str | None:
     """An explicit current availability statement, never a missing price or plan."""
+    if "?" in statement:
+        return None
     wording = normalise_name(statement)
     wording = re.sub(r"^(?:is (?:now )?|has been )", "", wording)
     if wording in {"open", "existing subscribers only", "retired"}:
@@ -1386,11 +1388,15 @@ def _plan_availability(claim: Claim, text: str) -> list[Reading]:
         # Stop at the next plan section/card, including bare plan names.
         if (line.startswith("#") or _PRICED_HEADING.match(line)
                 or re.fullmatch(r"[\w -]+ [Pp]lan(?: [\w -]+)?", line.strip("*_"))
+                or (len(line.split()) <= 3 and re.fullmatch(r"[\w -]+", line.strip("*_"))
+                    and _availability_value(line) is None)
                 or (len(line.split()) <= 3 and i + 1 < len(lines)
                     and re.match(r"[$¥]\s?[0-9]", lines[i + 1]))):
             in_plan = False
             header = []
         for sentence in _sentences(line):
+            if "?" in sentence:
+                continue
             match = named.match(normalise_name(sentence))
             if match:
                 statements.append(match.group(1))
