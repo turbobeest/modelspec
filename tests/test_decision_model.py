@@ -545,6 +545,88 @@ def test_subscription_offering_validates_and_round_trips(context, tmp_path):
     ) == subscription
 
 
+@pytest.fixture
+def subscription_file(tmp_path):
+    data = subscription_data(state="not_disclosed")
+    data.update(provider="minimax", plan="fixture", name="MiniMax fixture plan")
+    sid = "minimax/subscription/fixture"
+    for fact in data["facts"]:
+        fact["id"] = f"{sid}#{fact['facet']}"
+        fact["subject"]["id"] = sid
+    return tmp_path / "minimax.yaml", data
+
+
+@pytest.mark.parametrize("availability", ["open", "existing_subscribers_only", "retired"])
+def test_subscription_file_loads_registered_availability(subscription_file, availability):
+    import yaml
+
+    from decision.model import load_subscription_offerings
+    from decision.registry import default
+
+    path, data = subscription_file
+    facet = "offering.subscription.availability"
+    data["facts"].append(fact_data(
+        id=f"minimax/subscription/fixture#{facet}",
+        subject={"kind": "offering", "id": "minimax/subscription/fixture"},
+        facet=facet, value=availability,
+    ))
+    path.write_text(yaml.safe_dump([data]))
+
+    [loaded] = load_subscription_offerings(path, registry=default())
+
+    assert loaded.id == "minimax/subscription/fixture"
+    [fact] = [fact for fact in loaded.facts if fact.facet == facet]
+    assert (fact.state, fact.value, [source.source_id for source in fact.sources]) == (
+        "known", availability, ["fake-doc"],
+    )
+
+
+def test_subscription_file_loads_unknown_availability_without_checked_sources(subscription_file):
+    import yaml
+
+    from decision.model import load_subscription_offerings
+    from decision.registry import default
+
+    path, data = subscription_file
+    facet = "offering.subscription.availability"
+    data["facts"].append(fact_data(
+        id=f"minimax/subscription/fixture#{facet}",
+        subject={"kind": "offering", "id": "minimax/subscription/fixture"},
+        facet=facet, state="unknown", value=None, sources=[], checked_sources=[],
+    ))
+    path.write_text(yaml.safe_dump([data]))
+
+    [loaded] = load_subscription_offerings(path, registry=default())
+
+    [fact] = [fact for fact in loaded.facts if fact.facet == facet]
+    assert (fact.state, fact.value, fact.checked_sources) == ("unknown", None, [])
+
+
+@pytest.mark.parametrize(("facet", "value", "error"), [
+    ("offering.subscription.unregistered", "open", "unknown facet ID"),
+    ("offering.price.input", 1, "extra=.*offering.price.input"),
+    ("offering.subscription.availability", "closed", "registered values"),
+])
+def test_subscription_file_rejects_extra_facets_and_invalid_availability(
+    subscription_file, facet, value, error,
+):
+    import yaml
+
+    from decision.model import load_subscription_offerings
+    from decision.registry import default
+
+    path, data = subscription_file
+    data["facts"].append(fact_data(
+        id=f"minimax/subscription/fixture#{facet}",
+        subject={"kind": "offering", "id": "minimax/subscription/fixture"},
+        facet=facet, value=value,
+    ))
+    path.write_text(yaml.safe_dump([data]))
+
+    with pytest.raises(ValidationError, match=error):
+        load_subscription_offerings(path, registry=default())
+
+
 def test_subscription_offering_rejects_wrong_subject_and_file_provider(context, tmp_path):
     import yaml
 

@@ -561,6 +561,7 @@ class SubscriptionOffering(Record):
     #: MODEL-200's plan facts. Each may be stated once; an absent one is unknown.
     #: ``unknown`` means not yet researched, so it needs no checked sources.
     PLAN_FACETS: ClassVar[frozenset[str]] = frozenset({
+        "offering.subscription.availability",
         "offering.subscription.surfaces",
         "offering.subscription.coding_tools_quote",
         "offering.subscription.families_covered",
