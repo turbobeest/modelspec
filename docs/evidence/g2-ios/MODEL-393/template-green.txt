@@ -1,0 +1,10 @@
+4 retained-region behavioral checks passed; no network or completion calls
+{
+  "source_family": "meta-api-terms",
+  "source_url": "https://dev.meta.ai/legal/terms-of-service",
+  "region_sha256": "d2c86ed7725d564d163114111fb629b28bd4e5989eeb893137aff91bbdfc70d4",
+  "sentence_sha256": "cce2c816c4a0e5ea24e80f446806a927ae1909dcf244add087230fb4da86928c",
+  "facet": "licence.output_training",
+  "value": "restricted",
+  "label": "Competing-model output training limits with authorization exception"
+}

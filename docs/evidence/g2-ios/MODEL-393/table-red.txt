@@ -1,0 +1,28 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_html_links_preserves_terms_anchors_in_table_cells ____________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-table-red/test_html_links_preserves_term0')
+
+    def test_html_links_preserves_terms_anchors_in_table_cells(tmp_path):
+        page = (
+            '<main><table><tr><th>Model</th><th>Terms</th></tr>'
+            '<tr><td>Nimbus 3</td><td><a href="/legal/terms"><b>these</b> terms</a></td></tr>'
+            '</table></main>'
+        )
+        assert normalise_document(page.encode(), NORMALISERS["html-default"]).text == (
+            "Model | Terms\nNimbus 3 | these terms"
+        )
+>       assert normalise_document(page.encode(), links_recipe()).text == (
+            "Model | Terms\nNimbus 3 | [these terms](/legal/terms)"
+        )
+E       AssertionError: assert 'Model | Term...| these terms' == 'Model | Term.../legal/terms)'
+E         
+E           Model | Terms
+E         - Nimbus 3 | [these terms](/legal/terms)
+E         + Nimbus 3 | these terms
+
+tests/test_model_393_licence_binding.py:167: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_licence_binding.py::test_html_links_preserves_terms_anchors_in_table_cells
+1 failed, 45 deselected in 0.30s

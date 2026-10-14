@@ -1,0 +1,137 @@
+FFFFFF.....................F.......                                      [100%]
+=================================== FAILURES ===================================
+____ test_html_links_preserves_href_and_leaves_html_default_text_unchanged _____
+
+    def test_html_links_preserves_href_and_leaves_html_default_text_unchanged():
+        page = binding_page("/legal/terms", label="<strong>these</strong> terms").encode()
+        assert normalise_document(page, NORMALISERS["html-default"]).text == (
+            "Nimbus 3 is governed by these terms."
+        )
+>       assert normalise_document(page, links_recipe()).text == (
+            "Nimbus 3 is governed by [these terms](/legal/terms)."
+        )
+E       AssertionError: assert 'Nimbus 3 is ... these terms.' == 'Nimbus 3 is ...legal/terms).'
+E         
+E         - Nimbus 3 is governed by [these terms](/legal/terms).
+E         ?                         -           ---------------
+E         + Nimbus 3 is governed by these terms.
+
+tests/test_model_393_licence_binding.py:85: AssertionError
+_____ test_retained_relative_and_absolute_terms_links_verify[/legal/terms] _____
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_retained_relative_and_abs0')
+href = '/legal/terms'
+
+    @pytest.mark.parametrize("href", [
+        "/legal/terms", "../legal/terms", "terms", TERMS_URL,
+        "//example.test/legal/terms",
+    ])
+    def test_retained_relative_and_absolute_terms_links_verify(tmp_path, href):
+        result = check(tmp_path, binding_page(href))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:96: AssertionError
+____ test_retained_relative_and_absolute_terms_links_verify[../legal/terms] ____
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_retained_relative_and_abs1')
+href = '../legal/terms'
+
+    @pytest.mark.parametrize("href", [
+        "/legal/terms", "../legal/terms", "terms", TERMS_URL,
+        "//example.test/legal/terms",
+    ])
+    def test_retained_relative_and_absolute_terms_links_verify(tmp_path, href):
+        result = check(tmp_path, binding_page(href))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:96: AssertionError
+________ test_retained_relative_and_absolute_terms_links_verify[terms] _________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_retained_relative_and_abs2')
+href = 'terms'
+
+    @pytest.mark.parametrize("href", [
+        "/legal/terms", "../legal/terms", "terms", TERMS_URL,
+        "//example.test/legal/terms",
+    ])
+    def test_retained_relative_and_absolute_terms_links_verify(tmp_path, href):
+        result = check(tmp_path, binding_page(href))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:96: AssertionError
+_ test_retained_relative_and_absolute_terms_links_verify[https://example.test/legal/terms] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_retained_relative_and_abs3')
+href = 'https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("href", [
+        "/legal/terms", "../legal/terms", "terms", TERMS_URL,
+        "//example.test/legal/terms",
+    ])
+    def test_retained_relative_and_absolute_terms_links_verify(tmp_path, href):
+        result = check(tmp_path, binding_page(href))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:96: AssertionError
+_ test_retained_relative_and_absolute_terms_links_verify[//example.test/legal/terms] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_retained_relative_and_abs4')
+href = '//example.test/legal/terms'
+
+    @pytest.mark.parametrize("href", [
+        "/legal/terms", "../legal/terms", "terms", TERMS_URL,
+        "//example.test/legal/terms",
+    ])
+    def test_retained_relative_and_absolute_terms_links_verify(tmp_path, href):
+        result = check(tmp_path, binding_page(href))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:96: AssertionError
+_____________ test_visible_nested_markup_in_a_terms_link_verifies ______________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-red/test_visible_nested_markup_in_0')
+
+    def test_visible_nested_markup_in_a_terms_link_verifies(tmp_path):
+        result = check(tmp_path, binding_page("/legal/terms", label="<b>these</b> <em>terms</em>"))
+>       assert result.outcome == "verified", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='mismatch', verification=Verif... "expected": "Nimbus 3", "found": null}]'), diffs=(Diff(field='model', expected='Nimbus 3', found=None),), reason=None)
+E       assert 'mismatch' == 'verified'
+E         
+E         - verified
+E         + mismatch
+
+tests/test_model_393_licence_binding.py:146: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_licence_binding.py::test_html_links_preserves_href_and_leaves_html_default_text_unchanged
+FAILED tests/test_model_393_licence_binding.py::test_retained_relative_and_absolute_terms_links_verify[/legal/terms]
+FAILED tests/test_model_393_licence_binding.py::test_retained_relative_and_absolute_terms_links_verify[../legal/terms]
+FAILED tests/test_model_393_licence_binding.py::test_retained_relative_and_absolute_terms_links_verify[terms]
+FAILED tests/test_model_393_licence_binding.py::test_retained_relative_and_absolute_terms_links_verify[https://example.test/legal/terms]
+FAILED tests/test_model_393_licence_binding.py::test_retained_relative_and_absolute_terms_links_verify[//example.test/legal/terms]
+FAILED tests/test_model_393_licence_binding.py::test_visible_nested_markup_in_a_terms_link_verifies
+7 failed, 28 passed in 0.69s

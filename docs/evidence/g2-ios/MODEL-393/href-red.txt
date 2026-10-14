@@ -1,0 +1,52 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label[/legal/other(abc)] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-href-red/test_ambiguous_href_cannot_bin0')
+href = '/legal/other(abc)'
+
+    @pytest.mark.parametrize("href", ["/legal/other(abc)", "/legal/other[abc]"])
+    def test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label(tmp_path, href):
+>       assert_unbound(check(tmp_path, binding_page(href, label=TERMS_URL)))
+
+tests/test_model_393_licence_binding.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+_ test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label[/legal/other[abc]] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-href-red/test_ambiguous_href_cannot_bin1')
+href = '/legal/other[abc]'
+
+    @pytest.mark.parametrize("href", ["/legal/other(abc)", "/legal/other[abc]"])
+    def test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label(tmp_path, href):
+>       assert_unbound(check(tmp_path, binding_page(href, label=TERMS_URL)))
+
+tests/test_model_393_licence_binding.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_licence_binding.py::test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label[/legal/other(abc)]
+FAILED tests/test_model_393_licence_binding.py::test_ambiguous_href_cannot_bind_the_legal_url_displayed_in_its_label[/legal/other[abc]]
+2 failed, 46 deselected in 1.81s
