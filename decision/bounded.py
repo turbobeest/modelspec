@@ -645,6 +645,9 @@ def _bound_detail(body: dict) -> None:
     lists = [("model_evidence.contributions", detail["contributions"])]
     if body.get("excluded_plans"):
         lists.append(("excluded_plans", body["excluded_plans"]))
+    estate_exclusions = body.get("with_estate", {}).get("excluded_plans")
+    if estate_exclusions:
+        lists.append(("with_estate.excluded_plans", estate_exclusions))
     lists += [("model_evidence.evidence.items", group["items"]) for group in detail["evidence"]]
     while True:
         _note_fetch(body)

@@ -178,6 +178,30 @@ def test_bounded_answer_counts_exclusion_records_removed_to_fit_budget():
     assert len(body["excluded_plans"]) + body["explanation"]["omitted"]["excluded_plans"] == 80
 
 
+def test_drill_down_counts_held_plan_exclusions_removed_to_fit_budget():
+    import json
+
+    from decision.bounded import DRILL_DOWN_BYTES, project
+    from decision.contract import ModelEvidence, OfferingRef, PlanExclusion, ResponseOptions
+
+    decision = answer(snapshot_for("retired"), estate={"plans": [MAX]})
+    assert decision.with_estate is not None
+    decision.with_estate.excluded_plans = [
+        PlanExclusion(plan=f"anthropic/subscription/retired-{number}",
+                      reason="This plan is retired and cannot be used by existing subscribers. " * 30)
+        for number in range(80)
+    ]
+    body = project(
+        decision, ResponseOptions(evidence_for=SONNET), not_applied=[],
+        detail=ModelEvidence(model=SONNET, status="ranked", offering=OfferingRef(model=SONNET)),
+    )
+
+    assert len(json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()) <= DRILL_DOWN_BYTES
+    omitted = body["explanation"]["omitted"]["with_estate.excluded_plans"]
+    assert omitted > 0
+    assert len(body["with_estate"]["excluded_plans"]) + omitted == 80
+
+
 @pytest.mark.parametrize("value", ["existing_subscribers_only", "retired"])
 def test_subscription_only_vendor_does_not_route_new_buyer_through_unavailable_plan(value):
     catalogue = vendor_inputs()
