@@ -591,9 +591,18 @@ class OfferingPriceExtractor:
                         "cached_input": "cached input"}.get(wanted)
         if scoped_subject and simple_label:
             markdown = False
+            table_subject = None
             for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
+                    heading = lines[i - 1].lstrip("#").strip() if i else ""
+                    declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
+                    names = {normalise_name(n.rstrip("."))
+                             for n in declared.split(",")}
+                    table_subject = scoped_subject if normalise_name(scoped_subject) in names \
+                        else None
+                if table_subject is None:
+                    continue
                 # In an HTML table a leading pipe is an empty first cell: the row
                 # continues the model named above it (Vertex), so it is not this
                 # page's own price (MODEL-235). Markdown rows all start with one.
@@ -602,7 +611,7 @@ class OfferingPriceExtractor:
                 cells = [cell.strip() for cell in line.strip("| ").split("|")]
                 if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
                     if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
-                        return [Reading(scoped_subject, match.group(0), claim.unit)]
+                        return [Reading(table_subject, match.group(0), claim.unit)]
         if scoped_subject and "price per btok per mtok" in normalise_name(text):
             if wanted == "input":
                 match = re.search(r"(?im)^\|?\s*Price \(per Btok / per Mtok\).*?"
@@ -921,6 +930,7 @@ class KeyValueExtractor:
             ), None)
         date_ = next((v for k, v in pairs.items() if k in _DATE_KEYS), None)
         return [Reading(subject=subject, value=pairs.get(_label(claim)),
+                        unit=pairs.get("unit"),
                         conditions={"effort": pairs.get("effort"),
                                     "harness": pairs.get("harness"), "date": date_})]
 
@@ -1048,6 +1058,22 @@ class SubscriptionPageExtractor:
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
                               method="subscription-page@1")
 
+    @staticmethod
+    def quote_candidates(claim: Claim, text: str) -> list[Reading]:
+        """Possible recrawl replacements, each requiring separate verification."""
+        if claim.field != "offering.subscription.coverage_quote":
+            raise ExtractorError("not a coverage quote")
+        if _HTML_TAG.search(text):
+            return []
+        lines = [line.strip().lstrip("#").strip() for line in _content_block(text).splitlines()
+                 if line.strip()]
+        candidates = [*lines, *(s for line in lines for s in _sentences(line)),
+                      *(c.strip() for line in lines if "|" in line for c in line.split("|"))]
+        candidates += ["\n".join(lines[i:i + n]) for n in range(2, 9)
+                       for i in range(len(lines) - n + 1)]
+        return [Reading(subject=claim.names[0], value=c)
+                for c in dict.fromkeys(candidates) if c]
+
     def accepts(self, text: str) -> bool:
         return bool(re.search(
             r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
@@ -1064,11 +1090,44 @@ class SubscriptionPageExtractor:
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
+                and "coding_tool:*" in claim.value:
+            return []
+        if _HTML_TAG.search(text):
+            return []
+        if claim.field == "offering.subscription.coverage_quote":
+            return [r for r in self.quote_candidates(claim, text)
+                    if normalise_name(r.value) == normalise_name(str(claim.value))]
+        if re.search(r"\bteams?\b", claim.subject.rsplit("/", 1)[-1]):
+            names = tuple(name for name in claim.names
+                          if len(normalise_name(name).split()) >= 2
+                          or re.search(r"\bteams?\b", name, re.IGNORECASE))
+            if not names:
+                return []
+            claim = replace(claim, names=names)
         text = _content_block(text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
                      _vendor_layouts(claim, text)):
             readings += [r for r in more if r not in readings]
+        if claim.field in {"offering.subscription.usage_allowance",
+                           "offering.subscription.programmatic_or_agent_use"}:
+            wording = (r"\b(?:usage|allowances?|limits?|credits?|requests?|messages?|"
+                       r"tokens?|quota|uses|queries|tasks?|completions?|consumption|"
+                       r"windows?|unlimited|more)\b"
+                       if claim.field.endswith("usage_allowance") else
+                       r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
+                       r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
+            readings = [r for r in readings if r.value and not re.fullmatch(
+                r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
+                r"/\s*(?:mo|month|year).*|get .+|pricing)", r.value.strip()
+            ) and re.search(wording, r.value, re.IGNORECASE)]
+        if claim.field == "offering.subscription.models_covered":
+            readings = [r for r in readings if r.value and (
+                normalise_name(r.value) in _FALSE or any(
+                _catalogue_model_matches(item.strip())
+                for item in re.split(r",|;|\band\b", r.value) if item.strip()
+            ))]
         return readings
 
     def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
@@ -1804,16 +1863,6 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
     subject, field = claim.names[0], claim.field
     provider = claim.subject.split("/", 1)[0]
     readings: list[Reading] = []
-
-    if field == "offering.subscription.coverage_quote":
-        # The facet is the page's own wording, so any line, sentence, table cell or
-        # run of consecutive lines of the region is a candidate.
-        bare = [line.lstrip("#").strip() for line in lines]
-        candidates = [*bare, *(s for line in bare for s in _sentences(line)),
-                      *(c.strip() for line in bare if "|" in line for c in line.split("|"))]
-        candidates += ["\n".join(bare[i:i + n]) for n in range(2, 9)
-                       for i in range(len(bare) - n + 1)]
-        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates) if c]
 
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:

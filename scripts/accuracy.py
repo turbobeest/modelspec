@@ -827,6 +827,8 @@ def _private_corrections(
 #:   declared rendered. A 403 from a page that needs a renderer says nothing about
 #:   the value, so the draw is replaced. A failed ``fetch: http`` source stays
 #:   ``unreachable``.
+#: - ``missing_source_metadata``: an evidence reading lacks a recognised unit or
+#:   the optional scoring metadata needed to determine agreement.
 #: ``public_image_lag`` is an older public fact superseded by a newer verified
 #: private value. It replaces a draw and does not count as assessed or undetermined.
 FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined", "public_image_lag")
@@ -873,12 +875,30 @@ def _read_nothing(result: Any) -> bool:
 
 
 def _has_current_reading(result: Any) -> bool:
-    """A source-kind rejection does not read the claim's value."""
+    """Unsupported kinds and incomplete evidence do not establish current values."""
     return result.outcome == "verified" or (
         result.outcome == "mismatch"
         and not _read_nothing(result)
+        and not _incomplete_evidence_reading(result)
         and any(diff.field != "source_kind" for diff in result.diffs)
     )
+
+
+def _incomplete_evidence_reading(result: Any) -> bool:
+    """Missing source metadata cannot establish an evidence disagreement."""
+    from decision.verify import UNITS, parse_quantity
+
+    if result.target.kind != "evidence" or result.outcome != "mismatch" or not result.diffs:
+        return False
+    for diff in result.diffs:
+        if diff.field in {"effort", "date", "interval", "n"} and diff.found is None:
+            continue
+        if diff.field == "unit" and isinstance(diff.found, str):
+            quantity = parse_quantity(diff.found)
+            if quantity is not None and quantity.unit not in UNITS:
+                continue
+        return False
+    return True
 
 
 def verify_fidelity_sample(
@@ -915,7 +935,18 @@ def verify_fidelity_sample(
         outcome, undetermined = result.outcome, None
         key = (claim.target.kind, claim.target.id)
         correction_details = None
-        if _read_nothing(result):
+        if _incomplete_evidence_reading(result):
+            outcome, undetermined = "undetermined", "missing_source_metadata"
+        elif (
+            result.outcome == "mismatch" and result.diffs and all(
+                diff.field == "source_kind" and diff.found == "unknown" for diff in result.diffs
+            )
+        ) or (_read_nothing(result) and claim.field.startswith("offering.subscription.")):
+            outcome = "undetermined"
+            undetermined = unread.get(key, "source_changed")
+            if undetermined == "mismatch":
+                undetermined = "source_unchanged"
+        elif _read_nothing(result):
             undetermined = unread.get(key, "source_changed")
             if undetermined == "mismatch":
                 # The queue records what the nightly concluded, not verify's "skipped".
@@ -1281,7 +1312,8 @@ def data_fidelity(
             "max_undetermined_share": config.max_undetermined_share,
             "undetermined_reasons": {
                 reason: sum(row["reason"] == reason for row in sample)
-                for reason in ("source_unchanged", "source_changed", "render_required")
+                for reason in ("source_unchanged", "source_changed", "render_required",
+                               "missing_source_metadata")
             },
             "plain_http_sources": len(fetched_sources),
             "firecrawl_credits_used": 0,
