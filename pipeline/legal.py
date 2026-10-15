@@ -102,6 +102,12 @@ DOCS: tuple[LegalDoc, ...] = (
             "of Sparks & Sawdust LLC (DMCA-1082492), and the repeat-infringer policy."
         ),
     ),
+    LegalDoc(
+        slug="tester-terms",
+        source="friends-tester-terms.md",
+        nav_label="Tester terms",
+        description="Friends & Family Tester Terms for access to the ModelSpec API and MCP server.",
+    ),
 )
 
 

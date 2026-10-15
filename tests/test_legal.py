@@ -1235,3 +1235,42 @@ def test_the_dmca_page_renders_with_its_agent_fields(tmp_path: Path) -> None:
                    "+1 (401) 903-0183", "hello@sparksandsawdust.com"):
         assert needle in html, needle
     assert "Sparks &amp; Sawdust LLC" in html
+
+
+APPROVED_TESTER_TERMS = """
+**1. Access.** ModelSpec grants you free access to the ModelSpec API and MCP server through a Friends & Family key. Your access does not expire. The ModelSpec Terms of Service also apply.
+
+**2. Feedback.** In exchange, you agree to tell us whenever you notice something wrong, or something performing below what you expect. Send it through the feedback button on modelspec.dev, the feedback API, or by email.
+
+**3. Revocation.** ModelSpec may revoke your access at any time, for any reason.
+
+**4. Use of material.** Access is granted on the condition that you do not copy, redistribute, resell or otherwise profit from re-using material you obtain through this access.
+"""
+
+
+def test_the_tester_terms_use_only_the_exact_approved_text() -> None:
+    text = _text("friends-tester-terms.md")
+    header = (
+        "# Friends & Family Tester Terms\n\n"
+        "Version `1.0`, effective 2026-10-15. Adopted by Sparks & Sawdust LLC. MODEL-282.\n\n"
+    )
+    assert flat(text) == flat(header + APPROVED_TESTER_TERMS)
+
+
+def test_the_tester_terms_render_at_their_published_url(tmp_path: Path) -> None:
+    from html import unescape
+
+    from pipeline import live
+
+    result = legal.write(tmp_path, REPO_ROOT, _build())
+    page = tmp_path / "legal/tester-terms/index.html"
+    assert page.is_file(), "/legal/tester-terms/ must be published"
+    html = page.read_text(encoding="utf-8")
+    assert '<link rel="canonical" href="https://modelspec.dev/legal/tester-terms/">' in html
+    assert '<meta name="robots" content="index, follow">' in html
+    assert html.count("<h1>Friends &amp; Family Tester Terms</h1>") == 1
+    rendered_text = flat(unescape(re.sub(r"<[^>]+>", " ", html)))
+    assert flat(APPROVED_TESTER_TERMS.replace("**", "")) in rendered_text
+    assert "/legal/tester-terms/" in result["sitemap_paths"]
+    assert "https://modelspec.dev/legal/tester-terms/" in live.sitemap()
+    assert live.PAGE_SOURCES["/legal/tester-terms/"] == ("docs/legal/friends-tester-terms.md",)

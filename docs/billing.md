@@ -187,8 +187,7 @@ Jamie's setup steps:
    invoices, and subscriptions for entitlement expansion.
 3. Adopt tester terms before inviting testers.
 
-**TODO (Jamie): tester terms are pending Jamie's adoption.** This change
-does not create or amend legal text, production switches, or live Stripe ids.
+Invitees accept the [Friends & Family Tester Terms](https://modelspec.dev/legal/tester-terms/).
 
 The operator fallback uses the existing scripts:
 
