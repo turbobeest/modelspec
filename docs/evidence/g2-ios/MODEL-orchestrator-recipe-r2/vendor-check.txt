@@ -1,0 +1,2 @@
+vendored 122 files into /Users/terbeest/dev/worktrees/model-orch-recipe/api/worker/src
+bundle imports cleanly with only declared dependencies

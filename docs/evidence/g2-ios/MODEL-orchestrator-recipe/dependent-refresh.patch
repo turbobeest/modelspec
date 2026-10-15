@@ -1,0 +1,66 @@
+--- a/api/worker/openapi.yaml
++++ b/api/worker/openapi.yaml
+@@ -7,7 +7,7 @@
+   title: ModelSpec API
+   version: '1.0'
+   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
+-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-31f80fb67e121e42). Call decide early with a template-based Spec; refine
++  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-79cf5b6e5f3bf838). Call decide early with a template-based Spec; refine
+     from reading and recovery hints.
+ 
+ 
+@@ -5972,4 +5972,4 @@
+       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
+     AgentGuideVersion:
+       description: Version of the byte-stable guide.
+-      schema: {type: string, const: 1-31f80fb67e121e42}
++      schema: {type: string, const: 1-79cf5b6e5f3bf838}
+--- a/qa/fixtures/ablation-metadata.json
++++ b/qa/fixtures/ablation-metadata.json
+@@ -13,7 +13,7 @@
+         "name": "modelspec",
+         "version": "35be1b467c1bc6136d0c70c1d3e724869d71d501"
+       },
+-      "instructions": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. ModelSpec at modelspec.dev is not OpenAI's Model Spec, the CNCF ModelPack model-spec, or the Python package named modelspec. ModelSpec guide 1-31f80fb67e121e42: https://modelspec.dev/agents.md. Store once per version. Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache. CLI: uvx --from modelspec-dev modelspec. pip install modelspec is an unrelated project. Use modelspec-dev. 1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. 2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. 3. Present ties as ties, including with_estate; never invent a single winner or quality rank. 4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. 5. Follow reading.do_not_claim, label estimates and pin snapshot. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. MCP decide returns a bounded answer of at most 16 KB, summary included. Drill down with evidence_for. Complete rows need fields:null; explanation.fetch names what was removed and how to fetch it."
++      "instructions": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. ModelSpec at modelspec.dev is not OpenAI's Model Spec, the CNCF ModelPack model-spec, or the Python package named modelspec. ModelSpec guide 1-79cf5b6e5f3bf838: https://modelspec.dev/agents.md. Store once per version. Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache. CLI: uvx --from modelspec-dev modelspec. pip install modelspec is an unrelated project. Use modelspec-dev. 1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. 2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. 3. Present ties as ties, including with_estate; never invent a single winner or quality rank. 4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. 5. Follow reading.do_not_claim, label estimates and pin snapshot. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. MCP decide returns a bounded answer of at most 16 KB, summary included. Drill down with evidence_for. Complete rows need fields:null; explanation.fetch names what was removed and how to fetch it."
+     },
+     "tools/list": {
+       "tools": [
+--- a/qa/fixtures/mcp-tools.json
++++ b/qa/fixtures/mcp-tools.json
+@@ -4,9 +4,9 @@
+     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
+     "mcp/test/fixtures/decide-budget.json": "f31563680b34217d82e0732fb14923d55336d6572d6872b4ede2f74c6bbeeaa6",
+     "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
+-    "api/worker/openapi.yaml": "b2ffa2305eca5daf8aa3ca3ae64c6f5372a67af0ef5c88f5c3dcfad434545491",
+-    "docs/agents.md": "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec",
+-    "mcp/src/agent-copy.json": "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
++    "api/worker/openapi.yaml": "22f900f78316fc29d79b15dac61751d8bfa096ebaced0294564816feafb86fb3",
++    "docs/agents.md": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
++    "mcp/src/agent-copy.json": "2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238"
+   },
+   "tools": [
+     {
+--- a/tests/test_decision_link.py
++++ b/tests/test_decision_link.py
+@@ -83,8 +83,8 @@
+ 
+ 
+ def test_flag_off_agent_copy_bytes_match_base():
+-    assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
+-    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec"
++    assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238"
++    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394"
+     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
+     assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
+ 
+--- a/tests/test_decide_preview_workflow.py
++++ b/tests/test_decide_preview_workflow.py
+@@ -57,6 +57,7 @@
+         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
+         'dist/modelspec/pricing/index.html': readable(b'v1 pricing'),
+         'dist/modelspec/method/index.html': readable(b'v1 method'),
++        'dist/modelspec/orchestrators/index.html': readable(b'v1 orchestrator recipe'),
+         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
+         'dist/modelspec/graph/vendor/three.min.js': b'three',
+         'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',

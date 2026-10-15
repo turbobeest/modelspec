@@ -58,6 +58,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': readable(b'v1 pricing'),
         'dist/modelspec/method/index.html': readable(b'v1 method'),
+        'dist/modelspec/orchestrators/index.html': readable(b'v1 orchestrator recipe'),
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
         'dist/modelspec/graph/vendor/three.min.js': b'three',
         'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',

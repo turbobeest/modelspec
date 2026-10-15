@@ -1,0 +1,7 @@
+[
+  "api/worker/openapi.yaml",
+  "qa/fixtures/ablation-metadata.json",
+  "qa/fixtures/mcp-tools.json",
+  "tests/test_decision_link.py",
+  "tests/test_decide_preview_workflow.py"
+]

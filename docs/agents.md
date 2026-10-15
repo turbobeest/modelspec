@@ -1,6 +1,6 @@
 # ModelSpec agent guide
 
-Guide version: 1-31f80fb67e121e42.
+Guide version: 1-79cf5b6e5f3bf838.
 Canonical URL: https://modelspec.dev/agents.md
 Full API reference: https://modelspec.dev/openapi.yaml
 Coverage: https://modelspec.dev/api/coverage.json
@@ -15,6 +15,7 @@ Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpe
 
 Call decide early with a template-based Spec; refine from reading and recovery hints. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility.
 Not a router: call it once per job or role, not per request, then route among the models it recommends.
+Orchestrator system prompt and worked Spec: https://modelspec.dev/orchestrators/.
 
 HTTP: POST `https://api.modelspec.dev/v1/decide` with `Content-Type: application/json`, a real
 `User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.

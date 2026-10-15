@@ -75,6 +75,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
         f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
         f"- How it decides: {base}/method/\n"
+        f"- Orchestrator recipe: {base}/orchestrators/\n"
         f"- Pricing: {base}/pricing/\n"
         f"- Brand and press kit: {base}/brand/\n"
         f"- Ranking policy, keyless: {base}/api/rank/profiles.json\n"
@@ -658,6 +659,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
+    from pipeline import orchestrators
+    ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
     from pipeline import social_cards
     template_previews = social_cards.build_template_previews(Path(args.root).resolve(), today)
     social_cards.write_template_previews(ms, template_previews)

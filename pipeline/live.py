@@ -46,7 +46,7 @@ BASE = "https://modelspec.dev"
 
 #: Copied whole from the v1 build.
 KEEP_DIRS = (
-    "api", "legal", ".well-known", "method", landing.ASSET_DIR, "pricing",
+    "api", "legal", ".well-known", "method", "orchestrators", landing.ASSET_DIR, "pricing",
     "pricing-assets", "fonts",
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
@@ -61,7 +61,7 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/decide/", "/pricing/", "/feedback/", "/brand/",
+    "/", "/method/", "/orchestrators/", "/decide/", "/pricing/", "/feedback/", "/brand/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/", "/legal/dmca/",
     "/legal/tester-terms/",
 )
@@ -105,6 +105,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PAGE_SOURCES = {
     "/": ("pipeline/landing.py", "pipeline/landing_chrome.py", "pipeline/entity.py", "models"),
     "/method/": ("pipeline/method.py", "pipeline/entity.py"),
+    "/orchestrators/": ("pipeline/orchestrators.py", "pipeline/landing_assets/orchestrators.css",
+                        "registry/templates.yaml"),
     "/decide/": ("web/decide.html", "web/src/decide", "pipeline/live.py"),
     "/pricing/": ("pipeline/pricing.py", "api/worker/tiers.json"),
     "/feedback/": ("pipeline/feedback_page.py",),

@@ -1,0 +1,41 @@
+.orchestrator-recipe {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 64px 32px 96px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+.orchestrator-recipe h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1.05;
+  letter-spacing: -.03em;
+}
+.orchestrator-recipe h2 {
+  font-size: 30px;
+  line-height: 1.2;
+}
+.orchestrator-recipe section {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 2px solid var(--green);
+}
+.orchestrator-recipe p, .orchestrator-recipe li {
+  color: var(--muted);
+}
+.orchestrator-recipe a { color: var(--blue); }
+.orchestrator-recipe pre {
+  padding: 24px;
+  background: #060c18;
+  border: 1px solid #1d2c48;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.orchestrator-recipe code { overflow-wrap: anywhere; }
+.orchestrator-recipe li + li { margin-top: 16px; }
+@media (max-width: 600px) {
+  .orchestrator-recipe { padding: 40px 20px 64px; }
+  .orchestrator-recipe pre { padding: 16px; }
+}
