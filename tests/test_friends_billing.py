@@ -265,3 +265,15 @@ def test_friends_price_is_neither_advertised_nor_sold_by_public_checkout():
         assert http.calls == []
 
     asyncio.run(scenario())
+
+
+def test_subscription_checkout_collects_a_card_only_when_something_is_due():
+    from urllib.parse import parse_qs
+    from billing_stripe import checkout_form
+
+    common = dict(price_id=PAID_PRICE, success_url="https://x/s", cancel_url="https://x/c",
+                  terms_url="https://x/t")
+    plan = parse_qs(checkout_form(**common, allow_promotion_codes=True))
+    assert plan["payment_method_collection"] == ["if_required"]
+    pack = parse_qs(checkout_form(**common, mode="payment"))
+    assert "payment_method_collection" not in pack

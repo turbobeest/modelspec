@@ -126,6 +126,9 @@ def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
     }
     if mode == "subscription":
         fields["subscription_data[metadata][modelspec_price_id]"] = price_id
+        # A friends invite (100%-off forever) totals $0 now and later, so
+        # Checkout asks for no card; a paid plan still totals more than 0.
+        fields["payment_method_collection"] = "if_required"
     if overage_price_id:
         # Metered Price: Stripe rejects a quantity on a metered line.
         fields["line_items[1][price]"] = overage_price_id
