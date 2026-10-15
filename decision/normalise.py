@@ -19,7 +19,7 @@ import hashlib
 import json
 import re
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Literal
@@ -648,11 +648,12 @@ class Document:
     root: Node | None = None
 
 
-def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = None) -> Document:
+def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = None,
+                       pdf_extractor: Callable[[bytes], str] | None = None) -> Document:
     if rules.content == "pdf":
-        from decision.pdf_text import extract_pdf
-
-        raw = unicodedata.normalize("NFKC", extract_pdf(body))
+        if pdf_extractor is None:
+            raise UnsupportedContentError("pdf_extractor_unavailable")
+        raw = unicodedata.normalize("NFKC", pdf_extractor(body))
         rows = [re.sub(r" {2,}", " | ", line.strip()) for line in raw.splitlines()]
         return Document(rules, _to_text(["\n".join(rows)], rules))
     if body.lstrip().startswith(b"%PDF"):

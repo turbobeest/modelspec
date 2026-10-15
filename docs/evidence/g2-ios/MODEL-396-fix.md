@@ -219,3 +219,78 @@ dispatch, production switch, legal text change, Linear write or merge occurred.
 No WSL gate, SSH, SCP or forbidden download command ran. No Node or Swift
 files changed. All spawned validation, fetch, build and test processes completed before delivery. Hosted CI and the orchestrator's
 gate are not claimed as observed here.
+
+## REV-760 round two (MODEL-396-r2)
+
+Review base: engine `a8cfd787f6d315d8ad9a0e328a87b14effb6e49f`, data
+`df86c419ed26701a9d73e16452e56c8f18dd44c5`. Read the full REV-760 verdict.
+Updated the design note and draft PR #760 body before implementation.
+
+The extractor owns limits of 25 MiB original input, 300 pages, 4 MiB per
+decoded stream, 25 MiB aggregate decoded streams, 5 MiB total UTF-8 extracted
+text (including page separators), and 50 million Python line events in pypdf
+and the extractor. The last budget bounds parser, decoding and layout loops
+without a clock-dependent verdict. The actual Mistral document uses about
+14 million pypdf events; its largest decoded stream is 181,044 bytes.
+Configuration is explicit, context-local and restored. A private BaseException
+signal prevents parser recovery from swallowing the operation limit.
+
+The active-content preflight rejects JavaScript/JS, Launch, embedded files,
+file attachments and RichMedia names, including escaped names and names in
+decoded object streams. OpenAction/AA chains support internal navigation only.
+The retained PDF has duplicate named-destination keys: a failed strict Dests
+parse may bypass resolution only for a bounded, uncompressed dictionary of
+named internal destination arrays. Streams and action dictionaries cannot use
+that exception. An independently discovered compressed-Dests bypass was
+reproduced red, then closed and checked independently.
+
+Output limits come from exactly one table owned by the subject's own heading
+or title. Two separately headed subjects may each own a table. Another
+subject's table before or after the title cannot establish the claim. Multiple
+own tables, foreign model names, headingless tables and ambiguous normalized
+heading text refuse. The four-column matrix permits explicit modality labels
+and token quantities; unrelated text does not extend its scope.
+
+PDF extraction is supplied by the offline `decision.source_document` adapter.
+The shared normalizer takes an explicit PDF extractor; the Worker has none.
+The actual generated Worker bundle contains neither pdf_text.py nor any pypdf
+import path, and an isolated bundle rejects the PDF recipe without importing
+an offline reader. Existing verifier document-cache tests remain unchanged.
+
+Red-first observations (each command exited 1):
+
+- `tests/test_model_396_pdf.py`: 17 failed, 27 passed against unchanged code.
+  The failures cover input/page/stream/text/work limits and eleven distinct
+  active-content fixtures. Bomb and 301-page fixtures are generated in memory.
+- Reader probes: 10 failed, 49 passed; a normalized HTML foreign-heading probe
+  failed separately. Additional subject-ownership probes failed 3 cases, then
+  the foreign-column and bare-posttable probes failed 5 cases before their fixes.
+- Actual Worker bundle exclusion test failed, reporting bundled pdf_text.py,
+  the normalizer's import of it, and its pypdf imports.
+- `test_pdf_destination_metadata_cannot_hide_compressed_active_names` failed
+  before narrowing the destination exception.
+
+Final focused command:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q \
+  tests/test_model_396_pdf.py tests/test_model_396_readers.py \
+  tests/test_worker_vendor_imports.py tests/test_worker_bundle.py \
+  tests/test_decision_regions.py tests/test_decision_sources.py \
+  tests/test_decision_verify.py
+```
+
+Result: **628 passed in 2.54 s**, exit **0**. The PDF module has 51 passing
+tests; the reader module has 70. Independent broader reader/source regression:
+853 passed, exit 0. Changed PDF/adapter/reader test lint and diff whitespace
+checks pass. Tools: Python 3.14.4, pypdf 6.19.0, Node 22.22.3.
+
+The first focused invocation used a nonexistent normalizer test filename and
+exited 4 before collecting anything; corrected to test_decision_regions.py.
+A restoration test initially compared an apply_configuration copy by identity
+with its input; corrected it to compare the active context returned by the
+public API. No existing test was weakened.
+
+Full engine suite and fresh data replay results will be recorded below once
+the implementation commit is clean. No Worker deployment, production switch,
+contract change, data pin bump, lineup admission or offering was performed.

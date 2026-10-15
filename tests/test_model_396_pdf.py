@@ -20,9 +20,9 @@ from decision.normalise import (
     NORMALISERS,
     Locator,
     UnsupportedContentError,
-    normalise_document,
     select_region,
 )
+from decision.source_document import normalise_document
 from decision.sources import CopyStore, Fetcher, fingerprint_bytes, recheck
 from decision.verify import StoredRegions
 
@@ -289,3 +289,219 @@ def test_small_type3_bitmap_glyph_is_supported():
     assert normalise_document(pdf_bytes(image=(10, 8), type3=True), NORMALISERS[RECIPE]).text == (
         "Mistral Small 4\nA"
     )
+
+
+def rewrite_pdf(body, update):
+    from pypdf import PdfReader
+
+    writer = PdfWriter()
+    writer.clone_document_from_reader(PdfReader(io.BytesIO(body)))
+    update(writer)
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def test_pdf_rejects_input_over_25_mib_before_parsing():
+    body = pdf_bytes() + b" " * (25 * 1024 * 1024)
+    with pytest.raises(UnsupportedContentError, match="pdf_input_limit"):
+        normalise_document(body, NORMALISERS[RECIPE])
+
+
+def test_pdf_rejects_generated_document_over_300_pages():
+    def add_pages(writer):
+        for _ in range(300):
+            writer.add_page(writer.pages[0])
+
+    with pytest.raises(UnsupportedContentError, match="pdf_page_limit"):
+        normalise_document(rewrite_pdf(pdf_bytes(), add_pages), NORMALISERS[RECIPE])
+
+
+def test_pdf_rejects_generated_decompression_bomb():
+    def bomb(writer):
+        stream = DecodedStreamObject()
+        stream.set_data(b"0" * (4 * 1024 * 1024 + 1))
+        writer.pages[0][NameObject("/Contents")] = writer._add_object(stream.flate_encode())
+
+    body = rewrite_pdf(pdf_bytes(), bomb)
+    assert len(body) < 10_000
+    with pytest.raises(UnsupportedContentError, match="pdf_stream_limit"):
+        normalise_document(body, NORMALISERS[RECIPE])
+
+
+def test_pdf_rejects_oversized_unfiltered_stream():
+    def oversized(writer):
+        stream = DecodedStreamObject()
+        stream.set_data(b" " * (4 * 1024 * 1024 + 1))
+        writer.pages[0][NameObject("/Contents")] = writer._add_object(stream)
+
+    with pytest.raises(UnsupportedContentError, match="pdf_stream_limit"):
+        normalise_document(rewrite_pdf(pdf_bytes(), oversized), NORMALISERS[RECIPE])
+
+
+def test_pdf_total_text_limit_counts_utf8_and_page_separators(monkeypatch):
+    import decision.pdf_text as extractor
+
+    monkeypatch.setattr(extractor, "MAX_TEXT_BYTES", 28, raising=False)
+    def add_page(writer):
+        writer.add_page(writer.pages[0])
+
+    # Two 15-byte pages and their separator exceed the deliberately small cap.
+    with pytest.raises(UnsupportedContentError, match="pdf_text_limit"):
+        normalise_document(rewrite_pdf(pdf_bytes(), add_page), NORMALISERS[RECIPE])
+
+
+def test_pdf_operation_budget_stops_parser_and_is_reproducible(monkeypatch):
+    import decision.pdf_text as extractor
+
+    monkeypatch.setattr(extractor, "MAX_OPERATIONS", 20_000, raising=False)
+    def many_operations(writer):
+        stream = writer.pages[0].get_contents()
+        stream.set_data(b"q Q\n" * 20_000 + stream.get_data())
+        writer.pages[0][NameObject("/Contents")] = writer._add_object(stream)
+
+    body = rewrite_pdf(pdf_bytes(), many_operations)
+    for _ in range(2):
+        with pytest.raises(UnsupportedContentError, match="pdf_operation_limit"):
+            normalise_document(body, NORMALISERS[RECIPE])
+
+
+@pytest.mark.parametrize("active", [
+    "JavaScript", "JS", "OpenActionJavaScript", "OpenActionLaunch", "OpenActionURI",
+    "AAJavaScript", "AALaunch", "Launch", "EmbeddedFiles", "FileAttachment", "RichMedia",
+])
+def test_pdf_rejects_each_active_content_category(active):
+    from pypdf.generic import TextStringObject
+
+    def inject(writer):
+        root = writer.root_object
+        script = DictionaryObject({NameObject("/S"): NameObject("/JavaScript"),
+                                   NameObject("/JS"): TextStringObject("app.alert('unsafe')")})
+        launch = DictionaryObject({NameObject("/S"): NameObject("/Launch"),
+                                   NameObject("/F"): TextStringObject("unsafe.exe")})
+        if active == "JavaScript":
+            root[NameObject("/Names")] = DictionaryObject({
+                NameObject("/JavaScript"): DictionaryObject({
+                    NameObject("/Names"): ArrayObject([
+                        TextStringObject("unsafe"), writer._add_object(script),
+                    ]),
+                }),
+            })
+        elif active == "JS":
+            root[NameObject("/JS")] = TextStringObject("app.alert('unsafe')")
+        elif active.startswith("OpenAction"):
+            action = script if active.endswith("JavaScript") else launch
+            if active.endswith("URI"):
+                action = DictionaryObject({NameObject("/S"): NameObject("/URI"),
+                    NameObject("/URI"): TextStringObject("https://unsafe.example")})
+            root[NameObject("/OpenAction")] = writer._add_object(action)
+        elif active.startswith("AA"):
+            action = script if active.endswith("JavaScript") else launch
+            root[NameObject("/AA")] = DictionaryObject({
+                NameObject("/WC"): writer._add_object(action),
+            })
+        elif active == "Launch":
+            root[NameObject("/Action")] = writer._add_object(launch)
+        elif active == "EmbeddedFiles":
+            writer.add_attachment("unsafe.txt", b"embedded payload")
+        else:
+            annotation = DictionaryObject({NameObject("/Type"): NameObject("/Annot"),
+                NameObject("/Subtype"): NameObject("/" + active),
+                NameObject("/Rect"): ArrayObject([NumberObject(n) for n in (0, 0, 10, 10)])})
+            writer.pages[0][NameObject("/Annots")] = ArrayObject([writer._add_object(annotation)])
+
+    with pytest.raises(UnsupportedContentError, match="pdf_active_content"):
+        normalise_document(rewrite_pdf(pdf_bytes(), inject), NORMALISERS[RECIPE])
+
+
+def test_pdf_rejects_aggregate_decoded_bytes(monkeypatch):
+    import decision.pdf_text as extractor
+
+    monkeypatch.setattr(extractor, "MAX_DECODED_BYTES", 100)
+    def metadata(writer):
+        stream = DecodedStreamObject()
+        stream.set_data(b"x" * 60)
+        writer.root_object[NameObject("/Metadata")] = writer._add_object(stream.flate_encode())
+
+    with pytest.raises(UnsupportedContentError, match="pdf_decoded_limit"):
+        normalise_document(rewrite_pdf(pdf_bytes(), metadata), NORMALISERS[RECIPE])
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_pdf_restores_trace_and_configuration_on_success_and_failure(monkeypatch, fail):
+    import sys
+
+    import pypdf
+
+    import decision.pdf_text as extractor
+
+    def caller_trace(frame, event, arg):
+        return caller_trace
+
+    previous_trace = sys.gettrace()
+    caller_config = pypdf.Configuration(zlib_maximum_output_length=123)
+    if fail:
+        monkeypatch.setattr(extractor, "MAX_OPERATIONS", 1)
+    body = pdf_bytes()
+    try:
+        sys.settrace(caller_trace)
+        with pypdf.apply_configuration(caller_config) as active_config:
+            if fail:
+                with pytest.raises(UnsupportedContentError, match="pdf_operation_limit"):
+                    normalise_document(body, NORMALISERS[RECIPE])
+            else:
+                assert normalise_document(body, NORMALISERS[RECIPE]).text == (
+                    "Mistral Small 4"
+                )
+            assert sys.gettrace() is caller_trace
+            assert pypdf.get_configuration() is active_config
+    finally:
+        sys.settrace(previous_trace)
+
+
+def test_pdf_open_action_internal_navigation_is_supported():
+    def navigate(writer):
+        writer.root_object[NameObject("/OpenAction")] = ArrayObject([
+            writer.pages[0].indirect_reference, NameObject("/Fit"),
+        ])
+
+    assert normalise_document(rewrite_pdf(pdf_bytes(), navigate), NORMALISERS[RECIPE]).text == (
+        "Mistral Small 4"
+    )
+
+
+def test_pdf_rejects_external_action_in_internal_navigation_chain():
+    from pypdf.generic import TextStringObject
+
+    def chain(writer):
+        uri = DictionaryObject({NameObject("/S"): NameObject("/URI"),
+            NameObject("/URI"): TextStringObject("https://unsafe.example")})
+        action = DictionaryObject({NameObject("/S"): NameObject("/GoTo"),
+            NameObject("/D"): ArrayObject([writer.pages[0].indirect_reference, NameObject("/Fit")]),
+            NameObject("/Next"): writer._add_object(uri)})
+        writer.root_object[NameObject("/OpenAction")] = writer._add_object(action)
+
+    with pytest.raises(UnsupportedContentError, match="pdf_active_content"):
+        normalise_document(rewrite_pdf(pdf_bytes(), chain), NORMALISERS[RECIPE])
+
+
+def test_pdf_rejects_escaped_active_name_in_compressed_object_stream():
+    def object_stream(writer):
+        stream = DecodedStreamObject()
+        stream.set_data(b"99 0 << /S /Java#53cript /J#53 (unsafe) >>")
+        stream.update({NameObject("/Type"): NameObject("/ObjStm"),
+                       NameObject("/N"): NumberObject(1), NameObject("/First"): NumberObject(5)})
+        writer._add_object(stream.flate_encode())
+
+    with pytest.raises(UnsupportedContentError, match="pdf_active_content"):
+        normalise_document(rewrite_pdf(pdf_bytes(), object_stream), NORMALISERS[RECIPE])
+
+
+def test_pdf_destination_metadata_cannot_hide_compressed_active_names():
+    def destinations(writer):
+        stream = DecodedStreamObject()
+        stream.set_data(b"/JavaScript /JS (unsafe)")
+        writer.root_object[NameObject("/Dests")] = writer._add_object(stream.flate_encode())
+
+    with pytest.raises(UnsupportedContentError, match="pdf_active_content"):
+        normalise_document(rewrite_pdf(pdf_bytes(), destinations), NORMALISERS[RECIPE])

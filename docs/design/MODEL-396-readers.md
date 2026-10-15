@@ -1,6 +1,6 @@
 # MODEL-396 source readers
 
-This note precedes the reader code and is the initial engine draft PR body.
+This note records the draft design, including the changes requested by REV-760.
 Small 4 remains outside premier unless all nineteen guaranteed facts verify.
 
 ## PDF normalization
@@ -39,17 +39,61 @@ legitimate image-heavy technical report. Small checkbox images in Mistral's
 technical document do not qualify as scans. Do not recover a rejected PDF by
 decoding its bytes as plain text.
 
+Bound every extraction to 25 MiB of original input, 300 pages, 4 MiB per decoded
+stream, 25 MiB of aggregate decoded stream bytes and 5 MiB of total extracted
+UTF-8 text. Set pypdf's context-local
+`Configuration` explicitly, including `zlib_maximum_output_length` and the
+other decoder ceilings. Four MiB is ample for text and small decorations in
+technical documents, while preventing a tiny compressed stream from allocating
+the library's default 75 MB. Check unfiltered streams against the same ceiling.
+
+Bound parser, decoder, object-walk and layout work with a deterministic budget
+of 50 million Python line events in the pinned pypdf package and this extractor.
+The budget starts before constructing the reader and stops extraction when
+exhausted; it is independent of wall-clock speed. Restore the caller's trace
+and pypdf configuration on success and failure. A private non-Exception signal
+escapes parser recovery and becomes `pdf_operation_limit` at the boundary.
+Each byte, page, stream, text or operation limit fails closed with its own
+reason. No timeout changes the result between machines.
+
+Inspect PDF names in original and decoded bytes, including escaped names and
+compressed object streams, and walk indirect objects before accepting text.
+If strict resolution of the catalog's `/Dests` metadata fails, accept only an
+uncompressed dictionary of named internal destination arrays, bounded to
+64 KiB. The retained technical PDF has duplicate ordinary destination keys.
+Every other destination shape receives full inspection or fails closed. Raw
+names still undergo the same active-content screening. This conservative
+name screening can also reject a report quoting an active PDF name.
+Reject JavaScript names/actions, launch actions, embedded-file name trees,
+file-attachment annotations and RichMedia. OpenAction and additional-action
+chains may only navigate within the document; script, external and unknown
+actions are unsupported. No attachment or action payload is executed.
+
+Keep extraction in the offline source-verification adapter. The shared
+normalizer accepts an explicit extractor for PDF recipes, and rejects PDF when
+none is supplied. The Worker uses only that shared normalizer and vendors
+neither the offline adapter nor any module importing pypdf. A test scans the
+actual bundle for PDF dependency imports as well as checking import closure.
+
 The output-limit reader recognizes the documented four-column model-properties
-table: `Input type | Maximum size | Output type | Maximum size`. It reads only
-the text output's maximum-size cell, requires a token unit and model identity,
-and refuses missing, conflicting or malformed rows. An input limit must never
-stand in for the output limit.
+table: `Input type | Maximum size | Output type | Maximum size`. A table must
+sit below the claim subject's own heading or exact title, with no intervening
+model heading. A numbered Model properties section may belong to that title.
+The reader confines itself to that section, refuses a second candidate table or
+another model name inside the scoped region, and never reaches backward to a
+table above the subject. It reads only the text output's maximum-size cell,
+requires a token unit, and refuses missing, conflicting or malformed rows.
+An input limit must never stand in for the output limit.
 
 Adversarial checks cover repeated extraction with literal expected text,
 original-byte copy hashes, recheck changes, incorrect extractor versions,
 encrypted PDFs, blank pages, image-only pages, scans with text overlays,
 malformed PDFs, HTML mislabeled as PDF, non-PDF recipes, selector misuse and
-different input/output limits.
+different input/output limits. Generated fixtures cover oversized input,
+301 pages, decompression bombs, excessive content operations and extracted text,
+plus each active-content category. Table tests include another model's 999k
+limit before and after the subject title, two-subject documents, ambiguous
+candidate tables and tables with no subject heading.
 
 ## Mistral output labels
 

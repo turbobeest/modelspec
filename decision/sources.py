@@ -44,9 +44,9 @@ from decision.normalise import (
     UnsupportedContentError,
     canonical_url,
     fingerprint,
-    normalise_document,
     select_region,
 )
+from decision.source_document import normalise_document
 
 
 class FetchMode(StrEnum):

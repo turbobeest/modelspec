@@ -75,7 +75,6 @@ SOURCES = {
     Path("decision/model.py"): Path("decision/model.py"),
     Path("decision/next_move.py"): Path("decision/next_move.py"),
     Path("decision/normalise.py"): Path("decision/normalise.py"),
-    Path("decision/pdf_text.py"): Path("decision/pdf_text.py"),
     Path("decision/optimise.py"): Path("decision/optimise.py"),
     Path("decision/plans.py"): Path("decision/plans.py"),
     Path("decision/relax.py"): Path("decision/relax.py"),

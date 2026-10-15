@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,3 +74,53 @@ def test_every_imported_repository_module_is_vendored():
             if module is not None and module not in vendored and (str(path), name) not in BUILD_TIME:
                 missing.add(f"{path} imports {name} ({module})")
     assert not missing, "add to SOURCES in api/worker/vendor.py:\n" + "\n".join(sorted(missing))
+
+
+def test_worker_bundle_has_no_pdf_extractor_or_pypdf_imports(tmp_path: Path):
+    bundle = vendor.build(tmp_path / "bundle")
+    forbidden = set()
+    for path in bundle.rglob("*.py"):
+        relative = path.relative_to(bundle)
+        if relative == Path("decision/pdf_text.py"):
+            forbidden.add(str(relative))
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                names = [node.module or ""]
+            else:
+                continue
+            for name in names:
+                if name == "decision.pdf_text" or name.split(".")[0] == "pypdf":
+                    forbidden.add(f"{relative} imports {name}")
+    assert not forbidden, "PDF extraction belongs outside the Worker bundle:\n" + "\n".join(
+        sorted(forbidden)
+    )
+
+
+def test_worker_pdf_recipe_fails_closed_without_importing_an_offline_reader(tmp_path: Path):
+    bundle = vendor.build(tmp_path / "bundle")
+    script = """
+import pathlib
+import sys
+sys.path.insert(0, sys.argv[1])
+import decision.normalise as normalise
+assert pathlib.Path(normalise.__file__).is_relative_to(pathlib.Path(sys.argv[1]))
+try:
+    normalise.normalise_document(b'%PDF-1.7 malformed', normalise.NORMALISERS['pdf-pypdf-6.19.0-v1'])
+except normalise.UnsupportedContentError as error:
+    assert error.kind == 'pdf_extractor_unavailable', error.kind
+else:
+    raise AssertionError('The Worker accepted a PDF without an extractor')
+assert 'decision.pdf_text' not in sys.modules
+assert 'decision.source_document' not in sys.modules
+assert not any(name == 'pypdf' or name.startswith('pypdf.') for name in sys.modules)
+"""
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(bundle)],
+        cwd=bundle,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
