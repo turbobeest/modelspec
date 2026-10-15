@@ -1,0 +1,12 @@
+
+> test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-261/mcp
+
+
+ Test Files  9 passed (9)
+      Tests  166 passed (166)
+   Start at  21:56:02
+   Duration  1.64s (tests 48%, transform 30%, import 21%, worker 1%)

@@ -4,6 +4,27 @@ Read-only MCP tools over the ModelSpec catalogue. Data tools require an
 API key. The site stays on Cloudflare Pages; this Worker only answers
 `https://api.modelspec.dev/mcp`.
 
+## Official registry listing
+
+The root `server.json` describes the keyed remote server using the official
+registry's `2025-12-11` schema. Its checked-in version records the deployment
+observed when the listing was added. The schema is vendored unchanged in
+`tests/fixtures/mcp_registry/` so validation runs offline.
+
+After review, merge, and a successful MCP deployment, an operator can dispatch
+`Publish MCP registry listing` on `main`. It verifies that the live Worker's
+`serverInfo.version` matches the selected commit and writes that version to a
+temporary manifest. A deployment mismatch fails before authentication or
+publication. The workflow uses checksum-pinned `mcp-publisher` v1.8.1 and GitHub
+OIDC. It has no push trigger and needs no registry secret.
+
+Registry metadata declares a required, secret `Authorization: Bearer` key.
+Keys come from [pricing and keys](https://modelspec.dev/pricing/).
+
+Sources: [registry schema](https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json),
+[official publishing workflow](https://github.com/modelcontextprotocol/registry/blob/v1.8.1/docs/modelcontextprotocol-io/github-actions.mdx),
+and [publisher v1.8.1](https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.1).
+
 ## SDK and transport
 
 | Choice | What |

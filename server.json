@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.turbobeest/modelspec",
+  "description": "Find AI models that fit a job from your requirements, sourced benchmarks and real cost.",
+  "title": "ModelSpec",
+  "repository": {
+    "url": "https://github.com/turbobeest/modelspec",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "websiteUrl": "https://modelspec.dev",
+  "version": "c9b625605750f29ede73ade4d7020eb2714b1513",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.modelspec.dev/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Required ModelSpec bearer API key. Get a key at https://modelspec.dev/pricing/.",
+          "isRequired": true,
+          "isSecret": true,
+          "value": "Bearer {api_key}",
+          "variables": {
+            "api_key": {
+              "description": "ModelSpec API key from https://modelspec.dev/pricing/.",
+              "isRequired": true,
+              "isSecret": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

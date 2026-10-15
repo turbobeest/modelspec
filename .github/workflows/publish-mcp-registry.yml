@@ -1,0 +1,57 @@
+name: Publish MCP registry listing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-registry-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Prepare manifest for the deployed MCP commit
+        env:
+          PYTHONPATH: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/mcp-registry"
+          python mcp/scripts/registry_manifest.py \
+            --expected-version "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/mcp-registry/server.json"
+
+      - name: Install verified mcp-publisher v1.8.1
+        working-directory: ${{ runner.temp }}/mcp-registry
+        run: |
+          python - <<'PY'
+          import urllib.request
+          urllib.request.urlretrieve(
+              "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz",
+              "mcp-publisher_linux_amd64.tar.gz",
+          )
+          PY
+          echo 'a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  mcp-publisher_linux_amd64.tar.gz' > publisher.sha256
+          sha256sum --check publisher.sha256
+          tar -xzf mcp-publisher_linux_amd64.tar.gz mcp-publisher
+
+      - name: Authenticate with GitHub OIDC
+        working-directory: ${{ runner.temp }}/mcp-registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish remote server listing
+        working-directory: ${{ runner.temp }}/mcp-registry
+        run: ./mcp-publisher publish

@@ -1,0 +1,45 @@
+ModelSpec is licensed in two parts.
+
+  Code    — everything except the data directories below — MIT, as set out in
+            full beneath this notice.
+
+  Data    — the curated corpora in `models/`, `benchmarks/`, `hardware/` and
+            `hosts/` — Creative Commons Attribution-ShareAlike 4.0
+            International (CC BY-SA 4.0), set out in full in LICENSE-DATA.
+
+The data is share-alike so that anyone who builds on the corpus and
+redistributes it publishes their improvements under the same terms. The code is
+permissive so the engine can be embedded anywhere. The data directories are a
+delayed public image, about nine months behind the current data, which is
+served only through the hosted service. Individual cards and pages
+record the source and licence of the third-party material they draw on; those
+terms govern that material and are not altered by this file.
+
+Decided by the operator on 2026-09-08. The data directories were extended to
+`hardware/` and `hosts/` on 2026-09-16 (MODEL-11); those records are curated data
+on the same terms as the other corpora, and the earlier text covered them only by
+omission.
+
+-----------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 ModelSpec Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
