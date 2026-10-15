@@ -68,7 +68,7 @@
   },
   "billing": {
     "friends_price_ids": [],
-    "friends_promotion_code_prefix": "",
+    "friends_promotion_code_prefix": "FRIENDS-",
     "downgrade_tier": "free",
     "terms_url": "https://modelspec.dev/legal/terms/",
     "cancel_url": "https://modelspec.dev/pricing",
