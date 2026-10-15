@@ -102,11 +102,11 @@ from decision.normalise import (
     Locator,
     RuleSet,
     UnsupportedContentError,
+    normalise_document,
     select_region,
 )
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
-from decision.source_document import normalise_document
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 from decision.units import _MAGNITUDE, UNITS, unit_id
 from schema import private_errors
@@ -2309,169 +2309,6 @@ class MistralOutputModalitiesExtractor:
         if not outputs.intersection(allowed):
             return []
         return [Reading(subject, ", ".join(sorted(outputs)))]
-
-
-class ModelPropertiesOutputLimitExtractor:
-    """Read the text output cell in a four-column model-properties table."""
-
-    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
-                              method="model-properties-output-limit@1")
-    _HEADER = ["input type", "maximum size", "output type", "maximum size"]
-    _TOKENS = re.compile(r"(?i)\d[\d,]*(?:\.\d+)?\s*(?:[km]\s*)?tokens?")
-    _HEADING = re.compile(r"^(?:#{1,6}\s+|\d+\.\s+)(.+)$")
-    _MODALITIES = frozenset({"text", "image", "audio", "video", "other"})
-    _ARCHITECTURES = frozenset({
-        "mixture of experts", "dense transformer", "transformer", "encoder only",
-    })
-    _PARAMETER_RANGE = re.compile(
-        r"(?i)[☐☑□■✓✔]?\s*\d+(?:\.\d+)?\s*[kmb]\s*"
-        r"(?:-|–|—|to)\s*\d+(?:\.\d+)?\s*[kmb]"
-    )
-
-    @staticmethod
-    def _cells(line: str) -> list[str]:
-        return [cell.strip() for cell in line.strip("| ").split("|")]
-
-    def accepts(self, text: str) -> bool:
-        return any([normalise_name(cell) for cell in self._cells(line)] == self._HEADER
-                   for line in text.splitlines())
-
-    def _scope(self, claim: Claim, text: str) -> tuple[str, list[str]] | None:
-        lines = text.splitlines()
-        tables = [i for i, line in enumerate(lines)
-                  if [normalise_name(cell) for cell in self._cells(line)] == self._HEADER]
-        scopes = [scope for table in tables
-                  if (scope := self._table_scope(claim, lines, table)) is not None]
-        return scopes[0] if len(scopes) == 1 else None
-
-    def _table_scope(self, claim: Claim, lines: list[str],
-                     table: int) -> tuple[str, list[str]] | None:
-        names = {normalise_name(name): name for name in claim.names}
-        titles = []
-        for i, line in enumerate(lines[:table]):
-            title = re.sub(r"^#{1,6}\s+", "", line.strip())
-            if normalise_name(title) in names:
-                titles.append((i, names[normalise_name(title)]))
-        if not titles:
-            return None
-        title_at, subject = titles[-1]
-        start = title_at + 1
-        for i in range(start, table):
-            line = lines[i].strip()
-            heading = self._HEADING.fullmatch(line)
-            if heading is not None:
-                label = normalise_name(heading.group(1))
-                if not line.startswith("#") and label not in {
-                    "general information", "model properties",
-                }:
-                    return None
-                if _catalogue_model_matches(heading.group(1)) - {claim.subject} \
-                        or re.fullmatch(r"(?i).+\bmodel", heading.group(1)):
-                    return None
-                if line.startswith("#") and label != "model properties":
-                    return None
-                # The closest numbered section must own this table. Earlier
-                # general-information sections do not become its cited scope.
-                start = i + 1 if label == "model properties" else -1
-            elif normalise_name(line) == "model properties":
-                start = i + 1
-            cells = self._cells(line)
-            declaration = re.fullmatch(r"(?i)(?:model|model name|name)\s*:\s*(.+)", line)
-            declared = declaration.group(1) if declaration else (
-                cells[1] if len(cells) == 2 and normalise_name(cells[0]) in _SUBJECT_KEYS
-                else None)
-            if declared is not None and normalise_name(declared) not in names:
-                return None
-        if start < 0:
-            return None
-        for line in lines[start:table]:
-            cells = self._cells(line)
-            if not line.strip() or normalise_name(line) == "modalities":
-                continue
-            if len(cells) != 2 or normalise_name(cells[0]) not in {
-                "model architecture", "range of parameters", *_SUBJECT_KEYS,
-            }:
-                # HTML normalization removes heading markers. An unclassified
-                # line here could be another model's heading, so refuse it.
-                return None
-            label = normalise_name(cells[0])
-            if label == "model architecture" \
-                    and normalise_name(cells[1]) not in self._ARCHITECTURES:
-                return None
-            if label == "range of parameters" \
-                    and self._PARAMETER_RANGE.fullmatch(cells[1]) is None:
-                return None
-        end = next((i for i in range(table + 1, len(lines))
-                    if self._HEADING.fullmatch(lines[i].strip())
-                    or normalise_name(lines[i]) in names), len(lines))
-        scoped = lines[start:end]
-        if sum([normalise_name(cell) for cell in self._cells(line)] == self._HEADER
-               for line in scoped) != 1:
-            return None
-        if any(line.strip() and "|" not in line for line in lines[table + 1:end]):
-            return None
-        words = _page_words("\n".join(scoped))
-        for name, models in _catalogue_model_aliases().items():
-            if name not in names and models - {claim.subject} \
-                    and _whole_name_in_words(name, words):
-                return None
-        for line in scoped:
-            cells = self._cells(line)
-            declaration = re.fullmatch(r"(?i)(?:model|model name|name)\s*:\s*(.+)", line.strip())
-            declared = declaration.group(1) if declaration else (
-                cells[1] if len(cells) == 2 and normalise_name(cells[0]) in _SUBJECT_KEYS
-                else None)
-            if declared is not None and normalise_name(declared) not in names:
-                return None
-        return subject, scoped
-
-    def extract(self, claim: Claim, text: str) -> list[Reading]:
-        if claim.field != "model.max_output_tokens":
-            return []
-        scope = self._scope(claim, text)
-        if scope is None:
-            return []
-        subject, lines = scope
-        values: list[tuple[str, float]] = []
-        for i, line in enumerate(lines):
-            if [normalise_name(cell) for cell in self._cells(line)] != self._HEADER:
-                continue
-            found_text = False
-            for row in lines[i + 1:]:
-                if not row.strip():
-                    continue
-                if "|" not in row:
-                    break
-                cells = self._cells(row)
-                if [normalise_name(cell) for cell in cells] == self._HEADER:
-                    break
-                if len(cells) != 4:
-                    return []
-                if all(re.fullmatch(r"[-:]+", cell) for cell in cells):
-                    continue
-                if cells[0].casefold() not in self._MODALITIES \
-                        or cells[2].casefold() not in self._MODALITIES:
-                    return []
-                for size in (cells[1], cells[3]):
-                    if size.casefold() == "n/a":
-                        continue
-                    quantity = parse_quantity(size)
-                    if self._TOKENS.fullmatch(size) is None or quantity is None \
-                            or quantity.unit not in {"tokens", "k_tokens", "m_tokens"} \
-                            or quantity.number <= 0:
-                        return []
-                if cells[2].casefold() != "text":
-                    continue
-                quantity = parse_quantity(cells[3])
-                if quantity is None:
-                    return []
-                values.append((cells[3], quantity.number * UNITS[quantity.unit][1]))
-                found_text = True
-            if not found_text:
-                return []
-        if not values or any(value[1] != values[0][1] for value in values[1:]):
-            return []
-        return [Reading(subject, values[0][0])]
 
 
 ARCHITECTURE_FACTS = frozenset(
@@ -5534,7 +5371,7 @@ def deterministic_extractors() -> list[Extractor]:
             OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
-            MistralOutputModalitiesExtractor(), ModelPropertiesOutputLimitExtractor(),
+            MistralOutputModalitiesExtractor(),
             LabJurisdictionExtractor()]
 
 
@@ -6122,8 +5959,6 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     specialized = [extractor for extractor in extractors if (
         isinstance(extractor, MistralOutputModalitiesExtractor)
         and extractor.bound_to(claim, kind, source_url)
-        or isinstance(extractor, ModelPropertiesOutputLimitExtractor)
-        and claim.field == "model.max_output_tokens" and kind == "lab_documentation"
     ) and extractor.accepts(text)]
     if specialized:
         return specialized
@@ -6132,7 +5967,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
-            MistralOutputModalitiesExtractor, ModelPropertiesOutputLimitExtractor,
+            MistralOutputModalitiesExtractor,
         )):
             continue
         accepts = extractor.accepts

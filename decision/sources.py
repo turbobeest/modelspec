@@ -44,9 +44,9 @@ from decision.normalise import (
     UnsupportedContentError,
     canonical_url,
     fingerprint,
+    normalise_document,
     select_region,
 )
-from decision.source_document import normalise_document
 
 
 class FetchMode(StrEnum):
@@ -645,7 +645,7 @@ def _check_one(
 
     rules = NORMALISERS[source.normaliser]
     try:
-        if "pdf" in result.content_type.lower() and rules.content != "pdf":
+        if "pdf" in result.content_type.lower():
             raise UnsupportedContentError("pdf")
         doc = normalise_document(result.body, rules, charset=result.charset)
     except UnsupportedContentError as exc:

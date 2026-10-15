@@ -1,102 +1,9 @@
 # MODEL-396 source readers
 
-This note records the draft design, including the changes requested by REV-760.
-Small 4 remains outside premier unless all nineteen guaranteed facts verify.
-
-## PDF normalization
-
-Register an opt-in `pdf-pypdf-6.19.0-v1` recipe. Neither HTML nor plain-text
-recipes begin accepting PDFs. Pin `pypdf==6.19.0` in the engine's development
-dependencies and check the installed version before extraction. There is no
-PDF extractor in the existing lockfiles. pypdf is an established, pure-Python
-library already installed in the operator environment and used by the existing
-research scripts. It avoids depending on the host's Poppler version.
-
-The retained, SHA-256-addressed source is the original PDF bytes. Text is a
-derived normalization identified by the recipe name. Parse with strict PDF
-handling, without passwords, network calls or OCR. Extract pages in document
-order with pypdf's layout mode, fixed options and no blank-line padding. Apply
-the existing Unicode and whitespace rules, converting internal layout gaps of
-two or more spaces into table-cell separators. Source locators remain the
-existing whole-page and exact-excerpt forms. PDF sources cannot use HTML
-selectors or headings. Once published, changes to the extractor, its options
-or this recipe require a new recipe name. REV-760 hardens the unpublished recipe.
-
-Reject encrypted, malformed, empty and image-only documents. Reject a document
-if any page has no machine-readable text. Permit only small raster decorations
-whose drawn edge lengths are at most 16 points and whose aggregate area is less
-than one percent of the page. Larger images, inline images and invisible text
-rendering modes are unsupported, including a scan with an existing text overlay.
-Pattern resources, annotation appearances and graphics-state soft masks are
-unsupported because their rendering can carry raster scans outside ordinary
-image placement. Plain link annotations and small image masks remain supported.
-Type 3 bitmap glyphs use the same size and area limits, with their font, text
-and page transforms applied. Every glyph in a used Type 3 font is checked;
-an unused oversized bitmap glyph also makes that font unsupported.
-Calculate image coverage from PDF placement transforms, including nested form
-objects, rather than pixel dimensions. This conservative rule can reject a
-legitimate image-heavy technical report. Small checkbox images in Mistral's
-technical document do not qualify as scans. Do not recover a rejected PDF by
-decoding its bytes as plain text.
-
-Bound every extraction to 25 MiB of original input, 300 pages, 4 MiB per decoded
-stream, 25 MiB of aggregate decoded stream bytes and 5 MiB of total extracted
-UTF-8 text. Set pypdf's context-local
-`Configuration` explicitly, including `zlib_maximum_output_length` and the
-other decoder ceilings. Four MiB is ample for text and small decorations in
-technical documents, while preventing a tiny compressed stream from allocating
-the library's default 75 MB. Check unfiltered streams against the same ceiling.
-
-Bound parser, decoder, object-walk and layout work with a deterministic budget
-of 50 million Python line events in the pinned pypdf package and this extractor.
-The budget starts before constructing the reader and stops extraction when
-exhausted; it is independent of wall-clock speed. Restore the caller's trace
-and pypdf configuration on success and failure. A private non-Exception signal
-escapes parser recovery and becomes `pdf_operation_limit` at the boundary.
-Each byte, page, stream, text or operation limit fails closed with its own
-reason. No timeout changes the result between machines.
-
-Inspect PDF names in original and decoded bytes, including escaped names and
-compressed object streams, and walk indirect objects before accepting text.
-If strict resolution of the catalog's `/Dests` metadata fails, accept only an
-uncompressed dictionary of named internal destination arrays, bounded to
-64 KiB. The retained technical PDF has duplicate ordinary destination keys.
-Every other destination shape receives full inspection or fails closed. Raw
-names still undergo the same active-content screening. This conservative
-name screening can also reject a report quoting an active PDF name.
-Reject JavaScript names/actions, launch actions, embedded-file name trees,
-file-attachment annotations and RichMedia. OpenAction and additional-action
-chains may only navigate within the document; script, external and unknown
-actions are unsupported. No attachment or action payload is executed.
-
-Keep extraction in the offline source-verification adapter. The shared
-normalizer accepts an explicit extractor for PDF recipes, and rejects PDF when
-none is supplied. The Worker uses only that shared normalizer and vendors
-neither the offline adapter nor any module importing pypdf. A test scans the
-actual bundle for PDF dependency imports as well as checking import closure.
-
-The output-limit reader recognizes the documented four-column model-properties
-table: `Input type | Maximum size | Output type | Maximum size`. A table must
-sit below the claim subject's own heading or exact title, with no intervening
-model heading. A numbered Model properties section may belong to that title.
-The reader confines itself to that section, refuses a second candidate table or
-another model name inside the scoped region, and never reaches backward to a
-table above the subject. It reads only the text output's maximum-size cell,
-requires a token unit, and refuses missing, conflicting or malformed rows.
-Architecture metadata must use an explicit supported architectural description;
-parameter-range metadata must contain only a numeric parameter range. Unknown
-model names cannot hide in either metadata field. An input limit must never
-stand in for the output limit.
-
-Adversarial checks cover repeated extraction with literal expected text,
-original-byte copy hashes, recheck changes, incorrect extractor versions,
-encrypted PDFs, blank pages, image-only pages, scans with text overlays,
-malformed PDFs, HTML mislabeled as PDF, non-PDF recipes, selector misuse and
-different input/output limits. Generated fixtures cover oversized input,
-301 pages, decompression bombs, excessive content operations and extracted text,
-plus each active-content category. Table tests include another model's 999k
-limit before and after the subject title, two-subject documents, ambiguous
-candidate tables and tables with no subject heading.
+Only the scoped Mistral output-label rule remains in this change. PDF source
+support and the model-properties output-limit reader were dropped after two
+cross-model reviews, REV-760 and REV-760b. Small 4 has fifteen supported facts
+and four gaps. It remains outside premier, with no API offering filed.
 
 ## Mistral output labels
 
@@ -114,20 +21,108 @@ The registry has no separate reasoning feature facet. It already has
 `feature.effort_controls` for request-controlled reasoning, and Small 4's
 verified effort-control fact remains on that facet. Add no facet or output enum.
 
-Adversarial checks cover text plus reasoning in each supported form, text plus
+The retained tests cover text plus reasoning in each supported form, text plus
 image, unknown labels, reasoning-only lists, similarly named labels, input
 lists, other labs, other source hosts/paths, model identity mismatches and
-conflicting output blocks.
+conflicting output blocks. Both reviews found this rule sound.
+
+## PDF support withdrawn
+
+Remove the PDF recipe, extractor, offline adapter, dependency, source-locator
+extension and model-properties output-limit reader. Remove their tests and
+restore the shared normalizer, source fetcher, source model, CLI provenance
+hash and Worker import tests to their pre-ticket versions. The Worker vendor
+map and dependency locks already match that baseline. Its existing general
+import-closure test remains; the PDF-specific guards are removed with the code
+they guarded. PDF bytes and PDF content types remain unsupported by the
+existing source pipeline.
+
+REV-760 found resource limits missing, another model's table accepted, and
+JavaScript plus embedded files accepted. The second attempt added limits and
+more exclusions, but REV-760b still accepted external actions in OpenAction
+arrays, an embedded filespec stream, and another model's table under a caption.
+PDF support would close only `model.max_output_tokens`; the other three source
+gaps already prevent admission. The orchestrator withdrew the feature rather
+than extend either parser heuristic.
+
+## Requirements for any future PDF design
+
+A future proposal starts with an **allowlist of acceptable PDF object
+structure**: permitted object types, keys, value types and relationships.
+Anything outside that explicitly reviewed structure must refuse. Extending
+an action-name blocklist is not an acceptable design.
+
+Any table region needs an **exact hashed template**, bound to its claim subject,
+source bytes and approved region representation. The template must account for
+captions, headings, cell order and surrounding ownership context. Unrecognized
+or changed templates must refuse; heading proximity cannot establish ownership.
+No reusable PDF implementation or table heuristic is retained here.
+
+The following review probes are required acceptance tests for that new design.
+They are recorded as a test specification; this PR provides no PDF parser to run
+against them. Unless a case is explicitly admitted by the reviewed allowlist
+and exact template, it must refuse and must never verify the wrong claim.
+
+### REV-760 probes
+
+- Resource limits: more than the approved page/input/text limits; a Flate stream
+  expanding to 1,000,000 and 80,000,000 zero bytes; and 20,000 `q`/`Q` pairs.
+  A future design must own finite decoder and deterministic work budgets rather
+  than inherit a library default or rely on wall-clock time.
+- Table ownership: an Other Model 999k table followed by a Mistral Small 4 title
+  and “See the table above”; the inverse order; two subjects with different
+  tables; duplicate candidate tables, including equal values; and no heading.
+  The Other Model value must never establish Small 4's output limit.
+- Table meaning: input 256k/output 8k must not verify an output claim of 256k;
+  reversed columns, missing/non-token units and conflicting text rows refuse.
+- Active content: JavaScript actions/name trees and a retained embedded file
+  must refuse even when neither payload appears in extracted text.
+- Encrypted PDFs, scans with text overlays, image-only and blank pages,
+  malformed PDF, HTML mislabeled or prefixed as PDF, other recipe names and
+  extractor-version mismatches must not gain a text fallback.
+
+### REV-760b probes
+
+- Catalog OpenAction `[URI-action]`, `[page /Fit URI-action]`, and the same URI
+  arrays on a page dictionary or link annotation must refuse. A GoTo action
+  carrying an additional URI key must refuse. A plain `[page /Fit]` destination
+  and an ordinary URI link require explicit structural admission, not an early
+  return merely because the value is an array or is named GoTo.
+- A filespec whose `/EF /F` points to a stream of `EMBEDDED_SECRET_BYTES` must
+  refuse, including when no EmbeddedFiles name tree is present.
+- A caption above a plain Model properties label must not lend the following
+  table to the earlier subject, under either text or HTML normalization:
+
+  ```text
+  Mistral Small 4
+  Caption: Other Model
+  Model properties
+  Input type | Maximum size | Output type | Maximum size
+  Text | 1 token | Text | 999k tokens
+  ```
+
+- Preserve the negative action probes on catalog, page and annotation objects:
+  JavaScript/JS, AA JavaScript/Launch/URI, Launch, embedded files, file
+  attachments, RichMedia, annotation A JavaScript/Launch, and script names in
+  decoded metadata/object streams, including escaped names such as `/#4A#53`.
+- Retest both orders of separately headed subjects, repeated Model properties
+  headings, same-value duplicates, foreign model declarations, foreign names
+  in architecture/range metadata, captions inside the section and HTML captions.
+- Exercise production resource thresholds, not only lowered test constants.
+  Historical probes were 26,215,076 input bytes; 301 pages; a Flate stream of
+  4,194,305 decoded bytes; thirty 1,000,000-byte decoded streams; 320,000 `q Q`
+  operators; and two pages with 2,600,000 ASCII letters each. Budget exhaustion
+  must refuse deterministically before an accepted or partial text result.
 
 ## Contract and admission checks
 
-Read the actual decision contract and check MODEL-59 against the final diff.
-These changes affect source normalization and independent readers. They do not
-add output modalities, widen public response fields or alter the decision
-envelope. No contract version change is planned.
+The retained rule changes source interpretation only. No public response field,
+output modality, facet, ranking floor or legal term changes. Contract version
+2.18 and its schemas stay unchanged.
 
-Research must separately establish per-model streaming, an express base-lineage
-statement and the complete first-party weights-hosting country set. Generic
-platform streaming, `Model dependencies NA`, inference-region scopes and the
-lab's incorporation country do not establish those facts. If any remains
-unsupported, file the exact gaps and leave premier and the API offering alone.
+`model.max_output_tokens` is now a reader gap: the retained PDF is a research
+receipt, with no approved verification path. Closing it requires either a
+qualifying non-PDF primary source or the separately reviewed design above.
+The source gaps remain per-model streaming, express base lineage and the
+complete first-party weights-hosting country set. Four gaps mean no premier
+admission or offering, and no data engine-pin bump in this PR.

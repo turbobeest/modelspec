@@ -1,3 +1,8 @@
+> Current status, round three: PDF support and the table-scope reader were
+> withdrawn after REV-760 and REV-760b. Earlier PDF and sixteen-fact results
+> below describe rejected prototypes. The retained change is the Mistral label
+> rule; current filing has fifteen facts and four gaps. See round three below.
+
 # MODEL-396 execution evidence
 
 The two reader gaps are closed. A genuine retained-source replay verifies
@@ -351,3 +356,45 @@ Worker OpenAPI, ranking floors, legal terms, production variables, premier
 and frozen public data are unchanged. Source and verification records remain
 research-only. No Worker isolate deployment or paid provider request was
 observed or performed. Both PRs remain drafts; no merge was performed.
+
+## Round three: withdraw PDF support
+
+Base engine `b10f80d66b31220f499b4e7f1c91c3314aa367ab`; base data
+`f59692b443ee223a8bf61d6975387d4c31d4bcc1`. Read REV-760b fully. The
+orchestrator explicitly withdrew PDF support instead of extending its action
+blocklist or table-heading heuristic.
+
+Removed the PDF recipe, extractor, offline adapter, dependency, PDF locator
+change, model-properties reader and their tests. The shared normalizer, source
+fetcher/model, CLI provenance and Worker import tests match pre-ticket commit
+`c9b62560` byte for byte. Worker vendor code and locks also match that baseline;
+there were no remaining lock changes to revert. PDF-specific Worker guards
+were removed with their dead path; the existing general import-closure test
+remains. The Mistral reasoning-label rule and its 33 behavioral cases remain.
+
+Red-first removal audit: exit 1, listing eleven remnants of the withdrawn
+feature. The same audit now exits 0. Its rerunnable source is
+MODEL-396-r3-removal-audit.py; run from the engine with:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-396-r3-removal-audit.py
+```
+
+Focused command, exit 0: **524 passed in 9.56 s**.
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q \
+  tests/test_model_396_readers.py tests/test_decision_verify.py \
+  tests/test_decision_sources.py tests/test_worker_vendor_imports.py \
+  tests/test_worker_bundle.py
+```
+
+The source-pipeline tests retain the pre-existing PDF-is-unsupported behavior.
+No new parser replacement or PDF tests were introduced. The design note and
+PR body record both reviews' probes as acceptance requirements for a future
+structural allowlist and exact hashed region templates. Current code provides
+neither PDF extraction nor a heading-based output-limit reader.
+
+Python 3.14.4; Node 22.22.3. Playwright's locked package was present before the
+full run. Full engine and broader-data results are recorded below after their
+processes finish; no partial run is counted as a completed gate.

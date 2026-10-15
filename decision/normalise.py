@@ -7,10 +7,10 @@ relative dates ("3 days ago"), tracking query strings, attribute order and
 whitespace. The output is text only, one block per line and table cells joined
 by `` | ``, so markup churn never reaches a fingerprint.
 
-A rule set is chosen by name on each source (``Source.normaliser``). PDF is
-opt-in through a pinned, versioned text extraction recipe.
+A rule set is chosen by name on each source (``Source.normaliser``). HTML and
+plain text are handled; PDF is not yet (see ``UnsupportedContentError``).
 
-Deterministic and offline. Only the PDF recipe needs the pinned pypdf dependency.
+Deterministic and offline: the standard library only, no network.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import hashlib
 import json
 import re
 import unicodedata
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Literal
@@ -107,7 +107,7 @@ class RuleSet:
     """A named normalisation recipe. ``content`` says which parser applies."""
 
     name: str
-    content: Literal["html", "text", "json", "pdf"]
+    content: Literal["html", "text", "json"]
     drop_tags: frozenset[str] = frozenset()
     #: Drop ``<header>``/``<footer>`` unless they sit inside an article, main or section.
     drop_page_chrome: bool = True
@@ -163,13 +163,12 @@ NORMALISERS: dict[str, RuleSet] = {
                 header_buttons=True, data_buttons=True),
         RuleSet("text-default", "text"),
         RuleSet("json-default", "json", strip_volatile=False, strip_tracking=False),
-        RuleSet("pdf-pypdf-6.19.0-v1", "pdf"),
     )
 }
 
 
 class UnsupportedContentError(ValueError):
-    """The content is unsupported by the selected normalization recipe."""
+    """The content type has no normaliser yet (PDF, for now)."""
 
     def __init__(self, kind: str) -> None:
         super().__init__(f"unsupported content: {kind}")
@@ -648,14 +647,7 @@ class Document:
     root: Node | None = None
 
 
-def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = None,
-                       pdf_extractor: Callable[[bytes], str] | None = None) -> Document:
-    if rules.content == "pdf":
-        if pdf_extractor is None:
-            raise UnsupportedContentError("pdf_extractor_unavailable")
-        raw = unicodedata.normalize("NFKC", pdf_extractor(body))
-        rows = [re.sub(r" {2,}", " | ", line.strip()) for line in raw.splitlines()]
-        return Document(rules, _to_text(["\n".join(rows)], rules))
+def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = None) -> Document:
     if body.lstrip().startswith(b"%PDF"):
         raise UnsupportedContentError("pdf")
     raw = body.decode(charset or "utf-8", errors="replace")
