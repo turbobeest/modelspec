@@ -396,5 +396,62 @@ structural allowlist and exact hashed region templates. Current code provides
 neither PDF extraction nor a heading-based output-limit reader.
 
 Python 3.14.4; Node 22.22.3. Playwright's locked package was present before the
-full run. Full engine and broader-data results are recorded below after their
-processes finish; no partial run is counted as a completed gate.
+full run. The completed full-engine and broader-data results are recorded below; no
+partial run is counted as a completed gate.
+
+
+### Completed round-three gates
+
+Implementation SHA: `9b620332de18c12c54fbd1ef54ab445893c8205b`. The full run
+used this clean implementation. This final engine commit changes only evidence;
+the canonical data replay records its exact final evidence-head SHA after commit.
+
+```bash
+export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+Result: **11208 passed, 9 skipped, 11 warnings in 1167.86 s (19:27)**,
+exit **0**, captured directly from the process. The eleven warnings concern the
+existing unsigned decision vocabulary in CLI snapshot/keyed-origin tests.
+There are no failed or errored tests. Full stdout/stderr is retained in
+MODEL-396-r3-full-engine.log.gz. The focused gate remains **524 passed**, exit 0.
+
+Data replay, cwd `/Users/terbeest/dev/worktrees/data-model-396`:
+
+```bash
+PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/replay.py
+/Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/validation/r3/audit.py
+/Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/sources/primary-research/check-sources.py
+```
+
+All three exit **0**. The genuine verifier produces **15** independent,
+schema-valid facts, with all **14** baseline fact dictionaries unchanged. The
+candidate bundle contains no PDF source registrations or citations. The raw
+receipt integrity check covers 29 retained responses and four recorded HTTP
+failures; it does not parse PDFs. A second red/green audit exposed and removed
+a redundant PDF citation from the new output-modalities claim, which still
+verifies from the model page alone.
+
+The exact broader private-data suite from recall-private.yml ran on archived
+data `f9eb36f96a68a1222b2afd5f77b04804a35f69f8` with main's unchanged engine
+pin `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`: **938 passed, 17 skipped,
+zero failures in 161.86 s**, exit **0**. Python 3.11.15; pytest 9.1.1; Git
+2.50.1. Its three candidate bundle files match the tested revision byte for byte.
+The exact commands, environments, versions, exit codes and hashes are retained
+in data PR #90 under research/model-396/validation/r3/. Subsequent data changes
+record validation evidence and the final engine-head replay binding only.
+
+Four gaps remain unfiled: reader gap `model.max_output_tokens`, and source gaps
+`feature.streaming`, `origin.base_lineage`, `origin.weights_hosting`. No premier
+admission, API offering, production fact or data-pin change was made. Public
+contract version 2.18, schema/OpenAPI, ranking floors, legal terms and production
+switches still match the pre-ticket baseline. The original unsupported-PDF
+source-pipeline test remains green; there is no replacement PDF parser.
+
+Both review probe sets are documented as future acceptance requirements, not
+claims that the retired implementation was safe. Historical round-one and
+round-two PDF/16-fact results above are superseded. No paid provider call,
+Worker isolate deployment, live production query, workflow dispatch, Linear
+write or merge was performed. The hosted workflow and production behavior were
+not independently observed in this round. Both PRs remain drafts.
