@@ -213,7 +213,7 @@ def test_health_and_site_counts_label_their_own_data_images(entry, monkeypatch, 
     assert health["model_count_label"] == "Worker serving catalogue cards, including retired models"
     assert health["policy_model_count_label"] == "Worker serving policy catalogue cards, including retired models"
     assert "frozen public catalogue has 2 cards" in coverage.summary(public)
-    assert "Worker's serving data image can be newer" in coverage.summary(public)
+    assert "Worker can serve a newer data image" in coverage.summary(public)
 
 
 @pytest.mark.parametrize("path,method,status", [

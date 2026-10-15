@@ -121,7 +121,7 @@ def summary(data: dict[str, Any]) -> str:
             f"({classes or 'no classes'}). The frozen public catalogue has "
             f"{data['catalogue']['models']:,} cards, including retired models; "
             f"{data['catalogue']['catalogued_not_decidable']:,} are not yet decidable. "
-            "The Worker's serving data image can be newer, so its health counts may differ.")
+            "The Worker can serve a newer data image, so its health counts may differ.")
 
 
 def provider_summary(data: dict[str, Any]) -> str:
