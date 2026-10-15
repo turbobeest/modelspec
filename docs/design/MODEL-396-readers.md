@@ -19,8 +19,8 @@ order with pypdf's layout mode, fixed options and no blank-line padding. Apply
 the existing Unicode and whitespace rules, converting internal layout gaps of
 two or more spaces into table-cell separators. Source locators remain the
 existing whole-page and exact-excerpt forms. PDF sources cannot use HTML
-selectors or headings. Changes to the extractor, its options or this recipe
-require a new recipe name.
+selectors or headings. Once published, changes to the extractor, its options
+or this recipe require a new recipe name. REV-760 hardens the unpublished recipe.
 
 Reject encrypted, malformed, empty and image-only documents. Reject a document
 if any page has no machine-readable text. Permit only small raster decorations
@@ -83,7 +83,10 @@ The reader confines itself to that section, refuses a second candidate table or
 another model name inside the scoped region, and never reaches backward to a
 table above the subject. It reads only the text output's maximum-size cell,
 requires a token unit, and refuses missing, conflicting or malformed rows.
-An input limit must never stand in for the output limit.
+Architecture metadata must use an explicit supported architectural description;
+parameter-range metadata must contain only a numeric parameter range. Unknown
+model names cannot hide in either metadata field. An input limit must never
+stand in for the output limit.
 
 Adversarial checks cover repeated extraction with literal expected text,
 original-byte copy hashes, recheck changes, incorrect extractor versions,

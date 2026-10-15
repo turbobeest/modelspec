@@ -2320,6 +2320,13 @@ class ModelPropertiesOutputLimitExtractor:
     _TOKENS = re.compile(r"(?i)\d[\d,]*(?:\.\d+)?\s*(?:[km]\s*)?tokens?")
     _HEADING = re.compile(r"^(?:#{1,6}\s+|\d+\.\s+)(.+)$")
     _MODALITIES = frozenset({"text", "image", "audio", "video", "other"})
+    _ARCHITECTURES = frozenset({
+        "mixture of experts", "dense transformer", "transformer", "encoder only",
+    })
+    _PARAMETER_RANGE = re.compile(
+        r"(?i)[☐☑□■✓✔]?\s*\d+(?:\.\d+)?\s*[kmb]\s*"
+        r"(?:-|–|—|to)\s*\d+(?:\.\d+)?\s*[kmb]"
+    )
 
     @staticmethod
     def _cells(line: str) -> list[str]:
@@ -2354,6 +2361,10 @@ class ModelPropertiesOutputLimitExtractor:
             heading = self._HEADING.fullmatch(line)
             if heading is not None:
                 label = normalise_name(heading.group(1))
+                if not line.startswith("#") and label not in {
+                    "general information", "model properties",
+                }:
+                    return None
                 if _catalogue_model_matches(heading.group(1)) - {claim.subject} \
                         or re.fullmatch(r"(?i).+\bmodel", heading.group(1)):
                     return None
@@ -2382,6 +2393,13 @@ class ModelPropertiesOutputLimitExtractor:
             }:
                 # HTML normalization removes heading markers. An unclassified
                 # line here could be another model's heading, so refuse it.
+                return None
+            label = normalise_name(cells[0])
+            if label == "model architecture" \
+                    and normalise_name(cells[1]) not in self._ARCHITECTURES:
+                return None
+            if label == "range of parameters" \
+                    and self._PARAMETER_RANGE.fullmatch(cells[1]) is None:
                 return None
         end = next((i for i in range(table + 1, len(lines))
                     if self._HEADING.fullmatch(lines[i].strip())

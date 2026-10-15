@@ -305,3 +305,38 @@ def test_model_properties_refuses_unknown_plain_heading_after_its_table(tmp_path
     assert read(tmp_path, text, field="model.max_output_tokens", value=256000).outcome \
         == "mismatch"
 
+
+@pytest.mark.parametrize("prelude", [
+    "Model architecture | Other Model",
+    "Range of parameters | Other Model",
+    "Model architecture | Mixture of Experts, Other Model",
+    "Model architecture | Mixture of Experts (Other Model)",
+    "Range of parameters | ☐100B - 500B Other Model",
+    "Range of parameters | ☐100B - 500B; Other Model",
+])
+def test_model_properties_refuses_foreign_names_in_metadata_values(tmp_path, prelude):
+    text = "Mistral Small 4\n2. Model properties\n" + prelude + "\n" \
+        "Input type | Maximum size | Output type | Maximum size\n" \
+        "Text | 1 token | Text | 999k tokens\n"
+    assert read(tmp_path, text, field="model.max_output_tokens", value=999000).outcome \
+        == "mismatch"
+
+
+def test_model_properties_accepts_the_documented_mistral_metadata_prelude(tmp_path):
+    text = PROPERTIES.replace(
+        "2. Model properties\n",
+        "2. Model properties\nModel architecture | Mixture of Experts\n"
+        "Range of parameters | ☐100B - 500B\nModalities\n",
+    )
+    assert read(tmp_path, text, field="model.max_output_tokens", value=256000).outcome \
+        == "verified"
+
+
+@pytest.mark.parametrize("heading", ["Leanstral", "UnknownSiblingName"])
+def test_model_properties_unknown_numbered_heading_breaks_subject_ownership(tmp_path, heading):
+    text = "Mistral Small 4\n1. " + heading + "\n2. Model properties\n" \
+        "Input type | Maximum size | Output type | Maximum size\n" \
+        "Text | 1 token | Text | 999k tokens\n"
+    assert read(tmp_path, text, field="model.max_output_tokens", value=999000).outcome \
+        == "mismatch"
+

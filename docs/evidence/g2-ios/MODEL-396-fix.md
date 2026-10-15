@@ -294,3 +294,20 @@ public API. No existing test was weakened.
 Full engine suite and fresh data replay results will be recorded below once
 the implementation commit is clean. No Worker deployment, production switch,
 contract change, data pin bump, lineup admission or offering was performed.
+
+### Final subject-ownership hardening
+
+An independent probe found unknown model names accepted as architecture or
+parameter-range metadata values. Six cases failed red, then explicit supported
+architecture descriptions and anchored numerical parameter ranges closed them.
+Two further red cases showed an unknown numbered model heading could be
+followed by Model properties and regain ownership. Only General information
+and Model properties are now permitted numbered sections before the table.
+
+The first full run was intentionally interrupted (exit 130) after 8566 passed,
+5 skipped, 4 warnings in 237.15 s because these additional source changes
+required a fresh run. That partial run is not a completed validation gate.
+
+The final combined focused command above now passes **637 tests**, exit **0**;
+the reader module has **79** passing tests and the PDF module **51**. The actual
+original Mistral PDF still verifies 256000 through the stricter reader.
