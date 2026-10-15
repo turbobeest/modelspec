@@ -63,6 +63,6 @@ Two licences, because the code and the corpus want different things.
 | Code (everything outside the data directories) | MIT |
 | Data (`models/`, `benchmarks/`, `hardware/`, `hosts/`) | CC BY-SA 4.0 |
 
-The corpus is share-alike: build on it, including commercially, but if you redistribute it or a derivative, credit ModelSpec and publish yours under the same terms. The CLI source remains MIT-licensed. Full text in [`LICENSE`](LICENSE) and [`LICENSE-DATA`](LICENSE-DATA).
+The corpus is share-alike: build on it, including commercially, but if you redistribute it or a derivative, credit ModelSpec and publish yours under the same terms. The CLI source remains MIT-licensed. Full text in [`LICENSE`](LICENSE) and [`LICENSE-DATA`](LICENSE-DATA). See [LICENSING.md](LICENSING.md).
 
 Every card and page records the sources it draws on and the date each was read. Those sources keep their own licences.

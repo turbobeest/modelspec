@@ -1053,7 +1053,7 @@ def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> No
     flat_neutrality = flat(NEUTRALITY)
     assert "the sites and the CLI read" not in flat_neutrality
     assert "about nine months" in flat_neutrality
-    licence = flat((REPO_ROOT / "LICENSE").read_text(encoding="utf-8"))
+    licence = flat((REPO_ROOT / "LICENSING.md").read_text(encoding="utf-8"))
     assert "so the CLI can be embedded anywhere" not in licence
     assert "delayed public image" in licence
 

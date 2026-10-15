@@ -1,0 +1,83 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+__________________ test_license_is_the_existing_mit_text_only __________________
+
+    def test_license_is_the_existing_mit_text_only():
+>       assert hashlib.sha256((ROOT / "LICENSE").read_bytes()).hexdigest() == (
+            "11bf2c064d493a1b2dba178c63a6dfefcee76c168e4461497570c2d18e173ce2"
+        )
+E       AssertionError: assert 'bc906b1ded00...690b20f4cd0f0' == '11bf2c064d49...0c2d18e173ce2'
+E         
+E         - 11bf2c064d493a1b2dba178c63a6dfefcee76c168e4461497570c2d18e173ce2
+E         + bc906b1ded00661b37b2901f3f43d60a84afc49a3e020ca774e690b20f4cd0f0
+
+tests/test_discovery.py:19: AssertionError
+_______ test_licensing_preserves_the_notice_and_its_referenced_mit_text ________
+
+    def test_licensing_preserves_the_notice_and_its_referenced_mit_text():
+        path = ROOT / "LICENSING.md"
+>       assert path.is_file(), "the existing notice must remain available verbatim"
+E       AssertionError: the existing notice must remain available verbatim
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-261/LICENSING.md').is_file
+
+tests/test_discovery.py:29: AssertionError
+________ test_remote_manifest_validates_and_matches_the_deployed_route _________
+
+    def test_remote_manifest_validates_and_matches_the_deployed_route():
+        path = ROOT / "server.json"
+>       assert path.is_file(), "the remote MCP server needs a registry manifest"
+E       AssertionError: the remote MCP server needs a registry manifest
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-261/server.json').is_file
+
+tests/test_discovery.py:41: AssertionError
+_______________ test_registry_publishing_is_manual_and_uses_oidc _______________
+
+    def test_registry_publishing_is_manual_and_uses_oidc():
+        path = ROOT / ".github/workflows/publish-mcp-registry.yml"
+>       assert path.is_file(), "registry publishing must be available for operator dispatch"
+E       AssertionError: registry publishing must be available for operator dispatch
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-261/.github/workflows/publish-mcp-registry.yml').is_file
+
+tests/test_discovery.py:74: AssertionError
+_________ test_publish_manifest_uses_the_verified_worker_commit[False] _________
+
+sse = False
+
+    @pytest.mark.parametrize("sse", [False, True])
+    def test_publish_manifest_uses_the_verified_worker_commit(sse):
+        script = ROOT / "mcp/scripts/registry_manifest.py"
+>       assert script.is_file(), "publishing must check the deployed Worker's commit"
+E       AssertionError: publishing must check the deployed Worker's commit
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-261/mcp/scripts/registry_manifest.py').is_file
+
+tests/test_discovery.py:91: AssertionError
+_________ test_publish_manifest_uses_the_verified_worker_commit[True] __________
+
+sse = True
+
+    @pytest.mark.parametrize("sse", [False, True])
+    def test_publish_manifest_uses_the_verified_worker_commit(sse):
+        script = ROOT / "mcp/scripts/registry_manifest.py"
+>       assert script.is_file(), "publishing must check the deployed Worker's commit"
+E       AssertionError: publishing must check the deployed Worker's commit
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-261/mcp/scripts/registry_manifest.py').is_file
+
+tests/test_discovery.py:91: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_discovery.py::test_license_is_the_existing_mit_text_only - ...
+FAILED tests/test_discovery.py::test_licensing_preserves_the_notice_and_its_referenced_mit_text
+FAILED tests/test_discovery.py::test_remote_manifest_validates_and_matches_the_deployed_route
+FAILED tests/test_discovery.py::test_registry_publishing_is_manual_and_uses_oidc
+FAILED tests/test_discovery.py::test_publish_manifest_uses_the_verified_worker_commit[False]
+FAILED tests/test_discovery.py::test_publish_manifest_uses_the_verified_worker_commit[True]
+6 failed in 0.12s
