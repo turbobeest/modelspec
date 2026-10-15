@@ -41,18 +41,20 @@ def method_header() -> str:
             '<a class="button primary" href="/decide/">Open the board</a></nav></header>')
 
 
-def legal_footer_links(*, base: str = "", separator: str = "",
-                       neutrality_label: str = "Neutrality commitment") -> str:
+def legal_footer_links(*, base: str = "",
+                       neutrality_label: str = "Neutrality commitment") -> tuple[str, ...]:
     from pipeline.legal import DOCS
 
-    return separator.join(
+    order = {"terms": 0, "privacy": 1, "neutrality": 2, "dmca": 3}
+    docs = sorted(DOCS, key=lambda doc: order.get(doc.slug, len(order)))
+    return tuple(
         f'<a href="{html.escape(base + doc.url_path)}">'
         f'{html.escape(neutrality_label if doc.slug == "neutrality" else doc.nav_label)}</a>'
-        for doc in DOCS if doc.in_footer
+        for doc in docs if doc.in_footer
     )
 
 
 def footer(*, detail: str = "") -> str:
     return ('<footer class="site-foot"><span>© Sparks &amp; Sawdust LLC</span>'
-            f'<a href="/method/">How we decide</a>{legal_footer_links()}'
+            f'<a href="/method/">How we decide</a>{"".join(legal_footer_links())}'
             f'<a href="/brand/">Brand</a><span class="foot-detail">{detail}</span></footer>')
