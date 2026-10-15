@@ -311,3 +311,43 @@ required a fresh run. That partial run is not a completed validation gate.
 The final combined focused command above now passes **637 tests**, exit **0**;
 the reader module has **79** passing tests and the PDF module **51**. The actual
 original Mistral PDF still verifies 256000 through the stricter reader.
+
+### Completed round-two gates
+
+Final implementation SHA: `75aa2df3b0d94975637c11771c2fa2c0e3da2e61`.
+This evidence commit adds only the completed gate record and compressed log.
+The source implementation remained clean throughout the final full run.
+
+```bash
+export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+Result: **11307 passed, 9 skipped, 11 warnings in 1543.18 s (25:43)**,
+exit **0**, checked directly from the process. Warnings are the existing
+unsigned decision-vocabulary warnings in CLI snapshot/keyed-origin tests.
+There are no failed or errored tests. Full stdout/stderr is retained in
+MODEL-396-r2-full-engine.log.gz.
+
+The private-data worktree replay against this clean implementation passed
+with Python 3.11.15 and 3.14.4: the same **16** facts verify, every field of
+the **14** baseline fact dictionaries remains identical, and the same three
+unfiled gaps remain unknown. Python 3.11's focused PDF/reader suite passed
+**130 tests in 1.18 s**, exit **0**. Source-byte integrity and the five
+independent scan probes also pass. The canonical replay is refreshed once
+more against the evidence head before the data commit, and its exact head,
+clean status, runtime and exit codes live in data PR #90's
+research/model-396/candidate-results.json and validation/r2-replay-results.json.
+
+Data replay command (cwd /Users/terbeest/dev/worktrees/data-model-396):
+
+```bash
+PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/replay.py
+```
+
+The data .engine-pin stays `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`.
+Contract version remains 2.18; decision/contract.py, the decision JSON schema,
+Worker OpenAPI, ranking floors, legal terms, production variables, premier
+and frozen public data are unchanged. Source and verification records remain
+research-only. No Worker isolate deployment or paid provider request was
+observed or performed. Both PRs remain drafts; no merge was performed.
