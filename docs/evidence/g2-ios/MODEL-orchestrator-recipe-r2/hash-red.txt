@@ -1,0 +1,15 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________ test_flag_off_agent_copy_bytes_match_base ___________________
+
+    def test_flag_off_agent_copy_bytes_match_base():
+>       assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
+E       AssertionError: assert '2d036788d1a1...366bf0a4fa238' == '408bf5a9093e...f41398b6da056'
+E         
+E         - 408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056
+E         + 2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238
+
+tests/test_decision_link.py:86: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_decision_link.py::test_flag_off_agent_copy_bytes_match_base
+1 failed in 0.72s

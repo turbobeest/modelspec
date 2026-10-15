@@ -1,0 +1,41 @@
+--- base/docs/agents.md
++++ current/docs/agents.md
+@@ -1,6 +1,6 @@
+ # ModelSpec agent guide
+ 
+-Guide version: 1-31f80fb67e121e42.
++Guide version: 1-79cf5b6e5f3bf838.
+ Canonical URL: https://modelspec.dev/agents.md
+ Full API reference: https://modelspec.dev/openapi.yaml
+ Coverage: https://modelspec.dev/api/coverage.json
+@@ -15,6 +15,7 @@
+ 
+ Call decide early with a template-based Spec; refine from reading and recovery hints. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility.
+ Not a router: call it once per job or role, not per request, then route among the models it recommends.
++Orchestrator system prompt and worked Spec: https://modelspec.dev/orchestrators/.
+ 
+ HTTP: POST `https://api.modelspec.dev/v1/decide` with `Content-Type: application/json`, a real
+ `User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.
+
+{
+  "base": "0afd269c0e2e4dbb86dd073f4b8669437470fb07",
+  "flag": "DECISION_LINK_ENABLED=false",
+  "old_guide_version": "1-31f80fb67e121e42",
+  "new_guide_version": "1-79cf5b6e5f3bf838",
+  "guide": {
+    "old": "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec",
+    "new": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394"
+  },
+  "mcp_copy": {
+    "old": "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056",
+    "new": "2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238"
+  },
+  "cli_text": {
+    "old": "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793",
+    "new": "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
+  },
+  "guide_only_adds_pointer_and_derived_version": true,
+  "mcp_copy_only_adds_context_pointer_and_derived_versions": true,
+  "cli_text_byte_identical": true,
+  "test_source_only_refreshes_two_fixed_hashes": true
+}

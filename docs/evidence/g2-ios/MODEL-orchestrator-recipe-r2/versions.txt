@@ -1,0 +1,15 @@
+Python 3.14.4
+pytest 9.1.1
+pytest-xdist 3.8.0
+pydantic 2.13.5
+typer 0.27.2
+click 8.5.0
+PyYAML 6.0.3
+git version 2.50.1
+gh version 2.102.0 (2026-09-30)
+https://github.com/cli/cli/releases/tag/v2.102.0
+v22.22.3
+uv 0.7.13 (62ed17b23 2025-06-12)
+Pinned dry-run uv 0.12.19
+Pinned Wrangler 4.139.0
+Chromium 153.0.8010.12

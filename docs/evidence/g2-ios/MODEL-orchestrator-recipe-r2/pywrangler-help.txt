@@ -1,0 +1,5 @@
+Using CPython 3.13.15
+Creating virtual environment at: .venv-workers
+Activate with: source .venv-workers/bin/activate
+ERROR    uv version at least 0.12.3 required, have 0.7.13.                      
+ERROR    Update uv with `uv self update`.                                       
