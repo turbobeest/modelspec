@@ -1,5 +1,8 @@
 # MODEL-282 tester terms execution evidence
 
+This is the historical revision 1 report. The orchestrator's follow-up resolves
+its scope blockers; see [revision 2 verification](MODEL-282-terms-r2-fix.md).
+
 Status: BLOCKED. Publication checks need files outside the spec's named paths.
 
 Base SHA: `0afd269c0e2e4dbb86dd073f4b8669437470fb07`.
