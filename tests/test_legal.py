@@ -983,12 +983,25 @@ def test_the_draft_switch_still_hides_a_draft(tmp_path: Path, monkeypatch) -> No
     assert "has not been adopted" in html
 
 
-def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
-    """MODEL-70's last criterion: reachable from the landing page and the API docs."""
+@pytest.mark.parametrize("hidden_slug", [None, "privacy"])
+def test_the_landing_page_and_every_generated_page_link_all_three(monkeypatch, hidden_slug) -> None:
+    """Public legal documents stay linked; invite-only terms stay out of the chrome."""
+    from dataclasses import replace
+
     from pipeline import render as r
 
     from datetime import date
-    from pipeline import landing as landing_page
+    from pipeline import landing as landing_page, landing_chrome
+
+    assert {doc.slug: doc.in_footer for doc in legal.DOCS} == {
+        "terms": True, "privacy": True, "neutrality": True, "dmca": True,
+        "tester-terms": False,
+    }
+    if hidden_slug:
+        monkeypatch.setattr(legal, "DOCS", tuple(
+            replace(doc, in_footer=False) if doc.slug == hidden_slug else doc
+            for doc in legal.DOCS
+        ))
 
     model = landing_page.PlotModel("model", "Model", .1, 1, 0, 2, True)
     data = landing_page.LandingData(
@@ -997,14 +1010,19 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
         landing_page._plot_axes([model]),
         coverage=landing_page.coverage.from_repo(REPO_ROOT, date.today()),
     )
-    footer = landing_page.render(data, variant="live").split("<footer>", 1)[1]
+    landing = landing_page.render(data, variant="live")
     shell = r.shell(title="t", description="d", canonical=None, body="", build=_build(),
                     site="ModelSpec", nav_links=r.MS_NAV)
     api_docs = (REPO_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
+    for page in (landing, shell, landing_chrome.footer()):
+        footer = re.search(r"<footer\b[^>]*>(.*?)</footer>", page, re.S)
+        assert footer is not None
+        for doc in legal.DOCS:
+            assert (f'href="{doc.url_path}"' in footer.group(1)) == doc.in_footer, doc.slug
+        for nav in re.findall(r"<nav\b[^>]*>(.*?)</nav>", page, re.S):
+            assert 'href="/legal/tester-terms/"' not in nav
     for doc in legal.DOCS:
-        assert f'href="{doc.url_path}"' in footer, doc.slug
-        assert f'href="{doc.url_path}"' in shell.split("<footer>", 1)[1], doc.slug
-        if doc.slug != "dmca":  # the API reference points at the terms, not the copyright page
+        if doc.in_footer and doc.slug != "dmca":  # API reference links the public terms
             assert f"](https://modelspec.dev{doc.url_path})" in api_docs, doc.slug
 
 
@@ -1235,3 +1253,42 @@ def test_the_dmca_page_renders_with_its_agent_fields(tmp_path: Path) -> None:
                    "+1 (401) 903-0183", "hello@sparksandsawdust.com"):
         assert needle in html, needle
     assert "Sparks &amp; Sawdust LLC" in html
+
+
+APPROVED_TESTER_TERMS = """
+**1. Access.** ModelSpec grants you free access to the ModelSpec API and MCP server through a Friends & Family key. Your access does not expire. The ModelSpec Terms of Service also apply.
+
+**2. Feedback.** In exchange, you agree to tell us whenever you notice something wrong, or something performing below what you expect. Send it through the feedback button on modelspec.dev, the feedback API, or by email.
+
+**3. Revocation.** ModelSpec may revoke your access at any time, for any reason.
+
+**4. Use of material.** Access is granted on the condition that you do not copy, redistribute, resell or otherwise profit from re-using material you obtain through this access.
+"""
+
+
+def test_the_tester_terms_use_only_the_exact_approved_text() -> None:
+    text = _text("friends-tester-terms.md")
+    header = (
+        "# Friends & Family Tester Terms\n\n"
+        "Version `1.0`, effective 2026-10-15. Adopted by Sparks & Sawdust LLC. MODEL-282.\n\n"
+    )
+    assert flat(text) == flat(header + APPROVED_TESTER_TERMS)
+
+
+def test_the_tester_terms_render_at_their_published_url(tmp_path: Path) -> None:
+    from html import unescape
+
+    from pipeline import live
+
+    result = legal.write(tmp_path, REPO_ROOT, _build())
+    page = tmp_path / "legal/tester-terms/index.html"
+    assert page.is_file(), "/legal/tester-terms/ must be published"
+    html = page.read_text(encoding="utf-8")
+    assert '<link rel="canonical" href="https://modelspec.dev/legal/tester-terms/">' in html
+    assert '<meta name="robots" content="index, follow">' in html
+    assert html.count("<h1>Friends &amp; Family Tester Terms</h1>") == 1
+    rendered_text = flat(unescape(re.sub(r"<[^>]+>", " ", html)))
+    assert flat(APPROVED_TESTER_TERMS.replace("**", "")) in rendered_text
+    assert "/legal/tester-terms/" in result["sitemap_paths"]
+    assert "https://modelspec.dev/legal/tester-terms/" in live.sitemap()
+    assert live.PAGE_SOURCES["/legal/tester-terms/"] == ("docs/legal/friends-tester-terms.md",)

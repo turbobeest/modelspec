@@ -716,6 +716,10 @@ def shell(*, title: str, description: str, canonical: str | None, body: str, bui
     )
     # The legal pages (MODEL-70) live on modelspec.dev and cover both sites.
     legal = "" if site == "ModelSpec" else "https://modelspec.dev"
+    links = landing_chrome.legal_footer_links(base=legal, neutrality_label="Neutrality")
+    legal_footer = " &middot; ".join(links[:2])
+    if len(links) > 2:
+        legal_footer += " &middot;\n" + " &middot; ".join(links[2:])
     return f"""<!doctype html>
 <html lang="en" data-site="{esc(site.lower())}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -739,8 +743,7 @@ def shell(*, title: str, description: str, canonical: str | None, body: str, bui
 Eligibility as of {esc(build.as_of.isoformat())}.</p>
 <p><a href="https://github.com/turbobeest/modelspec">Source and data on GitHub</a> &middot;
 Data <span class="mono">CC BY-SA</span>, code <span class="mono">MIT</span>.</p>
-<p><a href="{legal}/legal/terms/">Terms</a> &middot; <a href="{legal}/legal/privacy/">Privacy</a> &middot;
-<a href="{legal}/legal/neutrality/">Neutrality</a> &middot; <a href="{legal}/legal/dmca/">Copyright</a></p>
+<p>{legal_footer}</p>
 </footer></div></body></html>
 """
 

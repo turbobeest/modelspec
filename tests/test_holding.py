@@ -362,6 +362,7 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
 def test_every_live_page_carries_one_json_ld_graph(trees):
     ms = trees["live"] / "modelspec"
     assert set(live.PAGES) == {"/", *structured_data.CRUMBS}
+    assert structured_data.CRUMBS["/legal/tester-terms/"] == "Friends & Family Tester Terms"
     for page in live.PAGES:
         html = (ms / page.lstrip("/") / "index.html").read_text(encoding="utf-8")
         blocks = re.findall(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', html, re.S)

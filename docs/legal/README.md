@@ -9,11 +9,15 @@ MODEL-70. Three documents, **adopted and in force**, and the copyright page
 | `neutrality.md` | `/legal/neutrality/` | The honest-broker commitment |
 | `privacy.md` | `/legal/privacy/` | What the service records today |
 | `dmca.md` | `/legal/dmca/` | Designated copyright agent (DMCA-1082492), notice and counter-notice, repeat infringers (MODEL-362) |
+| `friends-tester-terms.md` | `/legal/tester-terms/` | Friends & Family tester terms (MODEL-282) |
 
 ## Adoption
 
 Sparks & Sawdust LLC, the operator and the seller, adopted all three as
 **version 1.0, effective 2026-09-19**, at the direction of its operator.
+
+Friends & Family Tester Terms (MODEL-282):
+Adopted as version 1.0, effective 2026-10-15, at the direction of its operator.
 
 They were drafted by an agent (2026-09-17), then brought up to date with what
 was actually built on 2026-09-19 — API keys, the credit ledger, Stripe Checkout

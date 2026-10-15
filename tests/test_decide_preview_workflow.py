@@ -51,6 +51,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/legal/privacy/index.html': readable(b'privacy'),
         'dist/modelspec/legal/neutrality/index.html': readable(b'neutrality'),
         'dist/modelspec/legal/dmca/index.html': readable(b'copyright'),
+        'dist/modelspec/legal/tester-terms/index.html': readable(b'tester terms'),
         'dist/modelspec/openapi.yaml': b'openapi',
         'dist/modelspec/downselect/index.html': b'v1 wizard',
         'dist/modelspec/models/index.html': b'v1 rankings',

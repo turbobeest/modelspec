@@ -63,6 +63,7 @@ KEEP_FILES = (
 PAGES = (
     "/", "/method/", "/decide/", "/pricing/", "/feedback/", "/brand/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/", "/legal/dmca/",
+    "/legal/tester-terms/",
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.
 DISCOVERY = (
@@ -112,6 +113,7 @@ PAGE_SOURCES = {
     "/legal/privacy/": ("docs/legal/privacy.md",),
     "/legal/neutrality/": ("docs/legal/neutrality.md",),
     "/legal/dmca/": ("docs/legal/dmca.md",),
+    "/legal/tester-terms/": ("docs/legal/friends-tester-terms.md",),
 }
 #: A page an answer engine can quote has a heading and real text without
 #: running any JavaScript (MODEL-253).

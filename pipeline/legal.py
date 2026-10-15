@@ -54,6 +54,7 @@ class LegalDoc:
     source: str
     nav_label: str
     description: str
+    in_footer: bool = True
 
     @property
     def url_path(self) -> str:
@@ -101,6 +102,13 @@ DOCS: tuple[LegalDoc, ...] = (
             "How to send a copyright notice or counter-notice to the designated agent "
             "of Sparks & Sawdust LLC (DMCA-1082492), and the repeat-infringer policy."
         ),
+    ),
+    LegalDoc(
+        slug="tester-terms",
+        source="friends-tester-terms.md",
+        nav_label="Tester terms",
+        description="Friends & Family Tester Terms for access to the ModelSpec API and MCP server.",
+        in_footer=False,
     ),
 )
 
