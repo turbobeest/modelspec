@@ -4,7 +4,8 @@ Worktree: `/Users/terbeest/dev/worktrees/model-261`.
 Branch: `model-261-discovery`.
 Base SHA: `c9b625605750f29ede73ade4d7020eb2714b1513`.
 Final implementation SHA: `082068b6ca597959349fc681fd377e17e46a8061`.
-The subsequent evidence commit contains this record and the completed check logs.
+The subsequent evidence commits contain this record and the completed check logs.
+Captured logs have trailing whitespace removed; their test results are unchanged.
 Resolve the delivered branch SHA with `git rev-parse HEAD`.
 
 ## A. Licence detection

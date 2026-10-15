@@ -7,7 +7,7 @@ __________________ test_license_is_the_existing_mit_text_only __________________
             "11bf2c064d493a1b2dba178c63a6dfefcee76c168e4461497570c2d18e173ce2"
         )
 E       AssertionError: assert 'bc906b1ded00...690b20f4cd0f0' == '11bf2c064d49...0c2d18e173ce2'
-E         
+E
 E         - 11bf2c064d493a1b2dba178c63a6dfefcee76c168e4461497570c2d18e173ce2
 E         + bc906b1ded00661b37b2901f3f43d60a84afc49a3e020ca774e690b20f4cd0f0
 
