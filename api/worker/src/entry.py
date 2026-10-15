@@ -1985,7 +1985,9 @@ class Default(WorkerEntrypoint):
                       "built_at": build.get("built_at"),
                       "export_schema_version": build.get("export_schema_version")},
             "model_count": model_count,
+            "model_count_label": "Worker serving catalogue cards, including retired models",
             "policy_model_count": policy_count,
+            "policy_model_count_label": "Worker serving policy catalogue cards, including retired models",
             # Whether a determination bundle is loadable, and which one — the
             # version and the day it was staged, so a KV load can be verified
             # from outside. Deliberately no counts and no content: this is a

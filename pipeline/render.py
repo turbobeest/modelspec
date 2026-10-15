@@ -1488,7 +1488,8 @@ def freshness_notice(models: list[Model], build: Build | None = None) -> str:
         parts.append(
             '<p class="meta">Catalogue eligibility as of '
             f'<strong>{esc(info["eligibility_as_of"])}</strong>'
-            f' · built from <span class="mono">{esc(build.commit[:12])}</span></p>'
+            f' · built from <span class="mono">{esc(build.commit[:12])}</span>. '
+            'Frozen public data image; Worker catalogue counts may differ.</p>'
         )
     newest = info.get("newest_release")
     if newest:

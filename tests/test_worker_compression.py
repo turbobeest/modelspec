@@ -5,6 +5,8 @@ import importlib.util
 import json
 import sys
 from copy import deepcopy
+from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -165,6 +167,53 @@ def test_health_and_refusals_consume_cold_marker(entry, monkeypatch, path, statu
     assert cold.status == status
     assert 'isolate;desc="cold"' in cold.headers["Server-Timing"]
     assert 'isolate;desc="warm"' in warm.headers["Server-Timing"]
+
+
+@pytest.mark.parametrize("private_extra", [False, True])
+def test_health_and_site_counts_label_their_own_data_images(entry, monkeypatch, private_extra):  # noqa: F811
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from pipeline import coverage
+    from pipeline.load import Model
+    from pipeline.ranking import build_candidates
+    from schema.card import Identity, ModelCard
+    from schema.graph import derive_graph
+    from tests.snapshot_records import SOURCES, fact, model
+
+    public_ids = ("lab/active", "lab/retired")
+    public_models = [Model(ident, Path(ident + ".md"), {
+        "model_type": "llm-chat", "lifecycle": "retired" if ident.endswith("retired") else "active",
+    }, "") for ident in public_ids]
+    snapshot = build_snapshot(SnapshotInputs(models=[
+        model(row.model_id, lifecycle=row.front["lifecycle"], facts=[
+            fact("model", row.model_id, "model.class", "text-generator"),
+        ]) for row in public_models
+    ], sources=SOURCES), as_of=date(2026, 10, 14))
+    public = coverage.from_snapshot(load_built_snapshot(
+        snapshot, source="frozen public fixture", include_archive=True), public_models)
+    serving_ids = [*public_ids, *(["lab/private-extra"] if private_extra else [])]
+    cards = [ModelCard(identity=Identity(model_id=ident, display_name=ident,
+                                        provider="lab", model_type="llm-chat"))
+             for ident in serving_ids]
+    export = _guided_export()
+    export["candidates"] = [row.to_json() for row in build_candidates(cards, derive_graph(cards))]
+    module, _ = _import_bundle(entry, monkeypatch, {
+        entry.CANDIDATES_PATH: json.dumps(export).encode(),
+        entry.POLICY_PATH: json.dumps({"models": [{"model_id": ident} for ident in serving_ids]}).encode(),
+    })
+    worker = module.Default()
+    worker.env = _entry_env(X402_ENABLED="false")
+    response = asyncio.run(worker.fetch(_Req("/v1/health", method="GET")))
+    assert response.status == 200
+    health = response.json()
+    assert public["catalogue"]["models"] == 2  # Includes the retired card.
+    assert public["board"]["models"] == 1
+    assert health["model_count"] == health["policy_model_count"] == (3 if private_extra else 2)
+    assert health["model_count"] - public["catalogue"]["models"] == int(private_extra)
+    assert public["catalogue"]["label"] == "Frozen public catalogue cards, including retired models"
+    assert health["model_count_label"] == "Worker serving catalogue cards, including retired models"
+    assert health["policy_model_count_label"] == "Worker serving policy catalogue cards, including retired models"
+    assert "frozen public catalogue has 2 cards" in coverage.summary(public)
+    assert "Worker's serving data image can be newer" in coverage.summary(public)
 
 
 @pytest.mark.parametrize("path,method,status", [

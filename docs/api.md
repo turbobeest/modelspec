@@ -12,7 +12,7 @@ Decides what fits your [hardware](decision-contract.md#architecture-and-hardware
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
   against a compliance policy:
   [`api-policy-check.md`](api-policy-check.md).
-* `GET /v1/health` — version and export availability.
+* `GET /v1/health` — [version and counts](rank-api.md#catalogue-counts).
 * Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
   the implementation.
 

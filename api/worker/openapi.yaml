@@ -1835,12 +1835,14 @@ components:
         export_origin: {type: string}
         last_error: {type: string, nullable: true}
         model_count: {type: integer}
+        model_count_label: {type: string}
         policy_export_loaded: {type: boolean}
         policy_model_count: {type: integer}
+        policy_model_count_label: {type: string}
         schema_version: {type: string}
         service_commit: {type: string}
-      required: [build, determinations, endpoint, export_loaded, export_origin, last_error, model_count, policy_export_loaded, policy_model_count, schema_version,
-        service_commit]
+      required: [build, determinations, endpoint, export_loaded, export_origin, last_error, model_count, model_count_label, policy_export_loaded, policy_model_count,
+        policy_model_count_label, schema_version, service_commit]
     NoMatch:
       type: object
       required: [schema_version, error, result]

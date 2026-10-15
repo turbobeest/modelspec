@@ -63,7 +63,8 @@ def from_snapshot(snapshot: Any, models: Sequence[Model]) -> dict[str, Any]:
                       "Counts describe the board's scope, not evidence for every task. "
                       "Classes are listed alphabetically, never ranked.",
         "board": {"models": sum(board.values()), "offerings": sum(offerings.values())},
-        "catalogue": {"models": len(models),
+        "catalogue": {"label": "Frozen public catalogue cards, including retired models",
+                      "models": len(models),
                       "catalogued_not_decidable": len(models) - sum(board.values())},
         "classes": rows,
         "domains": [{"id": domain, "models": estimate_models(snapshot, domain)}
@@ -117,8 +118,10 @@ def write_export(out: Path, *, root: Path, models: Sequence[Model], as_of: date,
 def summary(data: dict[str, Any]) -> str:
     classes = ", ".join(f"{row['id']}: {row['decidable']}" for row in data["classes"] if row["decidable"])
     return (f"Decision snapshot {data['as_of']}: the board covers {data['board']['models']:,} models "
-            f"({classes or 'no classes'}). The catalogue has {data['catalogue']['models']:,} cards; "
-            f"{data['catalogue']['catalogued_not_decidable']:,} are not yet decidable.")
+            f"({classes or 'no classes'}). The frozen public catalogue has "
+            f"{data['catalogue']['models']:,} cards, including retired models; "
+            f"{data['catalogue']['catalogued_not_decidable']:,} are not yet decidable. "
+            "The Worker's serving data image can be newer, so its health counts may differ.")
 
 
 def provider_summary(data: dict[str, Any]) -> str:

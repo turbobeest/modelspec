@@ -18,6 +18,18 @@ This is the first piece of the enrichment layer: the origin that later carries
 keys, limits and billing (MODEL-69, MODEL-73, MODEL-75). None of that is here.
 Today it serves exactly the data the public export already has.
 
+## Catalogue counts
+
+Health's `model_count` counts cards in the Worker's serving ranking catalogue;
+`policy_model_count` counts cards in its policy catalogue. Both include retired
+models. The additive `model_count_label` and `policy_model_count_label` fields
+name those counts. They measure catalogue presence, not decision coverage.
+The site's `/api/coverage.json` labels `catalogue.models` with `catalogue.label`
+as cards in the frozen public data image. Its `board.models` counts active,
+admitted decision models. With the data split enabled, the Worker embeds newer
+private data, so its card counts can exceed the site's even when both builds
+have the same engine commit. No count's meaning or numeric range changes.
+
 ## It is not a second ranker
 
 The endpoint imports `pipeline.ranking.rank_report` — the function

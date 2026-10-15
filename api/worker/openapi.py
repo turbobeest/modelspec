@@ -3352,7 +3352,9 @@ def _health_samples() -> list[dict[str, Any]]:
         "build": {"commit": build["commit"], "built_at": build["built_at"],
                   "export_schema_version": build["export_schema_version"]},
         "model_count": len(export["candidates"]),
+        "model_count_label": "Worker serving catalogue cards, including retired models",
         "policy_model_count": _policy_export()["count"],
+        "policy_model_count_label": "Worker serving policy catalogue cards, including retired models",
         "last_error": None,
     }
     # One per store state (`entry.py::STORE_*`). Only `broken` has a last_error:
