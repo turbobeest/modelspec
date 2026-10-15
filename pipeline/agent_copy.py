@@ -499,6 +499,7 @@ Coverage: {entity.SITE}/api/coverage.json
 
 {SPEC_GUIDANCE}
 {NOT_A_ROUTER}
+Orchestrator system prompt and worked Spec: {entity.SITE}/orchestrators/.
 
 HTTP: POST `{API}/v1/decide` with `Content-Type: application/json`, a real
 `User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.

@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #: fails.
 CRUMBS = {
     "/method/": "How ModelSpec decides",
+    "/orchestrators/": "Choose models for your orchestrator",
     "/decide/": "Which AI model fits your job",
     "/pricing/": "Pricing",
     "/legal/terms/": "Terms",
