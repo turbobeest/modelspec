@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 import time
 import urllib.parse
@@ -153,6 +154,32 @@ def _stripe_ok(payload: dict):
 
 
 # ── table ────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("legacy,heading", [
+    (False, "### Current prices (pricing v2)"),
+    (True, "### Legacy prices"),
+])
+def test_billing_document_price_tables_match_policy(policy, legacy, heading):
+    text = (REPO_ROOT / "docs/billing.md").read_text(encoding="utf-8")
+    assert heading in text, "Current and legacy prices need separate, explicit headings"
+    section = text.split(heading, 1)[1].split("\n##", 1)[0]
+    rows = re.findall(
+        r"^\| `(price_[^`]+)` \| (plan|pack) \| ([^|]+) \| ([^|]+) \| ([^|]+) \|$",
+        section, re.MULTILINE,
+    )
+    documented = {
+        price_id: (kind, name.strip(), amount.strip(), usd.strip())
+        for price_id, kind, name, amount, usd in rows
+    }
+    expected = {
+        price_id: (row.kind, row.name,
+                   f"{row.credits:,}" + (f" / {row.interval}" if row.kind == "plan" else ""),
+                   str(row.usd))
+        for price_id, row in policy.billing.prices.items() if row.legacy == legacy
+    }
+    assert len(rows) == len(documented), "Duplicate documented Price ids"
+    assert documented == expected
 
 
 def test_v2_rows_and_legacy_rows_parse(policy):

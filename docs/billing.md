@@ -230,7 +230,14 @@ the card ledger for customers who already bought them and are not offered
 again. Both rails ADD credits to the same ledger bucket and use
 `credits.pack_expiry_days`.
 
-Current prices. Jamie created each as a live Stripe Price on 2026-10-10;
+### Current prices (pricing v2)
+
+These prices come from `billing.prices` in `api/worker/tiers.json`, the policy
+read by the Worker and pricing page. `test_billing_document_price_tables_match_policy`
+checks both tables against that policy, including each Price id, credit amount
+and USD price. The $10 Solo and $50 Team plans below are legacy renewals only.
+
+Jamie created each current row as a live Stripe Price on 2026-10-10;
 checkout sells them:
 
 | Price id | Kind | Name | Credits | USD |
@@ -333,7 +340,9 @@ pay. With nothing left to bill, the catalog is served under the free tier's
 daily limit, not refused with 402. `HEAD /v1/vocabulary` is the same read as
 GET, with no body. A visit token stays free. A refused read is not charged.
 
-Legacy prices, kept for existing customers. Checkout refuses them. A renewal
+### Legacy prices
+
+These prices are kept for existing customers. Checkout refuses them. A renewal
 invoice still sets the allowance they bought. These six ids are live Prices
 on the Sparks & Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, created
 2026-09-19:

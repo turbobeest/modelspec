@@ -13,13 +13,21 @@ from decision import contract
 from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import SnapshotInputs, build_from_repo, build_snapshot, load_built_snapshot
-from pipeline import coverage, public_data
+from pipeline import coverage, public_data, render
 from pipeline.class_export import class_fit_export
-from pipeline.load import load_models
+from pipeline.export import Build
+from pipeline.load import Model, load_models
 from tests.snapshot_records import SOURCES, fact, model, offering
 from tests.test_decide_worker import _load_service
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_catalogue_page_labels_the_frozen_public_card_count():
+    cards = [Model(f"lab/{name}", Path(f"{name}.md"), {}, "") for name in ("a", "b")]
+    page = render.models_index(cards, Build("test", "2026-10-14T00:00:00Z", date(2026, 10, 14)))
+    assert "2 cards across" in page
+    assert "Frozen public data image; Worker catalogue counts may differ." in page
 
 
 @pytest.fixture(scope="module")
