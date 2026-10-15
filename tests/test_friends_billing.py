@@ -163,7 +163,7 @@ def test_configured_promotion_id_resolves_customer_code_and_claims_friends():
 
 
 @pytest.mark.parametrize("config,discount", [
-    ({}, promotion()),
+    ({"friends_promotion_code_prefix": ""}, promotion()),  # unconfigured, whatever ships
     ({"friends_promotion_code_prefix": "OTHER-"}, promotion()),
     ({"friends_promotion_code_prefix": "FRIENDS-"}, promotion(percent=99)),
     ({"friends_promotion_code_prefix": "FRIENDS-"}, promotion(duration="once")),
