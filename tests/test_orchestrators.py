@@ -14,7 +14,9 @@ from cli.modelspec.cli import app
 from cli.modelspec.spec import validate_spec
 from decision.templates import template_by_id
 from pipeline import live
-from tests.test_holding import trees  # noqa: F401
+from tests import test_holding
+
+trees = test_holding.trees
 
 
 class CodeBlocks(HTMLParser):

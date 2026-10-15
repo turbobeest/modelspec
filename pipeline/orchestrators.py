@@ -11,7 +11,10 @@ from pipeline import agent_copy, brand, landing_chrome
 
 PATH = "/orchestrators/"
 TITLE = "Choose models for your orchestrator"
-DESCRIPTION = "A system prompt and worked Spec for a frontier-model orchestrator that uses ModelSpec to choose models for each job or role."
+DESCRIPTION = (
+    "A system prompt and worked Spec for a frontier-model orchestrator that uses ModelSpec "
+    "to choose models for each job or role."
+)
 
 SYSTEM_PROMPT = """Use ModelSpec when choosing models for a sub-task or role.
 Orient once with `modelspec help agent --json` and read the agent guide.
@@ -94,7 +97,8 @@ def page() -> str:
         '<a href="/pricing/">Pricing</a></nav></header>'
         '<main class="orchestrator-recipe"><p class="eyebrow">Orchestrator recipe</p>'
         f'<h1>{TITLE}</h1>'
-        '<p>Give your frontier-model orchestrator a model-selection step for each sub-task or role. '
+        '<p>Give your frontier-model orchestrator a model-selection step '
+        'for each sub-task or role. '
         'ModelSpec is not a per-request router. Call it once per job or role, save the '
         '<code>decision_id</code> and <code>snapshot</code> in your job state, then route among '
         'the recommended band. Re-decide when requirements change or the snapshot moves.</p>'
@@ -116,7 +120,8 @@ def page() -> str:
         '<code>modelspec decide --spec role.json --json</code>, then add the returned '
         '<code>snapshot</code> ID to the Spec. Save the answer alongside its '
         '<code>decision_id</code>. State the workload assumptions behind cost estimates.</p>'
-        '<p>The following is illustrative control flow, not a captured decision or a model recommendation. '
+        '<p>The following is illustrative control flow, not a captured decision '
+        'or a model recommendation. '
         'Suppose the bounded answer has <code>status: partial</code>, '
         '<code>answer.kind: tied</code>, and <code>next_move.kind: decide_by_testing</code>. '
         'The orchestrator reports <code>summary_for_user</code> unchanged, retains every '
