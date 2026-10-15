@@ -1,0 +1,4 @@
+Chromium 153.0.8010.12; JavaScript disabled
+1440px: 200, heading and system prompt readable, no code overflow
+390px: 200, heading and system prompt readable, no code overflow
+320px: 200, heading and system prompt readable, no code overflow

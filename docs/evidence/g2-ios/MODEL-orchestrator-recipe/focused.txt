@@ -1,0 +1,267 @@
+..................................................................F..... [ 70%]
+.......FFFF...................                                           [100%]
+=================================== FAILURES ===================================
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+
+capsys = <_pytest.capture.CaptureFixture object at 0x1291c8180>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+>       assert main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_guide.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+qa/agent_harness.py:949: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='python -m pytest', usage=None, description='Run public ModelSpec agent scenarios. Full offline re...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = 'python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: python -m pytest [-h] [--dry-run | --smoke-vocabulary |
+                        --first-turn-breakdown] [--rescore RESCORE]
+                        [--config CONFIG] [--scenarios SCENARIOS]
+                        [--fixtures FIXTURES] [--output-dir OUTPUT_DIR]
+                        [--date DATE] [--api-base-url API_BASE_URL]
+                        [--export-base-url EXPORT_BASE_URL]
+                        [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+                        [--tool-call-cap TOOL_CALL_CAP]
+                        [--interface {mcp,http}] [--control-full-spec]
+                        [--agent {claude,openai,gemini}] [--scenario SCENARIO]
+python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[mcp-False] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118ace9e0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-697/test_harness_prompt_arms_repla0')
+interface = 'mcp', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+    
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+    
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+qa/agent_harness.py:949: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='python -m pytest', usage=None, description='Run public ModelSpec agent scenarios. Full offline re...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = 'python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: python -m pytest [-h] [--dry-run | --smoke-vocabulary |
+                        --first-turn-breakdown] [--rescore RESCORE]
+                        [--config CONFIG] [--scenarios SCENARIOS]
+                        [--fixtures FIXTURES] [--output-dir OUTPUT_DIR]
+                        [--date DATE] [--api-base-url API_BASE_URL]
+                        [--export-base-url EXPORT_BASE_URL]
+                        [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+                        [--tool-call-cap TOOL_CALL_CAP]
+                        [--interface {mcp,http}] [--control-full-spec]
+                        [--agent {claude,openai,gemini}] [--scenario SCENARIO]
+python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_harness_prompt_arms_replay_offline[http-False] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118acf620>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-697/test_harness_prompt_arms_repla1')
+interface = 'http', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+    
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+    
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+qa/agent_harness.py:949: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='python -m pytest', usage=None, description='Run public ModelSpec agent scenarios. Full offline re...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = 'python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: python -m pytest [-h] [--dry-run | --smoke-vocabulary |
+                        --first-turn-breakdown] [--rescore RESCORE]
+                        [--config CONFIG] [--scenarios SCENARIOS]
+                        [--fixtures FIXTURES] [--output-dir OUTPUT_DIR]
+                        [--date DATE] [--api-base-url API_BASE_URL]
+                        [--export-base-url EXPORT_BASE_URL]
+                        [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+                        [--tool-call-cap TOOL_CALL_CAP]
+                        [--interface {mcp,http}] [--control-full-spec]
+                        [--agent {claude,openai,gemini}] [--scenario SCENARIO]
+python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[mcp-True] _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118acfc40>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-697/test_harness_prompt_arms_repla2')
+interface = 'mcp', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+    
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+    
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+qa/agent_harness.py:949: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='python -m pytest', usage=None, description='Run public ModelSpec agent scenarios. Full offline re...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = 'python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: python -m pytest [-h] [--dry-run | --smoke-vocabulary |
+                        --first-turn-breakdown] [--rescore RESCORE]
+                        [--config CONFIG] [--scenarios SCENARIOS]
+                        [--fixtures FIXTURES] [--output-dir OUTPUT_DIR]
+                        [--date DATE] [--api-base-url API_BASE_URL]
+                        [--export-base-url EXPORT_BASE_URL]
+                        [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+                        [--tool-call-cap TOOL_CALL_CAP]
+                        [--interface {mcp,http}] [--control-full-spec]
+                        [--agent {claude,openai,gemini}] [--scenario SCENARIO]
+python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[http-True] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118acc4b0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-697/test_harness_prompt_arms_repla3')
+interface = 'http', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+    
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+    
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+qa/agent_harness.py:949: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='python -m pytest', usage=None, description='Run public ModelSpec agent scenarios. Full offline re...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = 'python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: python -m pytest [-h] [--dry-run | --smoke-vocabulary |
+                        --first-turn-breakdown] [--rescore RESCORE]
+                        [--config CONFIG] [--scenarios SCENARIOS]
+                        [--fixtures FIXTURES] [--output-dir OUTPUT_DIR]
+                        [--date DATE] [--api-base-url API_BASE_URL]
+                        [--export-base-url EXPORT_BASE_URL]
+                        [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+                        [--tool-call-cap TOOL_CALL_CAP]
+                        [--interface {mcp,http}] [--control-full-spec]
+                        [--agent {claude,openai,gemini}] [--scenario SCENARIO]
+python -m pytest: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+=========================== short test summary info ============================
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget - SystemExit: 2
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False] - SystemExit: 2
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False] - SystemExit: 2
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True] - SystemExit: 2
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True] - SystemExit: 2
+5 failed, 97 passed in 310.17s (0:05:10)

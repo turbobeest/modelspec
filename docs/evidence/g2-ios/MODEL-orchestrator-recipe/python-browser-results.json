@@ -1,0 +1,77 @@
+[
+  {
+    "class": "tests.test_social_cards",
+    "name": "test_renderer_writes_every_card_at_the_contract_size",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_social_cards",
+    "name": "test_chromium_layout_keeps_every_card_block_separate_and_in_frame",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[altered_data]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[challenge]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[motion]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[responsive]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[holding]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[forwarding]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[assembled_decide]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[assembled_decide_mobile]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[forwarded_state_ranks]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[method_responsive]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[decide_dark_before_paint]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_landing",
+    "name": "test_landing_behaviour_in_browser[decide_theme_persists]",
+    "status": "passed"
+  },
+  {
+    "class": "tests.test_social_cards",
+    "name": "test_every_frozen_template_card_has_clean_chromium_layout",
+    "status": "passed"
+  }
+]

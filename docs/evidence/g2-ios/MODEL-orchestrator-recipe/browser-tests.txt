@@ -1,0 +1,53 @@
+[WebServer] (node:34168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:34194) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 35 tests using 4 workers
+
+  -   1 browser-tests/corpus.spec.ts:110:1 › a template applies and Reset all runs
+  -   2 browser-tests/corpus.spec.ts:115:1 › the templates are offered again after Reset all
+(node:34650) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34651) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   5 browser-tests/billing-launch.spec.ts:90:1 › billing launch keeps browser lookup free through the real visit gate
+  ✓   3 browser-tests/decide.spec.ts:32:1 › the public decision page opens on the facet board (686ms)
+  ✓   8 browser-tests/decide.spec.ts:111:1 › evidence source links meet AA in both themes (360ms)
+  ✓   6 browser-tests/billing-launch.spec.ts:167:1 › billing launch shows the vocabulary key pointer when the Worker visit gate is off (1.1s)
+  ✓   4 browser-tests/billing-launch.spec.ts:152:1 › billing launch shows the key pointer when the Worker visit gate is off (1.2s)
+  ✓  11 browser-tests/decide.spec.ts:181:1 › a shared board wins over the default and keeps its chosen chart axes (216ms)
+  ✓   7 browser-tests/decide.spec.ts:60:1 › agent hand-off leads with the CLI and copies one message with the current Spec (1.2s)
+  ✓   9 browser-tests/decide.spec.ts:136:1 › the accent card meets AA in both themes and every format (744ms)
+  ✓  10 browser-tests/decide.spec.ts:166:1 › Clear opens an alphabetic empty board and that saved board wins on reload (951ms)
+  ✓  13 browser-tests/decide.spec.ts:226:1 › the counter animates exact digits when motion is enabled (699ms)
+  ✓  14 browser-tests/decide.spec.ts:238:1 › a board facet updates the decision and survives reload (475ms)
+  ✓  12 browser-tests/decide.spec.ts:193:1 › the counter announces exact values and does not animate with reduced motion (999ms)
+  ✓  16 browser-tests/decide.spec.ts:265:1 › the board fits a 390px viewport in light and dark mode (408ms)
+  ✓  15 browser-tests/decide.spec.ts:248:1 › share dialog copies the board permalink and restores focus (520ms)
+  ✓  17 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1440px (570ms)
+  ✓  18 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1236px (571ms)
+  ✓  19 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1124px (580ms)
+  ✓  20 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1100px (590ms)
+  ✓  21 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1000px (570ms)
+  ✓  23 browser-tests/decide.spec.ts:371:3 › a clean first visit meets the layout contract at 1236×800 (362ms)
+  ✓  24 browser-tests/decide.spec.ts:371:3 › a clean first visit meets the layout contract at 1440×800 (352ms)
+  ✓  22 browser-tests/decide.spec.ts:304:3 › the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at 1000px with a 15px scrollbar (599ms)
+  ✓  25 browser-tests/decide.spec.ts:371:3 › a clean first visit meets the layout contract at 390×844 (352ms)
+  ✓  27 browser-tests/decide.spec.ts:401:1 › the chart clears the sticky header at 1236×800 (361ms)
+  ✓  29 browser-tests/decide.spec.ts:424:1 › the loading skeleton fits a 390px viewport (366ms)
+  -  31 browser-tests/decide.spec.ts:459:3 › the Worker gate is enabled › shows verification and waits for a manual lookup
+  -  32 browser-tests/visit-gate.spec.ts:14:5 › managed visit gate › live facet updates after a silent check, expiry=none
+  -  33 browser-tests/visit-gate.spec.ts:14:5 › managed visit gate › live facet updates after a silent check, expiry=local
+  -  34 browser-tests/visit-gate.spec.ts:14:5 › managed visit gate › live facet updates after a silent check, expiry=worker
+  -  35 browser-tests/visit-gate.spec.ts:82:3 › managed visit gate › an interactive challenge stays in the answer panel and resumes without a lookup click
+  ✓  26 browser-tests/decide.spec.ts:382:1 › a facet click in Refine holds its place while the next answer loads (711ms)
+  ✓  28 browser-tests/decide.spec.ts:409:1 › a template click changes the first screen without scrolling (709ms)
+  ✓  30 browser-tests/decide.spec.ts:441:1 › the board and its explanation fit a 320px viewport in light and dark mode (488ms)
+
+  8 skipped
+  27 passed (5.9s)

@@ -1,0 +1,187 @@
+amd_instinct_mi210: unregistered hardware source URLs: https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/product-briefs/instinct-mi210-brochure.pdf, https://www.amd.com/en/products/accelerators/instinct/mi200/mi210.html
+amd_instinct_mi250x: unregistered hardware source URLs: https://www.amd.com/en/products/accelerators/instinct/mi200/mi250x.html
+amd_instinct_mi300x: unregistered hardware source URLs: https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
+amd_instinct_mi325x: unregistered hardware source URLs: https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html
+amd_instinct_mi355x: unregistered hardware source URLs: https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/product-briefs/amd-instinct-mi355x-gpu-brochure.pdf, https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html
+amd_rx_7900_xt: unregistered hardware source URLs: https://www.amd.com/en/partner/articles/radeon-rx-7900-series-graphics.html, https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xt.html
+amd_rx_7900_xtx: unregistered hardware source URLs: https://www.amd.com/en/partner/articles/radeon-rx-7900-series-graphics.html, https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xtx.html
+amd_rx_9070_xt: unregistered hardware source URLs: https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070xt.html
+amd_ryzen_ai_max_plus_395: unregistered hardware source URLs: https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-plus-395.html
+apple_m1_max: unregistered hardware source URLs: https://support.apple.com/en-us/111901, https://support.apple.com/en-us/111902
+apple_m2_max: unregistered hardware source URLs: https://support.apple.com/en-us/111835, https://support.apple.com/en-us/111838
+apple_m2_ultra: unregistered hardware source URLs: https://support.apple.com/en-us/111835
+apple_m3_max: unregistered hardware source URLs: https://support.apple.com/en-us/117737
+apple_m3_ultra: unregistered hardware source URLs: https://support.apple.com/en-us/122211, https://www.apple.com/newsroom/2025/03/apple-reveals-m3-ultra-taking-apple-silicon-to-a-new-extreme/
+apple_m4: unregistered hardware source URLs: https://support.apple.com/en-us/121552, https://support.apple.com/en-us/121555
+apple_m4_max: unregistered hardware source URLs: https://support.apple.com/en-us/121553, https://support.apple.com/en-us/122211, https://www.apple.com/newsroom/2024/10/apple-introduces-m4-pro-and-m4-max/
+apple_m4_pro: unregistered hardware source URLs: https://support.apple.com/en-us/121553, https://support.apple.com/en-us/121555
+apple_m5_max: unregistered hardware source URLs: https://www.apple.com/mac-studio/specs/, https://www.apple.com/macbook-pro/specs/, https://www.apple.com/newsroom/2026/03/apple-debuts-m5-pro-and-m5-max-to-supercharge-the-most-demanding-pro-workflows/
+cerebras_wse3: unregistered hardware source URLs: https://cdn.sanity.io/files/e4qjo92p/production/2d7fa58e3b820715664bcf42097e86c05070c161.pdf
+google_tpu7x: unregistered hardware source URLs: https://docs.cloud.google.com/tpu/docs/tpu7x
+google_tpu_v4: unregistered hardware source URLs: https://docs.cloud.google.com/tpu/docs/v4
+google_tpu_v5e: unregistered hardware source URLs: https://docs.cloud.google.com/tpu/docs/v5e
+google_tpu_v5p: unregistered hardware source URLs: https://docs.cloud.google.com/tpu/docs/v5p
+google_tpu_v6e: unregistered hardware source URLs: https://docs.cloud.google.com/tpu/docs/v6e
+intel_arc_a770_16gb: unregistered hardware source URLs: https://www.intel.com/content/www/us/en/products/sku/229151/intel-arc-a770-graphics-16gb/specifications.html
+intel_gaudi_2: unregistered hardware source URLs: https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html, https://download.intel.com/newsroom/2022/corporate/vision/Habana-Gaudi2-Launch-Fact-Sheet.pdf, https://habana.ai/wp-content/uploads/pdf/2022/gaudi2_datasheet-10-22.pdf
+intel_gaudi_3: unregistered hardware source URLs: https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf, https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+nvidia_a100_40gb_sxm: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf, https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+nvidia_a100_80gb_sxm: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf, https://www.nvidia.com/en-us/data-center/a100/
+nvidia_b200: unregistered hardware source URLs: https://dam-cdn.nvd.orangelogic.com/AssetLink/y441155802qub41q118b2852i557jem5.pdf, https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/, https://www.nvidia.com/en-us/data-center/hgx/
+nvidia_b300: unregistered hardware source URLs: https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/, https://www.nvidia.com/en-us/data-center/gb300-nvl72/
+nvidia_dgx_spark: unregistered hardware source URLs: https://docs.nvidia.com/dgx/dgx-spark/hardware.html, https://www.nvidia.com/en-us/products/workstations/dgx-spark/
+nvidia_gb200_superchip: unregistered hardware source URLs: https://dam-cdn.nvd.orangelogic.com/AssetLink/y441155802qub41q118b2852i557jem5.pdf, https://www.nvidia.com/en-us/data-center/gb200-nvl72/
+nvidia_h100_nvl: unregistered hardware source URLs: https://www.nvidia.com/en-us/data-center/h100/
+nvidia_h100_pcie: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf
+nvidia_h100_sxm: unregistered hardware source URLs: https://www.nvidia.com/en-us/data-center/h100/
+nvidia_h200_sxm: unregistered hardware source URLs: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf, https://www.nvidia.com/en-us/data-center/h200/
+nvidia_jetson_agx_orin_32gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_agx_orin_64gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_orin_nano_4gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_orin_nano_8gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_orin_nx_16gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_orin_nx_8gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+nvidia_jetson_t4000: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+nvidia_jetson_t5000: unregistered hardware source URLs: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+nvidia_l4: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/l4/PB-11316-001_v01.pdf, https://www.nvidia.com/en-us/data-center/l4/
+nvidia_l40s: unregistered hardware source URLs: https://www.nvidia.com/en-us/data-center/l40s/
+nvidia_rtx_3060_12gb: unregistered hardware source URLs: https://nvidianews.nvidia.com/news/nvidia-introduces-geforce-rtx-3060-next-generation-of-the-worlds-most-popular-gpu, https://www.nvidia.com/en-us/geforce/graphics-cards/compare/, https://www.nvidia.com/en-us/geforce/news/game-on-you-asked-we-answered-qa/
+nvidia_rtx_3090: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/geforce/ampere/pdf/NVIDIA-ampere-GA102-GPU-Architecture-Whitepaper-V1.pdf, https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090/, https://www.nvidia.com/en-us/geforce/graphics-cards/compare/
+nvidia_rtx_4000_sff_ada: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-4000-sff-datasheet.pdf
+nvidia_rtx_4060_ti_16gb: unregistered hardware source URLs: https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/, https://www.nvidia.com/en-us/geforce/news/rtx-40-series-vram-video-memory-explained/
+nvidia_rtx_4070_ti_super: unregistered hardware source URLs: https://nvidianews.nvidia.com/news/geforce-rtx-40-super-series, https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4070-family/
+nvidia_rtx_4080_super: unregistered hardware source URLs: https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4080-family/, https://www.nvidia.com/en-us/geforce/news/geforce-rtx-4080-4070-ti-4070-super-gpu/
+nvidia_rtx_4090: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf
+nvidia_rtx_4500_ada: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-4500-datasheet.pdf, https://www.nvidia.com/en-us/products/workstations/rtx-4500/
+nvidia_rtx_5000_ada: unregistered hardware source URLs: https://resources.nvidia.com/en-us-briefcase-for-datasheets/rtx-5000-ada-datashe, https://www.nvidia.com/en-us/products/workstations/rtx-5000/
+nvidia_rtx_5080: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf, https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5080/
+nvidia_rtx_5090: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf, https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+nvidia_rtx_6000_ada: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/en-zz/Solutions/technologies/NVIDIA-ADA-GPU-PROVIZ-Architecture-Whitepaper_1.1.pdf, https://resources.nvidia.com/en-us-briefcase-for-datasheets/proviz-print-rtx6000-1, https://www.nvidia.com/en-us/design-visualization/rtx-6000/
+nvidia_rtx_a6000: unregistered hardware source URLs: https://images.nvidia.com/aem-dam/en-zz/Solutions/technologies/NVIDIA-ADA-GPU-PROVIZ-Architecture-Whitepaper_1.1.pdf, https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-a6000-datasheet.pdf
+nvidia_rubin_gpu: unregistered hardware source URLs: https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/, https://nvidianews.nvidia.com/news/vera-rubin-full-production-agentic-ai-factory, https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/
+nvidia_tesla_p40: unregistered hardware source URLs: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-product-literature/184427-Tesla-P40-Datasheet-NV-Final-Letter-Web.pdf, https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-product-literature/Tesla-P40-Product-Brief.pdf
+nvidia_vera_rubin_superchip: unregistered hardware source URLs: https://developer.nvidia.com/blog/inside-the-nvidia-rubin-platform-six-new-chips-one-ai-supercomputer/, https://www.nvidia.com/en-us/data-center/vera-cpu/, https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/
+qualcomm_snapdragon_x_elite: unregistered hardware source URLs: https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/Product-Brief-Snapdragon-X-Elite.pdf, https://www.qualcomm.com/laptops/products/snapdragon-x-elite
+{
+ "models": 1372,
+ "benchmarks": 1153,
+ "active": 0,
+ "score_keys": 225,
+ "graph": {
+  "nodes": 1908,
+  "edges": 63854,
+  "competition": {
+   "pairs_checked": 157206,
+   "skipped_params": 59753,
+   "skipped_no_shared_benchmark": 92622,
+   "qualifying_pairs": 4831,
+   "edges": 1495,
+   "top_n_per_model": 6
+  },
+  "hardware": {
+   "devices": 64,
+   "models_considered": 942,
+   "models_fitting_somewhere": 925,
+   "skipped_closed_weights": 296,
+   "skipped_no_parameter_count": 134,
+   "skipped_single_device_fit": 2,
+   "edges": 48825,
+   "edges_with_max_context": 33465,
+   "decode_predictions_omitted": 15640,
+   "working_allowance": 0.25,
+   "bandwidth_efficiency": 0.7,
+   "used_active_parameters": 113
+  },
+  "hosts": {
+   "hosts": 3
+  },
+  "relations": {
+   "models_with_relations": 1428,
+   "with_lineage": 489,
+   "with_platforms": 1130,
+   "with_hardware": 925,
+   "with_competitors": 307
+  },
+  "class_fit": {
+   "classes": 12,
+   "non_classes": 2,
+   "placed_model_types": 35
+  },
+  "policy": {
+   "models": 1372,
+   "platform_rows": 2195
+  }
+ },
+ "ranking": {
+  "candidates": 1372,
+  "hardware": 64,
+  "profiles": 51,
+  "featured": 13,
+  "precomputed": {
+   "general": 25,
+   "coding": 25,
+   "reasoning": 25,
+   "chat": 25,
+   "agentic": 25,
+   "rag": 25,
+   "vision": 25,
+   "multilingual": 25,
+   "math_competition": 25,
+   "writing_technical": 25,
+   "summarization": 25,
+   "embedding": 25,
+   "text_to_speech": 25
+  }
+ },
+ "legal": {
+  "documents": 4,
+  "paths": [
+   "/legal/terms/",
+   "/legal/neutrality/",
+   "/legal/privacy/",
+   "/legal/dmca/"
+  ],
+  "draft": false,
+  "sitemap_paths": [
+   "/legal/terms/",
+   "/legal/neutrality/",
+   "/legal/privacy/",
+   "/legal/dmca/"
+  ]
+ },
+ "pricing": {
+  "path": "/pricing/",
+  "sitemap_paths": [
+   "/pricing/"
+  ]
+ },
+ "commit": "0afd269c0e2e",
+ "export_schema_version": "3.0",
+ "modelspec_urls": 2619,
+ "agent_ready": {
+  "markdown_pages": 2605,
+  "favicon_bytes": 19999,
+  "skill_bytes": 4473,
+  "openapi_published": true
+ },
+ "feedback": {
+  "path": "/feedback/",
+  "sitemap_paths": [
+   "/feedback/"
+  ],
+  "changes": 0,
+  "pages_with_control": 2659
+ },
+ "brand": {
+  "path": "/brand/",
+  "sitemap_paths": [
+   "/brand/"
+  ],
+  "files": 26,
+  "zip_bytes": 278162
+ },
+ "blog": {
+  "posts": 0,
+  "sitemap_paths": []
+ }
+}

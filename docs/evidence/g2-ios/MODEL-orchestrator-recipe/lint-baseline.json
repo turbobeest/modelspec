@@ -1,0 +1,22 @@
+{
+  "pipeline/build.py": {
+    "base_issues": 8,
+    "current_issues": 8,
+    "same_codes_and_messages": true
+  },
+  "pipeline/live.py": {
+    "base_issues": 12,
+    "current_issues": 12,
+    "same_codes_and_messages": true
+  },
+  "pipeline/structured_data.py": {
+    "base_issues": 1,
+    "current_issues": 1,
+    "same_codes_and_messages": true
+  },
+  "pipeline/agent_copy.py": {
+    "base_issues": 71,
+    "current_issues": 71,
+    "same_codes_and_messages": true
+  }
+}
