@@ -54,6 +54,7 @@ class LegalDoc:
     source: str
     nav_label: str
     description: str
+    in_footer: bool = True
 
     @property
     def url_path(self) -> str:
@@ -107,6 +108,7 @@ DOCS: tuple[LegalDoc, ...] = (
         source="friends-tester-terms.md",
         nav_label="Tester terms",
         description="Friends & Family Tester Terms for access to the ModelSpec API and MCP server.",
+        in_footer=False,
     ),
 )
 

@@ -739,8 +739,7 @@ def shell(*, title: str, description: str, canonical: str | None, body: str, bui
 Eligibility as of {esc(build.as_of.isoformat())}.</p>
 <p><a href="https://github.com/turbobeest/modelspec">Source and data on GitHub</a> &middot;
 Data <span class="mono">CC BY-SA</span>, code <span class="mono">MIT</span>.</p>
-<p><a href="{legal}/legal/terms/">Terms</a> &middot; <a href="{legal}/legal/privacy/">Privacy</a> &middot;
-<a href="{legal}/legal/neutrality/">Neutrality</a> &middot; <a href="{legal}/legal/dmca/">Copyright</a></p>
+<p>{landing_chrome.legal_footer_links(base=legal, separator=" &middot; ", neutrality_label="Neutrality")}</p>
 </footer></div></body></html>
 """
 

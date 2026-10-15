@@ -983,12 +983,25 @@ def test_the_draft_switch_still_hides_a_draft(tmp_path: Path, monkeypatch) -> No
     assert "has not been adopted" in html
 
 
-def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
-    """MODEL-70's last criterion: reachable from the landing page and the API docs."""
+@pytest.mark.parametrize("hidden_slug", [None, "privacy"])
+def test_the_landing_page_and_every_generated_page_link_all_three(monkeypatch, hidden_slug) -> None:
+    """Public legal documents stay linked; invite-only terms stay out of the chrome."""
+    from dataclasses import replace
+
     from pipeline import render as r
 
     from datetime import date
-    from pipeline import landing as landing_page
+    from pipeline import landing as landing_page, landing_chrome
+
+    assert {doc.slug: doc.in_footer for doc in legal.DOCS} == {
+        "terms": True, "privacy": True, "neutrality": True, "dmca": True,
+        "tester-terms": False,
+    }
+    if hidden_slug:
+        monkeypatch.setattr(legal, "DOCS", tuple(
+            replace(doc, in_footer=False) if doc.slug == hidden_slug else doc
+            for doc in legal.DOCS
+        ))
 
     model = landing_page.PlotModel("model", "Model", .1, 1, 0, 2, True)
     data = landing_page.LandingData(
@@ -997,14 +1010,19 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
         landing_page._plot_axes([model]),
         coverage=landing_page.coverage.from_repo(REPO_ROOT, date.today()),
     )
-    footer = landing_page.render(data, variant="live").split("<footer>", 1)[1]
+    landing = landing_page.render(data, variant="live")
     shell = r.shell(title="t", description="d", canonical=None, body="", build=_build(),
                     site="ModelSpec", nav_links=r.MS_NAV)
     api_docs = (REPO_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
+    for page in (landing, shell, landing_chrome.footer()):
+        footer = re.search(r"<footer\b[^>]*>(.*?)</footer>", page, re.S)
+        assert footer is not None
+        for doc in legal.DOCS:
+            assert (f'href="{doc.url_path}"' in footer.group(1)) == doc.in_footer, doc.slug
+        for nav in re.findall(r"<nav\b[^>]*>(.*?)</nav>", page, re.S):
+            assert 'href="/legal/tester-terms/"' not in nav
     for doc in legal.DOCS:
-        assert f'href="{doc.url_path}"' in footer, doc.slug
-        assert f'href="{doc.url_path}"' in shell.split("<footer>", 1)[1], doc.slug
-        if doc.slug != "dmca":  # the API reference points at the terms, not the copyright page
+        if doc.in_footer and doc.slug != "dmca":  # API reference links the public terms
             assert f"](https://modelspec.dev{doc.url_path})" in api_docs, doc.slug
 
 

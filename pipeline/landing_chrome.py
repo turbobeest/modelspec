@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 #: The lockup's scale on every page, and the one place to change it (MODEL-213).
 #: It sets size and weight only; each page keeps its own wordmark font. The
 #: graph explorer and the decide app are built without the pipeline, so they
@@ -39,8 +41,18 @@ def method_header() -> str:
             '<a class="button primary" href="/decide/">Open the board</a></nav></header>')
 
 
+def legal_footer_links(*, base: str = "", separator: str = "",
+                       neutrality_label: str = "Neutrality commitment") -> str:
+    from pipeline.legal import DOCS
+
+    return separator.join(
+        f'<a href="{html.escape(base + doc.url_path)}">'
+        f'{html.escape(neutrality_label if doc.slug == "neutrality" else doc.nav_label)}</a>'
+        for doc in DOCS if doc.in_footer
+    )
+
+
 def footer(*, detail: str = "") -> str:
     return ('<footer class="site-foot"><span>© Sparks &amp; Sawdust LLC</span>'
-            '<a href="/method/">How we decide</a><a href="/legal/terms/">Terms</a>'
-            '<a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">'
-            f'Neutrality commitment</a><a href="/legal/dmca/">Copyright</a><a href="/brand/">Brand</a><span class="foot-detail">{detail}</span></footer>')
+            f'<a href="/method/">How we decide</a>{legal_footer_links()}'
+            f'<a href="/brand/">Brand</a><span class="foot-detail">{detail}</span></footer>')
