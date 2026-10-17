@@ -1,0 +1,15 @@
+
+> web@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-225-release-pipeline/web
+
+
+ Test Files  53 passed (53)
+      Tests  1242 passed (1242)
+   Start at  13:27:46
+   Duration  29.47s (tests 68%, environment 21%, import 4%, setup 4%, transform 3%)
+
+    Isolate  53 workers spawned · ~484ms startup each (spawn + environment, per file)
+             at least ~5.93s faster with isolate: false — reuses workers across files instead of one per file

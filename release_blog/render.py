@@ -657,6 +657,10 @@ def render(b: Breakdown) -> tuple[str, dict[str, str]]:
         *_gaps(b, n),
         *_provenance(b),
     ]
+    if b.revision > 1:
+        body.append(f"## Update {after.as_of.isoformat()}\n\n"
+                    "This dated revision appends the current verified findings. Earlier "
+                    "published revisions remain available in the revision history.")
     if b.changes_since_r1:
         body.append("## Changes since the first revision\n\n" + "\n".join(
             f"- {_code(c['pointer'])}" for c in b.changes_since_r1))

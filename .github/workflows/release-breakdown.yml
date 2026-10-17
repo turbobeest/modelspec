@@ -1,0 +1,147 @@
+name: Prepare release breakdown drafts
+
+# Only bundles already committed in this public repository are accepted.
+# The fresh-release export/trigger is BLOCKED, documented in
+# docs/release-blog-pipeline.md. Never download a private Worker snapshot here.
+on:
+  push:
+    branches: [main]
+    paths: ['blog/releases/**', 'blog/snapshots/**']
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      signal:
+        description: 'Committed public blog/releases/<signal>.yaml; empty checks all bundles'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-breakdown
+  cancel-in-progress: false
+
+jobs:
+  signals:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+      count: ${{ steps.list.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: list
+        env:
+          SIGNAL: ${{ inputs.signal }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          selected = os.environ.get('SIGNAL', '')
+          if selected and not re.fullmatch(r'blog/releases/[A-Za-z0-9][A-Za-z0-9._-]*\.yaml', selected):
+              raise SystemExit('signal must name a public release manifest')
+          paths = [selected] if selected else sorted(str(p) for p in Path('blog/releases').glob('*.yaml'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              print('matrix=' + json.dumps({'signal': paths}), file=out)
+              print('count=' + str(len(paths)), file=out)
+          PY
+  draft:
+    needs: signals
+    if: needs.signals.outputs.count != '0' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.signals.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install checks
+        run: python -m pip install -e '.[dev]' 'pydantic>=2' 'httpx==0.28.1' 'cryptography>=43,<46'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Write corpus decisions
+        run: python -m tests.corpus decisions --out web/src/decide/__corpus__
+      - name: Check the built page and corpus in Chromium
+        working-directory: web
+        env:
+          CI: 'true'
+          MODELSPEC_CORPUS_REQUIRED: '1'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+          npm test
+          npx playwright test --config=playwright.corpus.config.ts
+      - name: Generate and gate the public bundle
+        env:
+          SIGNAL: ${{ matrix.signal }}
+        run: python -m release_blog.pipeline --signal "$SIGNAL" --out "$RUNNER_TEMP/review.json"
+      - name: Open a draft only after every check passed
+        env:
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+          CI_LOCAL_SKIP: '1'
+        run: |
+          if [ ! -f "$RUNNER_TEMP/review.json" ]; then exit 0; fi
+          test -n "$GH_TOKEN"
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          for name in ('branch.txt', 'body.md', 'title.txt'):
+              (root / name).unlink(missing_ok=True)
+          draft = json.loads((root / 'review.json').read_text())
+          if draft['draft'] is not True or not re.fullmatch(r'blog/[a-z0-9-]+-r[1-9][0-9]*', draft['branch']):
+              raise SystemExit('refusing an invalid draft PR manifest')
+          def run(*args):
+              return subprocess.run(args, check=True, text=True, capture_output=True).stdout
+          existing = json.loads(run('gh', 'pr', 'list', '--state', 'all', '--head', draft['branch'], '--json', 'url'))
+          if existing:
+              raise SystemExit(0)
+          slug = draft['slug']
+          if not re.fullmatch(r'\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*', slug):
+              raise SystemExit('invalid post slug')
+          run('gh', 'auth', 'setup-git')
+          remote = run('git', 'ls-remote', '--heads', 'origin', draft['branch']).strip()
+          if remote:
+              # Recover a push whose PR request failed. Never overwrite that branch.
+              run('git', 'fetch', '--no-tags', 'origin', draft['branch'])
+              prefix = f'blog/posts/{slug}/'
+              changes = run('git', 'diff', '--name-only', 'HEAD...FETCH_HEAD').splitlines()
+              if not changes or any(not name.startswith(prefix) for name in changes):
+                  raise SystemExit('existing branch changes paths outside this post')
+              retained = set(run('git', 'ls-tree', '-r', '--name-only', 'FETCH_HEAD', '--', prefix).splitlines())
+              local = {str(p) for p in Path(prefix).rglob('*') if p.is_file()}
+              if retained != local:
+                  raise SystemExit('existing branch differs from gated files')
+              for name in sorted(retained):
+                  blob = subprocess.run(['git', 'show', f'FETCH_HEAD:{name}'], check=True, capture_output=True).stdout
+                  if Path(name).read_bytes() != blob:
+                      raise SystemExit('existing branch differs from gated files')
+          else:
+              # Explicit staging never includes an input checkout, cache, or unrelated file.
+              run('git', 'switch', '-c', draft['branch'])
+              run('git', 'add', '--', f'blog/posts/{slug}')
+              run('git', '-c', 'user.name=modelspec-release-blog', '-c', 'user.email=noreply@modelspec.dev',
+                  'commit', '-s', '-m', draft['title'], '-m', 'Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>')
+              run('git', 'push', '-u', 'origin', draft['branch'])
+          (root / 'body.md').write_text(draft['body'])
+          (root / 'title.txt').write_text(draft['title'])
+          (root / 'branch.txt').write_text(draft['branch'])
+          PY
+          if [ ! -f "$RUNNER_TEMP/branch.txt" ]; then exit 0; fi
+          gh pr create --draft --base main \
+            --head "$(cat "$RUNNER_TEMP/branch.txt")" \
+            --title "$(cat "$RUNNER_TEMP/title.txt")" \
+            --body-file "$RUNNER_TEMP/body.md"

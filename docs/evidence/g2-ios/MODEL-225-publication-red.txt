@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_delayed_publication_requires_the_readers_actual_schedule _________
+tests/test_release_pipeline.py:227: in test_delayed_publication_requires_the_readers_actual_schedule
+    with pytest.raises(ValueError, match="publication date"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/test_release_pipeline.py::test_delayed_publication_requires_the_readers_actual_schedule
+1 failed, 25 deselected in 0.66s

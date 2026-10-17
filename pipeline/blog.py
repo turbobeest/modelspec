@@ -217,6 +217,9 @@ def _posts(root: Path, *, public_keys=None, preview_slug=None, today: date | Non
             b = Breakdown.model_validate_json((folder / "breakdown.json").read_bytes())
             if b.model.id != metadata.model or b.revision != revision.revision:
                 raise ValueError("post metadata and breakdown disagree")
+            first_published = metadata.revisions[0].published
+            if first_published is not None and b.recheck.first_published != first_published:
+                raise ValueError("regenerate the draft for its actual first publication date")
             expected, charts = render_breakdown(b)
             committed = folder / "post.md"
             if committed.read_text() != expected:
