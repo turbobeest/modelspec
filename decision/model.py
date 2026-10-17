@@ -12,9 +12,10 @@ import hashlib
 import json
 import math
 import re
+from collections.abc import Iterable, Mapping
 from importlib import import_module
 from pathlib import Path
-from typing import Annotated, ClassVar, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 import yaml
 from pydantic import (
@@ -26,6 +27,7 @@ from pydantic import (
     JsonValue,
     TypeAdapter,
     ValidationInfo,
+    field_validator,
     model_validator,
 )
 
@@ -222,6 +224,80 @@ def value_hash(value: JsonValue) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+def _fact_field(fact: Any, key: str, default: Any = None) -> Any:
+    return fact.get(key, default) if isinstance(fact, Mapping) else getattr(fact, key, default)
+
+
+def _price_date(value: Any) -> datetime.date | None:
+    if value is None or type(value) is datetime.date:
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = datetime.date.fromisoformat(value)
+        except ValueError:
+            pass
+        else:
+            if parsed.isoformat() == value:
+                return parsed
+    raise ValueError("a scheduled price date must be an exact YYYY-MM-DD date")
+
+
+def fact_verification_value(fact: Any) -> JsonValue:
+    """Bind a dated price to its dates while preserving undated fact hashes."""
+    start = _price_date(_fact_field(fact, "effective_from"))
+    until = _price_date(_fact_field(fact, "effective_until"))
+    value = _fact_field(fact, "value")
+    if start is None and until is None:
+        return value
+    return {
+        "value": value,
+        "effective_from": start.isoformat() if start is not None else None,
+        "effective_until": until.isoformat() if until is not None else None,
+    }
+
+
+def validate_price_schedules(facts: Iterable[Any]) -> None:
+    """Validate inclusive price periods on either records or raw input mappings."""
+    groups: dict[str, list[tuple[datetime.date | None, datetime.date | None]]] = {}
+    dated: set[str] = set()
+    ids: set[str] = set()
+    for fact in facts:
+        facet = str(_fact_field(fact, "facet"))
+        start = _price_date(_fact_field(fact, "effective_from"))
+        until = _price_date(_fact_field(fact, "effective_until"))
+        groups.setdefault(facet, []).append((start, until))
+        if start is None and until is None:
+            continue
+        subject = _fact_field(fact, "subject")
+        value = _fact_field(fact, "value")
+        if (_fact_field(subject, "kind") != "offering"
+                or not facet.startswith("offering.price.")
+                or _fact_field(fact, "state") != "known"
+                or type(value) not in (int, float) or not math.isfinite(value) or value < 0):
+            raise ValueError(
+                "a dated price must be a known nonnegative numeric offering.price fact")
+        rid = _fact_field(fact, "id")
+        if not isinstance(rid, str) or not rid or rid in ids:
+            raise ValueError("scheduled price fact IDs must be present and unique for a subject")
+        ids.add(rid)
+        if start is not None and until is not None and until < start:
+            raise ValueError(f"{facet}: a scheduled price ends before it starts")
+        dated.add(facet)
+    for facet, periods in groups.items():
+        if facet not in dated:
+            if len(periods) > 1:
+                raise ValueError("fact IDs and facets must be unique for a subject")
+            continue
+        if any(start is None and until is None for start, until in periods):
+            raise ValueError(f"{facet}: mixed dated and undated price facts")
+        ordered = sorted(periods, key=lambda period: period[0] or datetime.date.min)
+        for (_start, until), (start, _until) in zip(ordered, ordered[1:]):
+            if until is None or start is None or until >= start:
+                raise ValueError(f"{facet}: scheduled price periods overlap")
+            if until + datetime.timedelta(days=1) != start:
+                raise ValueError(f"{facet}: scheduled price periods have a gap")
+
+
 def evidence_verification_value(evidence: object) -> JsonValue:
     """The evidence reading bound to a verification.
 
@@ -323,9 +399,17 @@ class Fact(Record):
     derivation: dict[str, JsonValue] | None = None
     measurement: Measurement | None = None
     verification: Verification | None = None
+    effective_from: datetime.date | None = None
+    effective_until: datetime.date | None = None
+
+    @field_validator("effective_from", "effective_until", mode="before")
+    @classmethod
+    def exact_price_date(cls, value: Any) -> datetime.date | None:
+        return _price_date(value)
 
     @model_validator(mode="after")
     def valid_fact(self, info: ValidationInfo) -> Self:
+        validate_price_schedules([self])
         facet = _registered(info, "facet", self.facet)
         facet_subject = getattr(facet, "subject", None)
         if facet_subject is not None and facet_subject != self.subject.kind:
@@ -345,7 +429,7 @@ class Fact(Record):
                 raise ValueError("a measured fact is known and its value is the median")
             if "modelspec_measurement" not in facet.permitted_source_kinds:
                 raise ValueError(f"facet {self.facet} does not admit a ModelSpec measurement")
-        _check_target(self.verification, "fact", self.id, self.value)
+        _check_target(self.verification, "fact", self.id, fact_verification_value(self))
         return self
 
     @property
@@ -488,9 +572,9 @@ class Model(Record):
 
 def _check_facts(facts: list[Fact], kind: str, id: str) -> None:
     ids = [fact.id for fact in facts]
-    facets = [fact.facet for fact in facts]
-    if len(ids) != len(set(ids)) or len(facets) != len(set(facets)):
+    if len(ids) != len(set(ids)):
         raise ValueError("fact IDs and facets must be unique for a subject")
+    validate_price_schedules(facts)
     if any(fact.subject.kind != kind or fact.subject.id != id for fact in facts):
         raise ValueError("fact subject does not match its owner")
 

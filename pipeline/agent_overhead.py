@@ -73,8 +73,9 @@ def comparison_markdown(before: dict, after: dict) -> str:
         "", "| MCP tool | Definition before | Definition after | Description before | Description after |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
-    for name, row in after['tools'].items():
-        old = before['tools'][name]
+    for name in sorted(before['tools'].keys() | after['tools'].keys()):
+        old = before['tools'].get(name, {'definition': 0, 'description': 0})
+        row = after['tools'].get(name, {'definition': 0, 'description': 0})
         lines.append(f"| `{name}` | {old['definition']:,} | {row['definition']:,} | {old['description']:,} | {row['description']:,} |")
     for key, label in (('paths', 'OpenAPI path'), ('components', 'OpenAPI schema component')):
         lines += ['', f'| {label} | Tokens before | Tokens after |', '| --- | ---: | ---: |']

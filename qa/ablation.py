@@ -58,6 +58,7 @@ from qa.ablation_proxy import (
     LEGACY_COPY,
     LIMITATIONS,
     OLD_SUMMARY_RULE,
+    PUBLISHED_COPY,
     SUMMARY_RULE,
     UPSTREAM,
     Audit,
@@ -123,6 +124,9 @@ def preflight(proxy: Proxy, *, send=None, keyed: bool = True) -> dict:
         listed = rpc("tools/list", {}, None).get("tools", [])
         descriptions = {tool["name"]: tool.get("description") for tool in listed}
         expected_tools = dict(LEGACY_COPY["tools"])
+        if set(descriptions) == set(PUBLISHED_COPY["tools"]):
+            expected_tools.update({name: text for name, text in PUBLISHED_COPY["tools"].items()
+                                   if name not in LEGACY_COPY["tools"]})
         if variants.next_move:
             expected_tools["decide"] = expected_tools["decide"].replace(
                 OLD_SUMMARY_RULE, SUMMARY_RULE

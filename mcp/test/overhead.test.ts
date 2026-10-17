@@ -75,6 +75,12 @@ it("bounds descriptions and emits only DecideRequest-reachable definitions", asy
   const definitions = z.record(z.string(), z.unknown()).parse(decide.inputSchema.$defs);
   expect(Object.keys(definitions).sort()).toEqual([...reachableDefinitionNames(), "Condition"].sort());
   expect(definitions.Condition).toEqual({ anyOf: CONDITION_UNION });
+  const hardwareFit = tools.find(tool => tool.name === "hardware_fit");
+  const recordedHardwareFit = mcpTools.tools.find(tool => tool.name === "hardware_fit");
+  if (hardwareFit === undefined || recordedHardwareFit === undefined) {
+    throw new Error("hardware_fit is absent from tools/list or the QA capture");
+  }
+  expect(hardwareFit.inputSchema).toEqual(recordedHardwareFit.input_schema);
   // Record actual SDK tools/list output for pipeline.agent_overhead, when requested.
   const output = process.env.MODELSPEC_TOOL_MEASURE_OUTPUT;
   if (output) writeFileSync(output, JSON.stringify(tools, null, 2) + "\n");

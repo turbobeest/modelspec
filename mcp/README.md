@@ -64,12 +64,13 @@ Successful calls pass through the origin. Null on a card means not researched.
 | `policy_check` | `POST https://api.modelspec.dev/v1/policy-check` |
 | `decide` | `POST https://api.modelspec.dev/v1/decide` |
 | `compare_models` | `POST https://api.modelspec.dev/v1/compare-models` |
+| `hardware_fit` | `POST https://api.modelspec.dev/v1/hardware-fit` |
 | `vocab` | `GET https://modelspec.dev/api/decision/vocabulary.json` |
 | `feedback` | `POST https://api.modelspec.dev/v1/feedback` (no key; `client` is always `mcp`; the caller's address is forwarded only for the rate limit) |
 
-`rank`, `policy_check`, `decide`, and `compare_models` use the `RANK` service binding because a
+`rank`, `policy_check`, `decide`, `compare_models`, and `hardware_fit` use the `RANK` service binding because a
 same-zone Worker fetch to the public API hostname reaches the zone origin and
-returns 522. All four forward the client's `Authorization: Bearer <key>` header.
+returns 522. All five forward the client's `Authorization: Bearer <key>` header.
 The API validates presented keys and returns its auth/payment errors unchanged.
 
 `MCP_REQUIRE_API_KEY` defaults to requiring a key, including when unset. Only
@@ -78,7 +79,8 @@ explicit `"false"` permits anonymous decision calls. With the default, `rank`,
 contacting the API when a Bearer credential is absent or malformed. This guard
 checks credentials before proxying decision calls. Machine data access,
 including `vocab`, `model_info` and `list_use_cases`, needs a ModelSpec key.
-Feedback stays keyless and carries no model data. Use an existing key, or see
+`hardware_fit` always requires a Bearer key, including when
+`MCP_REQUIRE_API_KEY="false"`. Feedback stays keyless and carries no model data. Use an existing key, or see
 [pricing](https://modelspec.dev/pricing/) for availability.
 
 `decide` accepts the decision spec defined by
@@ -96,6 +98,15 @@ Unknown values stay null, and `omitted` counts removed records. The entire MCP
 text stays within 16 KB. An oversized origin response becomes a compact
 `response_too_large` tool error and returns no comparison data. This named
 model comparison does not change the snapshot comparison at `/v1/compare`.
+
+`hardware_fit` accepts `model`, `sku`, `device_count`, `memory`, `runtime`,
+`quantisation`, `batch` and `context`. Memory is an optional override in decimal
+GB per device. Omitted or null inputs reach the API and return `undetermined`
+when they prevent assessment. Unknown SKU or quantisation identifiers also
+reach the API. The tool preserves the endpoint's complete answer and citations.
+A `measured` answer cites the exact run. An `estimated` answer gives
+`estimated_fit: likely|unlikely`, a memory margin, the formula, inputs and
+assumptions. An estimate never proves fit or contains `fits: true`.
 
 ## Client config
 

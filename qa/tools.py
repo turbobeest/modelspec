@@ -156,7 +156,7 @@ class LiveTools:
         arguments = self.prepare(name, arguments)
         headers = {"accept": "application/json", "user-agent": USER_AGENT}
         method, body = "GET", None
-        keyed = name in ("rank", "policy_check", "decide", "compare_models") or (
+        keyed = name in ("rank", "policy_check", "decide", "compare_models", "hardware_fit") or (
             name == "vocab" and self.vocabulary_path == "/v1/vocabulary"
         ) or (name == "model_info" and self.split)
         if name != "feedback" and not self.key:
@@ -176,9 +176,9 @@ class LiveTools:
             }
         if keyed:
             headers["Authorization"] = f"Bearer {self.key}"
-        if name in ("rank", "policy_check", "decide", "compare_models"):
+        if name in ("rank", "policy_check", "decide", "compare_models", "hardware_fit"):
             path = {"rank": "/v1/rank", "policy_check": "/v1/policy-check", "decide": "/v1/decide",
-                    "compare_models": "/v1/compare-models"}[
+                    "compare_models": "/v1/compare-models", "hardware_fit": "/v1/hardware-fit"}[
                 name
             ]
             url, method, body = self.api + path, "POST", arguments

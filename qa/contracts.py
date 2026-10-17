@@ -13,7 +13,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide",
-              "compare_models", "vocab", "feedback")
+              "compare_models", "hardware_fit", "vocab", "feedback")
 SOURCE_PATHS = (
     "mcp/src/server.ts",
     "mcp/src/vocabulary.ts",
@@ -214,11 +214,16 @@ def capture_tools() -> dict:
     models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
     models["items"]["maxLength"] = 128
     models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+    hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+    _compact_in_place(hardware_fit)
+    hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
     inputs = {
         "rank": rank,
         "policy_check": policy,
         "decide": decide,
         "compare_models": comparison,
+        "hardware_fit": hardware_fit,
         "feedback": feedback,
         "model_info": {
             "type": "object",

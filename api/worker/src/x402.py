@@ -381,6 +381,8 @@ def is_billable_success(status: int, body: dict[str, Any]) -> bool:
         return False
     if body.get("error"):
         return False
+    if body.get("endpoint") == "hardware-fit":
+        return body.get("status") in {"measured", "estimated", "undetermined"}
     names = ("models",) if body.get("endpoint") == "compare-models" else ("result", "results")
     for name in names:
         result = body.get(name)

@@ -52,10 +52,10 @@ MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
-    "decide", "rank", "model_info", "list_use_cases", "policy_check", "compare_models", "vocab", "feedback"
+    "decide", "rank", "model_info", "list_use_cases", "policy_check", "compare_models", "hardware_fit", "vocab", "feedback"
 )
 MCP_AUTH_DESCRIPTION = (
-    "MCP data tools rank, policy_check, decide, compare_models, vocab, model_info and list_use_cases require "
+    "MCP data tools rank, policy_check, decide, compare_models, hardware_fit, vocab, model_info and list_use_cases require "
     "`Authorization: Bearer <key>`. "
     "Feedback stays keyless; it carries no model data."
 )

@@ -1,12 +1,12 @@
 # ModelSpec API — reference
 
-**Use when** choosing, switching, or checking a model before a task or deploy.
-Decides what fits your [hardware](decision-contract.md#architecture-and-hardware-estimates-model-348), providers, profile and policy.
+**Use when** choosing models against [hardware](decision-contract.md#architecture-and-hardware-estimates-model-348), providers, profiles and policy.
 
 * `POST /v1/decide` — what fits your requirements:
   [`decide-api.md`](decide-api.md). The bounded representation adds `summary_for_user`, `must_mention` and `next_move`.
 * `POST /v1/compare-models` — keyed facts for two to four named models, in caller order:
   [`decision-contract.md`](decision-contract.md#comparing-named-models-model-364).
+* `POST /v1/hardware-fit` — keyed [hardware assessment](hardware-fit-api.md): measured, estimated, or undetermined.
 * `POST https://api.modelspec.dev/v1/rank` — **deprecated**; never a decide
   fallback.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
