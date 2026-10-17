@@ -1,7 +1,7 @@
 # MODEL-401 hardware-fit lower-bound evidence
 
 Draft PR: [#812](https://github.com/turbobeest/modelspec/pull/812).
-Status: focused checks pass; the required full-suite rerun is pending the shared lock.
+Status: focused checks and CI pass; the full-suite retry after web setup is pending the shared lock.
 
 Base SHA: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`, also the fetched
 `origin/main` used for the publication comparisons. The first commit,
@@ -152,6 +152,7 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.agent_harness --first-turn-breakdown
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_api_docs.py tests/test_agent_guide.py tests/test_hardware_fit.py tests/test_hardware_fit_worker.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py tests/test_agent_gaps.py tests/test_decision_link.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_landing.py
 PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_social_cards.py::test_build_emits_every_template_preview_and_card tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout
 ```
 
@@ -176,8 +177,29 @@ export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
 /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
-The command is queued for the shared lock. The final exit status and summary
-will replace this paragraph before delivery.
+The first resumed locked run exited 1 with 11,473 passed, 9 skipped,
+11 warnings, and 12 fixture errors in 1,122.07 seconds. All twelve errors
+were `tests/test_landing.py::test_landing_behaviour_in_browser` cases:
+`npm ci` enabled the browser fixture, which requires the previously absent
+`web/dist/decide.html` and assets before browser launch. Its
+[complete log](MODEL-401/resume/full-suite-before-web-build.log.gz) and
+[summary](MODEL-401/resume/full-suite-before-web-build-summary.txt) are retained.
+
+From `web/`, with the pinned Node PATH, `npm run build` then exited 0 and
+generated those assets. `npm test` passed all 843 web tests (52 files passed,
+one file skipped), exit 0. The complete landing suite passed all 33 tests,
+including the twelve browser cases, exit 0, in 189.61 seconds. No test or
+assertion changed, and no dependency failure is ignored. The corresponding
+logs are `resume/web-build.log.gz`, `resume/web-tests.log.gz`, and
+`resume/landing-after-web-build.log.gz`.
+
+All 18 applicable CI checks on `a66d4170889f74fa35624e1984df0a537f8d986f`
+passed; six deployment or merge checks were skipped. The read-only command
+`gh pr checks 812 --json name,state` exited 0, recorded in
+[ci-a66d4170.json](MODEL-401/resume/ci-a66d4170.json).
+
+The full-suite retry after the web build is queued for the shared lock.
+Its final exit status and summary will replace this paragraph before delivery.
 
 Delivery uses `CI_LOCAL_SKIP=1 git push -u origin model-401-hardware-fit-lower-bound`
 after focused checks pass. The user scope exception explicitly authorizes
@@ -198,7 +220,8 @@ or vendor API call was made. No production hardware-fit records were added.
 No measured fit, runtime compatibility, latency, or throughput was established.
 The hardware-fit Markdown pages are repository documents rather than generated
 site pages; no local full site build was needed by that conditional requirement.
-The social-card tests did run their existing site-generation path after web
-setup. No production switch, ranking, legal text, frozen data, Linear state,
+The social-card and landing tests ran their existing site-generation paths
+after web setup, and the web client was built for the landing browser fixture.
+No production switch, ranking, legal text, frozen data, Linear state,
 or merge was changed. No wsl gate, SSH, or SCP was run. Cross-model review is
 pending.
