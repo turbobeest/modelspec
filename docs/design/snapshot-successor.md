@@ -20,6 +20,13 @@ an expiry produces no successor. Its current snapshot and vocabulary keep their
 existing bytes. Rebuilding an existing export directory removes any obsolete
 successor so a prior build cannot supply one accidentally.
 
+Each snapshot also has its own display vocabulary. The successor's vocabulary
+ships as `/api/decision/vocabulary-successor.json`, with the same builder and
+display projection as the primary vocabulary. Build-time template decisions
+read the snapshot's resolved prices without checking today's live interval.
+Live decisions retain that check. An undated export builds only the original
+snapshot and vocabulary, and removes both obsolete successor artifacts.
+
 ## Authenticate the pair before serving either snapshot
 
 `entry.py` parses and hash-checks both bundled snapshots during deployment
@@ -38,6 +45,18 @@ the selected snapshot as the held snapshot, which supplies the response header
 and the decision response's snapshot reference. If neither interval covers the
 date, the existing `503 no_snapshot` response applies. Historical comparison
 loads continue to retain their original prices.
+
+Bundled vocabulary requests select through the same authenticated holder after
+the access gate. Full responses name the selected snapshot, and lookups use its
+facet and template metadata. Dated vocabulary uses `cache-control: no-store` so
+a cached primary vocabulary cannot persist across midnight. A client that gets
+`409 snapshot_changed` can reload vocabulary and retry with the successor's ID.
+Unbounded vocabulary keeps its existing bytes and cache behavior.
+
+Decision response headers use the snapshot reference in their own response
+body. Billing can await after a decision has been computed, so reading the
+shared holder at response time could instead name another concurrent request's
+snapshot.
 
 An alternative would make every holder manage a general collection of dated
 snapshots, including fetched snapshots. That would change refresh, ETag, and
@@ -83,5 +102,5 @@ Vendor tests compare repeated builds byte for byte, check both signatures and
 the successor's build date, and verify that undated exports produce no
 successor and preserve the current bytes. Existing refresh and comparison
 tests run alongside boundary regressions. Validation includes a Worker dry
-run and compressed upload measurement against the Worker limit, followed by
+run and total upload measurement against the Worker limit, followed by
 the full pytest suite under the shared lock after `web/npm ci`.
