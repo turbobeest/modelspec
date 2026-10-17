@@ -1,13 +1,14 @@
 # MODEL-219 executor evidence
 
-Status: live composition implemented after the orchestrator granted the scope
-exception. Draft PR #811 remains draft. Static and live builds and focused
-checks pass. The complete pytest suite is queued under the shared lock.
+Status: READY for Grok review. Live composition is implemented after the
+orchestrator granted the scope exception. Draft PR #811 remains draft.
+Static and live builds, web tests, focused checks, and the complete pytest
+suite under the shared lock pass.
 
 Base SHA: `688f1072142a6824930dd1f17473d4d0050625cc`.
-Final implementation SHA: `e2009bc04636f160cfc972ae4f639f1d9d702d5f`.
+Final implementation SHA: `9c866949300933f6238b2cc0ca7026e44c0f9666`.
 The following evidence-only commit is the final PR HEAD. Its exact SHA is
-recorded in the executor completion line and PR verification comment after
+recorded in the executor completion line and PR body after
 commit, avoiding a self-referential commit hash inside this file.
 
 The first commit is the required design document, `63647dba`. The draft PR
@@ -224,8 +225,44 @@ examples plus source sitemap dates. All original holding/internal/live byte
 checks remain, with new copied-page and exact sitemap assertions. Its full
 module returned exit 0, `8 passed in 1.44s`.
 
-The complete suite is queued under the shared lock and will be allowed to
-finish. No complete-suite result is claimed yet.
+The complete suite waited behind other reviews, acquired the shared lock,
+and ran to completion without interruption. The exact locked command above
+returned exit 0:
+
+```text
+11391 passed, 9 skipped, 11 warnings in 1279.44s (0:21:19)
+```
+
+The warnings are the existing unsigned-vocabulary warnings in CLI snapshot
+and keyed-origin tests. The reported duration excludes time queued for the lock.
+
+## Repository guard follow-up
+
+CI's second pytest shard exposed removed-source literals in the new neutrality
+test. The repository guard scans tracked tests as well as generated content.
+The local reproduction returned exit 1:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py
+```
+
+```text
+FAILED tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source
+1 failed, 4 passed, 1 skipped in 92.71s
+```
+
+The neutrality test now imports the existing `REMOVED_TEXT` pattern instead
+of spelling those names in its forbidden-name tuple. This also covers separator
+variants and removed measurement names. All other neutrality/access assertions
+remain, and neither the repository guard nor its allowlist changed.
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py tests/test_pipeline.py::test_use_case_neutrality_and_access
+```
+
+The focused follow-up returned exit 0, `6 passed, 1 skipped in 103.67s`.
+This test-only correction was made while the complete suite continued
+uninterrupted; the focused command above exercises the final assertion.
 
 ## What was not observed
 
