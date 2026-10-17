@@ -782,22 +782,59 @@ def test_use_case_page_preserves_engine_values_and_registry_copy(use_case_templa
                   "1.23456", "0.56789", "0.4321", "1.3579", "-0.2468", "2.9753"):
         assert value in page.visible
     assert "P(best)" in page.visible
-    assert "null" in page.visible
+    assert "Unavailable" in page.visible
     assert "fixture_warning" in page.visible
 
 
-def test_use_case_tie_is_not_a_cost_recommendation(use_case_template, use_case_decision):
+@pytest.mark.parametrize("has_optional_tie_breakers", [False, True])
+def test_use_case_tie_is_not_a_cost_recommendation(
+    use_case_template, use_case_decision, has_optional_tie_breakers,
+):
     from pipeline.surface_lint import Page
 
+    if has_optional_tie_breakers:
+        use_case_decision["answer"]["tie_breakers"].update(
+            fastest="lab/strong", most_independently_measured="lab/cheap",
+        )
     page = Page(builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23)))
     assert "Tied" in page.visible
     assert "fixture evidence basis" in page.visible
     assert "Cheapest tie-breaker: lab/cheap" in page.visible
-    assert "Fastest tie-breaker: null" in page.visible
     assert "Open-weights tie-breaker: lab/strong" in page.visible
-    assert "Most independently measured tie-breaker: null" in page.visible
+    if has_optional_tie_breakers:
+        assert "Fastest tie-breaker: lab/strong" in page.visible
+        assert "Most independently measured tie-breaker: lab/cheap" in page.visible
+    else:
+        assert "Fastest tie-breaker:" not in page.visible
+        assert "Most independently measured tie-breaker:" not in page.visible
     assert "undetermined" in page.visible
     assert "cheapest model is best" not in page.visible.lower()
+
+
+def test_use_case_values_are_readable_without_changing_engine_precision(use_case_decision):
+    from copy import deepcopy
+
+    from decision import registry
+    from decision.contract import parse_spec
+    from decision.templates import load_templates
+    from pipeline.surface_lint import Page
+
+    template = deepcopy(next(t for t in load_templates() if t["id"] == "regulated-best"))
+    facets = registry.load(REPO_ROOT / "registry", repo_root=REPO_ROOT).facet
+    template["spec"] = parse_spec(template["spec"], facets=facets).model_dump(mode="json")
+    use_case_decision["bands"]["best"][0]["p_best"] = 0.12345678912345678
+    original = deepcopy(use_case_decision)
+    page = Page(builder.use_case_page(template, use_case_decision, date(2026, 9, 23)))
+
+    assert not re.search(r"\b(?:null|true|false)\b", page.visible, re.I)
+    assert '"spec_version"' not in page.visible
+    assert '"value"' not in page.visible
+    assert "offering.data.zero_retention = Yes" in page.visible
+    assert "offering.data.trains_on_customer_data = No" in page.visible
+    assert "Unavailable" in page.visible
+    assert "0.12345678912345678" in page.visible
+    assert "[-0.12345, 1.23456]" in page.visible
+    assert use_case_decision == original
 
 
 @pytest.mark.parametrize("state", ["empty", "fully-undetermined"])
@@ -813,9 +850,15 @@ def test_use_case_without_answer_is_noindex_and_absent_from_sitemap(
     else:
         use_case_decision["bands"]["thin"] += use_case_decision["bands"]["best"]
         use_case_decision["bands"]["best"] = []
-    page = Page(builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23)))
+    raw = builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23))
+    page = Page(raw)
     assert "No recommendation" in page.visible
     assert "noindex" in page.meta["robots"]
+    assert "<h3>Best band</h3>" not in raw
+    assert "<h3>Rest band</h3>" not in raw
+    if state == "fully-undetermined":
+        assert "Thin evidence: undetermined" in page.visible
+        assert all(model in page.visible for model in ("lab/unknown", "lab/strong", "lab/cheap"))
     catalogue = {"categories": [{"id": "coding", "name": "Coding", "kind": "use"}],
                  "templates": [use_case_template]}
     monkeypatch.setattr(builder, "use_case_decisions",

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -99,3 +101,33 @@ def test_use_case_pages_are_published_with_image_dates_and_method_discovery(dist
             assert entries[url] == image_date
         assert page.ld
     assert entries["https://modelspec.dev/use-cases/"] == image_date
+
+
+def test_built_use_case_pages_have_no_visible_json_literals(dist: Path) -> None:
+    from pipeline.surface_lint import Page
+
+    tree = dist / "modelspec"
+    pages = sorted((tree / "use-cases").rglob("*.html"))
+    assert len(pages) > 1
+    failures = []
+    for path in pages:
+        visible = Page(path.read_text()).visible
+        literals = re.findall(r"\b(?:null|true|false)\b", visible, re.I)
+        if literals:
+            failures.append(f"{path.relative_to(tree)}: {sorted(set(literals))}")
+    assert not failures, "\n".join(failures[:5])
+
+
+def test_built_use_case_pages_have_no_empty_band_tables(dist: Path) -> None:
+    tree = dist / "modelspec"
+    pages = sorted((tree / "use-cases").rglob("*.html"))
+    assert len(pages) > 1
+    checked = 0
+    failures = []
+    for path in pages:
+        for markup in re.findall(r"<table\b[^>]*>.*?</table>", path.read_text(), re.S):
+            checked += 1
+            if not ET.fromstring(markup).findall("./tbody/tr"):
+                failures.append(str(path.relative_to(tree)))
+    assert checked > 0
+    assert not failures, "\n".join(failures[:5])

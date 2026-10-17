@@ -455,8 +455,29 @@ def _use_case_indexable(decision: dict) -> bool:
 
 
 def _use_case_value(value: object) -> str:
-    """Keep contract precision and nulls, rather than substituting guessed values."""
+    """Render human values without rounding numbers or inventing missing data."""
+    if value is None:
+        return "Unavailable"
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, str):
+        value = re.sub(r" = (true|false)$",
+                       lambda match: " = " + ("Yes" if match[1] == "true" else "No"), value)
+        return r.esc(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_use_case_value(item) for item in value) + "]"
     return r.esc(json.dumps(value, ensure_ascii=False, allow_nan=False))
+
+
+def _use_case_spec(value: object) -> str:
+    if isinstance(value, dict):
+        return '<dl>\n' + "".join(
+            f'<dt><code>{r.esc(key)}</code></dt>\n<dd>{_use_case_spec(item)}</dd>\n'
+            for key, item in value.items()
+        ) + '</dl>'
+    if isinstance(value, list):
+        return '<ul>' + "".join(f'<li>{_use_case_spec(item)}</li>' for item in value) + '</ul>'
+    return _use_case_value(value)
 
 
 def _use_case_shell(title: str, description: str, path: str, body: str,
@@ -496,7 +517,7 @@ CLI, API, and MCP access requires a key. <a href="/pricing/">Access and pricing<
 def use_case_page(template: dict, decision: dict, as_of: date) -> str:
     """Render a dated engine response with registry copy and no page-specific claims."""
     requirements = "".join(
-        f'<li><code>{r.esc(row["condition"])}</code>: {r.esc(row["reason"])}</li>'
+        f'<li><code>{_use_case_value(row["condition"])}</code>: {r.esc(row["reason"])}</li>'
         for row in template["where"]
     )
     preferences = "".join(
@@ -507,7 +528,7 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
             f'<h2>Requirements</h2><ul>{requirements}</ul>'
             f'<h2>Preferences</h2><ul>{preferences}</ul>'
             '<details><summary>Applied template spec</summary>'
-            f'<pre>{r.esc(json.dumps(template["spec"], indent=2, ensure_ascii=False))}</pre></details>'
+            f'{_use_case_spec(template["spec"])}</details>'
             f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
     answer = decision["answer"]
     if not _use_case_indexable(decision):
@@ -518,13 +539,16 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
             f'<li><code>{r.esc(model)}</code></li>' for model in answer["members"]
         ) + f'</ul><p>{r.esc(answer["basis"])}</p>'
         if answer["kind"] == "tied":
-            body += '<p>Tie-breakers describe members of the tie. They do not establish a winner.</p><ul>'
+            tie_breakers = []
             for key, label in (("cheapest", "Cheapest"), ("fastest", "Fastest"),
                                ("open_weights", "Open-weights"),
                                ("most_independently_measured", "Most independently measured")):
                 value = answer["tie_breakers"][key]
-                body += f'<li>{label} tie-breaker: {r.esc(value) if value else "null"}</li>'
-            body += '</ul>'
+                if value is not None:
+                    tie_breakers.append(f'<li>{label} tie-breaker: {r.esc(value)}</li>')
+            if tie_breakers:
+                body += ('<p>Tie-breakers describe members of the tie. '
+                         'They do not establish a winner.</p><ul>' + "".join(tie_breakers) + '</ul>')
     if decision["status"] == "partial":
         body += ('<p>This is a partial answer. Unknown facts or missing objective evidence '
                  'can leave eligible candidates unranked.</p>')
@@ -534,10 +558,12 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
                  '<p>Score and score interval use the objective\'s dimensionless normalised units. '
                  'Cost per task is for the engine-selected offering and the applied spec\'s task size. '
                  'When task size is omitted, the engine uses its documented default. '
-                 'P(best) is the engine probability. A null value is unavailable. '
+                 'P(best) is the engine probability. Unavailable means the engine did not return a value. '
                  'Thin evidence is undetermined and is not a recommendation.</p>')
         for key, label in (("best", "Best band"), ("rest", "Rest band"),
                            ("thin", "Thin evidence: undetermined")):
+            if not bands[key]:
+                continue
             rows = []
             for entry in bands[key]:
                 estimates = "".join(

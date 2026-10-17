@@ -53,10 +53,14 @@ they are not disguised as missing evidence.
 Every page leads with the shared AoA entity sentence. A template page has its
 registry title and purpose, the public-image date, requirements with their
 registry reasons, preferences, the computed answer, and the template lesson.
-The answer shows all returned bands and their members. A tie stays a tie and
-shows the engine's cheapest, fastest, open-weights, and best-measured tie-breakers.
-The cheapest member is identified only as a tie-breaker. Intervals and P(best)
-retain the values and nulls supplied by the decision contract. Undetermined
+The answer shows every nonempty band and its members. Empty bands have no
+heading or table. A tie stays a tie and shows the engine's available cheapest,
+fastest, open-weights, and best-measured tie-breakers. Missing tie-breaker lines
+are omitted. The cheapest member is identified only as a tie-breaker.
+Intervals and P(best) retain the exact numbers supplied by the decision
+contract. Missing cells say "Unavailable". Boolean requirements read "Yes" or
+"No", and the applied spec uses labeled fields and lists instead of JSON.
+These presentation changes leave the engine response untouched. Undetermined
 members are labelled as such and never promoted to recommendations.
 Partial answers explain missing evidence and unknown requirements. Engine
 warnings and omitted result-row counts remain visible. Bands retain every
