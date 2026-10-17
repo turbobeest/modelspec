@@ -121,6 +121,32 @@ def test_schema_compaction_preserves_every_original_rule():
 
     for key in shared:
         compacted['components']['schemas'].pop(key)
+
+    def omit_schema_annotations(schema):
+        if not isinstance(schema, dict):
+            return
+        schema.pop('title', None)
+        if schema.get('default') is None:
+            schema.pop('default', None)
+        for keyword in ('properties', 'patternProperties', '$defs', 'definitions', 'dependentSchemas'):
+            for child in (schema.get(keyword) or {}).values():
+                omit_schema_annotations(child)
+        for keyword in ('items', 'additionalProperties', 'unevaluatedProperties', 'unevaluatedItems',
+                        'contains', 'not', 'if', 'then', 'else', 'propertyNames', 'additionalItems'):
+            omit_schema_annotations(schema.get(keyword))
+        for keyword in ('anyOf', 'oneOf', 'allOf', 'prefixItems'):
+            for child in schema.get(keyword) or []:
+                omit_schema_annotations(child)
+
+    # Only these schema annotations may disappear. Property names, example
+    # values, descriptions, non-null defaults and every constraint still compare.
+    for schema in original['components']['schemas'].values():
+        omit_schema_annotations(schema)
+    for operations in original['paths'].values():
+        for operation in operations.values():
+            for response in operation.get('responses', {}).values():
+                for content in response.get('content', {}).values():
+                    omit_schema_annotations(content.get('schema'))
     assert expand(compacted) == original
 
 

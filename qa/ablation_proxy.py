@@ -76,6 +76,12 @@ OLD_SUMMARY_RULE = (
 _ROOT = Path(__file__).resolve().parents[1]
 LEGACY_COPY = json.loads((_ROOT / "qa/fixtures/ablation-pre682-copy.json").read_text())
 PUBLISHED_COPY = json.loads((_ROOT / "mcp/src/agent-copy.json").read_text())
+_RECORDED_METADATA = json.loads((_ROOT / "qa/fixtures/ablation-metadata.json").read_text())["results"]
+RECORDED_COPY = {
+    "instructions": _RECORDED_METADATA["initialize"]["instructions"],
+    "tools": {tool["name"]: tool["description"] for tool in _RECORDED_METADATA["tools/list"]["tools"]},
+}
+LEGACY_NULL_RULE = "Null means " + LEGACY_COPY["tools"]["decide"].rsplit(" Null means ", 1)[1]
 LIMITATIONS = [
     "summary_trim_gap: the reserved ending is exact; "
     "clipped preceding lists can differ from the server",
@@ -320,21 +326,24 @@ def check_identity(complete: Decision, bounded: dict, original: dict, pinned: di
 
 
 def converge_copy(text: str, name: str, variants: Variants) -> str:
-    """Recognise either published generation and return the arm's exact copy."""
-    if name == "instructions":
-        old, current = LEGACY_COPY[name], PUBLISHED_COPY[name]
-    else:
-        if name not in LEGACY_COPY["tools"]:
+    """Recognise retained and current generations and return the arm's exact copy."""
+    if name != "instructions" and name not in LEGACY_COPY["tools"]:
+        if name not in PUBLISHED_COPY["tools"] or text != PUBLISHED_COPY["tools"][name]:
             raise CopyDriftError("Upstream tool description drifted")
+        return text
+    if name == "instructions":
+        old, current, recorded = LEGACY_COPY[name], PUBLISHED_COPY[name], RECORDED_COPY[name]
+    else:
         old, current = LEGACY_COPY["tools"][name], PUBLISHED_COPY["tools"][name]
+        recorded = RECORDED_COPY["tools"][name]
     if not isinstance(text, str):
         raise CopyDriftError("Upstream SUMMARY_RULE drifted")
     if name == "decide":
         base = text.removesuffix(DECIDE_WORKED_EXAMPLE)
-        if not base.endswith(NULL_RULE) or DECIDE_WORKED_EXAMPLE in base:
+        if not base.endswith((LEGACY_NULL_RULE, NULL_RULE)) or DECIDE_WORKED_EXAMPLE in base:
             raise CopyDriftError("Upstream worked example insertion point drifted")
     recognised = set()
-    for source in (old, current):
+    for source in (old, recorded, current):
         base = source.removesuffix(DECIDE_WORKED_EXAMPLE).replace(SUMMARY_RULE, OLD_SUMMARY_RULE)
         for rule in (OLD_SUMMARY_RULE, SUMMARY_RULE):
             candidate = base.replace(OLD_SUMMARY_RULE, rule)

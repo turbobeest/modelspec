@@ -144,6 +144,49 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+def test_schema_compaction_preserves_validation_and_fields_named_title() -> None:
+    from jsonschema import Draft202012Validator
+
+    source_schema = {
+        "type": "object", "title": "Generated source record",
+        "description": "A cited source with a bounded score.",
+        "additionalProperties": False, "required": ["title", "score"],
+        "properties": {
+            "title": {"type": "string", "title": "Publication title", "minLength": 1,
+                      "description": "The source publication title."},
+            "score": {"type": "integer", "title": "Score", "minimum": 1, "maximum": 4},
+            "mode": {"type": "string", "title": "Mode", "enum": ["summary", "full"],
+                     "default": "summary"},
+            "note": {"title": "Optional note", "default": None,
+                     "anyOf": [{"type": "string"}, {"type": "null"}]},
+        },
+    }
+    document = {"paths": {}, "components": {"schemas": {"SourceRecord": copy.deepcopy(source_schema)}}}
+    compacted = generator.compact_schemas(document)["components"]["schemas"]["SourceRecord"]
+    assert "title" not in compacted
+    assert compacted["description"] == "A cited source with a bounded score."
+    assert compacted["properties"] == {
+        "title": {"type": "string", "minLength": 1, "description": "The source publication title."},
+        "score": {"type": "integer", "minimum": 1, "maximum": 4},
+        "mode": {"type": "string", "enum": ["summary", "full"], "default": "summary"},
+        "note": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    }
+    for schema in (source_schema, compacted):
+        validator = Draft202012Validator(schema)
+        for value, accepted in [
+            ({"title": "Source", "score": 1}, True),
+            ({"title": "Source", "score": 4, "mode": "full", "note": None}, True),
+            ({}, False),
+            ({"title": "", "score": 2}, False),
+            ({"title": "Source", "score": 0}, False),
+            ({"title": "Source", "score": 5}, False),
+            ({"title": "Source", "score": True}, False),
+            ({"title": "Source", "score": 2, "mode": "unknown"}, False),
+            ({"title": "Source", "score": 2, "unexpected": 1}, False),
+        ]:
+            assert validator.is_valid(value) is accepted, value
+
+
 @pytest.mark.parametrize("rail_on", [False, True])
 @pytest.mark.parametrize("human_gate_on", [False, True])
 @pytest.mark.parametrize("endpoint", ["decide", "compare-models"])
@@ -310,11 +353,58 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         "/v1/decide": decide.MAX_BODY_BYTES,
         "/v1/compare": decide.MAX_BODY_BYTES,
         "/v1/compare-models": decide.MAX_BODY_BYTES,
+        "/v1/hardware-fit": decide.MAX_BODY_BYTES,
         "/v1/policy-check": policy.MAX_BODY_BYTES,
         "/v1/signals": generator.signals.MAX_BODY_BYTES,
         "/v1/signals/discovered": generator.signals.MAX_BODY_BYTES,
         "/v1/feedback": generator.feedback.MAX_BODY_BYTES,
     }
+
+
+def test_hardware_fit_documents_its_separate_keyed_contract(spec: dict[str, Any]) -> None:
+    operation = spec["paths"]["/v1/hardware-fit"]["post"]
+    assert operation["security"] == [{"bearer": []}, {"apiKey": []}]
+    assert "decide.full" in operation["description"]
+    assert set(operation["responses"]) >= {"200", "400", "401", "403", "409", "413", "429", "500", "502", "503"}
+    request = spec["components"]["schemas"]["HardwareFitRequest"]
+    assert request["additionalProperties"] is False
+    assert set(request["properties"]) == {
+        "model", "sku", "device_count", "memory", "runtime", "quantisation", "batch", "context",
+    }
+    response = spec["components"]["schemas"]["HardwareFitResponse"]
+    assert response["discriminator"]["propertyName"] == "status"
+    assert set(response["discriminator"]["mapping"]) == {"measured", "estimated", "undetermined"}
+    assert generator._validate({"model": "lab/example"}, request, spec) == []
+    assert generator._validate({"model": "lab/example", "device_count": True}, request, spec)
+
+
+@pytest.mark.parametrize("assessment", ["measured", "estimated", "undetermined"])
+def test_hardware_fit_schema_accepts_real_answers_and_forbids_estimates_claiming_fit(
+    spec: dict[str, Any], assessment: str
+) -> None:
+    from jsonschema import Draft202012Validator
+    from decision.hardware_fit import check
+    from tests.test_hardware_fit import REQUEST, fixture_snapshot, hardware_fit_record
+
+    records = [] if assessment == "undetermined" else [hardware_fit_record(assessment)]
+    status, body = check(REQUEST, fixture_snapshot(records))
+    assert status == 200
+    response = spec["components"]["schemas"]["HardwareFitResponse"]
+    validator = Draft202012Validator({**response, "components": spec["components"]})
+    assert validator.is_valid(body), list(validator.iter_errors(body))
+    if assessment == "estimated":
+        assert not validator.is_valid({**body, "fits": True})
+        assert not validator.is_valid({**body, "measured_fit": True})
+        assert not validator.is_valid({**body, "estimated_fit": True})
+
+
+def test_hardware_fit_openapi_stays_keyed_when_enforcement_is_disabled(monkeypatch) -> None:
+    monkeypatch.setattr(generator, "access_enforced", lambda: False)
+    spec = generator.build_spec()
+    assert {} in spec["security"]
+    assert spec["paths"]["/v1/hardware-fit"]["post"]["security"] == [
+        {"bearer": []}, {"apiKey": []},
+    ]
 
 
 def test_signal_operations_are_documented_as_authenticated_automation(

@@ -1,0 +1,247 @@
+{
+  "core-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red.txt",
+    "uncompressed_bytes": 48704,
+    "sha256": "c8e04973e3d577680106cb8b4e05924c2d15f4b61c1c375e8653f12d7441dbee"
+  },
+  "core-adversarial-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red-adversarial.txt",
+    "uncompressed_bytes": 3129,
+    "sha256": "5818b270dc4db024ef0597c26d53ae6f4a417054cefdf11b2e8347ecc9673cb8"
+  },
+  "snapshot-ordering-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red-ordering.txt",
+    "uncompressed_bytes": 741,
+    "sha256": "025237d0b40254df5b9ab9cc41ce214809e19eb4a14ce5ca76fadf86734e24ed"
+  },
+  "shared-inputs-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red-shared-inputs.txt",
+    "uncompressed_bytes": 2182,
+    "sha256": "d7bcde46016b5f3ff731723bf6f8095fb82339e8b6f11c6df58688fafe8e9805"
+  },
+  "core-worker-green.log.gz": {
+    "source": ".scratch/model-287/source_audit/green-shared-inputs-credits.txt",
+    "uncompressed_bytes": 179,
+    "sha256": "dcb9461ae60c74ce091b0fc1c69936c831ebf0ba0feb1f4ec758fa0c62939d7c"
+  },
+  "worker-red.log.gz": {
+    "source": ".scratch/model-287/worker_audit/red-worker.txt",
+    "uncompressed_bytes": 60482,
+    "sha256": "93e447e8da2c20995fef97a6a2e51520ac8b4c81fb8ccdd11533da9682a420cc"
+  },
+  "worker-focused-green.log.gz": {
+    "source": ".scratch/model-287/worker_audit/green-integration.txt",
+    "uncompressed_bytes": 511,
+    "sha256": "0ae11bac242f2b05a69ba0181d7e438fc1d92c69942d5ea9e2a685f2f8a6f3e1"
+  },
+  "credits-contract-red.log.gz": {
+    "source": ".scratch/model-287/worker_audit/red-credits.txt",
+    "uncompressed_bytes": 2564,
+    "sha256": "3e9debb38bb6b1c0478729d4b35eb8049283302f5ebc7fc4a2ec78c9ff5a5af4"
+  },
+  "credits-contract-green.log.gz": {
+    "source": ".scratch/model-287/worker_audit/green-credits.txt",
+    "uncompressed_bytes": 190,
+    "sha256": "d026129626632109cf680940234008dd67123cecdbea7b508d546ebd906266f8"
+  },
+  "mcp-red.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/red.log",
+    "uncompressed_bytes": 13812,
+    "sha256": "1f9563e7eaef73b3e4bcee11aa536c4d6c99bbad8509dfba5b2edeb569d524f9"
+  },
+  "mcp-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/mcp-full.log",
+    "uncompressed_bytes": 245,
+    "sha256": "da4b05eb350b073e593d805fa1f78e5045616cad91cce1ca5214a8b124263628"
+  },
+  "copy-compatibility-red.log.gz": {
+    "source": ".scratch/model-287/root/red-copy-compatibility.log",
+    "uncompressed_bytes": 941,
+    "sha256": "d1c2a531baa1fab40aaac46d4b84a2bdb78bfd0f13feba9adc5542ae51218312"
+  },
+  "copy-compatibility-green.log.gz": {
+    "source": ".scratch/model-287/root/green-copy-compatibility.log",
+    "uncompressed_bytes": 99,
+    "sha256": "16b4fcc02e735b1cf1be6f5a27a488de7071cad8449ad64f56a41605ca60ace2"
+  },
+  "initial-full-interrupted.log.gz": {
+    "source": ".scratch/model-287/root/full-pytest.log",
+    "uncompressed_bytes": 11802,
+    "sha256": "e196664d249803fd69166a028f8c8b5ec5f8c59e7416735be6b1ddedf71cb3e5"
+  },
+  "second-full-interrupted.log.gz": {
+    "source": ".scratch/model-287/root/final-pytest.log",
+    "uncompressed_bytes": 82495,
+    "sha256": "c3b17fb43ef291e1a08d9dfe795f282e9746e409816b76d718752b01290e0c63"
+  },
+  "measured-prerequisites-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red-measured-prerequisites.txt",
+    "uncompressed_bytes": 1668,
+    "sha256": "48dd1a594c4a878170f5a8206a185bdf7b3f8146522e62585017041d33951eee"
+  },
+  "measured-prerequisites-green.log.gz": {
+    "source": ".scratch/model-287/source_audit/green-measured-prerequisites.txt",
+    "uncompressed_bytes": 179,
+    "sha256": "d698caced89c945e312e3757d162e425643242a963cd8bcb565a81b722b41bc1"
+  },
+  "visit-compatibility-red.log.gz": {
+    "source": ".scratch/model-287/root/red-visit-compatibility.log",
+    "uncompressed_bytes": 12580,
+    "sha256": "774f9ed219f13dfa3c449f98ccbcd9882382f05d6719fac9d779d6d8c2fe3bb8"
+  },
+  "visit-compatibility-green.log.gz": {
+    "source": ".scratch/model-287/root/green-visit-compatibility.log",
+    "uncompressed_bytes": 99,
+    "sha256": "208d8b2df7529dcf5af2e212dfaf8d3211d0de6c5b688ce71bfc3eb4b4c73913"
+  },
+  "budget-and-gemini-red.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/budget-red.log",
+    "uncompressed_bytes": 3340,
+    "sha256": "d1ab0588dc887d80143d16f901242a10de39b4fc617a0b303e27d38f013c06d3"
+  },
+  "social-card-green.log.gz": {
+    "source": ".scratch/model-287/source_audit/green-social-card.txt",
+    "uncompressed_bytes": 110,
+    "sha256": "252ed523d00900e1baec807bd970a8c7f0f8ff87797475bdcc8b5ed7ec498eca"
+  },
+  "compaction-regression-green.log.gz": {
+    "source": ".scratch/model-287/worker_audit/green-compaction-regression.txt",
+    "uncompressed_bytes": 98,
+    "sha256": "0c33791aa03cbc8826ba04efd1b062adb3baa875c47625e4de7090bd753d7635"
+  },
+  "final-focused-green.log.gz": {
+    "source": ".scratch/model-287/root/final-focused.log",
+    "uncompressed_bytes": 272,
+    "sha256": "7d24f714ad188c54c96efb1a2190e841c301b91fd55921ff6aac548ceb67f8c5"
+  },
+  "compaction-original-rules-red.log.gz": {
+    "source": ".scratch/model-287/worker_audit/red-compaction-original-rules.txt",
+    "uncompressed_bytes": 2052,
+    "sha256": "babb84a2848258912d76dc68d0792f52541576e361508821d546fdc475484df8"
+  },
+  "compaction-original-rules-green.log.gz": {
+    "source": ".scratch/model-287/worker_audit/green-compaction-original-rules.txt",
+    "uncompressed_bytes": 98,
+    "sha256": "fc7dc070796ac441e564a33df9d949775fcaee7f1d4263ac4ea531a64699874b"
+  },
+  "budget-and-capture-intermediate.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/budget-green.log",
+    "uncompressed_bytes": 3106,
+    "sha256": "af3cc1700731750e9791815b3efbf1f88596f5f96aa35827f467316689b28349"
+  },
+  "budget-and-capture-final-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/budget-final-green.log",
+    "uncompressed_bytes": 261,
+    "sha256": "60a084cb7de1694786ba9cf13a6db156b167207c9a73799c71fb8364b5044fde"
+  },
+  "mcp-final-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/mcp-budget-final-green.log",
+    "uncompressed_bytes": 489,
+    "sha256": "409d9959a49570cc8531faa523b6d4391cdad2c712c8f6fc7d356457caa6ea13"
+  },
+  "first-turn-final.json.gz": {
+    "source": ".scratch/model-287/mcp_audit/first-turn-final.json",
+    "uncompressed_bytes": 1116,
+    "sha256": "c1b56f8e06205c6ed1aec3a98f90c104c7012164b13f826788a336cfa63c5a73"
+  },
+  "copy-golden-final-green.log.gz": {
+    "source": ".scratch/model-287/root/final-copy-golden.log",
+    "uncompressed_bytes": 98,
+    "sha256": "033cfb085ee02f8d8e516c6dddf96f5f3719bd8b0c411f963e67c7de458e5e62"
+  },
+  "openapi-final-check.log.gz": {
+    "source": ".scratch/model-287/root/final-openapi-check.log",
+    "uncompressed_bytes": 51,
+    "sha256": "52486f5f7c73f3456a6134f1a58e962810a1e32742a8d37a9f027eca292e8886"
+  },
+  "openapi-final-semantics.log.gz": {
+    "source": ".scratch/model-287/root/final-compaction-proof.log",
+    "uncompressed_bytes": 170,
+    "sha256": "7b8ea1a47c57c84b63c4648750b79deb2e7df6b2f7007b5cd8195bc9b9ee0e5c"
+  },
+  "data-freeze-final.log.gz": {
+    "source": ".scratch/model-287/root/final-data-freeze.log",
+    "uncompressed_bytes": 16,
+    "sha256": "fc58e1897c93cc5c05bb6b40eb0b25922e2117f06cf235fb992bf6293a5484a5"
+  },
+  "mcp-final-typecheck.log.gz": {
+    "source": ".scratch/model-287/root/final-mcp-typecheck.log",
+    "uncompressed_bytes": 29,
+    "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f"
+  },
+  "stable-full-failed.log.gz": {
+    "source": ".scratch/model-287/root/stable-full-failed.log",
+    "uncompressed_bytes": 351486,
+    "sha256": "6af8c61e9fbcc805a68295935622c6e8bb79fa3bc9b6ef1ece8211b80872d19e"
+  },
+  "ablation-new-tools-red.log.gz": {
+    "source": ".scratch/model-287/source_audit/red-new-ablation-tools.txt",
+    "uncompressed_bytes": 15071,
+    "sha256": "d55341d44a8829b2778f7c3408a7ad775bbf25ede9b3001fc849f01931936a94"
+  },
+  "ablation-candidate-green.log.gz": {
+    "source": ".scratch/model-287/source_audit/green-ablation-candidate.txt",
+    "uncompressed_bytes": 431,
+    "sha256": "5580a0fbed9db706ac75f5e2c2b37a31e9c5cd14338984dc21c115cfde367a62"
+  },
+  "overhead-added-removed-red.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/overhead-added-removed-red.log",
+    "uncompressed_bytes": 4444,
+    "sha256": "b2e35bd3a18e888c06e3396d64bb517f6da0ed5c40e8e600a5e0bc95177f7ede"
+  },
+  "overhead-native-green.log.gz": {
+    "source": ".scratch/model-287/root/final-overhead-native.log",
+    "uncompressed_bytes": 98,
+    "sha256": "f4c77b58e2280613a49ba18da1c4a02d440e862c49a6c8fe5daaf277333ff99d"
+  },
+  "reporting-gap-red.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/reporting-gap-red.log",
+    "uncompressed_bytes": 1454,
+    "sha256": "7025315325d788fea70bb6d31b14b191dfb7dcfed712e982efbe418a0af84f1f"
+  },
+  "web-build.log.gz": {
+    "source": ".scratch/model-287/worker_audit/web-build.txt",
+    "uncompressed_bytes": 1871,
+    "sha256": "9c75a186f4c2dc39b6c17de87d5dcf97a3147e0b3d070b139ee6fadb9b33f9c8"
+  },
+  "landing-browser-green.log.gz": {
+    "source": ".scratch/model-287/worker_audit/landing-browser-green.txt",
+    "uncompressed_bytes": 100,
+    "sha256": "4cd74aadd2b296cef54b01db07fe4f14e5e64e8e65a7f8b0759ec271f56bdfe9"
+  },
+  "ablation-native-green.log.gz": {
+    "source": ".scratch/model-287/source_audit/green-ablation-native.txt",
+    "uncompressed_bytes": 421,
+    "sha256": "616a2ae89bd97906e699f7b45072a857ed3e3a8a53f6d49b1cf0d70a2144a232"
+  },
+  "reporting-gap-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/reporting-gap-green.log",
+    "uncompressed_bytes": 98,
+    "sha256": "fedceb118a93f8e9bed4f5b262246c28f6bfdace0d13713f5045fa2fb6554486"
+  },
+  "reporting-final-focused-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/reporting-final-focused.log",
+    "uncompressed_bytes": 261,
+    "sha256": "45924d768a054525ce3b1d62c93d5b1a9152e14721da27ae18f5970b71af20d2"
+  },
+  "reporting-mcp-final-green.log.gz": {
+    "source": ".scratch/model-287/mcp_audit/reporting-mcp-final.log",
+    "uncompressed_bytes": 245,
+    "sha256": "c737f67b9151d53da8425e20ef91b25ad8855f0f888ceb39bf84716f89fd2d39"
+  },
+  "reporting-first-turn-final.json.gz": {
+    "source": ".scratch/model-287/mcp_audit/reporting-first-turn-final.json",
+    "uncompressed_bytes": 1116,
+    "sha256": "4deff3a07d85389ae07804ff4cc5049f2175377bee5627bd744a539bd3177b76"
+  },
+  "copy-golden-delivery-green.log.gz": {
+    "source": ".scratch/model-287/root/final-copy-golden-restored.log",
+    "uncompressed_bytes": 98,
+    "sha256": "c420fbcd629a020d82db5355a0430090ad57720c65b08d7983461589c3bab90d"
+  },
+  "final-full-green.log.gz": {
+    "source": ".scratch/model-287/root/final-pytest-complete.log",
+    "uncompressed_bytes": 13843,
+    "sha256": "026f6b64fe0a06eb1274b38751addb521164fea073d2aa4c92e330b192f90ce5"
+  }
+}

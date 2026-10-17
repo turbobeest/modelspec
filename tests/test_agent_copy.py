@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SERVER = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
 COMMITTED = json.loads(agent_copy.OUT.read_text(encoding="utf-8"))
 TIERS = json.loads(agent_copy.TIERS.read_text(encoding="utf-8"))
-PAID = {"decide": "decide", "compare_models": "decide.full", "rank": "rank",
+PAID = {"decide": "decide", "compare_models": "decide.full", "hardware_fit": "decide.full", "rank": "rank",
         "policy_check": "policy-check"}
 DATA_TOOLS = (*PAID, "vocab", "model_info", "list_use_cases")
 
@@ -153,6 +153,7 @@ def test_prices_in_the_descriptions_are_the_ones_in_tiers_json() -> None:
     expected_credits = {
         "decide": sorted({weights["decide.none"], weights["decide.summary"], weights["decide.full"]}),
         "compare_models": [weights["decide.full"]],
+        "hardware_fit": [weights["decide.full"]],
         "rank": [weights["rank"]],
         "policy_check": [weights["policy-check"]],
     }

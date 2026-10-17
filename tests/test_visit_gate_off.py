@@ -6,6 +6,7 @@ the gate added. MODEL-291 adds guide discovery headers to every /v1 response;
 those additions are checked separately before comparing the original response.
 """
 import asyncio
+import copy
 import json
 import sys
 from pathlib import Path
@@ -73,4 +74,8 @@ def test_flag_off_response_equals_main(worker, name):
         discovery["access-control-expose-headers"] = exposed.removesuffix(", " + added)
     if name == "vocabulary GET query":
         assert actual["body"].pop("next") == "next: call decide using these ids; refine from reading"
-    assert actual == MAIN[name]
+    expected = copy.deepcopy(MAIN[name])
+    if expected["status"] == 404:
+        accepted = expected["body"]["error"]["accepted"]
+        accepted.insert(accepted.index("POST /v1/feedback"), "POST /v1/hardware-fit")
+    assert actual == expected

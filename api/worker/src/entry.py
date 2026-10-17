@@ -96,6 +96,7 @@ from js import fetch
 from workers import Response, WorkerEntrypoint
 
 from decision.registry import default as _decision_registry
+from decision import hardware_fit
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -152,7 +153,7 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/decide", "POST /v1/compare", "POST /v1/compare-models",
-    "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
+    "POST /v1/policy-check", "POST /v1/hardware-fit", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
     "GET /v1/credits", "GET /v1/human-status",
@@ -172,7 +173,7 @@ def _accepted_endpoints(env) -> list[str]:
 #: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
 #: anything is read or fetched.
-POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/compare-models", "/v1/policy-check")
+POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/compare-models", "/v1/policy-check", "/v1/hardware-fit")
 
 # The browser clients: the production site (what SITE_MODE=live serves on the
 # apex and www) and the private Pages preview branch deployed by
@@ -699,6 +700,16 @@ async def _verify_turnstile(secret: str, token: str) -> dict:
     return json.loads(await response.text()) if int(response.status) == 200 else {"success": False}
 
 
+def _hardware_fit_error(code: str, message: str, *, status: int = 400,
+                        snapshot_id: str | None = None):
+    return status, {
+        "hardware_fit_version": hardware_fit.VERSION,
+        "endpoint": hardware_fit.ENDPOINT,
+        "snapshot": snapshot_id,
+        "error": {"code": code, "message": message},
+    }
+
+
 def _json_response(status: int, body: dict, extra_headers: dict | None = None) -> Response:
     return Response(
         json.dumps(body, indent=2, default=str),
@@ -1024,12 +1035,19 @@ class Default(WorkerEntrypoint):
         max_body = (
             policy_service.MAX_BODY_BYTES
             if path == "/v1/policy-check"
+            else decide_service.MAX_BODY_BYTES
+            if path == "/v1/hardware-fit"
             else decider.MAX_BODY_BYTES
             if decider is not None
             else service.MAX_BODY_BYTES
         )
         raw = await request.text()
         if len(raw.encode("utf-8")) > max_body:
+            if path == "/v1/hardware-fit":
+                return _json_response(*_hardware_fit_error(
+                    "payload_too_large", f"the body must be at most {max_body} bytes",
+                    status=service.HTTP_PAYLOAD_TOO_LARGE,
+                ))
             response = {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
@@ -1053,7 +1071,10 @@ class Default(WorkerEntrypoint):
         try:
             payload = json.loads(raw) if raw.strip() else None
         except ValueError as exc:
-            if path == "/v1/policy-check":
+            if path == "/v1/hardware-fit":
+                status, body = _hardware_fit_error(
+                    "invalid_request", f"the body is not valid JSON: {exc}")
+            elif path == "/v1/policy-check":
                 status, body = policy_service.error_response(
                     policy_service.RequestError(
                         "invalid_request", f"the body is not valid JSON: {exc}"),
@@ -1078,7 +1099,7 @@ class Default(WorkerEntrypoint):
         # on the access gate decides. It runs before either export is fetched,
         # so the sandbox never reaches data and a refused key costs nothing.
         api_key = access_keys.extract(lambda name: request.headers.get(name))
-        require_key = path == "/v1/compare-models" or (
+        require_key = path in ("/v1/compare-models", "/v1/hardware-fit") or (
             path == "/v1/decide" and isinstance(payload, dict)
             and payload.get("router_config") is not None
         )
@@ -1103,6 +1124,37 @@ class Default(WorkerEntrypoint):
                     "the sandbox answers POST /v1/rank only; it holds no synthetic "
                     "policy data. Call /v1/policy-check with a live key.",
                     envelope=envelope)
+        elif path == "/v1/hardware-fit":
+            envelope = {
+                "hardware_fit_version": hardware_fit.VERSION,
+                "endpoint": hardware_fit.ENDPOINT,
+                "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
+                "service_commit": service_commit,
+                "export_origin": origin,
+            }
+            sent = request.headers.get(decide_service.SNAPSHOT_HEADER)
+            expected = None if _absent(sent) else str(sent).strip()
+
+            async def _anonymous():
+                return await self._hardware_fit(payload, origin, expected)
+
+            async def _live(record, tier):
+                return await self._hardware_fit(payload, origin, expected)
+
+            async def _live_unfunded(record, tier):
+                if human_gate.enabled(self.env):
+                    return _hardware_fit_error(
+                        "payment_required", "Machine hardware checks require remaining paid credits. "
+                        "Use a funded API key or the paid MCP service.", status=402,
+                        snapshot_id=envelope["snapshot"])
+                return await self._hardware_fit(payload, origin, expected)
+
+            def sandbox():
+                return access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "the sandbox has no synthetic hardware workloads; use a live key",
+                    envelope=envelope,
+                )
         elif decider is not None:
             endpoint = path.rsplit("/", 1)[-1]
             envelope = {
@@ -1237,6 +1289,12 @@ class Default(WorkerEntrypoint):
                 {**headers, **_decision_holder(origin).headers(), **_cors_headers(request, self.env)},
                 decision_transport,
             )
+        if path == "/v1/hardware-fit":
+            if (outcome.status == 503
+                    and outcome.body.get("error", {}).get("code") == "no_snapshot"):
+                headers["retry-after"] = str(decide_service.RETRY_AFTER_SECONDS)
+            headers.update(_decision_holder(origin).headers())
+            headers.update(_cors_headers(request, self.env))
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
@@ -1351,7 +1409,7 @@ class Default(WorkerEntrypoint):
                     if isinstance(payload, dict) else "summary"
                 )
                 resource = f"decide.{explain}"
-            elif clean_path.endswith("compare") or clean_path.endswith("compare-models"):
+            elif clean_path.endswith(("compare", "compare-models", "hardware-fit")):
                 resource = "decide.full"
             else:
                 resource = "rank"
@@ -1729,6 +1787,28 @@ class Default(WorkerEntrypoint):
                                 if _cache["candidates"] is candidates else None)
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
+
+    async def _hardware_fit(self, payload, origin: str, expected: str | None = None):
+        """Check concrete hardware against the same verified snapshot as decide."""
+        key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        if key is None:
+            return _hardware_fit_error(
+                "no_snapshot", "the snapshot verification key is not configured", status=503)
+        holder = _decision_holder(origin)
+        try:
+            snapshot = await holder.current(key)
+            if expected and expected != snapshot.snapshot_id:
+                snapshot = await holder.current(key, force=True)
+        except decide_service.SnapshotMissingError:
+            return _hardware_fit_error(
+                "no_snapshot", "the published decision snapshot does not exist", status=503)
+        except decide_service.SnapshotRefusalError as exc:
+            return _hardware_fit_error("snapshot_refused", str(exc), status=503)
+        except Exception as exc:  # noqa: BLE001 - report the failed snapshot fetch
+            return _hardware_fit_error(
+                "snapshot_unavailable", f"could not read the published decision snapshot: {exc}",
+                status=502)
+        return hardware_fit.check(payload, snapshot, expected_snapshot=expected)
 
     async def _decide(self, payload, origin: str, expected: str | None = None,
                       transport: _DecisionTransport | None = None, *, compare_models: bool = False):

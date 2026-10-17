@@ -6,6 +6,11 @@ specified under "Architecture and hardware estimates (MODEL-348)" in
 contract 2.17. This note adds no facet, changes no contract field, and
 gives architecture and hardware no ranking weight.
 
+MODEL-287 adds a separate keyed [hardware-fit assessment](../hardware-fit-api.md).
+It consumes optional verified records for an exact topology and workload.
+Snapshots without those records return `undetermined`. Its own version 1.0
+contract does not change the legacy estimates or the decisions below.
+
 ## Quantisation and precision
 
 `fitting_quants` in `pipeline/hardware.py` keeps every quantisation whose
