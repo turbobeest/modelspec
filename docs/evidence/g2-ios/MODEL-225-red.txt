@@ -1,0 +1,622 @@
+FFFFFFFFFFFFFFFFFFF                                                      [100%]
+=================================== FAILURES ===================================
+__________________ test_actual_pr_accuracy_report_is_accepted __________________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_actual_pr_accuracy_report0')
+
+    def test_actual_pr_accuracy_report_is_accepted(tmp_path):
+        path = tmp_path / "accuracy.json"
+        _report(path, type("Snapshot", (), {"snapshot_id": "snap_fixture"})())
+>       assert accuracy(path, "snap_fixture")["layers"][2]["name"] == "frozen_image_engine_recall"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_actual_pr_accuracy_report0/accuracy.json')
+snapshot_id = 'snap_fixture'
+
+    def accuracy(path: Path, snapshot_id: str) -> dict[str, Any]:
+        """The accuracy report at ``path``, when it passed the pr profile for ``snapshot_id``."""
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"could not read accuracy report {path}: {exc}") from exc
+        if not isinstance(report, dict):
+            raise ValueError(f"accuracy report {path} is not a JSON object")
+        if report.get("status") != "pass":
+            raise ValueError("accuracy report did not pass")
+        if report.get("snapshot") != snapshot_id:
+            raise ValueError(f"accuracy report covers {report.get('snapshot')!r}, not {snapshot_id!r}")
+        if report.get("profile") != "pr":
+            raise ValueError("accuracy report must use the pr profile")
+        layers = report.get("layers")
+        if not isinstance(layers, list) or any(not isinstance(row, Mapping) for row in layers):
+            raise ValueError("accuracy report must contain the exact pr layers")
+        names = [str(row.get("name", "")) for row in layers]
+        if len(names) != len(PR_ACCURACY_LAYERS) or set(names) != PR_ACCURACY_LAYERS:
+>           raise ValueError("accuracy report must contain the exact pr layers")
+E           ValueError: accuracy report must contain the exact pr layers
+
+release_blog/gates.py:59: ValueError
+_________ test_replayed_release_produces_gated_draft_pr_within_one_day _________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_replayed_relea....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_replayed_release_produces_gated_draft_pr_within_one_day(replay):
+>       proposal = _prepare(replay)
+                   ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+____________ test_replayed_seven_day_check_appends_dated_update_pr _____________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_replayed_seven....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_replayed_seven_day_check_appends_dated_update_pr(replay):
+>       first = _prepare(replay)
+                ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_______________ test_recheck_schedule_uses_first_publication[1] ________________
+
+day = 1
+
+    @pytest.mark.parametrize("day", [1, 7, 30])
+    def test_recheck_schedule_uses_first_publication(day):
+>       pipeline = _pipeline()
+                   ^^^^^^^^^^^
+
+tests/test_release_pipeline.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_______________ test_recheck_schedule_uses_first_publication[7] ________________
+
+day = 7
+
+    @pytest.mark.parametrize("day", [1, 7, 30])
+    def test_recheck_schedule_uses_first_publication(day):
+>       pipeline = _pipeline()
+                   ^^^^^^^^^^^
+
+tests/test_release_pipeline.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_______________ test_recheck_schedule_uses_first_publication[30] _______________
+
+day = 30
+
+    @pytest.mark.parametrize("day", [1, 7, 30])
+    def test_recheck_schedule_uses_first_publication(day):
+>       pipeline = _pipeline()
+                   ^^^^^^^^^^^
+
+tests/test_release_pipeline.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_________ test_replaying_same_signal_does_not_create_another_revision __________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_replaying_same....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_replaying_same_signal_does_not_create_another_revision(replay):
+>       first = _prepare(replay)
+                ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+______________________ test_no_recheck_before_publication ______________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_no_recheck_bef....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_no_recheck_before_publication(replay):
+>       assert _prepare(replay) is not None
+               ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_________________ test_snapshot_identity_alone_is_not_material _________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_snapshot_ident....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_snapshot_identity_alone_is_not_material(replay):
+>       first = _prepare(replay)
+                ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_________________ test_failed_quality_gate_opens_no_pr[corpus] _________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_failed_quality....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+failure = 'corpus'
+
+    @pytest.mark.parametrize("failure", ["corpus", "page"])
+    def test_failed_quality_gate_opens_no_pr(replay, failure):
+>       proposal = _prepare(replay)
+                   ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+__________________ test_failed_quality_gate_opens_no_pr[page] __________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_failed_quality....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+failure = 'page'
+
+    @pytest.mark.parametrize("failure", ["corpus", "page"])
+    def test_failed_quality_gate_opens_no_pr(replay, failure):
+>       proposal = _prepare(replay)
+                   ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_______________________ test_bad_accuracy_writes_no_post _______________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_bad_accuracy_w....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_bad_accuracy_writes_no_post(replay):
+        root, _, data, _ = replay
+        report = json.loads((root / data["accuracy"]).read_text())
+        report["layers"][0]["status"] = "fail"
+        (root / data["accuracy"]).write_text(json.dumps(report))
+        with pytest.raises(ValueError, match="did not pass"):
+>           _prepare(replay)
+
+tests/test_release_pipeline.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+____________________ test_unsigned_snapshot_writes_no_post _____________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_unsigned_snaps....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_unsigned_snapshot_writes_no_post(replay):
+        import gzip
+    
+        root, _, data, _ = replay
+        path = root / data["after"]
+        envelope = json.loads(gzip.decompress(path.read_bytes()))
+        envelope.pop("signature", None)
+        path.write_bytes(gzip.compress(json.dumps(envelope).encode()))
+        with pytest.raises(ValueError, match="signature"):
+>           _prepare(replay)
+
+tests/test_release_pipeline.py:246: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+__ test_release_inputs_cannot_reach_private_or_unrelated_paths[../private.gz] __
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_release_inputs....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+path = '../private.gz'
+
+    @pytest.mark.parametrize("path", ["../private.gz", "/tmp/private.gz", "models/private.md"])
+    def test_release_inputs_cannot_reach_private_or_unrelated_paths(replay, path):
+        _, signal, data, _ = replay
+        data["after"] = path
+        signal.write_text(yaml.safe_dump(data))
+        with pytest.raises(ValueError, match="public blog"):
+>           _prepare(replay)
+
+tests/test_release_pipeline.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_ test_release_inputs_cannot_reach_private_or_unrelated_paths[/tmp/private.gz] _
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_release_inputs....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+path = '/tmp/private.gz'
+
+    @pytest.mark.parametrize("path", ["../private.gz", "/tmp/private.gz", "models/private.md"])
+    def test_release_inputs_cannot_reach_private_or_unrelated_paths(replay, path):
+        _, signal, data, _ = replay
+        data["after"] = path
+        signal.write_text(yaml.safe_dump(data))
+        with pytest.raises(ValueError, match="public blog"):
+>           _prepare(replay)
+
+tests/test_release_pipeline.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_ test_release_inputs_cannot_reach_private_or_unrelated_paths[models/private.md] _
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_release_inputs....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+path = 'models/private.md'
+
+    @pytest.mark.parametrize("path", ["../private.gz", "/tmp/private.gz", "models/private.md"])
+    def test_release_inputs_cannot_reach_private_or_unrelated_paths(replay, path):
+        _, signal, data, _ = replay
+        data["after"] = path
+        signal.write_text(yaml.safe_dump(data))
+        with pytest.raises(ValueError, match="public blog"):
+>           _prepare(replay)
+
+tests/test_release_pipeline.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_______________ test_optional_platform_import_failure_is_stated ________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_optional_platf....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c43d6d0>
+
+    def test_optional_platform_import_failure_is_stated(replay, monkeypatch):
+>       pipeline = _pipeline()
+                   ^^^^^^^^^^^
+
+tests/test_release_pipeline.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+__________________ test_update_renderer_adds_a_dated_section ___________________
+
+replay = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-708/test_update_rendere....gz', 'after': 'blog/snapshots/snap_243f3aea726e4c97.json.gz', 'week': 'blog/snapshots/snap_23423b5447de42d6.json.gz'})
+
+    def test_update_renderer_adds_a_dated_section(replay):
+>       proposal = _prepare(replay)
+                   ^^^^^^^^^^^^^^^^
+
+tests/test_release_pipeline.py:273: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_release_pipeline.py:91: in _prepare
+    return _pipeline().prepare_release(
+           ^^^^^^^^^^^
+tests/test_release_pipeline.py:86: in _pipeline
+    return importlib.import_module("release_blog.pipeline")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1406: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'release_blog.pipeline', import_ = <function _gcd_import at 0x104153e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'release_blog.pipeline'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_________ test_workflow_gates_before_draft_and_uses_only_public_inputs _________
+
+    def test_workflow_gates_before_draft_and_uses_only_public_inputs():
+        path = ROOT / ".github/workflows/release-breakdown.yml"
+>       assert path.is_file(), "release pipeline workflow is missing"
+E       AssertionError: release pipeline workflow is missing
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/Users/terbeest/dev/worktrees/model-225-release-pipeline/.github/workflows/release-breakdown.yml').is_file
+
+tests/test_release_pipeline.py:284: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_release_pipeline.py::test_actual_pr_accuracy_report_is_accepted
+FAILED tests/test_release_pipeline.py::test_replayed_release_produces_gated_draft_pr_within_one_day
+FAILED tests/test_release_pipeline.py::test_replayed_seven_day_check_appends_dated_update_pr
+FAILED tests/test_release_pipeline.py::test_recheck_schedule_uses_first_publication[1]
+FAILED tests/test_release_pipeline.py::test_recheck_schedule_uses_first_publication[7]
+FAILED tests/test_release_pipeline.py::test_recheck_schedule_uses_first_publication[30]
+FAILED tests/test_release_pipeline.py::test_replaying_same_signal_does_not_create_another_revision
+FAILED tests/test_release_pipeline.py::test_no_recheck_before_publication - M...
+FAILED tests/test_release_pipeline.py::test_snapshot_identity_alone_is_not_material
+FAILED tests/test_release_pipeline.py::test_failed_quality_gate_opens_no_pr[corpus]
+FAILED tests/test_release_pipeline.py::test_failed_quality_gate_opens_no_pr[page]
+FAILED tests/test_release_pipeline.py::test_bad_accuracy_writes_no_post - Mod...
+FAILED tests/test_release_pipeline.py::test_unsigned_snapshot_writes_no_post
+FAILED tests/test_release_pipeline.py::test_release_inputs_cannot_reach_private_or_unrelated_paths[../private.gz]
+FAILED tests/test_release_pipeline.py::test_release_inputs_cannot_reach_private_or_unrelated_paths[/tmp/private.gz]
+FAILED tests/test_release_pipeline.py::test_release_inputs_cannot_reach_private_or_unrelated_paths[models/private.md]
+FAILED tests/test_release_pipeline.py::test_optional_platform_import_failure_is_stated
+FAILED tests/test_release_pipeline.py::test_update_renderer_adds_a_dated_section
+FAILED tests/test_release_pipeline.py::test_workflow_gates_before_draft_and_uses_only_public_inputs
+19 failed in 21.03s

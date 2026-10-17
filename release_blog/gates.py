@@ -21,7 +21,7 @@ from decision.snapshot import (
 )
 
 PR_ACCURACY_LAYERS = frozenset(
-    {"deterministic_correctness", "freshness", "golden_answers", "output_parity"}
+    {"deterministic_correctness", "freshness", "frozen_image_engine_recall", "output_parity"}
 )
 #: Signal-only hosts: a post there starts research and is never a source.
 SIGNAL_ONLY_HOSTS = ("x.com", "twitter.com")
