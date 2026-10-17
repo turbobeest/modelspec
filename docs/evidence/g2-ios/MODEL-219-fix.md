@@ -1,10 +1,11 @@
 # MODEL-219 executor evidence
 
-Status: BLOCKED on the executor's file-scope limit. Draft PR #811 remains draft.
-The static generator is implemented. Production composition still omits it.
+Status: live composition implemented after the orchestrator granted the scope
+exception. Draft PR #811 remains draft. Static and live builds and focused
+checks pass. The complete pytest suite is queued under the shared lock.
 
 Base SHA: `688f1072142a6824930dd1f17473d4d0050625cc`.
-Final implementation SHA: `b2bb58d592c6ae7ac5fb4cc952d51abc5906578c`.
+Final implementation SHA: `e2009bc04636f160cfc972ae4f639f1d9d702d5f`.
 The following evidence-only commit is the final PR HEAD. Its exact SHA is
 recorded in the executor completion line and PR verification comment after
 commit, avoiding a self-referential commit hash inside this file.
@@ -159,72 +160,76 @@ These returned exit 0. No contract, ranking engine, legal, frozen-data, or
 registry changes. No CLI agent bundle or OpenAPI hash regeneration is required.
 The four predicted shard durations were each about 3573 seconds.
 
-## Scope blocker and proposed completion
+## Live composition after the scope exception
 
-The executor brief says: "Stay inside the paths the spec names. If you need
-a file outside them, stop and report it." The spec names `pipeline/build.py`,
-`pipeline/surface_lint.py`, and `pipeline/structured_data.py`, but does not
-name `pipeline/live.py`. A scope exception was requested and has not arrived.
-The proposed patch below has not been applied.
+The orchestrator explicitly authorized `pipeline/live.py` and its tests.
+The implementation copies the use-case directory into the live tree and
+copies only source sitemap locations under `https://modelspec.dev/use-cases/`,
+with their exact source dates. It does not infer sitemap membership from
+copied files. An otherwise indexable page omitted from the source sitemap
+also stays out of the live sitemap.
 
-The required extra change is demonstrated by this actual command:
-
-```bash
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out .scratch/model-219/root/live
-```
-
-It returned exit 2:
+The live build before this change returned exit 2:
 
 ```text
 error: 1 discovery links do not resolve in the live tree:
   method/index.html: /use-cases/
 ```
 
-The complete pytest command was launched under the shared lock:
+The three regression tests in `tests/test_live_use_cases.py` were added
+before the implementation and returned exit 1, `3 failed in 1.06s`:
+
+- `test_live_method_link_reaches_use_case_index`: `live.resolves` returned false.
+- `test_live_sitemap_preserves_only_source_use_case_entries`: the expected source-listed URLs were absent.
+- `test_live_use_case_lastmod_preserves_public_image_date`: both expected dates were null instead of `2026-01-17`.
 
 ```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_live_use_cases.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_live_use_cases.py tests/test_blog_deployment.py tests/test_surface_lint.py tests/test_sitemap.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_holding.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_preview_workflow.py -k live_assembly
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_preview_workflow.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+(cd web && npm ci && npm run build && npm test)
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out .scratch/model-219-resume/root/live
 /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
-It was still queued, with an empty output log, when the production-composition
-blocker was confirmed. It was interrupted with exit 130 before pytest started.
-There is no complete-suite result. After the scope exception, apply and test
-the live-composition change, then run the complete suite under the same lock.
+The focused live/blog/lint/sitemap suites returned exit 0,
+`115 passed in 3.84s`. The web build and tests returned exit 0,
+`843 passed`, with `52 passed | 1 skipped` files. The real-image integration
+suite verifies exact source/live sitemap mapping equality, image dates,
+all copied template pages, noindex exclusion, the method link, and no dead
+links. The existing sitemap-count assertion now includes the exact source
+use-case entries while retaining the checks for every static page.
 
-The proposed patch has zero context. After approval, it can be applied with
-`git apply --unidiff-zero`. The minimal integration preserves the generator's noindex exclusions
-by copying only the source sitemap's existing use-case entries:
+The real-image suite returned exit 0, `43 passed in 230.33s`. The static
+build returned exit 0. The live command returned exit 0:
+`modelspec: 2706 files; discovery links resolve`. A separate artifact comparison
+confirmed `41 use-case pages retained; 19 source-listed sitemap entries; 22
+noindex pages excluded; lastmod 2026-09-23; no dead links`. Source and live HTML
+for every use-case page were byte-identical.
 
-```diff
---- a/pipeline/live.py
-+++ b/pipeline/live.py
-@@ -54 +54 @@
--    "brand",
-+    "brand", "use-cases",
-@@ -182 +182,2 @@
--            blog_dates: dict[str, str] | None = None) -> str:
-+            blog_dates: dict[str, str] | None = None,
-+            use_case_dates: dict[str, str] | None = None) -> str:
-@@ -191 +192 @@
--                  for path, stamp in (blog_dates or {}).items())
-+                  for path, stamp in {**(blog_dates or {}), **(use_case_dates or {})}.items())
-@@ -273,0 +275,7 @@
-+    namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-+    use_case_dates = {
-+        row.findtext("s:loc", "", namespace).removeprefix(BASE):
-+        row.findtext("s:lastmod", "", namespace)
-+        for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
-+        if row.findtext("s:loc", "", namespace).startswith(BASE + "/use-cases/")
-+    }
-@@ -300 +308 @@
--    (tree / "sitemap.xml").write_text(sitemap(blog_dates=blog_dates), encoding="utf-8")
-+    (tree / "sitemap.xml").write_text(sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates), encoding="utf-8")
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree .scratch/model-219-resume/root/live/modelspec
 ```
+
+The complete live-tree lint returned exit 0, `0 findings; 109 files checked`.
+
+The existing workflow integration test used a hand-built source fixture with
+neither the new directory nor a source sitemap. Its original run failed before
+fixture updates with `FileNotFoundError: .../dist-v1/modelspec/use-cases`, exit 1,
+`1 failed, 7 deselected in 12.57s`. The fixture now includes answered and noindex
+examples plus source sitemap dates. All original holding/internal/live byte
+checks remain, with new copied-page and exact sitemap assertions. Its full
+module returned exit 0, `8 passed in 1.44s`.
+
+The complete suite is queued under the shared lock and will be allowed to
+finish. No complete-suite result is claimed yet.
 
 ## What was not observed
 
 No deployed-site result, search indexing, answer-engine citation, or current
-private-data result was measured. No full pytest result is claimed. The
-proposed live patch has not been applied or tested. No vendor API calls,
+private-data result was measured. No vendor API calls,
 credentials, paid-provider calls, production switches, Linear writes, or
 merges were used. Local processes are closed before executor completion.
