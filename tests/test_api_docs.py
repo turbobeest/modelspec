@@ -144,6 +144,49 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+def test_schema_compaction_preserves_validation_and_fields_named_title() -> None:
+    from jsonschema import Draft202012Validator
+
+    source_schema = {
+        "type": "object", "title": "Generated source record",
+        "description": "A cited source with a bounded score.",
+        "additionalProperties": False, "required": ["title", "score"],
+        "properties": {
+            "title": {"type": "string", "title": "Publication title", "minLength": 1,
+                      "description": "The source publication title."},
+            "score": {"type": "integer", "title": "Score", "minimum": 1, "maximum": 4},
+            "mode": {"type": "string", "title": "Mode", "enum": ["summary", "full"],
+                     "default": "summary"},
+            "note": {"title": "Optional note", "default": None,
+                     "anyOf": [{"type": "string"}, {"type": "null"}]},
+        },
+    }
+    document = {"paths": {}, "components": {"schemas": {"SourceRecord": copy.deepcopy(source_schema)}}}
+    compacted = generator.compact_schemas(document)["components"]["schemas"]["SourceRecord"]
+    assert "title" not in compacted
+    assert compacted["description"] == "A cited source with a bounded score."
+    assert compacted["properties"] == {
+        "title": {"type": "string", "minLength": 1, "description": "The source publication title."},
+        "score": {"type": "integer", "minimum": 1, "maximum": 4},
+        "mode": {"type": "string", "enum": ["summary", "full"], "default": "summary"},
+        "note": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    }
+    for schema in (source_schema, compacted):
+        validator = Draft202012Validator(schema)
+        for value, accepted in [
+            ({"title": "Source", "score": 1}, True),
+            ({"title": "Source", "score": 4, "mode": "full", "note": None}, True),
+            ({}, False),
+            ({"title": "", "score": 2}, False),
+            ({"title": "Source", "score": 0}, False),
+            ({"title": "Source", "score": 5}, False),
+            ({"title": "Source", "score": True}, False),
+            ({"title": "Source", "score": 2, "mode": "unknown"}, False),
+            ({"title": "Source", "score": 2, "unexpected": 1}, False),
+        ]:
+            assert validator.is_valid(value) is accepted, value
+
+
 @pytest.mark.parametrize("rail_on", [False, True])
 @pytest.mark.parametrize("human_gate_on", [False, True])
 @pytest.mark.parametrize("endpoint", ["decide", "compare-models"])

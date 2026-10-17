@@ -326,7 +326,8 @@ def test_sanitised_mcp_schemas_use_the_documented_json_schema_field(responses, c
         agent = driver(client, config, tools=tools)
         agent.step()
     declarations = json.loads(requests[0].content)["tools"][0]["functionDeclarations"]
-    assert len(declarations) == 8
+    assert len(declarations) == 9
+    assert [function["name"] for function in declarations] == [tool["name"] for tool in tools]
     for function in declarations:
         assert set(function) == {"name", "description", "parametersJsonSchema"}
         schema = function["parametersJsonSchema"]

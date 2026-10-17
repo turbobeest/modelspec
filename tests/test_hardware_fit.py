@@ -45,13 +45,17 @@ def hardware_fit_record(status="estimated", **updates):
 
 
 def fixture_snapshot(records=None, *, variants=None, verifications=(), sources=None, guard=None,
-                     context=8192, known_context=True, built=False, models=None, premier=None):
+                     context=8192, known_context=True, built=False, models=None, premier=None,
+                     openness="open_weights", single_device_fit=True):
     device = {"id": SKU, "memory": {"capacity_gb": 24, "bandwidth_gb_s": 500},
               "sources": [ALL_SOURCES["hardware-spec"]], "figures_are": "vendor-specification",
               "verified_at": "2026-09-20"}
     if variants:
         device["memory"]["capacity_options_gb"] = variants
-    facts = [fact("model", MODEL, "model.weights_openness", "open_weights")]
+    if not single_device_fit:
+        device.update(single_device_fit=False, single_device_fit_reason="This SKU uses several memory pools.")
+    facts = [fact("model", MODEL, "model.weights_openness", openness,
+                  state="unknown" if openness is None else "known")]
     if known_context:
         facts.append(fact("model", MODEL, "model.context_window", context))
     compiled = build_snapshot(SnapshotInputs(
@@ -305,3 +309,27 @@ def test_shared_number_provenance_excludes_out_of_lineup_parent_records():
     assert snapshot.record("hardware-input:weights")["verified_by_records"] == ["hardware-fit:fixture"]
     assert "hardware-fit:hidden" not in compiled.content["record_table"]["rows"]
     assert [row["id"] for row in compiled.content["hardware_fit_records"]] == ["hardware-fit:fixture"]
+
+
+@pytest.mark.parametrize("openness,single_pool", [("closed_weights", True), (None, True),
+                                                 ("open_weights", False)])
+def test_exact_measurement_does_not_depend_on_legacy_estimate_prerequisites(openness, single_pool):
+    snapshot = fixture_snapshot([hardware_fit_record("measured")], openness=openness,
+                                single_device_fit=single_pool)
+    if openness is None:
+        assert snapshot.fact(MODEL, "model.weights_openness").state == "unknown"
+    status, body = assess(snapshot=snapshot)
+    assert status == 200
+    assert body["status"] == "measured"
+    assert (body["status"], body["measured_fit"], body["measurement"]["record_id"]) == (
+        "measured", True, "hardware-fit:fixture")
+
+
+@pytest.mark.parametrize("openness,single_pool,missing", [("closed_weights", True, "model"),
+                                                         (None, True, "model"),
+                                                         ("open_weights", False, "sku")])
+def test_estimates_keep_their_openness_and_single_pool_guards(openness, single_pool, missing):
+    snapshot = fixture_snapshot(openness=openness, single_device_fit=single_pool)
+    status, body = assess(snapshot=snapshot)
+    assert status == 200 and body["status"] == "undetermined"
+    assert missing in {item["input"] for item in body["missing"]}

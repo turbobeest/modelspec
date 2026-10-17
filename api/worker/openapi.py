@@ -3544,9 +3544,9 @@ def vocabulary_parameters():
 def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
     """Share identical nested schemas without changing their validation rules.
 
-    Component roots keep their public names. Fingerprints include descriptions,
-    defaults and all constraints; no merely similar schemas are merged. Smaller
-    repeated property schemas share a dictionary so YAML can emit aliases.
+    Component roots keep their public names. Omit generated titles and null
+    defaults before fingerprinting. Descriptions, non-null defaults and all
+    constraints stay intact. Repeated property schemas share YAML aliases.
     """
     import hashlib
     from collections import Counter
@@ -3554,6 +3554,22 @@ def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
 
     def fingerprint(node):
         return json.dumps(node, sort_keys=True, separators=(",", ":"))
+
+    def annotations(schema):
+        if not isinstance(schema, dict):
+            return
+        schema.pop("title", None)
+        if schema.get("default") is None:
+            schema.pop("default", None)
+        for keyword in ("properties", "patternProperties", "$defs", "definitions", "dependentSchemas"):
+            for child in (schema.get(keyword) or {}).values():
+                annotations(child)
+        for keyword in ("items", "additionalProperties", "unevaluatedProperties", "unevaluatedItems",
+                        "contains", "not", "if", "then", "else", "propertyNames", "additionalItems"):
+            annotations(schema.get(keyword))
+        for keyword in ("anyOf", "oneOf", "allOf", "prefixItems"):
+            for child in schema.get(keyword) or []:
+                annotations(child)
 
     def collect(node):
         if isinstance(node, dict):
@@ -3577,6 +3593,7 @@ def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
                     if "schema" in content:
                         roots.append(content["schema"])
     for root in roots:
+        annotations(root)
         collect(root)
     names = {key: "Shared" + hashlib.sha256(key.encode()).hexdigest()[:12]
              for key, count in sorted(counts.items()) if count > 1}

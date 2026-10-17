@@ -233,7 +233,7 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
     device = snapshot.hardware_device(request.sku)
     if device is None:
         return unknown(("sku", "SKU is not in this snapshot"))
-    if not device.get("record_id") or not device.get("single_device_fit", True):
+    if not device.get("record_id"):
         return unknown(("sku", device.get("unknown_reason") or device.get("refusal_reason")
                         or "sourced per-device capacity is missing"))
     hardware_record = snapshot.record(device["record_id"])
@@ -252,11 +252,16 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
                              for sid in sorted(context_max.sources)]
         return unknown(("context", f"requested context exceeds verified model maximum {context_max.value}"))
     openness = snapshot.fact(request.model, "model.weights_openness")
-    if openness.state != "known" or openness.value != "open_weights":
-        return unknown(("model", "verified self-hostable open weights are missing"))
     records = snapshot.hardware_fit_records(request.model, request.sku)
     exact = [row for row in records if all(row[field] == getattr(request, field) for field in fields)
              and row["memory_bytes_per_device"] == capacity_bytes]
+    measured = [row for row in exact if row["status"] == "measured"]
+    if not measured:
+        if not device.get("single_device_fit", True):
+            return unknown(("sku", device.get("refusal_reason")
+                            or "SKU does not expose one usable memory pool"))
+        if openness.state != "known" or openness.value != "open_weights":
+            return unknown(("model", "verified self-hostable open weights are missing"))
     if not exact:
         if records and not any(row["quantisation"] == request.quantisation for row in records):
             return unknown(("quantisation", "no sourced record exists for this quantisation"))
@@ -266,7 +271,6 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
             ("kv_bytes_per_token", "verified per-device KV bytes for this request are missing"),
             ("runtime_headroom_bytes", "verified runtime headroom for this request is missing"),
         )
-    measured = [row for row in exact if row["status"] == "measured"]
     if measured and len({row["measured_fit"] for row in measured}) > 1:
         return unknown(("measurement", "verified measurements disagree for this exact request"))
     candidates = measured or exact
@@ -276,7 +280,9 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
                              for row in candidates}) > 1:
         return unknown(("estimate", "verified estimate inputs disagree for this exact request"))
     row = max(candidates, key=lambda item: (item["observed_at"], item["id"]))
-    source_ids = set(row["source_ids"]) | set(context_max.sources) | set(openness.sources)
+    source_ids = set(row["source_ids"]) | set(context_max.sources)
+    if not measured:
+        source_ids.update(openness.sources)
     source_ids.update(device["source_ids"])
     source_ids.update(sid for value in numeric_inputs(RECORD_ADAPTER.validate_python(row))
                       for sid in value.source_ids)

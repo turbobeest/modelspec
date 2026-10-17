@@ -35,9 +35,8 @@ API = "https://api.modelspec.dev"
 PRICING = f"{entity.SITE}/pricing/"
 
 NULL_RULE = (
-    "Null means not researched or not published, never a guess. "
-    "Every sourced value on a card carries a URL and a read date. "
-    "This tool returns the origin's JSON plus the origin URL; it does not invent fields."
+    "Null means unresearched or unpublished, never a guess. "
+    "Sourced card values include a URL and read date. Returns the origin JSON and URL without invented fields."
 )
 GUIDE_URL = f"{entity.SITE}/agents.md"
 GUIDE_OUT = ROOT / "docs" / "agents.md"
@@ -441,12 +440,11 @@ BOUNDED_MCP = (
     "explanation.fetch names what was removed and how to fetch it."
 )
 BOUNDED_MCP_DETAIL = (
-    'With explain unset or "none": explain=none, limit=10, fields model_rank, cost_per_task, '
-    "estimates, p_best. summary or full also sends contributions and evidence. "
-    "omitted counts removed records; explain=none does not compute eliminations. "
-    "explicit fields, including null, is sent as given. "
-    "Over 16 KB the body is a trimmed notice and explanation.fetch says how to resend. "
-    "decision_id is a citation, not a stored lookup. "
+    'With explain unset or "none": explain=none, limit=10, fields=model_rank,cost_per_task,'
+    "estimates,p_best. summary/full adds contributions and evidence. "
+    "omitted counts removed records; explain=none skips eliminations. "
+    "Explicit fields, including null, pass through. Oversize responses use a trimmed notice "
+    "with explanation.fetch. decision_id is a citation, not a stored lookup. "
 )
 
 
@@ -687,8 +685,8 @@ def price(weights: list[int], tiers: dict[str, Any]) -> str:
     low, high = credit_usd_range(tiers)
     credits = " or ".join(str(w) for w in sorted(set(weights)))
     unit = "credit" if weights == [1] else "credits"
-    return (f"Needs an API key (Authorization: Bearer). Costs {credits} {unit} a call; a credit "
-            f"costs {_usd(low)}–{_usd(high)} depending on the plan or pack ({PRICING}).")
+    return (f"Needs an API key (Authorization: Bearer). Costs {credits} {unit} a call; "
+            f"{_usd(low)}–{_usd(high)} per credit by plan or pack ({PRICING}).")
 
 
 def card_price(weights: list[int]) -> str:
@@ -704,93 +702,74 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     decide_price = price([w["decide.none"], w["decide.summary"], w["decide.full"]], tiers)
     tools = {
         "decide": (
-            "Which models fit this job? "
+            "Which models fit this job? Call decide early. "
             "Returns answer, ranked results, may_qualify, reading and recovery hints, "
             "decision_id and snapshot. "
-            f"{reporting_rules()}{decide_price} {NOT_A_ROUTER} "
-            f"Proxies POST {API}/v1/decide. {SPEC_GUIDANCE}"
+            f"{reporting_rules()}{decide_price} "
+            "Not a router: call once per job or role, not per request; route among its chosen models. "
+            f"Proxies POST {API}/v1/decide. "
             f"{BOUNDED_MCP} {BOUNDED_MCP_DETAIL}"
             "task free text is rejected; where is an array. "
-            f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
+            f"Examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
             f"{DECIDE_WORKED_EXAMPLE}"
         ),
         "compare_models": (
-            "Which facts, offerings and evidence do 2 to 4 named models have? "
-            "Returns snapshot facts, offerings, evidence and sources in caller order; "
-            "unknown values stay null. "
+            "What facts do 2 to 4 named models have? "
+            "Returns sourced snapshot facts, offerings and evidence in caller order; unknowns stay null. "
             f"{price([w['decide.full']], tiers)} "
-            "It doesn't choose a model and does not rank or choose a winner. "
+            "It doesn't choose a model and does not rank. "
             f"Proxies POST {API}/v1/compare-models with {{models: [...]}} "
-            "and returns at most 16 KB."
+            "at most 16 KB."
         ),
         "hardware_fit": (
-            "Can this model run on a concrete hardware topology and workload? "
-            "Returns measured, estimated or undetermined with the snapshot, sources and request. "
-            "A measured answer cites the exact run. An estimated answer states likely or unlikely, "
-            "a memory margin, formula, inputs and assumptions; it never proves fit. "
-            "Missing inputs or sourced parameters return undetermined. "
-            "Memory is an optional override in decimal GB per device; device memory is never pooled. "
+            "Does this model fit this workload? "
+            "Returns measured with an exact cited run; estimated with sourced inputs, formula, "
+            "assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. "
+            "Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. "
             f"{price([w['decide.full']], tiers)} "
             "It doesn't choose a model. "
-            f"Proxies POST {API}/v1/hardware-fit with model, sku, device_count, memory, runtime, "
-            "quantisation, batch and context."
+            f"Proxies POST {API}/v1/hardware-fit."
         ),
         "rank": (
-            "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "
-            "ranking, whose scores lag the catalogue; newer models are often unranked. "
-            "Which models rank highest for one fixed use-case profile? "
-            "Returns a shortlist with evidence_basis, input provenance, not a quality "
-            f"verdict. {price([w['rank']], tiers)} "
-            "Don't call it as a fallback when decide names no single leader: report "
-            f"decide's tie. {summary_rule()} "
-            f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body."
+            "Legacy v1; use decide. Deprecated fixed-benchmark ranking; scores lag the catalogue "
+            "and newer models may be unranked. Which models lead a fixed use-case profile? "
+            "Returns a shortlist with evidence_basis and input provenance, not a quality verdict. "
+            f"{price([w['rank']], tiers)} "
+            "Don't call it as a fallback when decide has no single leader; report its tie. "
+            f"{summary_rule()} Proxies POST {API}/v1/rank with these arguments."
         ),
         "policy_check": (
-            "Which models, on which platforms, does my policy allow? "
-            "Checks a policy document (licence, origin, data handling) per model and per "
-            "platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. "
+            "Which models and platforms does my policy allow? "
+            "Returns pass, fail or undetermined per model/platform for licence, origin and data handling; "
+            "undetermined is not a pass. "
             f"{price([w['policy-check']], tiers)} "
-            "It doesn't choose a model: use decide to choose among the ones that pass. "
-            f"Proxies POST {API}/v1/policy-check with this tool's arguments as the JSON body; "
-            "Authorization is forwarded."
+            "It doesn't choose a model; use decide among passing rows. "
+            f"Proxies POST {API}/v1/policy-check with these arguments and Authorization."
         ),
         "vocab": (
-            "What can a decide spec say? "
-            "Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers "
-            "and task types. Compact by default, with 20 rows per page and no counts. "
-            "Split-mode full details exclude per-model facts and counts. "
-            "Needs an API key. "
-            "Use it for missing ids, not to compare models. "
-            "One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
-            "section=starter returns a ready-to-send minimal Spec and a next hint. "
-            "Search covers every section's ids, labels, definitions, values and synonyms. "
-            "All tokens rank first; a content-token subset can match. A miss returns the nearest ids. "
-            "An explicit non-starter section scopes the search. "
-            "Use id or ids for row details, or detail=full for all display details. "
-            "Use offset and limit to page matches across sections, including full details; "
-            "an empty page ends the list. "
+            "What can a decide Spec say? Returns valid ids and task types. Needs an API key. "
+            "Use for missing ids, not model comparisons. "
+            "Starter includes a minimal Spec. Compact pages have at most 20 rows and no counts; "
+            "an empty page ends results. Search ranks all tokens before subsets and offers nearest ids "
+            "on a miss. Full split-mode details exclude per-model facts and counts. "
         ),
         "model_info": (
-            "What does ModelSpec's card say about one model? "
-            f"Reads {entity.SITE}/api/models/<model_id>.json (model_id is provider/slug). "
-            "With data splitting, returns only the model's display name from the "
-            "Worker vocabulary. Needs an API key. "
-            "Not current evidence and not a ranking: use decide for that."
+            "What does one model's card say? "
+            f"Reads {entity.SITE}/api/models/<model_id>.json. "
+            "Split mode returns only its display name. Needs an API key. "
+            "Not current evidence or a ranking; use decide."
         ),
         "list_use_cases": (
-            "Which ranking profiles exist, and what is the ranking policy? "
-            f"Returns {entity.SITE}/api/rank/profiles.json: the profiles, the evidence floors "
-            "and the neutrality commitment. Needs an API key. "
-            "Not a decision: use decide for that."
+            "Which legacy profiles and ranking rules exist? "
+            f"Returns {entity.SITE}/api/rank/profiles.json with evidence floors and the neutrality commitment. "
+            "Needs an API key. Use decide for decisions."
         ),
         "feedback": (
-            "Was a ModelSpec answer reliable? "
-            "After you act on an answer, say whether it was reliable, unreliable, trustworthy, "
-            f"untrustworthy or confusing, by proxying POST {API}/v1/feedback. Include the "
-            "answer's decision_id. Free, no key, and no Authorization header is forwarded. "
-            "Not for questions or support. Never put a prompt, a key or personal details in note. "
-            'The response says status "recorded" or "not_recorded" (storage is off until the '
-            "privacy statement covers it)."
+            "Was an answer reliable? Returns recorded/not_recorded for a rating after acting; include decision_id. "
+            "Free, no key, and no Authorization header is forwarded. "
+            "No prompts, keys or personal details in note; no questions or support. "
+            "Storage stays off until covered by the privacy statement. "
+            f"Proxies POST {API}/v1/feedback."
         ),
     }
     card = {

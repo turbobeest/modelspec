@@ -65,6 +65,7 @@ margin_bytes = capacity_bytes - required_bytes
 when every device has a nonnegative margin and `unlikely` otherwise. Device
 memory is never pooled. Every device's sourced weight and cache allocation
 must match the complete requested topology and workload.
+Estimates require verified open weights and a SKU exposing one usable memory pool.
 
 Capacity comes from the dated vendor record or the caller's explicit memory
 override. The latter is identified as a caller input, with no invented source

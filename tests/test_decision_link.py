@@ -82,12 +82,10 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
     assert "decision_url" not in response.json()
 
 
-def test_flag_off_agent_copy_bytes_match_base():
+def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
-    # Keep the original byte check for every field that existed before MODEL-287.
-    copy["tools"].pop("hardware_fit")
-    copy["card"].pop("hardware_fit")
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238"
+    # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "c73f82ea0d7dfed16d736454763dfce8bd4bed9f866d2f201afdd0892627014b"
     assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
