@@ -693,6 +693,35 @@ def select_region(doc: Document, locator: Locator) -> str | None:
     return (_nodes_text(nodes, doc.rules) or None) if nodes else None
 
 
+def select_region_tables(doc: Document, locator: Locator) -> list[Node]:
+    """The actual tables contained in a cited region, preserving DOM identity.
+
+    Own-text and excerpt citations do not cite complete table elements.
+    """
+    if doc.root is None:
+        return []
+    if locator.kind in {"page", "css"}:
+        _body, own, excerpt = _split_citation(locator.value) if locator.value else ("", False, None)
+        if own or excerpt is not None:
+            return []
+    if locator.kind == "page":
+        nodes = [doc.root]
+    elif locator.kind == "css":
+        steps = _parse_selector(locator.value)
+        nodes = [node for node in doc.root.elements() if _matches(node, steps)]
+    elif locator.kind == "table":
+        tables = [node for node in doc.root.elements() if node.tag == "table"]
+        index = int(locator.value)
+        nodes = tables[index:index + 1]
+    else:
+        nodes = _heading_section(doc.root, locator.value)
+    tables_by_identity = {
+        id(node): node for parent in nodes for node in [parent, *parent.elements()]
+        if node.tag == "table"
+    }
+    return list(tables_by_identity.values())
+
+
 def _matches_compound(node: Node, c: _Compound) -> bool:
     if c.tag and node.tag != c.tag:
         return False

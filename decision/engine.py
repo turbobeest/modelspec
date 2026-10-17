@@ -471,6 +471,7 @@ def decide(
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
+    _validate_current: bool = True,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
     _capture_member_evidence: Callable[[list[tuple]], None] | None = None,
 ) -> Decision:
@@ -487,6 +488,10 @@ def decide(
     serve it: plans whose surfaces match, pay-per-use offerings for a coding
     tool or the caller's own software, self-hosting for their own hardware.
     """
+    if _validate_current:
+        require_current = getattr(snapshot, "require_current", None)
+        if require_current is not None:
+            require_current()
     if spec.estate is None and spec.access is None:
         return _decide(
             spec, snapshot, facets=facets, profiles=profiles,
