@@ -89,13 +89,23 @@ post directory, push its deterministic branch and run `gh pr create --draft`.
 The existing `RESEARCH_PR_TOKEN` is available only to that final transport step.
 The workflow never merges or posts to a social platform. It checks all PR
 states for its branch and leaves an existing or closed PR alone.
+If a push succeeded but PR creation failed, a retry reuses the remote branch
+only when its changed paths and every post file match the newly gated output.
+It refuses a different branch payload and never force-pushes.
+
+The corpus gate runs the repository's existing synthetic and frozen-image
+cases. It does not substitute the release snapshot into those cases. The
+matching accuracy report covers that release snapshot separately, while the
+page gate verifies the actual generated post and both retained signatures.
 
 The schedule checks committed bundles hourly, at minute 23. A main push that
 changes a public bundle starts the same path immediately. With no bundles the
 workflow is a no-op. This cadence makes a same-day draft possible after an
 approved public bundle arrives; it makes no claim about the blocked private
 handoff. The PR records the announcement and preparation times, elapsed hours,
-and whether they fall within the 24-hour target.
+and whether they fall within the 24-hour target. The initial slug and provisional
+recheck dates use the announcement date, so a retry after midnight keeps the
+same branch. After publication, actual metadata dates control rechecks.
 
 ## Rechecks and publication
 
@@ -119,6 +129,25 @@ revision files stay byte-identical. A published post keeps its status and old
 approvals; the new revision has null `published`, `approved_by`, and `approval`
 fields. Normal site rendering skips that revision. Jamie approves publication
 separately, and the existing automerge exclusion for `blog/` remains in force.
+
+Before the first publication, regenerate the still-unpublished draft with its
+actual publication date if it differs from the announcement date. The existing
+generator's `--first-published` option updates the displayed schedule. Use the
+same approved input files as the manifest:
+
+```bash
+python -m release_blog draft --model lab/model \
+	--after blog/snapshots/snap_<signed-id>.json.gz \
+	--before blog/snapshots/snap_<previous-signed-id>.json.gz \
+	--accuracy blog/releases/example-accuracy.json \
+	--first-published YYYY-MM-DD --out-dir blog/posts/<slug>/r1
+```
+
+The page gate refuses publication metadata whose first publication date
+differs from the breakdown's schedule. This prevents a delayed first review
+from publishing the provisional announcement-day schedule. After publication,
+revisions are immutable. Regenerate any optional platform drafts from the
+updated breakdown before their manual approval too.
 
 ## Optional platform drafts
 

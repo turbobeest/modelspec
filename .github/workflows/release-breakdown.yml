@@ -99,6 +99,8 @@ jobs:
           import json, os, re, subprocess
           from pathlib import Path
           root = Path(os.environ['RUNNER_TEMP'])
+          for name in ('branch.txt', 'body.md', 'title.txt'):
+              (root / name).unlink(missing_ok=True)
           draft = json.loads((root / 'review.json').read_text())
           if draft['draft'] is not True or not re.fullmatch(r'blog/[a-z0-9-]+-r[1-9][0-9]*', draft['branch']):
               raise SystemExit('refusing an invalid draft PR manifest')
@@ -110,13 +112,30 @@ jobs:
           slug = draft['slug']
           if not re.fullmatch(r'\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*', slug):
               raise SystemExit('invalid post slug')
-          # Explicit staging never includes an input checkout, cache, or unrelated file.
-          run('git', 'switch', '-c', draft['branch'])
-          run('git', 'add', '--', f'blog/posts/{slug}')
-          run('git', '-c', 'user.name=modelspec-release-blog', '-c', 'user.email=noreply@modelspec.dev',
-              'commit', '-s', '-m', draft['title'], '-m', 'Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>')
           run('gh', 'auth', 'setup-git')
-          run('git', 'push', '-u', 'origin', draft['branch'])
+          remote = run('git', 'ls-remote', '--heads', 'origin', draft['branch']).strip()
+          if remote:
+              # Recover a push whose PR request failed. Never overwrite that branch.
+              run('git', 'fetch', '--no-tags', 'origin', draft['branch'])
+              prefix = f'blog/posts/{slug}/'
+              changes = run('git', 'diff', '--name-only', 'HEAD...FETCH_HEAD').splitlines()
+              if not changes or any(not name.startswith(prefix) for name in changes):
+                  raise SystemExit('existing branch changes paths outside this post')
+              retained = set(run('git', 'ls-tree', '-r', '--name-only', 'FETCH_HEAD', '--', prefix).splitlines())
+              local = {str(p) for p in Path(prefix).rglob('*') if p.is_file()}
+              if retained != local:
+                  raise SystemExit('existing branch differs from gated files')
+              for name in sorted(retained):
+                  blob = subprocess.run(['git', 'show', f'FETCH_HEAD:{name}'], check=True, capture_output=True).stdout
+                  if Path(name).read_bytes() != blob:
+                      raise SystemExit('existing branch differs from gated files')
+          else:
+              # Explicit staging never includes an input checkout, cache, or unrelated file.
+              run('git', 'switch', '-c', draft['branch'])
+              run('git', 'add', '--', f'blog/posts/{slug}')
+              run('git', '-c', 'user.name=modelspec-release-blog', '-c', 'user.email=noreply@modelspec.dev',
+                  'commit', '-s', '-m', draft['title'], '-m', 'Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>')
+              run('git', 'push', '-u', 'origin', draft['branch'])
           (root / 'body.md').write_text(draft['body'])
           (root / 'title.txt').write_text(draft['title'])
           (root / 'branch.txt').write_text(draft['branch'])

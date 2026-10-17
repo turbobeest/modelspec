@@ -17,7 +17,7 @@ import json
 import subprocess
 import sys
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -141,7 +141,9 @@ def prepare_release(
     No full private Worker snapshot may be supplied here.
     """
     root = root.resolve()
-    signal_path = _public_path(root, signal_path.resolve().relative_to(root).as_posix())
+    if not signal_path.is_absolute():
+        signal_path = root / signal_path
+    signal_path = _public_path(root, signal_path.relative_to(root).as_posix())
     signal = ReleaseSignal.model_validate(yaml.safe_load(signal_path.read_text()))
     if now.tzinfo is None or now < signal.announced_at:
         raise ValueError("run time must be timezone-aware and at or after the announcement")
@@ -164,7 +166,9 @@ def prepare_release(
     latest = None
     day = None
     revision = 1
-    first_published = now.date()
+    # Publication is still pending. Use the announcement for a stable launch
+    # identity; later rechecks read the actual publication date from metadata.
+    first_published = signal.announced_at.date()
     slug = f"{first_published.isoformat()}-{tag_slug(signal.model)}"
     if existing:
         metadata_path, metadata = existing[0]
@@ -268,10 +272,11 @@ def review_draft(
     build = Build("release-preview", "release-preview", posts[-1].breakdown.recheck.first_published)
     for post in posts:
         _post_page(post, posts, post.path, build, preview=True)
-    return open_pr(proposal)
+    return open_pr(replace(proposal, body=proposal.body + "\n\nCorpus and page checks: pass.\n"))
 
 
 def _committed_inputs(root: Path, signal: Path) -> None:
+    signal = _public_path(root, signal.relative_to(root).as_posix())
     inputs = ReleaseSignal.model_validate(yaml.safe_load(signal.read_text()))
     paths = [signal.relative_to(root).as_posix(), inputs.after, inputs.accuracy,
              *([inputs.before] if inputs.before else []),

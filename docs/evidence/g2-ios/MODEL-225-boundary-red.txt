@@ -1,0 +1,10 @@
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+_________________ test_public_bundle_rejects_symlinks[signal] __________________
+tests/test_release_pipeline.py:285: in test_public_bundle_rejects_symlinks
+    with pytest.raises(ValueError, match="symlink"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/test_release_pipeline.py::test_public_bundle_rejects_symlinks[signal]
+1 failed, 3 passed, 21 deselected in 1.74s

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
+import subprocess
+import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -187,10 +190,55 @@ def test_replaying_same_signal_does_not_create_another_revision(replay):
     assert _prepare(replay) is None
 
 
+def test_signal_identity_is_stable_across_midnight(replay, tmp_path):
+    import shutil
+
+    root, signal, data, refs = replay
+    other = tmp_path / "second-checkout"
+    shutil.copytree(root, other)
+    first = _prepare(replay)
+    second = _prepare((other, other / signal.relative_to(root), data, refs),
+                      now=datetime(2026, 9, 27, 1, tzinfo=UTC))
+    assert first is not None and second is not None
+    assert (first.slug, first.branch) == (second.slug, second.branch)
+    relative = f"blog/posts/{first.slug}/r1/breakdown.json"
+    assert (root / relative).read_bytes() == (other / relative).read_bytes()
+
+
 def test_no_recheck_before_publication(replay):
     assert _prepare(replay) is not None
     _week_input(replay)
     assert _prepare(replay, now=datetime(2026, 10, 3, 13, tzinfo=UTC)) is None
+
+
+def test_delayed_publication_requires_the_readers_actual_schedule(replay):
+    from pipeline.blog import _posts
+    from release_blog.breakdown import to_bytes
+
+    first = _prepare(replay)
+    assert first is not None
+    _publish_first(replay, first)
+    root = replay[0]
+    folder = root / "blog/posts" / first.slug
+    meta = yaml.safe_load((folder / "post.yaml").read_text())
+    publication = LAUNCH + timedelta(days=3)
+    meta["revisions"][0]["published"] = publication
+    (folder / "post.yaml").write_text(yaml.safe_dump(meta))
+    with pytest.raises(ValueError, match="publication date"):
+        _posts(root, public_keys=PUBLIC)
+    # Before its first publication, regenerate the draft with the actual date.
+    b = Breakdown.model_validate_json((folder / "r1/breakdown.json").read_bytes())
+    schedule = [{"day": day, "due": (publication + timedelta(days=day)).isoformat(),
+                 "revision": None} for day in (1, 7, 30)]
+    b = b.model_copy(update={"recheck": b.recheck.model_copy(update={
+        "first_published": publication, "schedule": schedule})})
+    (folder / "r1/breakdown.json").write_bytes(to_bytes(b))
+    (folder / "r1/post.md").write_text(render(b)[0])
+    posts = _posts(root, public_keys=PUBLIC)
+    assert len(posts) == 1
+    assert "First published 2026-09-29" in posts[0].markdown
+    assert "2026-10-06" in posts[0].markdown
+    assert _pipeline().due_recheck(publication, date(2026, 10, 6), publication) == 7
 
 
 def test_snapshot_identity_alone_is_not_material(replay):
@@ -257,6 +305,32 @@ def test_release_inputs_cannot_reach_private_or_unrelated_paths(replay, path):
         _prepare(replay)
 
 
+@pytest.mark.parametrize("field", ["signal", "after", "accuracy"])
+def test_public_bundle_rejects_symlinks(replay, field):
+    root, signal, data, _ = replay
+    target = signal if field == "signal" else root / data[field]
+    retained = target.with_name(target.name + ".retained")
+    target.rename(retained)
+    target.symlink_to(retained.name)
+    with pytest.raises(ValueError, match="symlink"):
+        _prepare(replay)
+
+
+def test_uncommitted_input_is_refused(replay):
+    root, signal, data, _ = replay
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+    git("init", "-b", "fixture-base")
+    git("add", ".")
+    git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+        "commit", "-m", "public inputs")
+    _pipeline()._committed_inputs(root, signal)
+    path = root / data["accuracy"]
+    path.write_text(path.read_text() + "\n")
+    with pytest.raises(ValueError, match="already be committed"):
+        _pipeline()._committed_inputs(root, signal)
+
+
 def test_optional_platform_import_failure_is_stated(replay, monkeypatch):
     pipeline = _pipeline()
     real = importlib.import_module
@@ -292,3 +366,64 @@ def test_workflow_gates_before_draft_and_uses_only_public_inputs():
     assert "--draft" in scripts
     assert scripts.index("release_blog.pipeline") < scripts.index("gh pr create")
     assert "gh pr merge" not in scripts
+
+
+def test_transport_recovers_push_success_before_pr_failure(replay, tmp_path):
+    """Execute the workflow transport against real git and an offline gh fixture."""
+    from dataclasses import asdict
+
+    root, signal, data, refs = replay
+    remote = tmp_path / "remote.git"
+    def git(cwd, *args):
+        return subprocess.run(["git", *args], cwd=cwd, check=True,
+                              capture_output=True, text=True).stdout.strip()
+    git(root, "init", "-b", "fixture-base")
+    git(root, "add", ".")
+    git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+        "commit", "-m", "public inputs")
+    git(tmp_path, "init", "--bare", str(remote))
+    git(root, "remote", "add", "origin", str(remote))
+    git(root, "push", "-u", "origin", "fixture-base")
+    draft = _prepare(replay)
+    assert draft is not None
+    scratch = tmp_path / "transport"
+    scratch.mkdir()
+    (scratch / "review.json").write_text(json.dumps(asdict(draft)))
+    binary = tmp_path / "bin"
+    binary.mkdir()
+    gh = binary / "gh"
+    gh.write_text(f"#!{sys.executable}\n" + '''import json, os, pathlib, sys
+root = pathlib.Path(os.environ['RUNNER_TEMP'])
+args = sys.argv[1:]
+if args[:2] == ['pr', 'list']:
+    print('[]')
+elif args[:2] == ['pr', 'create']:
+    if (root / 'fail-create').exists():
+        sys.exit(73)
+    (root / 'receipt.json').write_text(json.dumps(args))
+elif args != ['auth', 'setup-git']:
+    sys.exit(74)
+''')
+    gh.chmod(0o755)
+    (scratch / "fail-create").touch()
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release-breakdown.yml").read_text())
+    script = workflow["jobs"]["draft"]["steps"][-1]["run"]
+    env = os.environ | {"PATH": str(binary) + os.pathsep + os.environ["PATH"],
+                        "RUNNER_TEMP": str(scratch), "GH_TOKEN": "offline-fixture", "CI_LOCAL_SKIP": "1"}
+    failed = subprocess.run(["bash", "-euo", "pipefail", "-c", script], cwd=root,
+                            env=env, capture_output=True, text=True)
+    assert failed.returncode == 73, failed.stderr
+    pushed = git(root, "rev-parse", "HEAD")
+    second = tmp_path / "retry"
+    git(tmp_path, "clone", "--branch", "fixture-base", str(remote), str(second))
+    retry = _prepare((second, second / signal.relative_to(root), data, refs),
+                     now=datetime(2026, 9, 26, 14, tzinfo=UTC))
+    assert retry is not None
+    (scratch / "review.json").write_text(json.dumps(asdict(retry)))
+    (scratch / "fail-create").unlink()
+    recovered = subprocess.run(["bash", "-euo", "pipefail", "-c", script], cwd=second,
+                               env=env, capture_output=True, text=True)
+    assert recovered.returncode == 0, recovered.stderr
+    receipt = json.loads((scratch / "receipt.json").read_text())
+    assert "--draft" in receipt and receipt[receipt.index("--head") + 1] == draft.branch
+    assert git(second, "ls-remote", "origin", draft.branch).split()[0] == pushed
