@@ -1,5 +1,6 @@
 """MODEL-144's slice-1 offering data invariants."""
 
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -61,7 +62,20 @@ def test_slice1_offerings_have_every_guaranteed_facet_once() -> None:
         assert offering.model in premier
         facets = [fact.facet for fact in offering.facts]
         assert GUARANTEED <= set(facets)
-        assert all(facets.count(facet) == 1 for facet in GUARANTEED)
+        days = {date.today()}
+        days.update(
+            bound
+            for fact in offering.facts
+            for bound in (fact.effective_from, fact.effective_until)
+            if bound is not None
+        )
+        for day in days:
+            active = [
+                fact.facet for fact in offering.facts
+                if (fact.effective_from is None or fact.effective_from <= day)
+                and (fact.effective_until is None or day <= fact.effective_until)
+            ]
+            assert all(active.count(facet) == 1 for facet in GUARANTEED), (offering.id, day)
 
 
 def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:

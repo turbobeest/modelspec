@@ -8,6 +8,7 @@ import json
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import replace
+from datetime import UTC, date, datetime
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import urlencode
 
@@ -141,10 +142,12 @@ class SnapshotHolder:
                  interval: float = REVALIDATE_SECONDS,
                  forced_interval: float = FORCED_REVALIDATE_SECONDS,
                  sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
+                 today: Callable[[], date] | None = None,
                  bundled_snapshot=None):
         self._fetch = fetch
         self._bundled_snapshot = bundled_snapshot
         self._clock = clock
+        self._today = today or (lambda: datetime.now(UTC).date())
         self._sleep = sleep
         self._interval = interval
         self._forced_interval = forced_interval
@@ -175,6 +178,13 @@ class SnapshotHolder:
     def _live(self, load: _Load | None) -> bool:
         return load is not None and self._clock() - load.started < LOAD_WAIT_SECONDS
 
+    def _current_snapshot(self, snapshot):
+        try:
+            snapshot.require_current(self._today())
+        except SnapshotError as exc:
+            raise SnapshotRefusalError(str(exc)) from None
+        return snapshot
+
     async def current(self, key: bytes | str | None, *, force: bool = False,
                       timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
@@ -192,25 +202,25 @@ class SnapshotHolder:
                 snapshot.signature_verified = True
                 snapshot.signature_status = "verified (hmac-sha256)"
                 self._held = _Held(snapshot, None, "")
-            return self._held.snapshot
+            return self._current_snapshot(self._held.snapshot)
         load = self._load
         if self._live(load):
             if self._held is not None and not force:
-                return self._held.snapshot
+                return self._current_snapshot(self._held.snapshot)
             started = time.perf_counter()
             try:
-                return await self._wait(load, key, force)
+                return self._current_snapshot(await self._wait(load, key, force))
             finally:
                 if timings is not None:
                     timings.append((time.perf_counter() - started) * 1000)
         if not self._due(force):
             if self._held is not None:
-                return self._held.snapshot
+                return self._current_snapshot(self._held.snapshot)
             if self._refusal is not None:
                 raise self._refusal
         started = time.perf_counter()
         try:
-            return await self._revalidate(key)
+            return self._current_snapshot(await self._revalidate(key))
         finally:
             if timings is not None:
                 timings.append((time.perf_counter() - started) * 1000)
@@ -506,6 +516,8 @@ def decide(payload: Any, snapshot, *,
                 feasible=surviving[-1] if surviving else None,
                 member_evidence=member_rows,
             )
+    except SnapshotError as exc:
+        return no_snapshot(str(exc))
     except EmptyAllowListError as exc:
         return HTTP_BAD_REQUEST, {
             "representation": "bounded",
@@ -569,7 +581,8 @@ def compare(payload: Any, old_snapshot, new_snapshot, *,
     comparison_spec = spec.model_copy(
         update={"snapshot": "latest", "explain": "full", "estate": None})
     try:
-        old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True)
+        old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True,
+                           _validate_current=False)
         new = run_decision(comparison_spec, new_snapshot, facets=facets, comparison=True)
     except contract.SpecError as exc:
         return error_response(

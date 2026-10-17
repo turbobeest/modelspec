@@ -65,7 +65,13 @@ from typing import Any
 import yaml
 
 from decision.excluded import excluded_sources
-from decision.model import DETERMINISTIC, Verification, VerificationActor, value_hash
+from decision.model import (
+    DETERMINISTIC,
+    Verification,
+    VerificationActor,
+    fact_verification_value,
+    value_hash,
+)
 from decision.normalise import (
     NORMALISERS,
     UnsupportedContentError,
@@ -89,6 +95,8 @@ from decision.verify import (
     StoredRegions,
     SubscriptionPageExtractor,
     VerificationLog,
+    claim_verification_value,
+    dated_price_claim,
     deterministic_extractors,
     normalise_name,
     parse_quantity,
@@ -234,12 +242,12 @@ def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping)
     """Why this fact is out of the re-read's reach, or ``None``."""
     if claim is None:
         return "no filed claim"
-    if value_hash(claim.value) != value_hash(fact.get("value")):
+    if value_hash(claim_verification_value(claim)) != value_hash(fact_verification_value(fact)):
         return "the fact differs from its filed claim"
     latest = log_latest.get(("fact", fact["id"]))
     if latest is None or latest.outcome != "verified":
         return "quarantined: its value was never verified"
-    if latest.target.value_hash != value_hash(fact.get("value")):
+    if latest.target.value_hash != value_hash(fact_verification_value(fact)):
         return "quarantined: its verification is for another value"
     return None
 
@@ -440,6 +448,9 @@ def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
                 continue
+            if dated_price_claim(claim):
+                found += regions.dated_prices(claim, source, region_id)
+                continue
             for extractor in deterministic_extractors():
                 if not extractor.accepts(text):
                     continue
@@ -619,7 +630,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     for tracked in facts:
         baseline = latest.get(("fact", tracked.fact["id"]))
         if (baseline is None or baseline.outcome != "verified"
-                or baseline.target.value_hash != value_hash(tracked.fact.get("value"))
+                or baseline.target.value_hash != value_hash(fact_verification_value(tracked.fact))
                 or (today - baseline.date).days > MAX_READ_AGE_DAYS):
             report.overdue.append(tracked.fact["id"])
         claim = filed.get(("fact", tracked.fact["id"]))
