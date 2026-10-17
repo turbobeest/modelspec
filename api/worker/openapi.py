@@ -619,6 +619,7 @@ def source_error_codes() -> set[str]:
         SRC / "decide_service.py",
         SRC / "policy_service.py",
         SRC / "entry.py",
+        REPO_ROOT / "decision" / "hardware_fit.py",
     ):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -2583,6 +2584,61 @@ def _decision_schemas() -> dict[str, Any]:
     return schemas
 
 
+def _hardware_fit_schemas() -> dict[str, Any]:
+    """Generate the endpoint's separate contract from its Pydantic models."""
+    from decision.hardware_fit import HardwareFitRequest, HardwareFitResponse, VERSION
+
+    request = HardwareFitRequest.model_json_schema()
+    response = HardwareFitResponse.model_json_schema()
+    definitions = {**request.pop("$defs", {}), **response.pop("$defs", {})}
+    names = {name: name if name.startswith("HardwareFit") else "HardwareFit" + name
+             for name in definitions}
+
+    def rewrite(value):
+        if isinstance(value, dict):
+            return {key: rewrite(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [rewrite(item) for item in value]
+        if isinstance(value, str) and value.startswith("#/$defs/"):
+            return "#/components/schemas/" + names[value.removeprefix("#/$defs/")]
+        return value
+
+    schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    schemas["HardwareFitRequest"] = rewrite(request)
+    schemas["HardwareFitResponse"] = rewrite(response)
+    credit_status = _infer(x402.attach_exhausted(
+        {}, available=0, needed=access_config.load_policy().credits.weight("decide.full"),
+        buy="https://modelspec.dev/pricing",
+    )["credits"])
+    schemas["HardwareFitRefused"] = {
+        "type": "object",
+        "required": ["hardware_fit_version", "endpoint", "snapshot", "error"],
+        "properties": {
+            "hardware_fit_version": {"type": "string", "enum": [VERSION]},
+            "endpoint": {"type": "string", "enum": ["hardware-fit"]},
+            "snapshot": {"type": "string", "nullable": True},
+            "service_commit": {"type": "string"},
+            "export_origin": {"type": "string"},
+            "result": {"type": "array", "items": {}, "maxItems": 0},
+            "credits": credit_status,
+            "error": {
+                "type": "object", "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string", "enum": sorted({
+                        "invalid_request", "payload_too_large", "snapshot_changed", "no_snapshot",
+                        "snapshot_refused", "snapshot_unavailable", *access.REFUSALS,
+                        x402.PAYMENT_REQUIRED, x402.PAYMENT_FAILED, x402.INVALID_PAYMENT,
+                        x402.X402_NOT_CONFIGURED, x402.CREDITS_STORE_NOT_CONFIGURED,
+                    })},
+                    "message": {"type": "string"},
+                    "issues": {"type": "array", "items": {"type": "object"}},
+                },
+            },
+        },
+    }
+    return schemas
+
+
 def build_spec() -> dict[str, Any]:
     # Two real answers, merged: the example request (whose `managed_api` hosting
     # populates `applied.unbound`) and a fully constrained one (which binds every
@@ -2849,6 +2905,7 @@ def build_spec() -> dict[str, Any]:
                                     "/v1/decide": decide_service.MAX_BODY_BYTES,
                                     "/v1/compare": decide_service.MAX_BODY_BYTES,
                                     "/v1/compare-models": decide_service.MAX_BODY_BYTES,
+                                    "/v1/hardware-fit": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES,
                                     "/v1/signals": signals.MAX_BODY_BYTES,
                                     "/v1/signals/discovered": signals.MAX_BODY_BYTES,
@@ -3212,6 +3269,66 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            "/v1/hardware-fit": {
+                "post": {
+                    "operationId": "hardwareFit",
+                    "summary": "Check one model against a concrete hardware topology and workload.",
+                    "description": (
+                        "Requires an API key even when ACCESS_ENFORCED is off. Browser visit "
+                        "tokens do not admit it. Costs the decide.full credit weight from tiers.json. "
+                        "Returns exactly one of measured, estimated or undetermined. A measured "
+                        "answer cites an exact run. An estimate names its sourced inputs, formula, "
+                        "assumptions and margin, with estimated_fit likely or unlikely. It never "
+                        "claims a measured fit. Missing inputs return undetermined with HTTP 200. "
+                        "Memory is an optional decimal GB override per device."
+                    ),
+                    "security": [{"bearer": []}, {"apiKey": []}],
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": "A different verified snapshot returns 409 snapshot_changed.",
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/HardwareFitRequest"},
+                            "example": {"model": "lab/example-model", "sku": "nvidia_h100_sxm",
+                                        "device_count": 1, "runtime": "vllm", "quantisation": "bf16",
+                                        "batch": 1, "context": 8192},
+                        }},
+                    },
+                    "responses": {
+                        "200": {
+                            **_json_body(
+                                "A cited measurement, a sourced estimate, or the missing inputs. "
+                                "An estimate has estimated_fit and never fits: true.",
+                                {"$ref": "#/components/schemas/HardwareFitResponse"},
+                            ),
+                            "headers": decide_snapshot_headers,
+                        },
+                        **{
+                            str(status): _json_body(description, {
+                                "$ref": "#/components/schemas/HardwareFitRefused"})
+                            for status, description in {
+                                400: "Invalid JSON, field types, or unknown request fields.",
+                                401: "A live API key is missing or invalid, even with access enforcement off.",
+                                403: "The key has been revoked.",
+                                409: "The requested snapshot differs from the verified snapshot answering.",
+                                413: f"The body exceeds {decide_service.MAX_BODY_BYTES} bytes.",
+                                429: "The key's daily or burst request limit is spent.",
+                                500: "The access or payment configuration is incomplete.",
+                                502: "The signed snapshot could not be fetched.",
+                                503: "The verified snapshot, access store or credit store is unavailable.",
+                                402: "Payment required while the payment rail is enabled.",
+                            }.items()
+                        },
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/hardware-fit takes POST."
+                        )[1],
+                    },
+                },
+            },
             "/v1/policy-check": {
                 "post": {
                     "operationId": "policyCheck",
@@ -3276,6 +3393,7 @@ def build_spec() -> dict[str, Any]:
                 "NoMatch": error_envelope(no_match_schema),
                 "RequestRefused": error_envelope(refused_schema),
                 **decision_schemas,
+                **_hardware_fit_schemas(),
                 **policy_schemas,
                 "PaymentRequired": error_envelope(payment_required_error),
                 "CreditsBalance": _infer(x402.balance_body(
@@ -3566,6 +3684,10 @@ def render() -> str:
                 description = responses[code]["description"] + " " + message
                 native = {"oneOf": [responses[code]["content"]["application/json"]["schema"], native]}
             responses[code] = _json_body(description, native)
+        spec["paths"]["/v1/hardware-fit"]["post"]["responses"][code] = _json_body(
+            "Machine hardware checks require remaining paid credits.",
+            {"$ref": "#/components/schemas/HardwareFitRefused"},
+        )
     from pipeline.public_data import enabled
     if enabled():
         spec["paths"]["/v1/vocabulary"] = {

@@ -723,6 +723,18 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Proxies POST {API}/v1/compare-models with {{models: [...]}} "
             "and returns at most 16 KB."
         ),
+        "hardware_fit": (
+            "Can this model run on a concrete hardware topology and workload? "
+            "Returns measured, estimated or undetermined with the snapshot, sources and request. "
+            "A measured answer cites the exact run. An estimated answer states likely or unlikely, "
+            "a memory margin, formula, inputs and assumptions; it never proves fit. "
+            "Missing inputs or sourced parameters return undetermined. "
+            "Memory is an optional override in decimal GB per device; device memory is never pooled. "
+            f"{price([w['decide.full']], tiers)} "
+            "It doesn't choose a model. "
+            f"Proxies POST {API}/v1/hardware-fit with model, sku, device_count, memory, runtime, "
+            "quantisation, batch and context."
+        ),
         "rank": (
             "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "
             "ranking, whose scores lag the catalogue; newer models are often unranked. "
@@ -786,6 +798,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
                   + card_price([w["decide.none"], w["decide.summary"], w["decide.full"]]),
         "compare_models": "Compare 2 to 4 named models' facts in caller order. "
                           + card_price([w["decide.full"]]),
+        "hardware_fit": "Check measured or estimated hardware fit; missing facts abstain. "
+                        + card_price([w["decide.full"]]),
         "rank": "Deprecated fixed-profile shortlist (legacy v1); use decide. "
                 + card_price([w["rank"]]),
         "model_info": "One model's published card. Needs an API key.",

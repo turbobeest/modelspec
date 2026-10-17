@@ -46,8 +46,8 @@ info:
   x-transport-error-statuses: {export_unavailable: 502, human_burst_limit: 429, human_challenge_required: 403, human_day_limit: 429, human_gate_unavailable: 503,
     human_intent_limit: 429, human_origin_required: 401, human_sweep_limit: 429, method_not_allowed: 405, not_found: 404, origin_not_allowed: 404, visit_token_expired: 401,
     visit_token_invalid: 401}
-  x-max-request-bytes: {/v1/rank: 16384, /v1/decide: 65536, /v1/compare: 65536, /v1/compare-models: 65536, /v1/policy-check: 262144, /v1/signals: 4096, /v1/signals/discovered: 4096,
-    /v1/feedback: 4096}
+  x-max-request-bytes: {/v1/rank: 16384, /v1/decide: 65536, /v1/compare: 65536, /v1/compare-models: 65536, /v1/hardware-fit: 65536, /v1/policy-check: 262144, /v1/signals: 4096,
+    /v1/signals/discovered: 4096, /v1/feedback: 4096}
 x-modelspec-access:
   status: wired; enforced
   ticket: MODEL-69
@@ -720,6 +720,103 @@ paths:
               schema: {type: integer, minimum: 1}
             Link: *id005
             x-modelspec-guide-version: *id006
+  /v1/hardware-fit:
+    post:
+      operationId: hardwareFit
+      summary: Check one model against a concrete hardware topology and workload.
+      description: Requires an API key even when ACCESS_ENFORCED is off. Browser visit tokens do not admit it. Costs the decide.full credit weight from tiers.json.
+        Returns exactly one of measured, estimated or undetermined. A measured answer cites an exact run. An estimate names its sourced inputs, formula, assumptions
+        and margin, with estimated_fit likely or unlikely. It never claims a measured fit. Missing inputs return undetermined with HTTP 200. Memory is an optional
+        decimal GB override per device.
+      security:
+      - bearer: []
+      - apiKey: []
+      parameters:
+      - name: X-ModelSpec-Snapshot
+        in: header
+        required: false
+        description: A different verified snapshot returns 409 snapshot_changed.
+        schema: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/HardwareFitRequest'}
+            example: {model: lab/example-model, sku: nvidia_h100_sxm, device_count: 1, runtime: vllm, quantisation: bf16, batch: 1, context: 8192}
+      responses:
+        '200':
+          description: 'A cited measurement, a sourced estimate, or the missing inputs. An estimate has estimated_fit and never fits: true.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitResponse'}
+          headers: *id009
+        '400':
+          description: Invalid JSON, field types, or unknown request fields.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '401':
+          description: A live API key is missing or invalid, even with access enforcement off.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '403':
+          description: The key has been revoked.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '409':
+          description: The requested snapshot differs from the verified snapshot answering.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '413':
+          description: The body exceeds 65536 bytes.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '429':
+          description: The key's daily or burst request limit is spent.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '500':
+          description: The access or payment configuration is incomplete.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '502':
+          description: The signed snapshot could not be fetched.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '503':
+          description: The verified snapshot, access store or credit store is unavailable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '402':
+          description: Payment required while the payment rail is enabled.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HardwareFitRefused'}
+          headers: *id001
+        '404': *id002
+        '405':
+          description: /v1/hardware-fit takes POST.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TransportError'}
+          headers: *id001
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -4933,6 +5030,341 @@ components:
           type: array
           items: {}
           maxItems: 0
+    HardwareFitCitation:
+      additionalProperties: false
+      properties:
+        id: {maxLength: 512, minLength: 1, pattern: \S, title: Id, type: string}
+        url: {title: Url, type: string}
+      required: [id, url]
+      title: Citation
+      type: object
+    HardwareFitDeviceEstimate:
+      additionalProperties: false
+      properties:
+        weights_bytes: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+        kv_bytes_per_token: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+        runtime_headroom_bytes: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+        device: {minimum: 0, title: Device, type: integer}
+        kv_cache_bytes:
+          anyOf:
+          - {minimum: 0, type: integer}
+          - {minimum: 0, type: number}
+          title: Kv Cache Bytes
+        required_bytes:
+          anyOf:
+          - {minimum: 0, type: integer}
+          - {minimum: 0, type: number}
+          title: Required Bytes
+        margin_bytes:
+          anyOf:
+          - {type: integer}
+          - {type: number}
+          title: Margin Bytes
+      required: [weights_bytes, kv_bytes_per_token, runtime_headroom_bytes, device, kv_cache_bytes, required_bytes, margin_bytes]
+      title: DeviceEstimate
+      type: object
+    HardwareFitEstimatedResponse:
+      additionalProperties: false
+      properties:
+        hardware_fit_version: {const: '1.0', default: '1.0', title: Hardware Fit Version, type: string}
+        endpoint: &id059 {const: hardware-fit, default: hardware-fit, title: Endpoint, type: string}
+        snapshot: {title: Snapshot, type: string}
+        request: {$ref: '#/components/schemas/HardwareFitRequest'}
+        sources: &id060
+          items: {$ref: '#/components/schemas/HardwareFitCitation'}
+          title: Sources
+          type: array
+        credits: &id061
+          anyOf:
+          - {$ref: '#/components/schemas/HardwareFitExhaustedCredits'}
+          - {type: 'null'}
+          default: null
+        status: {const: estimated, title: Status, type: string}
+        estimated_fit:
+          enum: [likely, unlikely]
+          title: Estimated Fit
+          type: string
+        margin_bytes:
+          anyOf:
+          - {type: integer}
+          - {type: number}
+          title: Margin Bytes
+        formula: {title: Formula, type: string}
+        record_id: &id062 {maxLength: 512, minLength: 1, pattern: \S, title: Record Id, type: string}
+        observed_at: {format: date, title: Observed At, type: string}
+        verification: {$ref: '#/components/schemas/HardwareFitVerification'}
+        capacity_bytes: {$ref: '#/components/schemas/HardwareFitProvenance'}
+        model_context_max: {$ref: '#/components/schemas/HardwareFitProvenance'}
+        per_device:
+          items: {$ref: '#/components/schemas/HardwareFitDeviceEstimate'}
+          title: Per Device
+          type: array
+        assumptions:
+          items: {type: string}
+          minItems: 1
+          title: Assumptions
+          type: array
+      required: [snapshot, request, sources, status, estimated_fit, margin_bytes, formula, record_id, observed_at, verification, capacity_bytes, model_context_max,
+        per_device, assumptions]
+      title: EstimatedResponse
+      type: object
+    HardwareFitExhaustedCredits:
+      additionalProperties: false
+      properties:
+        exhausted: {const: true, title: Exhausted, type: boolean}
+        available: {title: Available, type: integer}
+        needed: {title: Needed, type: integer}
+        unit: {const: credit, title: Unit, type: string}
+        message: {title: Message, type: string}
+        buy: {title: Buy, type: string}
+      required: [exhausted, available, needed, unit, message, buy]
+      title: ExhaustedCredits
+      type: object
+    HardwareFitRequest:
+      additionalProperties: false
+      properties:
+        model:
+          anyOf:
+          - {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          default: null
+          title: Model
+        sku:
+          anyOf:
+          - {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          default: null
+          title: Sku
+        device_count:
+          anyOf:
+          - {maximum: 1024, minimum: 1, type: integer}
+          - {type: 'null'}
+          default: null
+          title: Device Count
+        memory:
+          anyOf:
+          - {exclusiveMinimum: 0, maximum: 1000000, type: number}
+          - {type: 'null'}
+          default: null
+          title: Memory
+        runtime:
+          anyOf:
+          - {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          default: null
+          title: Runtime
+        quantisation:
+          anyOf:
+          - {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          default: null
+          title: Quantisation
+        batch:
+          anyOf:
+          - {maximum: 1000000, minimum: 1, type: integer}
+          - {type: 'null'}
+          default: null
+          title: Batch
+        context:
+          anyOf:
+          - {maximum: 1000000000, minimum: 1, type: integer}
+          - {type: 'null'}
+          default: null
+          title: Context
+      title: HardwareFitRequest
+      type: object
+    HardwareFitMeasuredResponse:
+      additionalProperties: false
+      properties:
+        hardware_fit_version: {const: '1.0', default: '1.0', title: Hardware Fit Version, type: string}
+        endpoint: *id059
+        snapshot: {title: Snapshot, type: string}
+        request: {$ref: '#/components/schemas/HardwareFitRequest'}
+        sources: *id060
+        credits: *id061
+        status: {const: measured, title: Status, type: string}
+        measured_fit: {title: Measured Fit, type: boolean}
+        measurement: {$ref: '#/components/schemas/HardwareFitMeasurement'}
+        capacity_bytes: {$ref: '#/components/schemas/HardwareFitProvenance'}
+        model_context_max: {$ref: '#/components/schemas/HardwareFitProvenance'}
+      required: [snapshot, request, sources, status, measured_fit, measurement, capacity_bytes, model_context_max]
+      title: MeasuredResponse
+      type: object
+    HardwareFitMeasurement:
+      additionalProperties: false
+      properties:
+        record_id: *id062
+        source_ids: &id063
+          items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          title: Source Ids
+          type: array
+        observed_at: {format: date, title: Observed At, type: string}
+        memory_bytes_per_device: {exclusiveMinimum: 0, title: Memory Bytes Per Device, type: integer}
+        measured_memory_bytes:
+          items: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+          title: Measured Memory Bytes
+          type: array
+        verification: {$ref: '#/components/schemas/HardwareFitVerification'}
+      required: [record_id, source_ids, observed_at, memory_bytes_per_device, measured_memory_bytes, verification]
+      title: Measurement
+      type: object
+    HardwareFitMissingInput:
+      additionalProperties: false
+      properties:
+        input: {maxLength: 512, minLength: 1, pattern: \S, title: Input, type: string}
+        reason: {maxLength: 512, minLength: 1, pattern: \S, title: Reason, type: string}
+      required: [input, reason]
+      title: MissingInput
+      type: object
+    HardwareFitProvenance:
+      additionalProperties: false
+      properties:
+        value: &id064
+          anyOf:
+          - {minimum: 0, type: integer}
+          - {minimum: 0, type: number}
+          title: Value
+        record_id:
+          anyOf:
+          - {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          title: Record Id
+        source_ids: *id063
+        provenance:
+          enum: [sourced, caller]
+          title: Provenance
+          type: string
+        observed_at:
+          anyOf:
+          - {format: date, type: string}
+          - {type: 'null'}
+          default: null
+          title: Observed At
+      required: [value, record_id, source_ids, provenance]
+      title: Provenance
+      type: object
+    HardwareFitSourcedNumber:
+      additionalProperties: false
+      properties:
+        value: *id064
+        record_id: *id062
+        source_ids:
+          items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
+          minItems: 1
+          title: Source Ids
+          type: array
+      required: [value, record_id, source_ids]
+      title: SourcedNumber
+      type: object
+    HardwareFitUndeterminedResponse:
+      additionalProperties: false
+      properties:
+        hardware_fit_version: {const: '1.0', default: '1.0', title: Hardware Fit Version, type: string}
+        endpoint: *id059
+        snapshot: {title: Snapshot, type: string}
+        request: {$ref: '#/components/schemas/HardwareFitRequest'}
+        sources: *id060
+        credits: *id061
+        status: {const: undetermined, title: Status, type: string}
+        missing:
+          items: {$ref: '#/components/schemas/HardwareFitMissingInput'}
+          minItems: 1
+          title: Missing
+          type: array
+      required: [snapshot, request, sources, status, missing]
+      title: UndeterminedResponse
+      type: object
+    HardwareFitVerification:
+      additionalProperties: false
+      properties:
+        target: {$ref: '#/components/schemas/HardwareFitVerificationTarget'}
+        collector: {$ref: '#/components/schemas/HardwareFitVerificationActor'}
+        verifier: {$ref: '#/components/schemas/HardwareFitVerificationActor'}
+        method: {minLength: 1, pattern: \S, title: Method, type: string}
+        outcome:
+          enum: [verified, mismatch, unreachable]
+          title: Outcome
+          type: string
+        date: {format: date, title: Date, type: string}
+        diff:
+          anyOf:
+          - {minLength: 1, pattern: \S, type: string}
+          - {type: 'null'}
+          default: null
+          title: Diff
+      required: [target, collector, verifier, method, outcome, date]
+      title: Verification
+      type: object
+    HardwareFitVerificationActor:
+      additionalProperties: false
+      properties:
+        agent: {minLength: 1, pattern: \S, title: Agent, type: string}
+        model_family: {minLength: 1, pattern: \S, title: Model Family, type: string}
+        method: {minLength: 1, pattern: \S, title: Method, type: string}
+      required: [agent, model_family, method]
+      title: VerificationActor
+      type: object
+    HardwareFitVerificationTarget:
+      additionalProperties: false
+      properties:
+        kind:
+          enum: [fact, evidence]
+          title: Kind
+          type: string
+        id: {minLength: 1, pattern: \S, title: Id, type: string}
+        value_hash: {pattern: '^sha256:[0-9a-f]{64}$', title: Value Hash, type: string}
+      required: [kind, id, value_hash]
+      title: VerificationTarget
+      type: object
+    HardwareFitResponse:
+      discriminator:
+        mapping: {estimated: '#/components/schemas/HardwareFitEstimatedResponse', measured: '#/components/schemas/HardwareFitMeasuredResponse', undetermined: '#/components/schemas/HardwareFitUndeterminedResponse'}
+        propertyName: status
+      oneOf:
+      - {$ref: '#/components/schemas/HardwareFitMeasuredResponse'}
+      - {$ref: '#/components/schemas/HardwareFitEstimatedResponse'}
+      - {$ref: '#/components/schemas/HardwareFitUndeterminedResponse'}
+      title: HardwareFitResponse
+    HardwareFitRefused:
+      type: object
+      required: [hardware_fit_version, endpoint, snapshot, error]
+      properties:
+        hardware_fit_version:
+          type: string
+          enum: ['1.0']
+        endpoint:
+          type: string
+          enum: [hardware-fit]
+        snapshot: {type: string, nullable: true}
+        service_commit: {type: string}
+        export_origin: {type: string}
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+        credits:
+          type: object
+          required: [available, buy, exhausted, message, needed, unit]
+          properties:
+            available: {type: integer}
+            buy: {type: string}
+            exhausted: {type: boolean}
+            message: {type: string}
+            needed: {type: integer}
+            unit: {type: string}
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [access_not_configured, access_store_not_configured, credits_store_not_configured, invalid_api_key, invalid_payment, invalid_request, key_revoked,
+                missing_api_key, no_snapshot, payload_too_large, payment_failed, payment_required, rate_limited, sandbox_not_available, snapshot_changed, snapshot_refused,
+                snapshot_unavailable, tier_not_configured, x402_not_configured]
+            message: {type: string}
+            issues:
+              type: array
+              items: {type: object}
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -5026,7 +5458,7 @@ components:
     PolicyCheckResponse:
       type: object
       properties:
-        build: &id060
+        build: &id066
           type: object
           properties:
             built_at: {type: string}
@@ -5078,7 +5510,7 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: &id061
+                commercial_use: &id067
                   type: object
                   properties:
                     accept_restricted: {type: boolean}
@@ -5104,7 +5536,7 @@ components:
                       type: array
                       items: {type: string}
                   required: [permitted_countries, prohibited_countries]
-                residency: &id062
+                residency: &id068
                   type: object
                   required: [match, required_regions]
                   properties:
@@ -5143,21 +5575,21 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: &id059
+                commercial_use: &id065
                   type: object
                   properties:
                     satisfied: {type: integer}
                     undetermined: {type: integer}
                     violated: {type: integer}
                   required: [satisfied, undetermined, violated]
-                licence: *id059
-                origin: *id059
-                residency: *id059
+                licence: *id065
+                origin: *id065
+                residency: *id065
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {description: 'Counted over models, not rows: passes somewhere, not everywhere.', type: integer}
             rows: {type: integer}
-            verdicts: &id063
+            verdicts: &id069
               type: object
               properties:
                 fail: {type: integer}
@@ -5474,7 +5906,7 @@ components:
     UndeterminedPresent:
       type: object
       properties:
-        build: *id060
+        build: *id066
         determinations:
           type: object
           properties:
@@ -5519,8 +5951,8 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: *id061
-                residency: *id062
+                commercial_use: *id067
+                residency: *id068
             name: {nullable: true}
             require_no_undetermined: {type: boolean}
           required: [constraints, name, require_no_undetermined]
@@ -5546,20 +5978,20 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: *id059
-                residency: *id059
+                commercial_use: *id065
+                residency: *id065
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {type: integer}
             rows: {type: integer}
-            verdicts: *id063
+            verdicts: *id069
           required: [by_constraint, models_checked, models_undetermined_somewhere, models_with_a_passing_platform, rows, verdicts]
       required: [build, determinations, endpoint, error, export_origin, policy, provenance, result, schema_version, service_commit, summary]
     DeterminationsUnavailable:
       type: object
       required: [build, endpoint, error, export_origin, result, schema_version, service_commit]
       properties:
-        build: *id060
+        build: *id066
         endpoint: {type: string}
         error:
           type: object
@@ -5701,12 +6133,12 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: &id064 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
-        provider: *id064
+        model_name: &id070 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
+        provider: *id070
         first_seen_url: {type: string, maxLength: 300, format: uri, pattern: '^https://(www\.)?(x\.com|twitter\.com)/'}
         timestamp: {type: string, maxLength: 300, format: date-time}
         confidence: {type: number, minimum: 0, maximum: 1}
-        signal_id: &id065 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
+        signal_id: &id071 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
     ReleaseDiscovery:
       title: ModelSpec release discovery v1
       description: 'A primary-source watcher discovery (MODEL-216). The same six fields as release-signal v1; the signal ID starts with watch: and first_seen_url
@@ -5715,8 +6147,8 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: *id064
-        provider: *id064
+        model_name: *id070
+        provider: *id070
         first_seen_url:
           type: string
           maxLength: 300
@@ -5731,7 +6163,7 @@ components:
       additionalProperties: false
       required: [signal_id, result]
       properties:
-        signal_id: *id065
+        signal_id: *id071
         result: {type: string, nullable: true}
         pr_url: {type: string, nullable: true, format: uri}
         recheck_due: {type: string, format: date}
@@ -5750,7 +6182,7 @@ components:
         status:
           type: string
           enum: [accepted, duplicate, acknowledged]
-        signal_id: *id065
+        signal_id: *id071
         recheck_days:
           type: array
           items:
@@ -5785,7 +6217,7 @@ components:
           enum: ['1']
         service_commit: {type: string}
         endpoint: {type: string}
-        error: &id066
+        error: &id072
           type: object
           required: [code, message]
           properties:
@@ -5946,7 +6378,7 @@ components:
     Sharede25eeefc86ea:
       properties:
         endpoint: {type: string}
-        error: *id066
+        error: *id072
         result:
           items: {}
           type: array

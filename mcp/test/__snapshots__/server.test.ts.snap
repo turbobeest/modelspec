@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`modelspec MCP worker > tools/list returns all eight tools with object input schemas 1`] = `
+exports[`modelspec MCP worker > tools/list returns all nine tools with object input schemas 1`] = `
 [
   {
     "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Present \`summary_for_user\` to the user unchanged and keep every \`must_mention\` item. When \`next_move\` is present, offer it instead of a pick. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body.",
@@ -1561,6 +1561,118 @@ takes its key and its plans with it.",
       "type": "object",
     },
     "name": "compare_models",
+  },
+  {
+    "description": "Can this model run on a concrete hardware topology and workload? Returns measured, estimated or undetermined with the snapshot, sources and request. A measured answer cites the exact run. An estimated answer states likely or unlikely, a memory margin, formula, inputs and assumptions; it never proves fit. Missing inputs or sourced parameters return undetermined. Memory is an optional override in decimal GB per device; device memory is never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit with model, sku, device_count, memory, runtime, quantisation, batch and context.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "batch": {
+          "anyOf": [
+            {
+              "maximum": 1000000,
+              "minimum": 1,
+              "type": "integer",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "context": {
+          "anyOf": [
+            {
+              "maximum": 1000000000,
+              "minimum": 1,
+              "type": "integer",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "device_count": {
+          "anyOf": [
+            {
+              "maximum": 1024,
+              "minimum": 1,
+              "type": "integer",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1000000,
+              "type": "number",
+            },
+            {
+              "type": "null",
+            },
+          ],
+          "description": "Optional memory override in decimal GB per device",
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "quantisation": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "runtime": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+        "sku": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+        },
+      },
+      "type": "object",
+    },
+    "name": "hardware_fit",
   },
   {
     "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read \`next\` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions, values and synonyms. All tokens rank first; a content-token subset can match. A miss returns the nearest ids. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",

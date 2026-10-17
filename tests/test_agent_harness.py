@@ -359,7 +359,7 @@ def test_production_or_credential_origins_are_rejected(origin):
         require_nonproduction(origin)
 
 
-def test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback(config, definitions):
+def test_tool_shim_routes_all_nine_tools_and_keeps_keys_out_of_feedback(config, definitions):
     requests = []
 
     def handler(request):
@@ -384,6 +384,7 @@ def test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback(config,
             ("rank", {"use_case": "coding"}),
             ("decide", {"spec_version": 1, "optimize": {"max": "reasoning"}}),
             ("compare_models", {"models": ["lab/b", "lab/a"]}),
+            ("hardware_fit", {"model": "lab/a", "sku": "test-gpu"}),
             ("policy_check", {"policy": {"commercial_use": {"required": True}}}),
             ("feedback", {"rating": "confusing"}),
         ]:
@@ -396,12 +397,15 @@ def test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback(config,
             "/v1/rank",
             "/v1/decide",
             "/v1/compare-models",
+            "/v1/hardware-fit",
             "/v1/policy-check",
             "/v1/feedback",
         ]
         assert requests[5].method == "POST"
         assert json.loads(requests[5].content) == {"models": ["lab/b", "lab/a"]}
-        for index in (0, 1, 3, 4, 5, 6):
+        assert requests[6].method == "POST"
+        assert json.loads(requests[6].content) == {"model": "lab/a", "sku": "test-gpu"}
+        for index in (0, 1, 3, 4, 5, 6, 7):
             assert requests[index].headers["authorization"] == "Bearer secret-key"
         assert "authorization" not in requests[2].headers
         assert "authorization" not in requests[-1].headers
@@ -857,6 +861,11 @@ def test_provider_schemas_preserve_valid_mcp_arguments(family, definitions):
         "vocab": {"section": "providers"},
         "feedback": {"rating": "confusing"},
         "compare_models": {"models": ["lab/b", "lab/a"]},
+        "hardware_fit": {
+            "model": "lab/a", "sku": "test-gpu", "device_count": 1,
+            "memory": None, "runtime": "test-runtime", "quantisation": "q4",
+            "batch": 1, "context": 4096,
+        },
         "decide": {
             "spec_version": 1,
             "capabilities": {"software_engineering": "required"},
@@ -1087,6 +1096,7 @@ def test_live_vocabulary_compacts_a_legacy_worker_during_rollout(config, definit
     ("policy_check", {"policy": {}}),
     ("decide", {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}),
     ("compare_models", {"models": ["lab/a", "lab/b"]}),
+    ("hardware_fit", {"model": "lab/a", "sku": "test-gpu"}),
 ])
 def test_data_shim_without_a_key_names_the_env_var_before_http(config, definitions, name, args):
     with httpx.Client(transport=httpx.MockTransport(
