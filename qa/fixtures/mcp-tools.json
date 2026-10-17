@@ -1,17 +1,17 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "779fe82a16819b711026d841d570b1f6dca8c38bdb196147e8d27f972ded5b7e",
+    "mcp/src/server.ts": "2eadca1d9e74c4da00caa495987184eda22ae84ce012c930d5bca0edcc1b66fc",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
     "mcp/test/fixtures/decide-budget.json": "f31563680b34217d82e0732fb14923d55336d6572d6872b4ede2f74c6bbeeaa6",
     "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
-    "api/worker/openapi.yaml": "22f900f78316fc29d79b15dac61751d8bfa096ebaced0294564816feafb86fb3",
+    "api/worker/openapi.yaml": "29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05",
     "docs/agents.md": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
-    "mcp/src/agent-copy.json": "2d036788d1a1d5dc2d528d441bebb6e6b7366113f15f2151e40366bf0a4fa238"
+    "mcp/src/agent-copy.json": "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
   },
   "tools": [
     {
       "name": "rank",
-      "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body.",
+      "description": "Legacy v1; use decide. Deprecated fixed-benchmark ranking; scores lag the catalogue and newer models may be unranked. Which models lead a fixed use-case profile? Returns a shortlist with evidence_basis and input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide has no single leader; report its tie. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Proxies POST https://api.modelspec.dev/v1/rank with these arguments.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
@@ -93,7 +93,7 @@
     },
     {
       "name": "model_info",
-      "description": "What does ModelSpec's card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting, returns only the model's display name from the Worker vocabulary. Needs an API key. Not current evidence and not a ranking: use decide for that.",
+      "description": "What does one model's card say? Reads https://modelspec.dev/api/models/<model_id>.json. Split mode returns only its display name. Needs an API key. Not current evidence or a ranking; use decide.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -109,7 +109,7 @@
     },
     {
       "name": "list_use_cases",
-      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment. Needs an API key. Not a decision: use decide for that.",
+      "description": "Which legacy profiles and ranking rules exist? Returns https://modelspec.dev/api/rank/profiles.json with evidence floors and the neutrality commitment. Needs an API key. Use decide for decisions.",
       "input_schema": {
         "type": "object",
         "properties": {}
@@ -117,7 +117,7 @@
     },
     {
       "name": "policy_check",
-      "description": "Which models, on which platforms, does my policy allow? Checks a policy document (licence, origin, data handling) per model and per platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model: use decide to choose among the ones that pass. Proxies POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body; Authorization is forwarded.",
+      "description": "Which models and platforms does my policy allow? Returns pass, fail or undetermined per model/platform for licence, origin and data handling; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model; use decide among passing rows. Proxies POST https://api.modelspec.dev/v1/policy-check with these arguments and Authorization.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
@@ -290,7 +290,7 @@
     },
     {
       "name": "decide",
-      "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Template weights are examples, not requirements. If the evidence basis or board does not match the task, say so: Arena web-dev evidence does not establish chat quality. p_best is the probability of ranking best under the Spec and evidence uncertainty, not the probability of matching the user's task or satisfying its requirements. Read reading when present. Present answer.kind=tied among all answer.members, including with_estate; tie-breakers are conditional. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. MCP decide returns a bounded answer of at most 16 KB, summary included. Drill down with evidence_for. Complete rows need fields:null; explanation.fetch names what was removed and how to fetch it. With explain unset or \"none\": explain=none, limit=10, fields model_rank, cost_per_task, estimates, p_best. summary or full also sends contributions and evidence. omitted counts removed records; explain=none does not compute eliminations. explicit fields, including null, is sent as given. Over 16 KB the body is a trimmed notice and explanation.fetch says how to resend. decision_id is a citation, not a stored lookup. task free text is rejected; where is an array. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields. Example. Answer: status partial, answer.kind tied (a/x, b/y), next_move.kind decide_by_testing. Right report: summary_for_user verbatim, each must_mention item, then next_move.steps for its candidates. Wrong: \"Start with a/x\", a shortlist, or a ranked table.",
+      "description": "Which models fit this job? Call decide early. Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Template weights are examples, not requirements. If the evidence basis or board does not match the task, say so: Arena web-dev evidence does not establish chat quality. p_best is the probability of ranking best under the Spec and evidence uncertainty, not the probability of matching the user's task or satisfying its requirements. Read reading when present. Present answer.kind=tied among all answer.members, including with_estate; tie-breakers are conditional. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). Not a router: call once per job or role, not per request; route among its chosen models. Proxies POST https://api.modelspec.dev/v1/decide. MCP decide returns a bounded answer of at most 16 KB, summary included. Drill down with evidence_for. Complete rows need fields:null; explanation.fetch names what was removed and how to fetch it. With explain unset or \"none\": explain=none, limit=10, fields=model_rank,cost_per_task,estimates,p_best. summary/full adds contributions and evidence. omitted counts removed records; explain=none skips eliminations. Explicit fields, including null, pass through. Oversize responses use a trimmed notice with explanation.fetch. decision_id is a citation, not a stored lookup. task free text is rejected; where is an array. Examples, recovery and budgets: https://modelspec.dev/agents.md. Null means unresearched or unpublished, never a guess. Sourced card values include a URL and read date. Returns the origin JSON and URL without invented fields. Example. Answer: status partial, answer.kind tied (a/x, b/y), next_move.kind decide_by_testing. Right report: summary_for_user verbatim, each must_mention item, then next_move.steps for its candidates. Wrong: \"Start with a/x\", a shortlist, or a ranked table.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$defs": {
@@ -1578,7 +1578,7 @@
     },
     {
       "name": "compare_models",
-      "description": "Which facts, offerings and evidence do 2 to 4 named models have? Returns snapshot facts, offerings, evidence and sources in caller order; unknown values stay null. Needs an API key (Authorization: Bearer). Costs 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model and does not rank or choose a winner. Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
+      "description": "What facts do 2 to 4 named models have? Returns sourced snapshot facts, offerings and evidence in caller order; unknowns stay null. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model and does not rank. Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} at most 16 KB.",
       "input_schema": {
         "additionalProperties": false,
         "properties": {
@@ -1602,8 +1602,120 @@
       }
     },
     {
+      "name": "hardware_fit",
+      "description": "Does this model fit this workload? Returns measured with an exact cited run; estimated with sourced inputs, formula, assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sku": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "device_count": {
+            "anyOf": [
+              {
+                "maximum": 1024,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "memory": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "maximum": 1000000,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional memory override in decimal GB per device"
+          },
+          "runtime": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantisation": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "batch": {
+            "anyOf": [
+              {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "context": {
+            "anyOf": [
+              {
+                "maximum": 1000000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    },
+    {
       "name": "vocab",
-      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions, values and synonyms. All tokens rank first; a content-token subset can match. A miss returns the nearest ids. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
+      "description": "What can a Spec say? Returns ids and task types. Needs an API key. One vocabulary lookup per unknown facet, then decide. Use decide to compare models. Starter includes a minimal Spec. Compact pages: at most 20 rows, no counts; empty pages end results. Search ranks all tokens before subsets; misses offer nearest ids. Split-mode full details exclude model facts and counts. ",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -1666,9 +1778,8 @@
     },
     {
       "name": "feedback",
-      "description": "Was a ModelSpec answer reliable? After you act on an answer, say whether it was reliable, unreliable, trustworthy, untrustworthy or confusing, by proxying POST https://api.modelspec.dev/v1/feedback. Include the answer's decision_id. Free, no key, and no Authorization header is forwarded. Not for questions or support. Never put a prompt, a key or personal details in note. The response says status \"recorded\" or \"not_recorded\" (storage is off until the privacy statement covers it).",
+      "description": "Was an answer reliable? Returns recorded/not_recorded for a rating after acting; include decision_id. Free, no key, and no Authorization header is forwarded. No prompts, keys or personal details in note; no questions or support. Storage stays off until covered by the privacy statement. Proxies POST https://api.modelspec.dev/v1/feedback.",
       "input_schema": {
-        "title": "ModelSpec feedback",
         "description": "POST this to https://api.modelspec.dev/v1/feedback. No key. One rating from a fixed set, optionally tied to the decision_id of a ModelSpec answer. Never include a prompt, a key, or anything that identifies a person. Reference: https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md",
         "type": "object",
         "additionalProperties": false,

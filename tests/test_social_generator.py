@@ -91,7 +91,7 @@ def _accuracy(path: Path, snapshot_id: str) -> None:
                 "layers": [
                     {"name": "deterministic_correctness", "status": "pass", "gating": True},
                     {"name": "freshness", "status": "pass", "gating": True},
-                    {"name": "golden_answers", "status": "pass", "gating": True},
+                    {"name": "frozen_image_engine_recall", "status": "pass", "gating": True},
                     {"name": "output_parity", "status": "pass", "gating": True},
                 ],
             },

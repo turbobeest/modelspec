@@ -1,0 +1,26 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________________ test_signal_identity_is_stable_across_midnight ________________
+tests/test_release_pipeline.py:203: in test_signal_identity_is_stable_across_midnight
+    assert (first.slug, first.branch) == (second.slug, second.branch)
+E   AssertionError: assert ('2026-09-26-...lab-alpha-r1') == ('2026-09-27-...lab-alpha-r1')
+E     
+E     At index 0 diff: '2026-09-26-lab-alpha' != '2026-09-27-lab-alpha'
+E     Use -v to get more diff
+____________ test_transport_recovers_push_success_before_pr_failure ____________
+tests/test_release_pipeline.py:370: in test_transport_recovers_push_success_before_pr_failure
+    assert recovered.returncode == 0, recovered.stderr
+E   AssertionError: Traceback (most recent call last):
+E       File "<stdin>", line 21, in <module>
+E       File "<stdin>", line 8, in run
+E       File "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+E         raise CalledProcessError(retcode, process.args,
+E                                  output=stdout, stderr=stderr)
+E     subprocess.CalledProcessError: Command '('git', 'push', '-u', 'origin', 'blog/2026-09-26-lab-alpha-r1')' returned non-zero exit status 1.
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['bash', '-euo', 'pipefail', '-c', 'if [ ! -f "$RUNNER_TEMP/review.json" ]; then exit 0; fi\ntes...mand \'(\'git\', \'push\', \'-u\', \'origin\', \'blog/2026-09-26-lab-alpha-r1\')\' returned non-zero exit status 1.\n').returncode
+=========================== short test summary info ============================
+FAILED tests/test_release_pipeline.py::test_signal_identity_is_stable_across_midnight
+FAILED tests/test_release_pipeline.py::test_transport_recovers_push_success_before_pr_failure
+2 failed, 19 deselected in 1.93s

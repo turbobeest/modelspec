@@ -18,7 +18,7 @@ import sys
 from typing import Any
 
 EXPECTED_TOOLS = (
-    "rank", "model_info", "list_use_cases", "policy_check", "decide", "compare_models", "vocab",
+    "rank", "model_info", "list_use_cases", "policy_check", "decide", "compare_models", "hardware_fit", "vocab",
     "feedback",
 )
 SNIPPET_BYTES = 200

@@ -671,3 +671,53 @@ def test_projection_gap_is_reported_but_does_not_invalidate_the_arm(tmp_path, mo
     assert report["arms"]["baseline"].get("status") != "INVALID"
     assert report["runs"][0]["status"] != "INVALID"
     assert "upstream_projection_gap" in (out / "ablation.md").read_text()
+
+
+@pytest.mark.parametrize("arm", ablation.ARMS)
+@pytest.mark.parametrize("name", ["hardware_fit", "compare_models"])
+def test_new_published_tools_pass_through_each_ablation_arm(arm, name):
+    from qa.ablation_proxy import PUBLISHED_COPY, converge_copy
+
+    published = PUBLISHED_COPY["tools"][name]
+    assert converge_copy(published, name, ablation.ARMS[arm]) == published
+
+
+@pytest.mark.parametrize("name", ["hardware_fit", "compare_models", "invented_tool"])
+def test_unknown_new_tool_copy_is_still_refused(name):
+    from qa.ablation_proxy import CopyDriftError, PUBLISHED_COPY, converge_copy
+
+    text = PUBLISHED_COPY["tools"].get(name, "Invented tool") + " Changed copy."
+    with pytest.raises(CopyDriftError, match="tool description drifted"):
+        converge_copy(text, name, ablation.ARMS["baseline"])
+
+
+def published_metadata_rpc(variants, *, omit=None):
+    from qa.ablation_proxy import PUBLISHED_COPY
+
+    def send(method, params, authorization):
+        assert authorization is None
+        result = ({"instructions": PUBLISHED_COPY["instructions"]} if method == "initialize" else {
+            "tools": [{"name": name, "description": text}
+                      for name, text in PUBLISHED_COPY["tools"].items() if name != omit]})
+        return rewrite({"id": 1, "result": result}, {"id": 1, "method": method},
+                       variants, no_fetch).message["result"]
+    return send
+
+
+@pytest.mark.parametrize("arm", ablation.ARMS)
+def test_current_published_inventory_preflights_without_dropping_new_tools(arm):
+    variants = ablation.ARMS[arm]
+    proxy = SimpleNamespace(variants=variants, audit=SimpleNamespace(snapshot=lambda: {"counters": {}}))
+    send = published_metadata_rpc(variants)
+    result = send("tools/list", {}, None)
+    names = {tool["name"] for tool in result["tools"]}
+    assert {"hardware_fit", "compare_models"} <= names
+    assert ablation.preflight(proxy, send=send, keyed=False) == {
+        "metadata": "passed", "decide": "skipped: no key"}
+
+
+def test_partial_current_inventory_remains_a_preflight_failure():
+    variants = ablation.ARMS["baseline"]
+    proxy = SimpleNamespace(variants=variants, audit=SimpleNamespace(snapshot=lambda: {"counters": {}}))
+    with pytest.raises(ValueError, match="tools/list"):
+        ablation.preflight(proxy, send=published_metadata_rpc(variants, omit="hardware_fit"), keyed=False)

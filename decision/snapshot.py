@@ -328,6 +328,7 @@ class ExplanationIndex(SnapshotIndex, Protocol):
     def corpus_evidence(self) -> Iterator[tuple[str, EvidenceValue]]: ...
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]: ...
     def hardware_device(self, device_id: str) -> Mapping[str, Any] | None: ...
+    def hardware_fit_records(self, model: str, sku: str) -> Sequence[Mapping[str, Any]]: ...
 
 
 # ── inputs ─────────────────────────────────────────────────────────────────
@@ -357,6 +358,8 @@ class SnapshotInputs:
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
     hardware: Sequence[Mapping[str, Any]] = ()
+    #: Exact workload measurements and estimate inputs, independently verified.
+    hardware_fit_records: Sequence[Mapping[str, Any]] = ()
 
 
 def _as_dict(record: Any) -> dict[str, Any]:
@@ -729,6 +732,7 @@ class _Compiler:
         self.fact_records: dict[str, dict[str, str]] = {}
         self.labs: Mapping[str, Any] = inputs.labs
         self.hardware: dict[str, dict[str, Any]] = {}
+        self.hardware_fit: list[dict[str, Any]] = []
         #: Premier models whose lab recorded a sourced null jurisdiction.
         self.jurisdiction_null_ok: set[str] = set()
 
@@ -1139,6 +1143,54 @@ class _Compiler:
             "sources": [{"source_id": sid} for sid in sorted(source_ids)],
         }
 
+    def add_hardware_fit(self, raw: Mapping[str, Any]) -> None:
+        """Admit a complete workload row using its value-bound second verification."""
+        from pydantic import ValidationError
+
+        from decision.hardware_fit import RECORD_ADAPTER, numeric_inputs
+
+        try:
+            record = RECORD_ADAPTER.validate_python(raw)
+        except ValidationError:
+            self._exclude(raw.get("model"), "quarantined (invalid hardware-fit record)")
+            return
+        value = record.model_dump(mode="json", exclude={"verification"})
+        numbers = numeric_inputs(record)
+        source_ids = sorted(set(record.source_ids) | {
+            sid for number in numbers for sid in number.source_ids})
+        inline = record.verification
+        if inline is not None and (inline.target.kind != "fact" or inline.target.id != record.id):
+            inline = None
+        reason = self._admit("fact", record.id, inline, value, source_ids)
+        if reason is None and self.as_of is not None and record.observed_at > self.as_of:
+            reason = "quarantined (future hardware-fit record)"
+        if reason is None and (record.model not in self.subjects
+                               or self.subjects[record.model]["kind"] != "model"):
+            reason = "quarantined (unknown model)"
+        if reason is None and record.sku not in self.hardware:
+            reason = "quarantined (unknown SKU)"
+        if reason is not None:
+            self._exclude(record.model, reason)
+            return
+        winning = self._verification("fact", record.id, inline, value)
+        retained = {**value, "verification": winning}
+        if record.id in self.records and self.records[record.id] != retained:
+            raise SnapshotBuildError(f"duplicate record ID {record.id}")
+        self.records[record.id] = retained
+        for number in numbers:
+            shared = {"id": number.record_id, "kind": "hardware_fit_input", "value": number.value,
+                      "sources": [{"source_id": sid} for sid in sorted(set(number.source_ids))]}
+            existing = self.records.get(number.record_id)
+            parents = set()
+            if existing is not None:
+                identity = {key: item for key, item in existing.items() if key != "verified_by_records"}
+                if identity != shared:
+                    raise SnapshotBuildError(f"duplicate record ID {number.record_id}")
+                parents.update(existing["verified_by_records"])
+            parents.add(record.id)
+            self.records[number.record_id] = {**shared, "verified_by_records": sorted(parents)}
+        self.hardware_fit.append(retained)
+
     def content(self, as_of: date | None, premier: Iterable[str] | None = None) -> dict[str, Any]:
         """The snapshot content. With ``premier``, the lineup is the premier set.
 
@@ -1176,6 +1228,16 @@ class _Compiler:
             sources.update(device["source_ids"])
             if device["record_id"] is not None:
                 record_ids.add(device["record_id"])
+        hardware_fit = sorted((row for row in self.hardware_fit if row["model"] in kept),
+                              key=lambda row: row["id"])
+        for row in hardware_fit:
+            sources.update(row["source_ids"])
+            record_ids.add(row["id"])
+            from decision.hardware_fit import RECORD_ADAPTER, numeric_inputs
+
+            for number in numeric_inputs(RECORD_ADAPTER.validate_python(row)):
+                sources.update(number.source_ids)
+                record_ids.add(number.record_id)
         excluded: Counter[str] = Counter()
         for sid, counts in self.excluded.items():
             if sid is None or sid in kept or sid in subscription_ids:
@@ -1249,6 +1311,14 @@ class _Compiler:
                 self.subjects[sid]["model"] for sid in kept
                 if self.subjects[sid]["kind"] == "model"
             )
+        retained_fit_ids = {row["id"] for row in hardware_fit}
+        retained_records = {}
+        for rid in record_ids:
+            record = self.records[rid]
+            if record.get("kind") == "hardware_fit_input":
+                record = {**record, "verified_by_records": sorted(
+                    set(record["verified_by_records"]) & retained_fit_ids)}
+            retained_records[rid] = record
         content = {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
@@ -1259,6 +1329,7 @@ class _Compiler:
             "benchmark_domains": domains,
             "capability": capability,
             **({"hardware": dict(sorted(self.hardware.items()))} if self.hardware else {}),
+            **({"hardware_fit_records": hardware_fit} if hardware_fit else {}),
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
@@ -1266,7 +1337,7 @@ class _Compiler:
             # belongs to a kept subject, so a reader can tell "none of this
             # model's" from a snapshot that predates the key.
             **({"held_back": held_back} if excluded else {}),
-            "record_table": _pack_records({r: self.records[r] for r in record_ids}),
+            "record_table": _pack_records(retained_records),
             "fact_records": {
                 sid: rows
                 for sid, rows in self.fact_records.items()
@@ -1445,6 +1516,8 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_evidence(e)
     for device in inputs.hardware:
         c.add_hardware(device)
+    for record in inputs.hardware_fit_records:
+        c.add_hardware_fit(record)
     return c
 
 
@@ -1596,12 +1669,18 @@ def collect_repo(root: Path) -> SnapshotInputs:
                 verifications.append(json.loads(line))
     from decision.labs import load_labs
 
+    fit_path = root / "hardware" / "fit" / "records.yaml"
+    fit_records = yaml.safe_load(fit_path.read_text(encoding="utf-8")) if fit_path.is_file() else []
+    if fit_records is None:
+        fit_records = []
+    if not isinstance(fit_records, list) or any(not isinstance(row, dict) for row in fit_records):
+        raise SnapshotBuildError(f"{fit_path}: hardware-fit records must be a list of objects")
     return SnapshotInputs(models=models, offerings=offerings, subscriptions=subscriptions,
                           evidence=evidence, sources=sources,
                           benchmark_domains=domains, benchmark_metadata=metadata,
                           benchmark_refinements=refinements,
                           verifications=verifications,
-                          labs=load_labs(root),
+                          labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
                                     if not path.name.startswith("_")])
@@ -1925,6 +2004,7 @@ class LoadedSnapshot:
         )
         self._sources: dict[str, str] = dict(content["sources"])
         self._hardware = content.get("hardware") or {}
+        self._hardware_fit = tuple(content.get("hardware_fit_records") or ())
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
         self.explanation_rebuild_required = (
@@ -2311,6 +2391,10 @@ class LoadedSnapshot:
     def hardware_device(self, device_id: str) -> Mapping[str, Any] | None:
         """Sourced memory metadata, unknown for snapshots built before MODEL-348."""
         return self._hardware.get(device_id)
+
+    def hardware_fit_records(self, model: str, sku: str) -> tuple[Mapping[str, Any], ...]:
+        """Admitted measurements and inputs for one model/SKU, without guessing defaults."""
+        return tuple(row for row in self._hardware_fit if row["model"] == model and row["sku"] == sku)
 
     def facet_ids(self) -> tuple[str, ...]:
         return tuple(sorted(self._facts))

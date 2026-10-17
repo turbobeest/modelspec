@@ -30,9 +30,23 @@ export const TOOL_NAMES = [
   "policy_check",
   "decide",
   "compare_models",
+  "hardware_fit",
   "vocab",
   "feedback",
 ] as const;
+
+const hardwareIdentifier = z.string().min(1).max(512).regex(/\S/).nullable().optional();
+const hardwareFitInput = z.object({
+  model: hardwareIdentifier,
+  sku: hardwareIdentifier,
+  device_count: z.number().int().min(1).max(1024).nullable().optional(),
+  memory: z.number().positive().max(1_000_000).nullable().optional()
+    .describe("Optional memory override in decimal GB per device"),
+  runtime: hardwareIdentifier,
+  quantisation: hardwareIdentifier,
+  batch: z.number().int().min(1).max(1_000_000).nullable().optional(),
+  context: z.number().int().min(1).max(1_000_000_000).nullable().optional(),
+}).strict();
 
 const compareModelsInput = z.object({
   models: z.array(z.string().max(128).regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/))
@@ -729,8 +743,8 @@ function postInit(
 
 export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) {
   const authorization = incomingAuthorization(mcpCtx.requestInfo);
-  function missingKey(origin: string) {
-    if (env.MCP_REQUIRE_API_KEY === "false" || /^Bearer +\S+$/i.test(authorization ?? "")) return null;
+  function missingKey(origin: string, requireKey = false) {
+    if ((!requireKey && env.MCP_REQUIRE_API_KEY === "false") || /^Bearer +\S+$/i.test(authorization ?? "")) return null;
     return {
       origin,
       status: 401,
@@ -756,8 +770,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     if (address) headers.set("CF-Connecting-IP", address);
     return fetchOrigin(origin, { headers }, env.RANK);
   }
-  async function fetchDecision(origin: string, body: unknown) {
-    const refusal = missingKey(origin);
+  async function fetchDecision(origin: string, body: unknown, requireKey = false) {
+    const refusal = missingKey(origin, requireKey);
     if (refusal) return refusal;
     return fetchOrigin(origin, postInit(body, authorization), env.RANK);
   }
@@ -868,6 +882,18 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/compare-models`;
       return compareModelsResult(await fetchDecision(origin, args));
+    },
+  );
+
+  server.registerTool(
+    "hardware_fit",
+    {
+      description: agentCopy.tools.hardware_fit,
+      inputSchema: hardwareFitInput,
+    },
+    async (args) => {
+      const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/hardware-fit`;
+      return asToolResult(await fetchDecision(origin, args, true));
     },
   );
 
