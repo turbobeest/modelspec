@@ -47,6 +47,10 @@ def texts(copy: dict) -> dict[str, str]:
     }
     return {
         "index.html": page(f"<p>{entity.ONE_SENTENCE}</p>", org),
+        "about/index.html": page(
+            f"<h1>{entity.ABOUT_HEADING}</h1><p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>"
+            + "".join(f"<p>{claim.statement}</p>" for claim in entity.CLAIMS)
+        ),
         "method/index.html": page(
             f"<h1>Method</h1><p>{entity.ONE_SENTENCE} {entity.DISAMBIGUATION}</p>"
         ),
@@ -167,6 +171,7 @@ def test_the_sentence_must_open_the_first_paragraph(texts: dict[str, str], path:
 @pytest.mark.parametrize(
     "path",
     [
+        "about/index.html",
         "llms.txt",
         "index.md",
         "brand/index.html",
@@ -179,12 +184,35 @@ def test_each_registry_surface_requires_the_sentence(texts: dict[str, str], path
     assert any(f.surface == path and f.check == "presence.one_sentence" for f in sl.presence(texts))
 
 
-@pytest.mark.parametrize("path", ["method/index.html", "llms.txt"])
+@pytest.mark.parametrize("path", ["method/index.html", "llms.txt", "about/index.html"])
 def test_disambiguation_is_required(texts: dict[str, str], path: str) -> None:
     texts[path] = texts[path].replace(entity.DISAMBIGUATION, "")
     assert any(
         f.surface == path and f.check == "presence.disambiguation" for f in sl.presence(texts)
     )
+
+
+def test_the_about_page_is_linted_for_its_lead_and_its_claims(texts: dict[str, str]) -> None:
+    texts["about/index.html"] = page("<h1>About</h1><p>Something else.</p>")
+    findings = sl.presence(texts)
+    assert any(f.surface == "about/index.html" and f.check == "presence.one_sentence" for f in findings)
+    assert any(f.surface == "about/index.html" and f.check == "presence.disambiguation" for f in findings)
+    assert any(f.surface == "about/index.html" and f.check == "presence.lead" for f in findings)
+    assert any(f.surface == "about/index.html" and f.check == "presence.claim" for f in findings)
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    ["instructions for AI", "AI assistants should", "Instructions for AI assistants should read this."],
+)
+def test_assistant_instruction_phrases_are_banned(phrase: str) -> None:
+    findings = sl.lexicon({"about/index.html": f"<p>{phrase}</p>"}, {}, {})
+    assert findings and {f.check for f in findings} == {"lexicon.assistant-instructions"}
+
+
+def test_denying_assistant_instructions_does_not_lift_the_ban() -> None:
+    findings = sl.lexicon({"llms.txt": "There are no instructions for AI."}, {}, {})
+    assert any(f.check == "lexicon.assistant-instructions" for f in findings)
 
 
 @pytest.mark.parametrize(

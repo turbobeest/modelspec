@@ -436,6 +436,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- eligibility_as_of: {build.as_of.isoformat()}\n"
         f"- html: {MS_BASE}/\n"
         f"- decide: {MS_BASE}/decide/\n"
+        f"- about: {MS_BASE}/about/\n"
         f"- method: {MS_BASE}/method/\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
