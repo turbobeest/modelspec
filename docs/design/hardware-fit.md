@@ -47,7 +47,8 @@ The response states that the bound excludes runtime headroom.
 
 If every lower bound is at or below capacity and any headroom is absent, the
 response is `undetermined`. Its `missing` list names `runtime_headroom_bytes`
-and identifies the devices that need sourced headroom. Equality remains
+and identifies the devices that need sourced headroom, or reports their count
+for large topologies. Equality remains
 `undetermined`, since runtime memory has not been established. A lower bound
 can never produce `likely`. Only a full estimate can produce that verdict.
 Exact measurements keep their existing behavior and take precedence over

@@ -4551,9 +4551,27 @@ components:
       required: [weights_bytes, kv_bytes_per_token, runtime_headroom_bytes, device, kv_cache_bytes, required_bytes, margin_bytes]
       type: object
     HardwareFitEstimatedResponse:
+      discriminator:
+        mapping: {full: '#/components/schemas/HardwareFitFullEstimatedResponse', lower_bound: '#/components/schemas/HardwareFitLowerBoundEstimatedResponse'}
+        propertyName: basis
+      oneOf:
+      - {$ref: '#/components/schemas/HardwareFitFullEstimatedResponse'}
+      - {$ref: '#/components/schemas/HardwareFitLowerBoundEstimatedResponse'}
+    HardwareFitExhaustedCredits:
       additionalProperties: false
       properties:
-        hardware_fit_version: {const: '1.0', default: '1.0', type: string}
+        exhausted: {const: true, type: boolean}
+        available: {type: integer}
+        needed: {type: integer}
+        unit: {const: credit, type: string}
+        message: {type: string}
+        buy: {type: string}
+      required: [exhausted, available, needed, unit, message, buy]
+      type: object
+    HardwareFitFullEstimatedResponse:
+      additionalProperties: false
+      properties:
+        hardware_fit_version: {const: '2.0', default: '2.0', type: string}
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
@@ -4565,9 +4583,6 @@ components:
           - {$ref: '#/components/schemas/HardwareFitExhaustedCredits'}
           - {type: 'null'}
         status: {const: estimated, type: string}
-        estimated_fit:
-          enum: [likely, unlikely]
-          type: string
         margin_bytes:
           anyOf:
           - {type: integer}
@@ -4578,26 +4593,19 @@ components:
         verification: {$ref: '#/components/schemas/HardwareFitVerification'}
         capacity_bytes: {$ref: '#/components/schemas/HardwareFitProvenance'}
         model_context_max: {$ref: '#/components/schemas/HardwareFitProvenance'}
-        per_device:
-          items: {$ref: '#/components/schemas/HardwareFitDeviceEstimate'}
-          type: array
         assumptions:
           items: {type: string}
           minItems: 1
           type: array
-      required: [snapshot, request, sources, status, estimated_fit, margin_bytes, formula, record_id, observed_at, verification, capacity_bytes, model_context_max,
-        per_device, assumptions]
-      type: object
-    HardwareFitExhaustedCredits:
-      additionalProperties: false
-      properties:
-        exhausted: {const: true, type: boolean}
-        available: {type: integer}
-        needed: {type: integer}
-        unit: {const: credit, type: string}
-        message: {type: string}
-        buy: {type: string}
-      required: [exhausted, available, needed, unit, message, buy]
+        basis: {const: full, type: string}
+        estimated_fit:
+          enum: [likely, unlikely]
+          type: string
+        per_device:
+          items: {$ref: '#/components/schemas/HardwareFitDeviceEstimate'}
+          type: array
+      required: [snapshot, request, sources, status, margin_bytes, formula, record_id, observed_at, verification, capacity_bytes, model_context_max, assumptions,
+        basis, estimated_fit, per_device]
       type: object
     HardwareFitRequest:
       additionalProperties: false
@@ -4626,10 +4634,74 @@ components:
           - {maximum: 1000000000, minimum: 1, type: integer}
           - {type: 'null'}
       type: object
+    HardwareFitHeadroomNotRequired:
+      additionalProperties: false
+      properties:
+        status: {const: not_required, default: not_required, type: string}
+        reason: {default: Runtime headroom is not required to establish this lower bound., maxLength: 512, minLength: 1, pattern: \S, type: string}
+      type: object
+    HardwareFitLowerBoundDeviceEstimate:
+      additionalProperties: false
+      properties:
+        device: {minimum: 0, type: integer}
+        weights_bytes: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+        kv_bytes_per_token: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+        runtime_headroom_bytes:
+          anyOf:
+          - {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
+          - {$ref: '#/components/schemas/HardwareFitHeadroomNotRequired'}
+        kv_cache_bytes:
+          anyOf:
+          - {minimum: 0, type: integer}
+          - {minimum: 0, type: number}
+        lower_bound_bytes:
+          anyOf:
+          - {minimum: 0, type: integer}
+          - {minimum: 0, type: number}
+        margin_bytes:
+          anyOf:
+          - {type: integer}
+          - {type: number}
+      required: [device, weights_bytes, kv_bytes_per_token, runtime_headroom_bytes, kv_cache_bytes, lower_bound_bytes, margin_bytes]
+      type: object
+    HardwareFitLowerBoundEstimatedResponse:
+      additionalProperties: false
+      properties:
+        hardware_fit_version: {const: '2.0', default: '2.0', type: string}
+        endpoint: {const: hardware-fit, default: hardware-fit, type: string}
+        snapshot: {type: string}
+        request: {$ref: '#/components/schemas/HardwareFitRequest'}
+        sources:
+          items: {$ref: '#/components/schemas/HardwareFitCitation'}
+          type: array
+        credits: *id045
+        status: {const: estimated, type: string}
+        margin_bytes:
+          anyOf:
+          - {type: integer}
+          - {type: number}
+        formula: {type: string}
+        record_id: {maxLength: 512, minLength: 1, pattern: \S, type: string}
+        observed_at: {format: date, type: string}
+        verification: {$ref: '#/components/schemas/HardwareFitVerification'}
+        capacity_bytes: {$ref: '#/components/schemas/HardwareFitProvenance'}
+        model_context_max: {$ref: '#/components/schemas/HardwareFitProvenance'}
+        assumptions:
+          items: {type: string}
+          minItems: 1
+          type: array
+        basis: {const: lower_bound, type: string}
+        estimated_fit: {const: unlikely, type: string}
+        per_device:
+          items: {$ref: '#/components/schemas/HardwareFitLowerBoundDeviceEstimate'}
+          type: array
+      required: [snapshot, request, sources, status, margin_bytes, formula, record_id, observed_at, verification, capacity_bytes, model_context_max, assumptions,
+        basis, estimated_fit, per_device]
+      type: object
     HardwareFitMeasuredResponse:
       additionalProperties: false
       properties:
-        hardware_fit_version: {const: '1.0', default: '1.0', type: string}
+        hardware_fit_version: {const: '2.0', default: '2.0', type: string}
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
@@ -4701,7 +4773,7 @@ components:
     HardwareFitUndeterminedResponse:
       additionalProperties: false
       properties:
-        hardware_fit_version: {const: '1.0', default: '1.0', type: string}
+        hardware_fit_version: {const: '2.0', default: '2.0', type: string}
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
@@ -4765,7 +4837,7 @@ components:
       properties:
         hardware_fit_version:
           type: string
-          enum: ['1.0']
+          enum: ['2.0']
         endpoint:
           type: string
           enum: [hardware-fit]

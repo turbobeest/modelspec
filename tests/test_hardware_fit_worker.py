@@ -6,7 +6,7 @@ import json
 import pytest
 
 from tests.test_decide_worker import KEY
-from tests.test_hardware_fit import REQUEST, fixture_snapshot, hardware_fit_record
+from tests.test_hardware_fit import REQUEST, assess, fixture_snapshot, hardware_fit_record, lower_bound_record
 from tests.test_x402 import _Req, _entry_env, entry
 
 
@@ -36,7 +36,7 @@ def test_hardware_fit_refuses_keyless_requests_even_with_a_valid_visit_token(
 
     assert response.status == 401, response.json()
     assert response.json()["error"]["code"] == "missing_api_key"
-    assert response.json()["hardware_fit_version"] == "1.0"
+    assert response.json()["hardware_fit_version"] == "2.0"
     assert "contract_version" not in response.json()
     assert worker.env.ACCESS.store.data == {}
 
@@ -55,6 +55,29 @@ def _keyed_worker(entry, **overrides):
     )
     asyncio.run(worker.env.ACCESS.put(access_keys.storage_name(key), json.dumps(record.to_json())))
     return worker, {"Authorization": "Bearer " + key}
+
+
+@pytest.mark.parametrize("bundled", [False, True])
+def test_keyed_worker_returns_the_lower_bound_assessment_unchanged(entry, monkeypatch, bundled):
+    from decision.snapshot import load_snapshot_bytes
+
+    compiled = fixture_snapshot([lower_bound_record()], memory_gb=32, built=True)
+    snapshot_bytes = compiled.to_bytes(key=KEY)
+    snapshot = load_snapshot_bytes(snapshot_bytes, key=KEY)
+    expected_status, expected_body = assess(snapshot=snapshot)
+    assert expected_body["status"] == "estimated"
+    assert expected_body["basis"] == "lower_bound"
+
+    async def fetch_snapshot(_etag):
+        return entry._Fetched(200, "etag", snapshot_bytes)
+
+    monkeypatch.setattr(entry, "_snapshot_fetcher", lambda _url: fetch_snapshot)
+    if bundled:
+        monkeypatch.setattr(entry, "_bundled_decision_snapshot", snapshot)
+    worker, headers = _keyed_worker(entry)
+    response = asyncio.run(worker.fetch(_Req("/v1/hardware-fit", REQUEST, headers=headers)))
+    assert response.status == expected_status
+    assert response.json() == expected_body
 
 
 @pytest.mark.parametrize("bundled", [False, True])
@@ -81,7 +104,7 @@ def test_hardware_fit_answers_from_a_verified_fetched_or_bundled_snapshot(
 
     assert response.status == 200, response.json()
     assert response.json()["status"] == assessment
-    assert response.json()["hardware_fit_version"] == "1.0"
+    assert response.json()["hardware_fit_version"] == "2.0"
     assert response.json()["endpoint"] == "hardware-fit"
     assert response.json()["snapshot"].startswith("snap_")
     assert "contract_version" not in response.json()
@@ -105,7 +128,7 @@ def test_hardware_fit_transport_refusals_keep_its_own_contract(entry, raw, statu
     response = asyncio.run(worker.fetch(_Req("/v1/hardware-fit", raw)))
 
     assert response.status == status, response.json()
-    assert response.json()["hardware_fit_version"] == "1.0"
+    assert response.json()["hardware_fit_version"] == "2.0"
     assert response.json()["endpoint"] == "hardware-fit"
     assert response.json()["error"]["code"] == code
     assert "contract_version" not in response.json()
@@ -117,7 +140,7 @@ def test_hardware_fit_missing_snapshot_returns_a_retryable_refusal(entry):
     response = asyncio.run(worker.fetch(_Req("/v1/hardware-fit", {}, headers=headers)))
 
     assert response.status == 503, response.json()
-    assert response.json()["hardware_fit_version"] == "1.0"
+    assert response.json()["hardware_fit_version"] == "2.0"
     assert response.json()["error"]["code"] == "no_snapshot"
     assert int(response.headers["retry-after"]) > 0
 
@@ -135,7 +158,7 @@ def test_hardware_fit_requires_funding_for_a_keyed_machine_while_human_gate_is_o
     )))
 
     assert response.status == 402, response.json()
-    assert response.json()["hardware_fit_version"] == "1.0"
+    assert response.json()["hardware_fit_version"] == "2.0"
     assert response.json()["error"]["code"] == "payment_required"
 
 
@@ -196,7 +219,7 @@ def test_hardware_fit_charges_existing_full_decision_price_and_refunds_refusals(
     worker.env = env
 
     async def answer(*_args, **_kwargs):
-        body = {"hardware_fit_version": "1.0", "endpoint": "hardware-fit", "snapshot": None}
+        body = {"hardware_fit_version": "2.0", "endpoint": "hardware-fit", "snapshot": None}
         if assessment is None:
             body["error"] = {"code": "invalid_request", "message": "Bad type"}
         else:

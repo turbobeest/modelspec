@@ -725,6 +725,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Does this model fit this workload? "
             "Returns measured with an exact cited run; estimated with sourced inputs, formula, "
             "assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. "
+            "Estimates use basis full with sourced headroom, or basis lower_bound for unlikely only. "
+            "Missing headroom cannot establish likely. "
             "Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. "
             f"{price([w['decide.full']], tiers)} "
             "It doesn't choose a model. "
