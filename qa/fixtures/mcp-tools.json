@@ -4,9 +4,9 @@
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
     "mcp/test/fixtures/decide-budget.json": "f31563680b34217d82e0732fb14923d55336d6572d6872b4ede2f74c6bbeeaa6",
     "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
-    "api/worker/openapi.yaml": "29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05",
+    "api/worker/openapi.yaml": "9c7150f9687372170ec48f8df95e6eaff6ba9664ccacbe76e3ee212dd082ea14",
     "docs/agents.md": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
-    "mcp/src/agent-copy.json": "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
+    "mcp/src/agent-copy.json": "0618ceb1e4cc7e951378ce188f2b061327c61c02da5bf53d9f099be7a5befc6a"
   },
   "tools": [
     {
@@ -1603,7 +1603,7 @@
     },
     {
       "name": "hardware_fit",
-      "description": "Does this model fit this workload? Returns measured with an exact cited run; estimated with sourced inputs, formula, assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit.",
+      "description": "Does this workload fit? Returns measured for an exact cited run, estimated with sources, or undetermined. Uses basis full with sourced headroom, or basis lower_bound for unlikely only. Missing headroom cannot establish likely. Estimates never prove fit. Memory is decimal GB per device, never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit.",
       "input_schema": {
         "additionalProperties": false,
         "properties": {

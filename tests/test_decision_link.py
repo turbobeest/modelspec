@@ -85,7 +85,7 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
 def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
     # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "0618ceb1e4cc7e951378ce188f2b061327c61c02da5bf53d9f099be7a5befc6a"
     assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
