@@ -9,7 +9,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline import brand, live as live_site, social_cards, structured_data  # noqa: E402
+from pipeline import brand, live as live_site, social_cards, structured_data, surface_lint  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +58,17 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': readable(b'v1 pricing'),
         'dist/modelspec/method/index.html': readable(b'v1 method'),
+        'dist/modelspec/use-cases/index.html': readable(b'use-case index'),
+        'dist/modelspec/use-cases/coding/budget-coding/index.html': readable(b'coding example'),
+        'dist/modelspec/use-cases/coding/coding-fastest/index.html': (
+            b'<meta name="robots" content="noindex, follow">' + readable(b'No recommendation')
+        ),
+        'dist/modelspec/sitemap.xml': (
+            b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            b'<url><loc>https://modelspec.dev/use-cases/</loc><lastmod>2026-09-23</lastmod></url>'
+            b'<url><loc>https://modelspec.dev/use-cases/coding/budget-coding/</loc>'
+            b'<lastmod>2026-09-23</lastmod></url></urlset>'
+        ),
         'dist/modelspec/orchestrators/index.html': readable(b'v1 orchestrator recipe'),
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
         'dist/modelspec/graph/vendor/three.min.js': b'three',
@@ -145,6 +156,17 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert b'/feedback/' in live['modelspec/sitemap.xml']
     assert page('modelspec/brand/index.html') == readable(b'brand kit page')
     assert b'/brand/' in live['modelspec/sitemap.xml']
+    for rel in ('use-cases/index.html', 'use-cases/coding/budget-coding/index.html',
+                'use-cases/coding/coding-fastest/index.html'):
+        assert page('modelspec/' + rel) == fixture['dist/modelspec/' + rel], rel
+    use_case_entries = {
+        url: stamp for url, stamp in surface_lint.sitemap_entries(live['modelspec/sitemap.xml'].decode())
+        if url.startswith('https://modelspec.dev/use-cases/')
+    }
+    assert use_case_entries == {
+        'https://modelspec.dev/use-cases/': '2026-09-23',
+        'https://modelspec.dev/use-cases/coding/budget-coding/': '2026-09-23',
+    }
 
 
 def test_live_workflow_keeps_api_legal_and_pricing():
