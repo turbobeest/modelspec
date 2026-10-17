@@ -1,0 +1,93 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_each_response_header_keeps_its_own_snapshot_during_concurrent_handover __
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-402/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a7b5e00>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_each_response_header_keeps_its_own_snapshot_during_concurrent_handover(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC)
+        worker, module, _ = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        old_id = load_snapshot_bytes(signed_pair[0], key=KEY, public_keys={}).snapshot_id
+        gate = module.access.gate
+    
+        async def interleave():
+            produced, release = asyncio.Event(), asyncio.Event()
+    
+            async def delayed_gate(**kwargs):
+                outcome = await gate(**kwargs)
+                if outcome.body.get("snapshot") == old_id:
+                    produced.set()
+                    await release.wait()
+                return outcome
+    
+            monkeypatch.setattr(module.access, "gate", delayed_gate)
+            headers = {"Authorization": "Bearer " + API_KEY}
+            first = asyncio.create_task(worker.fetch(_Req("/v1/decide", SPEC, headers=headers)))
+            try:
+                await produced.wait()
+                utc_clock[0][0] = BOUNDARY
+                second = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+            finally:
+                release.set()
+                before = await first
+            assert before.status == second.status == 200
+            assert before.json()["snapshot"] == old_id
+            assert before.headers["x-modelspec-snapshot"] == old_id
+            assert second.headers["x-modelspec-snapshot"] == second.json()["snapshot"]
+            assert second.json()["snapshot"] != old_id
+    
+>       asyncio.run(asyncio.wait_for(interleave(), timeout=5))
+
+tests/test_snapshot_successor.py:348: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:204: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:127: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:488: in wait_for
+    return await fut
+           ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def interleave():
+        produced, release = asyncio.Event(), asyncio.Event()
+    
+        async def delayed_gate(**kwargs):
+            outcome = await gate(**kwargs)
+            if outcome.body.get("snapshot") == old_id:
+                produced.set()
+                await release.wait()
+            return outcome
+    
+        monkeypatch.setattr(module.access, "gate", delayed_gate)
+        headers = {"Authorization": "Bearer " + API_KEY}
+        first = asyncio.create_task(worker.fetch(_Req("/v1/decide", SPEC, headers=headers)))
+        try:
+            await produced.wait()
+            utc_clock[0][0] = BOUNDARY
+            second = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+        finally:
+            release.set()
+            before = await first
+        assert before.status == second.status == 200
+        assert before.json()["snapshot"] == old_id
+>       assert before.headers["x-modelspec-snapshot"] == old_id
+E       AssertionError: assert 'snap_31c8f35c2efc0746' == 'snap_71375f0b85d48b07'
+E         
+E         - snap_71375f0b85d48b07
+E         + snap_31c8f35c2efc0746
+
+tests/test_snapshot_successor.py:344: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_successor.py::test_each_response_header_keeps_its_own_snapshot_during_concurrent_handover
+1 failed in 0.59s

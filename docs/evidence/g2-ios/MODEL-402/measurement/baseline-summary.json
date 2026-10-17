@@ -1,0 +1,27 @@
+{
+  "fixture": "Same full frozen bundle; only successor snapshot/vocabulary omitted",
+  "baseline_bundled_data_python_bytes": 913357,
+  "wrangler_total_upload_kib": 9588.66,
+  "wrangler_gzip_upload_kib": 3011.64,
+  "memory_exit_code": 0,
+  "memory": {
+    "runtime": "Pyodide 0.28.3",
+    "before_bytes": 30212096,
+    "peak_bytes": 109331420,
+    "peak_mib": 104.26656723022461,
+    "wasm_peak_bytes": 62783488,
+    "wasm_peak_mib": 59.875,
+    "steady_bytes": 108911484,
+    "steady_mib": 103.86608505249023,
+    "live_non_wasm_bytes": 46127996,
+    "wasm_bytes": 62783488,
+    "requests": [
+      "POST /v1/decide",
+      "GET /v1/vocabulary",
+      "POST /v1/rank",
+      "POST /v1/policy-check"
+    ],
+    "limit_bytes": 125829120,
+    "peak_warning_bytes": 117440512
+  }
+}

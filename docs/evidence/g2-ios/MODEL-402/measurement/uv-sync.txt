@@ -1,0 +1,5 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool/bin/uv sync --project /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker --frozen --python 3.13
+Checked 16 packages in 0.37ms
+
+EXIT_CODE=0

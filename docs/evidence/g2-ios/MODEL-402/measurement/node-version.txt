@@ -1,0 +1,5 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --version
+v22.22.3
+
+EXIT_CODE=0
