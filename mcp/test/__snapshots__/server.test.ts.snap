@@ -1675,7 +1675,7 @@ takes its key and its plans with it.",
     "name": "hardware_fit",
   },
   {
-    "description": "What can a decide Spec say? Returns valid ids and task types. Needs an API key. Use for missing ids, not model comparisons. Starter includes a minimal Spec. Compact pages have at most 20 rows and no counts; an empty page ends results. Search ranks all tokens before subsets and offers nearest ids on a miss. Full split-mode details exclude per-model facts and counts. ",
+    "description": "What can a Spec say? Returns ids and task types. Needs an API key. One vocabulary lookup per unknown facet, then decide. Use decide to compare models. Starter includes a minimal Spec. Compact pages: at most 20 rows, no counts; empty pages end results. Search ranks all tokens before subsets; misses offer nearest ids. Split-mode full details exclude model facts and counts. ",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {

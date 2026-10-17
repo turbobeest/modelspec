@@ -747,11 +747,12 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Proxies POST {API}/v1/policy-check with these arguments and Authorization."
         ),
         "vocab": (
-            "What can a decide Spec say? Returns valid ids and task types. Needs an API key. "
-            "Use for missing ids, not model comparisons. "
-            "Starter includes a minimal Spec. Compact pages have at most 20 rows and no counts; "
-            "an empty page ends results. Search ranks all tokens before subsets and offers nearest ids "
-            "on a miss. Full split-mode details exclude per-model facts and counts. "
+            "What can a Spec say? Returns ids and task types. Needs an API key. "
+            "One vocabulary lookup per unknown facet, then decide. "
+            "Use decide to compare models. "
+            "Starter includes a minimal Spec. Compact pages: at most 20 rows, no counts; "
+            "empty pages end results. Search ranks all tokens before subsets; misses offer nearest ids. "
+            "Split-mode full details exclude model facts and counts. "
         ),
         "model_info": (
             "What does one model's card say? "

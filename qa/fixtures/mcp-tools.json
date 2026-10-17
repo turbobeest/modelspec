@@ -6,7 +6,7 @@
     "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
     "api/worker/openapi.yaml": "29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05",
     "docs/agents.md": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
-    "mcp/src/agent-copy.json": "c73f82ea0d7dfed16d736454763dfce8bd4bed9f866d2f201afdd0892627014b"
+    "mcp/src/agent-copy.json": "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
   },
   "tools": [
     {
@@ -1715,7 +1715,7 @@
     },
     {
       "name": "vocab",
-      "description": "What can a decide Spec say? Returns valid ids and task types. Needs an API key. Use for missing ids, not model comparisons. Starter includes a minimal Spec. Compact pages have at most 20 rows and no counts; an empty page ends results. Search ranks all tokens before subsets and offers nearest ids on a miss. Full split-mode details exclude per-model facts and counts. ",
+      "description": "What can a Spec say? Returns ids and task types. Needs an API key. One vocabulary lookup per unknown facet, then decide. Use decide to compare models. Starter includes a minimal Spec. Compact pages: at most 20 rows, no counts; empty pages end results. Search ranks all tokens before subsets; misses offer nearest ids. Split-mode full details exclude model facts and counts. ",
       "input_schema": {
         "type": "object",
         "properties": {
