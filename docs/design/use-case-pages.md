@@ -10,7 +10,7 @@ The index lives at `/use-cases/`. Each template has one canonical page at
 from `registry/templates.yaml` through `decision/templates.py`.
 The index groups categories by their registry kind, `use` or `constraint`,
 and lists every template, including examples without an answer.
-A shared footer links to the index. The top navigation stays as it is.
+The method page links to the index. The top navigation stays as it is.
 The live Pages composition must retain the directory and its sitemap entries.
 
 ## Public source and date
@@ -32,7 +32,9 @@ identical bytes. A live Decide result can differ because it uses current data.
 Load the public registry and validated template catalogue. Build and load
 an in-memory decision snapshot with the image date and the existing repository
 snapshot builder. Parse each template's expanded `spec` with `parse_spec`,
-then call `decision.engine.decide`, the engine used by `/v1/decide`.
+then call `decision.engine.decide`, the engine used by `/v1/decide`. The
+default registry also points at the public root during this operation because
+contract validation uses that default for enum values. Restore it afterward.
 No alternate ranking, cost sort, or ranking override is introduced.
 
 Template-specific copy comes directly from `name`, `tradeoff`, `purpose`,
@@ -52,10 +54,13 @@ Every page leads with the shared AoA entity sentence. A template page has its
 registry title and purpose, the public-image date, requirements with their
 registry reasons, preferences, the computed answer, and the template lesson.
 The answer shows all returned bands and their members. A tie stays a tie and
-shows the engine's cheapest, open-weights, and best-measured tie-breakers.
+shows the engine's cheapest, fastest, open-weights, and best-measured tie-breakers.
 The cheapest member is identified only as a tie-breaker. Intervals and P(best)
 retain the values and nulls supplied by the decision contract. Undetermined
 members are labelled as such and never promoted to recommendations.
+Partial answers explain missing evidence and unknown requirements. Engine
+warnings and omitted result-row counts remain visible. Bands retain every
+ranked model even when the engine limits the detailed result rows.
 
 A link opens `/decide/?template=<template-id>` with the template applied.
 Human lookup is free. Any CLI, API, or MCP access statement says that a key

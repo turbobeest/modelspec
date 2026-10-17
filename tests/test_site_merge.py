@@ -77,3 +77,25 @@ def test_modelspec_pages_do_not_name_benchgraph_dev(dist: Path) -> None:
         if NEEDLE in path.read_bytes():
             hits.append(rel)
     assert hits == []
+
+
+def test_use_case_pages_are_published_with_image_dates_and_method_discovery(dist: Path) -> None:
+    from pipeline import surface_lint
+    from decision.templates import load_templates
+
+    tree = dist / "modelspec"
+    templates = load_templates()
+    image_date = builder.use_case_image_date(ROOT).isoformat()
+    assert (tree / "use-cases/index.html").is_file()
+    assert 'href="/use-cases/"' in (tree / "method/index.html").read_text()
+    entries = dict(surface_lint.sitemap_entries((tree / "sitemap.xml").read_text()))
+    for template in templates:
+        path = f'/use-cases/{template["category"]}/{template["id"]}/'
+        page = surface_lint.Page((tree / path.lstrip("/") / "index.html").read_text())
+        url = "https://modelspec.dev" + path
+        if "noindex" in page.meta["robots"]:
+            assert url not in entries
+        else:
+            assert entries[url] == image_date
+        assert page.ld
+    assert entries["https://modelspec.dev/use-cases/"] == image_date
