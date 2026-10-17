@@ -27,6 +27,10 @@ GEMINI_OWNERSHIP_TEMPLATES = {
         "google-gemini-api/google/gemini-4-argon/global/standard",
     ): "326badec64e22fac17023b30796ba78ab8b6ea546b52aac4933f4341e2544866",
 }
+_VERTEX_MODEL_NAMES = {
+    "google/gemini-3-7-flash": "Gemini 3.7 Flash",
+    "google/gemini-3-8-flash": "Gemini 3.8 Flash",
+}
 
 
 @dataclass(frozen=True)
@@ -187,6 +191,9 @@ def _vertex(
     parts = subject.split("/")
     if len(parts) != 5 or parts[0] != "google-vertex-ai" or parts[3:] != ["global", "standard"]:
         return []
+    name = _VERTEX_MODEL_NAMES.get("/".join(parts[1:3]))
+    if name is None or name not in names:
+        return []
     kind = facet.removeprefix("offering.price.")
     batch = kind.startswith("batch_")
     suffix = " with Flex/Batch" if batch else ""
@@ -219,7 +226,7 @@ def _vertex(
             match = re.fullmatch(
                 rf"(.+?)\s*\*?\s+((?:through|starting) {_DATE})", row[0], re.IGNORECASE
             )
-            if match and match[1].rstrip(" *") in names:
+            if match and match[1].rstrip(" *") == name:
                 owner, period = match[1].rstrip(" *"), _period(match[2])
         if owner is None or period is None or row[2] != "Global":
             continue

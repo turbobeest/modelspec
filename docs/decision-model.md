@@ -94,7 +94,9 @@ only exact dated price phrases in declared paid price cells with slots. Every
 other byte remains fixed, including duplicate attributes, hidden elements,
 captions, and text outside the model section. Any page change outside those
 slots requires a reviewed template update; the weekly reader refuses until then.
-Vertex tables name the model and effective date in their own rows.
+Vertex tables name the model and effective date in their own rows. The reader
+binds each supported canonical model ID to its exact published row name;
+collector-supplied names cannot substitute another model's row.
 
 The [snapshot builder](decision-snapshot.md#dated-price-resolution) requires
 `as_of` for dated prices and selects one entry for each price facet. These

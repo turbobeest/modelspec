@@ -314,6 +314,29 @@ def test_vertex_exact_model_date_region_and_continuation_row(tmp_path, facet, va
     )
 
 
+@pytest.mark.parametrize(
+    ("model", "names"),
+    [
+        ("google/gemini-3-8-flash", ("Gemini 3.7 Flash",)),
+        ("other-lab/not-a-gemini", ("Gemini 3.7 Flash",)),
+        ("google/gemini-3-8-flash", ("Gemini 3.8 Flash", "Gemini 3.7 Flash")),
+    ],
+)
+def test_vertex_canonical_model_cannot_borrow_another_catalogue_name(tmp_path, model, names):
+    claim, regions = setup_claim(
+        tmp_path, VERTEX, value=1.5, start="2027-01-01",
+        subject=f"google-vertex-ai/{model}/global/standard", names=names,
+        url="https://cloud.google.com/vertex-ai/generative-ai/pricing",
+    )
+    queue = Queue(tmp_path / "verification")
+    queue.file(Claim.from_dict(claim.to_dict()), at=datetime(2026, 10, 17, tzinfo=UTC))
+    claim = next(iter(queue.filed().values()))
+    assert (
+        verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17)).outcome
+        != "verified"
+    )
+
+
 def test_weekly_reread_checks_future_row_and_preserves_schedule_on_rewrite(tmp_path):
     claim, regions = setup_claim(tmp_path)
     root = tmp_path / "repo"
