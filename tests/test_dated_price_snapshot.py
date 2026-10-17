@@ -219,7 +219,9 @@ def test_archived_and_out_of_lineup_prices_do_not_expire_the_live_snapshot():
     outside_rows = [dated_price(1, "2026-10-14", "2026-11-30", model_id=outside)]
     models = [model(MODEL), model(retired, lifecycle="retired"), model(outside)]
     offerings = [
-        offering(MODEL), offering(retired, facts=retired_rows), offering(outside, facts=outside_rows),
+        offering(MODEL),
+        offering(retired, facts=retired_rows),
+        offering(outside, facts=outside_rows),
     ]
     built = build_snapshot(
         SnapshotInputs(models=models, offerings=offerings, sources=SOURCES),

@@ -47,6 +47,19 @@ VERTEX = """<table><tr><th>Model</th><th>Type</th><th>Region</th>
 <td>$7.50</td><td>$7.50</td><td>N/A</td><td>N/A</td></tr></table>"""
 
 
+@pytest.fixture(autouse=True)
+def reviewed_fixture_context(monkeypatch):
+    from decision.dated_prices import GEMINI_OWNERSHIP_TEMPLATES
+
+    # Independent literal for this small fixture. Production admits only the
+    # separately reviewed primary-source context, checked by the data replay.
+    monkeypatch.setitem(
+        GEMINI_OWNERSHIP_TEMPLATES,
+        (URL, SUBJECT),
+        "1370b6417dc95a8194101d3bd60b63ade73674f4a6c77a8136765cfeff92e9cd",
+    )
+
+
 def setup_claim(
     tmp_path,
     html=ARGON,
@@ -177,6 +190,43 @@ def test_quoted_table_text_does_not_cite_the_actual_table(tmp_path):
     source = regions.sources["pricing"].model_dump(mode="json")
     source["cited_regions"] = [{"id": "page", "locator": {"kind": "css", "value": "#quoted-table"}}]
     regions = StoredRegions(regions.store, {"pricing": Source.model_validate(source)})
+    assert (
+        verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17)).outcome
+        != "verified"
+    )
+
+
+def test_foreign_paragraph_caption_cannot_assign_argons_sibling_table(tmp_path):
+    html = ARGON.replace(
+        "<div><devsite-selector>", "<p>Caption: Gemini 4 Argon Pro</p><div><devsite-selector>"
+    )
+    claim, regions = setup_claim(tmp_path, html)
+    result = verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17))
+    assert result.outcome != "verified"
+
+
+@pytest.mark.parametrize("change", ["prose", "caption", "link", "attribute", "header", "subject"])
+def test_gemini_requires_its_reviewed_complete_ownership_template(tmp_path, change):
+    html = ARGON
+    subject = SUBJECT
+    if change == "prose":
+        html = html.replace("Published prices.", "Published prices for a different model.")
+    elif change == "caption":
+        html = html.replace("<table>", "<table><caption>Gemini 4 Argon Pro</caption>")
+    elif change == "link":
+        html = html.replace(
+            'href="/gemini-api/docs/models/gemini-4-argon"',
+            'href="/gemini-api/docs/models/gemini-4-argon-pro"',
+        )
+    elif change == "attribute":
+        html = html.replace(
+            '<div class="models-section">', '<div class="models-section" data-model="other">'
+        )
+    elif change == "header":
+        html = html.replace("Free Tier", "Paid Tier")
+    else:
+        subject = SUBJECT.replace("/gemini-4-argon/", "/gemini-4-argon-pro/")
+    claim, regions = setup_claim(tmp_path, html, subject=subject)
     assert (
         verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17)).outcome
         != "verified"

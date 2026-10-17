@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -11,6 +13,23 @@ from decision.normalise import Document, Locator, Node, select_region_tables
 _DATE = r"([A-Z][a-z]+ [0-9]{1,2}, [0-9]{4})"
 _PERIOD = re.compile(rf"(through|starting) {_DATE}", re.IGNORECASE)
 _AMOUNT = r"\$([0-9]+(?:\.[0-9]+)?)"
+_GEMINI_URL = "https://ai.google.dev/gemini-api/docs/pricing"
+_DATED_SLOT = re.compile(rf"{_AMOUNT} ((?:through|starting) {_DATE})\.")
+_PRICE_LABELS = frozenset(
+    {
+        "Input price",
+        "Output price (including thinking tokens)",
+        "Context caching price",
+    }
+)
+# Reviewed against retained primary bytes dfbd1d4d...05025. Only dated prices
+# occupy parameter slots; ownership, captions, labels, and cell order cannot.
+GEMINI_OWNERSHIP_TEMPLATES = {
+    (
+        _GEMINI_URL,
+        "google-gemini-api/google/gemini-4-argon/global/standard",
+    ): "4857ca77be70e4ff2437edbc5bb98c9cb79fadc4cfa931e53a4ecfa5526facc5",
+}
 
 
 @dataclass(frozen=True)
@@ -31,6 +50,43 @@ def _text(node: Node) -> str:
             child if isinstance(child, str) else _text(child) for child in node.children
         ).split()
     )
+
+
+def _gemini_scope(wrapper: Node) -> list[Node | str]:
+    if wrapper.parent is None:
+        return []
+    siblings = wrapper.parent.children
+    start = next(i for i, node in enumerate(siblings) if node is wrapper)
+    scope = []
+    for node in siblings[start:]:
+        if node is not wrapper and isinstance(node, Node) and "models-section" in node.classes:
+            break
+        scope.append(node)
+    return scope
+
+
+def gemini_ownership_hash(scope: list[Node | str]) -> str:
+    """Versioned full DOM context with slots only in declared paid price cells."""
+
+    def encode(node: Node | str, price: bool = False):
+        if isinstance(node, str):
+            text = " ".join(node.split())
+            return _DATED_SLOT.sub("<dated-price>", text) if price else text
+        if node.tag == "td" and node.parent is not None and node.parent.tag == "tr":
+            cells = [
+                n for n in node.parent.children if isinstance(n, Node) and n.tag in {"td", "th"}
+            ]
+            price = len(cells) == 3 and node is cells[2] and _text(cells[0]) in _PRICE_LABELS
+        children = [encoded for child in node.children if (encoded := encode(child, price)) != ""]
+        return [node.tag, dict(sorted(node.attrs.items())), children]
+
+    context = {
+        "format": "gemini-price-context@1",
+        "nodes": [encoded for node in scope if (encoded := encode(node)) != ""],
+    }
+    return hashlib.sha256(
+        json.dumps(context, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    ).hexdigest()
 
 
 def _period(phrase: str) -> dict[str, str | None] | None:
@@ -88,22 +144,13 @@ def _gemini(
         headings = [n for n in wrapper.elements() if n.tag == "h2"]
         if len(headings) != 1 or _text(headings[0]) not in names:
             continue
-        # This template declares the model in a sibling models-section and its
-        # tiers in the next devsite-selector. A new model declaration ends it.
-        parent = wrapper.parent
-        if parent is None:
+        scope = _gemini_scope(wrapper)
+        if gemini_ownership_hash(scope) != GEMINI_OWNERSHIP_TEMPLATES.get((_GEMINI_URL, subject)):
             continue
-        siblings = [n for n in parent.children if isinstance(n, Node)]
-        for sibling in siblings[siblings.index(wrapper) + 1 :]:
-            if any(n.tag == "h2" for n in [sibling, *sibling.elements()]):
-                break
+        for sibling in scope:
+            if not isinstance(sibling, Node):
+                continue
             selectors = [n for n in [sibling, *sibling.elements()] if n.tag == "devsite-selector"]
-            tier_nodes = {id(n) for selector in selectors for n in selector.elements()}
-            if any(
-                n.tag in {"h1", "h2", "h3", "h4", "h5", "h6"} and id(n) not in tier_nodes
-                for n in [sibling, *sibling.elements()]
-            ):
-                break
             for selector in selectors:
                 for section in selector.children:
                     if not isinstance(section, Node) or section.tag != "section":

@@ -11,7 +11,6 @@ from decision.model import load_offerings
 from decision.sources import load_sources
 from tests.snapshot_records import fact, offering
 
-
 ROOT = Path(__file__).parents[1]
 GUARANTEED = {
     "offering.price.input",
