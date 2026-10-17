@@ -56,6 +56,10 @@ class Claim:
     proof: str
 
 
+#: Machine calls require this phrase. Pages render the registry sentences.
+MACHINE_KEY = "with a key"
+
+
 #: What ModelSpec may say about itself. Each is true over HTTP today; each
 #: proof is where a reader checks it. Nothing here mentions payment rails that
 #: are switched off (x402 is off until Jamie turns it on).
@@ -77,7 +81,8 @@ CLAIMS = (
           "can choose among the models it recommends.",
           f"{SITE}/method/"),
     Claim("access",
-          "People decide free on the board. Machines use the hosted API and the MCP server.",
+          "People decide free on the board. Machines use the hosted API and the MCP server "
+          f"{MACHINE_KEY}.",
           f"{SITE}/pricing/"),
 )
 
@@ -92,8 +97,8 @@ class Call:
 #: How a person or a machine calls ModelSpec. The hrefs are the live endpoints.
 CALLS = (
     Call("board", "People decide on the board.", BOARD),
-    Call("api", "Machines call the hosted API.", API_DECIDE),
-    Call("mcp", "Machines call the MCP server.", MCP_ENDPOINT),
+    Call("api", f"Machines call the hosted API {MACHINE_KEY}.", API_DECIDE),
+    Call("mcp", f"Machines call the MCP server {MACHINE_KEY}.", MCP_ENDPOINT),
 )
 
 #: Visible headings on /about/. The page prints these and nothing else of its own.

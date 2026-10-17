@@ -162,6 +162,61 @@ def test_organization_json_ld_matches_the_visible_text() -> None:
     assert nodes == structured_data.graph("/about/", ROOT, ROOT)
 
 
+_MACHINE_CALL = re.compile(r"Machines (?:call|use) the (?:hosted API|MCP server|CLI)\b")
+_CLI_CALL = re.compile(r"\b(?:call the CLI|Machines call the CLI|Machines use the CLI)\b")
+
+
+def _free_text(page: str) -> str:
+    chunks = re.findall(r'<ul class="free-list">(.*?)</ul>', page, flags=re.S)
+    if not chunks:
+        chunks = re.findall(r"<h2>What stays free</h2>\s*<ul\b[^>]*>(.*?)</ul>", page, flags=re.S)
+    return _norm(re.sub(r"<[^>]+>", " ", " ".join(chunks)))
+
+
+def _call_pages() -> dict[str, str]:
+    from pipeline import about
+
+    tiers = pricing.load_tiers(ROOT)
+    data = landing.build_data(str(ROOT), __import__("datetime").date.today())
+    return {
+        "/about/": about.page(tiers, ROOT),
+        "/pricing/": pricing.page(tiers),
+        "/pricing/ access off": pricing.page(tiers, access_enforced=False, x402_live=False, billing_live=False),
+        "/method/": method.page(data, method.SigningState((), None)),
+    }
+
+
+def test_machine_call_lines_require_a_key_and_stay_out_of_free_lists() -> None:
+    """API, MCP and CLI call lines are keyed, and none of them sit under a free list."""
+    key = "with a key"
+    problems: list[str] = []
+    if getattr(entity, "MACHINE_KEY", None) != key:
+        problems.append(f"registry MACHINE_KEY is {getattr(entity, 'MACHINE_KEY', None)!r}, not {key!r}")
+    api = next(call for call in entity.CALLS if call.id == "api")
+    mcp = next(call for call in entity.CALLS if call.id == "mcp")
+    access = next(claim for claim in entity.CLAIMS if claim.id == "access")
+    allowed = {api.statement, mcp.statement, access.statement}
+    allowed.update(call.statement for call in entity.CALLS if call.id == "cli")
+    for label, text in (("api call", api.statement), ("mcp call", mcp.statement), ("access claim", access.statement)):
+        if key not in text:
+            problems.append(f"{label} lacks {key!r}: {text}")
+    for call in entity.CALLS:
+        if call.id == "cli" and key not in call.statement:
+            problems.append(f"cli call lacks {key!r}: {call.statement}")
+    for path, page in _call_pages().items():
+        free = _free_text(page)
+        if any(statement in free for statement in allowed if statement):
+            problems.append(f"{path} free list contains a machine call line: {free}")
+        if _MACHINE_CALL.search(free) or _CLI_CALL.search(free) or re.search(r"\bCLI\b", free):
+            problems.append(f"{path} free list contains a machine call: {free}")
+        for block in _blocks(page):
+            if not (_MACHINE_CALL.search(block) or _CLI_CALL.search(block)):
+                continue
+            if block not in allowed or key not in block:
+                problems.append(f"{path} machine call line lacks the registry key wording: {block}")
+    assert problems == []
+
+
 def test_about_is_in_the_sitemap_with_a_lastmod() -> None:
     import xml.etree.ElementTree as ET
 
