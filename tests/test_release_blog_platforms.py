@@ -6,12 +6,8 @@ Drafts are views of the MODEL-224 sample breakdown. Nothing is posted.
 from __future__ import annotations
 
 import ast
-import importlib
 import re
-import subprocess
 from dataclasses import replace
-from html import unescape
-from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -20,14 +16,11 @@ from decision.excluded import excluded_sources
 from pipeline.social_cards import render_card_html
 from release_blog import platforms
 from release_blog.breakdown import to_bytes
-from release_blog.model import Breakdown, Cited
+from release_blog.model import Breakdown
 from release_blog.platforms import AUTOMATIC_POSTING, DraftImage, render_drafts
-from release_blog.render import _number, charts
+from release_blog.render import charts
 from release_blog.tone import refused_words
 
-_URL = re.compile(r"https?://\S+")
-_ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-_NUMBER = re.compile(r"(?<![\w.^])[$]?\d[\d,]*(?:\.\d+)?%?")
 _TEXT = re.compile(r"<text\b[^>]*>(.*?)</text>", re.DOTALL)
 _TITLE = re.compile(r"<title\b[^>]*>(.*?)</title>", re.DOTALL)
 _CHART = re.compile(r"<!-- chart -->.*?<!-- /chart -->", re.DOTALL)
@@ -48,68 +41,6 @@ def breakdown(tmp_path_factory) -> Breakdown:
         sample._write(root / "before.json.gz", with_new=False), public_keys=sample.PUBLIC
     )
     return sample._build(after, before)
-
-
-def _tokens(cited: Cited) -> set[str]:
-    found = set()
-    for value in (cited.value, abs(cited.value)):
-        shown = _number(value, cited.unit)
-        found.add(shown)
-        if shown.endswith("%"):
-            found.add(shown[:-1])
-        if shown.startswith("$"):
-            found.add(shown[1:])
-    return found
-
-
-def _allowed(breakdown: Breakdown) -> set[str]:
-    """Spellings of numbers the breakdown already holds."""
-    raw = breakdown.model_dump()
-    found: set[str] = set()
-
-    def walk(value) -> None:
-        if isinstance(value, dict) and "read_date" in value and "value" in value:
-            found.update(_tokens(Cited.model_validate(value)))
-            return
-        if isinstance(value, dict):
-            for item in value.values():
-                walk(item)
-        elif isinstance(value, list):
-            for item in value:
-                walk(item)
-
-    walk(raw)
-    found.add(str(breakdown.revision))
-    for offering in breakdown.cost.offerings:
-        for size in (offering.task.input, offering.task.output):
-            found.add(str(size))
-            found.add(f"{size:,}")
-    for row in breakdown.recheck.schedule:
-        found.add(str(row["day"]))
-    return found
-
-
-def _dates(breakdown: Breakdown) -> set[str]:
-    raw = breakdown.model_dump(mode="json")
-    return set(_ISO_DATE.findall(str(raw)))
-
-
-def _prepare(breakdown: Breakdown, text: str) -> str:
-    text = _URL.sub(" ", text)
-    text = _ISO_DATE.sub(" ", text)
-    for phrase in (breakdown.model.name, *breakdown.names.values()):
-        if any(character.isdigit() for character in phrase):
-            text = text.replace(phrase, " ")
-    return text
-
-
-def stray_numbers(breakdown: Breakdown, text: str) -> list[str]:
-    allowed = _allowed(breakdown)
-    return [
-        match.group(0)
-        for match in _NUMBER.finditer(_prepare(breakdown, text))
-        if match.group(0) not in allowed
-    ]
 
 
 def _visible(svg: str, *, keep_chart: bool) -> str:
@@ -133,133 +64,6 @@ def copy_text(draft) -> str:
     return "\n".join(parts)
 
 
-class _VisibleHTML(HTMLParser):
-    """Text a person can read. Stylesheet geometry stays out."""
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-        self._skip = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"style", "script", "metadata"}:
-            self._skip += 1
-        if self._skip:
-            return
-        for key, value in attrs:
-            if key in {"alt", "aria-label", "title"} and value:
-                self.parts.append(value)
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in {"style", "script", "metadata"} and self._skip:
-            self._skip -= 1
-
-    def handle_data(self, data: str) -> None:
-        if not self._skip and data.strip():
-            self.parts.append(data.strip())
-
-
-def _html_bits(document: str) -> list[str]:
-    parser = _VisibleHTML()
-    parser.feed(document)
-    return parser.parts
-
-
-def _chart_bits(svg: str) -> list[str]:
-    return [*_TEXT.findall(svg), *_TITLE.findall(svg), *_LABEL.findall(svg)]
-
-
-def _authorized(breakdown: Breakdown) -> list[str]:
-    """Sentences and chart labels the draft helpers actually render."""
-    parts = [
-        platforms._hook(breakdown),
-        breakdown.headline.text,
-        *[platforms._standing_line(breakdown, row) for row in breakdown.standing],
-        platforms._cost_line(breakdown) or "",
-        *platforms._comparisons(breakdown),
-        platforms._unread(breakdown) or "",
-        platforms._held(breakdown),
-        *platforms._unreported(breakdown),
-        platforms._speed(breakdown) or "",
-        platforms._domains(breakdown) or "",
-        *platforms._plans(breakdown),
-        platforms._facets(breakdown) or "",
-        platforms._inapplicable(breakdown) or "",
-        breakdown.disclosures.neutrality,
-        *platforms._hook_sources(breakdown),
-    ]
-    for svg in charts(breakdown).values():
-        parts.extend(_chart_bits(svg))
-    return [unescape(part).strip() for part in parts if part and part.strip()]
-
-
-_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
-
-
-def _units(text: str) -> list[str]:
-    found: list[str] = []
-    for block in unescape(text).split("\n"):
-        block = block.strip()
-        if not block:
-            continue
-        sentences = [part.strip() for part in _SENTENCE_BREAK.split(block) if part.strip()]
-        found.extend(sentences or [block])
-    return found
-
-
-def _draft_segments(draft) -> list[str]:
-    segments: list[str] = []
-    for text in (*draft.posts, draft.title, draft.submission, draft.rules, draft.note, draft.link):
-        segments.extend(_units(text))
-    for image in draft.images:
-        segments.extend(_units(image.alt))
-        segments.extend(unescape(bit).strip() for bit in _chart_bits(image.svg) if bit.strip())
-        if image.card is not None:
-            segments.extend(_units(image.card.headline))
-            segments.extend(_units(image.card.alt))
-            for bit in _html_bits(image.card.content):
-                segments.extend(_units(bit))
-        if image.html:
-            for bit in _html_bits(image.html):
-                segments.extend(_units(bit))
-    return [segment for segment in segments if segment]
-
-
-def untraced_segments(breakdown: Breakdown, draft) -> list[str]:
-    """Numeric copy that is not a substring of the fact it was rendered from.
-
-    A bare spelling such as ``70%`` does not authorize a different sentence.
-    The posted segment itself has to sit inside an authorized fact.
-    """
-    authorized = _authorized(breakdown)
-    found: list[str] = []
-    for segment in _draft_segments(draft):
-        if not _NUMBER.search(_prepare(breakdown, segment)):
-            continue
-        if any(segment in entry for entry in authorized):
-            continue
-        if segment not in found:
-            found.append(segment)
-    return found
-
-
-def _hook_from_model_225():
-    source = subprocess.check_output(
-        ["git", "show", "model-225-release-pipeline:release_blog/pipeline.py"],
-        cwd=Path(__file__).resolve().parents[1],
-        text=True,
-    )
-    hook = next(
-        node
-        for node in ast.parse(source).body
-        if isinstance(node, ast.FunctionDef) and node.name == "_platforms"
-    )
-    namespace: dict[str, object] = {"Path": Path, "importlib": importlib}
-    executable = compile(ast.Module(body=[hook], type_ignores=[]), "<807 hook>", "exec")
-    exec(executable, namespace)
-    return namespace["_platforms"]
-
-
 def _with_repeated_readings(breakdown: Breakdown, benchmark: str, repeats: int) -> Breakdown:
     rows = breakdown.claims_vs_evidence.claims
     original = next(row for row in rows if row.benchmark == benchmark)
@@ -272,10 +76,6 @@ def _with_repeated_readings(breakdown: Breakdown, benchmark: str, repeats: int) 
 
 def _svg(width: int, height: int, payload: int) -> str:
     return f'<svg width="{width}" height="{height}">{"x" * payload}</svg>'
-
-
-def test_a_number_absent_from_the_breakdown_is_rejected(breakdown) -> None:
-    assert stray_numbers(breakdown, "The held-back score is 99%.") == ["99%"]
 
 
 def test_sample_drafts_exist_for_every_platform(breakdown) -> None:
@@ -292,13 +92,6 @@ def test_sample_drafts_exist_for_every_platform(breakdown) -> None:
     assert all(draft.posted is False and draft.platform == name for name, draft in drafts.items())
     again = render_drafts(breakdown)
     assert [draft.posts for draft in again.values()] == [draft.posts for draft in drafts.values()]
-
-
-def test_sample_drafts_use_only_breakdown_numbers(breakdown) -> None:
-    for name, draft in render_drafts(breakdown).items():
-        assert stray_numbers(breakdown, copy_text(draft)) == [], name
-        dates = set(_ISO_DATE.findall(copy_text(draft)))
-        assert dates <= _dates(breakdown)
 
 
 def test_drafts_stay_neutral_and_never_name_an_excluded_source(breakdown) -> None:
@@ -403,81 +196,17 @@ def test_caller_can_supply_the_breakdown_url(breakdown) -> None:
 
 
 def test_platform_module_has_no_posting_client() -> None:
-    source = Path("release_blog/platforms.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
     modules: list[str] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            modules.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            modules.append(node.module)
+    for path in (Path("release_blog/platforms.py"), Path("release_blog/slots.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                modules.append(node.module)
     banned = ("requests", "httpx", "urllib", "tweepy", "praw", "socket", "http", "subprocess")
     for name in modules:
-        assert not any(name == item or name.startswith(item + ".") for item in banned)
-
-
-def test_model_225_hook_writes_the_six_drafts(breakdown, tmp_path) -> None:
-    """PR #807 calls this signature. The hook's return value is the contract."""
-    folder = tmp_path / "release"
-    folder.mkdir()
-    breakdown_path = tmp_path / "breakdown.json"
-    breakdown_path.write_bytes(to_bytes(breakdown))
-    message = _hook_from_model_225()(breakdown_path, folder, "lab-alpha")
-    assert message == "Platform drafts generated for manual review and posting."
-    social = folder / "social"
-    for name in ("x.txt", "linkedin.txt", "facebook.txt", "instagram.txt", "reddit.md", "hn.txt"):
-        assert (social / name).is_file(), name
-    linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
-    assert "https://modelspec.dev/blog/lab-alpha/" in linkedin
-    assert breakdown.disclosures.neutrality in linkedin
-
-
-def test_sample_drafts_trace_every_number_to_its_sentence(breakdown) -> None:
-    for name, draft in render_drafts(breakdown).items():
-        assert untraced_segments(breakdown, draft) == [], name
-
-
-def test_instagram_standing_chart_rejects_an_invented_percent(breakdown) -> None:
-    draft = render_drafts(breakdown)["instagram"]
-    images = []
-    for image in draft.images:
-        if image.role == "standing":
-            assert "<!-- chart -->" in image.svg
-            image = replace(
-                image,
-                svg=image.svg.replace("<!-- chart -->", "<!-- chart --><text>99%</text>", 1),
-            )
-        images.append(image)
-    found = untraced_segments(breakdown, replace(draft, images=tuple(images)))
-    assert any("99%" in item for item in found)
-
-
-def test_instagram_card_html_rejects_an_invented_percent(breakdown) -> None:
-    draft = render_drafts(breakdown)["instagram"]
-    image = draft.images[0]
-    assert image.card is not None
-    mutated = replace(image, card=replace(image.card, content="<p>The score is 99%.</p>"))
-    assert mutated.html is not None and "99%" in mutated.html
-    found = untraced_segments(breakdown, replace(draft, images=(mutated, *draft.images[1:])))
-    assert any("99%" in item for item in found)
-
-
-def test_held_back_score_cannot_be_rewritten_to_an_unrelated_percent(breakdown) -> None:
-    draft = render_drafts(breakdown)["x"]
-    posts = tuple(
-        "The held-back score is 70%." if "second key" in post else post for post in draft.posts
-    )
-    assert any(post == "The held-back score is 70%." for post in posts)
-    found = untraced_segments(breakdown, replace(draft, posts=posts))
-    assert any("70%" in item for item in found)
-
-
-def test_held_back_count_cannot_be_replaced_with_a_lab_percent(breakdown) -> None:
-    draft = render_drafts(breakdown)["x"]
-    posts = tuple(post.replace("quarantined: 1", "quarantined: 70%") for post in draft.posts)
-    assert any("quarantined: 70%" in post for post in posts)
-    found = untraced_segments(breakdown, replace(draft, posts=posts))
-    assert any("quarantined: 70%" in item for item in found)
+        assert not any(name == item or name.startswith(item + ".") for item in banned), name
 
 
 def test_nine_readings_keep_the_linkedin_url_and_disclosure(breakdown) -> None:
@@ -533,6 +262,216 @@ def test_instagram_rejects_a_card_over_eight_megabytes(breakdown, monkeypatch) -
     monkeypatch.setattr(platforms, "_square", huge)
     with pytest.raises(ValueError):
         render_drafts(breakdown)
+
+
+# Signed-fixture oracle. These strings are literals: the test does not format
+# them through the production helpers. Chart context is the slot's chart, not
+# the platform that happens to repeat it.
+_SNAPSHOT = "https://modelspec.dev/api/decision/snapshots/snap_ee376ecc9678d46b.json.gz"
+_LAB = "https://lab.example.com/alpha-launch"
+_BOARD = "https://board.example.org/results"
+_PRICE = "https://lab.example.com/pricing"
+_READ_LAB = "2026-09-20"
+_READ_SNAP = "2026-09-26"
+_HEADLINE = (
+    "Alpha 2.5 is in the leading band for software engineering; "
+    "independent readings sit beside the lab's figures"
+)
+_EXPECTED = {
+    ("model.name", "label", "Alpha 2.5", "", ""),
+    ("headline.text", "label", _HEADLINE, "", ""),
+    ("post.url", "link", "https://modelspec.dev/blog/lab-alpha/", "", ""),
+    ("claims.swe_bench_pro.claim", "hook", "70%", _LAB, _READ_LAB),
+    ("claims.swe_bench_pro.readings[0].value", "hook", "67.9%", _BOARD, _READ_LAB),
+    ("claims.swe_bench_pro.readings[0].difference", "hook", "2.1", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].band_size", "standing", "2", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].rank", "standing", "3", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].ranked_models", "standing", "3", _SNAPSHOT, _READ_SNAP),
+    ("cost.offerings[0].task.input", "cost", "40,000", _PRICE, _READ_SNAP),
+    ("cost.offerings[0].task.output", "cost", "4,000", _PRICE, _READ_SNAP),
+    ("cost.offerings[0].cost_per_task", "cost", "$0.112", _PRICE, _READ_SNAP),
+    ("claims.mmlu_pro.claim", "comparisons", "80%", _LAB, _READ_LAB),
+    ("claims.mmlu_pro.readings[0].value", "comparisons", "0.78", _BOARD, _READ_LAB),
+    ("claims.terminal_bench.claim", "comparisons", "50%", _LAB, _READ_LAB),
+    ("claims.terminal_bench.readings[0].value", "comparisons", "48%", _BOARD, _READ_LAB),
+    ("held_back.quarantined", "gaps", "1", _SNAPSHOT, _READ_SNAP),
+    ("claims.unreported.livecodebench.reading", "gaps", "72%", _BOARD, _READ_LAB),
+    ("claims.cursorbench.claim", "claims", "55%", _LAB, _READ_LAB),
+    ("claims.mmlu_pro.claim", "claims", "80%", _LAB, _READ_LAB),
+    ("claims.mmlu_pro.readings[0].value", "claims", "0.78", _BOARD, _READ_LAB),
+    ("claims.swe_bench_pro.claim", "claims", "70%", _LAB, _READ_LAB),
+    ("claims.swe_bench_pro.readings[0].value", "claims", "67.9%", _BOARD, _READ_LAB),
+    ("claims.terminal_bench.claim", "claims", "50%", _LAB, _READ_LAB),
+    ("claims.terminal_bench.readings[0].value", "claims", "48%", _BOARD, _READ_LAB),
+    ("standing[0].estimate.value", "standing.chart", "0.44", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].estimate.low", "standing.chart", "0.04", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].estimate.high", "standing.chart", "0.84", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].leaders[1].estimate.value", "standing.chart", "0.36", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].leaders[1].estimate.low", "standing.chart", "-0.30", _SNAPSHOT, _READ_SNAP),
+    ("standing[0].leaders[1].estimate.high", "standing.chart", "1.01", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].estimate.value", "standing.chart", "-0.31", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].estimate.low", "standing.chart", "-1.10", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].estimate.high", "standing.chart", "0.47", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[0].estimate.value", "standing.chart", "0.40", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[0].estimate.low", "standing.chart", "-0.66", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[0].estimate.high", "standing.chart", "1.47", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[1].estimate.value", "standing.chart", "0.17", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[1].estimate.low", "standing.chart", "-0.89", _SNAPSHOT, _READ_SNAP),
+    ("standing[1].leaders[1].estimate.high", "standing.chart", "1.23", _SNAPSHOT, _READ_SNAP),
+    ("standing.scale.-1", "standing.chart", "-1", _SNAPSHOT, _READ_SNAP),
+    ("standing.scale.0", "standing.chart", "0", _SNAPSHOT, _READ_SNAP),
+    ("standing.scale.1", "standing.chart", "1", _SNAPSHOT, _READ_SNAP),
+    ("cost.offerings[0].cost_per_task", "cost.chart", "$0.112", _PRICE, _READ_SNAP),
+}
+_SUPPLIER = "ModelSpec supplies evaluation services to this lab."
+_EARLY = "ModelSpec received early access without editorial conditions."
+
+
+def _posted(draft) -> str:
+    parts = [draft.text, draft.title, draft.submission, draft.note, draft.rules, draft.link]
+    for image in draft.images:
+        parts.append(image.alt)
+        parts.append(image.svg)
+        if image.html:
+            parts.append(image.html)
+    return "\n".join(parts)
+
+
+def _slot_rows(draft) -> set[tuple[str, str, str, str, str]]:
+    return {
+        (slot.fact_id, slot.chart, slot.formatted, slot.source_url, slot.read_date)
+        for slot in draft.manifest
+    }
+
+
+def test_signed_fixture_numbers_are_literal_fact_slots(breakdown) -> None:
+    drafts = render_drafts(breakdown)
+    found = set().union(*(_slot_rows(draft) for draft in drafts.values()))
+    assert found == _EXPECTED
+
+
+def test_source_url_and_read_date_are_in_each_platforms_copy(breakdown) -> None:
+    drafts = render_drafts(breakdown)
+    for name, draft in drafts.items():
+        blob = _posted(draft)
+        for fact_id, chart, _formatted, url, read in _slot_rows(draft):
+            if not url:
+                continue
+            assert url in blob, (name, fact_id, chart)
+            assert read in blob, (name, fact_id, chart)
+
+
+def test_disclosures_are_in_every_platforms_posted_copy(breakdown) -> None:
+    related = breakdown.model_copy(
+        update={
+            "disclosures": breakdown.disclosures.model_copy(
+                update={
+                    "supplier": _SUPPLIER,
+                    "early_access": _EARLY,
+                }
+            )
+        }
+    )
+    Breakdown.model_validate(related.model_dump(by_alias=True))
+    for name, draft in render_drafts(related).items():
+        blob = _posted(draft)
+        assert _SUPPLIER in blob, name
+        assert _EARLY in blob, name
+
+
+def test_instagram_standing_svg_rejects_a_claims_percent(breakdown, monkeypatch) -> None:
+    original = platforms.charts
+
+    def injected(b):
+        made = dict(original(b))
+        made["standing.svg"] = made["standing.svg"].replace("</svg>", "<text>70%</text></svg>", 1)
+        return made
+
+    monkeypatch.setattr(platforms, "charts", injected)
+    with pytest.raises(ValueError):
+        render_drafts(breakdown)
+
+
+def test_instagram_standing_html_rejects_a_claims_percent(breakdown, monkeypatch) -> None:
+    original = platforms.render_card_html
+
+    def injected(card):
+        html = original(card)
+        if card.filename == "instagram-standing.svg":
+            html = html.replace("</body>", "<p>70%</p></body>")
+        return html
+
+    monkeypatch.setattr(platforms, "render_card_html", injected)
+    with pytest.raises(ValueError):
+        render_drafts(breakdown)
+
+
+def test_instagram_standing_alt_rejects_a_claims_percent(breakdown, monkeypatch) -> None:
+    original = platforms._square_image
+
+    def injected(*args, **kwargs):
+        image = original(*args, **kwargs)
+        if image.role == "standing":
+            image = replace(image, alt=image.alt + " 70%")
+        return image
+
+    monkeypatch.setattr(platforms, "_square_image", injected)
+    with pytest.raises(ValueError):
+        render_drafts(breakdown)
+
+
+def test_hook_cannot_replace_the_independent_reading(breakdown, monkeypatch) -> None:
+    original = platforms._hook
+
+    def replaced(b):
+        return original(b).replace("67.9%", "70%")
+
+    monkeypatch.setattr(platforms, "_hook", replaced)
+    with pytest.raises(ValueError):
+        render_drafts(breakdown)
+
+
+def test_template_literal_cannot_add_a_number(breakdown, monkeypatch) -> None:
+    original = platforms._hook_sentence
+
+    def extra(b, piece):
+        original(b, piece)
+        piece.lit(" The extra figure is 70%.")
+
+    monkeypatch.setattr(platforms, "_hook_sentence", extra)
+    with pytest.raises(ValueError, match="template literal"):
+        render_drafts(breakdown)
+
+
+def test_cost_chart_rejects_a_number_from_the_claims_chart(breakdown, monkeypatch) -> None:
+    original = platforms.charts
+
+    def moved(b):
+        made = dict(original(b))
+        made["cost.svg"] = made["cost.svg"].replace("</svg>", "<text>67.9%</text></svg>", 1)
+        return made
+
+    monkeypatch.setattr(platforms, "charts", moved)
+    with pytest.raises(ValueError):
+        render_drafts(breakdown)
+
+
+def test_model_225_hook_uses_the_merged_pipeline(breakdown, tmp_path) -> None:
+    """The merged #807 module calls this signature. No local author branch."""
+    from release_blog.pipeline import _platforms
+
+    folder = tmp_path / "release"
+    folder.mkdir()
+    breakdown_path = tmp_path / "breakdown.json"
+    breakdown_path.write_bytes(to_bytes(breakdown))
+    message = _platforms(breakdown_path, folder, "lab-alpha")
+    assert message == "Platform drafts generated for manual review and posting."
+    social = folder / "social"
+    for name in ("x.txt", "linkedin.txt", "facebook.txt", "instagram.txt", "reddit.md", "hn.txt"):
+        assert (social / name).is_file(), name
+    linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
+    assert "https://modelspec.dev/blog/lab-alpha/" in linkedin
+    assert breakdown.disclosures.neutrality in linkedin
 
 
 def test_platform_byte_and_pixel_ceilings_follow_published_caps() -> None:
