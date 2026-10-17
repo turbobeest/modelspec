@@ -86,6 +86,16 @@ with `value`, `effective_from`, and `effective_until`. Dates become ISO strings,
 and an absent bound becomes JSON null. Changing either date invalidates the
 verification, even when the numeric price stays the same.
 
+Dated claims use the supported primary-source table readers without an
+undated-reader fallback. Gemini's unlabeled price tables additionally require
+a reviewed `gemini-price-context@1` ownership hash bound to the source URL and
+canonical offering. It hashes the original UTF-8 HTML before parsing, replacing
+only exact dated price phrases in declared paid price cells with slots. Every
+other byte remains fixed, including duplicate attributes, hidden elements,
+captions, and text outside the model section. Any page change outside those
+slots requires a reviewed template update; the weekly reader refuses until then.
+Vertex tables name the model and effective date in their own rows.
+
 The [snapshot builder](decision-snapshot.md#dated-price-resolution) requires
 `as_of` for dated prices and selects one entry for each price facet. These
 internal fields do not change the public decision response or its contract

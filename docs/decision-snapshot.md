@@ -53,12 +53,13 @@ A selected entry that fails verification stays out under the existing admission
 rules. Missing or quarantined future entries never extend the current entry's
 effective end.
 
-Selected, admitted price entries in the live lineup determine optional signed
+Selected, admitted price entries in the lineup and kept archive determine optional signed
 validity bounds in `content`. `valid_from` is the latest selected start date.
 `valid_until` is one day after the earliest selected end date, so it is
-exclusive. Absent bounds stay absent. Archive entries and offerings outside
-the premier lineup do not shorten live validity. Snapshots without dated
-prices keep their existing content shape.
+exclusive. Absent bounds stay absent. Current decisions can explicitly request
+retired models, so archived prices also constrain validity. Offerings outside
+the kept snapshot do not shorten validity. Snapshots without dated prices keep
+their existing content shape.
 
 `LoadedSnapshot.require_current(today=None)` refuses live use before
 `valid_from` or on or after `valid_until`. Without `today`, it uses the current

@@ -5446,12 +5446,13 @@ class StoredRegions:
         locator = Locator(kind, region.locator.value)
         rules = replace(NORMALISERS[registered.normaliser], strip_volatile=False)
         try:
-            doc = normalise_document(self.store.get(source.snapshot_ref), rules)
+            body = self.store.get(source.snapshot_ref)
+            doc = normalise_document(body, rules)
         except (UnsupportedContentError, ValueError):
             return []
         return [Reading(row.subject, row.value, claim.unit, row.conditions) for row in
                 read_dated_prices(doc, locator, names=claim.names, subject=claim.subject,
-                                  facet=claim.field, url=str(registered.url))]
+                                  facet=claim.field, url=str(registered.url), body=body)]
 
     def source_url(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)

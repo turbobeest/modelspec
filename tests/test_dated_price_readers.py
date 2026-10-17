@@ -56,7 +56,7 @@ def reviewed_fixture_context(monkeypatch):
     monkeypatch.setitem(
         GEMINI_OWNERSHIP_TEMPLATES,
         (URL, SUBJECT),
-        "1370b6417dc95a8194101d3bd60b63ade73674f4a6c77a8136765cfeff92e9cd",
+        "42905b0da1bb81cecf23ab46c82c435a55e9bb11ef2ccfeccd5d375f8783ada3",
     )
 
 
@@ -205,7 +205,61 @@ def test_foreign_paragraph_caption_cannot_assign_argons_sibling_table(tmp_path):
     assert result.outcome != "verified"
 
 
-@pytest.mark.parametrize("change", ["prose", "caption", "link", "attribute", "header", "subject"])
+@pytest.mark.parametrize(
+    "caption",
+    [
+        '<aside class="note">The prices belong to Sibling Beta.</aside>',
+        '<p class="navigation">The prices belong to Sibling Beta.</p>',
+        "<p hidden>The prices belong to Sibling Beta.</p>",
+    ],
+)
+def test_ownership_hash_keeps_elements_the_text_normalizer_drops(tmp_path, caption):
+    html = ARGON.replace("<div><devsite-selector>", caption + "<div><devsite-selector>")
+    claim, regions = setup_claim(tmp_path, html)
+    result = verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17))
+    assert result.outcome != "verified"
+
+
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        'href="/gemini-api/docs/models/gemini-4-argon"',
+        'id="gemini-4-argon"',
+        'class="models-section"',
+    ],
+)
+def test_duplicate_attributes_cannot_hide_foreign_ownership(tmp_path, attribute):
+    name = attribute.split("=", 1)[0]
+    html = ARGON.replace(attribute, f'{name}="sibling-beta" ' + attribute, 1)
+    claim, regions = setup_claim(tmp_path, html)
+    assert (
+        verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17)).outcome
+        != "verified"
+    )
+
+
+@pytest.mark.parametrize("marker", ['<div class="models-section">', "<main>"])
+def test_ownership_caption_before_the_model_section_is_bound(tmp_path, marker):
+    html = ARGON.replace(marker, "<p>These tables belong to Sibling Beta.</p>" + marker, 1)
+    claim, regions = setup_claim(tmp_path, html)
+    assert (
+        verify(claim, regions, deterministic_extractors(), today=date(2026, 10, 17)).outcome
+        != "verified"
+    )
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "prose",
+        "caption",
+        "link",
+        "attribute",
+        "header",
+        "subject",
+        "parent",
+    ],
+)
 def test_gemini_requires_its_reviewed_complete_ownership_template(tmp_path, change):
     html = ARGON
     subject = SUBJECT
@@ -224,6 +278,8 @@ def test_gemini_requires_its_reviewed_complete_ownership_template(tmp_path, chan
         )
     elif change == "header":
         html = html.replace("Free Tier", "Paid Tier")
+    elif change == "parent":
+        html = html.replace("<main>", '<main data-model="other">')
     else:
         subject = SUBJECT.replace("/gemini-4-argon/", "/gemini-4-argon-pro/")
     claim, regions = setup_claim(tmp_path, html, subject=subject)

@@ -7,6 +7,8 @@ import pytest
 from pydantic import ValidationError
 
 from decision import model as records
+from decision.contract import parse_spec
+from decision.engine import decide
 from decision.model import Fact, Offering, value_hash
 from decision.registry import default as default_registry
 from decision.snapshot import (
@@ -213,14 +215,12 @@ def test_snapshot_validity_intersects_all_selected_price_periods():
     assert index.valid_until == date(2026, 12, 1)
 
 
-def test_archived_and_out_of_lineup_prices_do_not_expire_the_live_snapshot():
-    retired, outside = "lab/retired", "lab/outside"
-    retired_rows = [dated_price(1, "2026-10-14", "2026-11-30", model_id=retired)]
+def test_out_of_lineup_prices_do_not_expire_the_live_snapshot():
+    outside = "lab/outside"
     outside_rows = [dated_price(1, "2026-10-14", "2026-11-30", model_id=outside)]
-    models = [model(MODEL), model(retired, lifecycle="retired"), model(outside)]
+    models = [model(MODEL), model(outside)]
     offerings = [
         offering(MODEL),
-        offering(retired, facts=retired_rows),
         offering(outside, facts=outside_rows),
     ]
     built = build_snapshot(
@@ -230,6 +230,52 @@ def test_archived_and_out_of_lineup_prices_do_not_expire_the_live_snapshot():
     assert "valid_from" not in built.content
     assert "valid_until" not in built.content
     load(built).require_current(date(2026, 12, 1))
+
+
+def test_an_expired_archived_price_cannot_answer_a_current_retired_model_request():
+    retired = "lab/retired"
+    owner = f"sambanova/{retired}/global/standard"
+    rows = [
+        dated_price(1, until="2000-01-01", suffix="before", model_id=retired),
+        dated_price(9, "2000-01-02", suffix="after", model_id=retired),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model(MODEL), model(retired, lifecycle="retired", facts=[
+                fact("model", retired, "model.lifecycle", "retired"),
+            ])],
+            offerings=[offering(retired, facts=rows)],
+            sources=SOURCES,
+        ),
+        registry=REGISTRY, as_of=date(2000, 1, 1),
+    )
+    index = load(built, include_archive=True)
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.lifecycle = retired"],
+        "optimize": {"min": FACET},
+        "explain": "full",
+    }, facets=REGISTRY.facet)
+    with pytest.raises(SnapshotError, match="expired"):
+        decide(spec, index, facets=REGISTRY.facet)
+    assert built.content["valid_until"] == "2000-01-02"
+    historical = decide(spec, index, facets=REGISTRY.facet, _validate_current=False)
+    assert [row.offering.model for row in historical.results] == [retired]
+    assert index.fact(owner, FACET).value == 1
+
+
+@pytest.mark.parametrize("owner", ["model", "another_offering"])
+def test_dated_price_facts_must_belong_to_their_actual_snapshot_owner(owner):
+    row = dated_price(2, "2026-10-14", "2026-11-30")
+    if owner == "model":
+        inputs = SnapshotInputs(models=[model(MODEL, facts=[row])], sources=SOURCES)
+    else:
+        row["subject"]["id"] = "sambanova/lab/another/global/standard"
+        inputs = SnapshotInputs(
+            models=[model(MODEL)], offerings=[offering(MODEL, facts=[row])], sources=SOURCES,
+        )
+    with pytest.raises(SnapshotBuildError, match="owner|subject|metered offering"):
+        build_snapshot(inputs, registry=REGISTRY, as_of=date(2026, 11, 30))
 
 
 def test_undated_snapshots_have_no_new_validity_keys_and_do_not_expire():

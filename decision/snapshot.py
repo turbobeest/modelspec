@@ -837,6 +837,12 @@ class _Compiler:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            if f.get("effective_from") is not None or f.get("effective_until") is not None:
+                subject = f.get("subject") or {}
+                if (self.subjects[sid]["kind"] != "offering"
+                        or subject.get("kind") != "offering" or subject.get("id") != sid):
+                    raise SnapshotBuildError(
+                        f"{sid}: a dated price must belong to its actual metered offering owner")
             self._check_facet(facet_id, kind)
             if state not in FACT_STATES:
                 raise SnapshotBuildError(f"{sid}: {facet_id} has an unknown state {state!r}")
@@ -1311,9 +1317,9 @@ class _Compiler:
                 if sid in kept or sid in subscription_ids
             },
         }
-        live_periods = [period for sid in lineup for period in self.price_periods.get(sid, ())]
-        starts = [start for start, _until in live_periods if start is not None]
-        ends = [until for _start, until in live_periods if until is not None and until < date.max]
+        periods = [period for sid in kept for period in self.price_periods.get(sid, ())]
+        starts = [start for start, _until in periods if start is not None]
+        ends = [until for _start, until in periods if until is not None and until < date.max]
         if starts:
             content["valid_from"] = max(starts).isoformat()
         if ends:

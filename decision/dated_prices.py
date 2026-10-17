@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -15,12 +14,10 @@ _PERIOD = re.compile(rf"(through|starting) {_DATE}", re.IGNORECASE)
 _AMOUNT = r"\$([0-9]+(?:\.[0-9]+)?)"
 _GEMINI_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 _DATED_SLOT = re.compile(rf"{_AMOUNT} ((?:through|starting) {_DATE})\.")
-_PRICE_LABELS = frozenset(
-    {
-        "Input price",
-        "Output price (including thinking tokens)",
-        "Context caching price",
-    }
+_PRICE_ROW = re.compile(
+    r"(<tr>\s*<td>(?:Input price|Output price \(including thinking tokens\)|"
+    r"Context caching price)</td>\s*<td>[^<]*</td>\s*<td>)(.*?)(</td>\s*</tr>)",
+    re.DOTALL,
 )
 # Reviewed against retained primary bytes dfbd1d4d...05025. Only dated prices
 # occupy parameter slots; ownership, captions, labels, and cell order cannot.
@@ -28,7 +25,7 @@ GEMINI_OWNERSHIP_TEMPLATES = {
     (
         _GEMINI_URL,
         "google-gemini-api/google/gemini-4-argon/global/standard",
-    ): "4857ca77be70e4ff2437edbc5bb98c9cb79fadc4cfa931e53a4ecfa5526facc5",
+    ): "326badec64e22fac17023b30796ba78ab8b6ea546b52aac4933f4341e2544866",
 }
 
 
@@ -65,28 +62,20 @@ def _gemini_scope(wrapper: Node) -> list[Node | str]:
     return scope
 
 
-def gemini_ownership_hash(scope: list[Node | str]) -> str:
-    """Versioned full DOM context with slots only in declared paid price cells."""
+def gemini_ownership_hash(body: bytes) -> str:
+    """Bind every original HTML byte except the declared dated-price slots.
 
-    def encode(node: Node | str, price: bool = False):
-        if isinstance(node, str):
-            text = " ".join(node.split())
-            return _DATED_SLOT.sub("<dated-price>", text) if price else text
-        if node.tag == "td" and node.parent is not None and node.parent.tag == "tr":
-            cells = [
-                n for n in node.parent.children if isinstance(n, Node) and n.tag in {"td", "th"}
-            ]
-            price = len(cells) == 3 and node is cells[2] and _text(cells[0]) in _PRICE_LABELS
-        children = [encoded for child in node.children if (encoded := encode(child, price)) != ""]
-        return [node.tag, dict(sorted(node.attrs.items())), children]
-
-    context = {
-        "format": "gemini-price-context@1",
-        "nodes": [encoded for node in scope if (encoded := encode(node)) != ""],
-    }
-    return hashlib.sha256(
-        json.dumps(context, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    ).hexdigest()
+    Hash before parsing: normalizers can drop captions and parsers can collapse
+    duplicate attributes. Any other page change requires template review.
+    """
+    try:
+        raw = body.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        return ""
+    context = _PRICE_ROW.sub(
+        lambda row: row[1] + _DATED_SLOT.sub("<dated-price>", row[2]) + row[3], raw
+    )
+    return hashlib.sha256(b"gemini-price-context@1\0" + context.encode("utf-8")).hexdigest()
 
 
 def _period(phrase: str) -> dict[str, str | None] | None:
@@ -120,10 +109,13 @@ def _rows(table: Node) -> list[list[str]]:
 
 
 def _gemini(
-    doc: Document, tables: list[Node], names: tuple[str, ...], subject: str, facet: str
+    doc: Document, tables: list[Node], names: tuple[str, ...], subject: str, facet: str,
+    body: bytes,
 ) -> list[DatedPrice]:
     parts = subject.split("/")
     if len(parts) != 5 or parts[0] != "google-gemini-api" or parts[3:] != ["global", "standard"]:
+        return []
+    if gemini_ownership_hash(body) != GEMINI_OWNERSHIP_TEMPLATES.get((_GEMINI_URL, subject)):
         return []
     kind = facet.removeprefix("offering.price.")
     tier = "Batch" if kind.startswith("batch_") else "Standard"
@@ -145,8 +137,6 @@ def _gemini(
         if len(headings) != 1 or _text(headings[0]) not in names:
             continue
         scope = _gemini_scope(wrapper)
-        if gemini_ownership_hash(scope) != GEMINI_OWNERSHIP_TEMPLATES.get((_GEMINI_URL, subject)):
-            continue
         for sibling in scope:
             if not isinstance(sibling, Node):
                 continue
@@ -248,14 +238,15 @@ def _vertex(
 
 
 def read_dated_prices(
-    doc: Document, locator: Locator, *, names: tuple[str, ...], subject: str, facet: str, url: str
+    doc: Document, locator: Locator, *, names: tuple[str, ...], subject: str, facet: str, url: str,
+    body: bytes,
 ) -> list[DatedPrice]:
     """Read supported primary tables contained in the exact cited region."""
     if doc.root is None:
         return []
     tables = select_region_tables(doc, locator)
     if url == "https://ai.google.dev/gemini-api/docs/pricing":
-        return _gemini(doc, tables, names, subject, facet)
+        return _gemini(doc, tables, names, subject, facet, body)
     if url in {
         "https://cloud.google.com/vertex-ai/generative-ai/pricing",
         "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing",
