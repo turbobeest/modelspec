@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { workerFetch } from "../src/index";
+import assessments from "./fixtures/hardware-fit.json";
 
 const ENV: Env = {
   EXPORT_ORIGIN: "https://modelspec.dev",
@@ -25,7 +25,6 @@ const request = {
   model: "lab/model", sku: "gpu-example", device_count: 2, memory: 80,
   runtime: "runtime-1", quantisation: "q4", batch: 4, context: 8192,
 };
-const estimateBases = ["full", "lower_bound"] satisfies Array<"full" | "lower_bound">;
 
 async function rpc(method: string, params: unknown, authorization?: string, env: Env = ENV) {
   const headers = new Headers({
@@ -60,29 +59,6 @@ function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-function pythonAssessment(basis: "full" | "lower_bound") {
-  const root = new URL("../../", import.meta.url).pathname;
-  const output = execFileSync(process.env.PYTHON ?? "python3", ["-c", `
-import json, sys
-from decision.hardware_fit import check
-from tests.test_hardware_fit import REQUEST, fixture_snapshot, hardware_fit_record, number, resign
-
-request = dict(REQUEST)
-row = hardware_fit_record()
-if sys.argv[1] == "lower_bound":
-    request["memory"] = 32
-    row["memory_bytes_per_device"] = 32_000_000_000
-    row["per_device"][0]["weights_bytes"] = number(65_500_000_000, "weights")
-    del row["per_device"][0]["runtime_headroom_bytes"]
-    resign(row)
-status, body = check(request, fixture_snapshot([row]))
-json.dump({"request": request, "status": status, "body": body}, sys.stdout)
-`, basis], { cwd: root, env: { ...process.env, PYTHONPATH: root }, encoding: "utf8" });
-  return z.object({
-    request: z.record(z.string(), z.unknown()), status: z.number(), body: z.unknown(),
-  }).parse(JSON.parse(output));
-}
-
 describe("hardware_fit MCP tool", () => {
   const originFetch = vi.fn();
 
@@ -114,8 +90,8 @@ describe("hardware_fit MCP tool", () => {
     ]);
   });
 
-  it.each(estimateBases)("matches the actual Python API %s assessment", async basis => {
-    const api = pythonAssessment(basis);
+  it.each(assessments.cases)("matches the generated Python API $basis assessment", async api => {
+    const basis = api.basis;
     expect(api.status).toBe(200);
     expect(api.body).toMatchObject({ hardware_fit_version: "2.0", status: "estimated", basis });
     if (basis === "lower_bound") {

@@ -467,3 +467,19 @@ def test_estimates_keep_their_openness_and_single_pool_guards(openness, single_p
     status, body = assess(snapshot=snapshot)
     assert status == 200 and body["status"] == "undetermined"
     assert missing in {item["input"] for item in body["missing"]}
+
+
+def test_mcp_hardware_fit_fixture_matches_current_api_assessments():
+    import json
+    from pathlib import Path
+
+    fixture = Path(__file__).resolve().parents[1] / "mcp/test/fixtures/hardware-fit.json"
+    cases = json.loads(fixture.read_text(encoding="utf-8"))["cases"]
+    assert [case["basis"] for case in cases] == ["full", "lower_bound"]
+    for case in cases:
+        lower_bound = case["basis"] == "lower_bound"
+        record = lower_bound_record() if lower_bound else hardware_fit_record()
+        snapshot = fixture_snapshot([record], memory_gb=32 if lower_bound else 24)
+        status, body = assess(case["request"], snapshot)
+        assert case["request"] == REQUEST
+        assert {"status": status, "body": body} == {"status": case["status"], "body": case["body"]}
