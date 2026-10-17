@@ -479,6 +479,7 @@ def _use_case_shell(title: str, description: str, path: str, body: str,
 .use-case-table{{overflow-x:auto}}.use-case-table table{{min-width:720px}}
 .use-case-table td{{vertical-align:top}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 code{{overflow-wrap:anywhere}}.use-case-model{{min-width:180px}}
+:where(.page) h2::before{{content:none}}
 </style>{structured_data.script(nodes)}</head>
 <body><div class="wrap">{r.site_nav([('Decide', '/decide/'), ('How we decide', '/method/'), ('Pricing', '/pricing/')])}<main class="page">
 <p>{r.esc(entity.ONE_SENTENCE)}</p><h1>{r.esc(title)}</h1>
