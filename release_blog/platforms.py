@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from html import escape
+from pathlib import Path
 
 from pipeline.social_cards import SocialCard, render_card_html
 from release_blog.model import Breakdown, Cited
@@ -31,6 +32,44 @@ _REDDIT_BODY_LIMIT = 40_000
 _HN_TITLE_LIMIT = 80
 _CARD = 1080
 _SVG_SIZE = re.compile(r'<svg\b[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"')
+# Posted SVG limits, read 2026-10-17. Bytes are decimal, matching the caps below.
+# X bytes, 5 MB: https://docs.x.com/x-api/media/introduction
+#   and https://docs.x.com/x-api/media/quickstart/best-practices
+# X pixels, 8192 square: https://help.x.com/en/using-x/media-studio-faqs
+# LinkedIn pixels, strictly under 36,152,320 (Images API, view=li-lms-2026-09):
+#   https://learn.microsoft.com/en-us/linkedin/marketing/community-management/
+#   shares/images-api
+# LinkedIn bytes, 5 MB, and aspect from 3:1 to 4:5 (width:height):
+#   https://www.linkedin.com/help/linkedin/answer/a526313
+#   The 552 by 276 minimum is not applied. The claims chart is 680 by 248,
+#   and the draft keeps that file.
+# Facebook bytes, 10MB, no published pixel maximum:
+#   https://developers.facebook.com/docs/graph-api/reference/page/photos/
+#   The shared claims file also stays inside the X 8192 box, so one chart
+#   cannot be a draft X's library refuses.
+# Instagram, 8 MB, aspect 4:5 to 1.91:1, width 320 to 1440:
+#   https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/
+#   reference/ig-user/media
+_X_IMAGE_BYTES = 5_000_000
+_X_IMAGE_SIDE = 8192
+_LINKEDIN_IMAGE_BYTES = 5_000_000
+_LINKEDIN_MAX_PIXELS = 36_152_320
+_LINKEDIN_MIN_ASPECT = 4 / 5
+_LINKEDIN_MAX_ASPECT = 3 / 1
+_FACEBOOK_IMAGE_BYTES = 10_000_000
+_INSTAGRAM_IMAGE_BYTES = 8_000_000
+_INSTAGRAM_MIN_WIDTH = 320
+_INSTAGRAM_MAX_WIDTH = 1440
+_INSTAGRAM_MIN_ASPECT = 4 / 5
+_INSTAGRAM_MAX_ASPECT = 1.91
+_DRAFT_FILES = {
+    "x": "x.txt",
+    "linkedin": "linkedin.txt",
+    "facebook": "facebook.txt",
+    "instagram": "instagram.txt",
+    "reddit": "reddit.md",
+    "hackernews": "hn.txt",
+}
 
 _REDDIT_RULES = (
     "Target subreddit: r/LocalLLaMA. "
@@ -292,6 +331,60 @@ def _fit(parts: list[str], limit: int) -> str:
     return _join(kept)
 
 
+def _fit_reserved(lead: list[str], optional: list[str], tail: list[str], limit: int) -> str:
+    """Keep the lead and the tail, then fit optional copy into what remains."""
+    fixed = [part for part in (*lead, *tail) if part]
+    if len(_join(fixed)) > limit:
+        raise ValueError("required draft text exceeds the platform limit")
+    kept: list[str] = []
+    for part in optional:
+        if not part:
+            continue
+        if len(_join([*lead, *kept, part, *tail])) <= limit:
+            kept.append(part)
+    return _join([*lead, *kept, *tail])
+
+
+def _enforce_image_limits(platform: str, image: DraftImage) -> None:
+    """Reject an image the platform's current upload rules will not accept."""
+    width, height = _svg_size(image.svg)
+    width = max(width, image.width)
+    height = max(height, image.height)
+    if width < 1 or height < 1:
+        raise ValueError(f"{platform} image is {width}x{height}")
+    nbytes = len(image.svg.encode("utf-8"))
+    aspect = width / height
+    if platform == "x":
+        if width > _X_IMAGE_SIDE or height > _X_IMAGE_SIDE or nbytes > _X_IMAGE_BYTES:
+            raise ValueError(f"x image is {width}x{height}, {nbytes} bytes")
+        return
+    if platform == "linkedin":
+        pixels = width * height
+        if (
+            pixels >= _LINKEDIN_MAX_PIXELS
+            or aspect < _LINKEDIN_MIN_ASPECT
+            or aspect > _LINKEDIN_MAX_ASPECT
+            or nbytes > _LINKEDIN_IMAGE_BYTES
+        ):
+            raise ValueError(f"linkedin image is {width}x{height}, {nbytes} bytes")
+        return
+    if platform == "facebook":
+        if width > _X_IMAGE_SIDE or height > _X_IMAGE_SIDE or nbytes > _FACEBOOK_IMAGE_BYTES:
+            raise ValueError(f"facebook image is {width}x{height}, {nbytes} bytes")
+        return
+    if platform == "instagram":
+        if (
+            width < _INSTAGRAM_MIN_WIDTH
+            or width > _INSTAGRAM_MAX_WIDTH
+            or aspect < _INSTAGRAM_MIN_ASPECT
+            or aspect > _INSTAGRAM_MAX_ASPECT
+            or nbytes > _INSTAGRAM_IMAGE_BYTES
+        ):
+            raise ValueError(f"instagram image is {width}x{height}, {nbytes} bytes")
+        return
+    raise ValueError(f"{platform} has no image limit")
+
+
 def _svg_size(svg: str) -> tuple[int, int]:
     match = _SVG_SIZE.search(svg)
     if match is None:
@@ -434,8 +527,7 @@ def _linkedin(breakdown: Breakdown, url: str, image: DraftImage) -> Draft:
         f"{breakdown.model.name} is an analysis of alternatives for teams choosing "
         f"a {_class_name(breakdown)}."
     )
-    required = [
-        intro,
+    body = [
         breakdown.headline.text,
         _hook(breakdown),
         *_hook_sources(breakdown),
@@ -448,13 +540,19 @@ def _linkedin(breakdown: Breakdown, url: str, image: DraftImage) -> Draft:
         _speed(breakdown) or "",
         _domains(breakdown) or "",
         *_plans(breakdown),
-        breakdown.disclosures.neutrality,
-        url,
     ]
-    text = _fit(required, _LINKEDIN_LIMIT)
+    text = _fit_reserved(
+        [intro],
+        body,
+        [breakdown.disclosures.neutrality, url],
+        _LINKEDIN_LIMIT,
+    )
     extra = _fit([text, _facets(breakdown) or "", _inapplicable(breakdown) or ""], _LINKEDIN_LIMIT)
-    # The link and the framing stay even when optional gaps are long.
-    if url not in extra or "analysis of alternatives" not in extra:
+    if (
+        url not in extra
+        or breakdown.disclosures.neutrality not in extra
+        or "analysis of alternatives" not in extra
+    ):
         extra = text
     return Draft(
         platform="linkedin",
@@ -623,7 +721,7 @@ def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[
     """Six drafts for one breakdown. Nothing is posted."""
     url = post_url or _default_url(breakdown)
     image = _claims_image(breakdown)
-    return {
+    drafts = {
         "x": _x(breakdown, url, image),
         "linkedin": _linkedin(breakdown, url, image),
         "facebook": _facebook(breakdown, url, image),
@@ -631,3 +729,42 @@ def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[
         "reddit": _reddit(breakdown, url),
         "hackernews": _hackernews(breakdown, url),
     }
+    for name, draft in drafts.items():
+        for picture in draft.images:
+            _enforce_image_limits(name, picture)
+    return drafts
+
+
+def _draft_text(draft: Draft) -> str:
+    if draft.platform == "reddit":
+        body = f"{draft.title}\n\n{draft.text}"
+    elif draft.platform == "hackernews":
+        body = draft.submission
+    else:
+        body = draft.text
+    if not body.endswith("\n"):
+        body += "\n"
+    return body
+
+
+def generate_from_breakdown(
+    *,
+    breakdown_path: str | Path,
+    post_url: str,
+    output_dir: str | Path,
+) -> dict[str, str]:
+    """Write the six drafts the release hook asks for. Nothing is posted."""
+    breakdown = Breakdown.model_validate_json(Path(breakdown_path).read_bytes())
+    drafts = render_drafts(breakdown, post_url=post_url)
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    written: dict[str, str] = {}
+    for platform, filename in _DRAFT_FILES.items():
+        target = destination / filename
+        target.write_text(_draft_text(drafts[platform]), encoding="utf-8")
+        written[filename] = str(target)
+        for image in drafts[platform].images:
+            picture = destination / f"{platform}-{image.role}.svg"
+            picture.write_text(image.svg, encoding="utf-8")
+            written[picture.name] = str(picture)
+    return written
