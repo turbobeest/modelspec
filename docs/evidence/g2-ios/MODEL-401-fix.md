@@ -1,199 +1,204 @@
 # MODEL-401 hardware-fit lower-bound evidence
 
-Base SHA: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`.
-The first commit, `03006c6684c79343b1139c72e1b26880a8b304ea`, changes only
-the design note. Final implementation SHA:
-`05ea0f41216e86fa89e79d0e892b94cecab798ab`.
-The delivery SHA is the evidence commit containing this file. Resolve it with
+Draft PR: [#812](https://github.com/turbobeest/modelspec/pull/812).
+Status: focused checks pass; the required full-suite rerun is pending the shared lock.
+
+Base SHA: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`, also the fetched
+`origin/main` used for the publication comparisons. The first commit,
+`03006c6684c79343b1139c72e1b26880a8b304ea`, changes only the design note.
+Final implementation SHA: `2cd5f104c362d5c40ba5f10dbba5a7d01fca8df5`.
+The delivery SHA is the evidence commit containing this file, resolved with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-401-fix.md`.
 
 Worktree: `/Users/terbeest/dev/worktrees/model-401`.
 Branch: `model-401-hardware-fit-lower-bound`.
-Draft PR: [#812](https://github.com/turbobeest/modelspec/pull/812).
-Delivery status: **BLOCKED** by publication checks outside the named scope
-and the OpenAPI byte budget.
 
-## Observed behavior
+## Behavior and original red-first checks
 
-A signed fixture with 65,500,000,000 weight bytes, 100,000 KV bytes per token,
-batch 2, context 1,024, and 32,000,000,000 capacity bytes now returns
-hardware-fit 2.0, `status: estimated`, `basis: lower_bound`, and
-`estimated_fit: unlikely`. Its per-device lower bound is 65,704,800,000 bytes
-and its margin is -33,704,800,000 bytes. Missing headroom is an explicit
-`not_required` object with a reason. The response retains the numeric input
-record IDs, source IDs, resolved citations, capacity provenance, and winning
-verification.
+A verified fixture with 65,500,000,000 weight bytes, 100,000 KV bytes per token,
+batch 2, context 1,024, and 32,000,000,000 capacity bytes returns hardware-fit
+2.0, `status: estimated`, `basis: lower_bound`, and `estimated_fit: unlikely`.
+Its per-device lower bound is 65,704,800,000 bytes and its margin is
+-33,704,800,000 bytes. Missing headroom is an explicit `not_required` object
+with a reason. Numeric input records, citations, capacity provenance, and
+winning verification are retained.
 
 Under-capacity and equality cases without headroom return `undetermined`,
-naming missing runtime headroom. Full estimates retain their previous
-arithmetic and add `basis: full`. Measurements, keyed-only access, Decision
-2.18, bounded 1.5, ranking, and frozen data remain unchanged.
+naming missing runtime headroom. Full estimates retain their arithmetic and
+add `basis: full`. Measurements, keyed-only access, Decision 2.18, bounded
+1.5, ranking, and frozen data are unchanged.
 
-The tests below were added or extended before implementation. The initial
-Python run against unchanged code returned **7 failed, 12 passed**. The
-Worker red run returned **4 failed**. The MCP red run returned **3 failed,
-34 passed**.
+The original Python red run against unchanged code returned 7 failed and
+12 passed. The Worker red returned 4 failed. MCP red returned 3 failed and
+34 passed. The original red outputs are preserved for
+[Python](MODEL-401/executor/python-red.log.gz),
+[Worker](MODEL-401/executor/worker-red.log.gz), and
+[MCP](MODEL-401/mcp/red.log.gz).
 
-The complete red outputs are preserved for [Python](MODEL-401/executor/python-red.log.gz),
-[Worker](MODEL-401/executor/worker-red.log.gz),
-[MCP](MODEL-401/mcp/red.log.gz), [maximum topology](MODEL-401/executor/topology-red.log.gz),
-and [OpenAPI discriminators](MODEL-401/executor/schema-red.log.gz).
-
-| Defect or invariant | Test | Red observation | Green observation |
+| Defect or invariant | Red-first test | Red observation | Green observation |
 | --- | --- | --- | --- |
-| Over-capacity weights without headroom | `test_qwen_like_weights_exceed_capacity_without_runtime_headroom` | `undetermined` instead of `estimated` | Exact lower-bound response, negative margin, signed snapshot round trip |
-| Missing headroom under capacity or at equality | `test_lower_bound_at_or_below_capacity_needs_sourced_headroom` | Record rejected, with generic missing-record inputs | Both cases name only missing headroom and give a reason |
-| Full estimate contract | `test_estimated_workload_reports_literal_formula_inputs_and_never_asserts_fit` | Version `1.0` instead of `2.0` | Version 2.0, basis full, previous literal arithmetic |
-| Mixed per-device headroom | `test_mixed_headroom_topology_uses_each_device_lower_bound` | `undetermined` instead of lower-bound estimate | Each device uses its own bound, without pooling |
-| Excluded or unregistered source | `test_untrusted_parameters_cannot_become_estimates` | All 12 full and lower-bound trust cases passed as baseline guards | All remain `undetermined` |
-| Worker version and lower-bound forwarding | `test_keyed_worker_returns_the_lower_bound_assessment_unchanged`, `test_hardware_fit_transport_refusals_keep_its_own_contract` | Old status and version | Fetched and bundled signed snapshots preserve the checker response |
-| MCP/API parity and agent description | `matches the generated Python API $basis assessment`, `lists an optional strict workload schema and distinguishes estimates from measured fit` | Old API version, missing basis guidance, lower bound abstained | Both complete real API bodies survive MCP forwarding unchanged |
-| Lower-bound schema | `test_lower_bound_response_schema_forbids_likely_and_fabricated_headroom` | No estimated result initially. A later red exposed an inline discriminator target instead of a reference | Published schema accepts the result and rejects `likely` and numeric zero headroom |
-| Maximum topology | `test_maximum_topology_without_headroom_returns_a_valid_undetermined_response` | Missing-input reason exceeded its 512-character contract limit | Valid bounded reason for 1,024 devices |
+| Over-capacity weights without headroom | `test_qwen_like_weights_exceed_capacity_without_runtime_headroom` | Undetermined instead of estimated | Exact lower bound, negative margin, signed snapshot round trip |
+| Under capacity and equality | `test_lower_bound_at_or_below_capacity_needs_sourced_headroom` | Record rejected, generic missing-record inputs | Both name missing headroom and abstain |
+| Full estimate | `test_estimated_workload_reports_literal_formula_inputs_and_never_asserts_fit` | Version 1.0 instead of 2.0 | Basis full, version 2.0, previous literal arithmetic |
+| Mixed device inputs | `test_mixed_headroom_topology_uses_each_device_lower_bound` | Undetermined instead of lower-bound estimate | Per-device bounds, no pooled memory |
+| Untrusted sources | `test_untrusted_parameters_cannot_become_estimates` | All 12 baseline trust guards passed | Excluded, unregistered, or invalid verification still abstains |
+| Worker contract and forwarding | `test_keyed_worker_returns_the_lower_bound_assessment_unchanged`, `test_hardware_fit_transport_refusals_keep_its_own_contract` | Old status/version | Fetched and bundled signed snapshots preserve the assessment |
+| MCP description and parity | `matches the generated Python API $basis assessment`, `lists an optional strict workload schema and distinguishes estimates from measured fit` | Old API version, missing basis guidance | Both complete generated API bodies survive MCP forwarding unchanged |
+| Response schema | `test_lower_bound_response_schema_forbids_likely_and_fabricated_headroom` | Missing estimated result, later an invalid discriminator target | Schema accepts the real result and rejects likely or numeric-zero headroom |
+| Maximum topology | `test_maximum_topology_without_headroom_returns_a_valid_undetermined_response` | Reason exceeded its 512-character limit | Valid explanation for 1,024 devices |
 
-Additional passing regressions prove that adding or removing headroom without
-resigning the record fails admission, and that absent headroom and sourced
-zero remain distinct conflicting inputs. The no-`fits` tests from MODEL-287
-remain in the focused suites.
+The [schema red](MODEL-401/executor/schema-red.log.gz) and
+[topology red](MODEL-401/executor/topology-red.log.gz) retain the later review
+findings. Further regressions bind headroom's absence to verification and
+keep absent headroom distinct from sourced zero. Existing no-`fits` tests
+remain intact.
 
-## Commands and results
-
-All Python commands ran from the worktree root. Node commands use the pinned
-Node directory. Commands return their own exit status directly. Raw logs are
-compressed beside this file. Read them with Python's `gzip` module or `gzcat`.
+Original red and focused commands ran from the worktree root:
 
 ```sh
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit.py -k 'qwen_like or lower_bound or mixed_headroom or untrusted_parameters or estimated_workload'
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit_worker.py -k 'lower_bound or transport_refusals'
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit.py -k maximum_topology
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit.py -k response_schema
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit.py tests/test_hardware_fit_worker.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_hardware_fit.py tests/test_hardware_fit_worker.py tests/test_decision_snapshot.py tests/test_agent_copy.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_api_docs.py tests/test_agent_overhead.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-401/executor/contract-probe.py
-/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-git diff --check
 ```
 
-The OpenAPI generator exited 0. Its `--check` exited 0 and printed
-`api/worker/openapi.yaml matches the implementation`. The final focused
-snapshot, hardware-fit, Worker, and agent-copy run exited 0 with **215 passed**.
-The API-doc and agent-overhead run exited 0 with **57 passed, 2 skipped**.
-An earlier hardware-fit-only green run passed 97 tests before the additional
-verification and maximum-topology regressions were added.
+The final pre-exception focused runs passed 215 tests, and 57 tests with
+2 skipped respectively. [Original MCP commands](MODEL-401/mcp/commands.md)
+record dependency setup, the original Node-only CI dependency correction,
+fixture generation, type checking, and 203 passing MCP tests. The shared
+API fixture is generated by the real Python checker; a Python test checks
+both complete bodies against that checker, while Node consumes the JSON
+without requiring Python application packages.
 
-The required full suite completed under the shared lock with exit **1**:
-**18 failed, 11,452 passed, 24 skipped, 11 warnings in 1,178.23 seconds**.
-The [complete log](MODEL-401/executor/full-suite.log.gz) and
-[failure summary](MODEL-401/executor/full-suite-summary.txt) retain every
-failure. Fourteen failures concern the stale MCP capture, one concerns the
-reviewed agent-copy hash, and one concerns the OpenAPI byte budget. Two local
-social-card tests also fail because `web/` has no installed `@playwright/test`
-package. That dependency failure is an environment observation, not a proven
-code regression. No baseline full-suite run was performed.
+## Publication checks resolved under the scope exception
 
-An initial broader-test command included nonexistent `tests/test_openapi.py`.
-It exited 4 and ran no tests. The published API tests are in
-`tests/test_api_docs.py`, which the successful run above covers.
-The first 97-test green attempt also exposed normalization of the fixture's
-winning verification, which adds `diff: null`. The test now expects that
-retained value and still checks the complete verification.
+The first locked full suite exited 1 with 18 failed, 11,452 passed,
+24 skipped, and 11 warnings in 1,178.23 seconds. Its
+[complete log](MODEL-401/executor/full-suite.log.gz) and
+[failure summary](MODEL-401/executor/full-suite-summary.txt) are retained.
+Fourteen failures concerned the stale MCP capture, one the reviewed-copy
+hash, one the OpenAPI size, and two missing local `@playwright/test` packages.
+The [initial CI findings](MODEL-401/review/findings.md) preserve that diagnosis.
+The executor initially stopped because the capture and pin were outside the
+named paths. The orchestrator then explicitly granted those paths, required
+an unchanged byte cap and a semantics proof, authorized the PR body update,
+and required web dependency installation and a full-suite exit of zero.
 
-The repository's discriminator-aware validator also accepted both actual
-full and lower-bound responses. The exact probe is recorded in
-`MODEL-401/executor/contract-probe.py`, with output in
-`MODEL-401/executor/contract-probe.log.gz`.
+The resumed QA red returned 2 failed in
+[qa-red.log.gz](MODEL-401/resume/qa-red.log.gz). The OpenAPI budget red failed
+`235348 <= 233000` in
+[red-budget.log.gz](MODEL-401/openapi-resume/red-budget.log.gz).
 
-MCP commands, including dependency installation, red output, copy generation,
-type checking, and the complete suite, are in
-[MCP verification commands](MODEL-401/mcp/commands.md). All final MCP commands
-exited 0. The suite passed **203 tests across 10 files**. The updated tool
-description uses 163 planning tokens against its existing 1,500-token limit.
-The copy generator refreshed the CLI bundle's source hash.
+The QA capture was regenerated with `python -m qa.contracts`, never edited by
+hand. Only `hardware_fit.description` differs in the tool entries against
+origin/main. Its input schema and all other tool entries are identical. The
+derived source hashes for `api/worker/openapi.yaml` and
+`mcp/src/agent-copy.json` also refresh. No capture helper needed changing.
 
-The initial PR CI run exposed a test environment dependency. The new MCP
-parity test launched Python with application dependencies, but the Node job
-does not install Pydantic. Its two parity cases failed with
-`ModuleNotFoundError: No module named 'pydantic'`. The original local run
-used the shared application environment and passed. The [CI red log](MODEL-401/executor/mcp-ci-red.log.gz)
-records that failure, retrieved with
-`gh run view 39073296368 --log-failed`.
+The reviewed agent-copy hash changes from
+`faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7` to
+`0618ceb1e4cc7e951378ce188f2b061327c61c02da5bf53d9f099be7a5befc6a`.
+Only `tools.hardware_fit` changes in the generated copy; guide and CLI text
+pins are unchanged. The [scope proof](MODEL-401/resume/verify_copy_scope.py)
+checks those facts and the unchanged tool inputs. The exact old and final
+text is retained in [copy-review.json](MODEL-401/resume/copy-review.json) and
+quoted side by side in PR #812's body.
 
-The correction commits complete API responses as a generated test fixture.
-A Python equality test checks both fixture bodies against the current
-checker. MCP imports those fixtures and compares the complete forwarded
-bodies, preserving the literal assertions. The final MCP run passes all
-203 tests with no `PYTHON` override and Python 3.14 restricted to its standard
-library. The fixture generator, reproduction commands, and final logs are
-recorded in the MCP verification commands above. No workflow change or
-skipped assertion was needed.
+After the first capture refresh, the first-turn test exposed a second budget
+failure, 9,529 tokens against 9,500. Its output is retained in
+[focused-tests-after-capture.log.gz](MODEL-401/openapi-resume/focused-tests-after-capture.log.gz).
+The hardware-fit description was shortened from the interim 650 characters
+to 524. It retains the exact measurement, sourced estimate, full and lower-bound
+basis rules, no-proof-of-fit caveat, per-device decimal GB, key, price, and
+model-selection boundary. No other description or token limit changed.
+Final estimated first-turn totals are Claude 9,326, OpenAI 9,419, and Gemini
+9,498. All remain under the existing 9,500 limit.
 
-After the correction, `gh pr checks 812 --json name,state` reported
-`MCP Worker tests: SUCCESS`, alongside successful data-freeze, sign-off, and
-release-chart evidence checks. Other CI jobs were still running at that check.
+The generator's existing schema-sharing cutoff changes from 80 to 72
+characters of canonical schema text. The size measurements are:
 
-Delivery commands use the executor brief's pre-push-hook override after the
-focused suites pass:
+| Cutoff | Generated bytes | Existing cap |
+| --- | ---: | ---: |
+| 80 | 235,348 | 233,000 |
+| 74 | 233,251 | 233,000 |
+| 72 | 230,602 | 233,000 |
+
+The [adapted #806 proof](MODEL-401/openapi-resume/verify_openapi_compaction.py)
+expands generated `Shared` references and verifies that all 174 public
+components and 19 paths exactly match the previously generated 2.0 document.
+It retains titles, descriptions, null and non-null defaults, and constraints.
+Against fetched origin/main at a551fe82, its separate #806-compatible check
+permits exactly four new and four changed HardwareFit schemas. Every path
+object and all other OpenAPI content remain identical. The schema is
+230,602 bytes, 2,398 below the unchanged cap. No schema YAML was hand-edited,
+and no budget or acceptance assertion was weakened.
+
+## Resumed commands and results
+
+Python commands run from the worktree root. Node commands use
+`PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH` and run from the
+indicated directory. Each result is the command's direct exit status.
 
 ```sh
-CI_LOCAL_SKIP=1 git push -u origin model-401-hardware-fit-lower-bound
-gh pr create --base main --head model-401-hardware-fit-lower-bound --draft --title 'MODEL-401: report hardware-fit lower bounds without runtime headroom' --body-file docs/evidence/g2-ios/MODEL-401/executor/pr-body.log
+git fetch origin main
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-401/resume/verify_copy_scope.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-401/openapi-resume/verify_openapi_compaction.py --base-ref origin/main
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.agent_harness --first-turn-breakdown
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_api_docs.py tests/test_agent_guide.py tests/test_hardware_fit.py tests/test_hardware_fit_worker.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py tests/test_agent_gaps.py tests/test_decision_link.py
+PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_social_cards.py::test_build_emits_every_template_preview_and_card tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout
 ```
 
-Both commands exited 0. The PR body ends with the required executor and
-pending cross-model-review attribution. Every commit ends with
-`Co-Authored-By: ChatGPT Codex <noreply@openai.com>`.
+From `web/`, `PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" npm ci`
+exited 0 and installed 346 packages. Both previously failing social-card
+tests then passed, exit 0, in 198.03 seconds. No web failure is ignored.
+From `mcp/`, snapshot refresh used `npm test -- --run test/server.test.ts -u`
+and changed only the hardware-fit description snapshot. Final `npm test`
+passed all 203 tests and `npm run typecheck` exited 0.
 
-## Tool versions
+The resumed API/hardware set passed 177 tests with 2 skipped, exit 0. The
+QA/decision-link set passed all 170 tests, exit 0. The generator, compaction,
+and scope checks all exited 0. Logs are under `MODEL-401/resume/` and
+`MODEL-401/openapi-resume/`; compressed logs are readable with `gzcat` or
+Python's `gzip` module.
 
-| Tool | Version |
-| --- | --- |
-| Python | 3.14.4 |
-| pytest | 9.1.1 |
-| pytest-xdist | 3.8.0 |
-| Pydantic | 2.13.5 |
-| jsonschema | 4.26.0 |
-| Node | v22.22.3 |
-| npm | 10.9.8 |
-| Vitest | 5.0.1 |
-| flock | 0.4.0 |
-| git | 2.50.1 |
-| gh | 2.102.0 |
+The required full-suite rerun uses the pinned Node directory inherited through
+PATH and the exact shared-lock command:
 
-## Blocking publication checks
+```sh
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
 
-Delivery is **BLOCKED** by the broad publication checks. The downloaded CI
-JUnit artifact reports five failures saying
-`MCP definitions drifted; run python -m qa.contracts and review the capture`.
-It also reports the OpenAPI size failure, 235,348 bytes against the existing
-233,000-byte cap. The base OpenAPI was 232,015 bytes, proving that this change
-introduces the size regression. The capture errors coincide with the changed
-MCP description. No clean baseline QA run was observed, and these failures
-are not classified as baseline failures. [The CI findings](MODEL-401/review/findings.md) record the exact
-test names, commands, and archived failure evidence.
+The command is queued for the shared lock. The final exit status and summary
+will replace this paragraph before delivery.
 
-The executor brief says, "Stay inside the paths the spec names. If you need
-a file outside them, stop and report it." The required QA capture is outside
-the spec's named paths. Implementation changes stopped at that boundary.
-No QA capture, QA implementation, budget test, or existing assertion was
-changed. The full suite also reports the reviewed copy hash mismatch in
-`tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue`.
-Completing this ticket requires scope for the QA capture and reviewed-copy
-pin, a generated schema that meets the existing OpenAPI byte budget, and the
-web test dependencies for a clean local full-suite result.
+Delivery uses `CI_LOCAL_SKIP=1 git push -u origin model-401-hardware-fit-lower-bound`
+after focused checks pass. The user scope exception explicitly authorizes
+`gh pr edit 812 --body-file docs/evidence/g2-ios/MODEL-401/resume/pr-body.log`.
+The PR remains a draft. Every commit ends with
+`Co-Authored-By: ChatGPT Codex <noreply@openai.com>`; the PR body ends with the
+required executor and pending cross-model-review attribution.
 
-## Limits of observation
+## Versions and limits of observation
 
-All hardware inputs are synthetic verified test fixtures. No model was loaded
-and no physical device, live deployment, paid provider, or vendor API was
-called. This work adds no production hardware-fit records and establishes no
-measured fit, runtime compatibility, throughput, or latency.
+Python 3.14.4; pytest 9.1.1; pytest-xdist 3.8.0; Pydantic 2.13.5;
+jsonschema 4.26.0; Node v22.22.3; npm 10.9.8; Vitest 5.0.1;
+flock 0.4.0; git 2.50.1; gh 2.102.0.
 
-The hardware-fit Markdown pages are repository documents, not generated site
-pages. `pipeline/build.py` points API documentation at GitHub and does not
-render these files. Both-site builds were therefore outside the spec's
-conditional build requirement. The OpenAPI document was regenerated and
-checked directly. No wsl gate, SSH, SCP, Linear write, merge, production
-switch, or ranking change was performed. Cross-model review remains pending.
+All hardware inputs are synthetic verified fixtures. No model was loaded,
+no physical device or deployed service was exercised, and no paid-provider
+or vendor API call was made. No production hardware-fit records were added.
+No measured fit, runtime compatibility, latency, or throughput was established.
+The hardware-fit Markdown pages are repository documents rather than generated
+site pages; no local full site build was needed by that conditional requirement.
+The social-card tests did run their existing site-generation path after web
+setup. No production switch, ranking, legal text, frozen data, Linear state,
+or merge was changed. No wsl gate, SSH, or SCP was run. Cross-model review is
+pending.
