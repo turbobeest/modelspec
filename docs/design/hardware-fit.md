@@ -8,8 +8,56 @@ gives architecture and hardware no ranking weight.
 
 MODEL-287 adds a separate keyed [hardware-fit assessment](../hardware-fit-api.md).
 It consumes optional verified records for an exact topology and workload.
-Snapshots without those records return `undetermined`. Its own version 1.0
+Snapshots without those records return `undetermined`. Its own version 2.0
 contract does not change the legacy estimates or the decisions below.
+
+## Lower-bound assessments (MODEL-401)
+
+MODEL-400 found no first-party source for fixed runtime headroom for an exact
+workload. Requiring it for every estimate prevents even resident weights that
+exceed device capacity from yielding an `unlikely` assessment. Hardware-fit
+contract 2.0 admits a verified estimate record without
+`runtime_headroom_bytes`. Each device still needs sourced `weights_bytes` and
+`kv_bytes_per_token` for the exact topology and workload. The whole record,
+including which inputs are absent, retains value-bound independent verification.
+Excluded or unregistered sources still prevent admission.
+
+When every device has sourced headroom, the response adds `basis: "full"` and
+keeps the existing calculation and verdict. Otherwise, the engine calculates
+each device's lower bound without headroom:
+
+```text
+kv_cache_bytes = kv_bytes_per_token * batch * context
+lower_bound_bytes = weights_bytes + kv_cache_bytes
+margin_bytes = capacity_bytes - lower_bound_bytes
+```
+
+If any device's lower bound exceeds its capacity, the response is `estimated`
+with `estimated_fit: "unlikely"` and `basis: "lower_bound"`. Its `per_device`
+entries carry `lower_bound_bytes` instead of `required_bytes`. The response
+retains each sourced weight and KV input, caller batch and context, capacity
+provenance, formula, and verification. Its top-level `margin_bytes` is the
+smallest per-device margin and is negative. Memory is never pooled.
+
+In a lower-bound response, a device without headroom reports
+`runtime_headroom_bytes: {"status": "not_required", "reason": "Runtime headroom is not required to establish this lower bound."}`.
+A device with sourced headroom retains that input, but the lower-bound formula
+does not use headroom on any device. Absence never becomes a numeric zero.
+The response states that the bound excludes runtime headroom.
+
+If every lower bound is at or below capacity and any headroom is absent, the
+response is `undetermined`. Its `missing` list names `runtime_headroom_bytes`
+and identifies the devices that need sourced headroom. Equality remains
+`undetermined`, since runtime memory has not been established. A lower bound
+can never produce `likely`. Only a full estimate can produce that verdict.
+Exact measurements keep their existing behavior and take precedence over
+estimates. No response adds a `fits` field.
+
+The optional headroom input and new estimate variants widen the response, so
+`hardware_fit_version` changes from 1.0 to 2.0 under MODEL-59. The generated
+OpenAPI schema distinguishes full estimates from lower-bound estimates and
+allows only `unlikely` for a lower bound. Decision 2.18, bounded 1.5, ranking,
+and keyed-only access stay unchanged.
 
 ## Quantisation and precision
 
