@@ -216,6 +216,25 @@ def test_health_selects_the_serving_snapshot_even_before_the_first_decision(
         }
 
 
+def test_health_selects_after_metadata_io_crosses_midnight(
+    entry, monkeypatch, utc_clock, signed_pair,
+):
+    utc_clock[0][0] = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC)
+    worker, _, _ = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+
+    async def cross_midnight():
+        await asyncio.sleep(0)
+        utc_clock[0][0] = BOUNDARY
+        return {}
+
+    monkeypatch.setattr(worker, "_determinations_health", cross_midnight)
+    response = request(worker, "/v1/health")
+    successor = load_snapshot_bytes(signed_pair[1], key=KEY, public_keys={})
+    assert response.status == 200
+    assert response.json()["decision_snapshot"]["id"] == successor.snapshot_id
+    assert response.json()["decision_snapshot"]["valid_until"] == "2027-01-01"
+
+
 def test_unbounded_snapshot_keeps_the_same_decision_bytes_and_no_successor(
     entry, monkeypatch, utc_clock,
 ):

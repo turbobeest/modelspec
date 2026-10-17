@@ -2094,6 +2094,7 @@ class Default(WorkerEntrypoint):
         except Exception as exc:  # noqa: BLE001 - reported, not hidden
             error = error or f"{type(exc).__name__}: {exc}"
 
+        determinations = await self._determinations_health()
         holder = _decision_holder(origin)
         try:
             key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
@@ -2120,7 +2121,7 @@ class Default(WorkerEntrypoint):
             # version and the day it was staged, so a KV load can be verified
             # from outside. Deliberately no counts and no content: this is a
             # public endpoint and the determinations are the product.
-            "determinations": await self._determinations_health(),
+            "determinations": determinations,
             "decision_snapshot": holder.health(),
             "last_error": error or _cache.get("error") or _policy_cache.get("error"),
         })
