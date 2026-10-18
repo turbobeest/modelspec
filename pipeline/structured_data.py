@@ -149,7 +149,7 @@ def use_case_graph(path: str, name: str, description: str, as_of: str,
     items = [
         {"@type": "ListItem", "position": 1, "name": "ModelSpec", "item": f"{BASE}/"},
         {"@type": "ListItem", "position": 2,
-         "name": "Model comparisons" if collection == "compare" else "Use-case examples",
+         "name": {"compare": "Model comparisons", "guides": "Guides"}.get(collection, "Use-case examples"),
          "item": f"{BASE}/{collection}/"},
     ]
     if article:
