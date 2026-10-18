@@ -84,11 +84,11 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
 
 def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
-    # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
-    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394"
+    # MODEL-404 moves the human board links to /decide/details/ and updates the guide version.
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e"
+    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "7a15fbc29407078d53594b0755852b3f4c341ad83f7b68582c92b4b72075821a"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
-    assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
+    assert hashlib.sha256(raw).hexdigest() == "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86"
 
 
 def test_decision_link_flag_is_off_in_every_deployed_config():
