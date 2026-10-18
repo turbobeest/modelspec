@@ -19,9 +19,13 @@ function VariantB() {
   const [budget, setBudget] = useState<Budget>("balanced");
   const [limit, setLimit] = useState<Limit>("none");
   const title = useRef<HTMLHeadingElement>(null);
+  const previousStep = useRef(step);
   const selection = useMemo(() => choose(job, budget, limit), [job, budget, limit]);
   const result = usePrototypeDecision(selection);
-  useEffect(() => { title.current?.focus(); }, [step]);
+  useEffect(() => {
+    if (previousStep.current !== step) title.current?.focus();
+    previousStep.current = step;
+  }, [step]);
   const previous: Record<Step, Step> = { job: "job", priority: "job", limit: "priority", answer: "limit" };
   const currentJob = jobs.find((item) => item.id === job);
   return <PrototypeShell variant="b">

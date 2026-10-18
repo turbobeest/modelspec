@@ -86,7 +86,7 @@ export function AnswerCard({ selection, result, agent = true }: { selection: Sel
       return <li key={id}><span><strong>{name(id)}</strong>{answer?.tie_breakers.most_independently_measured === id && <small>Most independently measured</small>}</span><span className="proto-price">{money(cost)}{cost != null && <small>per task</small>}</span></li>;
     })}</ul>
     {!answer && <p>Adjust a limit or open the evidence to see what is missing.</p>}
-    <p className="proto-task-size">Task estimate: {selection.spec.tokIn.toLocaleString("en-US")} input + {selection.spec.tokOut.toLocaleString("en-US")} output tokens. API prices, not a chat subscription{selection.template.id === "private-self-host" ? " or your hardware running costs" : ""}.</p>
+    <p className="proto-task-size">Task estimate: {selection.spec.tokIn.toLocaleString("en-US")} input + {selection.spec.tokOut.toLocaleString("en-US")} output tokens. API prices, not a chat subscription{selection.board.selections["model.weights_openness"]?.value === "open_weights" ? " or your hardware running costs" : ""}.</p>
     <div className="proto-actions"><a className="proto-primary" href={evidenceLink(selection)}>See the full evidence <span aria-hidden="true">↗</span></a>{agent && <button aria-expanded={agentOpen} onClick={() => setAgentOpen(!agentOpen)}>Use this from your agent <span>Key required</span></button>}</div>
     {agent && agentOpen && <div className="proto-agent"><p>Human lookup is free. CLI, API and MCP use requires an API key.</p><AgentHandoff spec={prepareDecisionRequest(vocabulary, selection.spec, "full").decisionSpec} /></div>}
   </section>;

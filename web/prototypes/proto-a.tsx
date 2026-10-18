@@ -15,7 +15,7 @@ function VariantA() {
       <div className="proto-job-grid">{jobs.map((item) => <button key={item.id} aria-pressed={job === item.id} onClick={() => setJob(item.id)}><strong>{item.label}</strong><span>{item.detail}</span></button>)}</div>
       <div className="proto-priority"><span>What matters most?</span><BudgetPicker value={budget} onChange={setBudget} /><small>Budget templates keep quality in the mix.</small></div>
     </section>
-    <AnswerCard selection={selection} result={result} />
+    <div aria-live="polite"><AnswerCard selection={selection} result={result} /></div>
   </PrototypeShell>;
 }
 

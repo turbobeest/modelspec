@@ -18,7 +18,7 @@ try {
       await page.route("**/*", (route) => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
       await page.goto(`${origin}/${variant === "current" ? "decide/" : `prototypes/proto-${variant}.html`}`);
       await page.getByRole("heading", { name: "Which AI model fits your job?", exact: true }).waitFor();
-      if (variant === "current" || variant === "c") await page.locator(".ranked-answer").waitFor();
+      if (variant === "current" || variant === "c") await page.locator(".board-ranked-answer").first().waitFor();
       if (variant === "a") await page.locator("[data-decision-id]").waitFor();
       await page.evaluate(() => document.fonts.ready);
       const measurement = await page.evaluate(() => {

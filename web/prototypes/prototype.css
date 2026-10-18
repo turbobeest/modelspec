@@ -42,6 +42,7 @@
 .proto-actions button span { color: var(--muted); font-size: 12px; }
 .proto-agent { margin-top: 20px; border-top: 1px solid var(--line2); padding-top: 20px; }
 .proto-agent pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.proto .agent-handoff-actions > a { color: var(--handoffInk); }
 .proto-footer { padding: 6px 20px 16px; text-align: center; color: var(--muted); font-size: 11px; }
 .proto-skip { position: absolute; top: -100px; }
 .proto-skip:focus { top: 10px; left: 10px; padding: 14px; background: var(--surface); z-index: 100; }
@@ -68,8 +69,10 @@
 .proto-expander > div { padding: 20px; }
 .proto-c-answer { margin-top: 18px; }
 .proto-c-answer-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 12px; }
-.proto-c-evidence { display: grid; gap: 20px; }
-.proto-c .decision-table { overflow-x: auto; }
+.proto-c-evidence { min-width: 0; }
+.proto-c-evidence > * { min-width: 0; max-width: 100%; }
+.proto-c-evidence .panel { margin-top: 16px; }
+.proto-c .decision-table { overflow-x: auto; width: 100%; }
 .proto-c .proto-hero { border-left: 3px solid var(--warn); padding: 20px; background: var(--surface); margin-bottom: 18px; }
 .proto-c .ranked-answer { background: var(--surface); }
 @media (max-width: 700px) {
@@ -109,12 +112,24 @@
   .proto-actions button { justify-content: center; font-size: 12px; min-height: 36px; }
   .proto-actions button span { font-size: 10px; }
   .proto-footer { padding-bottom: 10px; font-size: 10px; }
+  .proto-a .proto-main { padding-top: 12px; padding-bottom: 8px; }
+  .proto-a .proto-hero { padding-bottom: 12px; }
+  .proto-a .proto-job-grid button > span { display: none; }
+  .proto-a .proto-job-grid button { justify-content: center; }
+  .proto-a .proto-shortlist li > span:first-child > small { display: none; }
+  .proto-a .proto-shortlist { margin-top: 8px; margin-bottom: 8px; }
+  .proto-a .proto-actions { margin-top: 8px; }
+  .proto-a .proto-footer { padding-top: 0; padding-bottom: 6px; }
   .proto-b .proto-hero { text-align: left; padding: 0 0 22px; }
   .proto-guide { padding: 18px 16px 24px; }
   .proto-progress { gap: 8px; margin-bottom: 22px; }
   .proto-progress li { font-size: 11px; gap: 6px; }
   .proto-guided-choices { grid-template-columns: 1fr; gap: 8px; }
   .proto .proto-guided-choices button { padding: 12px; }
+  .proto-b .proto-guided-choices button { padding-top: 9px; padding-bottom: 9px; }
+  .proto-b .proto-progress { padding-bottom: 16px; margin-bottom: 16px; }
+  .proto-b .proto-guide { padding-bottom: 18px; }
+  .proto-b .proto-main { padding-bottom: 9px; }
   .proto-guide section > h2 { font-size: 25px; }
   .proto-c-answer-heading { flex-wrap: wrap; }
   .proto-expander > div { padding: 12px; }
