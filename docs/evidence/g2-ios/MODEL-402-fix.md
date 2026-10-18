@@ -14,8 +14,9 @@ schema invalidated the QA capture. The orchestrator then granted an exception
 for the capture and its helper, requiring repository regeneration and limiting
 the diff to this ticket's OpenAPI hash or derived health schema. Regeneration
 changed only the OpenAPI hash. The helper and tool definitions are unchanged.
-All four decide browser configurations and the resumed complete suite passed.
-The required full run exited 0 with 11,491 passed and nine skipped tests.
+The earlier resumed complete suite exited 0 with 11,491 passed and nine skipped
+tests. Round 3 adds the billing-await header correction and historical-compare
+boundary regression described below, with fresh validation of that source.
 
 ## Revision and review state
 
@@ -25,20 +26,101 @@ The required full run exited 0 with 11,491 passed and nine skipped tests.
 - Base: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`.
 - First commit: `7075a312`, design only, published as draft PR
   [#813](https://github.com/turbobeest/modelspec/pull/813) before implementation.
-- Final implementation and integration commit: `4b0c8cea5c1e9e24c2493970500dcc9049142f99`.
-  Production source remains at `cf7f72cead28e08d1e3152512c3a19202d098de9`; the later
-  integration commit refreshes the generated capture and checks the additive
-  snapshot header in the existing gate-off test. Evidence-only commits follow
-  this revision. The completion record reports the final branch SHA, which an
+- Round 3 implementation commit: `7f04d05f78d5c07ff6604f0e2e9fffc7c7652798`,
+  from review base `688eb2366aecdadd2a307d9bc5395a3627a57607`. Earlier integration
+  commit `4b0c8cea5c1e9e24c2493970500dcc9049142f99` refreshed the generated capture
+  and checked the additive header in the existing gate-off test. Round 3 changes
+  production source, so the earlier `cf7f72ce` measurement is historical.
+  Evidence-only commits follow the implementation. The completion record
+  reports the final branch SHA, which an
   evidence file cannot contain literally without changing its own commit hash.
-- Independent local review found and verified the vocabulary and concurrent
-  header fixes. This was a same-model review. Claude Opus cross-model review
-  remains pending. The PR stays a draft.
+- Grok's Round 3 review requested changes for the hardware-fit header race.
+  The correction and full route audit are recorded below. Independent review
+  of this correction and Claude Opus review remain pending. The PR stays a draft.
 
 The [design](../../design/snapshot-successor.md) explains why one successor
 covers the six-hour deployment schedule and how both expired periods refuse
 service. No workflow, ranking code, contract version, legal text, frozen data,
 or production switch changed.
+
+## Round 3: response headers across billing I/O
+
+Section 1 of `/Users/terbeest/.codex-g2/exec/REV-813.verdict.md` identified one
+blocking finding. Hardware-fit stamped its body before billing, then read the
+shared holder for its response header after settlement or release. Another
+request could select the successor during that await.
+
+The new `tests/test_snapshot_response_headers.py` pauses the real credit ledger's
+`commit` or `release` call. While delivery waits, an authenticated health request
+advances the same holder across 2026-12-01 UTC. Six hardware-fit cases failed
+before the correction, while twelve decide and compare controls passed.
+The [red output](MODEL-402/round3/all-routes-red-final.txt) reports
+`6 failed, 12 passed in 1.11s`, exit 1. The hardware-only run also failed all
+six cases. The [test notes](MODEL-402/round3/header-tests-red-notes.txt) preserve
+the initial fixture corrections separately from this final reproduction.
+
+`_snapshot_response_headers` now binds the ID to the response body's snapshot
+and removes it for a null snapshot. Decide, compare, compare-models, and
+hardware-fit share this helper. Hardware-fit retains its JSON formatting and
+service-commit header. The tests cover settlement, release after an invalid
+request, release after a no-snapshot error, and x402 enabled and disabled.
+They also assert the actual reservation, ledger action, and remaining balance.
+
+The [route audit](MODEL-402/round3/header-route-audit.md) checks every holder
+header merge, other snapshot-header writer, response wrapper, and billing
+header producer. Rank and policy-check use export build provenance and emit no
+decision snapshot ID header. Vocabulary retains its local selected text and
+emits no ID header. Health and decision-link also emit no ID header. Their
+response contracts are unchanged.
+
+The audit found a second UTC boundary race before comparison body creation.
+`_compare` selected the current snapshot before awaiting retained-history I/O.
+If that I/O crossed midnight, engine validation raised `SnapshotError` through
+`Worker.fetch`. The [red test](MODEL-402/round3/compare-midnight-red.txt) exercises
+the real `_snapshot_fetcher` with a network response that yields at that
+boundary. It failed with the uncaught expiry exception, exit 1.
+The Worker now selects current again after that await, inside its existing
+error handling. Five cases verify successor selection, an old pin's normal
+`409 snapshot_changed`, missing history, and exhausted coverage with and
+without a history response. Retained history still uses its original snapshot.
+
+Focused validation of the header correction passed `248 passed, 1 skipped in
+79.65s`, exit 0, in [focused-green.txt](MODEL-402/round3/focused-green.txt).
+After the compare correction and final fixture imports, the boundary run
+passed `53 passed in 1.61s`, exit 0, in
+[boundary-green.txt](MODEL-402/round3/boundary-green.txt). Exact commands:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_response_headers.py tests/test_snapshot_successor.py tests/test_hardware_fit_worker.py tests/test_compare_models_worker.py tests/test_decide_worker.py tests/test_decide_snapshot_refresh.py tests/test_dated_price_serving.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_response_headers.py tests/test_compare_midnight_refresh.py tests/test_decide_snapshot_refresh.py tests/test_dated_price_serving.py
+```
+
+Ruff passes both new test files. A baseline/current comparison finds the same
+44 pre-existing Ruff findings in `entry.py`, with none added or removed.
+The [comparison record](MODEL-402/round3/lint-source-comparison.json) retains
+that distinction. `git diff --check` passes. No OpenAPI shape or QA capture
+change is required in Round 3.
+
+The Round 3 prerequisite `npm ci` exited 0, recorded in
+[npm-ci-round3.txt](MODEL-402/npm-ci-round3.txt). The shared browser build also
+exited 0 before the full suite was queued. The isolated
+[four-mode browser matrix](MODEL-402/round3/browser/README.md) then passed all
+builds, 1,242 Vitest tests per mode, and 429 browser tests in total, with 11
+expected gate-dependent skips. All direct process exits were 0. All 13 shared
+`web/dist` file hashes stayed unchanged, and the browser processes and scratch
+directory were cleaned up.
+
+The [fresh package and memory measurements](MODEL-402/round3/measurement/README.md)
+use the exact `7f04d05f` source. All 80 recorded Worker and decision source
+hashes match that commit. The two-snapshot package totals 10,305,456 bytes,
+or 10,063.92 KiB raw and 3,371.56 KiB gzip. Its cached Pyodide memory is
+116.3546 MiB retained and 116.5819 MiB peak. The same-source single-snapshot
+baseline is 9,589.12 KiB raw and 3,011.80 KiB gzip, with 103.8663 MiB retained
+and 104.2671 MiB peak. All required commands and both memory probes exited 0
+at the unchanged 120 MiB gate. The dual probe emitted the existing warning
+above 112 MiB. These measurements use the 87-model public fixture, with no
+archive candidates. Private production data and live isolate memory were not
+measured. The earlier cold-download failure remains recorded below.
 
 ## Red-first results
 

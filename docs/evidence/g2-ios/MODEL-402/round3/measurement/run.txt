@@ -1,0 +1,63 @@
+Running prepare
+prepare: exit 0
+Running uv-tool-venv
+uv-tool-venv: exit 0
+Running uv-tool-install
+uv-tool-install: exit 0
+Running uv-version
+uv-version: exit 0
+Running node-version
+node-version: exit 0
+Running npm-version
+npm-version: exit 0
+Running python-version
+python-version: exit 0
+Running uv-sync
+uv-sync: exit 0
+Running npm-worker
+npm-worker: exit 0
+Running npm-memory
+npm-memory: exit 0
+Running pyodide-cache
+pyodide-cache: exit 0
+Running worker-tools
+worker-tools: exit 0
+Running worker-dry-run
+worker-dry-run: exit 0
+Running bundle-imports
+bundle-imports: exit 0
+Running memory
+memory: exit 0
+{
+  "fixture": "Full frozen public catalogue; synthetic signed validity overlays",
+  "source_sha": "7f04d05f78d5c07ff6604f0e2e9fffc7c7652798",
+  "private_production_data_measured": false,
+  "wrangler_total_upload_kib": 10063.92,
+  "wrangler_gzip_upload_kib": 3371.56,
+  "worker_upload_bytes_exact_from_artifacts": 10305456,
+  "worker_uncompressed_limit_mib": 64,
+  "uncompressed_limit_used_percent": 15.3563232421875,
+  "gzip_below_historical_10_mib_limit": true,
+  "memory_exit_code": 0,
+  "memory": {
+    "runtime": "Pyodide 0.28.3",
+    "before_bytes": 30212096,
+    "peak_bytes": 122245014,
+    "peak_mib": 116.58193016052246,
+    "wasm_peak_bytes": 75366400,
+    "wasm_peak_mib": 71.875,
+    "steady_bytes": 122006646,
+    "steady_mib": 116.35460472106934,
+    "live_non_wasm_bytes": 46640246,
+    "wasm_bytes": 75366400,
+    "requests": [
+      "POST /v1/decide (current)",
+      "POST /v1/decide (successor)",
+      "GET /v1/vocabulary",
+      "POST /v1/rank",
+      "POST /v1/policy-check"
+    ],
+    "limit_bytes": 125829120,
+    "peak_warning_bytes": 117440512
+  }
+}
