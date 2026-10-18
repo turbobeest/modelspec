@@ -65,10 +65,14 @@ def _imports(path: Path) -> set[str]:
 
 def test_every_imported_repository_module_is_vendored():
     vendored = set(vendor.SOURCES)
+    worker_modules = {
+        path.relative_to(ROOT) for path in (ROOT / "api/worker/src").glob("*.py")
+    }
+    shipped = vendored | worker_modules
     missing = set()
-    for path in sorted(p for p in vendored if p.suffix == ".py"):
+    for path in sorted(p for p in shipped if p.suffix == ".py"):
         for name in _imports(path):
             module = _module_file(name)
-            if module is not None and module not in vendored and (str(path), name) not in BUILD_TIME:
+            if module is not None and module not in shipped and (str(path), name) not in BUILD_TIME:
                 missing.add(f"{path} imports {name} ({module})")
     assert not missing, "add to SOURCES in api/worker/vendor.py:\n" + "\n".join(sorted(missing))

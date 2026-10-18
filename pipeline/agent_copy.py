@@ -830,7 +830,18 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def render(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    """Keep source digest edits separated by stable key lines for three-way merges."""
+    fields = []
+    for key, value in data.items():
+        if key == "source_hashes" and value:
+            pins = [
+                f"    {json.dumps(path, ensure_ascii=False)}:\n      {json.dumps(digest)}"
+                for path, digest in sorted(value.items())
+            ]
+            fields.append('  "source_hashes": {\n' + ",\n".join(pins) + "\n  }")
+        else:
+            fields.append(json.dumps({key: value}, indent=2, ensure_ascii=False)[2:-2])
+    return "{\n" + ",\n".join(fields) + "\n}\n" if fields else "{}\n"
 
 
 def main(argv: list[str] | None = None) -> int:

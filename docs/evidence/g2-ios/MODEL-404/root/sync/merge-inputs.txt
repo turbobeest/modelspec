@@ -1,0 +1,20 @@
+MODEL-404-sync
+Approved branch head: 7b833056a4cb8aa10c0f56cf6001b13224634ada
+Fetched origin/main: 8971608aab849862b4a4870f1bc06e46fc9e7dd2
+Command: git fetch origin && git merge origin/main
+Merge exit: 1 (four content conflicts)
+
+Conflicted files:
+cli/modelspec/agent-bundle.json
+qa/fixtures/mcp-tools.json
+tests/replay_billing_launch.py
+tests/test_billing_launch.py
+
+Incoming main commits:
+8971608aab849862b4a4870f1bc06e46fc9e7dd2 MODEL-410: decode JSON-LD publisher strings from both parses (#825)
+326a21a9dbbf95075e843ee50ebd89240e18c197 MODEL-258: add dated model selection and category guides (#824)
+6a3f00d0ffde1b97245d0c43ef7aa4a33393bf17 MODEL-226: platform drafts for a release breakdown (#808)
+e621e1219aa7702dc1539ef54747f27dbc5f8519 MODEL-407: bound Worker memory before deployment (#820)
+6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49 MODEL-406: isolate generated source pins for clean merges (#817)
+badf4be5fdff0a0803fd69387b165307f4190909 MODEL-367: verify xAI matrices with exact retained templates (#821)
+6fdc5baef50a1c198a4a0557dbe2299da5f75090 MODEL-219: add dated comparisons for job templates (#818)

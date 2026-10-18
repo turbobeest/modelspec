@@ -1,0 +1,19 @@
+MODEL-407 Round 3 CI Decision accuracy: SUCCESS
+PR head: 8a0009d446aeb6dfe2ed9ac4f04d237847f19a14
+Executable implementation: f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618
+Run: 39114952430; job: 117638749339
+URL: https://github.com/turbobeest/modelspec/actions/runs/39114952430/job/117638749339
+Retrieval (direct exit 0): gh run view 39114952430 --job 117638749339 --log
+
+The deterministic suite includes the unchanged MODEL-138 snapshot load gate.
+Successful pytest output does not report the individual five timing samples.
+This confirms the <100 ms assertion on CI; 13.303 ms is the separate local result.
+GitHub tested the synthetic PR merge shown in the checkout log below.
+
+Decision accuracy	Checkout	2026-10-18T09:20:49.4760014Z HEAD is now at 1b62f568 Merge 8a0009d446aeb6dfe2ed9ac4f04d237847f19a14 into badf4be5fdff0a0803fd69387b165307f4190909
+Decision accuracy	Checkout	2026-10-18T09:20:49.4932966Z 1b62f568a847f40326490c5a821db5edf635ab14
+Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T09:32:51.7412485Z | deterministic correctness | PASS | yes | Existing decision-engine suites: 1301 passed in 260.29s (0:04:20) |
+Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T09:32:51.7417335Z | output parity | PASS | yes | CLI/Worker byte parity and web-adapter spec mapping both passed. |
+Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T09:32:51.7437858Z     "1301 passed in 260.29s (0:04:20)"
+Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T09:32:51.7447086Z       "678 passed, 1 skipped in 228.30s (0:03:48)"
+Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T09:32:51.7455581Z       "      Tests  227 passed (227)",

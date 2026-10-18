@@ -825,14 +825,23 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "4abc2c383b8ebcb2fbe524635191f75b569eb25169f001ef13d6d3bff461c329",
-    "pipeline/entity.py": "99ecd2328610f76edf553f2b7898b81600a837ccbd6dc2fe4fda97fbc233c42b",
-    "pipeline/pricing.py": "7a67a900e029891de14e040b34f91be93af6e4b17abba27dce0177fe81638212",
-    "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
-    "api/worker/wrangler.jsonc": "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
-    "api/worker/tiers.json": "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",
-    "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
-    "pyproject.toml": "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
-    "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
+    "api/worker/tiers.json":
+      "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",
+    "api/worker/wrangler.jsonc":
+      "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
+    "docs/decision-contract.schema.json":
+      "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
+    "pipeline/agent_copy.py":
+      "59706622db7ad21467b49d17232e9f1e8282ebdf7e8964cc274b421ca6e2ea2f",
+    "pipeline/entity.py":
+      "99ecd2328610f76edf553f2b7898b81600a837ccbd6dc2fe4fda97fbc233c42b",
+    "pipeline/pricing.py":
+      "7a67a900e029891de14e040b34f91be93af6e4b17abba27dce0177fe81638212",
+    "pipeline/worker_flags.py":
+      "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
+    "pyproject.toml":
+      "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
+    "schemas/feedback-v1.schema.json":
+      "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }
 }

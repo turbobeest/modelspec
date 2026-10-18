@@ -1,0 +1,84 @@
+         2950699 function calls (2792264 primitive calls) in 0.419 seconds
+
+   Ordered by: cumulative time
+   List reduced from 138 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.419    0.419 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2665(load_snapshot)
+        1    0.000    0.000    0.419    0.419 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2548(load_snapshot_bytes)
+        1    0.000    0.000    0.414    0.414 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2531(_stream_canonical_envelope)
+ 150297/1    0.063    0.000    0.413    0.413 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:121(read_value)
+    264/1    0.005    0.000    0.413    0.413 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:77(_object)
+10686/2810    0.075    0.000    0.398    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:104(_array)
+   611093    0.066    0.000    0.100    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:53(_starts)
+   318779    0.063    0.000    0.089    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:43(_whitespace)
+   143095    0.037    0.000    0.071    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:59(_scalar)
+   611098    0.035    0.000    0.035    0.000 {method 'startswith' of 'str' objects}
+   783287    0.033    0.000    0.033    0.000 {built-in method builtins.len}
+   143110    0.025    0.000    0.026    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+   146776    0.010    0.000    0.010    0.000 {method 'append' of 'list' objects}
+        1    0.001    0.001    0.005    0.005 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2023(__init__)
+        9    0.001    0.000    0.003    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1861(__init__)
+       19    0.000    0.000    0.002    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:26(_fill)
+       21    0.000    0.000    0.001    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+     3797    0.001    0.000    0.001    0.000 {method 'setdefault' of 'dict' objects}
+       20    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:36(_hash_consumed)
+      930    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1851(_equality_key)
+        1    0.001    0.001    0.001    0.001 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1970(__init__)
+       21    0.000    0.000    0.001    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:351(read1)
+       21    0.000    0.000    0.001    0.000 {method 'read1' of '_io.BufferedReader' objects}
+      302    0.001    0.000    0.001    0.000 {method 'update' of '_hashlib.HASH' objects}
+     7651    0.001    0.000    0.001    0.000 {method 'get' of 'dict' objects}
+    10475    0.001    0.000    0.001    0.000 {built-in method builtins.isinstance}
+       21    0.000    0.000    0.001    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/compression/_common/_streams.py:66(readinto)
+     1980    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1792(_key)
+       22    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:545(read)
+     2820    0.000    0.000    0.000    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1802(_ordered)
+        7    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:31(__init__)
+       20    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib._ZlibDecompressor' objects}
+        1    0.000    0.000    0.000    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:395(check_snapshot_offering_regions)
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}
+
+
+         2950699 function calls (2792264 primitive calls) in 0.419 seconds
+
+   Ordered by: internal time
+   List reduced from 138 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+10686/2810    0.075    0.000    0.398    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:104(_array)
+   611093    0.066    0.000    0.100    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:53(_starts)
+   318779    0.063    0.000    0.089    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:43(_whitespace)
+ 150297/1    0.063    0.000    0.413    0.413 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:121(read_value)
+   143095    0.037    0.000    0.071    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:59(_scalar)
+   611098    0.035    0.000    0.035    0.000 {method 'startswith' of 'str' objects}
+   783287    0.033    0.000    0.033    0.000 {built-in method builtins.len}
+   143110    0.025    0.000    0.026    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+   146776    0.010    0.000    0.010    0.000 {method 'append' of 'list' objects}
+    264/1    0.005    0.000    0.413    0.413 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:77(_object)
+        9    0.001    0.000    0.003    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1861(__init__)
+     3797    0.001    0.000    0.001    0.000 {method 'setdefault' of 'dict' objects}
+        1    0.001    0.001    0.001    0.001 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1970(__init__)
+      302    0.001    0.000    0.001    0.000 {method 'update' of '_hashlib.HASH' objects}
+     7651    0.001    0.000    0.001    0.000 {method 'get' of 'dict' objects}
+    10475    0.001    0.000    0.001    0.000 {built-in method builtins.isinstance}
+        1    0.001    0.001    0.005    0.005 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2023(__init__)
+     1980    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1792(_key)
+      930    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1851(_equality_key)
+     2820    0.000    0.000    0.000    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:1802(_ordered)
+       20    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib._ZlibDecompressor' objects}
+       20    0.000    0.000    0.001    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:36(_hash_consumed)
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+       21    0.000    0.000    0.001    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+        7    0.000    0.000    0.000    0.000 {method 'count' of 'str' objects}
+        7    0.000    0.000    0.000    0.000 {method 'rfind' of 'str' objects}
+       21    0.000    0.000    0.001    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/compression/_common/_streams.py:66(readinto)
+        1    0.000    0.000    0.000    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:395(check_snapshot_offering_regions)
+       22    0.000    0.000    0.000    0.000 {built-in method _codecs.utf_8_decode}
+      939    0.000    0.000    0.000    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-snapshot.py:2115(<genexpr>)
+       22    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:545(read)
+       21    0.000    0.000    0.001    0.000 {method 'read1' of '_io.BufferedReader' objects}
+       19    0.000    0.000    0.002    0.000 tmp/model-407/round3/successor-merged/merged-timing/baseline-json_stream.py:26(_fill)
+      302    0.000    0.000    0.000    0.000 {method 'encode' of 'str' objects}
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}

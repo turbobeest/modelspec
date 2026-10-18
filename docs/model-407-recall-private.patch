@@ -1,0 +1,71 @@
+--- a/.github/workflows/recall-private.yml
++++ b/.github/workflows/recall-private.yml
+@@ -5,6 +5,12 @@
+   schedule:
+     - cron: '43 6 * * 1'
+   workflow_dispatch:
++    inputs:
++      memory_engine_ref:
++        description: Public engine ref containing MODEL-407 memory tools
++        required: true
++        default: main
++        type: string
+-
++
+ permissions:
+   contents: read
+@@ -142,3 +148,54 @@
+             --report-dir "$RUNNER_TEMP/private-recall" \
+             --baseline reports/recall/baseline.json \
+             --summary "$GITHUB_STEP_SUMMARY" "${args[@]}"
++
++  memory:
++    if: github.event_name == 'workflow_dispatch'
++    name: Private Worker memory headroom
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    env:
++      MODELSPEC_SNAPSHOT_KEY: model407-private-memory-fixture-key
++    steps:
++      - name: Check out the selected private data branch
++        uses: actions/checkout@v4
++        with:
++          path: data
++          persist-credentials: false
++      - name: Check out main private data for comparison
++        uses: actions/checkout@v4
++        with:
++          ref: main
++          path: data-main
++          persist-credentials: false
++      - name: Check out the public memory implementation
++        uses: actions/checkout@v4
++        with:
++          repository: turbobeest/modelspec
++          ref: ${{ inputs.memory_engine_ref }}
++          path: engine
++          persist-credentials: false
++      - uses: actions/setup-python@v5
++        with:
++          python-version: '3.13'
++      - uses: actions/setup-node@v4
++        with:
++          node-version: '22'
++      - name: Install the pinned memory runtime
++        run: |
++          python -m pip install -e engine "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
++          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
++      - name: Build private bundles without publishing or caching data
++        run: |
++          python engine/api/worker/vendor.py --data-dir data --out "$RUNNER_TEMP/private-bundle"
++          python engine/api/worker/vendor.py --data-dir data-main --out "$RUNNER_TEMP/private-main-bundle"
++          cp engine/api/worker/src/*.py "$RUNNER_TEMP/private-bundle/"
++          cp engine/api/worker/src/*.py "$RUNNER_TEMP/private-main-bundle/"
++      - name: Measure both private main periods
++        run: |
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-main-bundle" --measure-only --output "$RUNNER_TEMP/private-main-memory.json"
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-main-bundle" --successor --measure-only --output "$RUNNER_TEMP/private-main-successor-memory.json"
++      - name: Require 115 MiB in both periods and warn on growth above 1 MiB
++        run: |
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/private-main-memory.json" --output "$RUNNER_TEMP/private-pr-memory.json"
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-bundle" --successor --limit-mib 115 --baseline "$RUNNER_TEMP/private-main-successor-memory.json" --output "$RUNNER_TEMP/private-pr-successor-memory.json"

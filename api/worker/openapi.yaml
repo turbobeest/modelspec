@@ -1915,6 +1915,14 @@ components:
             commit: {type: string}
             export_schema_version: {type: string}
           required: [built_at, commit, export_schema_version]
+        decision_snapshot:
+          type: object
+          properties:
+            id: {type: string, nullable: true}
+            successor_held: {type: boolean}
+            successor_valid_from: {type: string, nullable: true}
+            valid_until: {type: string, nullable: true}
+          required: [id, successor_held, successor_valid_from, valid_until]
         determinations:
           type: object
           properties:

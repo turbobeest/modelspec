@@ -145,12 +145,13 @@ def breadcrumbs(path: str) -> dict[str, Any]:
 
 
 def use_case_graph(path: str, name: str, description: str, as_of: str,
-                   *, article: bool) -> list[dict[str, Any]]:
+                   *, article: bool, collection: str = "use-cases") -> list[dict[str, Any]]:
     """Dated examples describe visible text, without a review or rating claim."""
     items = [
         {"@type": "ListItem", "position": 1, "name": "ModelSpec", "item": f"{BASE}/"},
-        {"@type": "ListItem", "position": 2, "name": "Use-case examples",
-         "item": f"{BASE}/use-cases/"},
+        {"@type": "ListItem", "position": 2,
+         "name": {"compare": "Model comparisons", "guides": "Guides"}.get(collection, "Use-case examples"),
+         "item": f"{BASE}/{collection}/"},
     ]
     if article:
         items.append({"@type": "ListItem", "position": 3, "name": name, "item": BASE + path})

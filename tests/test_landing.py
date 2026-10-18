@@ -401,10 +401,11 @@ def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingDa
 
 
 def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
-    from decision.excluded import REMOVED_TEXT
+    from decision.excluded import REMOVED_TEXT, excluded_in
     from pipeline import method
     from pipeline.build import llms_txt
     from pipeline.export import Build
+    from pipeline.surface_lint import publisher_subject
 
     llms = llms_txt(site="ModelSpec", base="https://modelspec.dev",
                     build=Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00",
@@ -423,5 +424,6 @@ def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
         for phrase in ("dod", "-grade", "compliant with", "complies with", "certified"):
             assert phrase not in lowered, phrase
         assert REMOVED_TEXT.search(page) is None
+        assert excluded_in(publisher_subject("page.html", page)) is False
     assert "an analysis of alternatives" in pages[0].lower()
     assert "an analysis of alternatives" in llms.lower()

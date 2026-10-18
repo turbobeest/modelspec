@@ -1,0 +1,12 @@
+
+> test
+> vitest run test/hardware-fit.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-407/mcp
+
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  02:13:51
+   Duration  244ms (tests 38%, transform 33%, import 28%, worker 1%)

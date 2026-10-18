@@ -820,6 +820,38 @@ def test_the_loader_verifies_a_signature(tmp_path):
     assert load(path, key=None).signature_verified is False
 
 
+@pytest.mark.parametrize("padding", [b"", b"\x00" * 16], ids=["adjacent", "zero-padded"])
+def test_signed_snapshot_survives_concatenated_gzip_members(tmp_path, padding):
+    path = build(tmp_path, key=KEY)
+    original = load(path, key=KEY)
+    raw = gzip.decompress(path.read_bytes())
+    boundary = len(raw) // 2
+    path.write_bytes(gzip.compress(raw[:boundary]) + padding
+                     + gzip.compress(raw[boundary:]) + padding)
+
+    loaded = load(path, key=KEY)
+    assert loaded.signature_verified is True
+    assert loaded.snapshot_id == original.snapshot_id
+    assert loaded.content_hash == original.content_hash
+    assert loaded.fact("lab/alpha", "model.context_window").value == 128000
+    assert loaded.fact("lab/beta", "model.context_window").value == 32000
+
+
+@pytest.mark.parametrize("damage", ["crc", "size", "truncated"])
+def test_the_loader_rejects_a_damaged_gzip_footer(tmp_path, damage):
+    path = build(tmp_path, key=KEY)
+    data = bytearray(path.read_bytes())
+    if damage == "truncated":
+        del data[-1:]
+    else:
+        position = -8 if damage == "crc" else -4
+        data[position] ^= 1
+    path.write_bytes(data)
+
+    with pytest.raises(SnapshotIntegrityError, match="not a gzipped JSON snapshot"):
+        load(path, key=KEY)
+
+
 def test_the_loader_rejects_an_unsigned_snapshot_when_a_key_is_set(tmp_path):
     with pytest.raises(SnapshotIntegrityError, match="unsigned"):
         load(build(tmp_path), key=KEY)

@@ -10,7 +10,6 @@ import pytest
 import yaml
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT
 from pipeline import agent_copy, entity, holding, live, worker_flags
 from pipeline import surface_lint as sl
 from scripts.aeo import surface_drift as drift
@@ -295,10 +294,331 @@ def test_all_owned_formats_and_legal_pages_get_lexicon_checks(path: str) -> None
     assert sl.lexicon({"api/models.json": text, "assets/app.js": text}, {}, {}) == []
 
 
+def _joined(*parts: str) -> str:
+    return "".join(parts)
+
+
+def _publisher_markup(kind: str) -> str:
+    """Build a removed-publisher string without storing the joined name."""
+    key = _joined("artificial", "_analysis_url")
+    spaced = _joined("Artificial", " Analysis")
+    broken = _joined("Zap", "ier")
+    forms = {
+        "prose-key": _joined(key, ": retained"),
+        "prose-title": _joined("Title: Hello # ", broken),
+        "nl": _joined("Artificial", "&#10;", "Analysis"),
+        "nbsp": _joined("Artificial", "&nbsp;", "Analysis"),
+        "shy": _joined("Zap", "&shy;", "ier"),
+        "hex": _joined("&#x41;", "rtificial Analysis"),
+        "tab": _joined("Artificial", "&#9;", "Analysis"),
+        "dec": _joined("Zap", "&#173;", "ier"),
+        "spaced": spaced,
+        "broken": broken,
+        "key": key,
+    }
+    return forms[kind]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "<p>" + _publisher_markup("prose-key") + "</p>",
+        "<p>" + _publisher_markup("nl") + "</p>",
+        "<p>" + _publisher_markup("nbsp") + "</p>",
+        "<p>" + _publisher_markup("shy") + "</p>",
+        "<p>" + _publisher_markup("hex") + "</p>",
+        "<img alt='" + _publisher_markup("shy") + "'>",
+        "<img alt='" + _publisher_markup("nl") + "'>",
+        "<img alt='" + _publisher_markup("nbsp") + "'>",
+        "<img alt='" + _publisher_markup("hex") + "'>",
+        "<span title='" + _publisher_markup("tab") + "'>kept</span>",
+        "<a data-source='" + _publisher_markup("dec") + "'>kept</a>",
+    ],
+)
+def test_surface_lint_rejects_entity_and_key_shaped_publisher_text(body: str) -> None:
+    findings = [
+        item
+        for item in sl.lexicon({"page.html": page(body)}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, body
+
+
+def test_markdown_prose_is_flagged_without_parsing_it_as_yaml() -> None:
+    for raw in (_publisher_markup("prose-key"), _publisher_markup("prose-title")):
+        findings = [
+            item
+            for item in sl.lexicon({"index.md": raw}, {}, {})
+            if item.check == "lexicon.removed-source"
+        ]
+        assert findings, raw
+        subject = sl.publisher_subject("index.md", raw)
+        assert isinstance(subject, list)
+        assert all(isinstance(item, str) for item in subject)
+
+
+def test_a_duplicate_attribute_cannot_hide_a_removed_publisher() -> None:
+    pages = (
+        page(
+            "<img src='missing' alt='"
+            + _publisher_markup("nl")
+            + "' alt='ok'>"
+        ),
+        page(
+            "<p title='"
+            + _publisher_markup("shy")
+            + "' title='ok'>ok</p>"
+        ),
+    )
+    for raw in pages:
+        findings = [
+            item
+            for item in sl.lexicon({"page.html": raw}, {}, {})
+            if item.check == "lexicon.removed-source"
+        ]
+        assert findings, raw
+
+
+def test_surface_lint_never_rebuilds_dicts() -> None:
+    raw = _joined(
+        '{"note',
+        "&#65;",
+        '": "',
+        "Artificial",
+        "&#10;",
+        "Analysis",
+        '", "noteA": "safe"}',
+    )
+    subject = sl.publisher_subject(".well-known/card.json", raw)
+    assert isinstance(subject, list)
+    assert all(isinstance(item, str) for item in subject)
+    assert not hasattr(sl, "_unescape_tree")
+    findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, raw
+
+
+def test_a_markdown_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
+    empty = "---\nsources:\n  " + _publisher_markup("key") + ": ''\n---\nPlain.\n"
+    hidden = '---\nnote: "' + _publisher_markup("prose-key") + '"\n---\nPlain.\n'
+    empty_findings = [
+        item
+        for item in sl.lexicon({"card.md": empty}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    hidden_findings = [
+        item
+        for item in sl.lexicon({"card.md": hidden}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert empty_findings
+    assert hidden_findings
+
+
+def test_a_json_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
+    hidden = json.dumps({"value": _publisher_markup("prose-key")})
+    empty = json.dumps({_publisher_markup("key"): ""})
+    hidden_findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": hidden}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    empty_findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": empty}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert hidden_findings
+    assert empty_findings
+
+
+def _unicode_escape(name: str) -> str:
+    return "".join(f"\\u{ord(char):04x}" for char in name)
+
+
+def _publisher_probe_rows() -> list[tuple[str, str, str, bool]]:
+    """The round-10 probe matrix. Owned rows must be flagged."""
+    spaced = _joined("Artificial", " Analysis")
+    broken = _joined("Zap", "ier")
+    newline_name = _joined("Artificial", "\n", "Analysis")
+    entity_key = _joined("note", "&#65;")
+    rows: list[tuple[str, str, str, bool]] = [
+        ("r9-prose-key", "index.md", _publisher_markup("prose-key"), True),
+        ("r9-prose-title", "index.md", _publisher_markup("prose-title"), True),
+        (
+            "r9-duplicate-alt",
+            "page.html",
+            '<img src="missing" alt="' + _publisher_markup("nl") + '" alt="ok">',
+            True,
+        ),
+        (
+            "r9-duplicate-title",
+            "page.html",
+            '<p title="' + _publisher_markup("shy") + '" title="ok">ok</p>',
+            True,
+        ),
+    ]
+    forms = (
+        _publisher_markup("nl"),
+        _publisher_markup("nbsp"),
+        _publisher_markup("shy"),
+        _publisher_markup("hex"),
+    )
+    for value in forms:
+        rows.append(("entity-text", "page.html", "<p>" + value + "</p>", True))
+        rows.append(("entity-attr", "page.html", '<img alt="' + value + '">', True))
+    payload = {entity_key: newline_name, "noteA": "safe"}
+    encoded_yaml = _joined(
+        '"note',
+        "&#65;",
+        '": "Artificial',
+        "\\n",
+        'Analysis"\nnoteA: safe\n',
+    )
+    collision = (
+        (".well-known/card.json", json.dumps(payload)),
+        ("openapi.yaml", encoded_yaml),
+        ("card.md", "---\n" + encoded_yaml + "---\nPlain.\n"),
+        (
+            "page.html",
+            '<script type="application/ld+json">' + json.dumps(payload) + "</script>",
+        ),
+    )
+    for path, raw in collision:
+        rows.append(("r9-exact-entity-key-collision", path, raw, True))
+    plain_controls = (
+        (
+            ".well-known/card.json",
+            json.dumps({entity_key: spaced, "noteA": "safe"}),
+        ),
+        (
+            "openapi.yaml",
+            _joined('"note', "&#65;", '": "', spaced, '"\nnoteA: safe\n'),
+        ),
+    )
+    for path, raw in plain_controls:
+        rows.append(("entity-key-plain-value-control", path, raw, True))
+    for name in (spaced, broken):
+        escaped = _unicode_escape(name)
+        for slot in ("value", "key"):
+            plain = json.dumps({"publisher": name} if slot == "value" else {name: "safe"})
+            encoded = (
+                '{"publisher":"' + escaped + '"}'
+                if slot == "value"
+                else '{"' + escaped + '":"safe"}'
+            )
+            rows.append(("json-plain-" + slot, ".well-known/probe.json", plain, True))
+            rows.append(("json-unicode-" + slot, ".well-known/probe.json", encoded, True))
+            for mode, blob in (("plain", plain), ("unicode", encoded)):
+                raw = '<script type="application/ld+json">' + blob + "</script>"
+                rows.append(("jsonld-" + mode + "-" + slot, "probe.html", raw, True))
+            quoted_name = '"' + escaped + '"'
+            for mode, quoted in (("plain", json.dumps(name)), ("unicode", quoted_name)):
+                raw = (
+                    "publisher: " + quoted + "\n"
+                    if slot == "value"
+                    else quoted + ": safe\n"
+                )
+                rows.append(("yaml-" + mode + "-" + slot, "openapi.yaml", raw, True))
+    for slot in ("value", "key"):
+        quoted = _joined('"Zap', "\\x69", 'er"')
+        raw = "publisher: " + quoted + "\n" if slot == "value" else quoted + ": safe\n"
+        rows.append(("yaml-hex-" + slot, "openapi.yaml", raw, True))
+    prose_escape = 'publisher: "' + _unicode_escape(broken) + '"\n'
+    rows.append(("markdown-prose-unicode", "index.md", prose_escape, False))
+    rows.append(
+        (
+            "markdown-front-unicode",
+            "card.md",
+            "---\n" + prose_escape + "---\nPlain.\n",
+            True,
+        )
+    )
+    rows.append(
+        (
+            "markdown-body-plain",
+            "card.md",
+            "---\nnote: safe\n---\n" + broken + "\n",
+            True,
+        )
+    )
+    for path in ("api/models.json", "probe.json", "probe.yaml", "probe.yml"):
+        rows.append(
+            ("unscanned-control", path, json.dumps({"publisher": broken}), False)
+        )
+    return rows
+
+
+_PUBLISHER_PROBE_ROWS = _publisher_probe_rows()
+
+
+@pytest.mark.parametrize(
+    ("label", "path", "raw", "flagged"),
+    _PUBLISHER_PROBE_ROWS,
+    ids=[
+        f"{index}-{label}-{path}"
+        for index, (label, path, _raw, _flagged) in enumerate(_PUBLISHER_PROBE_ROWS)
+    ],
+)
+def test_publisher_probe_matrix(label: str, path: str, raw: str, flagged: bool) -> None:
+    findings = [
+        item
+        for item in sl.lexicon({path: raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert bool(findings) is flagged, label
+    if path.endswith(".json") and flagged:
+        subject = sl.publisher_subject(path, raw)
+        assert isinstance(subject, list)
+        assert all(isinstance(item, str) for item in subject)
+        assert not hasattr(sl, "_unescape_tree")
+
+
+def _entity_encoded_unicode_escape(name: str) -> str:
+    """A JSON ``\\uXXXX`` escape whose backslash is the character reference ``&#92;``."""
+    return "".join(f"&#92;u{ord(char):04x}" for char in name)
+
+
+@pytest.mark.parametrize("name", (_joined("Artificial", " Analysis"), _joined("Zap", "ier")))
+@pytest.mark.parametrize("slot", ("value", "key"))
+def test_jsonld_entity_encoded_unicode_escapes_are_flagged(name: str, slot: str) -> None:
+    escaped = _entity_encoded_unicode_escape(name)
+    blob = (
+        '{"publisher":"' + escaped + '"}'
+        if slot == "value"
+        else '{"' + escaped + '":"safe"}'
+    )
+    raw = '<script type="application/ld+json">' + blob + "</script>"
+    assert sl.Page(raw).ld == [blob]
+    findings = [
+        item
+        for item in sl.lexicon({"page.html": raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, slot
+
+
+def test_decoded_strings_yields_keys_without_a_new_mapping() -> None:
+    entity_key = _joined("note", "&#65;")
+    newline_name = _joined("Artificial", "\n", "Analysis")
+    parsed = {entity_key: newline_name, "noteA": "safe", 1: "kept"}
+    found = list(sl.decoded_strings(parsed))
+    assert newline_name in found
+    assert entity_key in found
+    assert "1" in found
+    assert "kept" in found
+    assert not hasattr(sl, "_unescape_tree")
+
+
 def test_removed_sources_reuse_the_catalogue_rule() -> None:
-    # Get a witness from the shared expression, without duplicating its names.
-    witness = REMOVED_TEXT.pattern.split("|")[1]
-    assert REMOVED_TEXT.search(witness)
+    # The witness comes from the shared publisher names, not a second copy.
+    from decision.excluded import PUBLISHER_NAMES, excluded_publisher
+
+    witness = PUBLISHER_NAMES[1]
+    assert excluded_publisher(witness)
     assert (
         sl.lexicon({"llms.txt": "Source: " + witness}, {}, {})[0].check == "lexicon.removed-source"
     )

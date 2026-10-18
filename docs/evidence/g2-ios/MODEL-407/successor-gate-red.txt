@@ -1,0 +1,73 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_memory_gate_compares_only_matching_periods_and_accepts_legacy_current_results _
+
+    def test_memory_gate_compares_only_matching_periods_and_accepts_legacy_current_results():
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("Node is required for the Worker memory probe")
+        program = """
+    const assert = require('node:assert/strict');
+    const { assessMemory } = require('./api/worker/measure_memory.cjs');
+    const current = {steady_bytes: 100, period: 'current'};
+    const successor = {steady_bytes: 100, period: 'successor'};
+    assert.throws(() => assessMemory(successor, {baseline: current}), /period/);
+    assert.throws(() => assessMemory(current, {baseline: successor}), /period/);
+    assert.throws(() => assessMemory(successor, {baseline: {steady_bytes: 100}}), /period/);
+    assert.equal(assessMemory(current, {baseline: {steady_bytes: 100}}).passed, true);
+    assert.equal(assessMemory(successor, {baseline: successor}).passed, true);
+    """
+        result = subprocess.run([node, "-e", program], cwd=ROOT, text=True, capture_output=True)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: node:assert:150
+E           throw new AssertionError(obj);
+E           ^
+E         
+E         AssertionError [ERR_ASSERTION]: Missing expected exception.
+E             at [eval]:6:8
+E             at runScriptInThisContext (node:internal/vm:209:10)
+E             at node:internal/process/execution:446:12
+E             at [eval]-wrapper:6:24
+E             at runScriptInContext (node:internal/process/execution:444:60)
+E             at evalFunction (node:internal/process/execution:279:30)
+E             at evalTypeScript (node:internal/process/execution:291:3)
+E             at node:internal/main/eval_string:74:3 {
+E           generatedMessage: false,
+E           code: 'ERR_ASSERTION',
+E           actual: undefined,
+E           expected: /period/,
+E           operator: 'throws',
+E           diff: 'simple'
+E         }
+E         
+E         Node.js v22.22.3
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node', '-e', "\nconst assert = require('node:a...TION',\n  actual: undefined,\n  expected: /period/,\n  operator: 'throws',\n  diff: 'simple'\n}\n\nNode.js v22.22.3\n").returncode
+
+tests/test_worker_memory.py:81: AssertionError
+________ test_public_memory_workflow_gates_and_compares_the_main_bundle ________
+
+    def test_public_memory_workflow_gates_and_compares_the_main_bundle():
+        workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
+        job = workflow["jobs"]["memory"]
+        assert "pull_request" in job["if"]
+        assert not job.get("continue-on-error")
+        assert all(not step.get("continue-on-error") for step in job["steps"])
+        text = yaml.safe_dump(job)
+        assert "--limit-mib 115" in text
+        assert "--baseline" in text
+        assert "memory_fixture.py" in text
+        assert "pyodide@0.28.3" in text
+        assert "secrets." not in text
+        commands = [line.strip() for step in job["steps"] for line in step.get("run", "").splitlines()
+                    if "node --expose-gc" in line]
+>       assert len(commands) == 4
+E       assert 2 == 4
+E        +  where 2 = len(['NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-mai...TEMP/memory-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/memory-main.json" --output "$RUNNER_TEMP/memory-pr.json"'])
+
+tests/test_worker_memory.py:118: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_worker_memory.py::test_memory_gate_compares_only_matching_periods_and_accepts_legacy_current_results
+FAILED tests/test_worker_memory.py::test_public_memory_workflow_gates_and_compares_the_main_bundle
+2 failed, 4 deselected in 0.10s

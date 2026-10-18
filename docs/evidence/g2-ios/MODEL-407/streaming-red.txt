@@ -1,0 +1,87 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+________ test_canonical_snapshot_does_not_decompress_the_whole_document ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a1ead70>
+
+    def test_canonical_snapshot_does_not_decompress_the_whole_document(monkeypatch):
+        record = {"text": "é🙂\\\" },\"content_hash\": " * 4000,
+                  "rows": [{"shared_field": index} for index in range(1000)]}
+        raw = _snapshot(record).to_bytes(key=KEY, ed25519_signer=None)
+
+        def whole_document(*args, **kwargs):
+            pytest.fail("canonical snapshot allocated the entire decompressed document")
+
+        monkeypatch.setattr(gzip, "decompress", whole_document)
+>       loaded = _load(raw)
+                 ^^^^^^^^^^
+
+tests/test_snapshot_streaming.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_snapshot_streaming.py:23: in _load
+    return snapshot.load_snapshot_bytes(raw, key=KEY, public_keys={})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/snapshot.py:2541: in load_snapshot_bytes
+    text = gzip.decompress(data).decode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xed\xdcOr\x1b\xc7\x19@\xf1\xab\xb8fM\xa7\xd0\xff\xbf\xe6U$\x17k\x08\x0cM$\...\xf9\xf2._\x7f\xf7\xcd.\x7f \x1f~\xb8|\xfc\xeb[\xbb9\x1e\xde\xfe8.\x1f\xdd\xfc\xf1\x0fcy\xfd/R\x00\x83k\xa28\x02\x00',)
+kwargs = {}
+
+    def whole_document(*args, **kwargs):
+>       pytest.fail("canonical snapshot allocated the entire decompressed document")
+E       Failed: canonical snapshot allocated the entire decompressed document
+
+tests/test_snapshot_streaming.py:32: Failed
+____________ test_streaming_json_preserves_values_across_refills[1] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a1eb6f0>
+chunk_size = 1
+
+    @pytest.mark.parametrize("chunk_size", [1, 7, 64, 65536])
+    def test_streaming_json_preserves_values_across_refills(monkeypatch, chunk_size):
+>       from decision import json_stream
+E       ImportError: cannot import name 'json_stream' from 'decision' (/Users/terbeest/dev/worktrees/model-407/decision/__init__.py)
+
+tests/test_snapshot_streaming.py:42: ImportError
+____________ test_streaming_json_preserves_values_across_refills[7] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a2bc5f0>
+chunk_size = 7
+
+    @pytest.mark.parametrize("chunk_size", [1, 7, 64, 65536])
+    def test_streaming_json_preserves_values_across_refills(monkeypatch, chunk_size):
+>       from decision import json_stream
+E       ImportError: cannot import name 'json_stream' from 'decision' (/Users/terbeest/dev/worktrees/model-407/decision/__init__.py)
+
+tests/test_snapshot_streaming.py:42: ImportError
+___________ test_streaming_json_preserves_values_across_refills[64] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a221f20>
+chunk_size = 64
+
+    @pytest.mark.parametrize("chunk_size", [1, 7, 64, 65536])
+    def test_streaming_json_preserves_values_across_refills(monkeypatch, chunk_size):
+>       from decision import json_stream
+E       ImportError: cannot import name 'json_stream' from 'decision' (/Users/terbeest/dev/worktrees/model-407/decision/__init__.py)
+
+tests/test_snapshot_streaming.py:42: ImportError
+__________ test_streaming_json_preserves_values_across_refills[65536] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a222580>
+chunk_size = 65536
+
+    @pytest.mark.parametrize("chunk_size", [1, 7, 64, 65536])
+    def test_streaming_json_preserves_values_across_refills(monkeypatch, chunk_size):
+>       from decision import json_stream
+E       ImportError: cannot import name 'json_stream' from 'decision' (/Users/terbeest/dev/worktrees/model-407/decision/__init__.py)
+
+tests/test_snapshot_streaming.py:42: ImportError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_streaming.py::test_canonical_snapshot_does_not_decompress_the_whole_document
+FAILED tests/test_snapshot_streaming.py::test_streaming_json_preserves_values_across_refills[1]
+FAILED tests/test_snapshot_streaming.py::test_streaming_json_preserves_values_across_refills[7]
+FAILED tests/test_snapshot_streaming.py::test_streaming_json_preserves_values_across_refills[64]
+FAILED tests/test_snapshot_streaming.py::test_streaming_json_preserves_values_across_refills[65536]
+5 failed in 0.18s

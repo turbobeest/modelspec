@@ -73,6 +73,43 @@ def _visible_text(raw: str) -> str:
     return _TAG.sub(" ", _STYLE_OR_SCRIPT.sub(" ", raw))
 
 
+def test_built_guide_and_linked_use_case_show_the_same_decision(trees):
+    from pipeline.surface_lint import Page
+
+    tree = trees["real"] / "modelspec"
+    guide = (tree / "guides/how-to-choose-an-ai-model/index.html").read_text()
+    use_case = (tree / "use-cases/coding/budget-coding/index.html").read_text()
+    for prefix in ("dec", "snap"):
+        guide_ids = re.findall(rf"\b{prefix}_[a-z0-9]+\b", Page(guide).visible)
+        assert guide_ids
+        assert guide_ids == re.findall(rf"\b{prefix}_[a-z0-9]+\b", Page(use_case).visible)
+    table = re.search(r'<table id="example-results">(.*?)</table>', guide, re.S)
+    assert table
+    guide_rows = [re.findall(r"<td>(.*?)</td>", row, re.S)[2:]
+                  for row in re.findall(r"<tr>(.*?)</tr>", table[1], re.S) if "<td>" in row]
+    use_case_rows = [re.findall(r"<td>(.*?)</td>", row, re.S)[:4]
+                     for row in re.findall(r"<tr>(.*?)</tr>", use_case, re.S)
+                     if 'class="use-case-model"' in row]
+    assert guide_rows
+    assert [[Page(cell).visible for cell in row] for row in guide_rows] == [
+        [Page(cell).visible for cell in row] for row in use_case_rows
+    ]
+
+
+def test_built_guide_has_a_bounded_exclusion_summary(trees):
+    from pipeline.surface_lint import Page
+
+    tree = trees["real"] / "modelspec"
+    raw = (tree / "guides/how-to-choose-an-ai-model/index.html").read_text()
+    assert len(Page(raw).visible.split()) <= 3000
+    sample = re.search(r'<table id="example-excluded">(.*?)</table>', raw, re.S)
+    assert sample
+    assert len(re.findall(r"<tr><td>", sample[1])) <= 15
+    full = (tree / "use-cases/coding/budget-coding/index.html").read_text()
+    assert 'id="screened-out"' in full
+    assert "/use-cases/coding/budget-coding/#screened-out" in Page(raw).links
+
+
 def test_live_preserves_every_public_template_preview(trees):
     from decision.templates import load_templates
 
@@ -136,6 +173,7 @@ def test_the_holding_trees_are_dark(trees):
                      "m", "p", "b", "models", "providers", "benchmarks", "downselect",
                      "graph", "pricing", "instrument.css"):
             assert not (tree / gone).exists(), (site, gone)
+        assert not (tree / "compare").exists(), site
     real = trees["real"] / "benchgraph"
     held = trees["holding"] / "benchgraph"
     assert _files(held) == _files(real)
@@ -361,11 +399,26 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
             (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
         ) if url.startswith(live.BASE + "/use-cases/")
     }
+    source_comparisons = {
+        url: stamp for url, stamp in sitemap_entries(
+            (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
+        ) if url.startswith(live.BASE + "/compare/")
+    }
+    source_guides = {
+        url: stamp for url, stamp in sitemap_entries(
+            (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
+        ) if url.startswith(live.BASE + "/guides/")
+    }
+    assert len(source_guides) == 3
     assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == (
-        len(live.PAGES) + len(source_use_cases)
+        len(live.PAGES) + len(source_use_cases) + len(source_comparisons) + len(source_guides)
     )
     assert {url: stamp for url, stamp in sitemap_entries(sitemap)
             if url.startswith(live.BASE + "/use-cases/")} == source_use_cases
+    assert {url: stamp for url, stamp in sitemap_entries(sitemap)
+            if url.startswith(live.BASE + "/compare/")} == source_comparisons
+    assert {url: stamp for url, stamp in sitemap_entries(sitemap)
+            if url.startswith(live.BASE + "/guides/")} == source_guides
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page
@@ -399,6 +452,28 @@ def test_live_use_cases_preserve_public_image_discovery_and_noindex_states(trees
             assert live.BASE + path not in actual
     assert noindex
     assert live.dead_links(tree) == []
+
+
+def test_live_comparisons_preserve_pages_and_public_image_dates(trees):
+    from pipeline.surface_lint import Page, sitemap_entries
+
+    source = trees["real"] / "modelspec"
+    tree = trees["live"] / "modelspec"
+    pages = sorted((source / "compare").rglob("index.html"))
+    assert len(pages) > 1
+    expected = {url: stamp for url, stamp in sitemap_entries((source / "sitemap.xml").read_text())
+                if url.startswith(live.BASE + "/compare/")}
+    actual = {url: stamp for url, stamp in sitemap_entries((tree / "sitemap.xml").read_text())
+              if url.startswith(live.BASE + "/compare/")}
+    assert actual == expected
+    assert live.BASE + "/compare/" in actual
+    assert set(actual.values()) == {builder.use_case_image_date(ROOT).isoformat()}
+    for page in pages:
+        rel = page.relative_to(source)
+        assert (tree / rel).read_bytes() == page.read_bytes(), rel
+        url = live.BASE + "/" + rel.parent.as_posix() + "/"
+        assert (url in actual) == ("noindex" not in Page(page.read_text()).meta["robots"])
+    assert not (trees["holding"] / "modelspec/compare").exists()
 
 
 def test_every_live_page_carries_one_json_ld_graph(trees):

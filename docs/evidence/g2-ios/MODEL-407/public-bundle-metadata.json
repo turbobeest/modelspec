@@ -1,0 +1,74 @@
+[
+  {
+    "label": "candidate",
+    "bundle_sha256": "3ff6fe930f18aa30da834a3be95b36852356c81f87c84fcc7d030f0d95866bbe",
+    "snapshots": [
+      {
+        "path": "/api/decision/snapshot.json.gz",
+        "compressed_bytes": 343255,
+        "json_bytes": 2740101,
+        "synthetic_hardware_rows": 15,
+        "synthetic_sources": 68,
+        "total_sources": 317,
+        "valid_until": "2026-10-21",
+        "valid_from": null,
+        "provenance_fields": 51,
+        "provenance_rows": 2628,
+        "provenance_slots": 134028,
+        "hardware_provenance_fields": 30,
+        "hardware_provenance_rows": 45
+      },
+      {
+        "path": "/api/decision/snapshot-successor.json.gz",
+        "compressed_bytes": 343255,
+        "json_bytes": 2740100,
+        "synthetic_hardware_rows": 15,
+        "synthetic_sources": 68,
+        "total_sources": 317,
+        "valid_until": null,
+        "valid_from": "2026-10-21",
+        "provenance_fields": 51,
+        "provenance_rows": 2628,
+        "provenance_slots": 134028,
+        "hardware_provenance_fields": 30,
+        "hardware_provenance_rows": 45
+      }
+    ]
+  },
+  {
+    "label": "b4a7074f",
+    "bundle_sha256": "24a503b43861a6edce12cec3223237dc649abadf148b8d052c29af1b06c273e9",
+    "snapshots": [
+      {
+        "path": "/api/decision/snapshot.json.gz",
+        "compressed_bytes": 347715,
+        "json_bytes": 3003248,
+        "synthetic_hardware_rows": 15,
+        "synthetic_sources": 68,
+        "total_sources": 317,
+        "valid_until": "2026-10-21",
+        "valid_from": null,
+        "provenance_fields": 64,
+        "provenance_rows": 2673,
+        "provenance_slots": 171072,
+        "hardware_provenance_fields": 0,
+        "hardware_provenance_rows": 0
+      },
+      {
+        "path": "/api/decision/snapshot-successor.json.gz",
+        "compressed_bytes": 347742,
+        "json_bytes": 3003247,
+        "synthetic_hardware_rows": 15,
+        "synthetic_sources": 68,
+        "total_sources": 317,
+        "valid_until": null,
+        "valid_from": "2026-10-21",
+        "provenance_fields": 64,
+        "provenance_rows": 2673,
+        "provenance_slots": 171072,
+        "hardware_provenance_fields": 0,
+        "hardware_provenance_rows": 0
+      }
+    ]
+  }
+]

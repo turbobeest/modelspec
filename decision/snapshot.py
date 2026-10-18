@@ -52,7 +52,13 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 import yaml
 
-from decision.excluded import ExcludedSources, excluded_sources
+from decision.excluded import (
+    ExcludedSources,
+    excluded_in,
+    excluded_sources,
+    removed_text_hit,
+)
+from decision.json_stream import JSONStreamReader
 from decision.model import (
     Measurement,
     evidence_verification_value,
@@ -1357,12 +1363,16 @@ class _Compiler:
             )
         retained_fit_ids = {row["id"] for row in hardware_fit}
         retained_records = {}
+        retained_fit_records = {}
         for rid in record_ids:
             record = self.records[rid]
             if record.get("kind") == "hardware_fit_input":
                 record = {**record, "verified_by_records": sorted(
                     set(record["verified_by_records"]) & retained_fit_ids)}
-            retained_records[rid] = record
+            if rid in retained_fit_ids or record.get("kind") == "hardware_fit_input":
+                retained_fit_records[rid] = record
+            else:
+                retained_records[rid] = record
         content = {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
@@ -1373,7 +1383,9 @@ class _Compiler:
             "benchmark_domains": domains,
             "capability": capability,
             **({"hardware": dict(sorted(self.hardware.items()))} if self.hardware else {}),
-            **({"hardware_fit_records": hardware_fit} if hardware_fit else {}),
+            **({"hardware_fit_record_ids": [row["id"] for row in hardware_fit],
+                "hardware_fit_record_table": _pack_records(retained_fit_records)}
+               if hardware_fit else {}),
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
@@ -1576,12 +1588,17 @@ def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
             guard: ExcludedSources | None) -> Snapshot:
     content = c.content(as_of, premier)
     if guard is not None:
-        text = canonical_json(content).decode("utf-8")
-        hit = guard.text.search(text)
+        hit = removed_text_hit(content)
+        publisher = excluded_in(content)
         bad = [u for u in content["sources"].values() if guard.url(u)]
-        if hit or bad:
-            raise SnapshotBuildError(
-                f"excluded source in the snapshot output: {hit.group(0) if hit else bad[0]!r}")
+        if hit or publisher or bad:
+            if hit:
+                detail = hit.group(0)
+            elif bad:
+                detail = repr(bad[0])
+            else:
+                detail = "'removed publisher'"
+            raise SnapshotBuildError(f"excluded source in the snapshot output: {detail}")
     digest = content_hash(content)
     return Snapshot(content=content, content_hash=digest, snapshot_id=snapshot_id_for(digest))
 
@@ -2057,7 +2074,10 @@ class LoadedSnapshot:
         )
         self._sources: dict[str, str] = dict(content["sources"])
         self._hardware = content.get("hardware") or {}
-        self._hardware_fit = tuple(content.get("hardware_fit_records") or ())
+        self._hardware_fit_record_ids = tuple(content.get("hardware_fit_record_ids") or ())
+        self._hardware_fit = (None if self._hardware_fit_record_ids
+                              else tuple(content.get("hardware_fit_records") or ()))
+        self._hardware_fit_record_table = content.get("hardware_fit_record_table")
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
         self.explanation_rebuild_required = (
@@ -2447,8 +2467,13 @@ class LoadedSnapshot:
 
     def record(self, record_id: str) -> Mapping[str, Any]:
         """The admitted record with its winning verification, retained verbatim."""
-        if record_id not in self._records and self._record_table is not None:
-            self._records[record_id] = _unpack_record(self._record_table, record_id)
+        if record_id not in self._records:
+            table = self._record_table
+            if (self._hardware_fit_record_table is not None
+                    and record_id in self._hardware_fit_record_table["rows"]):
+                table = self._hardware_fit_record_table
+            if table is not None:
+                self._records[record_id] = _unpack_record(table, record_id)
         return self._records[record_id]
 
     def hardware_device(self, device_id: str) -> Mapping[str, Any] | None:
@@ -2457,6 +2482,8 @@ class LoadedSnapshot:
 
     def hardware_fit_records(self, model: str, sku: str) -> tuple[Mapping[str, Any], ...]:
         """Admitted measurements and inputs for one model/SKU, without guessing defaults."""
+        if self._hardware_fit is None:
+            self._hardware_fit = tuple(self.record(rid) for rid in self._hardware_fit_record_ids)
         return tuple(row for row in self._hardware_fit if row["model"] == model and row["sku"] == sku)
 
     def facet_ids(self) -> tuple[str, ...]:
@@ -2512,6 +2539,23 @@ def verify_hmac_signature(digest: str, signature: Mapping[str, Any] | None,
         raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
 
 
+def _stream_canonical_envelope(data: bytes) -> tuple[dict[str, Any], str] | None:
+    prefix = '{"content":{'
+    with io.TextIOWrapper(gzip.GzipFile(fileobj=io.BytesIO(data)),
+                          encoding="utf-8", newline="") as stream:
+        if stream.read(len(prefix)) != prefix:
+            return None
+        digest = hashlib.sha256()
+        reader = JSONStreamReader(stream, initial="{", digest=digest)
+        content = reader.read_value()
+        suffix = reader.remainder().lstrip()
+        envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+        if "content" in envelope:
+            raise ValueError("duplicate content member")
+        envelope["content"] = content
+        return envelope, "sha256:" + digest.hexdigest()
+
+
 def load_snapshot_bytes(
     data: bytes,
     *,
@@ -2522,25 +2566,26 @@ def load_snapshot_bytes(
 ) -> LoadedSnapshot:
     """Check and index a gzipped snapshot already held in memory."""
     try:
-        text = gzip.decompress(data).decode("utf-8")
-        stored_digest = None
-        if text.startswith('{"content":{'):
-            # raw_decode finds the JSON boundary, including escaped quotes and
-            # nested objects. Never search for a delimiter inside content.
-            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
-            suffix = text[end:].lstrip()
-            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
-            if "content" in envelope:
-                raise SnapshotIntegrityError(f"{source}: duplicate content member")
-            envelope["content"] = content
-            # Hash the canonical content without copying the full JSON string
-            # and then allocating a second full UTF-8 buffer in the isolate.
-            digest = hashlib.sha256()
-            for offset in range(len('{"content":'), end, 4096):
-                digest.update(text[offset:min(offset + 4096, end)].encode("utf-8"))
-            stored_digest = "sha256:" + digest.hexdigest()
+        try:
+            streamed = _stream_canonical_envelope(data)
+        except RecursionError:
+            # Preserve the standard decoder's greater depth for legacy files.
+            streamed = None
+        if streamed is not None:
+            envelope, stored_digest = streamed
         else:
-            envelope = json.loads(text)
+            text = gzip.decompress(data).decode("utf-8")
+            if text.startswith('{"content":{'):
+                content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
+                suffix = text[end:].lstrip()
+                envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+                if "content" in envelope:
+                    raise ValueError("duplicate content member")
+                envelope["content"] = content
+            else:
+                envelope = json.loads(text)
+            stored_digest = None
+            del text
     except (OSError, EOFError, ValueError) as exc:
         raise SnapshotIntegrityError(f"{source}: not a gzipped JSON snapshot: {exc}") from exc
     if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:

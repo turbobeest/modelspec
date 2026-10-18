@@ -1,0 +1,101 @@
+{
+  "head": "819ba9e1aeb4e5e8a91e305a044224ff061605ed",
+  "source_sha256": {
+    "decision/snapshot.py": "50a76a2584b9a25f38367ab090785e428c611492a7581e601752ece6523de4f0",
+    "decision/json_stream.py": "dafdd25f3f1c5abe65294f3cbfe06a89d2d6b0ca03542ada52b186dad7f3f4eb",
+    "api/worker/src/entry.py": "eadbdd13f957c188b89cb7b2623196b40cc82bcfde10a4411b9dc85a2d7a511c",
+    "api/worker/src/policy_service.py": "0f9b67d7f5e45cdab33c24bea04f7f90454dbea1e9671ba7973159fb8ab31c12",
+    "api/worker/vendor.py": "ed4aabddf955051a19073c72a8fc90c21d7ed792c77dd03a83bf4a5b6148b6f4",
+    "api/worker/measure_memory.cjs": "1a282440fa87d6b0e1b56a72a58fac7927a170c845d765e4b11d4af29943c5db",
+    "api/worker/memory-fixture.json": "72c408ea8308f5b2379fb9988a14fc8355361d9d178b3d0340624ca4ae38b963"
+  },
+  "runtime": {
+    "node": "v22.22.3",
+    "pyodide": "0.28.3"
+  },
+  "commands": [
+    [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "api/worker/vendor.py",
+      "--data-dir",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/public-data",
+      "--out",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-canonical-c"
+    ],
+    [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "api/worker/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-canonical-c",
+      "--successor",
+      "--limit-mib",
+      "115",
+      "--attribute",
+      "--output",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/canonical-c-successor.json"
+    ],
+    [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "--require",
+      "./docs/evidence/g2-ios/MODEL-407/rollover-probe-hook.cjs",
+      "api/worker/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-canonical-c",
+      "--limit-mib",
+      "115",
+      "--attribute",
+      "--output",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/canonical-c-warm.json"
+    ]
+  ],
+  "build": {
+    "exit": 0,
+    "seconds": 166.539
+  },
+  "snapshot_helper": {
+    "path": "tmp/model-407/round3/root/canonical_c_decoder.py",
+    "sha256": "b2830413f19db208561945f691fecce8230156048be1037663a14a430a2abf0a"
+  },
+  "generated_snapshot_sha256": "0dd82c84e49dd1042c28de95fda060dc649198ff6d6876f7ad53aff706c107cb",
+  "bundle_sha256": "0fd50b680e52d2df9b531a43d621c777aabd65093745b5a0ec5baf3c4de11dc0",
+  "snapshots": [
+    {
+      "path": "/api/decision/snapshot.json.gz",
+      "snapshot_id": "snap_4a7d44f0961cb6a6",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740101,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": null,
+      "valid_until": "2026-10-21"
+    },
+    {
+      "path": "/api/decision/snapshot-successor.json.gz",
+      "snapshot_id": "snap_0f8efcaccaa46937",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740100,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": "2026-10-21",
+      "valid_until": null
+    }
+  ],
+  "probes": [
+    {
+      "mode": "successor",
+      "exit": 1,
+      "seconds": 3.066,
+      "steady_mib": 116.48982810974121,
+      "wasm_peak_mib": 71.875,
+      "peak_mib": 116.53948783874512
+    },
+    {
+      "mode": "warm",
+      "exit": 1,
+      "seconds": 3.02,
+      "steady_mib": 116.54873180389404,
+      "wasm_peak_mib": 71.875,
+      "peak_mib": 116.60216808319092
+    }
+  ]
+}

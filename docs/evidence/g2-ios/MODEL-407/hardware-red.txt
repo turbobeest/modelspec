@@ -1,0 +1,58 @@
+FFF.....                                                                 [100%]
+=================================== FAILURES ===================================
+__ test_hardware_fit_snapshot_retains_source_ids_and_one_copy_of_each_record ___
+
+    def test_hardware_fit_snapshot_retains_source_ids_and_one_copy_of_each_record():
+        compiled = fixture_snapshot(built=True)
+>       assert "hardware_fit_records" not in compiled.content
+E       AssertionError: assert 'hardware_fit_records' not in {'format_version': 1, 'as_of': '2026-10-10', 'facet_subjects': {'model.context_window': 'model', 'model.weights_openne...ntext_window': {'row': [0], 'state': ['known'], 'value': [8192], 'sources': [['src-lab-docs']]}}, 'evidence': {}}, ...}
+E        +  where {'format_version': 1, 'as_of': '2026-10-10', 'facet_subjects': {'model.context_window': 'model', 'model.weights_openne...ntext_window': {'row': [0], 'state': ['known'], 'value': [8192], 'sources': [['src-lab-docs']]}}, 'evidence': {}}, ...} = Snapshot(content={'format_version': 1, 'as_of': '2026-10-10', 'facet_subjects': {'model.context_window': 'model', 'mod...nt_hash='sha256:8b9c387b3d813c6638a1359ba3118e9b6403b4491e348d9072db8a3a4513c39d', snapshot_id='snap_8b9c387b3d813c66').content
+
+tests/test_hardware_fit_memory.py:23: AssertionError
+______ test_hardware_fit_fields_do_not_pad_every_other_provenance_record _______
+
+    def test_hardware_fit_fields_do_not_pad_every_other_provenance_record():
+        without = fixture_snapshot([], built=True).content["record_table"]
+        with_hardware = fixture_snapshot(built=True).content["record_table"]
+>       assert with_hardware == without
+E       assert {'fields': [(...e, ...], ...}} == {'fields': [(..., None, ...]}}
+E         
+E         Differing items:
+E         {'fields': [('batch',), ('context',), ('device',), ('device_count',), ('facet',), ('figures_are',), ...]} != {'fields': [('device',), ('facet',), ('figures_are',), ('id',), ('kind',), ('memory', 'bandwidth_gb_s'), ...]}
+E         {'values': ['2', '1024', '1', '"hardware-fit:fixture"', '24000000000', '"lab/hardware-model"', ...]} != {'values': ['"fixture_gpu"', '"vendor-specification"', '"hardware:fixture_gpu#memory"', '"hardware"', '500', '24', ...]}
+E         {'rows': {'hardware-fit:fixture': [0, 1, None, 2, None, None, ...], 'hardware-input:headroom': [None, None, None, Non...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_hardware_fit_memory.py:34: AssertionError
+___________ test_hardware_fit_loads_records_once_on_first_assessment ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109a4cdd0>
+
+    def test_hardware_fit_loads_records_once_on_first_assessment(monkeypatch):
+        compiled = fixture_snapshot(built=True)
+        decoded = []
+        unpack = snapshots._unpack_record
+    
+        def tracked_unpack(table, record_id):
+            decoded.append(record_id)
+            return unpack(table, record_id)
+    
+        monkeypatch.setattr(snapshots, "_unpack_record", tracked_unpack)
+        snapshot = snapshots.load_snapshot_bytes(compiled.to_bytes(key=KEY), key=KEY)
+        assert decoded == []
+        assert snapshot.candidates() == (MODEL,)
+        assert decoded == []
+    
+        _, first = assess(snapshot=snapshot)
+>       assert decoded.count("hardware-fit:fixture") == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <built-in method count of list object at 0x109a70580>('hardware-fit:fixture')
+E        +    where <built-in method count of list object at 0x109a70580> = ['hardware:fixture_gpu#memory', 'lab/hardware-model#model.context_window'].count
+
+tests/test_hardware_fit_memory.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_hardware_fit_memory.py::test_hardware_fit_snapshot_retains_source_ids_and_one_copy_of_each_record
+FAILED tests/test_hardware_fit_memory.py::test_hardware_fit_fields_do_not_pad_every_other_provenance_record
+FAILED tests/test_hardware_fit_memory.py::test_hardware_fit_loads_records_once_on_first_assessment
+3 failed, 5 passed in 0.69s

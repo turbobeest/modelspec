@@ -2683,6 +2683,7 @@ def build_spec() -> dict[str, Any]:
     health_schema: dict[str, Any] = {}
     for sample in _health_samples():
         health_schema = _merge(health_schema, _infer(sample))
+    health_schema["required"].remove("decision_snapshot")
     policy_schemas = _policy_schemas(used)
     decision_schemas = _decision_schemas()
 
@@ -3473,6 +3474,10 @@ def _health_samples() -> list[dict[str, Any]]:
         "model_count_label": "Worker serving catalogue cards, including retired models",
         "policy_model_count": _policy_export()["count"],
         "policy_model_count_label": "Worker serving policy catalogue cards, including retired models",
+        "decision_snapshot": {
+            "id": "snap_0123456789abcdef", "valid_until": "2026-12-01",
+            "successor_held": True, "successor_valid_from": "2026-12-01",
+        },
         "last_error": None,
     }
     # One per store state (`entry.py::STORE_*`). Only `broken` has a last_error:
@@ -3495,6 +3500,10 @@ def _health_samples() -> list[dict[str, Any]]:
          "determinations": store(True, "broken", False, "RuntimeError: example",
                                  "RuntimeError: example")},
     ]
+    samples.append({**samples[0], "decision_snapshot": {
+        "id": None, "valid_until": None,
+        "successor_held": False, "successor_valid_from": None,
+    }})
     for name, keys, sample in (("_health", _entry_body_keys("_health"), samples[0]),
                                ("_determinations_health",
                                 _entry_body_keys("_determinations_health"),

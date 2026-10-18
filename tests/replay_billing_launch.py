@@ -10,7 +10,6 @@ import asyncio
 import importlib.util
 import json
 import sys
-from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -58,17 +57,21 @@ async def replay(data):
     workers.Response = Response
     workers.WorkerEntrypoint = type("WorkerEntrypoint", (), {})
     bundle.read = lambda path: vocabulary if path == "/api/decision/vocabulary.json" else None
-    with ExitStack() as runtime:
-        for name, module in {"js": js, "workers": workers, "bundled_data": bundle}.items():
-            if name in sys.modules:
-                runtime.callback(sys.modules.__setitem__, name, sys.modules[name])
-            else:
-                runtime.callback(sys.modules.pop, name, None)
-            sys.modules[name] = module
+    stubs = {"js": js, "workers": workers, "bundled_data": bundle}
+    missing = object()
+    saved = {name: sys.modules.get(name, missing) for name in stubs}
+    sys.modules.update(stubs)
+    try:
         spec = importlib.util.spec_from_file_location(
             "billing_launch_entry", ROOT / "api/worker/src/entry.py")
         entry = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(entry)
+    finally:
+        for name, value in saved.items():
+            if value is missing:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = value
 
     def request_key(payload):
         return json.dumps({key: value for key, value in payload.items() if key != "snapshot"}, sort_keys=True)

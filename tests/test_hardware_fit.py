@@ -442,7 +442,7 @@ def test_shared_number_provenance_excludes_out_of_lineup_parent_records():
     assert (body["status"], body["margin_bytes"]) == ("estimated", 18_795_200_000)
     assert snapshot.record("hardware-input:weights")["verified_by_records"] == ["hardware-fit:fixture"]
     assert "hardware-fit:hidden" not in compiled.content["record_table"]["rows"]
-    assert [row["id"] for row in compiled.content["hardware_fit_records"]] == ["hardware-fit:fixture"]
+    assert compiled.content["hardware_fit_record_ids"] == ["hardware-fit:fixture"]
 
 
 @pytest.mark.parametrize("openness,single_pool", [("closed_weights", True), (None, True),
