@@ -6,7 +6,7 @@ Draft PR: https://github.com/turbobeest/modelspec/pull/818.
 
 Base SHA: `7908f238465ea88f0568738f13d8e8bbec949deb`.
 Design-only first commit: `86fb8f663b63315c17c5f99891e0d29a0bac6cf6`.
-Final implementation SHA: `7148004ef1ddad8fb4dfea20257ae65fbaa03cf4`.
+Final implementation and test SHA: `5e7f10ae3a9a1fe68435bebcf4015ef1817a1bbe`.
 The subsequent evidence-only commit records these results. Its final PR SHA
 is available with `git rev-parse HEAD` on this branch and in the executor's
 completion line; a commit cannot contain its own SHA.
@@ -120,7 +120,20 @@ The final complete static build exited 0 after the catalogue and layout fixes. L
 exited 0 and reported `modelspec: 2748 files; discovery links resolve`.
 Surface lint reported zero findings for the static tree's 5,362 checked files
 and the live tree's 151 checked files. These checks were repeated successfully
-on the final implementation. The full suite remains pending.
+on the final implementation. The full suite acquired the shared lock and
+exited 0: **11,552 passed, 9 skipped, 11 warnings in 1,279.89 seconds
+(21 minutes 19 seconds)**. The warnings came from CLI snapshot tests using
+unsigned decision-vocabulary fixtures. Its log is retained locally as
+`.model-219-p2/root/full-suite.log`. The suite ran against the final code and
+tests, with only this evidence report edited afterward.
+
+GitHub CI passed on implementation/test commit `5e7f10ae`: Run pytest,
+Build both sites, Check evidence against release charts and Data freeze.
+The source-guard fix passed its formerly failing shard. The browser matrix,
+decision accuracy, Worker bundle, MCP and package checks also passed.
+Status was read with `gh pr checks 818` and `gh pr checks 818 --required`.
+The final evidence-only commit triggers fresh checks; their current status
+is on the draft PR. No deployment or auto-merge ran.
 
 ```bash
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out dist/live
