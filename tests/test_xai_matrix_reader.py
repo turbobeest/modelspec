@@ -146,6 +146,7 @@ def reviewed_template():
 
     return XaiMatrixTemplate(
         source_url="https://x.ai/pricing", region_id="page",
+        copy_sha256="9fe2ce668ebeb9ba1e4905a92cbe81976591412e4a89af1907e6ac14dfc69b40",
         document_sha256="9fe2ce668ebeb9ba1e4905a92cbe81976591412e4a89af1907e6ac14dfc69b40",
         region_sha256="edf4ac1deaaba301dd332945726950e86fda25d5a9e1042fe1287f9a26043836",
         region_path=(0, 0, 1),
@@ -210,6 +211,7 @@ def test_reviewed_matrix_does_not_supply_unsupported_values(
 
 
 @pytest.mark.parametrize("change", [
+    {"copy_sha256": "0" * 64},
     {"document_sha256": "0" * 64},
     {"region_sha256": "0" * 64},
     {"region_path": (9, 9)},
@@ -255,6 +257,21 @@ def test_targeted_fact_cannot_use_another_offering_subject(tmp_path, reviewed_te
 
 def test_html_normalizer_cannot_flatten_the_reviewed_matrix(tmp_path, reviewed_template):
     result, _ = check(tmp_path, normaliser="html-default",
+                      readers=[verify.XaiMatrixExtractor(templates=(reviewed_template,))])
+    assert result.outcome == "mismatch"
+    assert result.reason.startswith("template drifted:")
+
+
+@pytest.mark.parametrize("original,changed", [
+    ('d="M3 8H13"', 'd="M３ 8H13"'),
+    ('d="M3 8H13"', 'd="Ｍ3 8H13"'),
+    ("SuperGrok Lite", "SuperGrok Ｌite"),
+    ("Grok 4.6", "Grok ４.6"),
+])
+def test_normalization_cannot_hide_changed_raw_template_bytes(
+    tmp_path, reviewed_template, original, changed,
+):
+    result, _ = check(tmp_path, PAGE.replace(original, changed),
                       readers=[verify.XaiMatrixExtractor(templates=(reviewed_template,))])
     assert result.outcome == "mismatch"
     assert result.reason.startswith("template drifted:")

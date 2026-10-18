@@ -5398,10 +5398,11 @@ class XaiMatrixExtractor:
         return False  # A generic text-only call lacks the required source binding.
 
     def extract(self, claim: Claim, text: str, *, source_url: str | None = None,
-                region_id: str | None = None) -> list[Reading]:
+                region_id: str | None = None, copy_ref: str | None = None) -> list[Reading]:
         digest = document_sha256(text)
         matches = [template for template in self.templates
                    if template.source_url == source_url and template.region_id == region_id
+                   and copy_ref == "sha256:" + template.copy_sha256
                    and template.document_sha256 == digest
                    and any(column.subject == claim.subject for column in template.columns)]
         if len(matches) != 1:
@@ -6282,7 +6283,8 @@ def _verify_xai_matrix(claim: Claim, regions: Regions, extractors: Sequence[Extr
                           reason=f"unreachable:{source.source_id}#page")
         try:
             readings.extend(readers[0].extract(
-                claim, text, source_url=source_url, region_id="page"))
+                claim, text, source_url=source_url, region_id="page", copy_ref=source.snapshot_ref,
+            ))
         except TemplateDriftError as exc:
             reason = str(exc)
             diffs = (Diff("template", "reviewed xAI matrix", reason),)

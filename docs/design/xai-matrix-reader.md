@@ -39,7 +39,8 @@ and a facet. The registry contains no executable parser instructions.
 A reviewed template records:
 
 - The exact source URL, cited region and canonical offering IDs.
-- A hash of the complete retained document representation, plus a hash of the
+- The raw retained copy SHA-256, a hash of its complete normalized document
+  representation, and a hash of the
   selected DOM region including tags, attributes, text, cell order and SVG
   path data. The full-document binding also covers surrounding ownership
   context. This intentionally permits false refusals after unrelated page
@@ -59,7 +60,10 @@ normalization. Hash the exact representation that `StoredRegions` gives the
 verifier, with the same recipe and version. Register new private source IDs;
 do not change normalizers for historical citations. Source fingerprints then
 include glyph and layout changes. The raw retained copy has a separate hash
-in the retrieval manifest and CopyStore verifies it before use.
+in the retrieval manifest and CopyStore verifies it before use. The template
+must also match that raw copy hash: Unicode normalization can otherwise turn
+a changed or invalid SVG command into the approved normalized path. A citation
+must use the actual whole-page locator, not a same-named excerpt region.
 
 An unregistered page hash, different source URL, missing/duplicate region,
 reordered/extra header, changed row, moved cell, unexpected glyph or unresolved

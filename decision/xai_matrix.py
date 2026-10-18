@@ -36,6 +36,7 @@ class MatrixRow:
 class XaiMatrixTemplate:
     source_url: str
     region_id: str
+    copy_sha256: str
     document_sha256: str
     region_sha256: str
     region_path: Path
@@ -154,6 +155,7 @@ def read_matrix(template: XaiMatrixTemplate, text: str, *, subject: str, facet: 
 XAI_MATRIX_TEMPLATES = (
     XaiMatrixTemplate(
         source_url="https://x.ai/grok/business", region_id="page",
+        copy_sha256="c1dd2ba990de3cfaead12b59c01762964a2f1af53cfe714ee972106564cf67c1",
         document_sha256="b2ec9fb2bce961f284869a87bfd214622cd13aaf5c48bdbc36d03ca35cdbbac8",
         region_sha256="a0db084e2b6c50678c984de5b5fad3d477abb10c3878831630d4e0a2fa793c3d",
         region_path=(0, 1, 6, 0, 0, 0),
