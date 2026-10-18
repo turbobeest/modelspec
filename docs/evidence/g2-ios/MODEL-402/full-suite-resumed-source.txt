@@ -1,0 +1,4 @@
+Source revision: 4b0c8cea5c1e9e24c2493970500dcc9049142f99
+Queued at: 2026-10-18T00:38:28.050899+00:00
+Prerequisites: npm ci exit0; web/dist/decide.html build exit0.
+Command: env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile

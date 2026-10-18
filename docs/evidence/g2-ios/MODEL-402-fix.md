@@ -2,19 +2,19 @@
 
 The Worker bundle contains a signed current snapshot and one signed successor
 when the current snapshot has an expiry. Both come from the same checkout.
-The Worker selects the price period on each request using the UTC date. Both signatures must verify before either snapshot
-can serve. Exhausted coverage returns `503 no_snapshot`.
+The Worker selects the price period on each request using the UTC date.
+Both signatures must verify before either snapshot can serve. Exhausted coverage returns `503 no_snapshot`.
 
 The bundle also carries matching successor vocabulary. Dated vocabulary uses
 `no-store`, and the response snapshot header comes from that response's body
 so another request cannot change it during an awaited billing operation.
 
-Execution stopped at the spec's path restriction. The additive health schema
-changes the OpenAPI hash captured in `qa/fixtures/mcp-tools.json`. CI requires
-refreshing that capture, which is outside the allowed paths. The spec says to
-stop and report if a file outside `api/worker/`, `decision/`, `docs/`, or
-`tests/` is needed. That capture remains unchanged. This draft is blocked and
-has not passed the required complete suite.
+The first execution stopped at the spec's path restriction because the health
+schema invalidated the QA capture. The orchestrator then granted an exception
+for the capture and its helper, requiring repository regeneration and limiting
+the diff to this ticket's OpenAPI hash or derived health schema. Regeneration
+changed only the OpenAPI hash. The helper and tool definitions are unchanged.
+The resumed complete suite and decide browser matrix are in progress.
 
 ## Revision and review state
 
@@ -24,7 +24,10 @@ has not passed the required complete suite.
 - Base: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`.
 - First commit: `7075a312`, design only, published as draft PR
   [#813](https://github.com/turbobeest/modelspec/pull/813) before implementation.
-- Final implementation commit: `cf7f72cead28e08d1e3152512c3a19202d098de9`. The evidence-only commit follows
+- Final implementation and integration commit: `4b0c8cea5c1e9e24c2493970500dcc9049142f99`.
+  Production source remains at `cf7f72cead28e08d1e3152512c3a19202d098de9`; the later
+  integration commit refreshes the generated capture and checks the additive
+  snapshot header in the existing gate-off test. Evidence-only commits follow
   this revision. The completion record reports the final branch SHA, which an
   evidence file cannot contain literally without changing its own commit hash.
 - Independent local review found and verified the vocabulary and concurrent
@@ -38,7 +41,7 @@ or production switch changed.
 
 ## Red-first results
 
-All tests below ran before the corresponding production change. No existing
+Red output below was captured before each corresponding correction. No existing
 test was weakened. The new validity exception remains a subclass of the
 existing refusal exception, preserving MODEL-394's holder refusal assertions.
 
@@ -130,7 +133,7 @@ The required complete suite uses the shared lock:
 env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
-The required complete suite exited **1** with `15 failed, 11464 passed,
+The first required complete suite exited **1** with `15 failed, 11464 passed,
 9 skipped, 11 warnings, 12 errors in 1210.76s`. The [complete output](MODEL-402/full-suite.txt)
 and [source/exit record](MODEL-402/full-suite-source.txt) are retained. Production
 source stayed at `cf7f72ce` throughout the run.
@@ -141,7 +144,7 @@ The remaining failure is the snapshot-header fixture mismatch described below.
 All twelve setup errors report a missing `web/dist/decide.html` while preparing
 the landing-page browser fixture. `npm ci` had passed, but the browser output
 was absent in this local worktree. CI's site builds and four browser gate
-configurations passed. No post-stop build or rerun was attempted. The
+configurations passed. That execution stopped before another build or rerun. The
 [triage note](MODEL-402/full-suite-triage.txt) lists every failed/error node ID.
 Terminal logs retain their test output with trailing whitespace removed.
 
@@ -153,7 +156,7 @@ workers-py 1.17.4, workers-runtime-sdk 1.9.0, Wrangler 4.139.0, and Pyodide
 0.7.13 and then installed the workflow-pinned version in its own scratch
 directory.
 
-## CI failures and stopped work
+## Initial CI failures and authorized corrections
 
 The [CI evidence](MODEL-402/ci-failures.txt) records ten failed tests in two
 completed shards. Nine failures come from the OpenAPI capture drift.
@@ -165,14 +168,62 @@ The tenth failure is
 Its expected response in `tests/fixtures/visit_gate_off_main.json` omits the
 snapshot header now copied from the response body. The header is
 `x-modelspec-snapshot: snapshot-test` in the actual response. No fixture update
-or further implementation edit followed discovery of the forbidden QA path.
+or further implementation edit followed discovery of the forbidden QA path
+until the scope exception arrived.
 
 Both sites, all four human/visit gate browser combinations, Worker bundling,
 MCP tests, decision accuracy, data freeze, and release-chart evidence checks
 passed in CI at the implementation revision. Two pytest shards failed; another
-was still running during evidence capture. These passes do not override the
-failed pytest gate. The PR remains a draft, pending scope expansion and the
-required corrections, another full run, and independent review.
+was still running during evidence capture. Those initial passes did not override the failed pytest gate. The capture
+exception now permits the corrections described below. The PR remains a draft
+and independent review is pending.
+
+## Capture refresh and resumed validation
+
+The orchestrator explicitly granted the QA capture exception and authorized
+updating the PR body. The capture was regenerated with the repository path:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+It exited 0. The exact change in `qa/fixtures/mcp-tools.json` is
+`source_hashes["api/worker/openapi.yaml"]`:
+
+- Before: `29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05`.
+- After: `0a95c8ebbf3273b1578cfa049e74d306b435aedfcf8768735e87333688d1812b`.
+
+All other bytes, the nine tool definitions, and the six other source hashes
+are unchanged. No health-derived tool schema or capture helper changed.
+The [capture evidence](MODEL-402/qa-capture-refresh.txt) records the generator,
+red capture test, exact byte verification, and focused QA run. The two QA
+suites exited 0 with `123 passed in 13.46s`.
+
+The snapshot-header regression was reproduced again before correcting its
+assertion, exit 1 with `1 failed in 0.71s`. The test now explicitly requires
+`x-modelspec-snapshot` to equal both the response snapshot and `snapshot-test`,
+then compares the rest with the unchanged historical fixture. This retains
+the original response equality assertions and separately tests the additive
+header. The [red output](MODEL-402/visit-header-red.txt) is preserved.
+
+The [resumed focused run](MODEL-402/resumed-focused.txt) exited 0 with
+`61 passed in 1.50s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_visit_gate_off.py tests/test_snapshot_successor.py tests/test_dated_price_serving.py tests/test_decide_snapshot_refresh.py
+```
+
+The browser prerequisite ran again from `web/`, exit 0:
+
+```sh
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm ci
+```
+
+The browser build also exited 0 and supplied `web/dist/decide.html` before the
+resumed full run was queued. The [resumed suite log](MODEL-402/full-suite-resumed.txt)
+and [source record](MODEL-402/full-suite-resumed-source.txt) identify commit
+`4b0c8cea` and the exact required shared-lock command. The complete suite is
+in progress. Decide browser results will be recorded after the matrix exits.
 
 ## Limits and observations
 
