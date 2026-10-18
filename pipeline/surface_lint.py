@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CARD = ".well-known/mcp.json"
 BUNDLE = "mcp/src/agent-copy.json"
 SENTENCE_FILES = (
+    "about/index.html",
     "method/index.html",
     "llms.txt",
     "index.md",
@@ -269,16 +270,31 @@ def presence(
             first = Page(raw).first_paragraph
             if not first.startswith(entity.ONE_SENTENCE):
                 findings.append(Finding(path, "presence.lead", first, entity.ONE_SENTENCE))
-    for path in ("method/index.html", "llms.txt"):
-        text = (
-            Page(texts.get(path, "")).visible
-            if path.endswith(".html")
-            else normalize(texts.get(path, ""))
-        )
+    for path in ("about/index.html", "method/index.html", "llms.txt"):
+        page_text = texts.get(path, "")
+        text = Page(page_text).visible if path.endswith(".html") else normalize(page_text)
         if path not in absent and entity.DISAMBIGUATION not in text:
             findings.append(
                 Finding(path, "presence.disambiguation", "missing", entity.DISAMBIGUATION)
             )
+    if "about/index.html" not in absent:
+        about = Page(texts.get("about/index.html", ""))
+        if not about.first_paragraph.startswith(entity.DISAMBIGUATION) or (
+            entity.ONE_SENTENCE not in about.first_paragraph
+        ):
+            findings.append(
+                Finding(
+                    "about/index.html",
+                    "presence.lead",
+                    about.first_paragraph[:200],
+                    entity.DISAMBIGUATION,
+                )
+            )
+        for claim in entity.CLAIMS:
+            if claim.statement not in about.visible:
+                findings.append(
+                    Finding("about/index.html", "presence.claim", "missing", claim.statement)
+                )
     if not holding:
         organizations = []
         for block in page.ld:
@@ -320,8 +336,8 @@ CLI = re.compile(
     r"|\b(?:download (?:the |a )?(?:data|catalogue|snapshot))\b[^.!?;:]{0,35}\bCLI\b",
     re.I,
 )
-AI_INSTRUCTIONS = re.compile(r"\binstructions for AI\b|\bAI assistants should\b", re.I)
 SPONSORSHIP = re.compile(r"\b(?:featured partner|sponsored|promoted|affiliate)\b", re.I)
+ASSISTANT_INSTRUCTIONS = re.compile(r"instructions for AI|AI assistants should", re.I)
 COMPARISON = re.compile(
     r"\b(?:versus|vs\.?|compares? (?:to|with)|compared (?:to|with)|comparison|"
     r"better than|alternative to|unlike)\b",
@@ -362,7 +378,7 @@ def lexicon(
             ("lexicon.positioning", SELF_DESCRIPTION, True),
             ("lexicon.cli", CLI, True),
             ("lexicon.removed-source", REMOVED_TEXT, False),
-            ("lexicon.ai-instructions", AI_INSTRUCTIONS, False),
+            ("lexicon.assistant-instructions", ASSISTANT_INSTRUCTIONS, False),
         ]
         if not worker_flags.enabled(dict(variables), "X402_ENABLED"):
             # Adopted legal disclosures describe conditional ledger behaviour.

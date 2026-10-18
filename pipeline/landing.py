@@ -443,7 +443,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
-<p class="close">{lead} When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
+<p class="close">{lead} When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and returns the tie. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions"><a class="button cta-agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>

@@ -74,6 +74,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
         f"public repository is a delayed image, about nine months old.\n\n"
         f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
+        f"- About: {base}/about/\n"
         f"- How it decides: {base}/method/\n"
         f"- Orchestrator recipe: {base}/orchestrators/\n"
         f"- Pricing: {base}/pricing/\n"
@@ -902,6 +903,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     ), encoding="utf-8")
     from pipeline import orchestrators
     ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
+    from pipeline import about
+    ms_paths.extend(about.write(ms, root)["sitemap_paths"])
     from pipeline import social_cards
     template_previews = social_cards.build_template_previews(Path(args.root).resolve(), today)
     social_cards.write_template_previews(ms, template_previews)

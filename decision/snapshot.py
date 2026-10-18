@@ -46,7 +46,7 @@ from bisect import bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Protocol, runtime_checkable
 
@@ -56,6 +56,8 @@ from decision.excluded import ExcludedSources, excluded_sources
 from decision.model import (
     Measurement,
     evidence_verification_value,
+    fact_verification_value,
+    validate_price_schedules,
     value_hash,
     verification_counts,
 )
@@ -730,6 +732,7 @@ class _Compiler:
         self.evidence: dict[str, list[list[Any]]] = {}
         self.records: dict[str, dict[str, Any]] = {}
         self.fact_records: dict[str, dict[str, str]] = {}
+        self.price_periods: dict[str, list[tuple[date | None, date | None]]] = {}
         self.labs: Mapping[str, Any] = inputs.labs
         self.hardware: dict[str, dict[str, Any]] = {}
         self.hardware_fit: list[dict[str, Any]] = []
@@ -777,7 +780,7 @@ class _Compiler:
     def _retain(self, kind: str, record: dict) -> str:
         rid = str(record.get("id") or content_hash(record))
         value = (
-            record.get("value")
+            fact_verification_value(record)
             if kind == "fact"
             else evidence_verification_value(record)
         )
@@ -836,9 +839,14 @@ class _Compiler:
 
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
         row = self.facts.setdefault(sid, {})
-        for raw in facts or ():
-            f = _as_dict(raw)
+        for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            if f.get("effective_from") is not None or f.get("effective_until") is not None:
+                subject = f.get("subject") or {}
+                if (self.subjects[sid]["kind"] != "offering"
+                        or subject.get("kind") != "offering" or subject.get("id") != sid):
+                    raise SnapshotBuildError(
+                        f"{sid}: a dated price must belong to its actual metered offering owner")
             self._check_facet(facet_id, kind)
             if state not in FACT_STATES:
                 raise SnapshotBuildError(f"{sid}: {facet_id} has an unknown state {state!r}")
@@ -855,7 +863,8 @@ class _Compiler:
                 if measurement is not None and self.as_of is not None
                 and measurement.stale(self.as_of)
                 else self._admit(
-                    "fact", f.get("id"), f.get("verification"), f.get("value"), source_ids)
+                    "fact", f.get("id"), f.get("verification"),
+                    fact_verification_value(f), source_ids)
             )
             if reason is not None:
                 self._reject((sid, facet_id), reason, source_ids)
@@ -865,6 +874,41 @@ class _Compiler:
                 self.measurements.setdefault(sid, {})[facet_id] = measurement.model_dump(
                     mode="json")
             row[facet_id] = [state, f.get("value") if state == "known" else None, source_ids]
+            if f.get("effective_from") is not None or f.get("effective_until") is not None:
+                self.price_periods.setdefault(sid, []).append((
+                    _date(f.get("effective_from")), _date(f.get("effective_until")),
+                ))
+
+    def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
+        facts = [_as_dict(raw) for raw in facts or ()]
+        try:
+            validate_price_schedules(facts)
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{sid}: {exc}") from exc
+        selected: list[dict[str, Any]] = []
+        scheduled: set[str] = set()
+        active: set[str] = set()
+        for fact in facts:
+            for key in ("effective_from", "effective_until"):
+                if fact.get(key) is None:
+                    fact.pop(key, None)
+                else:
+                    fact[key] = _date(fact[key]).isoformat()
+            start, until = _date(fact.get("effective_from")), _date(fact.get("effective_until"))
+            if start is None and until is None:
+                selected.append(fact)
+                continue
+            if self.as_of is None:
+                raise SnapshotBuildError(f"{sid}: scheduled prices require as_of")
+            facet = str(fact["facet"])
+            scheduled.add(facet)
+            if (start is None or start <= self.as_of) and (until is None or self.as_of <= until):
+                selected.append(fact)
+                active.add(facet)
+        if missing := scheduled - active:
+            raise SnapshotBuildError(
+                f"{sid}: no scheduled price entry covers as_of {self.as_of} for {sorted(missing)}")
+        return selected
 
     def _measurement(self, sid: str, facet_id: str, raw: Any) -> Measurement | None:
         """A fact's measurement, checked before anything else: a fixture number is a bug."""
@@ -1344,6 +1388,13 @@ class _Compiler:
                 if sid in kept or sid in subscription_ids
             },
         }
+        periods = [period for sid in kept for period in self.price_periods.get(sid, ())]
+        starts = [start for start, _until in periods if start is not None]
+        ends = [until for _start, until in periods if until is not None and until < date.max]
+        if starts:
+            content["valid_from"] = max(starts).isoformat()
+        if ends:
+            content["valid_until"] = (min(ends) + timedelta(days=1)).isoformat()
         if subscription_ids:
             content["subscriptions"] = [
                 {
@@ -1977,6 +2028,8 @@ class LoadedSnapshot:
         self.signature_key_id = signature_key_id
         self.publisher_signature = envelope.get("signature")
         self.as_of = _date(content.get("as_of"))
+        self.valid_from = _date(content.get("valid_from"))
+        self.valid_until = _date(content.get("valid_until"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         #: Per kept subject, the ``excluded`` counts (MODEL-224); ``None`` when
         #: the snapshot predates the key and held anything back.
@@ -2099,6 +2152,16 @@ class LoadedSnapshot:
         }
 
     # SnapshotIndex -----------------------------------------------------------
+
+    def require_current(self, today: date | None = None) -> None:
+        """Refuse live use outside the price periods resolved into this snapshot."""
+        today = datetime.now(UTC).date() if today is None else today
+        if self.valid_from is not None and today < self.valid_from:
+            raise SnapshotError(
+                f"snapshot {self.snapshot_id} is not yet valid; prices start {self.valid_from}")
+        if self.valid_until is not None and today >= self.valid_until:
+            raise SnapshotError(
+                f"snapshot {self.snapshot_id} expired at {self.valid_until}; rebuild its prices")
 
     def candidates(self) -> Sequence[str]:
         return self._ids

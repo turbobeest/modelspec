@@ -57,6 +57,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/models/index.html': b'v1 rankings',
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': readable(b'v1 pricing'),
+        'dist/modelspec/about/index.html': readable(b'about'),
         'dist/modelspec/method/index.html': readable(b'v1 method'),
         'dist/modelspec/use-cases/index.html': readable(b'use-case index'),
         'dist/modelspec/use-cases/coding/budget-coding/index.html': readable(b'coding example'),
@@ -132,6 +133,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert page('modelspec/legal/terms/index.html') == readable(b'terms')
     assert page('modelspec/pricing/index.html') == readable(b'v1 pricing')
+    assert page('modelspec/about/index.html') == readable(b'about')
+    assert b'/about/' in live['modelspec/sitemap.xml']
     assert page('modelspec/method/index.html') == readable(b'v1 method')
     assert live['modelspec/pricing-assets/pricing.js'] == b'pricing script'
     assert live['modelspec/openapi.yaml'] == b'openapi'

@@ -58,6 +58,51 @@ A missing verification, `mismatch`, or `unreachable` means quarantined. Only
 the snapshot builder must also enforce known values, freshness, and source
 resolution before admitting records.
 
+## Dated offering prices
+
+MODEL-394 adds optional `effective_from` and `effective_until` dates to `Fact`.
+Both bounds are inclusive. An absent bound leaves that end open. Dates use
+exact `YYYY-MM-DD` strings in JSON. The YAML loader also accepts native dates.
+
+An offering can repeat an `offering.price.*` facet as dated facts. Each entry
+has its own unique fact ID, source references, and verification. A dated fact
+must have an offering subject, `state: known`, and a finite, nonnegative numeric
+price. Other facets and nonnumeric price values cannot carry dates.
+
+For example, a schedule for `offering.price.input` can contain these entries:
+
+| `value` | `effective_from` | `effective_until` |
+| --- | --- | --- |
+| `2.0` | `2026-10-14` | `2026-11-30` |
+| `4.0` | `2026-12-01` | absent |
+
+`validate_price_schedules()` checks schedules on parsed facts and raw snapshot
+inputs. Entries for a facet must be contiguous and must not overlap. Dated and
+undated facts cannot share a facet. Fact IDs remain unique for each subject.
+
+`fact_verification_value()` defines the value bound by the verification hash.
+An undated fact keeps its existing scalar value. A dated fact uses one object
+with `value`, `effective_from`, and `effective_until`. Dates become ISO strings,
+and an absent bound becomes JSON null. Changing either date invalidates the
+verification, even when the numeric price stays the same.
+
+Dated claims use the supported primary-source table readers without an
+undated-reader fallback. Gemini's unlabeled price tables additionally require
+a reviewed `gemini-price-context@1` ownership hash bound to the source URL and
+canonical offering. It hashes the original UTF-8 HTML before parsing, replacing
+only exact dated price phrases in declared paid price cells with slots. Every
+other byte remains fixed, including duplicate attributes, hidden elements,
+captions, and text outside the model section. Any page change outside those
+slots requires a reviewed template update; the weekly reader refuses until then.
+Vertex tables name the model and effective date in their own rows. The reader
+binds each supported canonical model ID to its exact published row name;
+collector-supplied names cannot substitute another model's row.
+
+The [snapshot builder](decision-snapshot.md#dated-price-resolution) requires
+`as_of` for dated prices and selects one entry for each price facet. These
+internal fields do not change the public decision response or its contract
+version.
+
 ## Sources and source snapshots
 
 A `Source` registers an HTTP URL, fetch mode, named normaliser, and uniquely
@@ -122,8 +167,9 @@ compatibility.
 `load_offerings(path)` reads a YAML list from
 `offerings/<provider>/<lab>/<model>.yaml`. Every row must match the path.
 An offering's ID is `<provider>/<lab>/<model>/<region>/<tier>`. Region and tier
-are path-safe identifiers. Duplicate tuples, duplicate fact IDs or facets, and
-facts naming a different subject fail validation.
+are path-safe identifiers. Duplicate tuples, duplicate fact IDs, and facts
+naming a different subject fail validation. A facet can repeat only as a valid
+dated price schedule.
 
 Offering values are an open list of `Fact` records rather than fixed columns.
 Facets describe input, output, cached, and batch prices in USD per 1M tokens;

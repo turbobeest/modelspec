@@ -1,0 +1,182 @@
+{
+  "snapshot-red.log.gz": {
+    "source": ".scratch/model-394/snapshot-design/red.log",
+    "sha256": "798ba2d9adad8df8f70cd8fed8e787d69184dbafcd7546f99b49a37a83e29de4",
+    "bytes": 68456
+  },
+  "readers-red.log.gz": {
+    "source": ".scratch/model-394/root/readers-red.log",
+    "sha256": "8ba74eed0176bb6e6078a2e360aacb657bd68a0f5cb734f2d89afe1585b97910",
+    "bytes": 33310
+  },
+  "serving-red.log.gz": {
+    "source": ".scratch/model-394/reread-design/serving-red.log",
+    "sha256": "ab54cebeff1582ecf1b9f40b9d016fb619264d47b1d568128573d50c2e157486",
+    "bytes": 10061
+  },
+  "native-dates-red.log.gz": {
+    "source": ".scratch/model-394/snapshot-design/red-native-dates.log",
+    "sha256": "8195b3cc700fb6a5a0fe8db9da9244ac8aab39755e12dcd373c7285cef4c9827",
+    "bytes": 3676
+  },
+  "ownership-red.log.gz": {
+    "source": ".scratch/model-394/root/ownership-red.log",
+    "sha256": "ca10e5155c9591905c20c062241e979852c625ac89b7f45ae496798bf3c01d8a",
+    "bytes": 6011
+  },
+  "citation-red.log.gz": {
+    "source": ".scratch/model-394/root/citation-red.log",
+    "sha256": "eca846f3bdb5c3c9788a68035785a52eb188be826e5e1d15cac1399f50993da8",
+    "bytes": 3228
+  },
+  "dated-final.log.gz": {
+    "source": ".scratch/model-394/root/dated-canonical-final.log",
+    "sha256": "b91e727adbba4056a9a8dd5ae22c6c58b52b60db520a81527e518418d7755556",
+    "bytes": 180
+  },
+  "readers-final.log.gz": {
+    "source": ".scratch/model-394/root/readers-final.log",
+    "sha256": "c2266a394b92512a1a6ddf6c2a64c2b769652a433ee6b5c595f2d68bff7d6026",
+    "bytes": 740
+  },
+  "template-red.log.gz": {
+    "source": ".scratch/model-394/root/template-red.log",
+    "sha256": "e0d5312ce6e1f664b360d08cab232a241d31a0737fb8c7e5cf3561143de8732c",
+    "bytes": 1405
+  },
+  "template-green.log.gz": {
+    "source": ".scratch/model-394/root/template-green.log",
+    "sha256": "35775eb48829d3894cf7cf46e592c058e1ae00f952c0e91ae1d49d2eaa6f37a9",
+    "bytes": 99
+  },
+  "template-regression.log.gz": {
+    "source": ".scratch/model-394/root/template-regression.log",
+    "sha256": "222980dc29628f1a8bb2d1edccf59e8c3b6d18704f56a597c3375ffe18389a9e",
+    "bytes": 741
+  },
+  "full-second-interrupted.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-final.log",
+    "sha256": "9e340d7b73f18808a608e08afb565a6e8ab490b7dbbb9ce457ad3500222501ad",
+    "bytes": 12662
+  },
+  "focused-final.log.gz": {
+    "source": ".scratch/model-394/root/vertex-final-focused.log",
+    "sha256": "8001b07aa8c94d622bc9692a5e4e90de5d2e5f16022cf874a601171b014a8437",
+    "bytes": 820
+  },
+  "raw-source-red.log.gz": {
+    "source": ".scratch/model-394/root/raw-source-red.log",
+    "sha256": "f2beb57766c4ecb121c2cc01771cea16d17cbe193972327b5c4679f12fb2e9e4",
+    "bytes": 13052
+  },
+  "raw-context-red.log.gz": {
+    "source": ".scratch/model-394/root/raw-context-red.log",
+    "sha256": "23f5da0a35525043a30093112dbbcec1529ed776f49a65e4fb7b8476334f27d7",
+    "bytes": 3313
+  },
+  "ancestor-red.log.gz": {
+    "source": ".scratch/model-394/root/ancestor-red.log",
+    "sha256": "744e212791c7622fcc729aa020283b5c4ce5271422f2c7619a7c6260c3256a31",
+    "bytes": 3648
+  },
+  "archive-owner-red.log.gz": {
+    "source": ".scratch/model-394/snapshot-design/red-archive-owner.log",
+    "sha256": "e27e528f34183572a4056011f564a8520446044478f305da8ecb22eb9c44b689",
+    "bytes": 3840
+  },
+  "archive-owner-green.log.gz": {
+    "source": ".scratch/model-394/snapshot-design/green-archive-owner.log",
+    "sha256": "763f9e863b37cb6c6244e5f27c07324e9a3a7ae1f024c3f4579e29e1d89d95ae",
+    "bytes": 99
+  },
+  "actual-source-red.log.gz": {
+    "source": ".scratch/model-394/reread-design/review-raw-dom-red.log",
+    "sha256": "ea5e4414c1b385c196b9ad8348bb1aef0601d3002582052ecb79476433a15747",
+    "bytes": 6141
+  },
+  "actual-source-green.log.gz": {
+    "source": ".scratch/model-394/reread-design/review-raw-bytes-green.log",
+    "sha256": "32857a2c9bc1d63657512bd803baf8b709463962c7a1ac7ce4c57778c56decae",
+    "bytes": 98
+  },
+  "full-first-interrupted.log.gz": {
+    "source": ".scratch/model-394/root/engine-full.log",
+    "sha256": "4670d17030cb1a0821676c488297d27c4b2d4134748710ffcf11928fde89656c",
+    "bytes": 11069
+  },
+  "full-third-interrupted.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-reviewed.log",
+    "sha256": "077b111d3ee15b95a5e05e66822c2e7f4970f5d2127c0f3508f404c801405e55",
+    "bytes": 9806
+  },
+  "full-missing-web-deps.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-complete.log",
+    "sha256": "b502a1545ebb3c6efc6cdebef06e435f9d0b7392130ec7431dd81899c581def4",
+    "bytes": 56772
+  },
+  "web-dependency-red.log.gz": {
+    "source": ".scratch/model-394/root/web-dependency-red.log",
+    "sha256": "0dabcf616e243f84ec8e8dd8a25b1ce3d0e605ac0e0d9cc422235797bbc499a6",
+    "bytes": 1039
+  },
+  "web-dependency-green.log.gz": {
+    "source": ".scratch/model-394/root/web-dependency-green.log",
+    "sha256": "11c7a1fc2bec062e96b24e1436ceb6d1e551c6daba8015795c8f12be66ae9302",
+    "bytes": 27
+  },
+  "web-install.log.gz": {
+    "source": ".scratch/model-394/root/web-install.log",
+    "sha256": "61c6eb7ba41c6fcc80967b1c56534f4bfd65b24959ecba7b160b62788c4d806b",
+    "bytes": 241
+  },
+  "social-cards-final.log.gz": {
+    "source": ".scratch/model-394/root/social-cards-final.log",
+    "sha256": "cb7687b10b252bbec36f7f5254a4d00fdc1355c4dea34e5bbb348a10756016c6",
+    "bytes": 110
+  },
+  "browser-preflight.log.gz": {
+    "source": ".scratch/model-394/root/browser-preflight.log",
+    "sha256": "2c7662d40f6bae4b3c86e4401f53ea98387238e613bf395b3f68ffd61ef7e58b",
+    "bytes": 25
+  },
+  "full-unbuilt-web-interrupted.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-green.log",
+    "sha256": "a7106538cce0ed79e55efeaaa6586d64664579e13199223de84719d207d598a3",
+    "bytes": 75041
+  },
+  "web-build.log.gz": {
+    "source": ".scratch/model-394/root/web-build.log",
+    "sha256": "4849bb09c4cb618b1a8f0366ca1d4e8e03b009e4974401ddefe41e880511778a",
+    "bytes": 1739
+  },
+  "vertex-identity-red.log.gz": {
+    "source": ".scratch/model-394/root/vertex-identity-red.log",
+    "sha256": "f49c59e0708e066fb26b68a62fdd100750248174ed173441b75261bc9521101d",
+    "bytes": 9428
+  },
+  "vertex-identity-independent-red.log.gz": {
+    "source": ".scratch/model-394/reread-design/review-vertex-identity-red.log",
+    "sha256": "1b285c7a1e49247fa93551a193ffa04b8c79e985529728fa74ab88c49f6519f5",
+    "bytes": 3719
+  },
+  "vertex-identity-confirmation.log.gz": {
+    "source": ".scratch/model-394/reread-design/review-final-confirmation.log",
+    "sha256": "0864235d9450517ee53d52dd54d46a4fdae84f9d366933de46d8b2f8c7eee33c",
+    "bytes": 112
+  },
+  "landing-final.log.gz": {
+    "source": ".scratch/model-394/root/landing-probe.log",
+    "sha256": "94a10dc9e988f3783cff805a03f99097fd8fd81152af56fc99dba2a15c3f77a8",
+    "bytes": 111
+  },
+  "full-before-canonical-binding-interrupted.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-final-green.log",
+    "sha256": "25c419ea24afc235a90522504fb8c3c4a4b223fd68de46e712328c2f1230635e",
+    "bytes": 9684
+  },
+  "full-final.log.gz": {
+    "source": ".scratch/model-394/root/engine-full-canonical.log",
+    "sha256": "32bdce9c8736aad406eedf92631e1ef6cdfc9ad99a5f5a496a77b09249f31736",
+    "bytes": 13797
+  }
+}

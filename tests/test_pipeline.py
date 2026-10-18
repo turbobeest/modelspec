@@ -904,7 +904,7 @@ def test_use_case_surface_lint_rejects_ai_instructions(injection):
     findings = surface_lint.lexicon(
         {"use-cases/coding/coding-best/index.html": f"<p>{injection}</p>"}, {}, {},
     )
-    assert any(finding.check == "lexicon.ai-instructions" for finding in findings)
+    assert any(finding.check == "lexicon.assistant-instructions" for finding in findings)
 
 
 def test_use_case_surface_lint_covers_noindex_pages():

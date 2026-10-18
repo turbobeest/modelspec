@@ -94,6 +94,7 @@ from decision.model import (
     VerificationActor,
     VerificationTarget,
     evidence_verification_value,
+    fact_verification_value,
     value_hash,
 )
 from decision.normalise import (
@@ -116,7 +117,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
 
 Outcome = Literal["verified", "mismatch", "unreachable", "skipped"]
-CONDITION_KEYS = ("effort", "harness", "date")
+CONDITION_KEYS = ("effort", "harness", "date", "effective_from", "effective_until")
 
 # --- claims --------------------------------------------------------------------------------------
 
@@ -200,6 +201,9 @@ class Claim:
             collector=collector,
             sources=tuple(fact.sources),
             base_model=base_model or None,
+            conditions={key: getattr(fact, key).isoformat() if getattr(fact, key) else None
+                        for key in ("effective_from", "effective_until")}
+            if fact.effective_from or fact.effective_until else {},
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -248,6 +252,16 @@ def target_ref(ref: str | TargetRef) -> TargetRef:
 
 def _key(target: TargetRef) -> tuple[str, str]:
     return (target.kind, target.id)
+
+
+def dated_price_claim(claim: Claim) -> bool:
+    return any(claim.conditions.get(key) is not None
+               for key in ("effective_from", "effective_until"))
+
+
+def claim_verification_value(claim: Claim) -> JsonValue:
+    return fact_verification_value({"value": claim.value, **{
+        key: claim.conditions.get(key) for key in ("effective_from", "effective_until")}})
 
 
 # --- units and numbers ---------------------------------------------------------------------------
@@ -5420,6 +5434,26 @@ class StoredRegions:
         source = self.sources.get(source_id)
         return None if source is None else source.kind
 
+    def dated_prices(self, claim: Claim, source: SourceRef, region_id: str) -> list[Reading]:
+        from decision.dated_prices import read_dated_prices
+
+        text = self.text(source.source_id, source.snapshot_ref, region_id)
+        registered = self.sources.get(source.source_id)
+        if text is None or registered is None:
+            return []
+        region = next(r for r in registered.cited_regions if r.id == region_id)
+        kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
+        locator = Locator(kind, region.locator.value)
+        rules = replace(NORMALISERS[registered.normaliser], strip_volatile=False)
+        try:
+            body = self.store.get(source.snapshot_ref)
+            doc = normalise_document(body, rules)
+        except (UnsupportedContentError, ValueError):
+            return []
+        return [Reading(row.subject, row.value, claim.unit, row.conditions) for row in
+                read_dated_prices(doc, locator, names=claim.names, subject=claim.subject,
+                                  facet=claim.field, url=str(registered.url), body=body)]
+
     def source_url(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
         return None if source is None else str(source.url)
@@ -5656,7 +5690,7 @@ def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: d
         target=VerificationTarget(
             kind=claim.target.kind,
             id=claim.target.id,
-            value_hash=value_hash(claim.value),
+            value_hash=value_hash(claim_verification_value(claim)),
         ),
         collector=claim.collector,
         verifier=actor,
@@ -5941,6 +5975,8 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
     """
+    if dated_price_claim(claim):
+        return []  # Dated claims use StoredRegions.dated_prices exclusively.
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
         permitted = set(facet.permitted_source_kinds) if facet is not None else set()
@@ -6122,6 +6158,40 @@ def _verify_architecture_fact(
     return Result(claim.target, "skipped", reason="no_hf_reading")
 
 
+def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Result:
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="dated-offering-price-table@1")
+    if not claim.field.startswith("offering.price.") or not _independent(claim, actor, today):
+        return Result(claim.target, "skipped", reason="no_independent_dated_price_reader")
+    reader = getattr(regions, "dated_prices", None)
+    reachable = False
+    diffs = []
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            if regions.text(source.source_id, source.snapshot_ref, region_id) is None:
+                continue
+            reachable = True
+            readings = reader(claim, source, region_id) if callable(reader) else []
+            matching = [r for r in readings if all(
+                r.conditions.get(key) == claim.conditions.get(key)
+                for key in ("effective_from", "effective_until"))]
+            if len(matching) == 1:
+                differences = compare(claim, matching)
+                if not differences:
+                    return Result(claim.target, "verified",
+                                  _verification(claim, actor, "verified", today))
+                diffs.extend(differences)
+            else:
+                diffs.append(Diff("dated_price_row", dict(claim.conditions),
+                                  [dict(row.conditions) for row in readings]))
+    if not reachable:
+        return Result(claim.target, "unreachable",
+                      _verification(claim, actor, "unreachable", today),
+                      reason="cited dated price region is unreachable")
+    return Result(claim.target, "mismatch",
+                  _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
@@ -6143,6 +6213,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
     """
+    if dated_price_claim(claim):
+        return _verify_dated_price(claim, regions, today=today)
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
     if claim.field == "origin.lab_jurisdiction" and isinstance(claim.value, list):

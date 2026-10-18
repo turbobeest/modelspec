@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #: publishes and this table omits gets no JSON-LD, and `tests/test_holding.py`
 #: fails.
 CRUMBS = {
+    "/about/": entity.ABOUT_HEADING,
     "/method/": "How ModelSpec decides",
     "/orchestrators/": "Choose models for your orchestrator",
     "/decide/": "Which AI model fits your job",
@@ -171,6 +172,8 @@ def graph(path: str, tree: Path, root: Path = ROOT) -> list[dict[str, Any]]:
              "url": f"{BASE}/", "publisher": {"@id": ORG}},
             dataset(tree), api(), mcp(),
         ]
+    if path == "/about/":
+        return [organization(root), breadcrumbs(path)]
     nodes = [breadcrumbs(path)]
     if path == "/decide/":
         nodes.append({
