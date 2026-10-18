@@ -73,6 +73,27 @@ def test_pairs_use_leader_ties_then_next_rank_and_canonical_order(example):
     assert pair_path(template, pairs[0][::-1]) == pair_path(template, pairs[0])
 
 
+def test_display_names_replace_ids_in_visible_copy_and_fall_back_when_absent(example):
+    from pipeline.comparison_pages import comparison_page
+
+    names = {"lab/z-leader": "Leader & Co", "lab/a-challenger": "Challenger <One>"}
+    raw = comparison_page(*example, DAY, model_names=names)
+    page = Page(raw)
+    assert "Challenger <One> vs Leader & Co" in page.visible
+    assert "Evidence for Leader & Co" in page.visible
+    assert "Missing facts for Challenger <One>" in page.visible
+    assert all(model not in page.visible for model in names)
+    assert 'data-model="lab/z-leader"' in raw
+    assert "Challenger &lt;One&gt;" in raw
+    article = next(node for node in json.loads(page.ld[0])["@graph"] if node["@type"] == "Article")
+    assert article["headline"] in page.visible
+    assert "Challenger <One> vs Leader & Co" in article["headline"]
+    del names["lab/a-challenger"]
+    assert "lab/a-challenger vs Leader & Co" in Page(
+        comparison_page(*example, DAY, model_names=names)
+    ).visible
+
+
 def test_pairs_are_capped_without_promoting_thin_or_prior_only_estimates(example):
     from pipeline.comparison_pages import select_pairs
 
@@ -98,7 +119,7 @@ def test_unanswered_jobs_have_no_pairs(example, missing):
     assert select_pairs(decision) == []
 
 
-def test_tied_page_shows_exact_engine_numbers_missing_facts_and_equal_rows(example):
+def test_tied_page_formats_probabilities_and_keeps_other_engine_numbers_and_equal_rows(example):
     from pipeline.comparison_pages import comparison_page
 
     template, decision, comparison = example
@@ -106,15 +127,18 @@ def test_tied_page_shows_exact_engine_numbers_missing_facts_and_equal_rows(examp
     raw = comparison_page(template, decision, comparison, DAY)
     page = Page(raw)
     assert "The evidence can't separate them for this job." in page.visible
-    for value in ("-0.123456789", "1.234567891", "0.56789123456789", "0.12345678912345",
-                  "0.4321", "0.01234", "0.321987654", "71.23456789", "70.123456",
+    for value in ("-0.123456789", "1.234567891", "57%", "12%", "32%",
+                  "0.4321", "0.01234", "71.23456789", "70.123456",
                   "model.release_date", "not_disclosed", "offering.speed.throughput"):
         assert value in page.visible
     assert "full ranked lineup for this job" in page.visible
-    assert "matching or exceeding" in page.visible
+    assert "lab/a-challenger has a 32% chance of matching or beating lab/z-leader on this job's objective." in page.visible
+    assert "Separation from this challenger" not in page.visible
+    for exact in ("0.56789123456789", "0.12345678912345", "0.321987654"):
+        assert exact not in page.visible
     assert "winner" not in raw.lower()
     assert "lab/next" not in raw
-    assert raw.count('<tr class="comparison-model">') == 2
+    assert raw.count('class="comparison-model"') == 2
     assert 'href="https://example.org/evidence"' in raw
     assert example == original
 
@@ -128,9 +152,9 @@ def test_separated_verdict_states_job_date_and_probability_scope(example):
     decision["answer"] = {"kind": "separated", "members": ["lab/z-leader"], "leader": "lab/z-leader"}
     page = Page(comparison_page(template, decision, comparison, DAY))
     assert "The evidence separates them" in page.visible
-    assert "lab/z-leader leads" in page.visible
-    assert template["name"] in page.visible and DAY.isoformat() in page.visible
-    assert "0.56789123456789" in page.visible
+    assert ("The evidence separates them: lab/z-leader leads for Coding (best available), "
+            "with a 57% chance of being the best model in the full lineup for this job, "
+            "as of 2026-09-23.") in page.visible
     assert "full ranked lineup for this job" in page.visible
 
 
@@ -203,6 +227,9 @@ def test_real_image_is_public_offline_deterministic_and_bounded(tmp_path, monkey
     pages = {p.relative_to(tmp_path / "first"): p.read_bytes()
              for p in (tmp_path / "first").rglob("*.html")}
     assert len(pages) == 41
+    index = Page(pages[Path("compare/index.html")].decode())
+    assert "Claude Opus 5.5 vs Claude Sonnet 5.5" in index.visible
+    assert "anthropic/claude-opus-5-5" not in index.visible
     assert pages == {p.relative_to(tmp_path / "second"): p.read_bytes()
                      for p in (tmp_path / "second").rglob("*.html")}
     assert not any("retrieval-private/" in str(path) for path in pages)

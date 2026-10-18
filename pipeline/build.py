@@ -491,12 +491,13 @@ def _use_case_spec(value: object) -> str:
 
 def _use_case_shell(title: str, description: str, path: str, body: str,
                     as_of: date, *, indexable: bool, article: bool,
-                    collection: str = "use-cases") -> str:
+                    collection: str = "use-cases", extra_nodes: list[dict] | None = None) -> str:
     from pipeline import entity, landing_chrome, structured_data
 
     nodes = structured_data.use_case_graph(
         path, title, description, as_of.isoformat(), article=article, collection=collection,
     )
+    nodes.extend(extra_nodes or [])
     robots = "index, follow" if indexable else "noindex, follow"
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -915,7 +916,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
             ms, public_root, examples=(templates, decisions, as_of),
         )
         comparison_counts = comparison_pages.write_examples(
-            ms, templates, decisions, as_of, snapshot, registry,
+            ms, templates, decisions, as_of, snapshot, registry, public_root=public_root,
         )
     ms_paths.extend(use_case_counts["sitemap_paths"])
     ms_paths.extend(comparison_counts["sitemap_paths"])

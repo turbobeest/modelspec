@@ -2,7 +2,7 @@
 
 MODEL-219 part 2 adds `/compare/` and worked comparisons from the frozen
 public image. It reuses the use-case templates, snapshot, engine decisions,
-HTML shell, exact numeric formatting, and image date.
+HTML shell, engine values, and image date.
 
 ## Pair selection and measured size
 
@@ -59,15 +59,32 @@ are the template's full-ranked-lineup values, not a newly normalized pair rankin
 Display that scope beside P(best). Thin ranked models are included; models
 with unknown objective values remain unranked and outside this probability.
 Also show the challenger's
-`p_beats_leader` exactly, labelled as its chance of matching or exceeding
+`p_beats_leader`, labelled as its chance of matching or beating
 the leader's objective score. Do not calculate a complementary probability
 or invent a probability when the engine returns null.
 
 When the challenger is in `best`, say "The evidence can't separate them for
 this job." When it is in `rest`, say that the evidence separates them and
 name the leader, the template objective, date, and its full-lineup P(best).
-The explanation states that being separated from this challenger does not
-necessarily establish a unique winner across the full job lineup.
+Only separated pages explain that separation from this challenger does not
+necessarily establish a unique best model across the full job lineup.
+
+Probabilities are formatted for human readers. Interpret the engine number's
+decimal representation, multiply by 100, and round to the nearest whole
+percentage point, with halves rounded up. Values below 0.01, including zero,
+display as "under 1%" before rounding. Null displays as "Unavailable".
+For example, 0.63671875 displays as 64%, 0.3852 as 39%, 0.015 as 2%, and
+0.0102030405 as 1%. A rounded 100% retains its exact value in the trace.
+This changes presentation only; selection, bands, and engine values are untouched.
+
+Each probability span carries the exact JSON number in `data-probability`,
+its model ID in `data-model`, and its engine field in `data-field`. A JSON-LD
+Dataset linked to the Article repeats those exact values as PropertyValue
+entries. Each `propertyID` is `<model-id>:<engine-field>`, and `unitText` is
+"probability". The Dataset's `about` entries retain model IDs and display names.
+Trace tests compare these values with the response and apply the formatting
+rule to visible text. Mutation tests change the input probabilities and check
+both the new text and exact values, including values within one rounding bucket.
 
 ## URLs and discovery
 
@@ -89,12 +106,20 @@ directory and copies its source sitemap dates exactly.
 
 ## Page anatomy
 
-Each page contains the shared entity lead, the two model IDs and template
+Each page contains the shared entity lead, the two model display names and template
 name, registry purpose and tradeoff, image date, plain verdict, and a neutral
 table with equal styling for both models. The table shows exact scores,
-score intervals, P(best), selected offerings, cost per task in USD, and
+score intervals, formatted P(best), selected offerings, cost per task in USD, and
 capability estimates with their intervals and benchmark coverage. Missing
 values say "Unavailable". Task-size assumptions stay visible.
+
+Names come from the frozen public cards' `display_name` field, the same source
+used by Decide's vocabulary. A missing name falls back to the unchanged ID.
+Load the cards from the explicit public root even if a private overlay is set.
+Names are escaped as text; canonical URLs, pair order and engine lookups keep
+the IDs. Table rows retain `data-model`. Index links use the same display names.
+Template names retain their words, with a comma-separated qualifier placed in
+parentheses, such as "General assistant (best available)".
 
 Requirements, their registry reasons, preferences, the applied template spec,
 and the template lesson explain the job. Missing model facts and missing
@@ -106,7 +131,7 @@ No third model or competitor
 product is promoted or disparaged in page copy. The neutrality link and
 keyed CLI, API, and MCP access line appear on every page.
 
-The current `origin/main` is `7908f238`; MODEL-404 has not merged. Link to
+Round 2 merged `origin/main` at `b4a7074f`; MODEL-404 had not merged. Link to
 `/decide/?template=<id>`. The board reads the template query but has no URL
 support for model pins. Say the link applies the template to the current
 lineup; do not claim it pins the pair or add ignored query parameters.
