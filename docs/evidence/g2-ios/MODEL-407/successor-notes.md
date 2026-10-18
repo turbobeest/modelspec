@@ -23,3 +23,13 @@ All commands run in /Users/terbeest/dev/worktrees/model-407. Python 3.14.4, pyte
 6. `/Users/terbeest/dev/modelspec/.venv/bin/ruff check tests/test_snapshot_successor_memory.py` and `git diff --check -- api/worker/src/entry.py api/worker/src/decide_service.py api/worker/vendor.py tests/test_snapshot_successor.py tests/test_snapshot_successor_vendor.py tests/test_snapshot_successor_memory.py`. Both exit 0.
 
 Full touched-file ruff was also run. It reports 78 predominantly pre-existing formatting/import/line-length issues. New-file import formatting and newly added long source lines were corrected. No existing tests were weakened: original successor assertions were unchanged; the shared fixture helper gained descriptor/read tracking, and the vendor test gained an exact descriptor assertion.
+
+## Independent review correction
+
+The hardware reviewer found that a vocabulary request paused in `_meter_catalog_read` retained the selected snapshot and parsed vocabulary while another request handed over. Added an async regression with weak references to the snapshot, the complete vocabulary dictionary and a nested facet. Both a complete vocabulary response and a full-detail facet lookup failed before the correction. At successor read, all three prior objects were still alive.
+
+Three explicit releases now run before metering I/O. The selected snapshot reference is dropped after date/binding validation, the selected dictionary is dropped after serialization, and the complete vocabulary local is dropped before awaiting the meter. The suspended request keeps its serialized body, proved byte-identical after the concurrent handover.
+
+Red command: `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor_memory.py::test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary`. Exit 1, two failed in 0.64 seconds. Log `tmp/model-407/successor/vocabulary-residency-red.txt`.
+
+Green command: `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor_memory.py tests/test_snapshot_successor.py tests/test_snapshot_response_headers.py tests/test_compare_midnight_refresh.py tests/test_visit_gate_off.py`. Exit 0, 63 passed in 1.89 seconds. Log `tmp/model-407/successor/vocabulary-residency-green.txt`. New test file ruff and changed-file `git diff --check` also exit 0. No commits by this worker.

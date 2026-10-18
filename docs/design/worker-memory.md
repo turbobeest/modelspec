@@ -56,6 +56,68 @@ headroom limit. This session does not edit or publish the private repository.
 Workflow changes exclude the engine PR from automerge; the PR stays a draft
 for independent review.
 
+## Initial fixture calibration and refresh
+
+The recipe in `api/worker/memory-fixture.json` adds 15 synthetic lower-bound
+workloads with 54 source IDs each, 267 invented source registrations, and a
+dated price that expires three UTC days after fixture creation. The fixture
+copies every file it modifies; other public data paths are read-only symlinks.
+Its model belongs to the production premier slice. The admission test uses
+that same slice and completeness gate, so a fixture silently filtered out of
+the deployed snapshot cannot pass.
+
+Read-only aggregate counts informed the recipe:
+
+| Data image | Registered sources | URL characters | Cited regions |
+| --- | ---: | ---: | ---: |
+| Frozen public image | 515 | 52,114 | 534 |
+| Private before data#93, `fd3145c` | 691 | 65,205 | 716 |
+| Private data#93, `74947c3` | 782 | 76,363 | 807 |
+| Public plus recipe | 782 | 76,411 | 807 |
+
+The resulting current and successor snapshots each retain all 15 synthetic
+workloads and 68 distinct synthetic source IDs, with 317 total retained
+source IDs. Not every registered source belongs to a retained fact.
+
+With the same public fixture and Pyodide 0.28.3, the starting `b4a7074f` code
+retained 115.41149 MiB and this implementation retained 104.47210 MiB. The
+115 MiB gate therefore rejects the previous eager implementation on this
+workload. The general provenance table shrinks from 171,072 to 134,028 slots;
+the separate hardware table has 1,350 slots. These observations establish
+public regression coverage. They do not establish private memory equivalence.
+Repeating the baseline gate returned 116.47690 MiB with the same 71.875 MiB
+Wasm allocation, showing about 1.07 MiB of V8 measurement variation. The
+candidate's Wasm allocation was 59.875 MiB. The 1 MiB regression warning can
+therefore include runtime noise and should be investigated with repeat runs.
+The private four-cell matrix and final private target still require an
+authorized scratch location outside both checkouts.
+
+To refresh, measure the four private combinations and the final private build
+with the pinned probe, using only synthetic signing credentials. Record
+aggregate retained source and record counts, table slots, vocabulary sizes,
+and steady memory. Adjust the public recipe to cover those dimensions, then
+build both public comparison bundles with that same recipe. Confirm the
+generated current and successor snapshots retain every synthetic workload,
+and repeat the probe before accepting the calibration. Update this table and
+the evidence together. Keep private rows, URLs, bundles, and raw logs outside
+the public repository.
+
+```sh
+python api/worker/memory_fixture.py --out /path/to/public-memory-data
+MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key \
+  python api/worker/vendor.py --data-dir /path/to/public-memory-data
+MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key \
+  NODE_PATH=/path/to/pyodide/node_modules \
+  node --expose-gc api/worker/measure_memory.cjs api/worker/src \
+    --limit-mib 115 --attribute --output /path/to/public-memory.json
+```
+
+For the main comparison, build the same recipe with main's engine code, run
+the probe with `--measure-only --output`, and pass that JSON to the candidate
+probe with `--baseline`. The workflow checks out the PR's main base commit.
+Object attribution runs after the acceptance sample. Categories overlap and
+are Python object-size estimates; their sum is not the Worker allocation.
+
 ## Keep one parsed price snapshot
 
 Retain #813's signed current and successor bundle and its response-binding

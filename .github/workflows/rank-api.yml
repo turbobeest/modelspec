@@ -39,6 +39,45 @@ env:
   RANK_HOST: api.modelspec.dev
 
 jobs:
+  memory:
+    if: github.event_name == 'pull_request'
+    name: Worker memory headroom
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the main comparison
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .memory-main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the pinned memory runtime
+        run: |
+          python -m pip install -e . "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+      - name: Build public synthetic bundles with the same fixture
+        run: |
+          python api/worker/memory_fixture.py --out "$RUNNER_TEMP/memory-data"
+          python api/worker/memory_fixture.py --public-engine .memory-main --out "$RUNNER_TEMP/memory-main-data"
+          python api/worker/vendor.py --data-dir "$RUNNER_TEMP/memory-data" --out "$RUNNER_TEMP/memory-bundle"
+          python .memory-main/api/worker/vendor.py --data-dir "$RUNNER_TEMP/memory-main-data" --out "$RUNNER_TEMP/memory-main-bundle"
+          cp api/worker/src/*.py "$RUNNER_TEMP/memory-bundle/"
+          cp .memory-main/api/worker/src/*.py "$RUNNER_TEMP/memory-main-bundle/"
+      - name: Measure main for the regression warning
+        run: |
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-main-bundle" --measure-only --output "$RUNNER_TEMP/memory-main.json"
+      - name: Require 115 MiB steady memory and warn on growth above 1 MiB
+        run: |
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/memory-main.json" --output "$RUNNER_TEMP/memory-pr.json"
   bundle:
     if: github.event_name != 'schedule' || vars.DATA_SPLIT_ENABLED == 'true'
     name: Rank Worker bundle
@@ -144,30 +183,6 @@ jobs:
         # Inspect Wrangler's output, not the pre-build source tree. This catches
         # pywrangler dropping a repository package while it syncs dependencies.
         run: python bundle_check.py ../../dist/rank-worker
-
-      - name: Measure full snapshot memory with public fixtures
-        id: memory-public
-        continue-on-error: true
-        # No private checkout or secret on PRs. Exercise the enabled bundle with
-        # a synthetic key, then restore the ordinary credential-free bundle.
-        env:
-          MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
-        run: |
-          python -m pip install "cryptography>=43,<46"
-          python api/worker/vendor.py --data-dir .
-          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
-          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
-
-      - name: Report public memory probe
-        if: always()
-        env:
-          PROBE_OUTCOME: ${{ steps.memory-public.outcome }}
-        run: |
-          echo "Public memory probe (warning only): $PROBE_OUTCOME; enabled private deploys enforce 120 MiB steady memory and warn at 112 MiB peak." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Restore the credential-free bundle
-        if: always()
-        run: python api/worker/vendor.py --check
 
       - name: Summarise
         run: |

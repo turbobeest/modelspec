@@ -13,17 +13,25 @@ import pytest
 from decision import snapshot as snapshots
 from tests.test_decide_worker import KEY
 from tests.test_hardware_fit import (
-    MODEL, REQUEST, SKU, assess, fixture_snapshot, hardware_fit_record, lower_bound_record,
+    MODEL,
+    REQUEST,
+    SKU,
+    assess,
+    fixture_snapshot,
+    hardware_fit_record,
+    lower_bound_record,
 )
 from tests.test_hardware_fit_worker import _keyed_worker
-from tests.test_x402 import _Req, entry
+from tests.test_x402 import _Req
+from tests.test_x402 import entry as entry
 
 
 def test_hardware_fit_snapshot_retains_source_ids_and_one_copy_of_each_record():
     compiled = fixture_snapshot(built=True)
     assert "hardware_fit_records" not in compiled.content
     assert compiled.content["hardware_fit_record_ids"] == ["hardware-fit:fixture"]
-    record = snapshots._unpack_record(compiled.content["hardware_fit_record_table"], "hardware-fit:fixture")
+    record = snapshots._unpack_record(
+        compiled.content["hardware_fit_record_table"], "hardware-fit:fixture")
     assert record["source_ids"] == ["run-source"]
     assert record["per_device"][0]["weights_bytes"]["source_ids"] == ["run-source"]
     assert "https://" not in json.dumps(record)

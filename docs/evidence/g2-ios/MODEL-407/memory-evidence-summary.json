@@ -1,0 +1,59 @@
+{
+  "runtime": {
+    "node": "22.22.3",
+    "pyodide": "0.28.3",
+    "python_in_pyodide": "3.13.2",
+    "pydantic_in_pyodide": "2.10.6"
+  },
+  "private_data_refs": {
+    "without_data93": "fd3145c",
+    "data93": "74947c3"
+  },
+  "engine_refs": {
+    "without_successor": "7908f238",
+    "with_eager_successor": "b4a7074f"
+  },
+  "structural_calibration": {
+    "public": {
+      "source_count": 515,
+      "url_characters": 52114,
+      "cited_regions": 534
+    },
+    "private_fd3145c": {
+      "source_count": 691,
+      "url_characters": 65205,
+      "cited_regions": 716
+    },
+    "private_74947c3": {
+      "source_count": 782,
+      "url_characters": 76363,
+      "cited_regions": 807,
+      "hardware_records": 15,
+      "hardware_top_level_source_ids": 83
+    },
+    "synthetic_recipe": {
+      "source_count_added": 267,
+      "url_characters_added": 24297,
+      "extra_cited_regions": 6,
+      "hardware_records": 15,
+      "sources_per_record": 54
+    }
+  },
+  "observed_initial_fixture_defect": {
+    "hardware_fit_rows_in_built_snapshot": 0,
+    "reason": "qwen/qwen3-8b not in production premier list",
+    "corrected_model": "google/gemma-4-31b-it"
+  },
+  "probe_budget_exit_proof": {
+    "old_probe_exit": 0,
+    "old_measured_mib": 104.3487958908081,
+    "new_probe_exit": 1,
+    "new_measured_mib": 103.36360740661621,
+    "limit_mib": 1,
+    "bundle": "initial valid public bundle; not final workload calibration"
+  },
+  "not_observed": [
+    "No private Worker bundle built or measured. Private checkout remained read-only.",
+    "No production deployment or paid-provider call."
+  ]
+}
