@@ -1,7 +1,0 @@
-CWD: /Users/terbeest/dev/worktrees/model-402
-COMMAND: /Users/terbeest/.local/bin/uv venv /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool --python 3.13
-Using CPython 3.13.15
-Creating virtual environment at: api/worker/.scratch-model402-measurement/uv-tool
-Activate with: source api/worker/.scratch-model402-measurement/uv-tool/bin/activate
-
-EXIT_CODE=0

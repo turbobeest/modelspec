@@ -1,5 +1,0 @@
-CWD: /Users/terbeest/dev/worktrees/model-402
-COMMAND: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool/bin/uv --version
-uv 0.12.19 (bea138450 2026-09-24 aarch64-apple-darwin)
-
-EXIT_CODE=0

@@ -1,5 +1,0 @@
-CWD: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker
-COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node -p 'require('"'"'./node_modules/wrangler/package.json'"'"').version'
-4.139.0
-
-EXIT_CODE=0
