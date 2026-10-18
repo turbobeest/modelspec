@@ -6,8 +6,8 @@ The Worker selects the price period on each request using the UTC date.
 Both signatures must verify before either snapshot can serve. Exhausted coverage returns `503 no_snapshot`.
 
 The bundle also carries matching successor vocabulary. Dated vocabulary uses
-`no-store`, and the response snapshot header comes from that response's body
-so another request cannot change it during an awaited billing operation.
+`no-store`. Decision and hardware-fit response snapshot headers come from
+their own bodies, so another request cannot change their IDs during billing I/O.
 
 The first execution stopped at the spec's path restriction because the health
 schema invalidated the QA capture. The orchestrator then granted an exception
@@ -121,6 +121,46 @@ at the unchanged 120 MiB gate. The dual probe emitted the existing warning
 above 112 MiB. These measurements use the 87-model public fixture, with no
 archive candidates. Private production data and live isolate memory were not
 measured. The earlier cold-download failure remains recorded below.
+
+CI completed successfully for `7f04d05f`: 18 checks passed, six deployment or
+merge checks were skipped, and none failed or remained pending. All four
+pytest shards, final `Run pytest`, both site builds, the Worker bundle, data
+freeze, and evidence checks passed. The
+[test run](https://github.com/turbobeest/modelspec/actions/runs/39089353543)
+reports that exact source SHA and `completed / success`. The
+[check set](MODEL-402/round3/ci-checks.json) and
+[run metadata](MODEL-402/round3/ci-test-run.json) were captured with direct
+exit 0 from these commands:
+
+```sh
+gh pr checks 813 --json name,bucket,state,workflow,link
+gh run view 39089353543 --json headSha,status,conclusion,url
+```
+
+The required local complete suite then exited **0** with **11,514 passed,
+9 skipped, and 11 warnings in 1174.82s (19:34)**. It waited approximately
+44 minutes for the shared lock. The
+[complete log](MODEL-402/round3/full-suite.txt),
+[source and direct exit record](MODEL-402/round3/full-suite-source.json), and
+[lock observation](MODEL-402/round3/full-suite-lock-observation.json) identify
+the exact command, implementation SHA, executing Python PID, inherited lock,
+and later evidence-only HEAD. Both the test process and the source-difference
+check exited 0. Production, decision, test, and QA source stayed identical to
+`7f04d05f`; only evidence changed after that implementation commit.
+
+The command ran from the assigned worktree, after Round 3 `web/npm ci` and
+the shared browser build had completed:
+
+```sh
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+The whole-PR [scope and capture audit](MODEL-402/round3/scope-and-capture-audit.json)
+confirms that changed paths stay within the spec and the explicit QA exception.
+The generated capture still differs from the original base by exactly the
+single OpenAPI hash substitution documented below. No schema, fixture helper,
+or capture change followed the Round 3 source correction. Completed terminal
+logs preserve their output with trailing whitespace removed.
 
 ## Red-first results
 
