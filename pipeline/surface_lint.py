@@ -55,6 +55,7 @@ SCHEMA_TYPES = frozenset(
         "ListItem",
         "WebApplication",
         "Article",
+        "DefinedTerm",
         "ImageObject",
     }
 )
@@ -267,7 +268,7 @@ def presence(
     # Noindex examples are still public copy, so discovery through the sitemap
     # alone is insufficient coverage.
     for path, raw in sorted(texts.items()):
-        if path.startswith(("use-cases/", "compare/")) and path.endswith(".html"):
+        if path.startswith(("use-cases/", "compare/", "guides/")) and path.endswith(".html"):
             first = Page(raw).first_paragraph
             if not first.startswith(entity.ONE_SENTENCE):
                 findings.append(Finding(path, "presence.lead", first, entity.ONE_SENTENCE))
@@ -745,6 +746,7 @@ def live_tree(
     from decision.templates import load_templates
     paths.add("use-cases/index.html")
     paths.add("compare/index.html")
+    paths.add("guides/index.html")
     paths.update(
         f'use-cases/{template["category"]}/{template["id"]}/index.html'
         for template in load_templates()
@@ -776,7 +778,7 @@ def live_tree(
             for link in Page(texts[path]).links:
                 url = urlsplit(urljoin(origin + "/" + path, link))
                 rel = url.path.lstrip("/")
-                example = rel.startswith(("use-cases/", "compare/"))
+                example = rel.startswith(("use-cases/", "compare/", "guides/"))
                 if example and rel.endswith("/"):
                     rel += "index.html"
                 if (
@@ -845,7 +847,7 @@ def expected_lastmods(
             from pipeline.build import use_case_image_date
             image_date = use_case_image_date(ROOT).isoformat()
             dates.update({path: image_date for path in dates
-                          if path.startswith(("/use-cases/", "/compare/"))})
+                          if path.startswith(("/use-cases/", "/compare/", "/guides/"))})
             return dates, ""
         from pipeline.export import _commit
 
@@ -855,7 +857,7 @@ def expected_lastmods(
             image_date = use_case_image_date(ROOT).isoformat()
             dates.update({urlsplit(url).path: image_date
                           for url, _ in sitemap_entries(texts["sitemap.xml"])
-                          if urlsplit(url).path.startswith(("/use-cases/", "/compare/"))})
+                          if urlsplit(url).path.startswith(("/use-cases/", "/compare/", "/guides/"))})
             return dates, ""
     except (ValueError, KeyError, TypeError, ET.ParseError):
         pass

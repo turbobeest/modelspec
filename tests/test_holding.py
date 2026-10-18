@@ -365,13 +365,21 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
             (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
         ) if url.startswith(live.BASE + "/compare/")
     }
+    source_guides = {
+        url: stamp for url, stamp in sitemap_entries(
+            (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
+        ) if url.startswith(live.BASE + "/guides/")
+    }
+    assert len(source_guides) == 3
     assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == (
-        len(live.PAGES) + len(source_use_cases) + len(source_comparisons)
+        len(live.PAGES) + len(source_use_cases) + len(source_comparisons) + len(source_guides)
     )
     assert {url: stamp for url, stamp in sitemap_entries(sitemap)
             if url.startswith(live.BASE + "/use-cases/")} == source_use_cases
     assert {url: stamp for url, stamp in sitemap_entries(sitemap)
             if url.startswith(live.BASE + "/compare/")} == source_comparisons
+    assert {url: stamp for url, stamp in sitemap_entries(sitemap)
+            if url.startswith(live.BASE + "/guides/")} == source_guides
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page

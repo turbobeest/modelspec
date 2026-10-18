@@ -491,7 +491,8 @@ def _use_case_spec(value: object) -> str:
 
 def _use_case_shell(title: str, description: str, path: str, body: str,
                     as_of: date, *, indexable: bool, article: bool,
-                    collection: str = "use-cases", extra_nodes: list[dict] | None = None) -> str:
+                    collection: str = "use-cases", extra_nodes: list[dict] | None = None,
+                    worked_example: bool = True) -> str:
     from pipeline import entity, landing_chrome, structured_data
 
     nodes = structured_data.use_case_graph(
@@ -499,6 +500,8 @@ def _use_case_shell(title: str, description: str, path: str, body: str,
     )
     nodes.extend(extra_nodes or [])
     robots = "index, follow" if indexable else "noindex, follow"
+    image_label = (f'<p>Worked example as of {as_of.isoformat()}, from the public data image.</p>'
+                   if worked_example else "")
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -516,11 +519,11 @@ code{{overflow-wrap:anywhere}}.use-case-model{{min-width:180px}}
 <body><div class="wrap">{r.site_nav([('Decide', '/decide/'), ('How we decide', '/method/'), ('Pricing', '/pricing/')])}<main class="page">
 <p>{r.esc(entity.ONE_SENTENCE)}</p><h1>{r.esc(title)}</h1>
 <p class="lede">{r.esc(description)}</p>
-<p>Worked example as of {as_of.isoformat()}, from the public data image.</p>
+{image_label}
 {body}
 <p>Human lookup is free on <a href="/decide/">Decide</a>.
 CLI, API, and MCP access requires a key. <a href="/pricing/">Access and pricing</a>.</p>
-<p><a href="/use-cases/">Use-case examples</a> · <a href="/compare/">Model comparisons</a> · <a href="/method/">How we decide</a></p>
+<p><a href="/guides/">Guides</a> · <a href="/use-cases/">Use-case examples</a> · <a href="/compare/">Model comparisons</a> · <a href="/method/">How we decide</a></p>
 </main>{landing_chrome.footer()}</div></body></html>
 '''
 
@@ -909,7 +912,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
-    from pipeline import comparison_pages
+    from pipeline import comparison_pages, guides
     public_root = Path(args.root).resolve()
     with public_use_case_image(public_root) as (templates, decisions, as_of, snapshot, registry):
         use_case_counts = write_use_case_pages(
@@ -918,12 +921,15 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         comparison_counts = comparison_pages.write_examples(
             ms, templates, decisions, as_of, snapshot, registry, public_root=public_root,
         )
+        guide_counts = guides.write_examples(ms, templates, as_of, snapshot, registry)
     ms_paths.extend(use_case_counts["sitemap_paths"])
     ms_paths.extend(comparison_counts["sitemap_paths"])
+    ms_paths.extend(guide_counts["sitemap_paths"])
     method_page = ms / "method/index.html"
     method_page.write_text(method_page.read_text(encoding="utf-8").replace(
         "</main>", '<p><a href="/use-cases/">Explore dated use-case examples</a> · '
-        '<a href="/compare/">Compare models for a job</a></p></main>', 1,
+        '<a href="/compare/">Compare models for a job</a> · '
+        '<a href="/guides/">Read the guides</a></p></main>', 1,
     ), encoding="utf-8")
     from pipeline import orchestrators
     ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
@@ -963,7 +969,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         r.sitemap("https://modelspec.dev", ms_paths, today,
                   lastmods={**blog_counts.get("sitemap_dates", {}),
                             **use_case_counts["sitemap_dates"],
-                            **comparison_counts["sitemap_dates"]}), encoding="utf-8")
+                            **comparison_counts["sitemap_dates"],
+                            **guide_counts["sitemap_dates"]}), encoding="utf-8")
     from pipeline import blog_indexnow
     blog_indexnow.write_key(ms)
     # robots.txt is written once, by agent_ready.ship below (MODEL-253).

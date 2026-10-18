@@ -51,7 +51,7 @@ KEEP_DIRS = (
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
     # MODEL-299: the press and brand kit.
-    "brand", "use-cases", "compare",
+    "brand", "use-cases", "compare", "guides",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -163,9 +163,9 @@ def blog_pages(tree: Path) -> tuple[str, ...]:
 
 
 def example_pages(tree: Path) -> tuple[str, ...]:
-    """All worked examples, including pages omitted from the sitemap."""
+    """Worked examples and guides, including pages omitted from the sitemap."""
     return tuple("/" + page.parent.relative_to(tree).as_posix() + "/"
-                 for directory in ("use-cases", "compare")
+                 for directory in ("use-cases", "compare", "guides")
                  for page in sorted((tree / directory).rglob("index.html")))
 
 
@@ -189,7 +189,8 @@ def blog_sitemap_dates(tree: Path) -> dict[str, str]:
 def sitemap(dates: dict[str, str] | None = None, *,
             blog_dates: dict[str, str] | None = None,
             use_case_dates: dict[str, str] | None = None,
-            comparison_dates: dict[str, str] | None = None) -> str:
+            comparison_dates: dict[str, str] | None = None,
+            guide_dates: dict[str, str] | None = None) -> str:
     dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -199,7 +200,7 @@ def sitemap(dates: dict[str, str] | None = None, *,
         + "".join(f"  <url><loc>{BASE}{html.escape(path)}</loc>"
                   f"<lastmod>{html.escape(stamp)}</lastmod></url>\n"
                   for path, stamp in {**(blog_dates or {}), **(use_case_dates or {}),
-                                      **(comparison_dates or {})}.items())
+                                      **(comparison_dates or {}), **(guide_dates or {})}.items())
         + "</urlset>\n"
     )
 
@@ -245,7 +246,8 @@ def visible_words(page: str) -> int:
 def thin_pages(tree: Path) -> list[str]:
     """Each sitemap page that answers a crawler with no heading or too few words."""
     failed = []
-    for path in PAGES:
+    guide_paths = tuple(path for path in example_pages(tree) if path.startswith("/guides/"))
+    for path in (*PAGES, *guide_paths):
         page = (tree / path.lstrip("/") / "index.html").read_text(encoding="utf-8")
         words = visible_words(page)
         if not re.search(r"<h1[\s>]", page):
@@ -296,6 +298,12 @@ def build(src: Path, web: Path, out: Path) -> None:
         for row in source_urls
         if row.findtext("s:loc", "", namespace).startswith(BASE + "/compare/")
     }
+    guide_dates = {
+        row.findtext("s:loc", "", namespace).removeprefix(BASE):
+        row.findtext("s:lastmod", "", namespace)
+        for row in source_urls
+        if row.findtext("s:loc", "", namespace).startswith(BASE + "/guides/")
+    }
     blog_dates = {}
     if os.environ.get("BLOG_ENABLED") == "true" and (real / "blog/index.html").is_file():
         blog_dates = blog_sitemap_dates(real)
@@ -324,7 +332,7 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(
         sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates,
-                comparison_dates=comparison_dates), encoding="utf-8")
+                comparison_dates=comparison_dates, guide_dates=guide_dates), encoding="utf-8")
     if blog_dates:
         for page in tree.rglob("*.html"):
             if page.relative_to(tree).parts[0] == "legal":
