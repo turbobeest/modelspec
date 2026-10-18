@@ -1,20 +1,19 @@
 """Platform drafts rendered from a release breakdown (MODEL-226).
 
-``render_drafts`` returns one text draft per platform. A person posts them.
+``render_drafts`` returns one string per platform. A person posts them.
 The function has no platform client and writes no image. Numbers stay in the
 breakdown post. A draft says what changed, which model, and where to read
 the post. Instagram is a caption and says to make the image by hand.
 
-Each draft is one string. A thread is that string split on a blank line,
-joined back, and compared. The post URL is the only place a digit may appear.
+Each value is a string. ``posts_of`` splits a thread on a blank line and
+joins it back to that same string. The post URL is the only token that may
+contain a digit, and only when the token is exactly the validated URL.
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Iterator
-from dataclasses import dataclass, fields, is_dataclass
 from pathlib import Path
 
 from decision.excluded import excluded_sources
@@ -33,6 +32,25 @@ _HN_TITLE_LIMIT = 80
 _SEP = "\n\n"
 _NUMBER_CATEGORIES = frozenset({"Nd", "No", "Nl"})
 _PERCENT = re.compile(r"%|(?<!\w)per\s*cent", re.IGNORECASE)
+_POST_URL = re.compile(r"^https://modelspec\.dev/blog/[a-z0-9-]+/$")
+_SUPERLATIVES = (
+    "best",
+    "fastest",
+    "cheapest",
+    "top",
+    "leading",
+    "greatest",
+    "strongest",
+    "smartest",
+    "unbeatable",
+    "unmatched",
+    "number one",
+    "#1",
+)
+_SUPERLATIVE = re.compile(
+    r"(?<!\w)(?:" + "|".join(re.escape(word) for word in _SUPERLATIVES) + r")(?!\w)",
+    re.IGNORECASE,
+)
 _OPTIONAL = frozenset({"change"})
 _WHOLE_LIMITS = {
     "linkedin": _LINKEDIN_LIMIT,
@@ -59,19 +77,6 @@ _REDDIT_RULES = (
 _HAND = "Make the image by hand."
 _JAMIE = "Jamie decides whether to submit."
 _GENERIC_MODEL = "the new model"
-_PROSE_FIELDS = (
-    ("headline.text", "headline"),
-    ("disclosures.supplier", "supplier"),
-    ("disclosures.early_access", "early_access"),
-    ("disclosures.neutrality", "neutrality"),
-)
-
-
-@dataclass(frozen=True, slots=True)
-class Draft:
-    """The draft copy. ``text`` is the only string on the object."""
-
-    text: str
 
 
 def posts_of(text: str) -> tuple[str, ...]:
@@ -95,67 +100,86 @@ def _number_mark(text: str) -> str | None:
     return None
 
 
-def _reject_field(label: str, text: str | None) -> None:
-    if text and (mark := _number_mark(text)):
+def _letters(text: str) -> str:
+    normal = unicodedata.normalize("NFKC", text).casefold()
+    return "".join(character for character in normal if character.isalpha())
+
+
+def _percent_word(text: str) -> bool:
+    letters = _letters(text)
+    return "percent" in letters or "percentage" in letters
+
+
+def _superlative_hits(text: str, *, allow_band: bool) -> list[str]:
+    hits: list[str] = []
+    for match in _SUPERLATIVE.finditer(text):
+        word = match.group(0)
+        if allow_band and word.casefold() in {"leading", "best"}:
+            rest = text[match.end() :]
+            if re.match(r"\s+band(?!\w)", rest, re.IGNORECASE):
+                continue
+        hits.append(word)
+    return hits
+
+
+def _validate_post_url(post_url: str) -> None:
+    if _POST_URL.fullmatch(post_url) is None:
+        raise ValueError("post_url is not a modelspec blog url")
+
+
+def _require_text(name: str, value: object) -> str:
+    if type(value) is str:
+        return value
+    carried = sorted(
+        key
+        for key in getattr(value, "__dict__", {})
+        if isinstance(key, str) and not key.startswith("_")
+    )
+    found = carried[0] if carried else "object"
+    raise ValueError(f"{name} draft carries {found}")
+
+
+def _prose(text: str, post_url: str, where: str) -> str:
+    kept: list[str] = []
+    for token in text.split():
+        if token == post_url:
+            continue
+        if "://" in token or post_url in token:
+            raise ValueError(f"{where} does not use the exact breakdown url")
+        kept.append(token)
+    return " ".join(kept)
+
+
+def _reject_field(label: str, text: str | None, *, allow_band: bool = False) -> None:
+    if not text:
+        return
+    if _superlative_hits(text, allow_band=allow_band):
+        raise ValueError(f"{label} contains a superlative")
+    if _percent_word(text):
+        raise ValueError(f"{label} contains a percent")
+    if mark := _number_mark(text):
         raise ValueError(f"{label} contains a {mark}")
 
 
 def _reject_text(text: str, post_url: str, *, where: str, require_url: bool) -> None:
-    if require_url and post_url not in text:
+    prose = _prose(text, post_url, where)
+    if require_url and post_url not in text.split():
         raise ValueError(f"{where} is missing the breakdown url")
-    if mark := _number_mark(text.replace(post_url, "")):
+    if _superlative_hits(prose, allow_band=False):
+        raise ValueError(f"{where} contains a superlative")
+    if _percent_word(prose):
+        raise ValueError(f"{where} contains a percent")
+    if mark := _number_mark(prose):
         raise ValueError(f"{where} contains a {mark}")
 
 
-def _iter_strings(value: object, prefix: str = "") -> Iterator[tuple[str, str]]:
-    if isinstance(value, str):
-        yield prefix or "text", value
-        return
-    if value is None or isinstance(value, (int, float, bool)):
-        return
-    if isinstance(value, dict):
-        for key, item in value.items():
-            key_label = f"{prefix}.key" if prefix else "key"
-            yield from _iter_strings(key, key_label)
-            item_label = f"{prefix}.{key}" if prefix else str(key)
-            yield from _iter_strings(item, item_label)
-        return
-    if isinstance(value, (list, tuple)):
-        for index, item in enumerate(value):
-            yield from _iter_strings(item, f"{prefix}[{index}]")
-        return
-    names: list[str] = []
-    if is_dataclass(value):
-        names.extend(field.name for field in fields(value))
-    slots = getattr(value, "__slots__", ())
-    if isinstance(slots, str):
-        slots = (slots,)
-    names.extend(slots)
-    names.extend(getattr(value, "__dict__", {}))
-    seen: set[str] = set()
-    for name in names:
-        if not name or name.startswith("_") or name in seen:
-            continue
-        seen.add(name)
-        try:
-            item = getattr(value, name)
-        except AttributeError:
-            continue
-        if callable(item):
-            continue
-        label = f"{prefix}.{name}" if prefix else name
-        yield from _iter_strings(item, label)
-
-
 def _reject_inputs(breakdown: Breakdown) -> None:
-    values = {
-        "headline": breakdown.headline.text,
-        "supplier": breakdown.disclosures.supplier,
-        "early_access": breakdown.disclosures.early_access,
-        "neutrality": breakdown.disclosures.neutrality,
-    }
-    for label, key in _PROSE_FIELDS:
-        _reject_field(label, values[key])
+    # "leading band" and "best band" name a band in the breakdown post.
+    # A draft does not repeat that headline. Any other banned stem fails here.
+    _reject_field("headline.text", breakdown.headline.text, allow_band=True)
+    _reject_field("disclosures.supplier", breakdown.disclosures.supplier)
+    _reject_field("disclosures.early_access", breakdown.disclosures.early_access)
+    _reject_field("disclosures.neutrality", breakdown.disclosures.neutrality)
 
 
 def _default_url(breakdown: Breakdown) -> str:
@@ -163,17 +187,22 @@ def _default_url(breakdown: Breakdown) -> str:
     return f"https://modelspec.dev/blog/{slug}/"
 
 
+def _copyable_name(name: str) -> bool:
+    if not name or _number_mark(name) or _percent_word(name):
+        return False
+    return not _superlative_hits(name, allow_band=False)
+
+
 def _referent(breakdown: Breakdown) -> str:
     """Use a digit-free name. Otherwise say "the new model".
 
     ``model.name`` is the name field. ``names`` holds the vocabulary display
-    name for this model. "Alpha 2.5" has a digit, and so does a superscript
-    or circled digit in that field. Neither is copied. The link names the
-    model only when the chosen name is digit-free.
+    name for this model. A digit, a percent word, or a superlative is not
+    copied. The link names the model only when the chosen name is copyable.
     """
     candidates = (breakdown.model.name, breakdown.names.get(breakdown.model.id, ""))
     for name in candidates:
-        if name and _number_mark(name) is None:
+        if _copyable_name(name):
             return name
     return _GENERIC_MODEL
 
@@ -182,6 +211,13 @@ def _class_label(breakdown: Breakdown) -> str:
     label = breakdown.model.class_.replace("-", " ")
     _reject_field("model.class", label)
     return label
+
+
+def _public_headline(text: str) -> str:
+    """Keep a band claim in the breakdown. A draft does not repeat it."""
+    if _superlative_hits(text, allow_band=False):
+        return ""
+    return text
 
 
 def _gap(breakdown: Breakdown):
@@ -230,10 +266,28 @@ def _hn_title(headline: str) -> str:
     return cut[:space] if space > 0 else cut
 
 
+def _short_title(change: str, cover: str) -> str:
+    sentence = change
+    if sentence.lower().startswith("on ") and ", " in sentence:
+        rest = sentence.split(", ", 1)[1]
+        sentence = rest[:1].upper() + rest[1:]
+    if not sentence:
+        sentence = cover
+    if len(sentence) <= _HN_TITLE_LIMIT:
+        return sentence
+    cut = sentence[:_HN_TITLE_LIMIT]
+    space = cut.rfind(" ")
+    return cut[:space] if space > 0 else cut
+
+
+def _without(parts: list[tuple[str, str]], role: str) -> list[tuple[str, str]]:
+    return [item for item in parts if item[0] != role]
+
+
 def _parts(breakdown: Breakdown, platform: str, post_url: str) -> list[tuple[str, str]]:
     referent = _referent(breakdown)
     class_label = _class_label(breakdown)
-    headline = breakdown.headline.text
+    headline = _public_headline(breakdown.headline.text)
     change = _change_sentence(breakdown)
     cover = f"The breakdown covers {referent}."
     analysis = _analysis(class_label, teams=platform == "linkedin")
@@ -249,22 +303,39 @@ def _parts(breakdown: Breakdown, platform: str, post_url: str) -> list[tuple[str
     ]
     ending = [("neutrality", neutrality), ("link", link)]
     if platform == "hackernews":
-        title = _hn_title(headline)
+        if headline:
+            title = _hn_title(headline)
+            parts = [("title", title)]
+            if title != headline:
+                parts.append(("headline", headline))
+            return [*parts, ("change", change), *shared, *ending, ("note", _JAMIE)]
+        title = _short_title(change, cover)
         parts = [("title", title)]
-        if title != headline:
-            parts.append(("headline", headline))
-        return [*parts, ("change", change), *shared, *ending, ("note", _JAMIE)]
+        if change and change != title:
+            parts.append(("change", change))
+        body = _without(shared, "model") if title == cover else shared
+        return [*parts, *body, *ending, ("note", _JAMIE)]
     if platform == "reddit":
-        return [
-            ("title", headline),
-            ("identity", "This is ModelSpec."),
-            ("change", change),
-            *shared,
-            ("rules", _REDDIT_RULES),
-            *ending,
-        ]
+        if headline:
+            return [
+                ("title", headline),
+                ("identity", "This is ModelSpec."),
+                ("change", change),
+                *shared,
+                ("rules", _REDDIT_RULES),
+                *ending,
+            ]
+        title = change or cover
+        parts = [("title", title), ("identity", "This is ModelSpec.")]
+        if change and change != title:
+            parts.append(("change", change))
+        body = _without(shared, "model") if title == cover else shared
+        return [*parts, *body, ("rules", _REDDIT_RULES), *ending]
     lead: list[tuple[str, str]] = [("hand", _HAND)] if platform == "instagram" else []
-    return [*lead, ("change", change), ("headline", headline), *shared, *ending]
+    middle: list[tuple[str, str]] = [("change", change)]
+    if headline:
+        middle.append(("headline", headline))
+    return [*lead, *middle, *shared, *ending]
 
 
 def _join(parts: list[tuple[str, str]], limit: int | None) -> str:
@@ -283,10 +354,8 @@ def _draft_text(breakdown: Breakdown, platform: str, post_url: str) -> str:
     return _join(_parts(breakdown, platform, post_url), _WHOLE_LIMITS.get(platform))
 
 
-def _assemble(breakdown: Breakdown, post_url: str) -> dict[str, Draft]:
-    return {
-        platform: Draft(_draft_text(breakdown, platform, post_url)) for platform in _DRAFT_FILES
-    }
+def _assemble(breakdown: Breakdown, post_url: str) -> dict[str, str]:
+    return {platform: _draft_text(breakdown, platform, post_url) for platform in _DRAFT_FILES}
 
 
 def _guard(text: str) -> None:
@@ -324,30 +393,29 @@ def _check_limits(platform: str, posts: tuple[str, ...], text: str) -> None:
         raise ValueError(f"{platform} draft is {len(text)} characters, limit {limit}")
 
 
-def _seal(drafts: dict[str, object], post_url: str) -> None:
-    for label, text in _iter_strings(drafts):
-        _reject_text(
-            text,
-            post_url,
-            where=label,
-            require_url=label == "text" or label.endswith(".text"),
-        )
-    for name, draft in drafts.items():
-        text = draft.text
+def _seal(drafts: dict[str, object], post_url: str) -> dict[str, str]:
+    sealed: dict[str, str] = {}
+    for name, value in drafts.items():
+        text = _require_text(name, value)
+        _reject_text(text, post_url, where=f"{name}.text", require_url=True)
         posts = posts_of(text)
         for index, post in enumerate(posts):
             _reject_text(post, post_url, where=f"{name} post {index}", require_url=False)
         _check_limits(name, posts, text)
         _guard(text)
+        sealed[name] = text
+    return sealed
 
 
-def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[str, Draft]:
-    """Six text drafts for one breakdown. Nothing is posted."""
+def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[str, str]:
+    """Six text drafts for one breakdown. Nothing is posted.
+
+    A thread is ``posts_of(text)``: a tuple of strings whose join is ``text``.
+    """
+    url = post_url if post_url is not None else _default_url(breakdown)
+    _validate_post_url(url)
     _reject_inputs(breakdown)
-    url = post_url or _default_url(breakdown)
-    drafts = _assemble(breakdown, url)
-    _seal(drafts, url)
-    return drafts
+    return _seal(_assemble(breakdown, url), url)
 
 
 def generate_from_breakdown(
@@ -357,13 +425,14 @@ def generate_from_breakdown(
     output_dir: str | Path,
 ) -> dict[str, str]:
     """Write the six text drafts the release hook asks for. Nothing is posted."""
+    _validate_post_url(post_url)
     breakdown = Breakdown.model_validate_json(Path(breakdown_path).read_bytes())
     drafts = render_drafts(breakdown, post_url=post_url)
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
     written: dict[str, str] = {}
     for platform, filename in _DRAFT_FILES.items():
-        body = drafts[platform].text
+        body = _require_text(filename, drafts[platform])
         if not body.endswith("\n"):
             body += "\n"
         _reject_text(body, post_url, where=filename, require_url=True)

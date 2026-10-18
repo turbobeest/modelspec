@@ -9,7 +9,6 @@ from __future__ import annotations
 import ast
 import re
 import unicodedata
-from dataclasses import fields
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,7 +20,6 @@ from release_blog.breakdown import to_bytes
 from release_blog.model import Breakdown
 from release_blog.platforms import (
     AUTOMATIC_POSTING,
-    Draft,
     generate_from_breakdown,
     posts_of,
     render_drafts,
@@ -53,19 +51,23 @@ _RULES = (
     "This draft is for a person to post, and only in r/LocalLLaMA. "
     "Do not cross-post."
 )
-_HN_TITLE = "This model is in the leading band for software engineering"
+_HN_TITLE = "An independent reading of the same setup is lower than the lab's figure."
+_BANNED_DRAFT = re.compile(
+    r"(?<!\w)(?:best|fastest|cheapest|top|leading|greatest|strongest|smartest|"
+    r"unbeatable|unmatched|number one|#1)(?!\w)",
+    re.IGNORECASE,
+)
 _JAMIE = "Jamie decides whether to submit."
 _NUMBER_CATEGORIES = frozenset({"Nd", "No", "Nl"})
 
 
-# Written from the signed fixture's headline, class, and same-setup direction.
-# The fixture URL has no digit. Alpha 2.5 does, so the draft says "the new model".
+# The breakdown headline names the leading band. That claim stays on the
+# breakdown. These drafts say what changed and link to it. The fixture URL
+# has no digit. Alpha 2.5 does, so the draft says "the new model".
 _ORACLE = {
     "x": (
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
         "The breakdown covers the new model.\n\n"
         "ModelSpec is an analysis of alternatives for a text generator.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
@@ -74,8 +76,6 @@ _ORACLE = {
     "linkedin": (
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
         "The breakdown covers the new model.\n\n"
         "ModelSpec is an analysis of alternatives for teams choosing a text generator.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
@@ -84,8 +84,6 @@ _ORACLE = {
     "facebook": (
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
         "The breakdown covers the new model.\n\n"
         "ModelSpec is an analysis of alternatives for a text generator.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
@@ -95,19 +93,15 @@ _ORACLE = {
         "Make the image by hand.\n\n"
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
         "The breakdown covers the new model.\n\n"
         "ModelSpec is an analysis of alternatives for a text generator.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "reddit": (
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
-        "This is ModelSpec.\n\n"
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
+        "This is ModelSpec.\n\n"
         "The breakdown covers the new model.\n\n"
         "ModelSpec is an analysis of alternatives for a text generator.\n\n"
         "Target subreddit: r/LocalLLaMA. "
@@ -121,9 +115,7 @@ _ORACLE = {
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "hackernews": (
-        "This model is in the leading band for software engineering\n\n"
-        "This model is in the leading band for software engineering; "
-        "independent readings sit beside the lab's figures\n\n"
+        "An independent reading of the same setup is lower than the lab's figure.\n\n"
         "On swe_bench_pro, an independent reading of the same setup is lower "
         "than the lab's figure.\n\n"
         "The breakdown covers the new model.\n\n"
@@ -174,24 +166,27 @@ def _named(breakdown: Breakdown, name: str) -> Breakdown:
 
 
 def _numberless(text: str, url: str) -> None:
-    remaining = text.replace(url, "")
-    for character in remaining:
+    prose = " ".join(token for token in text.split() if token != url)
+    assert url not in prose
+    for character in prose:
         assert unicodedata.category(character) not in _NUMBER_CATEGORIES
         assert not character.isdigit()
         assert not character.isnumeric()
-    folded = unicodedata.normalize("NFKC", remaining).casefold()
+    folded = unicodedata.normalize("NFKC", prose).casefold()
+    letters = "".join(character for character in folded if character.isalpha())
     assert "%" not in folded
-    assert "percent" not in folded
-    assert "per cent" not in folded
+    assert "percent" not in letters
+    assert "percentage" not in letters
+    assert _BANNED_DRAFT.search(prose) is None
 
 
 def test_signed_fixture_drafts_match_the_written_oracle(breakdown) -> None:
     """Expected text is written in this file. The test does not format it."""
     drafts = render_drafts(breakdown)
     for name, expected in _ORACLE.items():
-        assert drafts[name].text == expected, name
-        assert posts_of(drafts[name].text)
-        assert "\n\n".join(posts_of(drafts[name].text)) == drafts[name].text
+        assert drafts[name] == expected, name
+        assert posts_of(drafts[name])
+        assert "\n\n".join(posts_of(drafts[name])) == drafts[name]
 
 
 def test_oracle_values_are_literals() -> None:
@@ -210,107 +205,111 @@ def test_oracle_values_are_literals() -> None:
         _numberless(text, _URL)
 
 
-def test_a_draft_has_no_second_text_attribute() -> None:
-    assert [field.name for field in fields(Draft)] == ["text"]
+def test_a_draft_has_no_second_text_attribute(breakdown) -> None:
+    assert not hasattr(platforms, "Draft")
+    drafts = render_drafts(breakdown)
+    assert all(type(draft) is str for draft in drafts.values())
 
 
 def test_sample_drafts_exist_for_every_platform(breakdown) -> None:
     drafts = render_drafts(breakdown)
     assert set(drafts) == {"x", "linkedin", "facebook", "instagram", "reddit", "hackernews"}
     assert AUTOMATIC_POSTING is False
-    assert all(isinstance(draft, Draft) for draft in drafts.values())
-    again = render_drafts(breakdown)
-    assert [draft.text for draft in again.values()] == [draft.text for draft in drafts.values()]
+    assert all(type(draft) is str for draft in drafts.values())
+    assert render_drafts(breakdown) == drafts
 
 
 def test_drafts_name_modelspec_and_carry_no_number(breakdown) -> None:
+    assert breakdown.headline.text == _HEADLINE
     for name, draft in render_drafts(breakdown).items():
-        assert "ModelSpec is an analysis of alternatives" in draft.text, name
-        assert "Alpha 2.5" not in draft.text
-        assert "the new model" in draft.text
-        assert _LINK in draft.text
-        assert _NEUTRALITY in draft.text
-        _numberless(draft.text, _URL)
-        assert refused_words(draft.text) == []
-        assert excluded_sources().text.search(draft.text) is None
-        assert "router" not in draft.text.lower()
+        assert "ModelSpec is an analysis of alternatives" in draft, name
+        assert "Alpha 2.5" not in draft
+        assert "the new model" in draft
+        assert _HEADLINE not in draft
+        assert _LINK in draft
+        assert _NEUTRALITY in draft
+        _numberless(draft, _URL)
+        assert refused_words(draft) == []
+        assert excluded_sources().text.search(draft) is None
+        assert "router" not in draft.lower()
 
 
 def test_x_thread_fits_and_opens_on_the_change(breakdown) -> None:
     draft = render_drafts(breakdown)["x"]
-    posts = posts_of(draft.text)
+    posts = posts_of(draft)
     assert posts
     assert [(index, len(post)) for index, post in enumerate(posts) if len(post) > 280] == []
     assert posts[0] == _CHANGE
-    assert "70%" not in draft.text
-    assert "67.9%" not in draft.text
-    assert "2.1" not in draft.text
-    assert _URL in draft.text
+    assert "70%" not in draft
+    assert "67.9%" not in draft
+    assert "2.1" not in draft
+    assert _URL in draft
 
 
 def test_linkedin_keeps_the_full_url(breakdown) -> None:
     draft = render_drafts(breakdown)["linkedin"]
-    assert "ModelSpec is an analysis of alternatives" in draft.text
-    assert "teams choosing" in draft.text
-    assert len(draft.text) <= 3000
-    assert _URL in draft.text
-    assert _NEUTRALITY in draft.text
-    assert "text generator" in draft.text
+    assert "ModelSpec is an analysis of alternatives" in draft
+    assert "teams choosing" in draft
+    assert len(draft) <= 3000
+    assert _URL in draft
+    assert _NEUTRALITY in draft
+    assert "text generator" in draft
 
 
 def test_facebook_post_carries_the_change_and_the_link(breakdown) -> None:
     draft = render_drafts(breakdown)["facebook"]
-    assert len(draft.text) <= 500
-    assert _URL in draft.text
-    assert _CHANGE in draft.text
-    assert _NEUTRALITY in draft.text
-    assert "70%" not in draft.text
+    assert len(draft) <= 500
+    assert _URL in draft
+    assert _CHANGE in draft
+    assert _NEUTRALITY in draft
+    assert "70%" not in draft
 
 
 def test_instagram_is_a_caption_and_tells_the_person_to_make_the_image(breakdown) -> None:
     draft = render_drafts(breakdown)["instagram"]
-    assert draft.text.startswith(_HAND)
-    assert _URL in draft.text
-    assert len(draft.text) <= 2200
-    assert "<svg" not in draft.text
-    assert "70%" not in draft.text
+    assert draft.startswith(_HAND)
+    assert _URL in draft
+    assert len(draft) <= 2200
+    assert "<svg" not in draft
+    assert "70%" not in draft
 
 
 def test_reddit_draft_names_one_subreddit_and_does_not_cross_post(breakdown) -> None:
     draft = render_drafts(breakdown)["reddit"]
-    posts = posts_of(draft.text)
-    assert posts[0] == breakdown.headline.text
+    posts = posts_of(draft)
+    assert posts[0] == _CHANGE
+    assert breakdown.headline.text not in draft
     assert len(posts[0]) <= 300
-    assert len(draft.text) <= 40_000
-    assert "This is ModelSpec." in draft.text
-    assert "ModelSpec is an analysis of alternatives" in draft.text
-    assert "Do not cross-post." in draft.text
-    assert set(re.findall(r"r/[A-Za-z0-9_]+", draft.text)) == {"r/LocalLLaMA"}
-    assert "self-promotion" in draft.text.lower()
-    assert "disclos" in draft.text.lower()
-    assert _URL in draft.text
+    assert len(draft) <= 40_000
+    assert "This is ModelSpec." in draft
+    assert "ModelSpec is an analysis of alternatives" in draft
+    assert "Do not cross-post." in draft
+    assert set(re.findall(r"r/[A-Za-z0-9_]+", draft)) == {"r/LocalLLaMA"}
+    assert "self-promotion" in draft.lower()
+    assert "disclos" in draft.lower()
+    assert _URL in draft
     _numberless(posts[0], _URL)
 
 
 def test_hacker_news_is_a_title_and_url_jamie_decides(breakdown) -> None:
     draft = render_drafts(breakdown)["hackernews"]
-    posts = posts_of(draft.text)
+    posts = posts_of(draft)
     assert posts[0] == _HN_TITLE
     assert len(posts[0]) <= 80
-    assert breakdown.headline.text.startswith(posts[0])
-    assert breakdown.headline.text in draft.text
-    assert _URL in draft.text
-    assert _JAMIE in draft.text
-    assert _NEUTRALITY in draft.text
+    assert breakdown.headline.text not in draft
+    assert _CHANGE in draft
+    assert _URL in draft
+    assert _JAMIE in draft
+    assert _NEUTRALITY in draft
     _numberless(posts[0], _URL)
 
 
 def test_caller_can_supply_the_breakdown_url(breakdown) -> None:
     url = "https://modelspec.dev/blog/lab-alpha-r1/"
     draft = render_drafts(breakdown, post_url=url)["x"]
-    assert url in draft.text
-    assert f"Read the full breakdown, with sources: {url}" in draft.text
-    _numberless(draft.text, url)
+    assert url in draft
+    assert f"Read the full breakdown, with sources: {url}" in draft
+    _numberless(draft, url)
 
 
 def test_platform_module_has_no_posting_client_or_fact_slots() -> None:
@@ -337,37 +336,37 @@ def test_long_threads_keep_the_linkedin_url_and_disclosure(breakdown) -> None:
     for repeats in (9, 15, 20):
         longer = _with_repeated_readings(breakdown, "terminal_bench", repeats)
         draft = render_drafts(longer, post_url=url)["linkedin"]
-        assert url in draft.text
-        assert breakdown.disclosures.neutrality in draft.text
-        assert "ModelSpec is an analysis of alternatives" in draft.text
-        assert len(draft.text) <= 3000
-        _numberless(draft.text, url)
+        assert url in draft
+        assert breakdown.disclosures.neutrality in draft
+        assert "ModelSpec is an analysis of alternatives" in draft
+        assert len(draft) <= 3000
+        _numberless(draft, url)
 
 
 def test_disclosures_are_in_every_platforms_written_copy(breakdown) -> None:
     related = _related(breakdown, supplier=_SUPPLIER, early_access=_EARLY)
     for name, draft in render_drafts(related).items():
-        assert _SUPPLIER in draft.text, name
-        assert _EARLY in draft.text, name
-        assert len(draft.text) <= {"facebook": 500, "x": 10_000}.get(name, 40_000)
-        _numberless(draft.text, _URL)
+        assert _SUPPLIER in draft, name
+        assert _EARLY in draft, name
+        assert len(draft) <= {"facebook": 500, "x": 10_000}.get(name, 40_000)
+        _numberless(draft, _URL)
 
 
 def test_a_digit_free_name_is_used_and_versioned_names_are_not(breakdown) -> None:
     versioned = render_drafts(breakdown)
-    assert all("Alpha 2.5" not in draft.text for draft in versioned.values())
-    assert all("the new model" in draft.text for draft in versioned.values())
+    assert all("Alpha 2.5" not in draft for draft in versioned.values())
+    assert all("the new model" in draft for draft in versioned.values())
     clean = render_drafts(_named(breakdown, "Alpha"))
-    assert all("Alpha 2.5" not in draft.text for draft in clean.values())
-    assert all("The breakdown covers Alpha." in draft.text for draft in clean.values())
+    assert all("Alpha 2.5" not in draft for draft in clean.values())
+    assert all("The breakdown covers Alpha." in draft for draft in clean.values())
     assert all(
-        f"Read the full breakdown of Alpha, with sources: {_URL}" in draft.text
+        f"Read the full breakdown of Alpha, with sources: {_URL}" in draft
         for draft in clean.values()
     )
     aliased = breakdown.model_copy(update={"names": {breakdown.model.id: "Alpha"}})
     drafts = render_drafts(aliased)
-    assert all("Alpha 2.5" not in draft.text for draft in drafts.values())
-    assert all("The breakdown covers Alpha." in draft.text for draft in drafts.values())
+    assert all("Alpha 2.5" not in draft for draft in drafts.values())
+    assert all("The breakdown covers Alpha." in draft for draft in drafts.values())
 
 
 @pytest.mark.parametrize(
@@ -421,7 +420,7 @@ def test_unicode_digits_in_inputs_are_rejected(breakdown, character, field, labe
 
 def test_a_unicode_digit_in_a_model_name_is_not_copied(breakdown) -> None:
     drafts = render_drafts(_named(breakdown, "Alpha⁷⁰"))
-    blob = "\n".join(draft.text for draft in drafts.values())
+    blob = "\n".join(draft for draft in drafts.values())
     assert "Alpha⁷⁰" not in blob
     assert "⁷⁰" not in blob
     assert "the new model" in blob
@@ -455,9 +454,7 @@ def test_a_number_via_any_attribute_is_rejected(breakdown, monkeypatch) -> None:
 
     def leaky(breakdown, post_url):
         drafts = original(breakdown, post_url)
-        return {
-            name: SimpleNamespace(text=draft.text, aside="70") for name, draft in drafts.items()
-        }
+        return {name: SimpleNamespace(text=draft, aside="70") for name, draft in drafts.items()}
 
     monkeypatch.setattr(platforms, "_assemble", leaky)
     with pytest.raises(ValueError, match="aside"):
@@ -507,7 +504,7 @@ def test_generate_writes_six_text_files_and_no_images(breakdown, tmp_path) -> No
         "hackernews": "hn.txt",
     }
     for platform, filename in files.items():
-        assert (social / filename).read_text(encoding="utf-8") == drafts[platform].text + "\n"
+        assert (social / filename).read_text(encoding="utf-8") == drafts[platform] + "\n"
     linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
     assert _URL in linkedin
     assert breakdown.disclosures.neutrality in linkedin
@@ -532,3 +529,91 @@ def test_model_225_hook_uses_the_merged_pipeline(breakdown, tmp_path) -> None:
         assert "https://modelspec.dev/blog/lab-alpha/" in text
     linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
     assert breakdown.disclosures.neutrality in linkedin
+
+
+def _with_headline(breakdown: Breakdown, text: str) -> Breakdown:
+    return breakdown.model_copy(
+        update={"headline": breakdown.headline.model_copy(update={"text": text})}
+    )
+
+
+@pytest.mark.parametrize(
+    ("kind", "value"),
+    [
+        ("changed", "https://modelspec.dev/blog/lab-alpha/extra/"),
+        ("changed", "https://modelspec.dev/blog/alpha-r1/wrong/"),
+        ("nested", "https://example.org/?destination=https://modelspec.dev/blog/lab-alpha/"),
+        ("nested", "https://example.org/?destination=https://modelspec.dev/blog/alpha-r1/"),
+        ("whitespace", "https://modelspec.dev/blog/ 70%"),
+        ("whitespace", "https://modelspec.dev/blog/ seventy percent"),
+    ],
+)
+def test_the_breakdown_url_is_an_exact_token(breakdown, monkeypatch, kind, value) -> None:
+    """The URL is validated, then accepted only as a whole token equal to it."""
+    source = Path("release_blog/platforms.py").read_text(encoding="utf-8")
+    assert "replace(post_url" not in source
+    if kind == "whitespace":
+        with pytest.raises(ValueError, match="post_url"):
+            render_drafts(breakdown, post_url=value)
+        return
+    url = (
+        "https://modelspec.dev/blog/alpha-r1/"
+        if "alpha-r1" in value
+        else "https://modelspec.dev/blog/lab-alpha/"
+    )
+    original = platforms._draft_text
+
+    def mutated(source, name, target):
+        return " ".join(
+            value if token == target else token for token in original(source, name, target).split()
+        )
+
+    monkeypatch.setattr(platforms, "_draft_text", mutated)
+    with pytest.raises(ValueError, match="url"):
+        render_drafts(breakdown, post_url=url)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["seventypercent", "seventyPercent", "seventyper cent", "per-cent"],
+)
+def test_a_glued_percent_word_is_rejected(breakdown, value) -> None:
+    related = _related(breakdown, supplier=f"Reported {value}.")
+    with pytest.raises(ValueError, match="percent"):
+        render_drafts(related)
+
+
+@pytest.mark.parametrize(
+    ("kind", "value"),
+    [
+        ("headline", "The best coding model."),
+        ("headline", "The fastest coding model."),
+        ("draft", "The leading release."),
+    ],
+)
+def test_a_superlative_is_rejected(breakdown, monkeypatch, kind, value) -> None:
+    if kind == "headline":
+        with pytest.raises(ValueError, match="headline.text"):
+            render_drafts(_with_headline(breakdown, value))
+        return
+    original = platforms._draft_text
+
+    def extra(source, name, target):
+        return original(source, name, target) + "\n\n" + value
+
+    monkeypatch.setattr(platforms, "_draft_text", extra)
+    with pytest.raises(ValueError, match="superlative"):
+        render_drafts(breakdown)
+
+
+def test_returned_drafts_are_plain_strings(breakdown) -> None:
+    drafts = render_drafts(breakdown)
+    assert [type(draft) for draft in drafts.values()] == [str, str, str, str, str, str]
+
+
+def test_a_band_headline_stays_in_the_breakdown_and_out_of_the_draft(breakdown) -> None:
+    sole = "This model is the only model in the best band for software engineering."
+    drafts = render_drafts(_with_headline(breakdown, sole))
+    assert all(type(draft) is str for draft in drafts.values())
+    assert all("best" not in draft.casefold() for draft in drafts.values())
+    assert all(sole not in draft for draft in drafts.values())
