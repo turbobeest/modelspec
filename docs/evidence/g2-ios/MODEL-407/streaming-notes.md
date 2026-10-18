@@ -36,24 +36,16 @@ Exit 0: 39 passed in 1.00 seconds. Standalone best-of-five load samples were 71.
 
 Independent local review found no blocking parser or signature issue. The committed regression suite covers chunk boundaries, bad hashes, gzip corruption, duplicate keys, and deep legacy snapshots. This was self-review, not the pending cross-model review.
 
-## Public memory evidence
+## Final memory evidence
 
-Pinned Node 22.22.3 and Pyodide 0.28.3, original public synthetic data; no private data were read or copied by this worker. The full shared-stream reader plus rank/policy caller variant, immediately before the cursor-call cleanup, measured:
+The executable source is committed at `bb41f0f6`. The final acceptance runs
+rebuilt both public and private bundles through `vendor.py --data-dir`, using
+Node 22.22.3 and Pyodide 0.28.3. Their current, native successor and warm
+rollover results are in [the execution report](../MODEL-407-fix.md) and the
+[reproduction commands](memory-commands.md). Those fresh measurements supersede
+the intermediate public prototypes.
 
-- Warm rollover: 104.526283 MiB; 59.875 MiB WASM. `public-successor-shared-streams-warm.json`.
-- Native `--successor`, exact four requests: 104.488917 MiB; 59.875 MiB WASM. `public-successor-shared-streams-cold.json`.
-- Retained successor index: 3,706,510 bytes, exactly the original representation; provenance table 1,997,163 bytes; vocabulary 633,718 bytes.
-
-Warm invocation:
-
-```sh
-MODEL407_MEMORY_MODE=warm NODE_PATH=$PWD/tmp/model-407/memory_probe/runtime/node_modules MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --expose-gc --require ./tmp/model-407/successor/successor-probe-hook.cjs api/worker/measure_memory.cjs tmp/model-407/successor/public-bundle-stream-reader --limit-mib 115 --attribute --output tmp/model-407/successor/public-successor-shared-streams-warm.json > tmp/model-407/successor/public-successor-shared-streams-warm.log 2>&1
-```
-
-Cold invocation:
-
-```sh
-NODE_PATH=$PWD/tmp/model-407/memory_probe/runtime/node_modules MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --expose-gc api/worker/measure_memory.cjs tmp/model-407/successor/public-bundle-stream-reader --successor --limit-mib 115 --attribute --output tmp/model-407/successor/public-successor-shared-streams-cold.json > tmp/model-407/successor/public-successor-shared-streams-cold.log 2>&1
-```
-
-Both exit 0. Warm assertions prove predecessor destruction before successor bytes are read, one successor load, HMAC verification, and holder/body/header binding, without added GC. The parent runs the final private-bundle matrix against final source.
+The committed [warm-rollover hook](rollover-probe-hook.cjs) proves predecessor
+release before reading the successor, signature verification and response
+binding without adding garbage collection. The native `--successor` probe
+uses the original four CI requests.

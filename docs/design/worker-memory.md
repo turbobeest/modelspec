@@ -41,7 +41,11 @@ public fixture. Refreshing calibration means rerunning the private matrix,
 adjusting the public recipe, and recording both memory results.
 
 The same probe runs against the PR and main with the same fixture recipe,
-synthetic key, requests, and runtime. A PR total above 115 MiB fails. An
+synthetic key, requests, and runtime. Both candidate periods must pass 115 MiB.
+Main releases without successor support provide only a current-period baseline;
+the job announces that the successor comparison is unavailable. An incomplete
+successor pair still fails. When main supports both periods, both comparisons
+use their matching period. A PR total above 115 MiB fails. An
 increase above 1 MiB emits a warning even when the total passes. Missing or
 invalid measurements fail rather than silently passing. Deployment continues
 to enforce 120 MiB. The calibration must not reduce the measured private
@@ -80,8 +84,8 @@ candidate's Wasm allocation was 59.875 MiB. The 1 MiB regression warning can
 therefore include runtime noise and should be investigated with repeat runs.
 The private four-cell matrix is recorded in the execution evidence. Its first
 follow-up exposed a successor-loaded failure that the original current-period
-public check missed. Both periods now run as separate 115 MiB gates, each
-compared with the corresponding period on main. A separate warm-rollover
+public check missed. Both periods now run as separate 115 MiB gates. Each
+compares with its matching period on main when that period exists. A separate warm-rollover
 measurement also serves the current period before crossing the boundary.
 
 The final implementation `bb41f0f6` measures 104.48928 MiB current,
@@ -110,7 +114,14 @@ MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key \
   NODE_PATH=/path/to/pyodide/node_modules \
   node --expose-gc api/worker/measure_memory.cjs api/worker/src \
     --limit-mib 115 --attribute --output /path/to/public-memory.json
+MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key \
+  NODE_PATH=/path/to/pyodide/node_modules \
+  node --expose-gc api/worker/measure_memory.cjs api/worker/src \
+    --successor --limit-mib 115 --attribute --output /path/to/public-successor-memory.json
 ```
+
+The [complete commands](../evidence/g2-ios/MODEL-407/memory-commands.md) also
+measure warm rollover after serving the current period.
 
 For the main comparison, build the same recipe with main's engine code, run
 the probe with `--measure-only --output`, and pass that JSON to the candidate

@@ -13,7 +13,8 @@ The private acceptance target passes: implementation `bb41f0f6` with data
 Warm rollover retains **104.61679 MiB**. The required historical matrix and
 fresh public/private builds are complete. The original current-period public
 pass alone did not establish acceptance; the follow-up fixes below were needed.
-The new full-suite run is queued under the required shared lock.
+The final full suite passed under the required shared lock: **11,650 passed,
+9 skipped, 11 warnings**, direct exit 0.
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
 and warns when retained memory increases by more than 1 MiB against the same
@@ -32,7 +33,7 @@ legal text, or production switches changed.
 | Vocabulary request holds old objects across billing await | Both variants of `test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary` find the old snapshot, dictionary and nested facet alive | Release parsed references before metering; 63 focused tests pass and the suspended response retains its original bytes |
 | Public memory failures cannot block PRs | The immutable old probe ignores `--limit-mib 1` and exits 0 at 104.35 MiB | The new probe exits 1 for that same valid bundle with the 1 MiB limit; exact threshold and warning tests pass |
 | A synthetic workload can be excluded by production selection | The first generated bundle retained zero synthetic hardware rows | Use a model in the production premier slice and test that slice; both generated periods retain all 15 rows |
-| Only the current period is measured | New period/workflow regressions fail; the old implementation exceeds 115 MiB with `--successor` | Both candidate periods have a failing 115 MiB gate and matching main baseline |
+| Only the current period is measured | New period/workflow regressions fail; the old implementation exceeds 115 MiB with `--successor` | Both candidate periods have a failing 115 MiB gate; each uses its main baseline when available |
 | Whole snapshot and catalogue JSON text inflates the Wasm heap | `test_canonical_snapshot_does_not_decompress_the_whole_document` fails; the initial private successor retains 130.94 MiB | A shared bounded reader preserves values, shared keys, exact signed hashes and gzip integrity |
 | Policy evaluation holds all rows before paging | Four `test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance` cases retain 200 live rows against a bound of 15 | Aggregate the entire catalogue while retaining only the page and required examples; all four pass |
 
@@ -122,7 +123,7 @@ boundary. Warm rollover first serves the current decision, advances to the
 boundary, repeats that decision request, and runs the remaining three requests.
 It asserts the predecessor is released before reading the successor bytes.
 
-Post-sample private attribution for the initial implementation measures
+Post-sample private attribution for the final implementation's current period measures
 4,044,223 bytes for the loaded snapshot index, including 2,367,442 bytes for
 general provenance and 51,644 bytes for hardware provenance. Vocabulary
 accounts for 636,274 bytes. These categories overlap and are not additive
@@ -154,7 +155,8 @@ exclude this PR from automerge, and the PR remains a draft.
 
 The bounded JSON reader delegates strings, numbers and literals to the standard
 JSON decoder, shares object keys within a parse, and hashes consumed UTF-8 in
-blocks. It avoids retaining a full serialized document next to its parsed tree.
+blocks. It avoids a full decoded text copy alongside the parsed tree; catalogue
+loading still retains the decompressed UTF-8 bytes while parsing.
 The snapshot writer and format do not change. Legacy noncanonical and deeply
 nested inputs preserve their existing hash/signature verification path.
 
@@ -162,7 +164,7 @@ New tests cover chunk boundaries, Unicode and escapes, EOF, malformed syntax,
 content tampering before indexing, duplicate outer content, inner last-value
 semantics, deep legacy input, and cleanup after a failed parse. Existing gzip
 CRC, size, truncation and concatenated-member tests pass. The original 100 ms
-load-time limit remains: final standalone samples were 71.64–75.68 ms.
+load-time limit remains: final standalone best-of-five samples were 71.64–75.68 ms.
 
 The policy change retains only the requested page and the first ten required
 undetermined examples. Full-catalogue verdict counts and provenance still
@@ -178,6 +180,25 @@ Red/green output is retained in [streaming notes](MODEL-407/streaming-notes.md),
 [catalogue integration green](MODEL-407/catalogue-stream-green.txt).
 The policy host-allocation diagnostic fell from 2,985,912 to 375,248 bytes on
 the public catalogue. It explains the change; it is not the acceptance probe.
+
+## Main reconciliation
+
+Main advanced to `34c6dbef95371cff728a7a28aba33dcffe3e50e3`, reverting #813
+until a lazy successor could meet the memory budget. Merge commit
+`3cf60629630d225e486f0726cf5001450fb738ca` restores the tested successor
+implementation and regressions, while retaining main's removal of obsolete
+MODEL-402 evidence. `git diff --exit-code bb41f0f6 HEAD -- api decision pipeline
+schema` confirms the executable source is identical to the measured build.
+
+The public workflow also handles main versions without a successor bundle:
+main's current baseline remains required; an explicit notice replaces only
+the unavailable successor comparison. Both candidate 115 MiB gates remain
+mandatory. Process-level workflow tests exercise both available-period cases
+and both incomplete-pair failures. The detector was additionally run against
+real public baseline and final bundles. The focused workflow rerun passed
+10 tests with the already-tested fixture-build case deselected, exit 0.
+The data-freeze guard and chart check were rerun against `34c6dbef`, both
+with direct exit 0; the chart check had nothing to check.
 
 ## Integration commands and limits
 
@@ -224,15 +245,21 @@ check; data freeze passed. The private workflow patch passed `git apply --check`
 against a scratch copy of its existing workflow, without changing the private
 checkout. Preserved terminal logs have trailing whitespace removed.
 
-The required complete suite finished with direct process exit code **0**:
+The initial complete suite finished with direct process exit code **0**:
 **11,595 passed, 9 skipped, 11 warnings in 1,410.99 seconds (23 minutes 30
 seconds)**. The [complete terminal output](MODEL-407/full-suite.txt) is retained.
 That run preceded the private follow-up. The final focused suite passed **640 tests in 227.71 seconds**, direct exit 0,
 covering snapshot loading and rollover, hardware responses, rank, policy,
 workflow gates, and Worker compression. Its output is in
-[focused-final.txt](MODEL-407/focused-final.txt). The new complete suite for
-implementation `bb41f0f6` is queued under the shared lock; its final result
-will be recorded below.
+[focused-final.txt](MODEL-407/focused-final.txt).
+
+The final complete suite at merge commit
+`3cf60629630d225e486f0726cf5001450fb738ca` passed under the required shared
+lock with direct process exit code **0**: **11,650 passed, 9 skipped,
+11 warnings in 1,286.78 seconds (21 minutes 26 seconds)**. The executable
+source remains identical to the measured `bb41f0f6` implementation. The
+[final terminal output](MODEL-407/full-suite-final.txt) is retained. The
+verification process has exited; subsequent edits record evidence only.
 
 No production deployment, vendor API spending, live billing transaction,
 private-workflow execution, or cross-model review has been observed in this
