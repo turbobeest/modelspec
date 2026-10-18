@@ -15,7 +15,7 @@ Validation at `4b0c8cea`:
 - QA harness and gaps suites: 123 passed, exit 0.
 - Repeated `web/npm ci` and the browser prerequisite build: exit 0.
 - Complete pytest suite: queued under the required shared lock; result pending.
-- Decide browser matrix: four human/visit gate configurations running against isolated builds; results pending.
+- Decide browser matrix: all four human/visit gate configurations passed their builds, 1,242 Vitest tests each, and 429 Playwright tests in total, with 11 expected gate-dependent skips. All direct exits were 0; shared build output was unchanged.
 - Public-fixture Worker upload: 10,304,997 bytes against the 64 MiB limit. Cached memory probe passed at 116.3302 MiB steady. The retained cold-download observation exceeded the repository's 120 MiB safety threshold. Private production catalogue size and a production rollout were not measured.
 
 The first full attempt's failures and the subsequent corrections are preserved in [the execution evidence](docs/evidence/g2-ios/MODEL-402-fix.md), alongside red-first output, exact commands, generated-capture verification, and reproducible bundle measurements. This PR remains a draft pending independent review.

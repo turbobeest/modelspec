@@ -14,7 +14,8 @@ schema invalidated the QA capture. The orchestrator then granted an exception
 for the capture and its helper, requiring repository regeneration and limiting
 the diff to this ticket's OpenAPI hash or derived health schema. Regeneration
 changed only the OpenAPI hash. The helper and tool definitions are unchanged.
-The resumed complete suite and decide browser matrix are in progress.
+All four decide browser configurations passed. The resumed complete suite is
+queued under the shared lock.
 
 ## Revision and review state
 
@@ -223,7 +224,28 @@ The browser build also exited 0 and supplied `web/dist/decide.html` before the
 resumed full run was queued. The [resumed suite log](MODEL-402/full-suite-resumed.txt)
 and [source record](MODEL-402/full-suite-resumed-source.txt) identify commit
 `4b0c8cea` and the exact required shared-lock command. The complete suite is
-in progress. Decide browser results will be recorded after the matrix exits.
+queued under the shared lock.
+
+The [browser reproduction note](MODEL-402/browser-resumed/README.md),
+[runner](MODEL-402/browser-resumed/run-browser-matrix.py), and
+[summary](MODEL-402/browser-resumed/summary.json) record the original corpus,
+decide, visit-gate, and billing-launch Playwright suites in all four CI flag
+configurations. Every build, required-corpus Vitest run, and Playwright run
+exited 0. Vitest passed all 1,242 tests in 53 files in each configuration.
+
+| Human gate | Visit gate | Playwright passed | Expected skipped |
+|---|---|---:|---:|
+| false | false | 104 | 6 |
+| false | true | 110 | 0 |
+| true | false | 105 | 5 |
+| true | true | 110 | 0 |
+
+The skips cover cases whose gates are disabled by that configuration. The
+matrix generated 319 corpus decisions and five vocabularies, used isolated
+outputs with two browser workers, verified all 13 shared `web/dist` files
+unchanged, and released its preview port. No provider calls or source changes
+were needed. The initial shared build's command and direct exit code are in
+the reproduction note.
 
 ## Limits and observations
 
