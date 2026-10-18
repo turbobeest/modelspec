@@ -11,9 +11,8 @@ remain unchanged.
 The starting engine commit is `b4a7074f37a3ba940bd86db9d1e2459a25fd40af`,
 which already contains #813. Its parent `7908f238` supplies the code without
 the successor. The private data comparison uses `fd3145c`, the parent of
-data#93, and `74947c3`, its hardware-fit records. Local private `origin/main`
-still points to the merge of data#93, so neither that ref nor the older
-checked-out private HEAD is a substitute for the pre-change baseline.
+data#93, and `74947c3`, its hardware-fit records. Use these exact commits for
+the comparison.
 
 Measure all four combinations with `api/worker/vendor.py` and
 `api/worker/measure_memory.cjs`. Use a synthetic signing key and Node 22.22.3.
@@ -24,12 +23,11 @@ Record each command, direct exit status, runtime version, and byte count.
 Separate diagnostic measurements attribute snapshot parsing, provenance,
 vocabulary, and verification state; they do not replace the acceptance probe.
 
-The private checkout stays read-only. No private input, generated bundle,
-response, or raw log belongs in this public repository. Only aggregate counts
-and measured sizes may enter the evidence. Private temporary files need an
-explicitly authorized location outside the public worktree and are deleted
-after measurement. Until that location is authorized, public development can
-continue but the private target remains unverified.
+The private checkout stays read-only. Private bundles, snapshots, and probe
+outputs stay under the authorized `/tmp/model-407-private` directory and are
+deleted after measurement. No private input, generated bundle, response, or
+raw log belongs in this public repository. Public evidence from private data
+contains only memory numbers and commit SHAs.
 
 ## Fail the pull request before the deployment
 
@@ -38,9 +36,9 @@ frozen public data image with a committed deterministic synthetic fixture that
 adds private-scale catalogue and provenance structure. The fixture contains
 only invented identifiers and public source material. It exercises dated
 current and successor snapshots as well as many-source hardware-fit records.
-Calibration records the measured private dimensions, fixture dimensions, and
-retained-memory comparison. Refreshing calibration means rerunning the private
-matrix, adjusting the public recipe, and recording both results.
+Calibration compares measured retained memory for the private bundle and the
+public fixture. Refreshing calibration means rerunning the private matrix,
+adjusting the public recipe, and recording both memory results.
 
 The same probe runs against the PR and main with the same fixture recipe,
 synthetic key, requests, and runtime. A PR total above 115 MiB fails. An
@@ -58,26 +56,17 @@ for independent review.
 
 ## Initial fixture calibration and refresh
 
-The recipe in `api/worker/memory-fixture.json` adds 15 synthetic lower-bound
-workloads with 54 source IDs each, 267 invented source registrations, and a
-dated price that expires three UTC days after fixture creation. The fixture
-copies every file it modifies; other public data paths are read-only symlinks.
+The recipe in `api/worker/memory-fixture.json` adds synthetic lower-bound
+workloads citing many invented sources and a dated price that expires three
+UTC days after fixture creation. The fixture copies every file it modifies;
+other public data paths are read-only symlinks.
 Its model belongs to the production premier slice. The admission test uses
 that same slice and completeness gate, so a fixture silently filtered out of
 the deployed snapshot cannot pass.
 
-Read-only aggregate counts informed the recipe:
-
-| Data image | Registered sources | URL characters | Cited regions |
-| --- | ---: | ---: | ---: |
-| Frozen public image | 515 | 52,114 | 534 |
-| Private before data#93, `fd3145c` | 691 | 65,205 | 716 |
-| Private data#93, `74947c3` | 782 | 76,363 | 807 |
-| Public plus recipe | 782 | 76,411 | 807 |
-
-The resulting current and successor snapshots each retain all 15 synthetic
-workloads and 68 distinct synthetic source IDs, with 317 total retained
-source IDs. Not every registered source belongs to a retained fact.
+The resulting public current and successor snapshots each retain all 15
+synthetic workloads and 68 distinct synthetic source IDs, with 317 total
+retained source IDs. Not every registered source belongs to a retained fact.
 
 With the same public fixture and Pyodide 0.28.3, the starting `b4a7074f` code
 retained 115.41149 MiB and this implementation retained 104.47210 MiB. The
@@ -89,18 +78,18 @@ Repeating the baseline gate returned 116.47690 MiB with the same 71.875 MiB
 Wasm allocation, showing about 1.07 MiB of V8 measurement variation. The
 candidate's Wasm allocation was 59.875 MiB. The 1 MiB regression warning can
 therefore include runtime noise and should be investigated with repeat runs.
-The private four-cell matrix and final private target still require an
-authorized scratch location outside both checkouts.
+The private four-cell matrix and final private target are pending measurement
+under `/tmp/model-407-private`.
 
 To refresh, measure the four private combinations and the final private build
-with the pinned probe, using only synthetic signing credentials. Record
-aggregate retained source and record counts, table slots, vocabulary sizes,
-and steady memory. Adjust the public recipe to cover those dimensions, then
-build both public comparison bundles with that same recipe. Confirm the
-generated current and successor snapshots retain every synthetic workload,
-and repeat the probe before accepting the calibration. Update this table and
-the evidence together. Keep private rows, URLs, bundles, and raw logs outside
-the public repository.
+with the pinned probe, using only synthetic signing credentials. Keep private
+probe outputs under `/tmp/model-407-private`; copy only memory numbers and
+commit SHAs into public evidence. Adjust the public recipe using the memory
+comparison, then build both public comparison bundles with that same recipe.
+Confirm the generated current and successor snapshots retain every synthetic
+workload, and repeat the probe before accepting the calibration. Update the
+evidence with the memory results. Keep private rows, URLs, bundles, and raw
+logs under the authorized private scratch directory.
 
 ```sh
 python api/worker/memory_fixture.py --out /path/to/public-memory-data

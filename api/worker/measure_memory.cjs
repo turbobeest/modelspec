@@ -14,10 +14,15 @@ function assessMemory(result, { limitMiB = 120, baseline = null } = {}) {
   if (!Number.isFinite(limitMiB) || limitMiB <= 0 || limitMiB > 120) {
     throw new Error('memory limit must be positive and cannot exceed 120 MiB');
   }
+  const period = result.period ?? 'current';
+  if (!['current', 'successor'].includes(period)) throw new Error('invalid memory probe period');
   const warnings = [];
   if (baseline !== null) {
     if (!Number.isFinite(baseline.steady_bytes) || baseline.steady_bytes <= 0) {
       throw new Error('baseline has no valid steady memory count');
+    }
+    if ((baseline.period ?? 'current') !== period) {
+      throw new Error('memory baseline period does not match the probe period');
     }
     if (result.steady_bytes - baseline.steady_bytes > 1048576) {
       warnings.push(`Steady memory increased by more than 1 MiB versus main (${((result.steady_bytes - baseline.steady_bytes) / 1048576).toFixed(2)} MiB)`);
@@ -32,12 +37,14 @@ async function main() {
     'limit-mib': { type: 'string', default: '120' },
     baseline: { type: 'string' }, output: { type: 'string' },
     attribute: { type: 'boolean', default: false },
+    successor: { type: 'boolean', default: false },
     'measure-only': { type: 'boolean', default: false },
   } });
   if (positionals.length !== 1) throw new Error('provide one Worker bundle directory');
   const limitMiB = Number(values['limit-mib']);
+  const period = values.successor ? 'successor' : 'current';
   const baseline = values.baseline ? JSON.parse(fs.readFileSync(values.baseline, 'utf8')) : null;
-  assessMemory({ steady_bytes: 1 }, { limitMiB, baseline });
+  assessMemory({ steady_bytes: 1, period }, { limitMiB, baseline });
   const { loadPyodide } = require('pyodide');
   const bundle = path.resolve(positionals[0]);
   const py = await loadPyodide({ indexURL: path.dirname(require.resolve('pyodide')) + '/', packageBaseUrl: 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/', packageCacheDir: path.join(path.dirname(require.resolve('pyodide')), 'packages') });
@@ -54,6 +61,7 @@ async function main() {
   }
   copy(bundle, '/bundle');
   py.globals.set("verification_key", process.env.MODELSPEC_SNAPSHOT_KEY || "model247-memory-fixture-key");
+  py.globals.set('probe_successor', values.successor);
   if (!global.gc) throw new Error('probe requires --expose-gc');
   // Package/runtime setup precedes the Worker measurement. Release its
   // unreachable V8 temporaries before sampling imports and real requests.
@@ -99,15 +107,35 @@ import bundled_data, entry
 record_stage('after_worker_import')
 worker = entry.Default()
 worker.env = types.SimpleNamespace(MODELSPEC_SNAPSHOT_KEY=verification_key, BUILD_COMMIT='memory-probe')
+if probe_successor:
+    from datetime import UTC, datetime
+    import decision.snapshot as snapshot_runtime
+    probe_boundary = entry._bundled_decision_snapshot.valid_until
+    assert probe_boundary is not None, 'successor probe requires a bounded current snapshot'
+    probe_previous_id = entry._bundled_decision_snapshot.snapshot_id
+    class BoundaryClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            instant = datetime.combine(probe_boundary, datetime.min.time(), tzinfo=UTC)
+            return instant.astimezone(tz) if tz is not None else instant.replace(tzinfo=None)
+    snapshot_runtime.datetime = BoundaryClock
+    entry._decision_holder("https://modelspec.dev")._today = lambda: probe_boundary
 # The real request loads and retains the complete signed corpus, including archive.
 response = await worker.fetch(Request('POST', '/v1/decide', {'spec_version':1, 'snapshot':'latest', 'optimize': {'max':'gpqa_diamond'}, 'limit':1, 'explain':'none'}))
 assert response.status == 200
 held = entry._decision_holder("https://modelspec.dev").snapshot
 assert len(held._corpus_sections) == 2
+if probe_successor:
+    assert held.snapshot_id != probe_previous_id, 'successor probe still serves the current period'
+    assert held.signature_verified
+    assert json.loads(response.body)['snapshot'] == held.snapshot_id
+    assert response.headers['x-modelspec-snapshot'] == held.snapshot_id
 record_peak()
 record_stage('after_decide')
 response = await worker.fetch(Request('GET', '/v1/vocabulary'))
 assert response.status == 200
+if probe_successor:
+    assert json.loads(response.body)['snapshot'] == held.snapshot_id
 record_peak()
 record_stage('after_vocabulary')
 response = await worker.fetch(Request('POST', '/v1/rank', {'use_case': 'coding', 'limit': 100}))
@@ -132,7 +160,7 @@ record_stage('after_policy_check')
   const wasm = py._module.HEAPU8.buffer.byteLength;
   const liveNonWasm = live.heapUsed + Math.max(0, live.external - wasm);
   const steady = wasm + liveNonWasm;
-  const result = { runtime: 'Pyodide 0.28.3', before_bytes: before,
+  const result = { runtime: 'Pyodide 0.28.3', period, before_bytes: before,
     peak_bytes: peak, peak_mib: peak / 1048576,
     wasm_peak_bytes: wasmPeak, wasm_peak_mib: wasmPeak / 1048576,
     steady_bytes: steady, steady_mib: steady / 1048576,
@@ -183,7 +211,7 @@ json.dumps({'snapshots': details, 'vocabulary_bytes': deep_bytes([
   if (values.output) fs.writeFileSync(values.output, JSON.stringify(result) + '\n');
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `${values.output ? path.basename(values.output) : 'Worker'}: ${result.steady_mib.toFixed(2)} MiB steady; limit ${limitMiB} MiB.\n\n`);
+      `${values.output ? path.basename(values.output) : 'Worker'} (${period}): ${result.steady_mib.toFixed(2)} MiB steady; limit ${limitMiB} MiB.\n\n`);
   }
   console.log(JSON.stringify(result));
   if (peak > result.peak_warning_bytes) console.warn('::warning::Memory probe noisy peak exceeds 112 MiB');

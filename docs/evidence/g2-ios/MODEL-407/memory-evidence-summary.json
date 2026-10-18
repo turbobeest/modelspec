@@ -19,18 +19,6 @@
       "url_characters": 52114,
       "cited_regions": 534
     },
-    "private_fd3145c": {
-      "source_count": 691,
-      "url_characters": 65205,
-      "cited_regions": 716
-    },
-    "private_74947c3": {
-      "source_count": 782,
-      "url_characters": 76363,
-      "cited_regions": 807,
-      "hardware_records": 15,
-      "hardware_top_level_source_ids": 83
-    },
     "synthetic_recipe": {
       "source_count_added": 267,
       "url_characters_added": 24297,
@@ -53,7 +41,6 @@
     "bundle": "initial valid public bundle; not final workload calibration"
   },
   "not_observed": [
-    "No private Worker bundle built or measured. Private checkout remained read-only.",
     "No production deployment or paid-provider call."
   ]
 }

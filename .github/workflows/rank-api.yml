@@ -72,12 +72,14 @@ jobs:
           python .memory-main/api/worker/vendor.py --data-dir "$RUNNER_TEMP/memory-main-data" --out "$RUNNER_TEMP/memory-main-bundle"
           cp api/worker/src/*.py "$RUNNER_TEMP/memory-bundle/"
           cp .memory-main/api/worker/src/*.py "$RUNNER_TEMP/memory-main-bundle/"
-      - name: Measure main for the regression warning
+      - name: Measure both main periods for regression warnings
         run: |
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-main-bundle" --measure-only --output "$RUNNER_TEMP/memory-main.json"
-      - name: Require 115 MiB steady memory and warn on growth above 1 MiB
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-main-bundle" --successor --measure-only --output "$RUNNER_TEMP/memory-main-successor.json"
+      - name: Require 115 MiB in both periods and warn on growth above 1 MiB
         run: |
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/memory-main.json" --output "$RUNNER_TEMP/memory-pr.json"
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-bundle" --successor --limit-mib 115 --baseline "$RUNNER_TEMP/memory-main-successor.json" --output "$RUNNER_TEMP/memory-pr-successor.json"
   bundle:
     if: github.event_name != 'schedule' || vars.DATA_SPLIT_ENABLED == 'true'
     name: Rank Worker bundle

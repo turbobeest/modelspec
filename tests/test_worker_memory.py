@@ -62,6 +62,25 @@ assert.throws(() => assessMemory({steady_bytes: 1}, {limitMiB: 121}));
     assert result.returncode == 0, result.stderr
 
 
+def test_memory_gate_compares_only_matching_periods_and_accepts_legacy_current_results():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for the Worker memory probe")
+    program = """
+const assert = require('node:assert/strict');
+const { assessMemory } = require('./api/worker/measure_memory.cjs');
+const current = {steady_bytes: 100, period: 'current'};
+const successor = {steady_bytes: 100, period: 'successor'};
+assert.throws(() => assessMemory(successor, {baseline: current}), /period/);
+assert.throws(() => assessMemory(current, {baseline: successor}), /period/);
+assert.throws(() => assessMemory(successor, {baseline: {steady_bytes: 100}}), /period/);
+assert.equal(assessMemory(current, {baseline: {steady_bytes: 100}}).passed, true);
+assert.equal(assessMemory(successor, {baseline: successor}).passed, true);
+"""
+    result = subprocess.run([node, "-e", program], cwd=ROOT, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+
+
 def test_public_fixture_builds_admitted_synthetic_hardware_records(tmp_path):
     from api.worker.memory_fixture import materialize
     from decision.snapshot import build_from_repo
@@ -94,3 +113,23 @@ def test_public_memory_workflow_gates_and_compares_the_main_bundle():
     assert "memory_fixture.py" in text
     assert "pyodide@0.28.3" in text
     assert "secrets." not in text
+    commands = [line.strip() for step in job["steps"] for line in step.get("run", "").splitlines()
+                if "node --expose-gc" in line]
+    assert len(commands) == 4
+    assert sum("--successor" in command for command in commands) == 2
+    assert all("--measure-only" in command for command in commands[:2])
+    assert all("--limit-mib 115" in command and "--baseline" in command
+               for command in commands[2:])
+    assert "--baseline \"$RUNNER_TEMP/memory-main-successor.json\"" in commands[-1]
+
+
+def test_private_memory_workflow_patch_gates_and_compares_both_periods():
+    patch = (ROOT / "docs/model-407-recall-private.patch").read_text()
+    commands = [line[1:].strip() for line in patch.splitlines()
+                if line.startswith("+") and "node --expose-gc" in line]
+    assert len(commands) == 4
+    assert sum("--successor" in command for command in commands) == 2
+    assert all("--measure-only" in command for command in commands[:2])
+    assert all("--limit-mib 115" in command and "--baseline" in command
+               for command in commands[2:])
+    assert "--baseline \"$RUNNER_TEMP/private-main-successor-memory.json\"" in commands[-1]

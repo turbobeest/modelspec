@@ -7,8 +7,9 @@ Final implementation SHA: `9bdc7ec7a8566bba47e7a5d332fe980a1dae0598`.
 Subsequent commits contain execution evidence only. The final evidence commit
 is the branch HEAD printed in the execution marker.
 
-Acceptance remains blocked on the private measurement scratch-path request.
-The public memory gate passes; it is not a substitute for the private target.
+Private measurement is authorized under `/tmp/model-407-private`. The required
+matrix and final private target remain pending. The public memory gate passes;
+it is not a substitute for the private target.
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
 and warns when retained memory increases by more than 1 MiB against the same
@@ -83,26 +84,24 @@ the limit behavior without relying on that environment failure.
 
 ## Private measurement scope
 
-The private checkout is read-only. Local private `origin/main` still points to
-data#93, so the intended matrix is engine commits `7908f238` and `b4a7074f`
-against private data commits `fd3145c` and `74947c3`. The final target uses
-`74947c3` with this implementation.
+The private checkout is read-only. The matrix uses engine commits `7908f238`
+and `b4a7074f` against private data commits `fd3145c` and `74947c3`. The final
+target uses `74947c3` with this implementation.
 
 | Required private combination | Engine | Data | Local measured result |
 | --- | --- | --- | --- |
-| Base | `7908f238` | `fd3145c` | Not run; scratch path pending |
-| Plus data#93 | `7908f238` | `74947c3` | Not run; scratch path pending |
-| Plus #813 successor | `b4a7074f` | `fd3145c` | Not run; scratch path pending |
-| Both | `b4a7074f` | `74947c3` | Not run; scratch path pending |
-| Final target with lazy successor | `9bdc7ec7` | `74947c3` | Not run; cannot assert at most 115 MiB |
+| Base | `7908f238` | `fd3145c` | Pending measurement |
+| Plus data#93 | `7908f238` | `74947c3` | Pending measurement |
+| Plus #813 successor | `b4a7074f` | `fd3145c` | Pending measurement |
+| Both | `b4a7074f` | `74947c3` | Pending measurement |
+| Final target with lazy successor | `9bdc7ec7` | `74947c3` | Pending measurement; must be at most 115 MiB |
 
-No private inputs or generated private bundles have been copied into this
-public repository. The executor brief restricts writes to spec paths. The
-spec simultaneously requires the private checkout to remain read-only. A
-request to use and then delete `/tmp/modelspec-model-407-private` is pending.
-Until that path is authorized, the private four-cell matrix, measured memory
-calibration, and final private 115 MiB target remain unverified. Aggregate
-read-only source counts can guide a fixture but cannot establish the target.
+Private bundles, snapshots, and probe outputs stay under the authorized
+`/tmp/model-407-private` directory. No private inputs or generated private
+bundles belong in this public repository. Public evidence from private
+measurements contains only memory numbers and commit SHAs. The matrix,
+measured memory calibration, and final private 115 MiB target remain
+unverified until their measurements are recorded above.
 
 `docs/model-407-recall-private.patch` supplies the requested manual private
 workflow change. It is not applied to the private repository. Workflow changes

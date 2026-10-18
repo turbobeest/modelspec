@@ -45,7 +45,7 @@ The initial fixture used an excluded model. Its actual built envelope retained
 zero hardware rows. The corrected fixture uses `google/gemma-4-31b-it`, and its
 admission test now uses the production premier file with `gate=True`.
 
-Private measurements were not run. The original private checkout stayed
-read-only. The registry shape calibration came from aggregate counts obtained
-with `git show` and in-memory YAML parsing. It does not establish a private
-steady-memory result or the spec's four-cell table.
+Private measurements use the authorized `/tmp/model-407-private` directory.
+The final memory-only matrix is recorded in `../MODEL-407-fix.md`. Private
+bundles, validity dates, raw logs, and probe outputs are kept outside this
+repository and deleted after measurement.

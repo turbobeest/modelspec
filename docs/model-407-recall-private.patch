@@ -14,7 +14,7 @@
 +
  permissions:
    contents: read
-@@ -142,3 +148,52 @@
+@@ -142,3 +148,54 @@
              --report-dir "$RUNNER_TEMP/private-recall" \
              --baseline reports/recall/baseline.json \
              --summary "$GITHUB_STEP_SUMMARY" "${args[@]}"
@@ -61,9 +61,11 @@
 +          python engine/api/worker/vendor.py --data-dir data-main --out "$RUNNER_TEMP/private-main-bundle"
 +          cp engine/api/worker/src/*.py "$RUNNER_TEMP/private-bundle/"
 +          cp engine/api/worker/src/*.py "$RUNNER_TEMP/private-main-bundle/"
-+      - name: Measure private main
++      - name: Measure both private main periods
 +        run: |
 +          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-main-bundle" --measure-only --output "$RUNNER_TEMP/private-main-memory.json"
-+      - name: Require 115 MiB and warn on an increase above 1 MiB
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-main-bundle" --successor --measure-only --output "$RUNNER_TEMP/private-main-successor-memory.json"
++      - name: Require 115 MiB in both periods and warn on growth above 1 MiB
 +        run: |
 +          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/private-main-memory.json" --output "$RUNNER_TEMP/private-pr-memory.json"
++          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc engine/api/worker/measure_memory.cjs "$RUNNER_TEMP/private-bundle" --successor --limit-mib 115 --baseline "$RUNNER_TEMP/private-main-successor-memory.json" --output "$RUNNER_TEMP/private-pr-successor-memory.json"
