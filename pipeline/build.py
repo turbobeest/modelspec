@@ -17,6 +17,7 @@ import re
 import shutil
 import sys
 import tempfile
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
@@ -420,8 +421,9 @@ def use_case_image_date(public_root: Path) -> date:
     return date.fromisoformat(str(json.loads(source.read_text(encoding="utf-8"))["as_of"]))
 
 
-def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
-    """Apply public templates through the same parse/decide path as /v1/decide."""
+@contextmanager
+def public_use_case_image(public_root: Path):
+    """Keep template decisions and comparisons on the same public registry and image."""
     from decision.contract import parse_spec
     from decision.engine import decide
     from decision.snapshot import build_from_repo, load_built_snapshot
@@ -442,9 +444,15 @@ def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
                    facets=registry.facet).model_dump(mode="json")
             for template in catalogue["templates"]
         ]
+        yield catalogue, decisions, as_of, snapshot, registry
     finally:
         decision_registry.use_root(saved_root)
-    return catalogue, decisions, as_of
+
+
+def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
+    """Apply public templates through the same parse/decide path as /v1/decide."""
+    with public_use_case_image(public_root) as (catalogue, decisions, as_of, _, _):
+        return catalogue, decisions, as_of
 
 
 def _use_case_path(template: dict) -> str:
@@ -482,12 +490,14 @@ def _use_case_spec(value: object) -> str:
 
 
 def _use_case_shell(title: str, description: str, path: str, body: str,
-                    as_of: date, *, indexable: bool, article: bool) -> str:
+                    as_of: date, *, indexable: bool, article: bool,
+                    collection: str = "use-cases", extra_nodes: list[dict] | None = None) -> str:
     from pipeline import entity, landing_chrome, structured_data
 
     nodes = structured_data.use_case_graph(
-        path, title, description, as_of.isoformat(), article=article,
+        path, title, description, as_of.isoformat(), article=article, collection=collection,
     )
+    nodes.extend(extra_nodes or [])
     robots = "index, follow" if indexable else "noindex, follow"
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -510,13 +520,12 @@ code{{overflow-wrap:anywhere}}.use-case-model{{min-width:180px}}
 {body}
 <p>Human lookup is free on <a href="/decide/">Decide</a>.
 CLI, API, and MCP access requires a key. <a href="/pricing/">Access and pricing</a>.</p>
-<p><a href="/use-cases/">Use-case examples</a> · <a href="/method/">How we decide</a></p>
+<p><a href="/use-cases/">Use-case examples</a> · <a href="/compare/">Model comparisons</a> · <a href="/method/">How we decide</a></p>
 </main>{landing_chrome.footer()}</div></body></html>
 '''
 
 
-def use_case_page(template: dict, decision: dict, as_of: date) -> str:
-    """Render a dated engine response with registry copy and no page-specific claims."""
+def _use_case_template_intro(template: dict) -> str:
     requirements = "".join(
         f'<li><code>{_use_case_value(row["condition"])}</code>: {r.esc(row["reason"])}</li>'
         for row in template["where"]
@@ -525,12 +534,17 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
         f'<li><code>{r.esc(facet)}</code>: {r.esc(row["reason"])}</li>'
         for facet, row in template["weights"].items()
     )
-    body = (f'<p>{r.esc(template["tradeoff"])}</p>'
+    return (f'<p>{r.esc(template["tradeoff"])}</p>'
             f'<h2>Requirements</h2><ul>{requirements}</ul>'
             f'<h2>Preferences</h2><ul>{preferences}</ul>'
             '<details><summary>Applied template spec</summary>'
-            f'{_use_case_spec(template["spec"])}</details>'
-            f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
+            f'{_use_case_spec(template["spec"])}</details>')
+
+
+def use_case_page(template: dict, decision: dict, as_of: date) -> str:
+    """Render a dated engine response with registry copy and no page-specific claims."""
+    body = (_use_case_template_intro(template)
+            + f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
     answer = decision["answer"]
     if not _use_case_indexable(decision):
         body += '<p>No recommendation: the public image has no answer with enough evidence.</p>'
@@ -612,9 +626,9 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
                            body, as_of, indexable=_use_case_indexable(decision), article=True)
 
 
-def write_use_case_pages(tree: Path, public_root: Path) -> dict:
+def write_use_case_pages(tree: Path, public_root: Path, *, examples=None) -> dict:
     """Write every template; only examples with an answer enter the sitemap."""
-    catalogue, decisions, as_of = use_case_decisions(public_root)
+    catalogue, decisions, as_of = examples if examples is not None else use_case_decisions(public_root)
     paths = ["/use-cases/"]
     groups = []
     for kind, label in (("use", "By use"), ("constraint", "By constraint")):
@@ -895,11 +909,21 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
-    use_case_counts = write_use_case_pages(ms, Path(args.root).resolve())
+    from pipeline import comparison_pages
+    public_root = Path(args.root).resolve()
+    with public_use_case_image(public_root) as (templates, decisions, as_of, snapshot, registry):
+        use_case_counts = write_use_case_pages(
+            ms, public_root, examples=(templates, decisions, as_of),
+        )
+        comparison_counts = comparison_pages.write_examples(
+            ms, templates, decisions, as_of, snapshot, registry, public_root=public_root,
+        )
     ms_paths.extend(use_case_counts["sitemap_paths"])
+    ms_paths.extend(comparison_counts["sitemap_paths"])
     method_page = ms / "method/index.html"
     method_page.write_text(method_page.read_text(encoding="utf-8").replace(
-        "</main>", '<p><a href="/use-cases/">Explore dated use-case examples</a></p></main>', 1,
+        "</main>", '<p><a href="/use-cases/">Explore dated use-case examples</a> · '
+        '<a href="/compare/">Compare models for a job</a></p></main>', 1,
     ), encoding="utf-8")
     from pipeline import orchestrators
     ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
@@ -938,7 +962,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today,
                   lastmods={**blog_counts.get("sitemap_dates", {}),
-                            **use_case_counts["sitemap_dates"]}), encoding="utf-8")
+                            **use_case_counts["sitemap_dates"],
+                            **comparison_counts["sitemap_dates"]}), encoding="utf-8")
     from pipeline import blog_indexnow
     blog_indexnow.write_key(ms)
     # robots.txt is written once, by agent_ready.ship below (MODEL-253).
@@ -985,6 +1010,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         "brand": brand_counts,
         "blog": blog_counts,
         "use_cases": use_case_counts,
+        "comparisons": comparison_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0

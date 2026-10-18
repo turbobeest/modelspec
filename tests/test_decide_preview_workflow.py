@@ -64,10 +64,18 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/use-cases/coding/coding-fastest/index.html': (
             b'<meta name="robots" content="noindex, follow">' + readable(b'No recommendation')
         ),
+        'dist/modelspec/compare/index.html': readable(b'comparison index'),
+        'dist/modelspec/compare/coding-best/lab-alpha-vs-lab-beta/index.html': readable(b'comparison'),
+        'dist/modelspec/compare/coding-best/lab-alpha-vs-lab-gamma/index.html': (
+            b'<meta name="robots" content="noindex, follow">' + readable(b'Unlisted comparison')
+        ),
         'dist/modelspec/sitemap.xml': (
             b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
             b'<url><loc>https://modelspec.dev/use-cases/</loc><lastmod>2026-09-23</lastmod></url>'
             b'<url><loc>https://modelspec.dev/use-cases/coding/budget-coding/</loc>'
+            b'<lastmod>2026-09-23</lastmod></url>'
+            b'<url><loc>https://modelspec.dev/compare/</loc><lastmod>2026-09-23</lastmod></url>'
+            b'<url><loc>https://modelspec.dev/compare/coding-best/lab-alpha-vs-lab-beta/</loc>'
             b'<lastmod>2026-09-23</lastmod></url></urlset>'
         ),
         'dist/modelspec/orchestrators/index.html': readable(b'v1 orchestrator recipe'),
@@ -169,6 +177,17 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert use_case_entries == {
         'https://modelspec.dev/use-cases/': '2026-09-23',
         'https://modelspec.dev/use-cases/coding/budget-coding/': '2026-09-23',
+    }
+    for rel in ('compare/index.html', 'compare/coding-best/lab-alpha-vs-lab-beta/index.html',
+                'compare/coding-best/lab-alpha-vs-lab-gamma/index.html'):
+        assert page('modelspec/' + rel) == fixture['dist/modelspec/' + rel], rel
+    comparison_entries = {
+        url: stamp for url, stamp in surface_lint.sitemap_entries(live['modelspec/sitemap.xml'].decode())
+        if url.startswith('https://modelspec.dev/compare/')
+    }
+    assert comparison_entries == {
+        'https://modelspec.dev/compare/': '2026-09-23',
+        'https://modelspec.dev/compare/coding-best/lab-alpha-vs-lab-beta/': '2026-09-23',
     }
 
 
