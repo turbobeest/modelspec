@@ -1,0 +1,17 @@
+CWD: /Users/terbeest/dev/worktrees/model-402/web
+COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node /Users/terbeest/dev/worktrees/model-402/web/node_modules/vitest/vitest.mjs run
+CONTEXT: {"CI": "true", "MODELSPEC_BROWSER_DIST": "/Users/terbeest/dev/worktrees/model-402/tests/.scratch-model402-service/browser-resumed/human-true-visit-false/dist", "MODELSPEC_BROWSER_OUTPUT": "/Users/terbeest/dev/worktrees/model-402/tests/.scratch-model402-service/browser-resumed/human-true-visit-false/test-results", "MODELSPEC_CORPUS_DIR": "/Users/terbeest/dev/worktrees/model-402/tests/.scratch-model402-service/browser-resumed/corpus", "MODELSPEC_CORPUS_REQUIRED": "1", "MODELSPEC_TEST_PYTHON": "/Users/terbeest/dev/modelspec/.venv/bin/python", "VITE_HUMAN_GATE_ENABLED": "true", "VITE_TURNSTILE_SITE_KEY": "public-browser-test-key", "VITE_VISIT_GATE_ENABLED": "false"}
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-402/web
+
+
+ Test Files  53 passed (53)
+      Tests  1242 passed (1242)
+   Start at  20:41:27
+   Duration  22.06s (tests 69%, environment 21%, import 4%, setup 4%, transform 3%)
+
+    Isolate  53 workers spawned · ~388ms startup each (spawn + environment, per file)
+             at least ~4.75s faster with isolate: false — reuses workers across files instead of one per file
+
+
+EXIT_CODE=0

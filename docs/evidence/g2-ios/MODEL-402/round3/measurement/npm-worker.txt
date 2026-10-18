@@ -1,0 +1,9 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm install --prefix /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker --no-save wrangler@4.139.0
+
+added 38 packages in 3s
+
+7 packages are looking for funding
+  run `npm fund` for details
+
+EXIT_CODE=0

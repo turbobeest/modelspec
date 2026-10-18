@@ -1,0 +1,91 @@
+MODEL-402 CI failure evidence
+Tools: gh 2.102.0 (2026-09-30); Python 3.14.4 for local XML extraction.
+PR: https://github.com/turbobeest/modelspec/pull/813
+Run: https://github.com/turbobeest/modelspec/actions/runs/39080582593
+Read-only inspection; no production edits, capture updates or test reruns.
+
+Commands and directly observed exit codes:
+gh run view 39080582593 --job 117536594119 --log-failed
+Exit 1: run 39080582593 is still in progress; logs will be available when it is complete
+gh run view 39080582593 --job 117536594028 --log-failed
+Exit 1: same in-progress-run message
+gh run view --job 117536594119 --log
+Exit 1: same in-progress-run message
+gh run view --job 117536594028 --log
+Exit 1: same in-progress-run message
+gh run view 39080582593 --job 117536594119
+Exit 0: shard 1/4 failed in Run test shard; Process completed with exit code 1.
+gh run view 39080582593 --job 117536594028
+Exit 0: shard 3/4 failed in Run test shard; Process completed with exit code 1.
+gh run view 39080582593 --json status,conclusion,jobs
+Exit 0: run in_progress; shard 2/4 in_progress; shards 1/4 and 3/4 failure; shard 4/4 success.
+gh run download 39080582593 --pattern '*timing*' --dir docs/evidence/g2-ios/MODEL-402/vendor/ci-artifacts
+Exit 1: no artifact matches any of the names or patterns provided
+gh run download 39080582593 --pattern '*' --dir docs/evidence/g2-ios/MODEL-402/vendor/ci-artifacts
+Exit 0: downloaded 7 artifact directories, 7 files: 3 JUnit XML and 4 collection text files.
+
+Job status evidence:
+Shard 1/4 job 117536594119: Run test shard 2026-10-17T23:52:43Z to 2026-10-18T00:21:27Z, ordinary exit 1.
+Shard 3/4 job 117536594028: Run test shard 2026-10-17T23:53:30Z to 2026-10-18T00:22:01Z, ordinary exit 1.
+Both jobs completed dependency/browser setup and uploaded collection/JUnit artifacts after the test failure.
+The completed JUnit reports contain concrete failed assertions/SystemExit failures, not a job timeout.
+
+pytest-shard-0-junit: tests=2647, failures=5, errors=0, skipped=2, time=1723.610
+tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_visit_gate_off.py::test_flag_off_response_equals_main[decide POST]
+  AssertionError: assert {'status': 20...xample/ok'}]}} == {'body': {'co...'status': 200}
+  Actual headers contain x-modelspec-snapshot: snapshot-test; tests/fixtures/visit_gate_off_main.json expected headers omit it.
+
+pytest-shard-2-junit: tests=2173, failures=5, errors=0, skipped=5, time=1711.012
+tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+  assert {'source_hash..., ...}}, ...]} == {'source_hash..., ...}}, ...]}
+  -         'api/worker/openapi.yaml': '0a95c8ebbf3273b1578cfa049e74d306b435aedfcf8768735e87333688d1812b',
+  +         'api/worker/openapi.yaml': '29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05',
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[claude]
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[openai]
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[gemini]
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget
+  SystemExit: 2
+  qa/agent_harness.py:950 parser.error: MCP definitions drifted; run python -m qa.contracts and review the capture
+
+pytest-shard-3-junit: tests=3205, failures=0, errors=0, skipped=11, time=1131.406
+
+Total failed nodeids in the two failed shard artifacts: 10.
+
+Capture comparison and scope:
+Required capture update path, confirmed by the root executor: qa/fixtures/mcp-tools.json.
+That path is outside the spec-allowed api/worker/, decision/, docs/, tests/ paths. No write performed.
+The CI assertion at tests/test_agent_harness.py:104 compares the recorded capture to capture_tools().
+Its complete JUnit assertion diff has exactly two changed lines, the old and new api/worker/openapi.yaml source hash shown above.
+No tool definition or other source hash differs in that full comparison.
+The separate source_hashes() assertion follows the failed equality assertion and was not reached.
+A fresh local capture_tools() comparison was not executed because it would read the out-of-scope QA capture and MCP sources.
+This evidence compares the recorded/current values already emitted by the CI test, without accessing those files.
+
+Artifacts were parsed with Python xml.etree.ElementTree. Counts and failure messages came from the downloaded JUnit XML.
+Downloaded bulk artifacts were removed after extraction. No generated site/card data retained.
+
+Correction after authorized regeneration:
+The assertion diff's minus/plus ordering above is not chronological old/new ordering.
+Git inspection of base a551fe82 and implementation cf7f72ce proves the recorded capture
+originally pinned 29294163e44dd60f3f8d686edc92f0a5e22e191e2f0600dc2e2a6f2e17a6ef05,
+and the updated OpenAPI file hashes 0a95c8ebbf3273b1578cfa049e74d306b435aedfcf8768735e87333688d1812b.
+The authorized generator refresh changes the capture from 29294163 to 0a95c8eb.
+See qa-capture-refresh.txt for exact byte verification and successful QA regression output.

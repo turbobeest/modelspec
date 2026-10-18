@@ -1,0 +1,169 @@
+[
+  {
+    "name": "prepare",
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/Users/terbeest/dev/worktrees/model-402/docs/evidence/g2-ios/MODEL-402/round3/measurement/prepare_bundle.py"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "uv-tool-venv",
+    "command": [
+      "/Users/terbeest/.local/bin/uv",
+      "venv",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/uv-tool",
+      "--python",
+      "3.13"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "uv-tool-install",
+    "command": [
+      "/Users/terbeest/.local/bin/uv",
+      "pip",
+      "install",
+      "--python",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/uv-tool/bin/python",
+      "uv==0.12.19"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "uv-version",
+    "command": [
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/uv-tool/bin/uv",
+      "--version"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "node-version",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--version"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "npm-version",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+      "--version"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "python-version",
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "--version"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "uv-sync",
+    "command": [
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/uv-tool/bin/uv",
+      "sync",
+      "--project",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker",
+      "--frozen",
+      "--python",
+      "3.13"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "npm-worker",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+      "install",
+      "--prefix",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker",
+      "--no-save",
+      "wrangler@4.139.0"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "npm-memory",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+      "install",
+      "--prefix",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/memory",
+      "--no-save",
+      "pyodide@0.28.3"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "pyodide-cache",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "-e",
+      "\nconst path = require('node:path');\nconst { loadPyodide } = require('pyodide');\nconst root = path.dirname(require.resolve('pyodide'));\nloadPyodide({indexURL: root + '/',\n  packageBaseUrl: 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/',\n  packageCacheDir: path.join(root, 'packages')})\n  .then(py => py.loadPackage(['pydantic', 'pyyaml']))\n  .catch(error => { console.error(error.name); process.exitCode = 1; });\n"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "worker-tools",
+    "command": [
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker/.venv/bin/python",
+      "-c",
+      "import sys; from importlib.metadata import version; print(sys.version); print('workers-py', version('workers-py')); print('workers-runtime-sdk', version('workers-runtime-sdk'))"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "worker-dry-run",
+    "command": [
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/uv-tool/bin/uv",
+      "run",
+      "--project",
+      ".",
+      "pywrangler",
+      "deploy",
+      "--dry-run",
+      "--outdir",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/upload"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker",
+    "exit_code": 0
+  },
+  {
+    "name": "bundle-imports",
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/bundle_check.py",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/upload"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  },
+  {
+    "name": "memory",
+    "command": [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/worker/src"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-402",
+    "exit_code": 0
+  }
+]

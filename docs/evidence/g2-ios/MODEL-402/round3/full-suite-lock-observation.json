@@ -1,0 +1,10 @@
+{
+  "first_observed_running_at": "2026-10-18T02:58:57.121617+00:00",
+  "implementation_sha": "7f04d05f78d5c07ff6604f0e2e9fffc7c7652798",
+  "execution_head": "40de41860259c5d57a0ac6012a9812578b236950",
+  "direct_children": [
+    "26858"
+  ],
+  "lock_observation": "COMMAND   PID     USER   FD   TYPE DEVICE SIZE/OFF      NODE NAME\nflock   13818 terbeest    3w   REG   1,13        0 366425175 /private/tmp/modelspec-fullsuite.lock\nPython  26858 terbeest    3w   REG   1,13        0 366425175 /private/tmp/modelspec-fullsuite.lock\nflock   56116 terbeest    4w   REG   1,13        0 366425175 /private/tmp/modelspec-fullsuite.lock\n",
+  "source_diff_exit": 0
+}

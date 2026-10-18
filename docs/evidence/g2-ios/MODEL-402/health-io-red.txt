@@ -1,0 +1,32 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_health_selects_after_metadata_io_crosses_midnight ____________
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-402/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10978de00>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_health_selects_after_metadata_io_crosses_midnight(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC)
+        worker, _, _ = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+
+        async def cross_midnight():
+            await asyncio.sleep(0)
+            utc_clock[0][0] = BOUNDARY
+            return {}
+
+        monkeypatch.setattr(worker, "_determinations_health", cross_midnight)
+        response = request(worker, "/v1/health")
+        successor = load_snapshot_bytes(signed_pair[1], key=KEY, public_keys={})
+        assert response.status == 200
+>       assert response.json()["decision_snapshot"]["id"] == successor.snapshot_id
+E       AssertionError: assert None == 'snap_31c8f35c2efc0746'
+E        +  where 'snap_31c8f35c2efc0746' = <decision.snapshot.LoadedSnapshot object at 0x109461d30>.snapshot_id
+
+tests/test_snapshot_successor.py:234: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_successor.py::test_health_selects_after_metadata_io_crosses_midnight
+1 failed in 0.61s
