@@ -23,6 +23,10 @@ PAID = {"decide": "decide", "compare_models": "decide.full", "hardware_fit": "de
 DATA_TOOLS = (*PAID, "vocab", "model_info", "list_use_cases")
 
 
+def test_all_agent_artifacts_are_current() -> None:
+    assert agent_copy.main(["check"]) == 0
+
+
 def test_the_committed_copy_is_what_the_registry_and_tiers_generate() -> None:
     assert agent_copy.OUT.read_text(encoding="utf-8") == agent_copy.render(agent_copy.copy()), (
         "mcp/src/agent-copy.json is stale or hand-edited: run python -m pipeline.agent_copy write")

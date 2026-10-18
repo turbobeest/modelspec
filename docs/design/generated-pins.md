@@ -52,7 +52,7 @@ base, first and second branches. Each child changed a different neighboring
 digest. `git merge --no-edit first` on second exited 1 with the existing
 adjacent layout and 0 with separate key and digest lines. The merged JSON
 retained both edits. The implementation tests will repeat this with the
-actual generators and all pairs of their pinned sources.
+actual generator output and all pairs of their pinned sources.
 
 CI already runs the capture and CLI freshness tests and the OpenAPI check.
 Keep those gates, exercise the full agent-copy check in pytest, and give
@@ -79,10 +79,12 @@ not part of this solution.
 
 ## Validation and limits
 
-Tests will run both generators twice and compare bytes, mutate independent
-source bytes in temporary repositories, commit two branches, and run real
-three-way Git merges. They will check that the merged artifacts equal
-generation against both source edits. Stale-pin probes will keep the CLI
+Tests will run both generators twice and compare bytes and serialization.
+For every pair of pinned sources, they will mutate source bytes in a
+temporary repository, serialize the updated digests through the production
+formatter, commit two branches, and run a real three-way Git merge. They
+will check both merged digests against the merged sources and check that
+the payload is unchanged. Stale-pin probes will keep the CLI
 check, MCP capture assertion, package hook and OpenAPI check effective.
 Run the focused suites, installed-package smoke test, and the full suite
 under `/tmp/modelspec-fullsuite.lock` after `npm ci` in `web`.
