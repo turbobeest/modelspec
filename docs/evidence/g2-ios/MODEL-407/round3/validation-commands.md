@@ -31,6 +31,21 @@ vendor builds to remove their temporary repository overlays before running
 unscoped collection. The public reproduction recipe uses a hidden temporary
 directory to prevent discovery of those transient links.
 
+The full suite completed at branch HEAD
+`00a03dbbd837615d90cefee7d32d47e64c266da1`: 11,654 passed, 9 skipped and
+11 warnings in 1,306.36 seconds, direct exit 0. Final checks below also exited 0;
+the chart check had nothing to check. The source comparison checks runtime
+directories; the nested-object test correction is in `8a0009d4`.
+
+```sh
+"$MODEL407_PYTHON" -m ruff check decision/json_stream.py tests/test_snapshot_streaming.py
+"$MODEL407_PYTHON" scripts/data_freeze_guard.py \
+  --base 34c6dbef --head HEAD --branch model-407-worker-memory
+"$MODEL407_PYTHON" scripts/chart_check_pr.py --base 34c6dbef
+git diff --exit-code f6dbbcd8 HEAD -- api decision pipeline schema registry hardware mcp web
+git diff --check
+```
+
 The private run used the ordinary vendor path, with all generated files,
 bundles, logs, and probe outputs under the authorized scratch directory:
 
@@ -50,10 +65,25 @@ export NODE_PATH="$PWD/tmp/model-407/memory_probe/runtime/node_modules"
 ```
 
 After the build, tracked top-level `api/worker/src/*.py` modules were copied
-into that bundle by the same `git ls-files` loop in
-[the public recipe](memory-commands.md). No generated source was patched.
-The exact native CI requests and the already committed warm hook ran as
-follows, each with its direct process status checked:
+into that bundle, matching the CI path and [public recipe](memory-commands.md):
+
+```sh
+"$MODEL407_PYTHON" - <<'PY' > /tmp/model-407-private/copy.log 2>&1
+from pathlib import Path
+import shutil
+import subprocess
+
+bundle = Path("/tmp/model-407-private/bundle-round3-final")
+for name in subprocess.check_output(
+        ["git", "ls-files", "--", "api/worker/src"], text=True).splitlines():
+    source = Path(name)
+    if source.parent == Path("api/worker/src") and source.suffix == ".py":
+        shutil.copyfile(source, bundle / source.name)
+PY
+```
+
+No generated source was patched. The exact native CI requests and the already
+committed warm hook ran as follows, each with its direct process status checked:
 
 ```sh
 node --expose-gc api/worker/measure_memory.cjs \

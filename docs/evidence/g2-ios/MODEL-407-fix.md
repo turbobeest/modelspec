@@ -13,8 +13,9 @@ The private acceptance target passes for `f6dbbcd8` with data `74947c3`:
 **104.57322 MiB** with the successor loaded and **103.69368 MiB** after warm
 rollover. The unchanged 100 ms load gate measures **13.30 ms** locally, best
 of five with GC disabled. The 648 focused tests, both serial performance
-tests and non-performance collection pass. The Round 3 full suite is queued
-under the shared lock. CI `pytest perf and collection` passes at `8a0009d4`;
+tests and non-performance collection pass. The Round 3 full suite passed
+under the shared lock: **11,654 passed, 9 skipped, 11 warnings**, direct exit 0.
+CI `pytest perf and collection` passes at `8a0009d4`;
 the separate Decision accuracy check also passes (1,301 deterministic tests).
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
@@ -67,9 +68,15 @@ collection **11,661 of 11,663 tests collected, 2 deselected**, all direct exit 0
 The first collection attempt overlapped a temporary public vendor overlay
 and encountered duplicate plugin registrations. After that build exited and
 removed its overlay, the exact collection command passed. No collection
-configuration or test limit was changed. CI `pytest perf and collection`
-passes at `8a0009d4` (run `39114952450`, job `117638819060`). The locked
-full-suite result remains pending. [Decision accuracy also passes](MODEL-407/round3/ci-accuracy-final.txt)
+configuration or test limit was changed. [CI `pytest perf and collection`](MODEL-407/round3/ci-perf-final.txt)
+passes at `8a0009d4` (run `39114952450`, job `117638819060`): **2 passed,
+11,788 deselected in 100.54 seconds** on CPython 3.11.17, followed by successful
+collection. All four CI pytest shards also pass. The locked local full suite
+passed with **11,654 passed, 9 skipped, 11 warnings in 1,306.36 seconds
+(21 minutes 46 seconds)**, direct exit 0. The [complete terminal output](MODEL-407/round3/full-suite-final.txt)
+records branch HEAD `00a03dbbd837615d90cefee7d32d47e64c266da1`; its runtime
+source is identical to measured `f6dbbcd8`, and its tests match the green CI
+head `8a0009d4`. Subsequent changes record evidence only. [Decision accuracy also passes](MODEL-407/round3/ci-accuracy-final.txt)
 at that PR head (run `39114952430`, job `117638749339`): 1,301 deterministic
 tests, 678 parity tests with one skip, and 227 web-adapter tests. The successful
 CI output confirms the unchanged assertion without printing its five samples.
@@ -83,7 +90,10 @@ The [timing/profile recipe and samples](MODEL-407/round3/profiling.md),
 and [Round 3 validation commands](MODEL-407/round3/validation-commands.md)
 make these measurements reproducible. The differential reader check passed
 16,040 acceptance/value/exact-hash comparisons plus the key-sharing and
-GC-disabled lifetime cases.
+GC-disabled lifetime cases. Final ruff, data-freeze and chart checks pass;
+the chart check has nothing to check. Source equality with the measured
+implementation and the empty private scratch directory were verified again.
+The full-suite process has exited.
 
 ## Red-first defects and corrections
 
@@ -246,7 +256,8 @@ undetermined examples. Full-catalogue verdict counts and provenance still
 include off-page rows. Tests cover beyond-end offsets and dates present only
 on a final off-page row. Independent local review checked policy response ordering, pagination,
 provenance, and parser framing/signature behavior without a blocking finding.
-This was self-review; the required cross-model review is pending.
+Those were local executor checks. REV-820 subsequently reviewed Round 2 and
+identified the load-time blocker above. Cross-model review of Round 3 remains pending.
 
 Red/green output is retained in [streaming notes](MODEL-407/streaming-notes.md),
 [streaming red](MODEL-407/streaming-red.txt),
@@ -277,6 +288,10 @@ The data-freeze guard and chart check were rerun against `34c6dbef`, both
 with direct exit 0; the chart check had nothing to check.
 
 ## Integration commands and limits
+
+The integration commands and results in this section were completed in the
+earlier rounds. Round 3 commands and results are linked above; its required
+full-suite rerun uses the same locked command shown below.
 
 Commands run from `/Users/terbeest/dev/worktrees/model-407`, unless noted.
 Node commands use `/Users/terbeest/.nvm/versions/node/v22.22.3/bin` on `PATH`.
@@ -337,7 +352,7 @@ source remains identical to the measured `bb41f0f6` implementation. The
 [final terminal output](MODEL-407/full-suite-final.txt) is retained. That
 verification process exited before the Round 3 changes.
 
-No production deployment, vendor API spending, live billing transaction,
-private-workflow execution, or cross-model review has been observed in this
-session. Local tests exercise synthetic billing and signature inputs. Public
+The executor performed no production deployment, vendor API spending, live
+billing transaction, or private-workflow execution. Round 3 cross-model review
+remains pending. Local tests exercise synthetic billing and signature inputs. Public
 CI status and the final memory figures are not inferred from these tests.
