@@ -1,18 +1,20 @@
 # MODEL-219 executor evidence
 
-Status: READY for Grok review. Live composition is implemented after the
-orchestrator granted the scope exception. Draft PR #811 remains draft.
-Static and live builds, web tests, focused checks, and the complete pytest
-suite under the shared lock pass.
+Status: READY for review of the round 3 presentation follow-up. Focused
+checks, both static builds, the live build, web tests, artifact comparisons,
+and the new complete pytest run under the shared lock pass. PR #811 remains draft.
 
 Base SHA: `688f1072142a6824930dd1f17473d4d0050625cc`.
-Final implementation SHA: `9c866949300933f6238b2cc0ca7026e44c0f9666`.
+Final implementation SHA: `19a157633d53afba2d826c80ba9b61d1d2fc6937`.
 The following evidence-only commit is the final PR HEAD. Its exact SHA is
 recorded in the executor completion line and PR body after
 commit, avoiding a self-referential commit hash inside this file.
 
 The first commit is the required design document, `63647dba`. The draft PR
 was opened from that commit before implementation.
+
+Earlier sections retain the original slice's evidence. The round 3 section
+below records the final presentation behavior and newest validation results.
 
 ## Red first and green results
 
@@ -263,6 +265,165 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q test
 The focused follow-up returned exit 0, `6 passed, 1 skipped in 103.67s`.
 This test-only correction was made while the complete suite continued
 uninterrupted; the focused command above exercises the final assertion.
+
+## Round 3: human rendering after REV-811
+
+Round 3 base: `5290708b1ffeb757e02cacc0cfb37e0196f40d68`.
+Grok's REV-811 verdict approved that head with no blocking findings.
+This follow-up changes only human rendering, its tests, and documentation.
+Missing cells say "Unavailable"; missing tie-breaker lines are omitted without
+inventing a reason. Boolean values and requirements read "Yes" or "No".
+The expandable applied spec uses labeled fields and lists without JSON quoting.
+Every empty band loses its table and heading, while nonempty bands retain
+their members. Numeric values still use the original JSON numeric serialization,
+without rounding. Engine responses, JSON-LD, indexability, and sitemap logic
+are unchanged.
+
+### Red first
+
+The first combined red run exposed the rendering failures and a missing
+`facets` argument in the new test setup. That setup was corrected before
+counting the standalone assertion below as a rendering failure.
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py::test_use_case_values_are_readable_without_changing_engine_precision tests/test_pipeline.py::test_use_case_tie_is_not_a_cost_recommendation tests/test_pipeline.py::test_use_case_page_preserves_engine_values_and_registry_copy tests/test_site_merge.py::test_built_use_case_pages_have_no_visible_json_literals
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py::test_use_case_values_are_readable_without_changing_engine_precision
+```
+
+| Defect | Red assertion from unchanged rendering |
+| --- | --- |
+| Raw values in built pages | `test_built_use_case_pages_have_no_visible_json_literals` found standalone `null` in pages including `assistant-balanced`. |
+| Boolean expressions, missing cells, and quoted spec | `test_use_case_values_are_readable_without_changing_engine_precision` failed on visible `false`, exit 1, `1 failed in 0.63s`. |
+| Missing tie-breakers | `test_use_case_tie_is_not_a_cost_recommendation[False]` found `Fastest tie-breaker: null`. The populated case already passed and remains covered. |
+| Missing cells | `test_use_case_page_preserves_engine_values_and_registry_copy` expected `Unavailable` but found the old missing-value rendering. Numeric and registry assertions stayed intact. |
+
+After the value fix, these commands checked rendering and reproduced the band defect:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py -k 'use_case_page_preserves or use_case_tie or use_case_values'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --tb=short --show-capture=no tests/test_pipeline.py::test_use_case_without_answer_is_noindex_and_absent_from_sitemap tests/test_site_merge.py::test_built_use_case_pages_have_no_visible_json_literals tests/test_site_merge.py::test_built_use_case_pages_have_no_empty_band_tables
+```
+
+The first returned exit 0, `4 passed, 58 deselected in 0.67s`.
+The second demonstrated the separate band defect, exit 1,
+`2 failed, 2 passed in 158.54s`. The all-page literal scan now passed, while
+the fully undetermined example still contained `<h3>Best band</h3>` and
+`<tbody></tbody>`. The new all-page empty-table test also failed.
+Only then was the empty-band guard added.
+
+### Green checks and actual builds
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py tests/test_site_merge.py tests/test_live_use_cases.py tests/test_surface_lint.py tests/test_structured_data.py tests/test_sitemap.py tests/test_decide_preview_workflow.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py -k 'use_case_page_preserves or use_case_tie or use_case_values or use_case_without_answer'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+(cd web && npm ci && npm run build && npm test)
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out .scratch/model-219-round3/root/rebuild
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out .scratch/model-219-round3/root/live
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree .scratch/model-219-round3/root/live/modelspec
+```
+
+All returned exit 0. Focused suites: `189 passed in 252.51s`.
+The final targeted renderer checks: `6 passed, 56 deselected in 1.37s`.
+They preserve the exact `0.12345678912345678` probe and interval endpoints,
+assert the response is unmodified, cover all available tie-breakers, and retain
+the noindex and thin-evidence assertions while checking absent band headings.
+The build-level tests scan every use-case page, including the index and noindex
+examples, for standalone `null`, `true`, or `false`, and empty band tables.
+
+Web build and tests: `843 passed`, `52 passed | 1 skipped` files.
+Live composition: `modelspec: 2706 files; discovery links resolve`.
+Live-tree lint: `0 findings; 109 files checked`.
+Tool versions and the Node PATH are unchanged from the commands section above.
+
+The explicit source/rebuild/live artifact comparison ran this command and
+returned exit 0:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-219-round3/root/verify_artifacts.py
+```
+
+The comparator was:
+
+```python
+from pathlib import Path
+import hashlib
+import re
+import xml.etree.ElementTree as ET
+
+from decision.templates import load_templates
+from pipeline import build, live, surface_lint
+
+source = Path('dist/modelspec')
+repeat = Path('.scratch/model-219-round3/root/rebuild/modelspec')
+published = Path('.scratch/model-219-round3/root/live/modelspec')
+pages = sorted((source / 'use-cases').rglob('*.html'))
+assert len(pages) == len(load_templates()) + 1
+digest = hashlib.sha256()
+noindex = set()
+tables = 0
+for path in pages:
+    rel = path.relative_to(source)
+    raw = path.read_bytes()
+    assert raw == (repeat / rel).read_bytes() == (published / rel).read_bytes(), rel
+    page = surface_lint.Page(raw.decode())
+    assert not re.search(r'\b(?:null|true|false)\b', page.visible, re.I), rel
+    assert not re.search(r'"(?:spec_version|where|optimize|weights|task_tokens)"\s*:', page.visible), rel
+    assert 'Human lookup is free' in page.visible, rel
+    assert 'CLI, API, and MCP access requires a key' in page.visible, rel
+    for table in re.findall(r'<table\b[^>]*>.*?</table>', raw.decode(), re.S):
+        assert ET.fromstring(table).findall('./tbody/tr'), rel
+        tables += 1
+    if 'noindex' in page.meta['robots']:
+        noindex.add('https://modelspec.dev/' + path.parent.relative_to(source).as_posix() + '/')
+    digest.update(rel.as_posix().encode())
+    digest.update(raw)
+assert (source / 'sitemap.xml').read_bytes() == (repeat / 'sitemap.xml').read_bytes()
+prefix = 'https://modelspec.dev/use-cases/'
+maps = [{url: date for url, date in surface_lint.sitemap_entries((tree / 'sitemap.xml').read_text())
+         if url.startswith(prefix)} for tree in (source, repeat, published)]
+assert maps[0] == maps[1] == maps[2]
+assert maps[0].keys().isdisjoint(noindex)
+assert set(maps[0].values()) == {build.use_case_image_date(Path.cwd()).isoformat()}
+assert not live.dead_links(published)
+print(f'{len(pages)} byte-identical source/rebuild/live pages; {tables} nonempty band tables; no visible JSON literals or quoted spec keys')
+print(f'{len(maps[0])} source-listed sitemap entries; {len(noindex)} noindex pages excluded; lastmod {next(iter(maps[0].values()))}; no dead links')
+print(f'Use-case sha256 {digest.hexdigest()}')
+```
+
+```text
+41 byte-identical source/rebuild/live pages; 51 nonempty band tables; no visible JSON literals or quoted spec keys
+19 source-listed sitemap entries; 22 noindex pages excluded; lastmod 2026-09-23; no dead links
+Use-case sha256 bd376b7012a71bf02f488409f3507c6051bb2fbce063c00ff4417d34fc7937b8
+```
+
+The two complete source sitemaps were also byte-identical. Every page retains
+the free human lookup and keyed CLI/API/MCP lines. No pinned CLI agent bundle
+or OpenAPI hashes require regeneration. `git diff --check` and the protected-file
+diff command above pass. Four predicted pytest shard durations remain balanced
+at about 3570 seconds each, with 70 files per shard.
+
+```bash
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+The new full run waited behind other reviews, acquired the shared lock,
+and completed without interruption. Its captured exit code was 0:
+
+```text
+11395 passed, 9 skipped, 11 warnings in 1430.05s (0:23:50)
+```
+
+The duration excludes time queued for the lock. The warnings are the same
+unsigned-vocabulary warnings in the CLI snapshot and keyed-origin tests.
+The renderer code and tests were unchanged during this complete run.
+The tracked-source guard also passed after the new evidence was written:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source
+```
+
+The final rerun returned exit 0, `1 passed in 4.56s`.
 
 ## What was not observed
 
