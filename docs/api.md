@@ -320,7 +320,7 @@ A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 
 ## MCP
 
-Read-only MCP: `https://api.modelspec.dev/mcp`. Claude Code:
+MCP accepts Bearer or `x-api-key`. [Details](../mcp/README.md).
 
 ```json
 {
@@ -333,18 +333,5 @@ Read-only MCP: `https://api.modelspec.dev/mcp`. Claude Code:
   }
 }
 ```
-
-MCP data tools require a ModelSpec key. Send either
-`Authorization: Bearer <key>` or `x-api-key: <key>`. If both headers are
-present, their keys must agree; conflicting credentials return HTTP 400 with
-a JSON-RPC error. Missing credentials return a 401 refusal, including when
-`MCP_REQUIRE_API_KEY=false`. The `x-api-key` alias is MCP-only; direct `/v1/*`
-API calls still accept only Bearer authentication.
-
-`initialize`, `tools/list` and the
-[server card](https://api.modelspec.dev/.well-known/mcp/server-card.json)
-are public. The card publishes the same server name and deployed commit as
-`initialize`, and the same tool definitions as `tools/list`. See the
-[MCP README](../mcp/README.md) for Smithery publishing and client configuration.
 
 [Claude Code plugin](claude-plugin.md).

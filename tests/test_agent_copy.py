@@ -53,7 +53,7 @@ def test_the_cli_bundle_guide_version_matches_the_worker() -> None:
 
 
 def test_every_mcp_tool_description_and_the_instructions_come_from_the_copy() -> None:
-    registered = re.findall(r'\bregisterTool\(\s*"(\w+)",\s*\{\s*description:\s*([^\n]+)', SERVER)
+    registered = re.findall(r'server\.registerTool\(\s*"(\w+)",\s*\{\s*description:\s*([^\n]+)', SERVER)
     assert sorted(name for name, _ in registered) == sorted(agent_ready.MCP_TOOLS)
     for name, expression in registered:
         assert expression.strip() == f"agentCopy.tools.{name},", (name, expression)

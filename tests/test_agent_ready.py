@@ -460,6 +460,6 @@ def test_published_auth_copy_requires_keys_for_machine_data(document: str) -> No
 
 def test_documented_mcp_tools_match_registered_tools() -> None:
     source = (ROOT / "mcp/src/server.ts").read_text()
-    registered = re.findall(r'\bregisterTool\(\s*"([^"]+)"', source)
+    registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
     assert set(ar.MCP_TOOLS) == set(registered)
     assert len(ar.MCP_TOOLS) == len(registered) == 9

@@ -779,21 +779,23 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
   }
 
   const serverInfo = { name: "modelspec", version: env.BUILD_COMMIT };
-  const server = new McpServer(
+  const mcpServer = new McpServer(
     serverInfo,
     { instructions: agentCopy.instructions },
   );
   const tools: Array<{ name: string; description: string; inputSchema: StandardSchemaWithJSON }> = [];
-  function registerTool<Input extends StandardSchemaWithJSON>(
-    name: string,
-    config: { description: string; inputSchema: Input },
-    callback: ToolCallback<Input>,
-  ) {
-    server.registerTool(name, config, callback);
-    tools.push({ name, ...config });
-  }
+  const server = {
+    registerTool<Input extends StandardSchemaWithJSON>(
+      name: string,
+      config: { description: string; inputSchema: Input },
+      callback: ToolCallback<Input>,
+    ) {
+      mcpServer.registerTool(name, config, callback);
+      tools.push({ name, ...config });
+    },
+  };
 
-  registerTool(
+  server.registerTool(
     "rank",
     {
       description: agentCopy.tools.rank,
@@ -805,7 +807,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "model_info",
     {
       description: agentCopy.tools.model_info,
@@ -835,7 +837,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "list_use_cases",
     {
       description: agentCopy.tools.list_use_cases,
@@ -849,7 +851,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "policy_check",
     {
       description: agentCopy.tools.policy_check,
@@ -861,7 +863,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "decide",
     {
       description: agentCopy.tools.decide,
@@ -872,7 +874,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       const envelope = fitDecideEnvelope(await fetchDecision(origin, defaultDecideRequest(spec)));
       const result = asToolResult(envelope);
       if (result.isError) return result;
-      const protocolVersion = server.server.getNegotiatedProtocolVersion()
+      const protocolVersion = mcpServer.server.getNegotiatedProtocolVersion()
         ?? mcpCtx.requestInfo?.headers.get("mcp-protocol-version")
         ?? DEFAULT_NEGOTIATED_PROTOCOL_VERSION;
       return {
@@ -885,7 +887,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "compare_models",
     {
       description: agentCopy.tools.compare_models,
@@ -897,7 +899,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "hardware_fit",
     {
       description: agentCopy.tools.hardware_fit,
@@ -909,7 +911,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "vocab",
     {
       description: agentCopy.tools.vocab,
@@ -953,7 +955,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  registerTool(
+  server.registerTool(
     "feedback",
     {
       description: agentCopy.tools.feedback,
@@ -977,7 +979,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
   );
 
-  return { server, serverInfo, tools };
+  return { server: mcpServer, serverInfo, tools };
 }
 
 export function serverCard(env: Env) {
