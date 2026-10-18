@@ -98,3 +98,50 @@ modelspec: 2670 files; discovery links resolve
 docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
 thin_pages: []
 Composed agents.md and openapi.yaml exactly match final source bytes.
+
+--- First full Python suite under shared lock; direct exit code 1 ---
+=================================== FAILURES ===================================
+_____________ test_flag_off_agent_copy_matches_reviewed_catalogue ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+    def test_flag_off_agent_copy_matches_reviewed_catalogue():
+        copy = agent_copy.copy()
+        # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
+>       assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
+E       AssertionError: assert '36064102d8fc...2067189d0803e' == 'faa19be299fb...faa2f6f3841b7'
+E
+E         - faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7
+E         + 36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e
+
+tests/test_decision_link.py:88: AssertionError
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+capsys = <_pytest.capture.CaptureFixture object at 0x11d72aed0>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+        assert main(["--first-turn-breakdown"]) == 0
+        report = json.loads(capsys.readouterr().out)
+        assert set(report) == {"claude", "openai", "gemini"}
+>       assert all(row["total"] <= 9_500 for row in report.values()), report
+E       AssertionError: {'claude': {'method': 'ceil(characters / 4)', 'components': {'system_prompt': 10, 'harness_scaffolding': 11, 'guide': ...ystem_prompt': 10, 'harness_scaffolding': 11, 'guide': 2128, 'full_spec': 0, ...}, 'total': 9540, 'wire_bytes': 38168}}
+E       assert False
+E        +  where False = all(<generator object test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget.<locals>.<genexpr> at 0x120c6ee90>)
+
+tests/test_agent_guide.py:78: AssertionError
+FAILED tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+2 failed, 11492 passed, 9 skipped, 11 warnings in 1292.15s (0:21:32)
+The catalogue expected digest was corrected during the run after its worker had loaded the old test. The second failure requires shorter generated guide text; the 9,500-token budget remains unchanged.
+
+--- Final site build after startup-budget correction (5fb92b25) ---
+Pipeline build exit code: 0. Composition exit code: 0. Surface lint exit code: 0. Thin-page/published-byte inspection exit code: 0.
+ "commit": "5fb92b253863",
+ "modelspec_urls": 2622,
+  "markdown_pages": 2605,
+modelspec: 2670 files; discovery links resolve
+docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
+thin_pages: []. Both decide routes exist. Published agents.md and openapi.yaml equal final source bytes.
+Data freeze: exit 0, data freeze: ok. Protected ranking/contract/legal/Worker-config paths have no diff from base.

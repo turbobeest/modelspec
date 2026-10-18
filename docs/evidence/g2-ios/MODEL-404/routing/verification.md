@@ -67,4 +67,35 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openap
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_api_docs.py
 ```
 
-The upstream agent-copy check passed, so those generated files needed no further write. The regeneration changed exactly the guide version in OpenAPI's `info.description`, its `AgentGuideVersion` header constant, and the QA capture's OpenAPI hash. A parsed-YAML comparison proved that no other semantic value changed. The final OpenAPI check passed after every generation step (`openapi-final-green.txt`). API documentation tests passed: 56 passed, 2 skipped (`api-docs-final-green.txt`). All CLI and QA source hashes match current files, and guide versions agree across the generator, MCP, CLI and Worker. Final file hashes are recorded in `final-pins.txt`; the shared guide version is `1-c87335a7b267ef2f`.
+The upstream agent-copy check passed, so those generated files needed no further write at that stage. The regeneration changed exactly the guide version in OpenAPI's `info.description`, its `AgentGuideVersion` header constant, and the QA capture's OpenAPI hash. A parsed-YAML comparison proved that no other semantic value changed. The OpenAPI check passed after every generation step (`openapi-final-green.txt`). API documentation tests passed: 56 passed, 2 skipped (`api-docs-final-green.txt`). All CLI and QA source hashes matched, and guide versions agreed across the generator, MCP, CLI and Worker. The guide version at that stage was `1-c87335a7b267ef2f`; the budget correction below supersedes it.
+
+The CI pytest shard subsequently reported `test_flag_off_agent_copy_matches_reviewed_catalogue` with the old catalogue hash. A focused local run reproduced that failure before changing the test (`catalogue-pin-red.txt`). Review against the base commit confirmed the MCP copy changed only its guide version, guide Markdown and instructions: they add the required detailed-board link. CLI text changes only `human_message` from `/decide/` to `/decide/details/`. These are the MODEL-404 link changes, with no decision-link behavior change (`catalogue-pin-review.txt`).
+
+The test retains three hardcoded SHA-256 assertions. They now pin MCP copy `36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e`, guide Markdown `7a15fbc29407078d53594b0755852b3f4c341ad83f7b68582c92b4b72075821a`, and sorted CLI text `625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86`. The disabled decision-link response-byte assertions remain unchanged.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_link.py tests/test_agent_copy.py
+```
+
+The complete focused suites passed: 63 tests in `catalogue-pin-green.txt`. No runtime source changed for this correction.
+
+The first complete Python run also exposed the MCP first-turn budget regression. The focused `test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget` reproduced it before copy changes (`budget-red.txt`). The original breakdown was Claude 9368, OpenAI 9461, Gemini 9540 estimated tokens, exceeding the existing 9500 limit for Gemini (`budget-breakdown-red.json`).
+
+The detailed-board link had been added both to the guide/context guide and to initialization instructions. The correction keeps one concise `Full board: https://modelspec.dev/decide/details/.` in the guide/context guide and removes the duplicate sentence from initialization instructions. Removing duplication alone still exceeded the budget, so the guide's transport paragraph now states the same requirements in fewer words: POST the Spec JSON, retain Content-Type, real User-Agent and Bearer Authorization headers, pass the Spec as MCP arguments with connection Authorization, and add no `spec` or `task` wrapper. No conduct rule, tool schema, access requirement or numeric budget changed. The route test checks the MCP context guide's link instead of requiring that link twice.
+
+Artifacts were regenerated in dependency order, followed by literal-pin review and checks:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.agent_harness --first-turn-breakdown
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_guide.py tests/test_agent_copy.py tests/test_decision_link.py tests/test_api_docs.py tests/test_simple_decide_routes.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.agent_harness --first-turn-breakdown
+```
+
+The final focused run passed: 146 passed, 2 opt-in live probes skipped (`budget-green.txt`). Both generator checks passed. Final first-turn totals are Claude 9327, OpenAI 9420 and Gemini 9499 (`budget-breakdown-green.json`); no provider was called. The final guide version is `1-f226d9942791da1c`. The fixed catalogue hashes now pin MCP copy `ba2e9673bb58c5d6310a0ad9d2078ed54d5189a5eee2789cee98cea30b980030`, guide Markdown `6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37`, and unchanged CLI text `625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86`. `final-pins.txt` contains all six final generated-file hashes. QA and CLI source hashes match, and parsed OpenAPI differs only in its two guide-version values.

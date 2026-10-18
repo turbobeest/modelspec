@@ -5,7 +5,7 @@ Draft PR: https://github.com/turbobeest/modelspec/pull/814. Work remained in
 
 - Base SHA: `72cd65f81aeae93add87b9a52157ae8cbce698a3`.
 - Design-only first commit: `eeaf493e` (`docs/design/simple-decide-page.md`).
-- Final implementation and test SHA: `36a1dda13c6c8091dedd2fa13f067c363388976e`.
+- Final implementation and test SHA: `5fb92b253863f436523016a2febfccded418f2a8`.
   Later commits contain execution evidence only. The final PR verification
   comment records the publication SHA including that evidence.
 
@@ -45,7 +45,7 @@ build trees and generated corpus responses remain local and ignored.
 | Simple page absent | `simple-decide.test.tsx` initially could not import `../simple/model`; this was a collection failure, not an assertion pass. Browser `opens with a labelled example and an alphabetical tie with equal emphasis` failed the missing labelled example. The first full simple browser run had six behavior failures. | 12 simple unit tests pass; simple browser cases pass in every gate combination. |
 | New route and generated surfaces absent | `tests/test_simple_decide_routes.py`: five failures and one pass for missing detailed route/sitemap and old metadata/links/template destination. | All route tests pass, including composed output and deterministic source lastmod. |
 | Normalized answer never displayed | `loads the labelled example and renders a picked job after request normalization`: could not find the six-way verdict; one failed, eight passed. | Loaded example and changed job both render. |
-| Unsupported selected limits silently dropped | `refuses unsupported selected limits and a self-host question without its required gates`: expected null, received a broadened question. | Unsupported conditions stop selection; two additional rendered recovery tests preserve other limits, route and workload after explicit removal. |
+| Unsupported selected limits silently dropped | `refuses unsupported selected limits and a self-host question without its required gates`: expected null, received a broadened question. | Unsupported conditions stop selection; a rendered recovery test verifies that explicit removal preserves other limits, route and workload. A separate metadata-mutation test checks date, template count and task size. |
 | Blend emphasis did not follow changed shares | `describes a changed blend without inventing a winner or workload mix`: expected greater conversational-evidence emphasis; received only the dimensions. | Share mutations change the plain-language emphasis. |
 | Truncated rows falsely described as own hardware | `uses retained best-band routes and objective evidence when result rows are truncated`: expected `via Anthropic`, received own-hardware text and unknown cost. | Retained band routes supply provider/cost; genuinely absent route data says unknown. |
 | Same-job pick left focus on the page body | The normalized-example test expected the verdict heading to have focus after clicking Everyday help; body retained focus. | Both same-job and changed-job picks focus the verdict. |
@@ -56,6 +56,8 @@ build trees and generated corpus responses remain local and ignored.
 | An unmeasurable route had no recovery action | Two `offers an explicit all-routes recovery for %s without changing the question` cases reproduced real-engine `no_feasible` shapes for chat apps and own hardware; both lacked `Try all routes`. | The explicit action changes only access. Complete request comparison verifies preservation of job, priority, limits, weights and workload; no automatic broadening occurs. |
 | Mobile home target was too short | Expanded `the example fits 390 by 844 with readable contrast, full ties and 44px controls in both themes`: home link measured 28 px, expected at least 44. | A 44 px minimum home-link height passes the target checks while retaining the complete example inside 390 by 844. |
 | OpenAPI retained the previous generated guide version | Local `api/worker/openapi.py --check` and CI Rank Worker bundle both exited 1 after agent-copy generation. | OpenAPI and its QA hash were regenerated after the guide. Final check and 56 API-doc tests pass; parsed YAML comparison confirms only the two guide-version values changed. |
+| Reviewed-catalogue test retained old agent-copy digests | CI shard 4 and the focused `test_flag_off_agent_copy_matches_reviewed_catalogue` run failed on the old MCP-copy SHA-256. Content review identified only the approved board-link and guide-version changes across MCP copy, guide Markdown and CLI text. | Three literal expected digests were updated in that test; response-byte assertions remain unchanged. `test_decision_link.py` and `test_agent_copy.py`: 63 passed. |
+| Added board-link copy exceeded agent startup budget | Full Python and focused `test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget` failed: Gemini startup used 9,540 estimated tokens against the unchanged 9,500 limit. | The shared guide retains the board URL; duplicate MCP initialization wording was removed and transport wording shortened without changing request requirements. Generated totals are Claude 9,327, OpenAI 9,420 and Gemini 9,499. The five focused suites pass: 146 passed, 2 opt-in live probes skipped. |
 
 The gate/browser matrix also checks state handoff, both legacy redirect forms,
 separate EU/training constraints, route selection, response-derived numeric
@@ -84,6 +86,10 @@ TypeScript 5.9.3, Vitest 5.0.1, Playwright 1.63.0, Vite 8.0.3, Git 2.50.1.
 Node commands use `/Users/terbeest/.nvm/versions/node/v22.22.3/bin` at the front
 of `PATH`; Python uses `/Users/terbeest/dev/modelspec/.venv/bin/python`.
 Exit codes were read directly from each process, never through a pipe.
+The final web/browser runs used runtime SHA `36a1dda13c6c8091dedd2fa13f067c363388976e`.
+Subsequent source changes only refreshed agent-copy expectations and shortened
+the generated guide to meet its existing startup budget. The final Python run
+and site composition use `5fb92b253863f436523016a2febfccded418f2a8`.
 
 | Check | Result |
 | --- | --- |
@@ -100,9 +106,9 @@ Exit codes were read directly from each process, never through a pipe.
 | Real live composition | Exit 0: 2670 files; discovery links resolve. |
 | Surface lint on composed site | Exit 0: zero findings across 70 files. |
 | Thin-page inspection | `pipeline.live.thin_pages(...)` returned `[]`; composition also verified discovery links. |
-| Full Python suite under shared lock | Pending: queued behind other tickets; result will be recorded before completion. |
+| Full Python suite under shared lock | First run: exit 1, 11,492 passed, 9 skipped, 2 failed in 1292.15 seconds. Failures were the stale catalogue pin and agent startup copy exceeding the existing 9,500-token budget. A corrected full run is queued under the same lock; its result will be recorded before completion. |
 | Data freeze guard | Exit 0: `data freeze: ok`. |
-| OpenAPI check and regenerated source hashes | Final exit 0 after guide-version regeneration; 56 API-doc tests passed, 2 live probes skipped. |
+| Agent-copy/OpenAPI checks and regenerated source hashes | Final exit 0 after ordered regeneration. The final five focused suites, including API docs, pass: 146 passed, 2 live probes skipped. |
 | `git diff --check` | Exit 0. |
 
 Root commands (run from this worktree unless a directory change is shown):
@@ -133,12 +139,22 @@ Regenerated required pins: `docs/agents.md`, `mcp/src/agent-copy.json`,
 `cli/modelspec/agent-bundle.json`, `api/worker/src/agent_guide.py`,
 `api/worker/openapi.yaml`, and `qa/fixtures/mcp-tools.json`. CLI source hashes match current source files and
 QA capture hashes match `qa.contracts.source_hashes()`. Guide version:
-`1-c87335a7b267ef2f`. OpenAPI changes only the guide version in its description
+`1-f226d9942791da1c`. OpenAPI changes only the guide version in its description
 and header constant. Request and feedback schemas are unchanged. Generation order
 is agent copy, then OpenAPI, then QA capture, followed by checks after all writes.
 The initial OpenAPI pass preceded guide generation and was superseded by this
 final verification. Exact final hashes are in
 [final-pins.txt](MODEL-404/routing/final-pins.txt).
+The three literal reviewed-catalogue digests in `tests/test_decision_link.py`
+were also refreshed after comparing the generated content with the base commit;
+[catalogue-pin-review.txt](MODEL-404/routing/catalogue-pin-review.txt) records
+that comparison, with linked red and green output in the routing evidence.
+The subsequent startup-budget fix regenerated the same six files and refreshed
+the MCP/guide expected digests again; the CLI-text expected digest did not change.
+The final hashes are in `final-pins.txt`. The MCP route test checks the URL in
+`context_guide`, where agents receive the shared guide; it does not require a
+duplicate in initialization instructions. The existing 9,500-token test is
+unchanged. The routing evidence records this final correction and measurements.
 
 ## Screenshots and limits of observation
 
