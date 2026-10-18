@@ -1,5 +1,0 @@
-CWD: /Users/terbeest/dev/worktrees/model-402
-COMMAND: /Users/terbeest/dev/modelspec/.venv/bin/python /Users/terbeest/dev/worktrees/model-402/api/worker/bundle_check.py /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/upload
-bundle import graph complete: 76 local modules reachable from entry.py
-
-EXIT_CODE=0
