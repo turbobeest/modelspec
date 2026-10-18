@@ -127,7 +127,7 @@ def comparison_page(template: dict, decision: dict, comparison: dict, as_of: dat
         )
         offering = " / ".join(str(entry["offering"].get(key) or "Unavailable")
                               for key in ("provider", "region", "tier"))
-        rows.append(f'<tr class="comparison-model"><td><code>{r.esc(model)}</code></td>'
+        rows.append(f'<tr class="comparison-model"><td class="use-case-model"><code>{r.esc(model)}</code></td>'
                     f'{values}<td>{r.esc(offering)}</td><td><ul>{estimates}</ul></td></tr>')
     body += ('<div class="use-case-table"><table><thead><tr><th>Model</th><th>Score</th>'
              '<th>Score interval</th><th>P(best), ranked job lineup</th><th>Cost per task, USD</th>'
