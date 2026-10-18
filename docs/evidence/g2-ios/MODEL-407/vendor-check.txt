@@ -1,0 +1,2 @@
+vendored 123 files into tmp/model-407/root/import-bundle
+bundle imports cleanly with only declared dependencies

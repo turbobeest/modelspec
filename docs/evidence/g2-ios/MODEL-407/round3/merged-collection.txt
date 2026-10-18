@@ -1,0 +1,19 @@
+MODEL-407 merged-source non-performance collection check
+
+Source commit: e7f422751aa49dcb8461863fd7f5cd7983208e82
+Worktree: /Users/terbeest/dev/worktrees/model-407
+Interpreter: Python 3.14.4
+Execution: local, after the serial performance check
+
+Exact command:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --collect-only -q -m 'not perf'
+
+Combined stdout/stderr, including every collected node ID:
+tmp/model-407/round3/perf-merged/merged-collection-raw.txt
+Direct process exit status: 0
+
+Observed final output:
+11851/11854 tests collected (3 deselected) in 34.37s
+
+This command collects tests; it does not execute them. HEAD was checked
+again after both commands and remained the source commit recorded above.

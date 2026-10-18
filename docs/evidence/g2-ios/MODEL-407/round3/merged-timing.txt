@@ -1,0 +1,2 @@
+{"variant": "baseline", "samples_ms": [84.33074993081391, 85.34954092465341, 82.54524995572865, 83.20320793427527, 83.80933303851634], "best_ms": 82.54524995572865, "passes_unchanged_100ms_gate": true, "index_bytes": 4517095, "snapshot_id": "snap_cbe0b1853f4c8052"}
+{"variant": "candidate", "samples_ms": [14.526000013574958, 15.524332993663847, 15.696083079092205, 15.088999993167818, 15.826665912754834], "best_ms": 14.526000013574958, "passes_unchanged_100ms_gate": true, "index_bytes": 4517095, "snapshot_id": "snap_cbe0b1853f4c8052"}

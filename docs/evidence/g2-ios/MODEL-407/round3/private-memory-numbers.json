@@ -1,0 +1,35 @@
+[
+  {
+    "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
+    "data": "74947c3",
+    "period": "current",
+    "exit_code": 0,
+    "steady_bytes": 109652912,
+    "steady_mib": 104.57316589355469,
+    "wasm_bytes": 62783488,
+    "peak_bytes": 113005552,
+    "peak_mib": 107.77049255371094
+  },
+  {
+    "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
+    "data": "74947c3",
+    "period": "successor",
+    "exit_code": 0,
+    "steady_bytes": 109652968,
+    "steady_mib": 104.5732192993164,
+    "wasm_bytes": 62783488,
+    "peak_bytes": 113003528,
+    "peak_mib": 107.76856231689453
+  },
+  {
+    "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
+    "data": "74947c3",
+    "period": "warm",
+    "exit_code": 0,
+    "steady_bytes": 108730708,
+    "steady_mib": 103.69368362426758,
+    "wasm_bytes": 62783488,
+    "peak_bytes": 110450165,
+    "peak_mib": 105.33348560333252
+  }
+]

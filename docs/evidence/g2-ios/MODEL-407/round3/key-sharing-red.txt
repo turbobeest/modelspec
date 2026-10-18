@@ -1,0 +1,70 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_________ test_streamed_arrays_share_keys_with_surrounding_objects[7] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a67bce0>
+chunk_size = 7
+
+    @pytest.mark.parametrize("chunk_size", [7, 64, 65536])
+    def test_streamed_arrays_share_keys_with_surrounding_objects(monkeypatch, chunk_size):
+        from decision import json_stream
+
+        monkeypatch.setattr(json_stream, "_CHUNK_SIZE", chunk_size)
+        value = {"shared_field": 0, "first": [{"shared_field": 1}],
+                 "second": [{"shared_field": 2}]}
+        loaded = json_stream.load_json(io.StringIO(json.dumps(value)))
+        assert loaded == value
+        key = next(iter(loaded))
+>       assert next(iter(loaded["first"][0])) is key
+E       AssertionError: assert 'shared_field' is 'shared_field'
+E        +  where 'shared_field' = next(<dict_keyiterator object at 0x10a82dd00>)
+E        +    where <dict_keyiterator object at 0x10a82dd00> = iter({'shared_field': 1})
+
+tests/test_snapshot_streaming.py:66: AssertionError
+_________ test_streamed_arrays_share_keys_with_surrounding_objects[64] _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a67be10>
+chunk_size = 64
+
+    @pytest.mark.parametrize("chunk_size", [7, 64, 65536])
+    def test_streamed_arrays_share_keys_with_surrounding_objects(monkeypatch, chunk_size):
+        from decision import json_stream
+
+        monkeypatch.setattr(json_stream, "_CHUNK_SIZE", chunk_size)
+        value = {"shared_field": 0, "first": [{"shared_field": 1}],
+                 "second": [{"shared_field": 2}]}
+        loaded = json_stream.load_json(io.StringIO(json.dumps(value)))
+        assert loaded == value
+        key = next(iter(loaded))
+>       assert next(iter(loaded["first"][0])) is key
+E       AssertionError: assert 'shared_field' is 'shared_field'
+E        +  where 'shared_field' = next(<dict_keyiterator object at 0x10a82f290>)
+E        +    where <dict_keyiterator object at 0x10a82f290> = iter({'shared_field': 1})
+
+tests/test_snapshot_streaming.py:66: AssertionError
+_______ test_streamed_arrays_share_keys_with_surrounding_objects[65536] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a895010>
+chunk_size = 65536
+
+    @pytest.mark.parametrize("chunk_size", [7, 64, 65536])
+    def test_streamed_arrays_share_keys_with_surrounding_objects(monkeypatch, chunk_size):
+        from decision import json_stream
+
+        monkeypatch.setattr(json_stream, "_CHUNK_SIZE", chunk_size)
+        value = {"shared_field": 0, "first": [{"shared_field": 1}],
+                 "second": [{"shared_field": 2}]}
+        loaded = json_stream.load_json(io.StringIO(json.dumps(value)))
+        assert loaded == value
+        key = next(iter(loaded))
+>       assert next(iter(loaded["first"][0])) is key
+E       AssertionError: assert 'shared_field' is 'shared_field'
+E        +  where 'shared_field' = next(<dict_keyiterator object at 0x10a82f790>)
+E        +    where <dict_keyiterator object at 0x10a82f790> = iter({'shared_field': 1})
+
+tests/test_snapshot_streaming.py:66: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_streaming.py::test_streamed_arrays_share_keys_with_surrounding_objects[7]
+FAILED tests/test_snapshot_streaming.py::test_streamed_arrays_share_keys_with_surrounding_objects[64]
+FAILED tests/test_snapshot_streaming.py::test_streamed_arrays_share_keys_with_surrounding_objects[65536]
+3 failed, 38 deselected in 0.05s

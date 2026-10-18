@@ -90,6 +90,23 @@ def test_bundled_rank_is_prepared_before_first_request(entry, monkeypatch):  # n
     assert 'isolate;desc="warm"' in warm.headers["Server-Timing"]
 
 
+@pytest.mark.parametrize("ensure_ascii", [False, True])
+def test_bundled_rank_preserves_large_unicode_guidance(entry, monkeypatch, ensure_ascii):  # noqa: F811
+    export = _guided_export()
+    guidance = 'Explain "why", then café 雪 🚀. ' * 10000
+    export["authoring_guides"]["acme/guided"]["sections"]["prompt_shape"][0]["text"] = guidance
+    raw = json.dumps(export, ensure_ascii=ensure_ascii, indent=2).encode("utf-8")
+    module, _ = _import_bundle(entry, monkeypatch, {entry.CANDIDATES_PATH: raw})
+    assert module._cache["candidates"] == export
+
+    worker = module.Default()
+    worker.env = _entry_env(X402_ENABLED="false")
+    response = asyncio.run(worker.fetch(_Req("/v1/rank", {"use_case": "coding", "limit": 1})))
+    assert response.status == 200
+    assert response.json()["result"][0]["model_id"] == "acme/guided"
+    assert response.json()["authoring_guide"]["guide"] == export["authoring_guides"]["acme/guided"]
+
+
 @pytest.mark.parametrize("path,raw,error", [
     ("/api/decision/vocabulary.json", b"\xff", UnicodeDecodeError),
     ("/api/decision/vocabulary.json", b"{bad", json.JSONDecodeError),

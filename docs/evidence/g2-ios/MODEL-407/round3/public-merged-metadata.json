@@ -1,0 +1,219 @@
+{
+  "head": "e7f422751aa49dcb8461863fd7f5cd7983208e82",
+  "generated_source_patches": false,
+  "source_sha256": {
+    "decision/snapshot.py": "50a76a2584b9a25f38367ab090785e428c611492a7581e601752ece6523de4f0",
+    "decision/json_stream.py": "64f5a32e1268daad6d1bd5b99870ed9ff4686bfa2e969bb96b268dd825c522b8",
+    "decision/model_comparison.py": "c46d1b25f45be89836610f38da57fc23ccf628961c1bbe1c59d886f9ff471830",
+    "api/worker/vendor.py": "5b09df29c8b04edf4c2cc75cec3779b88cbeb51b371afa6d028fdf0b27509251",
+    "api/worker/memory_fixture.py": "6c68847a8862c733dc0a176e9f5d8c935821ebeacd5b69f16b0f567cdda5d68d",
+    "api/worker/memory-fixture.json": "72c408ea8308f5b2379fb9988a14fc8355361d9d178b3d0340624ca4ae38b963",
+    "api/worker/measure_memory.cjs": "1a282440fa87d6b0e1b56a72a58fac7927a170c845d765e4b11d4af29943c5db",
+    "api/worker/src/access.py": "3467f00cb23d5f0bf7ba4699c1ee1291137f148dee5309efb70c06ce0f2a75c2",
+    "api/worker/src/access_billing.py": "6a28869d9a1c1e9c3e14d5a14eabf5b73cbeeece1ce4471afc120ac4ddeebca2",
+    "api/worker/src/access_config.py": "1849fc3488be22c7218b940ee3f7adc6f082058a984f6e0dbc15c77aa80665fb",
+    "api/worker/src/access_keys.py": "18f6e82580218cc92535aa8684f7b6e5667e17137354b522051ba1f20662a5ed",
+    "api/worker/src/access_kv.py": "46f1f96b5fd0eb0dd8bfe801c072c57e6ecfdfd1ab8ad1a242367293c5b205e2",
+    "api/worker/src/access_limits.py": "2536cf6c105eb2d9f99684264104f3adb7974dd71b9f56573fc1d46fe067b187",
+    "api/worker/src/access_sandbox.py": "0ad0ade4e9dc30c7282aea6bc4e791cd8387f4b4e4f1cca809ae19a1d4276100",
+    "api/worker/src/agent_guide.py": "c9290aee042c3b42320cba791dc94622e6c2974a74a923473a0a480dd63b4ba3",
+    "api/worker/src/billing.py": "4e896e953198ef30f81c134da73718899ce292426b3f76d3f14815c43154b45c",
+    "api/worker/src/billing_page.py": "65bc2539ec9fb0f4d16b0693eeb78ce144e52187d8d8e02f406dfa738f8549ad",
+    "api/worker/src/billing_reversals.py": "c5ce57a9249c8a36dbd1dd4b5f5aa2224a1d2e39863d97eb38a29a4c410361a4",
+    "api/worker/src/billing_stripe.py": "08cee3942b6c01f10c2c13a7741c208887d3dc087efda705b61cdbdad7989cce",
+    "api/worker/src/cdp_auth.py": "9c2e39a4fb510e7b3851b7bd4226211df1ff8eabd29122fa481aad4a7c736c33",
+    "api/worker/src/credits.py": "eaa0a4aaca6c41b9d5589e0768c2d1901afe30e3a184c747b428955620ecab37",
+    "api/worker/src/credits_do.py": "274b0320861c08872bbe1ee6b1d293f0789f94ecf0d3d25ce61002d9d950123d",
+    "api/worker/src/decide_service.py": "f2d63dfd9d7340171290e1bf0406a0cda234884a7228c5ee7087556997fcf2c8",
+    "api/worker/src/decision_link.py": "8d340632cd2b04c91b4eee0be24f33e24c43362c47e0fe71806d8237b77ee4c8",
+    "api/worker/src/display_vocabulary.py": "2550fb9fcd0e18fb5989d74dc74dab569737a755bbe6c4fb134f0244aadde9b0",
+    "api/worker/src/entry.py": "eadbdd13f957c188b89cb7b2623196b40cc82bcfde10a4411b9dc85a2d7a511c",
+    "api/worker/src/feedback_service.py": "ef6a6747493c90ed800b6db8f876b2749e22964e121baac0ead63f1b2207fa2b",
+    "api/worker/src/human_gate.py": "c546c2d3828bb39ac33ed9b6f21a121106dfb15a9f2edea57569df697478a61e",
+    "api/worker/src/human_gate_do.py": "e8950064445ae7f19f7afa62792169451f95dbf2efbf1812676ec452dbf806f6",
+    "api/worker/src/human_question.py": "29e6c5135a1d9e0e49ec61ff8ea7942e6f924aee78add0031bee477b9ac90dc8",
+    "api/worker/src/kv_value.py": "ce4824b255a631dd6a62a0b36e3dc461e66857e53c712dd4d37ff3d6617538a9",
+    "api/worker/src/policy_service.py": "0f9b67d7f5e45cdab33c24bea04f7f90454dbea1e9671ba7973159fb8ab31c12",
+    "api/worker/src/rank_service.py": "ed072598a28db5fe1831f4808a0ad42c58c6cbda7bf82a915e4aa903195977e2",
+    "api/worker/src/sale_alerts.py": "fad8f74a81ca59561a2dcc2d4f192251113b331dace492d73b384d8883a73377",
+    "api/worker/src/signals_service.py": "0f59c8895c4b787664edf54df6a36b1930a4d05d0f27399b009f65783e0bc103",
+    "api/worker/src/visit_token.py": "9e4ef81b1888acc23961c95cdddd1b43b365013d87be2a1a400686ed8ed530b6",
+    "api/worker/src/visitor.py": "80695de5403241286291e8ce55e36c32dc909dc4922d3729db6b0f2f00dee54b",
+    "api/worker/src/x402.py": "855b361fd30907c032f7e364752c4fe01e821f56af81af4570d2bbe8df111a26",
+    "api/worker/src/x402_facilitator.py": "cbc257b91c3b50a11e8438bc8cec2bc1746989aafc92f3f44c8bde2fbe562f0f"
+  },
+  "runtime": {
+    "node": "v22.22.3",
+    "pyodide": "0.28.3"
+  },
+  "environment": {
+    "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-407",
+    "TZ": "UTC",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/.tmp",
+    "NODE_PATH": "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/memory_probe/runtime/node_modules",
+    "MODELSPEC_REQUIRE_DATA_DIR": "1",
+    "MODELSPEC_SNAPSHOT_KEY": "model247-ci-fixture-key"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "api/worker/memory_fixture.py",
+        "--out",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/public-data"
+      ],
+      "extra_environment": {}
+    },
+    {
+      "argv": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "api/worker/vendor.py",
+        "--data-dir",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/public-data",
+        "--out",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/bundle"
+      ],
+      "extra_environment": {}
+    },
+    {
+      "argv": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--expose-gc",
+        "api/worker/measure_memory.cjs",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/bundle",
+        "--limit-mib",
+        "115",
+        "--attribute",
+        "--output",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/public-merged-current.json"
+      ],
+      "extra_environment": {}
+    },
+    {
+      "argv": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--expose-gc",
+        "api/worker/measure_memory.cjs",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/bundle",
+        "--successor",
+        "--limit-mib",
+        "115",
+        "--attribute",
+        "--output",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/public-merged-successor.json"
+      ],
+      "extra_environment": {}
+    },
+    {
+      "argv": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--expose-gc",
+        "--require",
+        "./docs/evidence/g2-ios/MODEL-407/rollover-probe-hook.cjs",
+        "api/worker/measure_memory.cjs",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/bundle",
+        "--limit-mib",
+        "115",
+        "--attribute",
+        "--output",
+        "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory-merged/public-merged-warm.json"
+      ],
+      "extra_environment": {
+        "MODEL407_MEMORY_MODE": "warm"
+      }
+    }
+  ],
+  "materialize": {
+    "exit": 0,
+    "seconds": 0.478
+  },
+  "build": {
+    "exit": 0,
+    "seconds": 197.491
+  },
+  "copied_worker_modules": [
+    "api/worker/src/access.py",
+    "api/worker/src/access_billing.py",
+    "api/worker/src/access_config.py",
+    "api/worker/src/access_keys.py",
+    "api/worker/src/access_kv.py",
+    "api/worker/src/access_limits.py",
+    "api/worker/src/access_sandbox.py",
+    "api/worker/src/agent_guide.py",
+    "api/worker/src/billing.py",
+    "api/worker/src/billing_page.py",
+    "api/worker/src/billing_reversals.py",
+    "api/worker/src/billing_stripe.py",
+    "api/worker/src/cdp_auth.py",
+    "api/worker/src/credits.py",
+    "api/worker/src/credits_do.py",
+    "api/worker/src/decide_service.py",
+    "api/worker/src/decision_link.py",
+    "api/worker/src/display_vocabulary.py",
+    "api/worker/src/entry.py",
+    "api/worker/src/feedback_service.py",
+    "api/worker/src/human_gate.py",
+    "api/worker/src/human_gate_do.py",
+    "api/worker/src/human_question.py",
+    "api/worker/src/kv_value.py",
+    "api/worker/src/policy_service.py",
+    "api/worker/src/rank_service.py",
+    "api/worker/src/sale_alerts.py",
+    "api/worker/src/signals_service.py",
+    "api/worker/src/visit_token.py",
+    "api/worker/src/visitor.py",
+    "api/worker/src/x402.py",
+    "api/worker/src/x402_facilitator.py"
+  ],
+  "temporary_directory_empty_after_build": true,
+  "bundle_sha256": "0a42980787a31a2c81b427581fac17014558d41f6bf8c5995c1aa0ca1a75847c",
+  "snapshots": [
+    {
+      "path": "/api/decision/snapshot.json.gz",
+      "snapshot_id": "snap_4a7d44f0961cb6a6",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740101,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": null,
+      "valid_until": "2026-10-21"
+    },
+    {
+      "path": "/api/decision/snapshot-successor.json.gz",
+      "snapshot_id": "snap_0f8efcaccaa46937",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740100,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": "2026-10-21",
+      "valid_until": null
+    }
+  ],
+  "probes": [
+    {
+      "exit": 0,
+      "seconds": 2.982,
+      "mode": "current",
+      "steady_mib": 104.49016857147217,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 104.94226360321045
+    },
+    {
+      "exit": 0,
+      "seconds": 3.1,
+      "mode": "successor",
+      "steady_mib": 104.48998546600342,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 107.50239086151123
+    },
+    {
+      "exit": 0,
+      "seconds": 3.06,
+      "mode": "warm",
+      "steady_mib": 104.53363037109375,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 107.6032943725586
+    }
+  ]
+}
