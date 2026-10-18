@@ -64,10 +64,6 @@ class SnapshotRefusalError(ValueError):
     """The published snapshot cannot be trusted and must not answer a request."""
 
 
-class SnapshotValidityError(SnapshotRefusalError):
-    """No held price period covers the current UTC date."""
-
-
 class SnapshotMissingError(RuntimeError):
     """The static site has not published a decision snapshot yet."""
 
@@ -147,11 +143,9 @@ class SnapshotHolder:
                  forced_interval: float = FORCED_REVALIDATE_SECONDS,
                  sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
                  today: Callable[[], date] | None = None,
-                 bundled_snapshot=None, bundled_successor=None):
+                 bundled_snapshot=None):
         self._fetch = fetch
         self._bundled_snapshot = bundled_snapshot
-        self._bundled_successor = bundled_successor
-        self._bundle_verified = False
         self._clock = clock
         self._today = today or (lambda: datetime.now(UTC).date())
         self._sleep = sleep
@@ -175,25 +169,6 @@ class SnapshotHolder:
             headers[STALE_HEADER] = self._stale
         return headers
 
-    def health(self) -> dict[str, Any]:
-        """Public metadata after ``current()`` has selected and authenticated."""
-        snapshot = self.snapshot
-        if snapshot is not None:
-            try:
-                self._current_snapshot(snapshot)
-            except SnapshotValidityError:
-                snapshot = None
-        successor = self._bundled_successor if self._bundle_verified else None
-        return {
-            "id": snapshot.snapshot_id if snapshot is not None else None,
-            "valid_until": (snapshot.valid_until.isoformat()
-                            if snapshot is not None and snapshot.valid_until is not None else None),
-            "successor_held": successor is not None,
-            "successor_valid_from": (successor.valid_from.isoformat()
-                                     if successor is not None and successor.valid_from is not None
-                                     else None),
-        }
-
     def _due(self, force: bool) -> bool:
         if self._checked_at is None:
             return True
@@ -207,43 +182,27 @@ class SnapshotHolder:
         try:
             snapshot.require_current(self._today())
         except SnapshotError as exc:
-            raise SnapshotValidityError(str(exc)) from None
+            raise SnapshotRefusalError(str(exc)) from None
         return snapshot
 
     async def current(self, key: bytes | str | None, *, force: bool = False,
                       timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
         if self._bundled_snapshot is not None:
-            bundled = (self._bundled_snapshot, self._bundled_successor)
-            if not self._bundle_verified:
+            if self._held is None:
                 if key is None or key == "" or key == b"":
                     raise SnapshotRefusalError(
                         "the decision snapshot verification key is not configured")
+                snapshot = self._bundled_snapshot
                 try:
-                    for snapshot in bundled:
-                        if snapshot is not None:
-                            verify_hmac_signature(snapshot.content_hash, snapshot.publisher_signature,
-                                                  key, source="bundled decision snapshot")
+                    verify_hmac_signature(snapshot.content_hash, snapshot.publisher_signature,
+                                          key, source="bundled decision snapshot")
                 except SnapshotIntegrityError as exc:
                     raise SnapshotRefusalError(str(exc)) from None
-                for snapshot in bundled:
-                    if snapshot is not None:
-                        snapshot.signature_verified = True
-                        snapshot.signature_status = "verified (hmac-sha256)"
-                self._bundle_verified = True
-            today = self._today()
-            for snapshot in bundled:
-                if snapshot is None:
-                    continue
-                try:
-                    snapshot.require_current(today)
-                except SnapshotError as exc:
-                    unavailable = str(exc)
-                else:
-                    self._held = _Held(snapshot, None, "")
-                    return snapshot
-            self._held = None
-            raise SnapshotValidityError(unavailable)
+                snapshot.signature_verified = True
+                snapshot.signature_status = "verified (hmac-sha256)"
+                self._held = _Held(snapshot, None, "")
+            return self._current_snapshot(self._held.snapshot)
         load = self._load
         if self._live(load):
             if self._held is not None and not force:

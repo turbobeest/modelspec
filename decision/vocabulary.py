@@ -441,13 +441,12 @@ def _unknown_reason(may_qualify: Iterable[Any], registry: Any) -> str:
 
 def _template_rows(snapshot: Any, registry: Any, templates: list[dict[str, Any]],
                    ) -> list[dict[str, Any]]:
-    """Templates plus answerability at the snapshot's build date."""
+    """Templates plus answerability proven by the real decision engine."""
     rows = []
     for template in templates:
         spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
         trace = []
-        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append,
-                          _validate_current=False)
+        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append)
         # A starting point must rank something: a decision whose candidates all
         # only may qualify has no answer to show (MODEL-204).
         available = bool(decision.results)
