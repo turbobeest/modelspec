@@ -114,13 +114,42 @@ CopyStore validates bytes against that reference. All four mutations now
 report drift, and the actual retained Business copy still verifies. The
 reviewer independently reran both checks and found no remaining blocker.
 
+The renderer probe ran from `web/` against a local blank page, made no network
+request, and exited 0. This is its complete Node command:
+
+```sh
+/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node <<'JS'
+const {chromium}=require('playwright');
+(async()=>{
+  const browser=await chromium.launch({headless:true});
+  try {
+    const page=await browser.newPage();
+    const results=await page.evaluate(()=>{
+      return ['M3 8H13','M３ 8H13','Ｍ3 8H13'].map(d=>{
+        const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d',d);
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.appendChild(path);document.body.appendChild(svg);
+        try {return {d,length:path.getTotalLength()};}
+        catch(error) {return {d,error:String(error)};}
+      });
+    });
+    console.log(JSON.stringify({browser:browser.version(),results},null,2));
+  } finally {await browser.close();}
+})();
+JS
+```
+
 The web dependency install, web build, static-site build, and all 843 web
 tests passed, exit 0. `site-build.txt.gz` retains the static-site output, including
-existing frozen-data source-registration warnings.
-`web-build.txt` and `web-tests.txt` retain build/test output. The full engine
-suite uses the required shared lock and four workers. It was still waiting
-for the lock when the final raw-byte binding was committed, so its Python
-process sees the final implementation.
+frozen-data source-registration warnings.
+`web-build.txt` and `web-tests.txt.gz` retain build/test output. The full engine
+suite ran under the required shared lock with four workers and passed:
+11,583 passed, 9 skipped, 11 warnings in 1,318.98 seconds (21:58), direct
+exit 0. `full-suite.txt.gz` retains the complete output. The run acquired the
+lock after the final raw-byte binding was committed and tested that final
+implementation. Compressed logs preserve the original bytes, including
+trailing blank lines in the web test output.
 
 The private normal snapshot shrank from 2,862,805 to 2,861,413 JSON bytes and
 from 361,532 to 361,442 gzip bytes. The actual snapshot build asserts all eight
@@ -168,4 +197,8 @@ reader behavior only. No mapping from the new subscription names to legacy
 plans, current legacy-plan allowance, or API permission was established.
 No live Worker memory measurement or production deployment occurred. No paid
 provider call, Firecrawl credit, Linear write, workflow dispatch or merge was
-performed. The draft data pin depends on the engine commit reaching main.
+performed. The draft data pin depends on the engine commit reaching main. The first
+private CI run, [39108614971](https://github.com/turbobeest/modelspec-data/actions/runs/39108614971),
+stopped at that exact check with exit 1: the pin is not on engine main.
+`gh run view 39108614971 --repo turbobeest/modelspec-data --log-failed`
+confirmed the cause. No failing test was bypassed and no merge was attempted.
