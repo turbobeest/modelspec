@@ -320,14 +320,15 @@ A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 
 ## MCP
 
-Read-only MCP: `https://api.modelspec.dev/mcp`. Claude Code:
+MCP accepts Bearer or `x-api-key`. [Details](../mcp/README.md).
 
 ```json
 {
   "mcpServers": {
     "modelspec": {
       "type": "http",
-      "url": "https://api.modelspec.dev/mcp"
+      "url": "https://api.modelspec.dev/mcp",
+      "headers": { "Authorization": "Bearer <API_KEY>" }
     }
   }
 }

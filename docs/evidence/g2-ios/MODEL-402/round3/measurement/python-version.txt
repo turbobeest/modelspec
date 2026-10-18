@@ -1,0 +1,5 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/dev/modelspec/.venv/bin/python --version
+Python 3.14.4
+
+EXIT_CODE=0

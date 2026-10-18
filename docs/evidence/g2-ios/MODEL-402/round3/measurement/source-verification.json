@@ -1,0 +1,408 @@
+{
+  "source_sha": "7f04d05f78d5c07ff6604f0e2e9fffc7c7652798",
+  "source_files_verified": 80,
+  "all_match_commit": true,
+  "source_worktree_status_at_export": [],
+  "files": [
+    {
+      "path": "api/worker/measure_memory.cjs",
+      "sha256": "ecb66ee5a6afcbc61ed401435230e1ddd18541ea77c49a78b55b503121180d1d",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/pylock.toml",
+      "sha256": "611a7668734accf8974783ab759860f35ff922c3bef1a305230fc87092a413ec",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/pyproject.toml",
+      "sha256": "a3728f9c97aa057138e27e771e3fc812b7122f189977e74a5321fd562fea3d7d",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access.py",
+      "sha256": "3467f00cb23d5f0bf7ba4699c1ee1291137f148dee5309efb70c06ce0f2a75c2",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_billing.py",
+      "sha256": "6a28869d9a1c1e9c3e14d5a14eabf5b73cbeeece1ce4471afc120ac4ddeebca2",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_config.py",
+      "sha256": "1849fc3488be22c7218b940ee3f7adc6f082058a984f6e0dbc15c77aa80665fb",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_keys.py",
+      "sha256": "18f6e82580218cc92535aa8684f7b6e5667e17137354b522051ba1f20662a5ed",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_kv.py",
+      "sha256": "46f1f96b5fd0eb0dd8bfe801c072c57e6ecfdfd1ab8ad1a242367293c5b205e2",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_limits.py",
+      "sha256": "2536cf6c105eb2d9f99684264104f3adb7974dd71b9f56573fc1d46fe067b187",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/access_sandbox.py",
+      "sha256": "0ad0ade4e9dc30c7282aea6bc4e791cd8387f4b4e4f1cca809ae19a1d4276100",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/agent_guide.py",
+      "sha256": "c9290aee042c3b42320cba791dc94622e6c2974a74a923473a0a480dd63b4ba3",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/billing.py",
+      "sha256": "4e896e953198ef30f81c134da73718899ce292426b3f76d3f14815c43154b45c",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/billing_page.py",
+      "sha256": "65bc2539ec9fb0f4d16b0693eeb78ce144e52187d8d8e02f406dfa738f8549ad",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/billing_reversals.py",
+      "sha256": "c5ce57a9249c8a36dbd1dd4b5f5aa2224a1d2e39863d97eb38a29a4c410361a4",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/billing_stripe.py",
+      "sha256": "08cee3942b6c01f10c2c13a7741c208887d3dc087efda705b61cdbdad7989cce",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/cdp_auth.py",
+      "sha256": "9c2e39a4fb510e7b3851b7bd4226211df1ff8eabd29122fa481aad4a7c736c33",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/credits.py",
+      "sha256": "eaa0a4aaca6c41b9d5589e0768c2d1901afe30e3a184c747b428955620ecab37",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/credits_do.py",
+      "sha256": "274b0320861c08872bbe1ee6b1d293f0789f94ecf0d3d25ce61002d9d950123d",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/decide_service.py",
+      "sha256": "4262f6a3411c0d64428c8b18a0025f49b71060eb73f4edaeed3db97ce7a0e941",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/decision_link.py",
+      "sha256": "8d340632cd2b04c91b4eee0be24f33e24c43362c47e0fe71806d8237b77ee4c8",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/display_vocabulary.py",
+      "sha256": "2550fb9fcd0e18fb5989d74dc74dab569737a755bbe6c4fb134f0244aadde9b0",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/entry.py",
+      "sha256": "369c7a5ba752f2c0a63f2cfcdf791b18a95b40a48840ce92bf8f4ab01e8bbe50",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/feedback_service.py",
+      "sha256": "ef6a6747493c90ed800b6db8f876b2749e22964e121baac0ead63f1b2207fa2b",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/human_gate.py",
+      "sha256": "c546c2d3828bb39ac33ed9b6f21a121106dfb15a9f2edea57569df697478a61e",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/human_gate_do.py",
+      "sha256": "e8950064445ae7f19f7afa62792169451f95dbf2efbf1812676ec452dbf806f6",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/human_question.py",
+      "sha256": "29e6c5135a1d9e0e49ec61ff8ea7942e6f924aee78add0031bee477b9ac90dc8",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/kv_value.py",
+      "sha256": "ce4824b255a631dd6a62a0b36e3dc461e66857e53c712dd4d37ff3d6617538a9",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/policy_service.py",
+      "sha256": "83d34928954155c6be9bfaa55118d6ab431efae9d27af4712da2536eb5e0ff79",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/rank_service.py",
+      "sha256": "ed072598a28db5fe1831f4808a0ad42c58c6cbda7bf82a915e4aa903195977e2",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/sale_alerts.py",
+      "sha256": "fad8f74a81ca59561a2dcc2d4f192251113b331dace492d73b384d8883a73377",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/signals_service.py",
+      "sha256": "0f59c8895c4b787664edf54df6a36b1930a4d05d0f27399b009f65783e0bc103",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/visit_token.py",
+      "sha256": "9e4ef81b1888acc23961c95cdddd1b43b365013d87be2a1a400686ed8ed530b6",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/visitor.py",
+      "sha256": "80695de5403241286291e8ce55e36c32dc909dc4922d3729db6b0f2f00dee54b",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/x402.py",
+      "sha256": "855b361fd30907c032f7e364752c4fe01e821f56af81af4570d2bbe8df111a26",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/src/x402_facilitator.py",
+      "sha256": "cbc257b91c3b50a11e8438bc8cec2bc1746989aafc92f3f44c8bde2fbe562f0f",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/uv.lock",
+      "sha256": "f29bc6e2d38cd85bc878b7a9a6698067fcebff4adb9d019db9200066ceeaa214",
+      "matches_commit": true
+    },
+    {
+      "path": "api/worker/vendor.py",
+      "sha256": "4b2c248fc43e6ce90ba6f53a88f0c604e44093d4f0bf02da7e350a077af7a6e9",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/__init__.py",
+      "sha256": "889dea88c1fe70e04d1a6726202a12ea2232e3c46a75fcd24ff0052e4f1f1bfb",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/bands.py",
+      "sha256": "fc9237bc7afa41556edd277892c56c1c91511366d04cd14a908232e8fcc632b4",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/bounded.py",
+      "sha256": "472ec5ece4c14a5064d7b4876bad76f33cf7efd22baad5baffe9c21c50667315",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/by_model.py",
+      "sha256": "4d497cae337b1fc3ecd11ed73de3d58cde549c4e0bc9e289b1a21953cb9c9cb1",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/capability.py",
+      "sha256": "f445eb73305781bdb474ff2a2582d1b305208c52357d64c8ef4aaa5cc2666e50",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/compare.py",
+      "sha256": "14a2aa604dc4d534db239be6836be8e7746917c3bc03882625ef3850f8cd1a69",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/computed.py",
+      "sha256": "20c925c66afdc5944ba6c3059086fe42e87132ea021836c2fcd1517a7cb82b14",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/contract.py",
+      "sha256": "4a0defe02dd3a68f4e8dfd3b265ad3286df9100633bc323630ffb8810b90b40d",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/coverage.py",
+      "sha256": "0b07fc3fd728272a702bf1362d981c31a7b8895346e3a8b2242870062bfd937c",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/dated_prices.py",
+      "sha256": "405b75ff852ef4325a84bc068104cb6251f72b9eda1abf564d6c702361d73824",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/engine.py",
+      "sha256": "4d3e2f38bffb68196da6ba243555c9a838d3b48e81fbf63d013411d1ac5d72d4",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/estate.py",
+      "sha256": "90e53caf3a42aa97f0716492e376d1c0821302e671314c141aef0d2c10aa9bf8",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/excluded.py",
+      "sha256": "c4002a309aad710233791988038477c8488210ce50da09e9a94988785ffb6754",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/explain.py",
+      "sha256": "b95e80ad8644401a9880641f29bc48cb377f4ccd68480e4458f7aeb90fd00d3d",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/filter.py",
+      "sha256": "99fde226110915566f8c31a241e737ff1bf1bb5bdba47c6467a914fa714ff9fc",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/firecrawl.py",
+      "sha256": "ff9b3587d4053638c32169b0efe1fe007245089182754f1420e7e3ee560c43e4",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/hardware.py",
+      "sha256": "1ece4ecdedd5b9be84143e9b3d7aaa1b67efb2bbe1beab908a9e50583abcaced",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/hardware_fit.py",
+      "sha256": "7f5bd2ac6d55452a44dce68fbe3d65011be09b650d24cfa6d511844bee9873a6",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/labs.py",
+      "sha256": "961cac97db870ae8d309de1e0c5c3059c1ea656b7481f4886006ac96b2494cda",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/licence_rules.py",
+      "sha256": "72e387ed702a3f0bf3fc3b96e426a5c9bbbedc0680b39ee25c4c7d5328b1108c",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/model.py",
+      "sha256": "bb2bfc0851338ae1d5bfd253e7045dfd2dbaf35c04513bec8792653068e54c4f",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/next_move.py",
+      "sha256": "41424e4a47ff2ef3c294f24cabeb1d6e7322bbd3a43177c06cf5cb95a0cab4bb",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/normalise.py",
+      "sha256": "1f86dd21094553984a435e73f9c8c985c8c54880cc1ddfe85c49abfd3c0b56db",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/optimise.py",
+      "sha256": "734064983773af452a6c438196dad1a16ed6715d00e448359815876d244f382f",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/plans.py",
+      "sha256": "de568e8dd5c35f581490c41a304cb5b89ffbb5183c64cbeaf60ab64b54f167d8",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/reading.py",
+      "sha256": "607f1a21509cf3fbddce1b33e95f50f2bb87935e4867edd58d6a71a11cf44854",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/recovery.py",
+      "sha256": "506afeefc77ef2130f3ee18c1c8008fab6328fcd0b7ce51d5d6279639e5195a9",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/refinements.py",
+      "sha256": "5bd76a3f864f69a7f0665216cae1f0499f146fae96f7a06cabef290368cb9200",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/regions.py",
+      "sha256": "c76c1ebfa95769d81a4aa6d7c5fd7d8af2e17d8657e9c96c629d59276b384a86",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/registry.py",
+      "sha256": "26f9b1e52e20abb11b697a07153137248b06e3112b15f1d304ccb0f5d8b418f1",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/relax.py",
+      "sha256": "e4eaa423502bfb57eaccfe4be9afead41a3a55a28e0cf6e83356abf5ebabdcab",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/resolve.py",
+      "sha256": "965936aa884a988e999048d79c4187fb469006269f06b04a45e18934f786628c",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/router_config.py",
+      "sha256": "4dabe3af9d57cf3d02404d02c1065206ae71f3b35c62e685f7edaf9f7726c48e",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/schema.py",
+      "sha256": "835bb705b138f8e2fcf84ae37a80ebedb8bbb5b6a5633f009ca1a1fc46849591",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/snapshot.py",
+      "sha256": "e9d7b360a4d2f8a6e8c1a16bc33d6208feba0854ac6a588ab96f68350b82c5fc",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/sources.py",
+      "sha256": "77d561844dd89fda6363a33567a666405d375855867be0f2f85674fd7641382e",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/summary.py",
+      "sha256": "8a86ede9049e25efeda28d24d1bc1e52231e0727bac8d5ca0d737da843ea5fad",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/templates.py",
+      "sha256": "5eb35632b8038296a843e8005a4246f44a8aa3f2f41d5a99049ba6b9292a79e3",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/units.py",
+      "sha256": "ad4dbeea131d18dc6ff4ff1e6a4a7641f656b81c1ee7f07d52c4f36285f9fde8",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/verify.py",
+      "sha256": "1c814ac96954578d4c59fc0a5f51a358942e0232e8015c1f8d1fa81382e0bf02",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/vocabulary.py",
+      "sha256": "c59b550c40fbc868e5319ca99f2bd4ac9ea435d46686886687292fb285a57193",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/why_not.py",
+      "sha256": "d7d02716dab28ae8921d3aad0e8e12d7247b9f904f2d0223e21edb01c95069cd",
+      "matches_commit": true
+    },
+    {
+      "path": "decision/wording.py",
+      "sha256": "af4d1d38ff51d14b5c2952a5fe792abce741d8fbe5c35801f088120f5564de19",
+      "matches_commit": true
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+MODEL-402 full-suite triage
+
+Source revision reported by executor: cf7f72ce.
+Source log: docs/evidence/g2-ios/MODEL-402/full-suite.txt.
+The executor checked process exit code 1 directly.
+Observed pytest summary: 15 failed, 11464 passed, 9 skipped, 11 warnings,
+12 errors in 1210.76s (0:20:10).
+
+This triage reads existing traces and permitted test source only. It performs
+no test rerun, fixture refresh, production edit, or test edit. Implementation
+remains stopped because the QA capture refresh requires a path outside the
+MODEL-402 specification's allowed directories.
+
+All 14 QA failures share the MCP capture drift
+
+The first failure is an assertion that the recorded MCP capture equals the
+current capture. The trace identifies source_hashes as the differing object.
+The other 13 failures stop at qa/agent_harness.py:950 before scenario replay:
+
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+    SystemExit: 2
+
+The separate CI attribution in ci-failures.txt identifies the changed
+api/worker/openapi.yaml source hash. The full-suite output itself truncates
+the hash dictionary and does not independently print that exact hash pair.
+The required qa/fixtures/mcp-tools.json refresh is outside the allowed scope.
+No refresh command was run during this triage.
+
+Exact QA failure nodeids:
+
+tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[claude]
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[openai]
+tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[gemini]
+tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget
+tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence
+tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools
+tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call
+tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network
+tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+
+The final five nodeids above are the five failures beyond the nine previously
+identified QA failures. Their exact traces show the same MCP drift refusal.
+They do not establish a separate first-turn budget or prompt-replay defect,
+because those assertions are not reached.
+
+The remaining failure compares a recorded response header
+
+Exact nodeid:
+
+tests/test_visit_gate_off.py::test_flag_off_response_equals_main[decide POST]
+
+Observed at tests/test_visit_gate_off.py:81: actual == expected fails.
+The trace reports identical status and body, with only headers differing.
+The compact full-suite trace does not print the exact differing header.
+
+Source inspection explains the expected difference. tests/test_x402.py's
+_decision_worker returns body.snapshot="snapshot-test", while its holder
+stub returns an empty headers dictionary. MODEL-402's _decision_response
+now derives x-modelspec-snapshot from that response body. The recorded
+tests/fixtures/visit_gate_off_main.json response has no such header.
+This is an attribution from source and the header-only assertion, not a
+fresh reproduction with an expanded diff. No recorded response was changed.
+
+All 12 errors share one missing browser-build artifact
+
+Every error occurs in landing_browser_results before a browser assertion.
+tests/test_landing.py:160 calls shutil.copyfile with this missing source:
+
+    /Users/terbeest/dev/worktrees/model-402/web/dist/decide.html
+
+Every error ends with:
+
+    FileNotFoundError: [Errno 2] No such file or directory:
+    '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+Exact error nodeids:
+
+tests/test_landing.py::test_landing_behaviour_in_browser[altered_data]
+tests/test_landing.py::test_landing_behaviour_in_browser[challenge]
+tests/test_landing.py::test_landing_behaviour_in_browser[motion]
+tests/test_landing.py::test_landing_behaviour_in_browser[responsive]
+tests/test_landing.py::test_landing_behaviour_in_browser[holding]
+tests/test_landing.py::test_landing_behaviour_in_browser[forwarding]
+tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide]
+tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide_mobile]
+tests/test_landing.py::test_landing_behaviour_in_browser[forwarded_state_ranks]
+tests/test_landing.py::test_landing_behaviour_in_browser[method_responsive]
+tests/test_landing.py::test_landing_behaviour_in_browser[decide_dark_before_paint]
+tests/test_landing.py::test_landing_behaviour_in_browser[decide_theme_persists]
+
+The browser prerequisite npm ci ran earlier, but this trace requires the
+generated decide.html artifact as well. The errors establish missing build
+output. They do not establish a landing-page behavior regression. This
+triage does not build web output or rerun the browser tests after the stop.
+
+The full suite is failed. Its result cannot support a READY completion.

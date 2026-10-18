@@ -1,0 +1,25 @@
+{
+  "exit_code": 1,
+  "memory": {
+    "runtime": "Pyodide 0.28.3",
+    "before_bytes": 30212096,
+    "peak_bytes": 126652443,
+    "peak_mib": 120.78518199920654,
+    "wasm_peak_bytes": 75366400,
+    "wasm_peak_mib": 71.875,
+    "steady_bytes": 126584515,
+    "steady_mib": 120.7204008102417,
+    "live_non_wasm_bytes": 51218115,
+    "wasm_bytes": 75366400,
+    "requests": [
+      "POST /v1/decide (current)",
+      "POST /v1/decide (successor)",
+      "GET /v1/vocabulary",
+      "POST /v1/rank",
+      "POST /v1/policy-check"
+    ],
+    "limit_bytes": 125829120,
+    "peak_warning_bytes": 117440512
+  },
+  "source_commit": "ef31a864"
+}

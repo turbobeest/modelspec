@@ -1,0 +1,22 @@
+v22.22.3
+10.9.8
+modelspec-mcp@ /Users/terbeest/dev/worktrees/model-403/mcp
+├── @cloudflare/workers-types@5.20260918.1
+├── @emnapi/runtime@1.11.3 extraneous
+├── @img/sharp-wasm32@0.35.4 extraneous
+├── @modelcontextprotocol/client@2.0.0
+├── @modelcontextprotocol/server@2.0.0
+├── @types/node@26.6.1
+├── agents@0.24.0
+├── tslib@2.8.1 extraneous
+├── typescript@7.0.2
+├── vitest@5.0.1
+├── wrangler@4.134.0
+└── zod@4.6.5
+
+Python 3.14.4
+pytest 9.1.1
+git version 2.50.1
+gh version 2.102.0 (2026-09-30)
+https://github.com/cli/cli/releases/tag/v2.102.0
+flock 0.4.0
