@@ -1,0 +1,3 @@
+Command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+Observed direct exit code: 0.
+No stdout or stderr.

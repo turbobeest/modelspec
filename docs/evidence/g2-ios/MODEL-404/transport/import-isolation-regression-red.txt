@@ -1,0 +1,59 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_replay_preserves_subsequent_openapi_schema_generation __________
+
+    def test_replay_preserves_subsequent_openapi_schema_generation():
+        # A fresh interpreter makes the runtime import dependencies during replay,
+        # regardless of which modules pytest has already imported during collection.
+        script = """
+    import asyncio
+    import json
+    import sys
+    from api.worker import openapi
+    from tests.replay_billing_launch import replay
+
+    runtime = {name: sys.modules.get(name) for name in ("js", "workers", "bundled_data")}
+    response, = asyncio.run(replay({"calls": [{
+        "path": "/v1/decide", "method": "POST",
+        "headers": {"origin": "https://modelspec.dev"}, "body": "{}",
+    }]}))
+    assert all(sys.modules.get(name) is previous for name, previous in runtime.items())
+    spec = openapi.build_spec()
+    print(json.dumps({
+        "status": response["status"],
+        "error": json.loads(response["body"])["error"]["code"],
+        "hardware_fit_versions": spec["components"]["schemas"]["HardwareFitRefused"]["properties"]["hardware_fit_version"]["enum"],
+    }))
+    """
+        result = subprocess.run([sys.executable, "-c", script], cwd=ROOT,
+                                text=True, capture_output=True, timeout=30)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "<string>", line 14, in <module>
+E             spec = openapi.build_spec()
+E           File "/Users/terbeest/dev/worktrees/model-404/api/worker/openapi.py", line 3396, in build_spec
+E             **_hardware_fit_schemas(),
+E               ~~~~~~~~~~~~~~~~~~~~~^^
+E           File "/Users/terbeest/dev/worktrees/model-404/api/worker/openapi.py", line 2589, in _hardware_fit_schemas
+E             from decision.hardware_fit import HardwareFitRequest, HardwareFitResponse, VERSION
+E           File "/Users/terbeest/dev/worktrees/model-404/decision/hardware_fit.py", line 232, in <module>
+E             class EstimatedResponse(RootModel[
+E                                     ~~~~~~~~~^
+E                 Annotated[FullEstimatedResponse | LowerBoundEstimatedResponse, Field(discriminator="basis")]
+E                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E             ]):
+E             ^
+E           File "/Users/terbeest/dev/modelspec/.venv/lib/python3.14/site-packages/pydantic/main.py", line 965, in __class_getitem__
+E             submodel = _generics.create_generic_submodel(model_name, origin, args, params)
+E           File "/Users/terbeest/dev/modelspec/.venv/lib/python3.14/site-packages/pydantic/_internal/_generics.py", line 144, in create_generic_submodel
+E             reference_module_globals = sys.modules[created_model.__module__].__dict__
+E                                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         KeyError: 'pydantic.root_model'
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '-c', '\nimport asyncio\nimport json\nimport ...].__dict__\n                               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nKeyError: \'pydantic.root_model\'\n').returncode
+
+tests/test_billing_launch.py:63: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_billing_launch.py::test_replay_preserves_subsequent_openapi_schema_generation
+1 failed in 1.08s

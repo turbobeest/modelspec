@@ -81,3 +81,22 @@ repository fixtures. They do not observe production decisions, a live
 Turnstile challenge, browser rendering, or private data. No background
 process remains from this transport work. Root execution records the final
 commit and broader checks.
+
+After root merged main `0cf4080a`, the MCP typecheck and all 203 unit tests
+passed. [Merge results](merge-mcp-results.txt) record direct exit codes,
+commands, and compact output links. The read-only parity check also confirms
+that main's hardware-fit code, MCP snapshot, fixture, and tests are unchanged;
+both saved 2.0 assessments match in-memory Python regeneration. The merged
+context guide retains `/decide/details/`, and every MCP tool description
+matches main. No source changes were needed for this verification.
+
+The merged CI run later exposed a test-isolation failure in the billing replay
+helper: restoring the entire `sys.modules` table removed newly imported
+Pydantic modules while leaving cached classes on their parent package. The
+same billing-then-OpenAPI sequence reproduced the exact CI error locally.
+The helper now restores only its three runtime stubs. A cold-process regression
+prevents collection-time imports from hiding the defect. [Import-isolation
+results](import-isolation-results.txt) record both red runs, the 56-test relevant
+suite pass, the 149-test merged regression pass, and a real decision,
+hardware-fit assessment, and OpenAPI generation after replay. Hardware-fit
+production behavior and generated pins were not changed.

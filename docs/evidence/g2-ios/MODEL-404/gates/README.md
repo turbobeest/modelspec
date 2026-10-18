@@ -2,6 +2,8 @@
 
 These tests run offline. Browser requests for vocabulary, decisions and Turnstile use fixtures. The billing admission cases run the real local Python Worker service and SQLite admission through `tests/replay_billing_launch.py`; they do not call Cloudflare or a provider.
 
+The latest verification used the resolved merge working tree, committed as `e0053beaa0515892667dfcbb3225422560ea43d5`. The recorded HEAD when installation began was `ea1643cc935a78cedd9f242d5eed6a181961618b`; main’s changes were already present in the working tree. Fresh sequential `npm ci`, `npm run build`, `npm test` and `npm run test:browser -- --workers=2 --reporter=line` commands each returned exit 0. The unit run passed 872 tests in 55 files, with one opt-in corpus file skipped. The four gate combinations and screenshot capture were then rerun. [results.txt](results.txt) records the commands and direct exit codes. Playwright artifacts use separate paths under `.generated/` so they cannot delete the main executor's corpus artifacts.
+
 The browser tests first failed before the simple page implementation existed. The tracked [results.txt](results.txt) contains the missing labelled example assertion, all six initial behavior failures, the normalization regression, and final green output summaries. Routing had already changed when the initial run began. Full `.log` files are local artifacts ignored by Git; the PR evidence does not depend on them.
 
 [matrix-results.json](matrix-results.json) records the exit status for all four human-gate and visit-gate combinations. [results.txt](results.txt) preserves their output summaries; the JSON's log filenames identify only the local source artifacts. Each run uses Node v22.22.3, npm 10.9.8, Playwright 1.63.0 and Python 3.14.4. From the repository root, use this command for each `false`/`true` value of the two gate variables:
@@ -13,7 +15,7 @@ The browser tests first failed before the simple page implementation existed. Th
 | false | true | 44 | 1 | 0 |
 | true | true | 44 | 1 | 0 |
 
-These are the final reruns after the 44-pixel home-link target fix and route recovery changes. The previous matrix had the same counts. All four commands exited 0 directly, as did the subsequent broad browser run and screenshot capture. The runs were sequential.
+These are the fresh reruns after main integration, retaining the 44-pixel home-link target fix and route recovery changes. The previous matrices had the same counts. All four commands exited 0 directly, as did the preceding broad browser run and subsequent screenshot capture. The browser runs were sequential.
 
 ```bash
 cd web
@@ -21,6 +23,7 @@ PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 VITE_TURNSTILE_SITE_KEY=public-browser-test-key \
 MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-false-false \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts \
   browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
@@ -32,13 +35,15 @@ The suite verifies the labelled example, alphabetical equal-emphasis ties, keybo
 
 The managed gate test observes zero vocabulary and decision requests before verification. It checks token reuse, one intent per choice and one renewal after an expired-token refusal. The manual gate test observes zero decision requests before a verified lookup. The real Worker case confirms direct machine requests without a key still receive HTTP 401.
 
+After the replay helper's module-cleanup fix, `billing-launch.spec.ts` was rerun under all four flag combinations. Human off/visit off and human on/visit off each passed two tests and skipped the two visit-specific cases; both visit-enabled combinations passed all four tests. Every command exited 0. This follow-up used separate artifact directories and changed no browser source. Its exact command, environment and output summaries are in the distinct billing-cleanup section of [results.txt](results.txt), with machine-readable exits in [billing-cleanup-results.json](billing-cleanup-results.json).
+
 An initial browser run exposed a real request normalization mismatch: the controls loaded while the answer stayed at "Checking the evidence…". The implementation now compares normalized question state. Other interrupted runs saw React hot-reload errors while source files were being edited. Final matrix runs use stable source. A pre-existing detailed-page scroll test also intercepted its initial request too early; it now waits for the first answer before holding the request caused by the tested facet click. Its original scroll-position assertion remains.
 
 The recorded assistant example and six-way tie use `live-assistant-balanced-full.json`, snapshot `snap_483dd2fb6c5915b5`. Coding and no-fit screenshots use exact questions calculated by the offline engine against frozen repository data at `snap_e9c30eaacfa8f2f2`, with the same incomplete-catalogue gate setting used by the existing corpus and prototype. `screenshot-decisions.json` records those questions, response IDs and conclusions. The capture test compares the actual request with the saved question before serving either response.
 
 Screenshot vocabulary remains the unmodified captured live vocabulary. That fixture has no `coverage.as_of`, so its header honestly says "Data date unavailable". Ordinary browser tests separately add coverage from another fixture to verify date rendering. That merged test metadata is never used in screenshots. These captures demonstrate layout and interactions; they do not establish a current model recommendation or evidence freshness.
 
-The final capture test passed and regenerated eleven images after the target and recovery fixes; [results.txt](results.txt) includes the generation and capture output. Desktop simple pages include their full height; mobile examples, coding, tie and no-fit pages include the 390 by 844 viewport. `simple-mobile-example-full.png` also shows the source, cost basis and agent copy below that viewport. Both detailed-page screenshots preserve its existing first screen. All eleven regenerated images were opened and inspected.
+The fresh capture test passed and regenerated eleven images after main integration; [results.txt](results.txt) includes the generation and capture output. The local engine regenerated the coding and no-fit responses with unchanged snapshot and decision IDs. Desktop simple pages include their full height; mobile examples, coding, tie and no-fit pages include the 390 by 844 viewport. `simple-mobile-example-full.png` also shows the source, cost basis and agent copy below that viewport. Both detailed-page screenshots preserve its existing first screen. All eleven regenerated images were opened and inspected. They are byte-identical to the earlier captures.
 
 | Capture | Desktop | Mobile |
 | --- | --- | --- |
@@ -57,6 +62,7 @@ cd web
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 MODELSPEC_CAPTURE_SIMPLE=1 \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-capture-playwright \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   --grep 'capture simple' --workers=1 --reporter=line
 ```

@@ -145,3 +145,66 @@ modelspec: 2670 files; discovery links resolve
 docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
 thin_pages: []. Both decide routes exist. Published agents.md and openapi.yaml equal final source bytes.
 Data freeze: exit 0, data freeze: ok. Protected ranking/contract/legal/Worker-config paths have no diff from base.
+
+--- Final merged-source build and corpus (e0053beaa0515892667dfcbb3225422560ea43d5) ---
+Integrated main: 0cf4080a72d354295c434206257d089d26b50ed6.
+Pipeline build direct exit: 0. Build metadata commit: e0053beaa051.
+models: 1372; benchmarks: 1153; modelspec_urls: 2641; markdown_pages: 2605.
+The build retained existing frozen-data hardware-source warnings.
+Corpus generation direct exit: 0. Wrote 319 decisions and 5 vocabularies.
+Built-page corpus browser direct exit: 0. 112 passed, 10 skipped in 24.4 seconds.
+Live composition direct exit: 0. modelspec: 2711 files; discovery links resolve.
+Surface lint direct exit: 0. 0 findings, 0 notices; 111 files checked.
+Fresh web commands and gate matrix are recorded in gates/results.txt.
+Merged generator, pin, link and MCP checks are recorded in routing/verification.md and transport/merge-mcp-results.txt.
+The final full Python process remains queued under the shared lock; no result is claimed yet.
+
+--- Integrated use-case detailed-board action, red then green ---
+Red command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py::test_use_case_neutrality_and_access
+Direct exit code: 1.
+>       assert "/decide/details/?template=coding-best" in page.links
+E       AssertionError: assert '/decide/details/?template=coding-best' in ['https://modelspec.dev/use-cases/coding/coding-best/', '/favicon.ico', '/icon.svg', '/apple-touch-icon.png', '/site.webmanifest', '/fonts/archivo-latin.woff2', ...]
+E        +  where ['https://modelspec.dev/use-cases/coding/coding-best/', '/favicon.ico', '/icon.svg', '/apple-touch-icon.png', '/site.webmanifest', '/fonts/archivo-latin.woff2', ...] = <pipeline.surface_lint.Page object at 0x10a381be0>.links
+FAILED tests/test_pipeline.py::test_use_case_neutrality_and_access - Assertio...
+1 failed in 0.44s
+Green command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py -k use_case
+Direct exit code: 0.
+15 passed, 47 deselected in 46.08s.
+The primary template action uses /decide/details/; the generic first-visit link remains /decide/.
+
+--- Final composed artifact audit ---
+Source SHA e0053beaa0515892667dfcbb3225422560ea43d5; published api/build.json matches.
+Both decide entries have their expected canonical/OG URL and resolving JS entry.
+Both decide sitemap lastmod values: 2026-10-17, from source history.
+About: 2 board links to details. Homepage: 3 explicitly board-labelled links to details.
+40 use-case template actions target /decide/details/?template=<id>.
+41 use-case pages retain 82 introductory /decide/ links.
+Composed sitemap: 33 entries; 19 use-case entries preserve source date 2026-09-23.
+Published agents.md and openapi.yaml equal source bytes.
+thin_pages: [] across 14 core pages.
+Audit proof: routing/final-artifact-audit.json.
+
+--- CI test-order correction (dcf398d6f27f8a84e72c5aef0492ec1f73aee1af) ---
+The merge CI shard2 failed test_schema_compaction_preserves_every_original_rule with KeyError: pydantic.root_model.
+Local red sequence: billing_launch then schema-compaction test, 21 passed and 1 failed.
+New cold-process regression reproduced the same error before the fix.
+Restore only replay runtime stubs, preserving legitimately imported dependencies.
+Direct green exit0: 56 billing-launch, billing-smoke and guide tests.
+Direct green exit0: 149 merged focused tests, 2 expected skips.
+Cold-process real decision, hardware-fit2.0 and OpenAPI follow-up probe exit0.
+Post-fix billing browser combinations all exit0: 2 passed/2 skipped, 2 passed/2 skipped, 4 passed, 4 passed.
+No product code or generated artifact changed after e0053be. Full Python remains queued; it will include dcf398d6.
+Full commands and output: transport/import-isolation-results.txt and gates/results.txt.
+
+--- Final full Python suite; direct exit code 0 ---
+Source: dcf398d6f27f8a84e72c5aef0492ec1f73aee1af.
+Command from /Users/terbeest/dev/worktrees/model-404:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+The process waited for the shared lock and returned exit 0 in this executor session.
+11536 passed, 9 skipped, 11 warnings in 1356.88s (0:22:36)
+No source changes occurred during this run. The preceding queued-status notes are historical.
+
+--- Final tested-source CI ---
+Source: dcf398d6f27f8a84e72c5aef0492ec1f73aee1af
+All checks pass or are intentionally skipped. Run pytest, Build both sites, evidence, Data freeze, both Worker checks and all four browser gate combinations pass.
+The PR remains draft. Complete check names, states, links and observation time: root/ci-source-results.json.

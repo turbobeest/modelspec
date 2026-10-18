@@ -1,0 +1,70 @@
+MODEL-404: billing replay import isolation
+Original source: e0053beaa0515892667dfcbb3225422560ea43d5
+Local Python 3.14.4; pytest 9.1.1; Pydantic 2.13.5.
+CI reproduced the same failure on Python 3.11.17.
+Run every command below from the worktree root. Exit codes were observed
+directly from the processes. No production source or generated pin changed.
+
+CI failure: merge-ci-schema-red.txt
+test_schema_compaction_preserves_every_original_rule failed while importing
+decision.hardware_fit. Pydantic's generic model registration raised:
+  KeyError: 'pydantic.root_model'
+
+Original test sequence, RED, exit 1:
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py tests/test_agent_guide.py::test_schema_compaction_preserves_every_original_rule
+Output: import-isolation-sequence-red.txt
+1 failed, 21 passed in 2.56s
+The failure is the same KeyError as CI, so this is not specific to Python 3.11.
+
+Root cause: tests/replay_billing_launch.py used patch.dict(sys.modules).
+On leaving that context, patch.dict restored the whole module table, deleting
+dependencies newly imported by the Worker entry. Pydantic retained a cached
+RootModel attribute while its pydantic.root_model module was no longer registered.
+The direct probe output in import-isolation-probe-red.txt recorded:
+  Before replay: False False
+  Keyless status: 401
+  After replay: False True
+The booleans mean module registered / RootModel cached on the Pydantic package.
+Subsequent openapi.build_spec() then raised the same KeyError.
+
+Permanent cold-process regression, RED, exit 1:
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py::test_replay_preserves_subsequent_openapi_schema_generation
+Output: import-isolation-regression-red.txt
+1 failed in 1.08s
+The subprocess returned 1 with KeyError: 'pydantic.root_model'.
+A fresh interpreter ensures full-suite import warming cannot hide the defect.
+The test checks the real keyless 401/missing_api_key result, restored runtime
+module slots, and subsequent OpenAPI generation of hardware-fit version 2.0.
+
+Fix: ExitStack restores only js, workers, and bundled_data, preserving all
+dependencies imported while loading the isolated entry. The entry itself is
+not registered in sys.modules. No Pydantic pre-import workaround was added.
+All existing assertions remain unchanged.
+
+Relevant complete suites, GREEN, exit 0:
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py tests/test_billing_smokes.py tests/test_agent_guide.py
+Output: import-isolation-sequence-green.txt
+56 passed in 7.23s
+
+Merged six-suite regression, GREEN, exit 0:
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_guide.py tests/test_agent_copy.py tests/test_decision_link.py tests/test_api_docs.py tests/test_simple_decide_routes.py tests/test_live_use_cases.py
+Output: import-isolation-merged-focused-green.txt
+149 passed, 2 skipped in 12.21s
+The two skips remain opt-in live probes.
+
+After-replay real-engine probe, GREEN, exit 0:
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/transport/verify-import-isolation.py
+Output: import-isolation-engine-green.txt
+Runtime module stubs restored; keyless request refused with 401.
+Real decision after replay: answered ['lab/hardware-model']
+Real hardware assessment after replay: 200 2.0 likely 18795200000
+Real OpenAPI generation after replay: hardware-fit 2.0.
+This probe uses local sourced fixture data and the actual engine/checker.
+
+Formatting check, exit 0:
+git diff --check -- tests/replay_billing_launch.py tests/test_billing_launch.py
+
+No production, paid-provider or live Turnstile request was made. No local
+Python 3.11 rerun is claimed; the exact CI failure was reproduced on 3.14.
+No background processes remain from these commands. Root owns the fix commit
+and the final locked full-suite run.

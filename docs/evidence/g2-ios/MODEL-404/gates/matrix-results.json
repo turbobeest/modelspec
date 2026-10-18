@@ -4,27 +4,31 @@
     "visit_gate": "false",
     "exit_code": 0,
     "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
-    "log": "matrix-false-false.log"
+    "log": "matrix-false-false.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-false-false"
   },
   {
     "human_gate": "true",
     "visit_gate": "false",
     "exit_code": 0,
     "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
-    "log": "matrix-true-false.log"
+    "log": "matrix-true-false.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-true-false"
   },
   {
     "human_gate": "false",
     "visit_gate": "true",
     "exit_code": 0,
     "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
-    "log": "matrix-false-true.log"
+    "log": "matrix-false-true.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-false-true"
   },
   {
     "human_gate": "true",
     "visit_gate": "true",
     "exit_code": 0,
     "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
-    "log": "matrix-true-true.log"
+    "log": "matrix-true-true.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-true-true"
   }
 ]

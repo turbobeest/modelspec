@@ -1,0 +1,3 @@
+Command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+Observed direct exit code: 0.
+No stdout or stderr.

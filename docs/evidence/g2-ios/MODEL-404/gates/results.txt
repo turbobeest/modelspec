@@ -8,6 +8,37 @@ are ignored by Git. Reproduction commands and fixture limits are in README.md.
 All recorded browser commands ran in web/ with:
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
 
+GREEN: fresh web verification after main integration
+Resolved merge source, subsequently committed as e0053beaa0515892667dfcbb3225422560ea43d5.
+Recorded HEAD when installation began: ea1643cc935a78cedd9f242d5eed6a181961618b; main changes were already in the working tree.
+This run includes merged main use-case and hardware changes.
+Commands ran sequentially in web/ with:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH
+
+Command: npm ci
+Direct exit: 0
+  added 346 packages, and audited 347 packages in 2s
+
+Command: npm run build
+Direct exit: 0
+  TypeScript project build and Vite build completed.
+  built in 175ms
+
+Command: npm test
+Direct exit: 0
+  Test Files  55 passed | 1 skipped (56)
+       Tests  872 passed (872)
+    Duration  19.22s
+
+Command: npm run test:browser -- --workers=2 --reporter=line
+Direct exit: 0
+  16 skipped
+  37 passed (16.9s)
+The browser environment and skips are described in the broad-browser section.
+Its artifacts were isolated in .generated/fresh-broad-playwright.
+The subsequent four gate combinations and capture below are also fresh runs
+on this integrated revision. Each uses its own MODELSPEC_BROWSER_OUTPUT path.
+
 RED: initial missing simple page
 Command:
 npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep "opens with a labelled" --workers=1 --reporter=line
@@ -66,33 +97,36 @@ The same six behavior cases failed; 3 skipped and 2 passed (35.6s).
 The fix normalized the selected question before comparing answered state.
 
 GREEN: final gate matrix on stable source
-These runs were repeated after the 44-pixel home-target fix and final route
-recovery changes. The prior matrix had the same pass and skip counts.
+These runs were repeated after main integration, retaining the 44-pixel
+home-target fix and final route recovery changes. Earlier matrices had the
+same pass and skip counts.
 Shared command:
 npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
 Additional environment for every combination:
 VITE_TURNSTILE_SITE_KEY=public-browser-test-key
 MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-HUMAN-VISIT
+Replace HUMAN and VISIT with the false/true values for that combination.
 
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
 Exit: 0
   10 skipped
-  35 passed (15.4s)
+  35 passed (15.2s)
 
 VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=false
 Exit: 0
   8 skipped
-  37 passed (18.1s)
+  37 passed (16.7s)
 
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=true
 Exit: 0
   1 skipped
-  44 passed (24.8s)
+  44 passed (23.6s)
 
 VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=true
 Exit: 0
   1 skipped
-  44 passed (25.0s)
+  44 passed (23.5s)
 
 The final matrix passed all six initial red behavior cases, both legacy
 redirects, manual verification, managed verification and expired-token renewal.
@@ -106,10 +140,11 @@ Environment: VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
 MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
 Exit: 0
   16 skipped
-  37 passed (17.0s)
+  37 passed (16.9s)
 Skips: gate-specific tests, opt-in capture, absent generated corpus, and
 deployed-site/pricing checks without explicit URLs. The main executor records
-the separate built-corpus run.
+the separate built-corpus run. MODELSPEC_BROWSER_OUTPUT was
+/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-broad-playwright.
 
 GREEN: exact engine-question screenshot capture
 Generation command, from repository root:
@@ -117,16 +152,19 @@ Generation command, from repository root:
 Exit: 0
 coding: snapshot=snap_e9c30eaacfa8f2f2, status=partial, answer=tied
 no-fit: snapshot=snap_e9c30eaacfa8f2f2, status=no_feasible, answer=None
+Regenerated with the merged local engine; saved snapshot and decision IDs
+remain unchanged.
 
 Capture command, from web/:
 npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep "capture simple" --workers=1 --reporter=line
 Environment: VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
 MODELSPEC_CAPTURE_SIMPLE=1
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-capture-playwright
 Exit: 0
-  1 passed (9.1s)
+  1 passed (9.4s)
 Test: capture simple example, coding, tie, no-fit and detailed board
-Eleven PNGs were regenerated after the final target and recovery fixes and
-visually inspected again. Actual coding and no-fit
+Eleven PNGs were regenerated after main integration and visually inspected
+again. They are byte-identical to the earlier inspected captures. Actual coding and no-fit
 requests matched the saved engine questions before their responses were served.
 
 Limits: offline fixtures and local Worker only; no production/provider calls.
@@ -158,3 +196,42 @@ After the CSS fix, exit 0:
 The same run retained the 390-by-844 fold, full six-row tie, primary evidence
 action, no-horizontal-overflow and initial main-content contrast assertions
 in both dark and light themes. Inline text links were outside this target check.
+
+GREEN: billing browser follow-up after replay helper cleanup
+The replay helper now scopes its module replacement instead of restoring the
+whole sys.modules dictionary. This targeted rerun exercises the same local
+Python replay process through the detailed and simple browser flows. It does
+not replace the separate Python import-cleanup regression test.
+
+Each command ran sequentially in web/:
+npm exec playwright -- test browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
+Shared environment:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH
+VITE_TURNSTILE_SITE_KEY=public-browser-test-key
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/billing-cleanup-HUMAN-VISIT
+Replace HUMAN and VISIT with each combination's values below.
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+Direct exit: 0
+  2 skipped
+  2 passed (3.4s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=false
+Direct exit: 0
+  2 skipped
+  2 passed (3.4s)
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=true
+Direct exit: 0
+  4 passed (10.2s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=true
+Direct exit: 0
+  4 passed (10.0s)
+
+The two skips in each visit-disabled build require visit support. Enabled
+builds pass real local Worker admission for both pages, credential renewal,
+and the HTTP 401 refusal for a direct keyless machine request. No browser
+source changed; the preceding full matrix and screenshots remain applicable.
+Machine-readable exits and isolated artifact paths: billing-cleanup-results.json.

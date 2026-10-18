@@ -1,0 +1,43 @@
+MODEL-404 MCP verification after merging main, 2026-10-17
+Pre-merge HEAD: ea1643cc935a78cedd9f242d5eed6a181961618b
+Incoming main: 0cf4080a72d354295c434206257d089d26b50ed6
+Node v22.22.3; Vitest v5.0.1.
+Run from /Users/terbeest/dev/worktrees/model-404.
+The resolved working tree was tested before the merge index was finalized.
+Each exit code below was returned directly by the command, without a pipe.
+
+1. Typecheck, exit 0
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix mcp run typecheck
+Output: merge-mcp-typecheck.txt
+tsc --noEmit completed without diagnostics.
+
+2. All MCP unit tests, exit 0
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix mcp test
+Output: merge-mcp-tests.txt
+Test Files  10 passed (10)
+Tests       203 passed (203)
+Start at    23:05:07
+No snapshots were updated by this run.
+
+3. Main artifact and generated-fixture parity, exit 0
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/transport/verify-mcp-merge.py
+Output: merge-mcp-parity.txt
+Byte-identical to incoming main:
+  decision/hardware_fit.py
+  decision/snapshot.py
+  mcp/test/__snapshots__/server.test.ts.snap
+  mcp/test/fixtures/generate-hardware-fit.py
+  mcp/test/fixtures/hardware-fit.json
+  mcp/test/hardware-fit.test.ts
+All MCP tool descriptions match main, including hardware-fit 2.0 basis/full
+and lower-bound wording. The merged context guide retains the intended
+Full board URL, https://modelspec.dev/decide/details/.
+The Python assessment generator ran in memory and exactly reproduced both
+saved cases: full and lower_bound, each hardware_fit_version 2.0.
+
+4. Evidence formatting, exit 0
+git diff --check -- docs/evidence/g2-ios/MODEL-404/transport
+
+No source or test files changed for these checks. No live deployment,
+production hardware fit, paid provider, or network decision was exercised.
+No background process remains from these commands.

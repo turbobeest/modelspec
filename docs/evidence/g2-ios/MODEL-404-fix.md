@@ -4,10 +4,13 @@ Draft PR: https://github.com/turbobeest/modelspec/pull/814. Work remained in
 `/Users/terbeest/dev/worktrees/model-404`, on `model-404-simple-decide`.
 
 - Base SHA: `72cd65f81aeae93add87b9a52157ae8cbce698a3`.
+- Integrated main SHA: `0cf4080a72d354295c434206257d089d26b50ed6` (#811 and #812; #810 was already in the original base).
 - Design-only first commit: `eeaf493e` (`docs/design/simple-decide-page.md`).
-- Final implementation and test SHA: `5fb92b253863f436523016a2febfccded418f2a8`.
-  Later commits contain execution evidence only. The final PR verification
-  comment records the publication SHA including that evidence.
+- Final product implementation SHA: `e0053beaa0515892667dfcbb3225422560ea43d5`.
+- Final tested source SHA: `dcf398d6f27f8a84e72c5aef0492ec1f73aee1af`.
+  This adds only a billing replay isolation fix and regression test. Later commits
+  contain execution evidence only. The final PR body records the
+  publication SHA including that evidence.
 
 ## Delivered behavior
 
@@ -28,7 +31,8 @@ retries the same action. Neither path silently broadens the requested constraint
 
 No changes were made to decision contract 2.18, bounded 1.5, ranking floors,
 neutrality terms, legal text, production switches, billing admission or access
-enforcement. No deployment or merge was performed. The PR remains draft for
+enforcement. No deployment or PR merge was performed. Current main was merged
+into this branch for integration verification. The PR remains draft for
 cross-model review and Jamie's visual review.
 
 ## Red-first results
@@ -38,7 +42,8 @@ Compact output is in [root/results.txt](MODEL-404/root/results.txt),
 [routing/jsonld-red.txt](MODEL-404/routing/jsonld-red.txt),
 [transport/results.txt](MODEL-404/transport/results.txt), and
 [gates/results.txt](MODEL-404/gates/results.txt). Large DOM dumps, superseded runs,
-build trees and generated corpus responses remain local and ignored.
+build trees and generated corpus responses remain local and ignored. Text excerpts
+retain the recorded errors and results, with trailing whitespace removed.
 
 | Defect / requirement | Red test and observed failure | Green result |
 | --- | --- | --- |
@@ -58,6 +63,10 @@ build trees and generated corpus responses remain local and ignored.
 | OpenAPI retained the previous generated guide version | Local `api/worker/openapi.py --check` and CI Rank Worker bundle both exited 1 after agent-copy generation. | OpenAPI and its QA hash were regenerated after the guide. Final check and 56 API-doc tests pass; parsed YAML comparison confirms only the two guide-version values changed. |
 | Reviewed-catalogue test retained old agent-copy digests | CI shard 4 and the focused `test_flag_off_agent_copy_matches_reviewed_catalogue` run failed on the old MCP-copy SHA-256. Content review identified only the approved board-link and guide-version changes across MCP copy, guide Markdown and CLI text. | Three literal expected digests were updated in that test; response-byte assertions remain unchanged. `test_decision_link.py` and `test_agent_copy.py`: 63 passed. |
 | Added board-link copy exceeded agent startup budget | Full Python and focused `test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget` failed: Gemini startup used 9,540 estimated tokens against the unchanged 9,500 limit. | The shared guide retains the board URL; duplicate MCP initialization wording was removed and transport wording shortened without changing request requirements. Generated totals are Claude 9,327, OpenAI 9,420 and Gemini 9,499. The five focused suites pass: 146 passed, 2 opt-in live probes skipped. |
+| New main composer requires a source sitemap | CI's two `test_both_decide_routes_are_composed_and_describe_their_own_page` cases failed with a missing source `sitemap.xml` after #811 landed. | The fixture supplies `live.sitemap()`; all route and visible-content assertions remain. Both cases pass against the merged composer. |
+| New use-case composition fixture omitted the detailed entry | All three `tests/test_live_use_cases.py` cases failed on missing `web/decide-details.html` after integration. | The fixture supplies both decide entries; the complete 11-test composition selection passes without assertion changes. |
+| Billing replay removed imports needed by later hardware-fit schema generation | CI `test_schema_compaction_preserves_every_original_rule` failed with `KeyError: pydantic.root_model`. The local billing-then-schema sequence and a fresh-process regression reproduced it. | Restore only the three runtime stubs instead of the complete module table. Billing, smoke and guide suites pass 56 tests; the merged six-suite selection passes 149 with 2 opt-in skips. Real decision, hardware-fit and OpenAPI generation also pass after replay. |
+| New use-case template action still used the first-visit URL | `test_use_case_neutrality_and_access` expected `/decide/details/?template=coding-best` and found the old URL. | The action now opens the detailed board; the test also preserves generic `/decide/` links. All 15 use-case tests pass. |
 
 The gate/browser matrix also checks state handoff, both legacy redirect forms,
 separate EU/training constraints, route selection, response-derived numeric
@@ -79,18 +88,66 @@ during trace teardown because another browser run cleaned the shared default
 artifact directory. The final corpus invocation uses its own
 `MODELSPEC_BROWSER_OUTPUT` directory; no application assertion was weakened.
 
+## Main integration
+
+The PR became conflicting when #811 (use-case pages) and #812 (hardware-fit 2.0)
+landed during verification. Main was merged without rewriting this branch's
+history. The three conflicts were generated CLI/QA artifacts and literal
+catalogue hashes. Agent copy was regenerated with `pipeline.agent_copy write`,
+then checked; OpenAPI was generated before the QA capture through
+`python -m qa.contracts`. Generated JSON was not hand-merged.
+
+The three catalogue hashes were re-derived from the merged copy, guide and CLI
+text. The disabled decision-link response-byte assertions are unchanged.
+Hardware-fit code, snapshot schema, MCP fixture/generator/tests and server
+snapshot match integrated main. Both generated hardware-fit 2.0 cases match
+their saved fixture. MODEL-404's OpenAPI semantic difference from integrated
+main is limited to the guide version in the description and response header.
+
+About-page board links use `entity.BOARD` (`/decide/details/`). Use-case template
+actions use `/decide/details/?template=...`; their generic navigation and free
+lookup links retain `/decide/`. The merged copy stays within the unchanged
+9,500-token startup limit: Claude 9,328, OpenAI 9,421 and Gemini 9,500.
+
+The [published-file audit](MODEL-404/routing/final-artifact-audit.json) verifies
+these link choices in the composed site, including all 40 use-case template
+actions and 82 introductory links across 41 use-case pages. Both decide sitemap
+entries use the source-derived date 2026-10-17.
+
+Merge checks passed: 149 focused Python tests with 2 opt-in live probes skipped,
+203 MCP tests, MCP typecheck, both generator checks and all source-hash checks.
+The exact fixture failures and copy comparisons are in the routing evidence;
+[MCP merge results](MODEL-404/transport/merge-mcp-results.txt) record preservation
+of main's hardware-fit behavior. A queued full run was stopped before any tests
+started so it could not read a merge in progress. The final locked run passed with
+the completed merge and the test-only isolation correction below. The interrupted helper's earlier three-file fixture run
+had no observed exit code and is not claimed as a pass.
+
+CI on the merge commit exposed an independent test-order defect in the billing
+replay helper. Its `patch.dict(sys.modules, ...)` restored the entire module
+table, removing Pydantic submodules imported during replay while their parent
+module retained cached class references. Hardware-fit 2.0 schema generation
+then raised `KeyError: pydantic.root_model`. Both the CI sequence and a fresh
+Python process reproduced the failure locally. The helper now restores only
+`js`, `workers` and `bundled_data`. The new regression checks the unchanged
+keyless-machine 401 response and subsequent hardware-fit 2.0 schema generation.
+[Isolation evidence](MODEL-404/transport/import-isolation-results.txt) records
+red/green commands and the real-engine follow-up probe. This correction touches
+only the replay helper and its tests; no product or generated artifact changed.
+
 ## Verification
 
 Tools: Python 3.14.4, pytest 9.1.1, Node v22.22.3, npm 10.9.8,
-TypeScript 5.9.3, Vitest 5.0.1, Playwright 1.63.0, Vite 8.0.3, Git 2.50.1.
+TypeScript 5.9.3 for web and 7.0.2 for MCP, Vitest 5.0.1, Playwright 1.63.0, Vite 8.0.3, Git 2.50.1.
 Node commands use `/Users/terbeest/.nvm/versions/node/v22.22.3/bin` at the front
 of `PATH`; Python uses `/Users/terbeest/dev/modelspec/.venv/bin/python`.
 Exit codes were read directly from each process, never through a pipe.
-The final web/browser runs used runtime SHA `36a1dda13c6c8091dedd2fa13f067c363388976e`.
-Subsequent source changes only refreshed agent-copy expectations and shortened
-the generated guide to meet its existing startup budget. Final site composition
-uses `5fb92b253863f436523016a2febfccded418f2a8`. The queued final Python run
-uses that same source and tests with the evidence-only commit `43055731` applied.
+Fresh web installation, build, unit tests, general browser tests and all four
+gate combinations passed against the resolved merge working tree, committed as
+`e0053beaa0515892667dfcbb3225422560ea43d5`. Final site composition, corpus and
+screenshots use that product source. The full Python suite uses
+`dcf398d6f27f8a84e72c5aef0492ec1f73aee1af`, which changes only the replay helper
+and its new regression. Browser billing flows also passed after that correction in all four gate combinations.
 
 | Check | Result |
 | --- | --- |
@@ -102,14 +159,17 @@ uses that same source and tests with the evidence-only commit `43055731` applied
 | Human on / visit off | Exit 0: 37 passed, 8 skipped. |
 | Human off / visit on | Exit 0: 44 passed, 1 capture skipped. |
 | Human on / visit on | Exit 0: 44 passed, 1 capture skipped. |
-| Built-page browser corpus | Exit 0: 112 passed, 10 expected gate/capture skips; generated 319 decisions and 5 vocabularies. |
-| `python -m pipeline.build --out dist` | Exit 0. Existing frozen-data hardware-source warnings were reported. |
-| Real live composition | Exit 0: 2670 files; discovery links resolve. |
-| Surface lint on composed site | Exit 0: zero findings across 70 files. |
-| Thin-page inspection | `pipeline.live.thin_pages(...)` returned `[]`; composition also verified discovery links. |
-| Full Python suite under shared lock | First run: exit 1, 11,492 passed, 9 skipped, 2 failed in 1292.15 seconds. Failures were the stale catalogue pin and agent startup copy exceeding the existing 9,500-token budget. A corrected full run is queued under the same lock; its result will be recorded before completion. |
+| Built-page browser corpus | Exit 0: 112 passed, 10 expected skips in 24.4 seconds. Corpus regeneration produced 319 decisions and 5 vocabularies. |
+| `python -m pipeline.build --out dist` | Exit 0: 2,641 site URLs and 2,605 Markdown pages. Existing frozen-data hardware-source warnings remain. |
+| Real live composition | Exit 0: 2,711 files; discovery links resolve. |
+| Surface lint on composed site | Exit 0: zero findings and notices across 111 checked pages. |
+| Thin-page inspection and published artifacts | Exit 0: no thin pages among the 14 core pages. Both routes and sitemap dates pass; all 40 use-case template actions target the detailed board. Published agent/OpenAPI bytes match source. |
+| Full Python suite under shared lock | Final exit 0: 11,536 passed, 9 skipped, 11 warnings in 1356.88 seconds. This supersedes the first run, which had 11,492 passed, 9 skipped and 2 failures from the stale catalogue pin and startup-copy budget. Both defects were corrected without weakening assertions or raising the budget. |
 | Data freeze guard | Exit 0: `data freeze: ok`. |
-| Agent-copy/OpenAPI checks and regenerated source hashes | Final exit 0 after ordered regeneration. The final five focused suites, including API docs, pass: 146 passed, 2 live probes skipped. |
+| Agent-copy/OpenAPI checks and regenerated source hashes | Final exit 0 after ordered regeneration. Six focused Python suites pass: 149 passed, 2 live probes skipped. |
+| MCP verification after merge | Typecheck and all 203 tests pass; hardware-fit parity checks pass. |
+| Replay cleanup regression and browser checks | Exit 0: 56 billing/smoke/guide tests; the merged focused selection still passes 149 with 2 expected skips. Billing browser combinations pass 2, 2, 4 and 4 tests; the two skips in each visit-off run require visit support. |
+| CI on final tested source | All checks pass or are intentionally skipped on `dcf398d6`, including Run pytest, Build both sites, evidence, data freeze, both Workers and all four browser gate combinations. [Recorded check set](MODEL-404/root/ci-source-results.json). |
 | `git diff --check` | Exit 0. |
 
 Root commands (run from this worktree unless a directory change is shown):
@@ -127,7 +187,7 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live 
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree docs/evidence/g2-ios/MODEL-404/root/.live/modelspec --report docs/evidence/g2-ios/MODEL-404/root/surface-final-report.json
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -c 'from pathlib import Path; from pipeline.live import thin_pages; assert not thin_pages(Path("docs/evidence/g2-ios/MODEL-404/root/.live/modelspec"))'
 /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base 72cd65f81aeae93add87b9a52157ae8cbce698a3 --head HEAD --branch model-404-simple-decide
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base 0cf4080a72d354295c434206257d089d26b50ed6 --head HEAD --branch model-404-simple-decide
 git diff --check
 CI_LOCAL_SKIP=1 git push -u origin model-404-simple-decide
 ```
@@ -140,8 +200,9 @@ Regenerated required pins: `docs/agents.md`, `mcp/src/agent-copy.json`,
 `cli/modelspec/agent-bundle.json`, `api/worker/src/agent_guide.py`,
 `api/worker/openapi.yaml`, and `qa/fixtures/mcp-tools.json`. CLI source hashes match current source files and
 QA capture hashes match `qa.contracts.source_hashes()`. Guide version:
-`1-f226d9942791da1c`. OpenAPI changes only the guide version in its description
-and header constant. Request and feedback schemas are unchanged. Generation order
+`1-f226d9942791da1c`. Relative to integrated main, OpenAPI changes only the guide
+version in its description and header constant. Request and feedback schemas are
+unchanged from integrated main. Generation order
 is agent copy, then OpenAPI, then QA capture, followed by checks after all writes.
 The initial OpenAPI pass preceded guide generation and was superseded by this
 final verification. Exact final hashes are in
@@ -178,7 +239,8 @@ initial example in both themes.
 The example and tie use the existing captured assistant response. Coding and
 no-fit use exact requests computed by the local engine against frozen data;
 [screenshot-decisions.json](MODEL-404/gates/screenshot-decisions.json) records
-the question, snapshot and decision identity. No current recommendation is
+the question, snapshot and decision identity. All eleven screenshots were regenerated and inspected after main integration;
+their bytes and recorded decision identities are unchanged. No current recommendation is
 claimed. The screenshot vocabulary has no coverage date, so it shows
 “Data date unavailable”; mutation tests separately prove metadata date rendering.
 

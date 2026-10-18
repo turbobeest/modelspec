@@ -1,0 +1,34 @@
+[
+  {
+    "human_gate": "false",
+    "visit_gate": "false",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "billing-cleanup-false-false.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/billing-cleanup-false-false"
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "false",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "billing-cleanup-true-false.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/billing-cleanup-true-false"
+  },
+  {
+    "human_gate": "false",
+    "visit_gate": "true",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "billing-cleanup-false-true.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/billing-cleanup-false-true"
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "true",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "billing-cleanup-true-true.log",
+    "output_dir": "docs/evidence/g2-ios/MODEL-404/gates/.generated/billing-cleanup-true-true"
+  }
+]

@@ -1,0 +1,23 @@
+Before replay: False False
+Keyless status: 401
+After replay: False True
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/Users/terbeest/dev/worktrees/model-404/api/worker/openapi.py", line 3396, in build_spec
+    **_hardware_fit_schemas(),
+      ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/terbeest/dev/worktrees/model-404/api/worker/openapi.py", line 2589, in _hardware_fit_schemas
+    from decision.hardware_fit import HardwareFitRequest, HardwareFitResponse, VERSION
+  File "/Users/terbeest/dev/worktrees/model-404/decision/hardware_fit.py", line 232, in <module>
+    class EstimatedResponse(RootModel[
+                            ~~~~~~~~~^
+        Annotated[FullEstimatedResponse | LowerBoundEstimatedResponse, Field(discriminator="basis")]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ]):
+    ^
+  File "/Users/terbeest/dev/modelspec/.venv/lib/python3.14/site-packages/pydantic/main.py", line 965, in __class_getitem__
+    submodel = _generics.create_generic_submodel(model_name, origin, args, params)
+  File "/Users/terbeest/dev/modelspec/.venv/lib/python3.14/site-packages/pydantic/_internal/_generics.py", line 144, in create_generic_submodel
+    reference_module_globals = sys.modules[created_model.__module__].__dict__
+                               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'pydantic.root_model'
