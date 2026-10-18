@@ -19,8 +19,10 @@ class JSONStreamReader:
         self._cursor = 0
         self._hashed = 0
         self._eof = False
-        self._decoder = json.JSONDecoder()
         self._keys: dict[str, str] = {}
+        self._decoder = json.JSONDecoder(object_pairs_hook=lambda pairs, keys=self._keys: {
+            keys.setdefault(key, key): value for key, value in pairs
+        })
         self._digest = digest
 
     def _fill(self, size: int | None = None) -> None:
@@ -102,6 +104,13 @@ class JSONStreamReader:
             self._whitespace()
 
     def _array(self) -> list[Any]:
+        try:
+            value, end = self._decoder.raw_decode(self._buffer, self._cursor)
+        except json.JSONDecodeError:
+            pass
+        else:
+            self._cursor = end
+            return value
         self._cursor += 1
         result = []
         self._whitespace()

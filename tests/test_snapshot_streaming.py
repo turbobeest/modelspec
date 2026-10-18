@@ -53,6 +53,20 @@ def test_streaming_json_preserves_values_across_refills(monkeypatch, chunk_size)
     assert next(iter(result["é🙂"][-2])) is next(iter(result["é🙂"][-1]))
 
 
+@pytest.mark.parametrize("chunk_size", [7, 64, 65536])
+def test_streamed_arrays_share_keys_with_surrounding_objects(monkeypatch, chunk_size):
+    from decision import json_stream
+
+    monkeypatch.setattr(json_stream, "_CHUNK_SIZE", chunk_size)
+    value = {"shared_field": 0, "first": [{"shared_field": 1}],
+             "second": [{"shared_field": 2}]}
+    loaded = json_stream.load_json(io.StringIO(json.dumps(value)))
+    assert loaded == value
+    key = next(iter(loaded))
+    assert next(iter(loaded["first"][0])) is key
+    assert next(iter(loaded["second"][0])) is key
+
+
 @pytest.mark.parametrize("chunk_size", [1, 7, 64, 65536])
 def test_signed_snapshot_hashes_exact_streamed_text(monkeypatch, chunk_size):
     from decision import json_stream
@@ -157,7 +171,8 @@ def test_deep_fallback_still_rejects_duplicate_outer_content():
         _load(gzip.compress(altered))
 
 
-def test_failed_json_parse_releases_reader_without_cyclic_collection(monkeypatch):
+@pytest.mark.parametrize("encoded", ['{"x":1,', '[{"same_key":1},'])
+def test_failed_json_parse_releases_reader_without_cyclic_collection(monkeypatch, encoded):
     from decision import json_stream
 
     readers = []
@@ -173,7 +188,7 @@ def test_failed_json_parse_releases_reader_without_cyclic_collection(monkeypatch
     gc.disable()
     try:
         try:
-            json_stream.load_json(io.StringIO('{"x":1,'))
+            json_stream.load_json(io.StringIO(encoded))
         except json.JSONDecodeError:
             pass
         assert readers and all(reader() is None for reader in readers)
