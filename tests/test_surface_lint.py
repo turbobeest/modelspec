@@ -10,7 +10,6 @@ import pytest
 import yaml
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT
 from pipeline import agent_copy, entity, holding, live, worker_flags
 from pipeline import surface_lint as sl
 from scripts.aeo import surface_drift as drift
@@ -289,9 +288,11 @@ def test_all_owned_formats_and_legal_pages_get_lexicon_checks(path: str) -> None
 
 
 def test_removed_sources_reuse_the_catalogue_rule() -> None:
-    # Get a witness from the shared expression, without duplicating its names.
-    witness = REMOVED_TEXT.pattern.split("|")[1]
-    assert REMOVED_TEXT.search(witness)
+    # The witness comes from the shared publisher names, not a second copy.
+    from decision.excluded import PUBLISHER_NAMES, excluded_publisher
+
+    witness = PUBLISHER_NAMES[1]
+    assert excluded_publisher(witness)
     assert (
         sl.lexicon({"llms.txt": "Source: " + witness}, {}, {})[0].check == "lexicon.removed-source"
     )

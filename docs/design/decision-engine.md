@@ -282,7 +282,7 @@ Outcome records feed the capability model as a labelled first-party source, dete
 - The fixed platform fields in `Availability`.
 - The `evidence_basis` label, replaced by per-evidence verification status and directness.
 
-**Contract:** the decision contract is a new major version alongside `/v1/rank`, which is retired after the cutover. Legacy card fields left empty by the source exclusions (`artificial_analysis_url`) are removed in the same major version, so they cost no separate bump.
+**Contract:** the decision contract is a new major version alongside `/v1/rank`, which is retired after the cutover. Legacy card fields left empty by the source exclusions are removed in the same major version, so they cost no separate bump.
 
 ---
 
@@ -317,7 +317,7 @@ The same components produce the **launch report**: when a new model lands, a per
 2. **Offerings by tier:** a tier is a separate offering only when a guaranteed fact differs (§4.1).
 3. **Re-checks:** intervals by kind of fact. Every value names its registered sources, and deterministic fingerprint checks mean agents run only when a cited region changes (§5).
 4. **Harness IDs:** `name@major.minor`, a registry, and `unregistered` for unknown harnesses (§4.1).
-5. **The legacy `artificial_analysis_url` field** is removed at the decision-contract cutover (§10).
+5. **The legacy source field key** is removed at the decision-contract cutover (§10).
 6. **First-party measurement** is a decision: passive (DPF) first, then speed probes, then open-benchmark runs, each approved before any spend (§9, ADR 0004).
 
 ## 13. Open questions

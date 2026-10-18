@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from decision.excluded import REMOVED_TEXT, excluded_sources
+from decision.excluded import (
+    REMOVED_TEXT,
+    excluded_publisher,
+    excluded_sources,
+    without_legacy_source_keys,
+)
 from decision.snapshot import (
     LoadedSnapshot,
     SnapshotIntegrityError,
@@ -122,6 +127,8 @@ def guard_output(sources: Mapping[str, str], text: str) -> None:
             raise BreakdownError(f"excluded source {source_id}: {url}")
         if signal_only(url):
             raise BreakdownError(f"signal-only source {source_id}: {url} is never evidence")
+    if excluded_publisher(without_legacy_source_keys(text)):
+        raise BreakdownError("excluded source text in the output")
     hit = REMOVED_TEXT.search(text)
     if hit:
         raise BreakdownError(f"excluded source text in the output: {hit.group(0)!r}")

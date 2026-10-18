@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT
+from decision.excluded import REMOVED_TEXT, excluded_publisher, without_legacy_source_keys
 from decision.registry import default as default_registry
 from decision.snapshot import Ed25519Signer, Snapshot, SnapshotInputs, build_snapshot
 from pipeline import landing, method
@@ -189,6 +189,7 @@ def test_page_has_no_internal_ticket_language_or_removed_sources(data: landing.L
     assert "MODEL-" not in page
     assert "coming soon" not in page.lower()
     assert REMOVED_TEXT.search(page) is None
+    assert excluded_publisher(without_legacy_source_keys(page)) is False
     assert '<link rel="canonical" href="https://modelspec.dev/method/">' in page
     assert "noindex" not in page
 

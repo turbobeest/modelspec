@@ -6,8 +6,9 @@ removed on 2026-09-24. Zapier is treated the same way by the same decision, so
 every value sourced from zapier.com and the AutomationBench benchmark were
 removed with it.
 
-This guard and ``decision/excluded.py`` are the only files that name either
-source. The checks cover tracked files, loaded cards and pages, ranking tables,
+This guard, ``decision/excluded.py``, and the platform draft tests are the
+only files that name either source. The checks cover tracked files, loaded
+cards and pages, ranking tables,
 and the JSON export. Set ``MODELSPEC_DIST`` to a built ``dist/`` to scan it too.
 """
 
@@ -24,7 +25,9 @@ from decision.excluded import (
     REMOVED_HOSTS,  # noqa: F401 - part of this guard's public test surface
     REMOVED_ID,
     REMOVED_TEXT,
+    excluded_publisher,
     excluded_sources,
+    without_legacy_source_keys,
 )
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
@@ -33,6 +36,8 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 ALLOWED = (
     Path(__file__).resolve().relative_to(REPO_ROOT).as_posix(),
     "decision/excluded.py",
+    # The draft tests name both publishers in order to prove the drafts omit them.
+    "tests/test_release_blog_platforms.py",
 )
 ALLOWED_GLOBS = ("docs/research/source-terms-*.md",)
 
@@ -65,6 +70,10 @@ def _hits(root: Path, files: list[Path]) -> list[str]:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue  # binary: fonts, images, compressed corpora
+        visible = without_legacy_source_keys(text)
+        if excluded_publisher(visible):
+            hits.append(f"{rel}: excluded publisher")
+            continue
         match = REMOVED_TEXT.search(text)
         if match:
             line = text.count("\n", 0, match.start()) + 1
@@ -151,11 +160,11 @@ def test_the_export_carries_no_removed_value(tmp_path: Path) -> None:
     ],
 )
 def test_excluded_publishers_match_across_separators(text: str) -> None:
-    assert REMOVED_TEXT.search(text), text
+    assert excluded_publisher(text), text
 
 
 def test_a_sentence_about_lighting_is_not_an_excluded_publisher() -> None:
-    assert REMOVED_TEXT.search("The artificial lighting analysis is separate.") is None
+    assert excluded_publisher("The artificial lighting analysis is separate.") is False
 
 
 def test_the_legacy_source_field_key_is_not_a_publisher_name() -> None:
@@ -167,6 +176,79 @@ def test_mixed_separators_collapse_before_the_publisher_check() -> None:
 
     assert excluded_publisher("Artificial - . Analysis")
     assert excluded_publisher("The artificial lighting analysis is separate.") is False
+
+
+def test_a_glued_publisher_name_and_its_domains_are_excluded() -> None:
+    from decision.excluded import excluded_publisher
+
+    assert excluded_publisher("ArtificialAnalysisPro")
+    assert excluded_publisher("artificialanalysis.ai")
+    assert excluded_publisher("https://www.artificialanalysis.ai/models/x")
+    assert excluded_publisher("zapier.com")
+    assert excluded_publisher("https://zapier.com/apps")
+
+
+def test_the_legacy_field_key_is_exempt_and_the_same_spelling_as_a_value_is_not() -> None:
+    from decision.excluded import excluded_publisher, without_legacy_source_keys
+
+    assert excluded_publisher("artificial_analysis_url") is True
+    assert excluded_publisher(without_legacy_source_keys("artificial_analysis_url: ''")) is False
+    assert (
+        excluded_publisher(without_legacy_source_keys('{"artificial_analysis_url": ""}')) is False
+    )
+    assert excluded_publisher(without_legacy_source_keys("value artificial_analysis_url")) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Artificial - . Analysis",
+        "Model Artificial - . Analysis",
+        "ArtificialAnalysisPro",
+        "artificialanalysis.ai",
+        "zapier.com",
+        "Zap - . ier",
+    ],
+)
+def test_guard_output_and_lexicon_reject_collapsed_publishers(text: str) -> None:
+    from pipeline.surface_lint import lexicon
+    from release_blog.gates import BreakdownError, guard_output
+
+    with pytest.raises(BreakdownError, match="excluded source"):
+        guard_output({}, text)
+    findings = [
+        item
+        for item in lexicon({"llms.txt": text}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, text
+
+
+def test_a_snapshot_refuses_a_fact_value_that_names_a_publisher() -> None:
+    from decision.snapshot import SnapshotBuildError, build_snapshot
+    from tests.snapshot_records import SOURCES, fact, model
+    from tests.test_decision_snapshot import AS_OF, REGISTRY, inputs
+
+    for payload in (
+        "Artificial - . Analysis",
+        "Model Artificial - . Analysis",
+        "ArtificialAnalysisPro",
+        "artificialanalysis.ai",
+        "zapier.com",
+    ):
+        facts = [fact("model", "lab/alpha", "model.weights_openness", payload)]
+        with pytest.raises(SnapshotBuildError, match="excluded source"):
+            build_snapshot(
+                inputs(
+                    models=[model("lab/alpha", facts=facts)],
+                    offerings=[],
+                    evidence=[],
+                    sources=SOURCES,
+                ),
+                registry=REGISTRY,
+                as_of=AS_OF,
+                guard=excluded_sources(),
+            )
 
 
 @pytest.mark.skipif(not os.environ.get("MODELSPEC_DIST"), reason="set MODELSPEC_DIST to a built dist/")

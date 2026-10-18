@@ -52,7 +52,12 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 import yaml
 
-from decision.excluded import ExcludedSources, excluded_sources
+from decision.excluded import (
+    ExcludedSources,
+    excluded_publisher,
+    excluded_sources,
+    without_legacy_source_keys,
+)
 from decision.model import (
     Measurement,
     evidence_verification_value,
@@ -1578,10 +1583,16 @@ def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
     if guard is not None:
         text = canonical_json(content).decode("utf-8")
         hit = guard.text.search(text)
+        publisher = excluded_publisher(without_legacy_source_keys(text))
         bad = [u for u in content["sources"].values() if guard.url(u)]
-        if hit or bad:
-            raise SnapshotBuildError(
-                f"excluded source in the snapshot output: {hit.group(0) if hit else bad[0]!r}")
+        if hit or publisher or bad:
+            if hit:
+                detail = hit.group(0)
+            elif bad:
+                detail = repr(bad[0])
+            else:
+                detail = "'removed publisher'"
+            raise SnapshotBuildError(f"excluded source in the snapshot output: {detail}")
     digest = content_hash(content)
     return Snapshot(content=content, content_hash=digest, snapshot_id=snapshot_id_for(digest))
 

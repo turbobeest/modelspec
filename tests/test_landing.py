@@ -397,7 +397,7 @@ def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingDa
 
 
 def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
-    from decision.excluded import REMOVED_TEXT
+    from decision.excluded import REMOVED_TEXT, excluded_publisher, without_legacy_source_keys
     from pipeline import method
     from pipeline.build import llms_txt
     from pipeline.export import Build
@@ -419,5 +419,6 @@ def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
         for phrase in ("dod", "-grade", "compliant with", "complies with", "certified"):
             assert phrase not in lowered, phrase
         assert REMOVED_TEXT.search(page) is None
+        assert excluded_publisher(without_legacy_source_keys(page)) is False
     assert "an analysis of alternatives" in pages[0].lower()
     assert "an analysis of alternatives" in llms.lower()

@@ -385,7 +385,8 @@ whose value differs from `first_revision`, as old and new `Cited` pairs.
 The generator refuses to write, rather than warning, when:
 
 - any URL in `sources` matches `excluded_sources().url()`, or any string in
-  the output matches `REMOVED_TEXT` (a second check after the snapshot's own);
+  the output names a removed publisher (`excluded_publisher`) or an owned
+  benchmark (`REMOVED_TEXT`), after the snapshot's own check;
 - any `sources` URL is on `x.com` or `twitter.com`;
 - a `Cited` has neither `record_id` nor `computed`;
 - the two snapshots were signed by keys not in `decision/snapshot_keys.json`.

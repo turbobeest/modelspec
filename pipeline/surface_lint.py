@@ -20,7 +20,12 @@ from urllib.parse import urljoin, urlsplit
 import yaml
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT
+from decision.excluded import (
+    REMOVED_TEXT,
+    excluded_publisher,
+    publisher_span,
+    without_legacy_source_keys,
+)
 from pipeline import agent_copy, entity, worker_flags
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -407,6 +412,21 @@ def lexicon(
                         "current registry and decision-approved claims",
                     )
                 )
+        if excluded_publisher(without_legacy_source_keys(text)):
+            span = publisher_span(text)
+            if span is None:
+                excerpt = text[:120]
+            else:
+                start, end = span
+                excerpt = text[max(0, start - 40) : end + 80]
+            findings.append(
+                Finding(
+                    path,
+                    "lexicon.removed-source",
+                    excerpt,
+                    "current registry and decision-approved claims",
+                )
+            )
         for match in SPONSORSHIP.finditer(text):
             gated = referral_fees if match.group().lower() == "affiliate" else paid_placement
             # A benchmark author's funding is provenance, not ModelSpec paid

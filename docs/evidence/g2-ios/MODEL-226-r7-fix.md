@@ -20,7 +20,7 @@ The shared publisher pattern matches either publisher across a run of
 spaces, hyphens, underscores, or dots, as a whole token. A second
 pass drops those separators and checks again, so a mixed run such as
 space-hyphen-dot still matches. The match does not swallow the empty
-legacy source field key on a card (`artificial_analysis_url`). That
+legacy source field key on a card. That
 key is still rejected as a benchmark id by `REMOVED_ID`. The second
 alternative of the pattern stays the bare second publisher name so
 the surface-lint witness, `pattern.split("|")[1]`, is unchanged.
@@ -99,7 +99,7 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 `1038 passed, 2 skipped in 389.72s`, exit 0. An earlier run of this
 command, before the token boundary, exited 1: `2 failed, 1035 passed,
 2 skipped in 335.82s`. Both failures were `REMOVED_TEXT` matching
-inside `artificial_analysis_url` (`test_no_tracked_file_names_a_removed_source`
+inside the legacy source field key (`test_no_tracked_file_names_a_removed_source`
 and `test_the_export_carries_no_removed_value`). The pattern now
 requires the publisher name to be a whole token. One sentence in
 `docs/evidence/g2-ios/MODEL-226-r6-fix.md` also named both publishers

@@ -7,14 +7,16 @@ at the breakdown for every number. Expected text is written in this file.
 from __future__ import annotations
 
 import ast
+import json
 import re
 import unicodedata
+from itertools import product
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from decision.excluded import excluded_sources
+from decision.excluded import excluded_publisher, excluded_sources
 from release_blog import platforms
 from release_blog.breakdown import to_bytes
 from release_blog.model import Breakdown
@@ -227,6 +229,7 @@ def test_drafts_name_modelspec_and_carry_no_number(breakdown) -> None:
         _numberless(draft, _URL)
         assert refused_words(draft) == []
         assert excluded_sources().text.search(draft) is None
+        assert excluded_publisher(draft) is False
         assert "router" not in draft.lower()
 
 
@@ -811,3 +814,81 @@ def test_repeated_readings_still_keep_the_exact_url(breakdown, tmp_path) -> None
         assert "2.1" not in draft
         assert "$0.112" not in draft
     assert len(files["linkedin.txt"]) <= 3000
+
+
+def test_every_separator_run_rejects_both_publishers(breakdown, tmp_path: Path) -> None:
+    """Every separator run is excluded, including inside a longer name."""
+    runs = [
+        "".join(parts)
+        for length in range(1, 5)
+        for parts in product(" \t\n-_.", repeat=length)
+    ]
+    assert len(runs) == 1554
+    pairs = (("Artificial", "Analysis"), ("Zap", "ier"))
+    predicate_misses = []
+    for left, right in pairs:
+        for sep in runs:
+            for text in (f"{left}{sep}{right}", f"Model {left}{sep}{right} name"):
+                if not excluded_publisher(text):
+                    predicate_misses.append(text)
+    for text in (
+        "ArtificialAnalysisPro",
+        "artificialanalysis.ai",
+        "zapier.com",
+        "https://artificialanalysis.ai/models",
+        "https://zapier.com/apps",
+    ):
+        if not excluded_publisher(text):
+            predicate_misses.append(text)
+    assert excluded_publisher("The artificial lighting analysis is separate.") is False
+
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    model_id = data["model"]["id"]
+    original_name = data["model"]["name"]
+    original_provider = data["model"]["provider"]
+    original_alias = data["names"].get(model_id)
+    source = tmp_path / "breakdown.json"
+    out = tmp_path / "social"
+    leaks = []
+
+    def drafts_for(field: str, payload: str) -> dict[str, str]:
+        data["model"]["name"] = original_name
+        data["model"]["provider"] = original_provider
+        if original_alias is None:
+            data["names"].pop(model_id, None)
+        else:
+            data["names"][model_id] = original_alias
+        if field == "name":
+            data["model"]["name"] = payload
+        elif field == "provider":
+            data["model"]["provider"] = payload
+        else:
+            data["names"][model_id] = payload
+        source.write_text(json.dumps(data), encoding="utf-8")
+        written = generate_from_breakdown(
+            breakdown_path=source, post_url=_URL, output_dir=out
+        )
+        assert len(written) == 6
+        return {name: Path(path).read_text(encoding="utf-8") for name, path in written.items()}
+
+    payloads = [
+        text
+        for left, right in pairs
+        for sep in runs
+        for text in (f"{left}{sep}{right}", f"Model {left}{sep}{right} name")
+    ]
+    payloads.extend(("ArtificialAnalysisPro", "artificialanalysis.ai", "zapier.com"))
+    for payload in payloads:
+        for field in ("name", "alias", "provider"):
+            drafts = drafts_for(field, payload)
+            kept = any(payload in draft for draft in drafts.values())
+            if field == "provider":
+                replaced = all("from the lab." in draft for draft in drafts.values())
+            else:
+                replaced = all("the new model" in draft for draft in drafts.values())
+            if kept or not replaced:
+                leaks.append((field, payload))
+    assert predicate_misses == [] and leaks == [], (
+        f"{len(predicate_misses)} predicate misses, {len(leaks)} drafts kept a publisher; "
+        f"first miss {predicate_misses[:2]!r}; first leak {leaks[:2]!r}"
+    )

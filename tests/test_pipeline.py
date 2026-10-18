@@ -869,7 +869,7 @@ def test_use_case_without_answer_is_noindex_and_absent_from_sitemap(
 
 
 def test_use_case_neutrality_and_access(use_case_template, use_case_decision):
-    from decision.excluded import REMOVED_TEXT
+    from decision.excluded import REMOVED_TEXT, excluded_publisher, without_legacy_source_keys
     from pipeline.surface_lint import Page
 
     raw = builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23))
@@ -879,6 +879,7 @@ def test_use_case_neutrality_and_access(use_case_template, use_case_decision):
     assert "Human lookup is free" in page.visible
     assert "CLI, API, and MCP access requires a key" in page.visible
     assert REMOVED_TEXT.search(raw) is None
+    assert excluded_publisher(without_legacy_source_keys(raw)) is False
     for forbidden in ("openrouter", "litellm", "portkey",
                       "not diamond", "routellm", "affiliate", "paid placement", "keyless"):
         assert forbidden not in raw.lower()
