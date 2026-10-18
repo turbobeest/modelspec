@@ -4,7 +4,6 @@ The expected responses were recorded from origin/main before the visit gate
 existed (tests/fixtures/visit_gate_off_main.json). This file imports nothing
 the gate added. MODEL-291 adds guide discovery headers to every /v1 response;
 those additions are checked separately before comparing the original response.
-MODEL-402 also checks the decision snapshot header against its response body.
 """
 import asyncio
 import copy
@@ -75,8 +74,6 @@ def test_flag_off_response_equals_main(worker, name):
         discovery["access-control-expose-headers"] = exposed.removesuffix(", " + added)
     if name == "vocabulary GET query":
         assert actual["body"].pop("next") == "next: call decide using these ids; refine from reading"
-    if name == "decide POST":
-        assert discovery.pop("x-modelspec-snapshot") == actual["body"]["snapshot"] == "snapshot-test"
     expected = copy.deepcopy(MAIN[name])
     if expected["status"] == 404:
         accepted = expected["body"]["error"]["accepted"]

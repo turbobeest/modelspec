@@ -134,6 +134,7 @@ def test_the_holding_trees_are_dark(trees):
                      "m", "p", "b", "models", "providers", "benchmarks", "downselect",
                      "graph", "pricing", "instrument.css"):
             assert not (tree / gone).exists(), (site, gone)
+        assert not (tree / "compare").exists(), site
     real = trees["real"] / "benchgraph"
     held = trees["holding"] / "benchgraph"
     assert _files(held) == _files(real)
@@ -359,11 +360,18 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
             (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
         ) if url.startswith(live.BASE + "/use-cases/")
     }
+    source_comparisons = {
+        url: stamp for url, stamp in sitemap_entries(
+            (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
+        ) if url.startswith(live.BASE + "/compare/")
+    }
     assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == (
-        len(live.PAGES) + len(source_use_cases)
+        len(live.PAGES) + len(source_use_cases) + len(source_comparisons)
     )
     assert {url: stamp for url, stamp in sitemap_entries(sitemap)
             if url.startswith(live.BASE + "/use-cases/")} == source_use_cases
+    assert {url: stamp for url, stamp in sitemap_entries(sitemap)
+            if url.startswith(live.BASE + "/compare/")} == source_comparisons
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page
@@ -397,6 +405,28 @@ def test_live_use_cases_preserve_public_image_discovery_and_noindex_states(trees
             assert live.BASE + path not in actual
     assert noindex
     assert live.dead_links(tree) == []
+
+
+def test_live_comparisons_preserve_pages_and_public_image_dates(trees):
+    from pipeline.surface_lint import Page, sitemap_entries
+
+    source = trees["real"] / "modelspec"
+    tree = trees["live"] / "modelspec"
+    pages = sorted((source / "compare").rglob("index.html"))
+    assert len(pages) > 1
+    expected = {url: stamp for url, stamp in sitemap_entries((source / "sitemap.xml").read_text())
+                if url.startswith(live.BASE + "/compare/")}
+    actual = {url: stamp for url, stamp in sitemap_entries((tree / "sitemap.xml").read_text())
+              if url.startswith(live.BASE + "/compare/")}
+    assert actual == expected
+    assert live.BASE + "/compare/" in actual
+    assert set(actual.values()) == {builder.use_case_image_date(ROOT).isoformat()}
+    for page in pages:
+        rel = page.relative_to(source)
+        assert (tree / rel).read_bytes() == page.read_bytes(), rel
+        url = live.BASE + "/" + rel.parent.as_posix() + "/"
+        assert (url in actual) == ("noindex" not in Page(page.read_text()).meta["robots"])
+    assert not (trees["holding"] / "modelspec/compare").exists()
 
 
 def test_every_live_page_carries_one_json_ld_graph(trees):
