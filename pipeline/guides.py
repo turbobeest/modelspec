@@ -40,8 +40,11 @@ def _table(identifier: str, headings: tuple[str, ...], rows: list[list[str]]) ->
 
 def _example(template: dict, decision: dict, tokens) -> str:
     value = build._use_case_value
-    aliases = {row["model"]: f"Alternative {_letters(index)}"
-               for index, row in enumerate(sorted(decision["by_model"], key=lambda row: row["model"]), 1)}
+    bands = decision.get("bands")
+    models = {row["model"] for row in decision["by_model"]}
+    if bands:
+        models.update(entry["model"] for band in ("best", "rest", "thin") for entry in bands[band])
+    aliases = {model: f"Alternative {_letters(index)}" for index, model in enumerate(sorted(models), 1)}
     offerings = {tuple(row["offering"].values()) for model in decision["by_model"]
                  for row in model["offerings"]}
     routes = {key: f"Offering {_letters(index)}" for index, key in
@@ -64,7 +67,6 @@ def _example(template: dict, decision: dict, tokens) -> str:
         body += f'<p>{label}: ' + ", ".join(aliases[mid] for mid in answer["members"]) + '.</p>'
     else:
         body += '<p>No recommendation: the public image has no answer with enough evidence.</p>'
-    bands = decision.get("bands")
     if bands:
         body += f'<p>{r.esc(bands["basis"])}</p>'
     body += ('<p>Tie-breakers describe members of the tie. They do not establish a winner. '

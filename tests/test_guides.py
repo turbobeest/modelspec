@@ -23,12 +23,15 @@ PATHS = ("/guides/", CHOOSE, COMPARE)
 DAY = date(2026, 9, 23)
 
 
-def _image(price: float):
+def _image(price: float, *, additional_models: int = 0):
     models, offerings, measurements = [], [], []
-    for name, kind, rate in (("alpha", "text-generator", price),
-                             ("beta", "text-generator", 0.5),
-                             ("costly", "text-generator", 10),
-                             ("image", "image-generator", 0.5)):
+    candidates = [("alpha", "text-generator", price),
+                  ("beta", "text-generator", 0.5),
+                  ("costly", "text-generator", 10),
+                  ("image", "image-generator", 0.5)]
+    candidates.extend((f"extra-{index:02}", "text-generator", 0.5)
+                      for index in range(additional_models))
+    for name, kind, rate in candidates:
         mid = "lab/" + name
         models.append(model(mid, facts=[
             fact("model", mid, "model.class", kind),
@@ -138,6 +141,29 @@ def test_example_has_exact_public_image_label_tie_rules_and_template_link(render
     assert "USD" in page.visible and "Unavailable" in page.visible
     assert "engine-selected offering" in page.visible
     assert "screened out" in page.visible.lower()
+
+
+def test_guide_keeps_every_band_model_when_results_are_truncated(tmp_path, monkeypatch, image_root):
+    from pipeline import guides
+
+    built = _image(0.5, additional_models=23)
+    _, _, decision = _expected(built)
+    entries = [entry for band in ("best", "rest", "thin") for entry in decision["bands"][band]]
+    assert decision["truncated"]["models"] > 0
+    assert len(entries) > len(decision["results"])
+    monkeypatch.setattr(snapshot, "build_from_repo", lambda *a, **kw: built)
+    guides.write(tmp_path / "site", image_root)
+    raw = (tmp_path / "site" / CHOOSE.lstrip("/") / "index.html").read_text()
+    rows = _rows(raw, "example-results")[1:]
+    assert len(rows) == len(entries)
+    assert len({row[0] for row in rows}) == len(entries)
+    assert all(row[0].startswith("Alternative ") for row in rows)
+    assert [row[2:] for row in rows] == [
+        [surface_lint.Page(build._use_case_value(entry[field])).visible
+         for field in ("score", "score_interval", "p_best", "cost_per_task")]
+        for entry in entries
+    ]
+    assert all(entry["model"] not in raw for entry in entries)
 
 
 def test_guides_compare_categories_without_product_names(rendered):
