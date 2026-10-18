@@ -25,6 +25,24 @@ The MCP capture freshness assertion includes the exact regeneration command.
 No workflow, contract, published prose, frozen data, production switch or
 packaging allowlist changed.
 
+The parsed-data comparison against the base commit also exited 0:
+
+```bash
+/Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY_COMPARE'
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+for relative in ('cli/modelspec/agent-bundle.json', 'qa/fixtures/mcp-tools.json'):
+    before = json.loads(subprocess.check_output(['git', 'show', f'0cf4080a:{relative}']))
+    after = json.loads(Path(relative).read_bytes())
+    if relative.startswith('cli/'):
+        before['source_hashes']['pipeline/agent_copy.py'] = hashlib.sha256(Path('pipeline/agent_copy.py').read_bytes()).hexdigest()
+    assert before == after, relative
+    print(relative, 'parsed data preserved; only the CLI generator self-pin changed')
+PY_COMPARE
+```
+
 ## Red-first result
 
 Before changing production code, ran:
@@ -132,7 +150,14 @@ PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /User
 
 Browser retry exited 0: `12 passed, 21 deselected in 18.45s`.
 Repeated the same locked full-suite command after building the assets.
-Final locked full-suite result: pending.
+Final locked full-suite result, exit 0:
+
+```text
+11585 passed, 9 skipped, 11 warnings in 1254.41s (0:20:54)
+```
+
+The 11 warnings report unsigned decision vocabulary in the existing CLI
+snapshot and keyed-origin tests.
 Test output was redirected to scratch logs; exit codes came directly from
 the commands, with no pipeline masking them.
 
