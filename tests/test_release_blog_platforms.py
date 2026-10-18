@@ -30,17 +30,17 @@ _URL = "https://modelspec.dev/blog/lab-alpha/"
 _NEUTRALITY = "No referral fees, no paid placement, no provider-paid visibility, permanently."
 _SUPPLIER = "ModelSpec supplies evaluation services to this lab."
 _EARLY = "ModelSpec received early access without editorial conditions."
+_SUPPLIER_LINE = "ModelSpec has a supplier relationship with this lab; details in the breakdown."
+_EARLY_LINE = "ModelSpec received early access to this model; details in the breakdown."
 _HAND = "Make the image by hand."
-_CHANGE = (
-    "On swe_bench_pro, an independent reading of the same setup is lower than the lab's figure."
-)
+_HOOK = "New model, new evidence: here is how it compares."
 _HEADLINE = (
     "This model is in the leading band for software engineering; "
     "independent readings sit beside the lab's figures"
 )
-_COVER = "The breakdown covers the new model."
-_ANALYSIS = "ModelSpec is an analysis of alternatives for a text generator."
-_TEAMS = "ModelSpec is an analysis of alternatives for teams choosing a text generator."
+_COVER = "The breakdown covers the new model from lab."
+_ANALYSIS = "ModelSpec is an analysis of alternatives."
+_TEAMS = "ModelSpec is an analysis of alternatives for teams choosing a model."
 _LINK = f"Read the full breakdown, with sources: {_URL}"
 _RULES = (
     "Target subreddit: r/LocalLLaMA. "
@@ -51,59 +51,54 @@ _RULES = (
     "This draft is for a person to post, and only in r/LocalLLaMA. "
     "Do not cross-post."
 )
-_HN_TITLE = "An independent reading of the same setup is lower than the lab's figure."
 _BANNED_DRAFT = re.compile(
     r"(?<!\w)(?:best|fastest|cheapest|top|leading|greatest|strongest|smartest|"
-    r"unbeatable|unmatched|number one|#1)(?!\w)",
+    r"unbeatable|unmatched|number[\s-]+one|no\.\s*1|#1)(?!\w)",
     re.IGNORECASE,
 )
 _JAMIE = "Jamie decides whether to submit."
 _NUMBER_CATEGORIES = frozenset({"Nd", "No", "Nl"})
 
 
-# The breakdown headline names the leading band. That claim stays on the
-# breakdown. These drafts say what changed and link to it. The fixture URL
-# has no digit. Alpha 2.5 does, so the draft says "the new model".
+# The headline, the benchmark sentence, and disclosure prose stay in the
+# breakdown. A draft is reviewed copy plus a validated name, lab, and URL.
+# Alpha 2.5 has a digit, so the draft says "the new model". The fixture
+# provider is the copyable name "lab".
 _ORACLE = {
     "x": (
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "linkedin": (
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for teams choosing a text generator.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives for teams choosing a model.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "facebook": (
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "instagram": (
         "Make the image by hand.\n\n"
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "reddit": (
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
         "This is ModelSpec.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives.\n\n"
         "Target subreddit: r/LocalLLaMA. "
         "Its Limit Self-Promotion rule requires affiliation to be disclosed, "
         "and self-promotion to stay a small share of the account's posts and comments. "
@@ -115,11 +110,9 @@ _ORACLE = {
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
     ),
     "hackernews": (
-        "An independent reading of the same setup is lower than the lab's figure.\n\n"
-        "On swe_bench_pro, an independent reading of the same setup is lower "
-        "than the lab's figure.\n\n"
-        "The breakdown covers the new model.\n\n"
-        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "New model, new evidence: here is how it compares.\n\n"
+        "The breakdown covers the new model from lab.\n\n"
+        "ModelSpec is an analysis of alternatives.\n\n"
         "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
         "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/\n\n"
         "Jamie decides whether to submit."
@@ -225,7 +218,10 @@ def test_drafts_name_modelspec_and_carry_no_number(breakdown) -> None:
         assert "ModelSpec is an analysis of alternatives" in draft, name
         assert "Alpha 2.5" not in draft
         assert "the new model" in draft
+        assert "text generator" not in draft
+        assert "swe_bench_pro" not in draft
         assert _HEADLINE not in draft
+        assert _HOOK in draft
         assert _LINK in draft
         assert _NEUTRALITY in draft
         _numberless(draft, _URL)
@@ -234,12 +230,12 @@ def test_drafts_name_modelspec_and_carry_no_number(breakdown) -> None:
         assert "router" not in draft.lower()
 
 
-def test_x_thread_fits_and_opens_on_the_change(breakdown) -> None:
+def test_x_thread_fits_and_opens_on_the_hook(breakdown) -> None:
     draft = render_drafts(breakdown)["x"]
     posts = posts_of(draft)
     assert posts
     assert [(index, len(post)) for index, post in enumerate(posts) if len(post) > 280] == []
-    assert posts[0] == _CHANGE
+    assert posts[0] == _HOOK
     assert "70%" not in draft
     assert "67.9%" not in draft
     assert "2.1" not in draft
@@ -252,15 +248,16 @@ def test_linkedin_keeps_the_full_url(breakdown) -> None:
     assert "teams choosing" in draft
     assert len(draft) <= 3000
     assert _URL in draft
+    assert draft.split().count(_URL) == 1
     assert _NEUTRALITY in draft
-    assert "text generator" in draft
+    assert "text generator" not in draft
 
 
-def test_facebook_post_carries_the_change_and_the_link(breakdown) -> None:
+def test_facebook_post_carries_the_hook_and_the_link(breakdown) -> None:
     draft = render_drafts(breakdown)["facebook"]
     assert len(draft) <= 500
     assert _URL in draft
-    assert _CHANGE in draft
+    assert _HOOK in draft
     assert _NEUTRALITY in draft
     assert "70%" not in draft
 
@@ -277,7 +274,7 @@ def test_instagram_is_a_caption_and_tells_the_person_to_make_the_image(breakdown
 def test_reddit_draft_names_one_subreddit_and_does_not_cross_post(breakdown) -> None:
     draft = render_drafts(breakdown)["reddit"]
     posts = posts_of(draft)
-    assert posts[0] == _CHANGE
+    assert posts[0] == _HOOK
     assert breakdown.headline.text not in draft
     assert len(posts[0]) <= 300
     assert len(draft) <= 40_000
@@ -294,10 +291,10 @@ def test_reddit_draft_names_one_subreddit_and_does_not_cross_post(breakdown) -> 
 def test_hacker_news_is_a_title_and_url_jamie_decides(breakdown) -> None:
     draft = render_drafts(breakdown)["hackernews"]
     posts = posts_of(draft)
-    assert posts[0] == _HN_TITLE
+    assert posts[0] == _HOOK
     assert len(posts[0]) <= 80
     assert breakdown.headline.text not in draft
-    assert _CHANGE in draft
+    assert _HOOK in draft
     assert _URL in draft
     assert _JAMIE in draft
     assert _NEUTRALITY in draft
@@ -343,11 +340,15 @@ def test_long_threads_keep_the_linkedin_url_and_disclosure(breakdown) -> None:
         _numberless(draft, url)
 
 
-def test_disclosures_are_in_every_platforms_written_copy(breakdown) -> None:
+def test_disclosures_are_in_every_platforms_written_copy(breakdown, tmp_path) -> None:
+    """A disclosure flag selects a fixed sentence. The breakdown sentence stays out."""
     related = _related(breakdown, supplier=_SUPPLIER, early_access=_EARLY)
-    for name, draft in render_drafts(related).items():
-        assert _SUPPLIER in draft, name
-        assert _EARLY in draft, name
+    files = _saved(related, tmp_path)
+    for name, draft in files.items():
+        assert _SUPPLIER_LINE in draft, name
+        assert _EARLY_LINE in draft, name
+        assert _SUPPLIER not in draft, name
+        assert _EARLY not in draft, name
         assert len(draft) <= {"facebook": 500, "x": 10_000}.get(name, 40_000)
         _numberless(draft, _URL)
 
@@ -358,7 +359,7 @@ def test_a_digit_free_name_is_used_and_versioned_names_are_not(breakdown) -> Non
     assert all("the new model" in draft for draft in versioned.values())
     clean = render_drafts(_named(breakdown, "Alpha"))
     assert all("Alpha 2.5" not in draft for draft in clean.values())
-    assert all("The breakdown covers Alpha." in draft for draft in clean.values())
+    assert all("The breakdown covers Alpha from lab." in draft for draft in clean.values())
     assert all(
         f"Read the full breakdown of Alpha, with sources: {_URL}" in draft
         for draft in clean.values()
@@ -366,7 +367,7 @@ def test_a_digit_free_name_is_used_and_versioned_names_are_not(breakdown) -> Non
     aliased = breakdown.model_copy(update={"names": {breakdown.model.id: "Alpha"}})
     drafts = render_drafts(aliased)
     assert all("Alpha 2.5" not in draft for draft in drafts.values())
-    assert all("The breakdown covers Alpha." in draft for draft in drafts.values())
+    assert all("The breakdown covers Alpha from lab." in draft for draft in drafts.values())
 
 
 @pytest.mark.parametrize(
@@ -378,15 +379,21 @@ def test_a_digit_free_name_is_used_and_versioned_names_are_not(breakdown) -> Non
         ("neutrality", "No fees, pledge 1.", "disclosures.neutrality"),
     ],
 )
-def test_a_digit_in_prose_from_the_breakdown_is_rejected(breakdown, field, value, label) -> None:
+def test_a_digit_in_prose_from_the_breakdown_is_rejected(
+    breakdown, tmp_path, field, value, label
+) -> None:
+    """Free text is not copied, so a digit in it cannot reach a saved draft."""
     if field == "headline":
         related = breakdown.model_copy(
             update={"headline": breakdown.headline.model_copy(update={"text": value})}
         )
     else:
         related = _related(breakdown, **{field: value})
-    with pytest.raises(ValueError, match=re.escape(label)):
-        render_drafts(related)
+    files = _saved(related, tmp_path)
+    assert files
+    for name, draft in files.items():
+        assert value not in draft, (label, name)
+        _numberless(draft, _URL)
 
 
 @pytest.mark.parametrize("character", ["⁷⁰", "②", "①", "٣", "½", "Ⅳ"])
@@ -406,7 +413,9 @@ def test_unicode_digits_in_a_literal_are_rejected(breakdown, monkeypatch, charac
         ("neutrality", "disclosures.neutrality"),
     ],
 )
-def test_unicode_digits_in_inputs_are_rejected(breakdown, character, field, label) -> None:
+def test_unicode_digits_in_inputs_are_rejected(
+    breakdown, tmp_path, character, field, label
+) -> None:
     value = f"Noted {character}"
     if field == "headline":
         related = breakdown.model_copy(
@@ -414,8 +423,10 @@ def test_unicode_digits_in_inputs_are_rejected(breakdown, character, field, labe
         )
     else:
         related = _related(breakdown, **{field: value})
-    with pytest.raises(ValueError, match=re.escape(label)):
-        render_drafts(related)
+    files = _saved(related, tmp_path)
+    for name, draft in files.items():
+        assert value not in draft, (label, name)
+        assert character not in draft, (label, name)
 
 
 def test_a_unicode_digit_in_a_model_name_is_not_copied(breakdown) -> None:
@@ -537,6 +548,27 @@ def _with_headline(breakdown: Breakdown, text: str) -> Breakdown:
     )
 
 
+def _saved(breakdown: Breakdown, tmp_path: Path, post_url: str = _URL) -> dict[str, str]:
+    """The six files `generate_from_breakdown` writes for one breakdown."""
+    source = tmp_path / "breakdown.json"
+    source.write_bytes(to_bytes(breakdown))
+    written = generate_from_breakdown(
+        breakdown_path=source, post_url=post_url, output_dir=tmp_path / "social"
+    )
+    assert len(written) == 6
+    return {name: Path(path).read_text(encoding="utf-8") for name, path in written.items()}
+
+
+def _set_path(breakdown: Breakdown, path: str, value: str) -> Breakdown:
+    data = breakdown.model_dump(by_alias=True)
+    node = data
+    parts = path.split(".")
+    for part in parts[:-1]:
+        node = node[part]
+    node[parts[-1]] = value
+    return Breakdown.model_validate(data)
+
+
 @pytest.mark.parametrize(
     ("kind", "value"),
     [
@@ -577,10 +609,12 @@ def test_the_breakdown_url_is_an_exact_token(breakdown, monkeypatch, kind, value
     "value",
     ["seventypercent", "seventyPercent", "seventyper cent", "per-cent"],
 )
-def test_a_glued_percent_word_is_rejected(breakdown, value) -> None:
+def test_a_glued_percent_word_is_rejected(breakdown, tmp_path, value) -> None:
     related = _related(breakdown, supplier=f"Reported {value}.")
-    with pytest.raises(ValueError, match="percent"):
-        render_drafts(related)
+    files = _saved(related, tmp_path)
+    for draft in files.values():
+        assert value not in draft
+        _numberless(draft, _URL)
 
 
 @pytest.mark.parametrize(
@@ -588,13 +622,21 @@ def test_a_glued_percent_word_is_rejected(breakdown, value) -> None:
     [
         ("headline", "The best coding model."),
         ("headline", "The fastest coding model."),
+        ("headline", "The number-one coding model."),
+        ("headline", "The number one coding model."),
         ("draft", "The leading release."),
+        ("draft", "The number-one release."),
+        ("draft", "This is number one."),
+        ("draft", "It is no. 1 today."),
+        ("draft", "Ranked #1 overall."),
     ],
 )
-def test_a_superlative_is_rejected(breakdown, monkeypatch, kind, value) -> None:
+def test_a_superlative_is_rejected(breakdown, tmp_path, monkeypatch, kind, value) -> None:
     if kind == "headline":
-        with pytest.raises(ValueError, match="headline.text"):
-            render_drafts(_with_headline(breakdown, value))
+        files = _saved(_with_headline(breakdown, value), tmp_path)
+        for draft in files.values():
+            assert value not in draft
+            assert _BANNED_DRAFT.search(draft) is None
         return
     original = platforms._draft_text
 
@@ -617,3 +659,155 @@ def test_a_band_headline_stays_in_the_breakdown_and_out_of_the_draft(breakdown) 
     assert all(type(draft) is str for draft in drafts.values())
     assert all("best" not in draft.casefold() for draft in drafts.values())
     assert all(sole not in draft for draft in drafts.values())
+
+
+def test_platforms_do_not_read_breakdown_prose() -> None:
+    """The allowlist is structural: those fields are not mentioned in the writer."""
+    source = Path("release_blog/platforms.py").read_text(encoding="utf-8")
+    assert "headline" not in source
+    assert "disclosures.neutrality" not in source
+    assert "claims_vs_evidence" not in source
+    assert ".benchmark" not in source
+
+
+_AA_WIDE = "Artificial" + "  " + "Analysis"
+_AA_MIXED = "Artificial" + " - . " + "Analysis"
+_ZAP = "Zap" + "ier"
+
+
+@pytest.mark.parametrize(
+    ("finding", "path", "payload", "banned"),
+    [
+        ("r1-chart-text", "headline.text", "<text>99%</text>", ("<text>99%</text>", "99%")),
+        ("r1-card-html", "headline.text", "<p>The score is 99%.</p>", ("99%", "<p>")),
+        (
+            "r2-unrelated-number",
+            "headline.text",
+            '<text x="50" y="50">70%</text>',
+            ("70%",),
+        ),
+        (
+            "r3-supplier-digit",
+            "disclosures.supplier",
+            "ModelSpec delivers 99% accuracy.",
+            ("99%", "delivers 99%"),
+        ),
+        (
+            "r3-svg-paragraph",
+            "disclosures.early_access",
+            "<p>The score is 99%.</p>",
+            ("99%",),
+        ),
+        (
+            "r3-source-url",
+            "headline.text",
+            "See https://lab.example.com/alpha-launch today.",
+            ("https://lab.example.com/alpha-launch",),
+        ),
+        ("r4-superscript", "headline.text", "Noted score⁷⁰ here", ("⁷⁰", "score⁷⁰")),
+        (
+            "r4-swapped-percents",
+            "headline.text",
+            "the lab reports 67.9% and the independent reading is 70%",
+            ("67.9", "70%"),
+        ),
+        (
+            "r5-glued-percent",
+            "disclosures.supplier",
+            "Reported seventypercent.",
+            ("seventypercent",),
+        ),
+        ("r5-hyphen-percent", "disclosures.supplier", "Reported per-cent.", ("per-cent",)),
+        ("r5-best", "headline.text", "The best coding model.", ("The best coding model.",)),
+        (
+            "r5-fastest",
+            "headline.text",
+            "The fastest coding model.",
+            ("The fastest coding model.",),
+        ),
+        (
+            "r6-scheme-relative-link",
+            "disclosures.supplier",
+            "See [source](//example.org/).",
+            ("[source](//example.org/)", "//example.org"),
+        ),
+        (
+            "r6-wide-publisher",
+            "headline.text",
+            _AA_WIDE + " measured this model.",
+            (_AA_WIDE,),
+        ),
+        (
+            "r6-number-one",
+            "headline.text",
+            "The number-one coding model.",
+            ("number-one",),
+        ),
+        ("name-number-one", "model.name", "Number-one", ("Number-one",)),
+        ("name-mixed-publisher", "model.name", _AA_MIXED, (_AA_MIXED,)),
+        ("name-wide-publisher", "model.name", _AA_WIDE, (_AA_WIDE,)),
+        ("name-underscore", "model.name", "Beta_Two", ("Beta_Two",)),
+        ("lab-publisher", "model.provider", _ZAP, (_ZAP,)),
+        ("lab-underscore", "model.provider", "Lab_Alpha", ("Lab_Alpha",)),
+        ("class-prose", "model.class", "Special Class", ("Special Class",)),
+        (
+            "neutrality-prose",
+            "disclosures.neutrality",
+            "A different pledge sentence for this lab.",
+            ("A different pledge sentence for this lab.",),
+        ),
+    ],
+)
+def test_review_finding_never_enters_a_saved_draft(
+    breakdown, tmp_path, finding, path, payload, banned
+) -> None:
+    """One file-backed probe per REV-808 finding that carried breakdown text."""
+    if path == "alias":
+        related = breakdown.model_copy(update={"names": {breakdown.model.id: payload}})
+    else:
+        related = _set_path(breakdown, path, payload)
+    files = _saved(related, tmp_path)
+    for name, draft in files.items():
+        for piece in banned:
+            assert piece not in draft, (finding, name, piece)
+        prose = " ".join(token for token in draft.split() if token != _URL)
+        assert "[" not in prose, finding
+        assert "](" not in prose, finding
+        assert "//" not in prose, finding
+        _numberless(draft, _URL)
+        if path == "model.provider":
+            assert "from the lab." in draft, finding
+        if path == "model.name":
+            assert "the new model" in draft, finding
+        if path == "disclosures.neutrality":
+            assert _NEUTRALITY in draft, finding
+
+
+def test_a_copyable_name_and_lab_are_used(breakdown, tmp_path) -> None:
+    named = _set_path(_named(breakdown, "Beta Prime"), "model.provider", "Lab Alpha")
+    files = _saved(named, tmp_path)
+    for draft in files.values():
+        assert "The breakdown covers Beta Prime from Lab Alpha." in draft
+        assert f"Read the full breakdown of Beta Prime, with sources: {_URL}" in draft
+
+
+def test_repeated_readings_still_keep_the_exact_url(breakdown, tmp_path) -> None:
+    """R1 LinkedIn dropped the link once optional copy filled the post."""
+    longer = _with_repeated_readings(breakdown, "terminal_bench", 20)
+    files = _saved(longer, tmp_path, post_url="https://modelspec.dev/blog/example/")
+    assert set(files) == {
+        "x.txt",
+        "linkedin.txt",
+        "facebook.txt",
+        "instagram.txt",
+        "reddit.md",
+        "hn.txt",
+    }
+    for name, draft in files.items():
+        assert "<svg" not in draft, name
+        assert draft.split().count("https://modelspec.dev/blog/example/") == 1
+        assert "70%" not in draft
+        assert "67.9%" not in draft
+        assert "2.1" not in draft
+        assert "$0.112" not in draft
+    assert len(files["linkedin.txt"]) <= 3000

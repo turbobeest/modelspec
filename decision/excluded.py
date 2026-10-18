@@ -8,11 +8,19 @@ from urllib.parse import urlsplit
 
 # These publishers and their owned measurements were removed by MODEL-117.
 REMOVED_HOSTS = ("artificialanalysis.ai", "zapier.com")
+# Publisher names match across any run of whitespace, hyphens, underscores, or
+# dots. The name is a whole token: the empty legacy field
+# `artificial_analysis_url` is a key, and REMOVED_ID already rejects that
+# string as a benchmark id. The second alternative stays the bare second
+# publisher so callers that take the pattern's second branch still see that name.
 REMOVED_TEXT = re.compile(
-    r"artificial[\s-]?analysis|zapier|automationbench|gdpval-aa|aa-lcr|"
+    r"(?<!\w)artificial\s*[-_.]*\s*analysis(?!\w)|zapier|"
+    r"(?<!\w)z\s*[-_.]*\s*a\s*[-_.]*\s*p\s*[-_.]*\s*i\s*[-_.]*\s*e\s*[-_.]*\s*r(?!\w)|"
+    r"automationbench|gdpval-aa|aa-lcr|"
     r"aa[\s-]intelligence[\s-]index|omniscience",
     re.IGNORECASE,
 )
+_SEPARATORS = re.compile(r"[\s\-_.]+")
 REMOVED_ID = re.compile(r"^(aa_|artificial_?analysis|automationbench)|_aa$|_aa_")
 
 
@@ -32,3 +40,10 @@ class ExcludedSources:
 
 def excluded_sources() -> ExcludedSources:
     return ExcludedSources()
+
+
+def excluded_publisher(text: str) -> bool:
+    """True when collapsing whitespace and separator runs reveals a removed publisher."""
+    if REMOVED_TEXT.search(text):
+        return True
+    return REMOVED_TEXT.search(_SEPARATORS.sub("", text)) is not None

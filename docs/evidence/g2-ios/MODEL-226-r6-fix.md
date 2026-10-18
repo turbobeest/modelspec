@@ -103,7 +103,7 @@ before the fix commit.
 A separate probe on the same tree exited 0. All twelve banned stems as
 headlines fail and the error names `headline.text`. The three standard
 band headlines render, and those phrases stay out of the drafts.
-Artificial Analysis, Zapier, "router", and "inflated" still fail. A
+The two removed publisher names, "router", and "inflated" still fail. A
 glued percent, "percentage", "per-cent", and "The top result." fail on
 the draft. A query, a fragment, a changed case, a missing slash, and
 `http` fail `post_url`. Model names "Best" and "seventypercent" fall

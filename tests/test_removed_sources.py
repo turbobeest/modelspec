@@ -130,6 +130,45 @@ def test_the_export_carries_no_removed_value(tmp_path: Path) -> None:
     assert _hits(tmp_path, files) == []
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Artificial Analysis",
+        "Artificial  Analysis",
+        "artificial-analysis",
+        "artificial--analysis",
+        "artificial_analysis",
+        "artificial.analysis",
+        "Artificial - Analysis",
+        "ARTIFICIAL...ANALYSIS",
+        "Zapier",
+        "zapier",
+        "Zap-ier",
+        "zap_ier",
+        "zap.ier",
+        "Zap ier",
+        "Z a p i e r",
+    ],
+)
+def test_excluded_publishers_match_across_separators(text: str) -> None:
+    assert REMOVED_TEXT.search(text), text
+
+
+def test_a_sentence_about_lighting_is_not_an_excluded_publisher() -> None:
+    assert REMOVED_TEXT.search("The artificial lighting analysis is separate.") is None
+
+
+def test_the_legacy_source_field_key_is_not_a_publisher_name() -> None:
+    assert REMOVED_TEXT.search("artificial_analysis_url: ''") is None
+
+
+def test_mixed_separators_collapse_before_the_publisher_check() -> None:
+    from decision.excluded import excluded_publisher
+
+    assert excluded_publisher("Artificial - . Analysis")
+    assert excluded_publisher("The artificial lighting analysis is separate.") is False
+
+
 @pytest.mark.skipif(not os.environ.get("MODELSPEC_DIST"), reason="set MODELSPEC_DIST to a built dist/")
 def test_a_built_dist_carries_no_removed_value() -> None:
     root = Path(os.environ["MODELSPEC_DIST"]).resolve()

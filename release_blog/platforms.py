@@ -1,13 +1,18 @@
 """Platform drafts rendered from a release breakdown (MODEL-226).
 
 ``render_drafts`` returns one string per platform. A person posts them.
-The function has no platform client and writes no image. Numbers stay in the
-breakdown post. A draft says what changed, which model, and where to read
-the post. Instagram is a caption and says to make the image by hand.
+The function has no platform client and writes no image.
+
+A draft is reviewed copy in this file, plus three slots: a display name,
+a lab name, and the breakdown URL. Each name must match
+``^[A-Za-z][A-Za-z .'-]{0,60}$`` and the editorial checks. Anything else
+is replaced with "the new model" or "the lab", and the original is absent.
+Supplier and early-access disclosures contribute a flag, not their text.
+The URL is the only token that may contain a digit, and only when the
+token is exactly the validated URL.
 
 Each value is a string. ``posts_of`` splits a thread on a blank line and
-joins it back to that same string. The post URL is the only token that may
-contain a digit, and only when the token is exactly the validated URL.
+joins it back to that same string.
 """
 
 from __future__ import annotations
@@ -16,7 +21,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from decision.excluded import excluded_sources
+from decision.excluded import excluded_publisher
 from release_blog.model import Breakdown
 from release_blog.tone import refused_words
 
@@ -33,6 +38,7 @@ _SEP = "\n\n"
 _NUMBER_CATEGORIES = frozenset({"Nd", "No", "Nl"})
 _PERCENT = re.compile(r"%|(?<!\w)per\s*cent", re.IGNORECASE)
 _POST_URL = re.compile(r"^https://modelspec\.dev/blog/[a-z0-9-]+/$")
+_NAME = re.compile(r"^[A-Za-z][A-Za-z .'-]{0,60}$")
 _SUPERLATIVES = (
     "best",
     "fastest",
@@ -44,14 +50,13 @@ _SUPERLATIVES = (
     "smartest",
     "unbeatable",
     "unmatched",
-    "number one",
-    "#1",
 )
 _SUPERLATIVE = re.compile(
-    r"(?<!\w)(?:" + "|".join(re.escape(word) for word in _SUPERLATIVES) + r")(?!\w)",
+    r"(?<!\w)(?:"
+    + "|".join(re.escape(word) for word in _SUPERLATIVES)
+    + r"|number[\s\-]+one|no\.\s*1|#1)(?!\w)",
     re.IGNORECASE,
 )
-_OPTIONAL = frozenset({"change"})
 _WHOLE_LIMITS = {
     "linkedin": _LINKEDIN_LIMIT,
     "facebook": _FACEBOOK_LIMIT,
@@ -76,7 +81,14 @@ _REDDIT_RULES = (
 )
 _HAND = "Make the image by hand."
 _JAMIE = "Jamie decides whether to submit."
+_HOOK = "New model, new evidence: here is how it compares."
 _GENERIC_MODEL = "the new model"
+_GENERIC_LAB = "the lab"
+_ANALYSIS = "ModelSpec is an analysis of alternatives."
+_ANALYSIS_TEAMS = "ModelSpec is an analysis of alternatives for teams choosing a model."
+_SUPPLIER_LINE = "ModelSpec has a supplier relationship with this lab; details in the breakdown."
+_EARLY_LINE = "ModelSpec received early access to this model; details in the breakdown."
+_NEUTRALITY = "No referral fees, no paid placement, no provider-paid visibility, permanently."
 
 
 def posts_of(text: str) -> tuple[str, ...]:
@@ -110,16 +122,8 @@ def _percent_word(text: str) -> bool:
     return "percent" in letters or "percentage" in letters
 
 
-def _superlative_hits(text: str, *, allow_band: bool) -> list[str]:
-    hits: list[str] = []
-    for match in _SUPERLATIVE.finditer(text):
-        word = match.group(0)
-        if allow_band and word.casefold() in {"leading", "best"}:
-            rest = text[match.end() :]
-            if re.match(r"\s+band(?!\w)", rest, re.IGNORECASE):
-                continue
-        hits.append(word)
-    return hits
+def _superlative_hits(text: str) -> list[str]:
+    return [match.group(0) for match in _SUPERLATIVE.finditer(text)]
 
 
 def _validate_post_url(post_url: str) -> None:
@@ -139,47 +143,24 @@ def _require_text(name: str, value: object) -> str:
     raise ValueError(f"{name} draft carries {found}")
 
 
-def _prose(text: str, post_url: str, where: str) -> str:
-    kept: list[str] = []
-    for token in text.split():
-        if token == post_url:
-            continue
-        if "://" in token or post_url in token:
-            raise ValueError(f"{where} does not use the exact breakdown url")
-        kept.append(token)
-    return " ".join(kept)
-
-
-def _reject_field(label: str, text: str | None, *, allow_band: bool = False) -> None:
-    if not text:
-        return
-    if _superlative_hits(text, allow_band=allow_band):
-        raise ValueError(f"{label} contains a superlative")
-    if _percent_word(text):
-        raise ValueError(f"{label} contains a percent")
-    if mark := _number_mark(text):
-        raise ValueError(f"{label} contains a {mark}")
+def _prose(text: str, post_url: str) -> str:
+    return " ".join(token for token in text.split() if token != post_url)
 
 
 def _reject_text(text: str, post_url: str, *, where: str, require_url: bool) -> None:
-    prose = _prose(text, post_url, where)
     if require_url and post_url not in text.split():
         raise ValueError(f"{where} is missing the breakdown url")
-    if _superlative_hits(prose, allow_band=False):
+    prose = _prose(text, post_url)
+    if "//" in prose or "[" in prose or "](" in prose or "://" in prose:
+        raise ValueError(f"{where} does not use the exact breakdown url")
+    if _superlative_hits(prose):
         raise ValueError(f"{where} contains a superlative")
-    if _percent_word(prose):
-        raise ValueError(f"{where} contains a percent")
     if mark := _number_mark(prose):
         raise ValueError(f"{where} contains a {mark}")
-
-
-def _reject_inputs(breakdown: Breakdown) -> None:
-    # "leading band" and "best band" name a band in the breakdown post.
-    # A draft does not repeat that headline. Any other banned stem fails here.
-    _reject_field("headline.text", breakdown.headline.text, allow_band=True)
-    _reject_field("disclosures.supplier", breakdown.disclosures.supplier)
-    _reject_field("disclosures.early_access", breakdown.disclosures.early_access)
-    _reject_field("disclosures.neutrality", breakdown.disclosures.neutrality)
+    if _percent_word(prose):
+        raise ValueError(f"{where} contains a percent")
+    if excluded_publisher(text):
+        raise ValueError("draft names an excluded source")
 
 
 def _default_url(breakdown: Breakdown) -> str:
@@ -187,60 +168,40 @@ def _default_url(breakdown: Breakdown) -> str:
     return f"https://modelspec.dev/blog/{slug}/"
 
 
-def _copyable_name(name: str) -> bool:
-    if not name or _number_mark(name) or _percent_word(name):
-        return False
-    return not _superlative_hits(name, allow_band=False)
+def _blocked(value: str) -> bool:
+    if _percent_word(value) or _number_mark(value):
+        return True
+    if _superlative_hits(value):
+        return True
+    if "[" in value or "](" in value or "//" in value:
+        return True
+    if excluded_publisher(value):
+        return True
+    return "router" in value.lower()
+
+
+def _copyable(value: str) -> bool:
+    return _NAME.fullmatch(value) is not None and not _blocked(value)
 
 
 def _referent(breakdown: Breakdown) -> str:
-    """Use a digit-free name. Otherwise say "the new model".
-
-    ``model.name`` is the name field. ``names`` holds the vocabulary display
-    name for this model. A digit, a percent word, or a superlative is not
-    copied. The link names the model only when the chosen name is copyable.
-    """
+    """Use the model name, then its vocabulary display name, when either is copyable."""
     candidates = (breakdown.model.name, breakdown.names.get(breakdown.model.id, ""))
     for name in candidates:
-        if _copyable_name(name):
+        if name and _copyable(name):
             return name
     return _GENERIC_MODEL
 
 
-def _class_label(breakdown: Breakdown) -> str:
-    label = breakdown.model.class_.replace("-", " ")
-    _reject_field("model.class", label)
-    return label
+def _lab(breakdown: Breakdown) -> str:
+    provider = breakdown.model.provider
+    if provider and _copyable(provider):
+        return provider
+    return _GENERIC_LAB
 
 
-def _public_headline(text: str) -> str:
-    """Keep a band claim in the breakdown. A draft does not repeat it."""
-    if _superlative_hits(text, allow_band=False):
-        return ""
-    return text
-
-
-def _gap(breakdown: Breakdown):
-    for row in breakdown.claims_vs_evidence.claims:
-        for reading in row.readings:
-            change = reading.difference
-            if reading.comparability == "same_setup" and change is not None and change.value != 0:
-                return row, reading
-    return None
-
-
-def _change_sentence(breakdown: Breakdown) -> str:
-    found = _gap(breakdown)
-    if found is None:
-        return ""
-    row, reading = found
-    change = reading.difference
-    assert change is not None
-    direction = "lower" if change.value < 0 else "higher"
-    sentence = f"an independent reading of the same setup is {direction} than the lab's figure."
-    if _number_mark(row.benchmark):
-        return sentence[:1].upper() + sentence[1:]
-    return f"On {row.benchmark}, {sentence}"
+def _flag(value: str | None) -> bool:
+    return isinstance(value, str) and value.strip() != ""
 
 
 def _link_sentence(referent: str, post_url: str) -> str:
@@ -249,105 +210,40 @@ def _link_sentence(referent: str, post_url: str) -> str:
     return f"Read the full breakdown of {referent}, with sources: {post_url}"
 
 
-def _analysis(class_label: str, *, teams: bool) -> str:
-    if teams:
-        return f"ModelSpec is an analysis of alternatives for teams choosing a {class_label}."
-    return f"ModelSpec is an analysis of alternatives for a {class_label}."
-
-
-def _hn_title(headline: str) -> str:
-    if len(headline) <= _HN_TITLE_LIMIT:
-        return headline
-    main = headline.split(";", 1)[0].strip()
-    if len(main) <= _HN_TITLE_LIMIT:
-        return main
-    cut = main[:_HN_TITLE_LIMIT]
-    space = cut.rfind(" ")
-    return cut[:space] if space > 0 else cut
-
-
-def _short_title(change: str, cover: str) -> str:
-    sentence = change
-    if sentence.lower().startswith("on ") and ", " in sentence:
-        rest = sentence.split(", ", 1)[1]
-        sentence = rest[:1].upper() + rest[1:]
-    if not sentence:
-        sentence = cover
-    if len(sentence) <= _HN_TITLE_LIMIT:
-        return sentence
-    cut = sentence[:_HN_TITLE_LIMIT]
-    space = cut.rfind(" ")
-    return cut[:space] if space > 0 else cut
-
-
-def _without(parts: list[tuple[str, str]], role: str) -> list[tuple[str, str]]:
-    return [item for item in parts if item[0] != role]
-
-
 def _parts(breakdown: Breakdown, platform: str, post_url: str) -> list[tuple[str, str]]:
-    referent = _referent(breakdown)
-    class_label = _class_label(breakdown)
-    headline = _public_headline(breakdown.headline.text)
-    change = _change_sentence(breakdown)
-    cover = f"The breakdown covers {referent}."
-    analysis = _analysis(class_label, teams=platform == "linkedin")
-    supplier = breakdown.disclosures.supplier or ""
-    early = breakdown.disclosures.early_access or ""
-    neutrality = breakdown.disclosures.neutrality
-    link = _link_sentence(referent, post_url)
+    name = _referent(breakdown)
+    lab = _lab(breakdown)
+    cover = f"The breakdown covers {name} from {lab}."
+    analysis = _ANALYSIS_TEAMS if platform == "linkedin" else _ANALYSIS
+    supplier = _SUPPLIER_LINE if _flag(breakdown.disclosures.supplier) else ""
+    early = _EARLY_LINE if _flag(breakdown.disclosures.early_access) else ""
+    link = _link_sentence(name, post_url)
     shared = [
         ("model", cover),
         ("analysis", analysis),
         ("supplier", supplier),
         ("early", early),
     ]
-    ending = [("neutrality", neutrality), ("link", link)]
+    ending = [("neutrality", _NEUTRALITY), ("link", link)]
     if platform == "hackernews":
-        if headline:
-            title = _hn_title(headline)
-            parts = [("title", title)]
-            if title != headline:
-                parts.append(("headline", headline))
-            return [*parts, ("change", change), *shared, *ending, ("note", _JAMIE)]
-        title = _short_title(change, cover)
-        parts = [("title", title)]
-        if change and change != title:
-            parts.append(("change", change))
-        body = _without(shared, "model") if title == cover else shared
-        return [*parts, *body, *ending, ("note", _JAMIE)]
+        return [("title", _HOOK), *shared, *ending, ("note", _JAMIE)]
     if platform == "reddit":
-        if headline:
-            return [
-                ("title", headline),
-                ("identity", "This is ModelSpec."),
-                ("change", change),
-                *shared,
-                ("rules", _REDDIT_RULES),
-                *ending,
-            ]
-        title = change or cover
-        parts = [("title", title), ("identity", "This is ModelSpec.")]
-        if change and change != title:
-            parts.append(("change", change))
-        body = _without(shared, "model") if title == cover else shared
-        return [*parts, *body, ("rules", _REDDIT_RULES), *ending]
+        return [
+            ("title", _HOOK),
+            ("identity", "This is ModelSpec."),
+            *shared,
+            ("rules", _REDDIT_RULES),
+            *ending,
+        ]
     lead: list[tuple[str, str]] = [("hand", _HAND)] if platform == "instagram" else []
-    middle: list[tuple[str, str]] = [("change", change)]
-    if headline:
-        middle.append(("headline", headline))
-    return [*lead, *middle, *shared, *ending]
+    return [*lead, ("hook", _HOOK), *shared, *ending]
 
 
 def _join(parts: list[tuple[str, str]], limit: int | None) -> str:
-    selected = [(role, text) for role, text in parts if text]
-    while True:
-        body = _SEP.join(text for _, text in selected)
-        if limit is None or len(body) <= limit:
-            return body
-        optional = [index for index, (role, _) in enumerate(selected) if role in _OPTIONAL]
-        if not optional:
-            raise ValueError(f"required draft text is {len(body)} characters, limit {limit}")
-        del selected[optional[-1]]
+    body = _SEP.join(text for _, text in parts if text)
+    if limit is not None and len(body) > limit:
+        raise ValueError(f"required draft text is {len(body)} characters, limit {limit}")
+    return body
 
 
 def _draft_text(breakdown: Breakdown, platform: str, post_url: str) -> str:
@@ -362,7 +258,7 @@ def _guard(text: str) -> None:
     found = refused_words(text)
     if found:
         raise ValueError(f"draft contains refused wording: {found[0]}")
-    if excluded_sources().text.search(text):
+    if excluded_publisher(text):
         raise ValueError("draft names an excluded source")
     if "router" in text.lower():
         raise ValueError("draft names a router")
@@ -414,7 +310,6 @@ def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[
     """
     url = post_url if post_url is not None else _default_url(breakdown)
     _validate_post_url(url)
-    _reject_inputs(breakdown)
     return _seal(_assemble(breakdown, url), url)
 
 
