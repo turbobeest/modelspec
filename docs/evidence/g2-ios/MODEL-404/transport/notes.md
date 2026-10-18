@@ -100,3 +100,13 @@ results](import-isolation-results.txt) record both red runs, the 56-test relevan
 suite pass, the 149-test merged regression pass, and a real decision,
 hardware-fit assessment, and OpenAPI generation after replay. Hardware-fit
 production behavior and generated pins were not changed.
+
+The second integration with main `b4a7074f` added snapshot boundaries and MCP
+API-key headers/discovery. [Late-merge MCP results](late-merge-mcp-results.txt)
+record the fresh typecheck and full 233-test pass after routing completed QA
+regeneration. A read-only comparison confirms that all 32 MCP/registry files
+other than the generated agent copy match incoming main byte for byte. The
+copy retains the MODEL-404 detailed-board link; tool descriptions and main's
+auth/discovery behavior are unchanged. General human lookup still uses the
+first-visit URL. No source, test, configuration or generated artifact changed
+as part of this verification.

@@ -1,0 +1,53 @@
+MODEL-404 current-head CI failure observation, 2026-10-18
+Head: 1b3d8e3a66b3ddf572702ab11e3d40fdbc580226
+PR: https://github.com/turbobeest/modelspec/pull/814
+Workflow: Build and deploy the sites
+Job: Test decide page (human gate false, visit gate true)
+URL: https://github.com/turbobeest/modelspec/actions/runs/39097022487/job/117585483021
+Started: 2026-10-18T04:25:16Z
+Completed: 2026-10-18T04:29:40Z
+Conclusion observed through gh pr view statusCheckRollup: FAILURE
+
+Failed-log retrieval:
+gh run view 39097022487 --job 117585483021 --log-failed
+Direct exit: 1
+run 39097022487 is still in progress; logs will be available when it is complete
+
+A subsequent gh run view --json jobs request returned HTTP 403 at
+2026-10-18T04:30:53Z: API rate limit exceeded for user ID 117555601.
+
+After an approximately ten-minute API backoff, the same failed-log command
+returned exit 0. The exact failure is a Vitest assertion, not Playwright trace
+cleanup. Full local log: .late-ci-gate-job.log (ignored; excerpt follows).
+
+Step: Test the built page with the Worker disabled and enabled
+FAIL src/decide/__tests__/simple-decide.test.tsx
+  loads the labelled example and renders a picked job after request normalization
+Error: expect(element).toHaveFocus()
+Expected element with focus:
+  <h2 tabindex="-1">These 6 are too close to call.</h2>
+Received element with focus:
+  <body>...</body>
+Location: src/decide/__tests__/simple-decide.test.tsx:150:90
+  149 fireEvent.click(screen.getByRole("button", { name: /^Coding/ }));
+  150 expect(await screen.findByRole("heading", { name: "These 6 are too close to call." })).toHaveFocus();
+
+Test Files  1 failed | 55 passed (56)
+Tests       1 failed | 1270 passed (1271)
+Start at    04:28:06
+Duration    91.69s
+
+This identifies the failed assertion. It does not establish whether the focus
+failure is deterministic, a test synchronization issue, or a product race.
+No local rerun or source edit was made by this monitoring task.
+
+The other three gate jobs on this same head completed SUCCESS. The required
+Build both sites job also reports FAILURE, solely because it requires the
+gate matrix to succeed:
+https://github.com/turbobeest/modelspec/actions/runs/39097022487/job/117586512927
+Step: Require both decide page variants to succeed
+  test "$BROWSER_RESULT" = success
+  BROWSER_RESULT: failure
+  Process completed with exit code 1.
+Retrieved with gh run view 39097022487 --job 117586512927 --log-failed,
+direct exit 0. This is a dependency failure, not a second build defect.

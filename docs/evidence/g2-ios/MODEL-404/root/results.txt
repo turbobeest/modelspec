@@ -208,3 +208,51 @@ No source changes occurred during this run. The preceding queued-status notes ar
 Source: dcf398d6f27f8a84e72c5aef0492ec1f73aee1af
 All checks pass or are intentionally skipped. Run pytest, Build both sites, evidence, Data freeze, both Worker checks and all four browser gate combinations pass.
 The PR remains draft. Complete check names, states, links and observation time: root/ci-source-results.json.
+
+--- Second main integration; source 1b3d8e3a66b3ddf572702ab11e3d40fdbc580226 ---
+Integrated main b4a7074f37a3ba940bd86db9d1e2459a25fd40af, including MODEL-402 #813 and MODEL-403 #816.
+The sole merge conflict, qa/fixtures/mcp-tools.json, was resolved through the repository capture path after agent-copy and OpenAPI generation/checks. No artifact was hand-merged.
+Latest generator hashes and unchanged literal catalogue pins: routing/late-merge-pins.json.
+Agent-copy write/check, OpenAPI generation/check and QA capture all returned exit 0.
+Focused Python: 149 passed, 2 opt-in live probes skipped. Snapshot integration checks: 48 passed.
+MCP typecheck exit 0; all 233 tests pass. All 32 upstream MCP/registry files match integrated main.
+Fresh web npm ci/build/unit/browser commands all exit 0: 872 unit tests; 37 browser tests, 16 expected skips.
+Human/visit gate matrix all exit 0: 35/10, 37/8, 44/1, 44/1 passed/skipped.
+All 11 screenshots were regenerated and inspected; their bytes and engine response IDs are unchanged.
+Site build direct exit 0; build source 1b3d8e3a66b3. Existing frozen-data hardware-source warnings remain.
+Live composition direct exit 0: 2711 files; discovery links resolve.
+Surface lint direct exit 0: zero findings and notices, 111 files checked.
+Composed site inspection: no thin pages across 14 core pages; exact generated agent/OpenAPI bytes; both decide routes have resolving assets and deterministic lastmod dates.
+About 2/home 3 board links and all 40 use-case template actions use details; all 82 use-case introductory links retain /decide/.
+Corpus generation direct exit 0: 319 decisions, 5 vocabularies.
+Built-page corpus browser direct exit 0: 112 passed, 10 skipped in 23.5 seconds.
+Data freeze against b4a7074f direct exit 0: data freeze: ok.
+Protected ranking, decision contract, legal and Worker configuration paths have no diff against b4a7074f.
+The full Python suite for this source is queued under the shared lock. The earlier 11536-pass result and green CI above apply to dcf398d6 only.
+
+--- Asynchronous focus assertion correction; source f4b13af3e11618304a73d07bcec685fe372e46cc ---
+CI at 1b3d8e3a failed one unit assertion after Coding: the verdict heading existed but document.activeElement was still body.
+The other three CI gate combinations passed. No separate site-build failure occurred; its aggregate status followed the failed unit job.
+Twelve local pre-fix narrow runs and the 1271-test corpus-enabled suite passed; the intermittent failure was observed only in CI.
+The Coding test now waits for actual focus rather than only heading presence. The immediate Everyday-help focus assertion remains unchanged.
+Application and browser-test code, generated artifacts and built-site bytes are unchanged from 1b3d8e3a.
+Twelve post-fix focused runs passed. Corpus-enabled unit suite direct exit 0: 1271 passed, 56 files, 21.55 seconds.
+A temporary test-only control suppressed focus and correctly failed the updated assertion; the control was removed.
+The keyboard-focus browser case passed in all four gate combinations, each direct exit 0.
+Reproducible commands and honest CI/local distinction: gates/focus-race-results.txt.
+Current source f4b13af3 was committed and pushed before the queued full Python process acquired the lock. Full-suite and new-source CI results remain pending.
+
+--- Final second-integration full Python suite; direct exit code 0 ---
+Source: f4b13af3e11618304a73d07bcec685fe372e46cc.
+Command from /Users/terbeest/dev/worktrees/model-404:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+The process waited for the shared lock and returned exit 0 in this executor session.
+11584 passed, 9 skipped, 11 warnings in 1213.18s (0:20:13)
+No source changes occurred during the actual test run. The preceding pending-status notes are historical.
+
+--- Final tested-source CI after the focus assertion correction ---
+Source: f4b13af3e11618304a73d07bcec685fe372e46cc.
+17 successful checks, 6 intentionally skipped, zero failures or pending checks.
+All four Python shards and aggregate Run pytest pass; Build both sites, all four browser gate combinations, release-chart evidence, Data freeze, MCP Worker and Rank Worker also pass.
+PR 814 remains draft and mergeable. Complete names, links, source SHA and observation time are recorded in root/ci-late-source-results.json.
+The final publication adds evidence only; product/build source remains 1b3d8e3a and final tested source remains f4b13af3.

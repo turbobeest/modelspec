@@ -1,4 +1,6 @@
 MODEL-404 browser evidence, 2026-10-17
+Latest second-main integration verification: late-merge-results.txt, 2026-10-18.
+The historical red tests and earlier verification remain below.
 Repository: /Users/terbeest/dev/worktrees/model-404
 Branch: model-404-simple-decide
 Tools: Node v22.22.3; npm 10.9.8; Playwright 1.63.0; Python 3.14.4.

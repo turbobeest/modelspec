@@ -1,0 +1,13 @@
+mcp 8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8 matches existing literal assertion
+guide 6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37 matches existing literal assertion
+cli_text 625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86 matches existing literal assertion
+pipeline/agent_copy.py unchanged from pre-merge branch
+api/worker/src/agent_guide.py unchanged from pre-merge branch
+docs/agents.md unchanged from pre-merge branch
+mcp/src/agent-copy.json unchanged from pre-merge branch
+api/worker/openapi.py exact upstream main source retained
+api/worker/src/entry.py exact upstream main source retained
+api/worker/src/decide_service.py exact upstream main source retained
+api/worker/vendor.py exact upstream main source retained
+decision/vocabulary.py exact upstream main source retained
+Guide version 1-f226d9942791da1c
