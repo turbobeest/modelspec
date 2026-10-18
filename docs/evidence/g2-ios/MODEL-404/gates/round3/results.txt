@@ -1,0 +1,132 @@
+MODEL-404 / REV-814 round 3 browser and screenshot verification, 2026-10-18
+Review base: 53fde1fd302da4fd050758d42a4c5ead8bd7a593
+Verified source: 2488fbc3c92a271d002dc1179b0c6b87345d1c96
+Worktree: /Users/terbeest/dev/worktrees/model-404
+Branch: model-404-simple-decide
+Node v22.22.3; npm 10.9.8; Vitest 5.0.1; Playwright 1.63.0.
+
+Every child exit below was observed directly. No result was inferred through
+a pipe. Browser runs were sequential, with distinct artifact directories.
+Common environment, from web/:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+Output directories below are relative to:
+/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/
+
+Browser regression red against preserved pre-review JavaScript:
+Before this round's fresh build, existing web/dist was copied into ignored
+.generated/pre-review-dist. After source owners finished editing, that
+immutable bundle was served with:
+npm exec vite -- preview --outDir /Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/pre-review-dist --host 127.0.0.1 --port 5173 --strictPort
+The test used the genuine newly generated vocabulary, without borrowed
+coverage. This isolates the old renderer; the producer's own red is in
+../../routing/round3/trim-red.txt. No application source was reverted.
+
+Command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'opens with a labelled example|the objective source survives' --workers=1 --reporter=line
+MODELSPEC_BROWSER_OUTPUT: pre-review-red
+Direct Playwright exit: 1
+  2 failed
+  opens with a labelled example and an alphabetical tie with equal emphasis
+    Expected visible: Data as of 2026-10-04
+    Actual header: Data date unavailable
+  the objective source survives reordering the same answer
+    After moving Gemini 3.8 Flash to results[0]:
+    Expected: Source: Arena WebDev (Code Arena), 2026-09-23.
+    Actual: Source: Arena Elo — Coding, 2026-09-13.
+The owned preview process group was terminated before the fresh build.
+
+Fresh install/build:
+Command: npm ci
+Direct exit: 0
+Command: npm run build
+Direct exit: 0
+TypeScript and Vite passed; Vite built in 190ms.
+
+Integration failure observed before final green:
+Command: npm test
+Direct exit: 1
+  Tests 5 failed | 893 passed (898); 1 opt-in corpus file skipped
+  fixture-stubs.test.tsx:21 expected historical answers' snapshot to equal
+  the regenerated vocabulary snapshot (483dd2fb6c5915b5 versus e9c30eaacfa8f2f2).
+The fixture owner corrected the provenance assertion to retain the original
+capture's literal snapshot beside its contract 2.12 assertion. The matcher
+still receives the regenerated vocabulary snapshot. Historical responses
+were not rewritten. Its focused red/green is recorded under routing/round3.
+
+Focused current-browser command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'opens with a labelled example|the objective source survives|visible counts' --workers=1 --reporter=line
+MODELSPEC_BROWSER_OUTPUT: focused
+Direct exit: 0
+  3 passed (6.4s)
+These check the real trim date, response-driven counts/prices/dates, and
+source invariance under result and evidence/contribution permutations.
+
+Final unit command: npm test
+Direct exit: 0
+  Test Files 56 passed | 1 skipped (57)
+  Tests 898 passed (898)
+  Duration 22.85s
+The skipped file is the opt-in generated corpus rendering suite.
+
+Final broad browser command: npm run test:browser -- --workers=2 --reporter=line
+MODELSPEC_BROWSER_OUTPUT: broad
+Direct exit: 0
+  16 skipped
+  38 passed (17.9s)
+Skips cover gate-specific cases, opt-in capture, absent generated corpus and
+deployed-site/pricing checks without explicit URLs.
+
+Gate matrix command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
+VITE_TURNSTILE_SITE_KEY=public-browser-test-key
+MODELSPEC_BROWSER_OUTPUT: matrix-HUMAN-VISIT
+Set VITE_HUMAN_GATE_ENABLED and VITE_VISIT_GATE_ENABLED for each row:
+  false / false: direct exit 0; 36 passed, 10 skipped (16.2s)
+  true  / false: direct exit 0; 38 passed, 8 skipped (16.9s)
+  false / true:  direct exit 0; 45 passed, 1 skipped (26.6s)
+  true  / true:  direct exit 0; 45 passed, 1 skipped (24.1s)
+One new source-order browser test accounts for the extra pass per cell.
+matrix.json preserves the machine-readable direct exits.
+
+Screenshot response generation, from the repository root:
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/gates/generate-screenshot-decisions.py
+Direct exit: 0
+Vocabulary was produced through the real full-vocabulary producer and trim:
+  snapshot snap_e9c30eaacfa8f2f2; as_of 2026-10-04; 40 templates, 28 available.
+  fixture SHA256 d01851094b4907f9e8ecad14b369c987616a778da5e41d3197809e7f20ae2f23
+The generator derives the date from that vocabulary and rejects a rebuilt
+snapshot ID mismatch. Every captured answer uses that same frozen snapshot:
+  example/tie/details: dec_a4da9557f7bf56d6b4ba1c71; partial, 6 tied members
+  coding: dec_a9718308c47b554983c2595e; partial, 2 tied members
+  no-fit: dec_f0c89c6b41441beedccaea59; no_feasible
+  detailed plot: dec_f7efa328ef4ac1889d6932b7
+../screenshot-decisions.json records all exact questions and identities.
+The capture test matches every request to its generated question, normalizing
+only explain to full because the full answer is supplied to both display phases.
+There is no historical-answer fallback in the capture path.
+
+Capture command, from web/:
+MODELSPEC_CAPTURE_SIMPLE=1 npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'capture simple' --workers=1 --reporter=line
+MODELSPEC_BROWSER_OUTPUT: capture
+Direct exit: 0
+  1 passed (9.3s)
+All 11 PNGs were regenerated and reopened individually for visual inspection.
+Every simple header reads Data as of 2026-10-04. The 390x844 example retains
+all six tied names/prices and the full evidence action inside the viewport.
+The example/tie source is Arena WebDev (Code Arena), 2026-09-23. Coding now
+shows CursorBench 4.0, 2026-09-28. No-fit shows the exact conservative fallback:
+Sources and dates: see the full evidence.
+Detailed desktop/mobile captures use the same generated snapshot. The board's
+existing first-screen layout is retained. screenshots.json records PNG hashes.
+
+The matrix retains both-theme 44px controls, main-text contrast >=4.5:1,
+keyboard focus, gate admission and direct keyless machine HTTP 401 checks.
+No deployed production decision, paid-provider call, Firefox, Safari,
+assistive-technology or recruited usability run was performed here.
+Full Python, site composition, surface lint and built corpus belong to the
+main executor's separate evidence. Raw *.log files are ignored local artifacts.
+Final scoped git diff --check: direct exit 0.
+Final lsof -nP -iTCP:5173 -sTCP:LISTEN: direct exit 1, empty output.
+No owned browser server remains. Web source is unchanged from 2488fbc3.

@@ -1,0 +1,72 @@
+MODEL-404 round 3, source selection
+Base SHA: 53fde1fd302da4fd050758d42a4c5ead8bd7a593
+Source commit, created by root executor after verification: 09bbb4203e00fb99a72379c11801885a3f6dae7f
+Working directory: /Users/terbeest/dev/worktrees/model-404/web
+Node v22.22.3; npm 10.9.8.
+Every Node command below used:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+
+Initial red, before source changes:
+npm test -- --reporter=verbose src/decide/__tests__/simple-source.test.tsx src/decide/__tests__/simple-decide.test.tsx
+Direct exit code: 1.
+Test Files: 2 failed (2).
+Tests: 18 failed | 13 passed (31).
+
+Exact review mutation:
+simple answer objective source > keeps the literal objective source when results and evidence are reordered
+Expected: Source: Arena WebDev (Code Arena), 2026-09-23.
+Received: Source: Arena Elo — Coding, 2026-09-13.
+
+Separated-member regression:
+simple answer objective source > uses only the separated verdict member, even when another result has stronger evidence
+Expected: Source: Arena WebDev (Code Arena), 2026-09-23.
+Received: Source: SWE-bench Verified, 2026-10-16.
+
+Capability-term regression:
+simple answer objective source > chooses the largest capability share even when cost has the largest overall share
+Expected: Source: Arena Elo — Coding, 2026-09-13.
+Received: Source: Arena WebDev (Code Arena), 2026-09-23.
+
+Missing-metadata regression:
+simple answer objective source > shows the full-evidence fallback when estimate weight is null
+TestingLibraryElementError: Unable to find an element with the text: Sources and dates: see the full evidence.
+The undefined-weight, missing-contribution, tied-capability, truncated-member, missing-name, and absent-verdict cases failed the same fallback assertion.
+
+Initial green:
+npm test -- --reporter=verbose src/decide/__tests__/simple-source.test.tsx src/decide/__tests__/simple-decide.test.tsx
+Direct exit code: 0.
+Test Files: 2 passed (2). Tests: 31 passed (31).
+
+Broader web units after the initial fix and metadata-ambiguity regression, before the duplicate-offering correction:
+npm test
+Direct exit code: 0.
+Test Files: 56 passed | 1 skipped (57).
+Tests: 895 passed (895). Duration: 19.05s.
+
+Additional red for conflicting repeated offering metadata:
+npm test -- --reporter=verbose src/decide/__tests__/simple-source.test.tsx
+Direct exit code: 1.
+Test Files: 1 failed (1).
+Tests: 2 failed | 21 passed (23).
+Failing tests:
+- simple answer objective source > uses the fallback when repeated results offering evidence conflicts
+- simple answer objective source > uses the fallback when repeated top offering evidence conflicts
+Both failed with: TestingLibraryElementError: Unable to find an element with the text: Sources and dates: see the full evidence.
+The positive control accepting merely reordered repeated evidence passed.
+
+Final focused green, including the duplicate-offering correction:
+npm test -- --reporter=verbose src/decide/__tests__/simple-source.test.tsx src/decide/__tests__/simple-decide.test.tsx src/decide/__tests__/simple-recovery.test.tsx src/decide/__tests__/simple-transport.test.tsx
+Direct exit code: 0.
+Test Files: 4 passed (4).
+Tests: 54 passed (54). Duration: 3.01s.
+Includes all 23 rendered source tests and the unchanged asynchronous verdict-focus assertion.
+
+Final TypeScript check:
+npx tsc -b
+Direct exit code: 0. No diagnostics.
+
+Whitespace check from the worktree root:
+git diff --check
+Direct exit code: 0. No diagnostics.
+
+No full Python or browser suite was run by this worker in this round. No commit or push was made.

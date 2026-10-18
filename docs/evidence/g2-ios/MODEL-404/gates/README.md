@@ -2,24 +2,22 @@
 
 These tests run offline. Browser requests for vocabulary, decisions and Turnstile use fixtures. The billing admission cases run the real local Python Worker service and SQLite admission through `tests/replay_billing_launch.py`; they do not call Cloudflare or a provider.
 
-The latest verification covers the second main integration, committed as `1b3d8e3a66b3ddf572702ab11e3d40fdbc580226`, including the Worker snapshot handover and MCP header/discovery changes. Fresh sequential `npm ci`, `npm run build`, `npm test` and the general browser command all returned exit 0. The unit run passed 872 tests; the general browser run passed 37 with 16 expected skips. All four gate combinations, local screenshot-response generation and capture also passed. The 11 images were regenerated and inspected again and remain byte-identical. [late-merge-results.txt](late-merge-results.txt) records exact commands, environments and direct exits, and [late-merge-matrix.json](late-merge-matrix.json) records the four combinations. Every browser run used an isolated `.generated/late-merge-*` output directory.
+The latest verification covers the REV-814 fixes at `2488fbc3c92a271d002dc1179b0c6b87345d1c96`. The browser suite serves the genuine generated display vocabulary directly, with no borrowed coverage fields. It asserts the snapshot date and verifies that reordering the same answer's results, evidence and contributions does not change its objective source. [round3/results.txt](round3/results.txt) records exact commands, direct exits, red and green observations, and screenshot provenance.
 
-Earlier verification of the first main integration, committed as `e0053beaa0515892667dfcbb3225422560ea43d5`, remains in [results.txt](results.txt), together with the initial red tests and billing-helper cleanup follow-up. The latest matrix has the same pass and skip counts shown below.
+Both browser regressions failed against the preserved pre-review built JavaScript: the header showed “Data date unavailable” despite the real trim's date, and moving Gemini 3.8 Flash to the front changed the source to “Arena Elo — Coding, 2026-09-13.” The fixed browser passed both checks and the existing response-mutation check. The vocabulary producer's own missing-date red and green are recorded in [the routing evidence](../routing/round3/trim-red.txt).
 
-A subsequent CI unit run found an intermittent Coding-focus assertion failure: the heading existed while the assertion still observed focus on the body. The test now waits for focus itself; the immediate Everyday-help assertion remains. No runtime code changed. Local pre-fix repetitions did not reproduce the failure. After the assertion change, 12 focused repetitions, all 1,271 corpus-enabled unit tests, and the keyboard-focus browser case under all four gate combinations passed. A temporary test-only focus suppression correctly failed and was removed. [focus-race-results.txt](focus-race-results.txt) records the CI red, local attempts, negative control, direct exits and runtime identity.
+Fresh sequential `npm ci` and `npm run build` exited 0. The first unit run exposed five historical-fixture provenance assertions that assumed the captured answers shared the regenerated vocabulary's snapshot. The fixture owner corrected those assertions while preserving the original responses. Final `npm test` passed **898 tests**, with one opt-in corpus rendering file skipped. `npm run test:browser -- --workers=2 --reporter=line` passed **38 tests**, with 16 expected skips. The skips cover gate-specific cases, opt-in capture, absent generated corpus and deployed-site/pricing checks without explicit URLs.
 
-The browser tests first failed before the simple page implementation existed. The tracked [results.txt](results.txt) contains the missing labelled example assertion, all six initial behavior failures, the normalization regression, and final green output summaries. Routing had already changed when the initial run began. Full `.log` files are local artifacts ignored by Git; the PR evidence does not depend on them.
-
-[matrix-results.json](matrix-results.json) records the exit status for all four human-gate and visit-gate combinations. [results.txt](results.txt) preserves their output summaries; the JSON's log filenames identify only the local source artifacts. Each run uses Node v22.22.3, npm 10.9.8, Playwright 1.63.0 and Python 3.14.4. From the repository root, use this command for each `false`/`true` value of the two gate variables:
+All four full gate combinations passed. [round3/matrix.json](round3/matrix.json) records direct exits; [round3/results.txt](round3/results.txt) preserves their summaries. The new source-order test adds one pass to each previous matrix count.
 
 | Human gate | Visit gate | Passed | Skipped | Exit |
 | --- | --- | ---: | ---: | ---: |
-| false | false | 35 | 10 | 0 |
-| true | false | 37 | 8 | 0 |
-| false | true | 44 | 1 | 0 |
-| true | true | 44 | 1 | 0 |
+| false | false | 36 | 10 | 0 |
+| true | false | 38 | 8 | 0 |
+| false | true | 45 | 1 | 0 |
+| true | true | 45 | 1 | 0 |
 
-These are the fresh reruns after main integration, retaining the 44-pixel home-link target fix and route recovery changes. The previous matrices had the same counts. All four commands exited 0 directly, as did the preceding broad browser run and subsequent screenshot capture. The browser runs were sequential.
+From the repository root, repeat the following with each combination of flags:
 
 ```bash
 cd web
@@ -27,27 +25,21 @@ PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 VITE_TURNSTILE_SITE_KEY=public-browser-test-key \
 MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python \
-MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-matrix-false-false \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/matrix-false-false \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts \
   browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
 ```
 
-The broader `npm run test:browser -- --workers=2 --reporter=line` run also exited 0 with 37 passed and 16 skipped. Its environment used both gate flags set to false and the same Node/Python paths. Skips were gate-specific cases, the opt-in capture, absent generated corpus, and deployed-site/pricing checks without explicit URLs. Its command, output summary and exit status are in [results.txt](results.txt). The separate built-corpus run belongs to the main executor's evidence.
-
-The suite verifies the labelled example, alphabetical equal-emphasis ties, keyboard choice and verdict focus, exact detailed-page question transfer, legacy redirects, separate EU and training limits, route selection, response mutations, no-fit and undetermined answers, and the 390 by 844 viewport in both themes. The mobile check measures every job and priority button, the home link, theme button, Change button and primary evidence link at least 44 pixels in both width and height. It also checks all six tied rows and the evidence action inside the viewport, no horizontal overflow, and visible main-content text contrast of at least 4.5:1 in the initial example. The final target check first failed on the 28-pixel home link; adding a 44-pixel minimum height made it pass without losing the mobile fit. The red and green output is recorded in [results.txt](results.txt).
+The suite verifies the labelled example, alphabetical equal-emphasis ties, keyboard choice and verdict focus, exact detailed-page question transfer, legacy redirects, separate EU and training limits, route selection, response mutations, no-fit and undetermined answers, and the 390 by 844 viewport in both themes. The mobile check measures every job and priority button, the home link, theme button, Change button and primary evidence link at least 44 pixels in both dimensions. It checks all six tied rows and the evidence action inside the viewport, no horizontal overflow, and visible main-content text contrast of at least 4.5:1 in the initial example.
 
 The managed gate test observes zero vocabulary and decision requests before verification. It checks token reuse, one intent per choice and one renewal after an expired-token refusal. The manual gate test observes zero decision requests before a verified lookup. The real Worker case confirms direct machine requests without a key still receive HTTP 401.
 
-After the replay helper's module-cleanup fix, `billing-launch.spec.ts` was rerun under all four flag combinations. Human off/visit off and human on/visit off each passed two tests and skipped the two visit-specific cases; both visit-enabled combinations passed all four tests. Every command exited 0. This follow-up used separate artifact directories and changed no browser source. Its exact command, environment and output summaries are in the distinct billing-cleanup section of [results.txt](results.txt), with machine-readable exits in [billing-cleanup-results.json](billing-cleanup-results.json).
+The vocabulary fixture now comes from the real full-vocabulary producer followed by `display_vocabulary.trim()`, using the frozen public repository at snapshot `snap_e9c30eaacfa8f2f2`, dated `2026-10-04`. It retains `as_of` and omits catalogue coverage counts. Its [generator](../routing/round3/generate-display-vocabulary.py) and [provenance](../routing/round3/display-vocabulary-provenance.json) record the recipe, source hashes and output hash. It contains 40 templates, of which 28 are available. Older captured answers remain historical regression fixtures; they are not used for the refreshed screenshots.
 
-An initial browser run exposed a real request normalization mismatch: the controls loaded while the answer stayed at "Checking the evidence…". The implementation now compares normalized question state. Other interrupted runs saw React hot-reload errors while source files were being edited. Final matrix runs use stable source. A pre-existing detailed-page scroll test also intercepted its initial request too early; it now waits for the first answer before holding the request caused by the tested facet click. Its original scroll-position assertion remains.
+Every screenshot answer now comes from that same frozen snapshot. The local generator produces the exact example, coding, no-fit and detailed plot questions, derives the date from the vocabulary, and rejects a snapshot mismatch. The capture test checks every request before returning its generated answer; it supplies the full answer to both display phases and normalizes only `explain` for this comparison. [screenshot-decisions.json](screenshot-decisions.json) records the questions, dates and decision IDs. No historical answer fallback remains in the capture path.
 
-The recorded assistant example and six-way tie use `live-assistant-balanced-full.json`, snapshot `snap_483dd2fb6c5915b5`. Coding and no-fit screenshots use exact questions calculated by the offline engine against frozen repository data at `snap_e9c30eaacfa8f2f2`, with the same incomplete-catalogue gate setting used by the existing corpus and prototype. `screenshot-decisions.json` records those questions, response IDs and conclusions. The capture test compares the actual request with the saved question before serving either response.
-
-Screenshot vocabulary remains the unmodified captured live vocabulary. That fixture has no `coverage.as_of`, so its header honestly says "Data date unavailable". Ordinary browser tests separately add coverage from another fixture to verify date rendering. That merged test metadata is never used in screenshots. These captures demonstrate layout and interactions; they do not establish a current model recommendation or evidence freshness.
-
-The fresh capture test passed and regenerated eleven images after main integration; [results.txt](results.txt) includes the generation and capture output. The local engine regenerated the coding and no-fit responses with unchanged snapshot and decision IDs. Desktop simple pages include their full height; mobile examples, coding, tie and no-fit pages include the 390 by 844 viewport. `simple-mobile-example-full.png` also shows the source, cost basis and agent copy below that viewport. Both detailed-page screenshots preserve its existing first screen. All eleven regenerated images were opened and inspected. They are byte-identical to the earlier captures.
+All eleven images were regenerated and opened individually. The simple headers show “Data as of 2026-10-04.” The example still has six tied models and fits the complete evidence action within 390 by 844. Coding has two tied models and shows “Source: CursorBench 4.0, 2026-09-28.” The example and tie show “Source: Arena WebDev (Code Arena), 2026-09-23.” The no-fit answer shows the exact fallback “Sources and dates: see the full evidence.” Ten PNGs changed from the review base; the detailed mobile first screen remains byte-identical. [round3/screenshots.json](round3/screenshots.json) records hashes. These are frozen-data demonstrations, not a current recommendation or a claim of production freshness.
 
 | Capture | Desktop | Mobile |
 | --- | --- | --- |
@@ -57,7 +49,7 @@ The fresh capture test passed and regenerated eleven images after main integrati
 | No fit | [Image](simple-desktop-no-fit.png) | [Image](simple-mobile-no-fit.png) |
 | Detailed board | [Image](details-desktop.png) | [Image](details-mobile.png) |
 
-Regenerate the ignored decision files and screenshots from the repository root:
+Regenerate the ignored answer files and screenshots from the repository root after generating the vocabulary fixture with its linked producer:
 
 ```bash
 /Users/terbeest/dev/modelspec/.venv/bin/python \
@@ -66,9 +58,11 @@ cd web
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 MODELSPEC_CAPTURE_SIMPLE=1 \
-MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/fresh-capture-playwright \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/capture \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   --grep 'capture simple' --workers=1 --reporter=line
 ```
 
-No live production decision, paid-provider call, recruited usability session, assistive-technology session, Firefox or Safari run was observed. The live smoke test was adapted to check both URLs but was not run against a deployed site. All browser servers started by these runs are stopped by Playwright when each command exits.
+Earlier evidence remains reviewable: [results.txt](results.txt) contains the initial six browser failures, the request-normalization regression, the 28-pixel home-link red and 44-pixel fix, first integration checks, and billing-helper cleanup checks. [late-merge-results.txt](late-merge-results.txt) and [late-merge-matrix.json](late-merge-matrix.json) cover the second main integration before REV-814. [focus-race-results.txt](focus-race-results.txt) distinguishes the Coding-focus CI red from local pre-fix greens, records the test-only eventual-focus fix and its negative control, and proves runtime code was unchanged for that correction. Those prior screenshot descriptions refer to the earlier image revisions; the images linked above are the round-three replacements.
+
+Raw `.log` files are ignored local artifacts; the tracked summaries contain the relevant results. No deployed production decision, paid-provider call, recruited usability session, assistive-technology session, Firefox or Safari run was observed. The live smoke test supports both URLs but was not run against a deployed site. Full Python, site composition, surface lint and the built corpus belong to the main executor's evidence. All browser servers started by these runs have stopped.

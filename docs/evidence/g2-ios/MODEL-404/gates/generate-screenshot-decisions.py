@@ -18,7 +18,7 @@ def main():
     vocabulary = json.loads((ROOT / "web/src/decide/__fixtures__/live-vocabulary.json").read_text())
     templates = {row["id"]: row for row in vocabulary["templates"]}
     questions = {}
-    for name, template_id in [("coding", "coding-balanced"), ("no-fit", "assistant-budget")]:
+    for name, template_id in [("example", "assistant-balanced"), ("coding", "coding-balanced"), ("no-fit", "assistant-budget")]:
         template = templates[template_id]
         conditions = list(template["spec"]["where"])
         if name == "no-fit":
@@ -35,8 +35,16 @@ def main():
             "explain": "full",
             "limit": 500,
         }
-    built = build_from_repo(ROOT, premier=ROOT / "premier/slice-1.yaml", as_of=date(2026, 10, 4), gate=False)
+    questions["plot"] = {
+        **questions["example"],
+        "capabilities": {"chat_preference": "preferred"},
+        "where": [],
+        "optimize": {"weights": {"-offering.cost_per_task": 0.5, "chat_preference": 0.5}},
+    }
+    built = build_from_repo(ROOT, premier=ROOT / "premier/slice-1.yaml", as_of=date.fromisoformat(vocabulary["as_of"]), gate=False)
     snapshot = load_built_snapshot(built, source="MODEL-404 screenshot evidence, frozen repository")
+    if snapshot.snapshot_id != vocabulary["snapshot"]:
+        raise RuntimeError("Screenshot answers must use the vocabulary's frozen snapshot")
     module_spec = importlib.util.spec_from_file_location("model404_evidence_service", ROOT / "api/worker/src/decide_service.py")
     if module_spec is None or module_spec.loader is None:
         raise RuntimeError("Could not load decision service")
@@ -51,7 +59,7 @@ def main():
         if status != 200:
             raise RuntimeError(f"{name}: {status}: {body}")
         (out / f"{name}-decision.json").write_text(json.dumps({"spec": spec, "decision": body}, separators=(",", ":")) + "\n")
-        manifest[name] = {"spec": spec, "snapshot": snapshot.snapshot_id, "decision_id": body["decision_id"], "status": body["status"], "answer": body.get("answer")}
+        manifest[name] = {"spec": spec, "snapshot": snapshot.snapshot_id, "as_of": vocabulary["as_of"], "decision_id": body["decision_id"], "status": body["status"], "answer": body.get("answer")}
         print(f"{name}: snapshot={snapshot.snapshot_id}, status={body['status']}, answer={body.get('answer', {}).get('kind') if body.get('answer') else None}")
     (out.parent / "screenshot-decisions.json").write_text(json.dumps(manifest, indent=2) + "\n")
 

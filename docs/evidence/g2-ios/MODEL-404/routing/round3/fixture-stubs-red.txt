@@ -1,0 +1,38 @@
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-404/web
+
+ ❯ src/decide/__tests__/fixture-stubs.test.tsx (8 tests | 5 failed) 769ms
+   × returns the captured answer for live-assistant-balanced-summary.json 31ms
+   × returns the captured answer for live-assistant-balanced-full.json 14ms
+   × returns the captured answer for live-assistant-balanced-plot.json 13ms
+   × returns the captured answer for live-empty-board-summary.json 4ms
+   × returns the captured answer for live-empty-board-full.json 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/decide/__tests__/fixture-stubs.test.tsx > returns the captured answer for live-assistant-balanced-summary.json
+ FAIL  src/decide/__tests__/fixture-stubs.test.tsx > returns the captured answer for live-assistant-balanced-full.json
+ FAIL  src/decide/__tests__/fixture-stubs.test.tsx > returns the captured answer for live-assistant-balanced-plot.json
+ FAIL  src/decide/__tests__/fixture-stubs.test.tsx > returns the captured answer for live-empty-board-summary.json
+ FAIL  src/decide/__tests__/fixture-stubs.test.tsx > returns the captured answer for live-empty-board-full.json
+AssertionError: expected 'snap_483dd2fb6c5915b5' to be 'snap_e9c30eaacfa8f2f2' // Object.is equality
+
+Expected: "snap_e9c30eaacfa8f2f2"
+Received: "snap_483dd2fb6c5915b5"
+
+ ❯ src/decide/__tests__/fixture-stubs.test.tsx:21:27
+     19|   const answer = decisionSchema.parse(JSON.parse(expected));
+     20|   expect(answer.contract_version).toBe("2.12");
+     21|   expect(answer.snapshot).toBe(vocabulary.snapshot);
+       |                           ^
+     22|   expect(answer.explain).toBe(spec.explain);
+     23| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 3 passed (8)
+   Start at  02:17:37
+   Duration  1.74s (tests 46%, environment 25%, transform 19%, import 6%, setup 5%)
+

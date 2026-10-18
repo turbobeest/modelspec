@@ -1,0 +1,19 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_trim_keeps_snapshot_date_without_catalogue_coverage ___________
+
+vocabulary = {'vocabulary_version': 1, 'contract_version': '2.18', 'snapshot': 'snap_14662edf07144be4', 'default_task_tokens': {'input': 40000, 'output': 4000}, ...}
+display = {'vocabulary_version': 1, 'contract_version': '2.18', 'snapshot': 'snap_14662edf07144be4', 'default_task_tokens': {'input': 40000, 'output': 4000}, ...}
+snapshot = <decision.snapshot.LoadedSnapshot object at 0x1084c5d30>
+
+    def test_trim_keeps_snapshot_date_without_catalogue_coverage(vocabulary, display, snapshot):
+        assert vocabulary["coverage"]["as_of"] == snapshot.as_of.isoformat() == "2026-09-24"
+>       assert display.get("as_of") == "2026-09-24"
+E       AssertionError: assert None == '2026-09-24'
+E        +  where None = <built-in method get of dict object at 0x1087e3200>('as_of')
+E        +    where <built-in method get of dict object at 0x1087e3200> = {'vocabulary_version': 1, 'contract_version': '2.18', 'snapshot': 'snap_14662edf07144be4', 'default_task_tokens': {'input': 40000, 'output': 4000}, ...}.get
+
+tests/test_compact_vocabulary.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_compact_vocabulary.py::test_trim_keeps_snapshot_date_without_catalogue_coverage
+1 failed in 0.42s

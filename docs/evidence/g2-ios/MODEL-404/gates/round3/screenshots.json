@@ -1,0 +1,46 @@
+{
+  "details-desktop.png": {
+    "sha256": "8abb54302a7733762a75724274a873b5bea52516c339f219919783d6a948d60e",
+    "changed_from_review": true
+  },
+  "details-mobile.png": {
+    "sha256": "eb91acb2df61ca553f047c6722afd46434f6cc02b52336fd9787e9ae684a078a",
+    "changed_from_review": false
+  },
+  "simple-desktop-coding.png": {
+    "sha256": "079082fe6c79701001cd344990495838533a95fa31d3caeb8d1516c5aa2cac7e",
+    "changed_from_review": true
+  },
+  "simple-desktop-example.png": {
+    "sha256": "5b1f455d493bf6aa140acdcd323df7c890fcb30e7b9f8e31197560a87c2d5822",
+    "changed_from_review": true
+  },
+  "simple-desktop-no-fit.png": {
+    "sha256": "b2e38e6d73a35b90953f430667c537ec6039c28bc001404055d3632f4ea3fb24",
+    "changed_from_review": true
+  },
+  "simple-desktop-tie.png": {
+    "sha256": "ae507fe18c33b6148ccf396856fcf04e38d2e7c82140c458dbbc4edda249901e",
+    "changed_from_review": true
+  },
+  "simple-mobile-coding.png": {
+    "sha256": "9e820497cf9133a5044d057112a914379ce9ee32be69ef5bf2869dd17027d4c8",
+    "changed_from_review": true
+  },
+  "simple-mobile-example-full.png": {
+    "sha256": "5a247f05a0a71666ef705847bac8867b978acf4d324e2d0e5e9e2af4f6cd910f",
+    "changed_from_review": true
+  },
+  "simple-mobile-example.png": {
+    "sha256": "58284b96d78ca41b91dd747506f2cbdabc4893a06e6f73746920d6d863353740",
+    "changed_from_review": true
+  },
+  "simple-mobile-no-fit.png": {
+    "sha256": "282d0b6c1d7445aed00823a481458b0bc6fb39e83d2300303cf73b38bd0d9f41",
+    "changed_from_review": true
+  },
+  "simple-mobile-tie.png": {
+    "sha256": "1e65739fba543c79db1d9c71a9b5a2928dbbe95260bf81f391ee75ac7ccfbb5a",
+    "changed_from_review": true
+  }
+}
