@@ -114,7 +114,7 @@ and fragment byte-for-byte. Bare `/decide/` remains the first-visit page.
 | --- | --- |
 | Landing page and generated landing chrome | Facet-board, template and refinement links; introductory choose-a-model links stay simple |
 | Method and about pages | Links describing requirements, controls, evidence and trade-off board |
-| Use-case pages | All template-specific and board-state examples, including the current #811 equivalents |
+| Use-case pages (#811) | `pipeline.build.use_case_page` sends “Apply this template” to `/decide/details/?template=<id>`; generic Decide navigation and free-lookup links stay on `/decide/` |
 | Pricing, feedback and brand pages | Links explicitly promising the detailed board |
 | Agent copy and generated CLI agent bundle | The detailed structured-question UI and template links |
 | MCP copy | Links describing the decision board and template examples |

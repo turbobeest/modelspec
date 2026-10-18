@@ -12,13 +12,19 @@ from pydantic import (
 
 from decision.model import Verification
 
-VERSION = "1.0"
+VERSION = "2.0"
 ENDPOINT = "hardware-fit"
 FORMULA = (
     "For each device: kv_cache_bytes = kv_bytes_per_token * batch * context; "
     "required_bytes = weights_bytes + kv_cache_bytes + runtime_headroom_bytes; "
     "margin_bytes = capacity_bytes - required_bytes. "
     "estimated_fit = likely if every margin_bytes >= 0, otherwise unlikely."
+)
+LOWER_BOUND_FORMULA = (
+    "For each device: kv_cache_bytes = kv_bytes_per_token * batch * context; "
+    "lower_bound_bytes = weights_bytes + kv_cache_bytes; "
+    "margin_bytes = capacity_bytes - lower_bound_bytes. "
+    "estimated_fit = unlikely if any margin_bytes < 0; otherwise undetermined without runtime headroom."
 )
 
 Text = Annotated[str, Field(strict=True, min_length=1, max_length=512, pattern=r"\S")]
@@ -55,7 +61,7 @@ class SourcedNumber(Record):
 class DeviceInputs(Record):
     weights_bytes: SourcedNumber
     kv_bytes_per_token: SourcedNumber
-    runtime_headroom_bytes: SourcedNumber
+    runtime_headroom_bytes: SourcedNumber | None = None
 
     @model_validator(mode="after")
     def resident_weights(self):
@@ -114,7 +120,8 @@ def numeric_inputs(record: MeasuredRecord | EstimatedRecord) -> list[SourcedNumb
     if isinstance(record, MeasuredRecord):
         return record.measured_memory_bytes
     return [value for device in record.per_device for value in (
-        device.weights_bytes, device.kv_bytes_per_token, device.runtime_headroom_bytes)]
+        device.weights_bytes, device.kv_bytes_per_token, device.runtime_headroom_bytes)
+            if value is not None]
 
 
 class Citation(Record):
@@ -140,7 +147,7 @@ class ExhaustedCredits(Record):
 
 
 class CommonResponse(Record):
-    hardware_fit_version: Literal["1.0"] = VERSION
+    hardware_fit_version: Literal["2.0"] = VERSION
     endpoint: Literal["hardware-fit"] = ENDPOINT
     snapshot: str
     request: HardwareFitRequest
@@ -176,15 +183,15 @@ class MeasuredResponse(CommonResponse):
 
 
 class DeviceEstimate(DeviceInputs):
+    runtime_headroom_bytes: SourcedNumber
     device: Annotated[int, Field(strict=True, ge=0)]
     kv_cache_bytes: Number
     required_bytes: Number
     margin_bytes: int | float
 
 
-class EstimatedResponse(CommonResponse):
+class EstimateBase(CommonResponse):
     status: Literal["estimated"]
-    estimated_fit: Literal["likely", "unlikely"]
     margin_bytes: int | float
     formula: str
     record_id: Text
@@ -192,8 +199,40 @@ class EstimatedResponse(CommonResponse):
     verification: Verification
     capacity_bytes: Provenance
     model_context_max: Provenance
-    per_device: list[DeviceEstimate]
     assumptions: list[str] = Field(min_length=1)
+
+
+class FullEstimatedResponse(EstimateBase):
+    basis: Literal["full"]
+    estimated_fit: Literal["likely", "unlikely"]
+    per_device: list[DeviceEstimate]
+
+
+class HeadroomNotRequired(Record):
+    status: Literal["not_required"] = "not_required"
+    reason: Text = "Runtime headroom is not required to establish this lower bound."
+
+
+class LowerBoundDeviceEstimate(Record):
+    device: Annotated[int, Field(strict=True, ge=0)]
+    weights_bytes: SourcedNumber
+    kv_bytes_per_token: SourcedNumber
+    runtime_headroom_bytes: SourcedNumber | HeadroomNotRequired
+    kv_cache_bytes: Number
+    lower_bound_bytes: Number
+    margin_bytes: int | float
+
+
+class LowerBoundEstimatedResponse(EstimateBase):
+    basis: Literal["lower_bound"]
+    estimated_fit: Literal["unlikely"]
+    per_device: list[LowerBoundDeviceEstimate]
+
+
+class EstimatedResponse(RootModel[
+    Annotated[FullEstimatedResponse | LowerBoundEstimatedResponse, Field(discriminator="basis")]
+]):
+    pass
 
 
 class HardwareFitResponse(RootModel[
@@ -276,7 +315,8 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
     candidates = measured or exact
     if not measured and len({tuple(
         (device["weights_bytes"]["value"], device["kv_bytes_per_token"]["value"],
-         device["runtime_headroom_bytes"]["value"]) for device in row["per_device"])
+         device["runtime_headroom_bytes"]["value"] if device.get("runtime_headroom_bytes") is not None
+         else None) for device in row["per_device"])
                              for row in candidates}) > 1:
         return unknown(("estimate", "verified estimate inputs disagree for this exact request"))
     row = max(candidates, key=lambda item: (item["observed_at"], item["id"]))
@@ -305,17 +345,31 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
                                      "memory_bytes_per_device": row["memory_bytes_per_device"],
                                      "measured_memory_bytes": row["measured_memory_bytes"],
                                      "verification": row["verification"]}}
+    missing_headroom = [index for index, allocation in enumerate(row["per_device"])
+                        if allocation.get("runtime_headroom_bytes") is None]
+    basis = "lower_bound" if missing_headroom else "full"
+    memory_field = "lower_bound_bytes" if missing_headroom else "required_bytes"
     calculations = []
     for index, allocation in enumerate(row["per_device"]):
         kv_bytes = allocation["kv_bytes_per_token"]["value"] * request.batch * request.context
         if isinstance(kv_bytes, float) and not math.isfinite(kv_bytes):
             return unknown(("kv_cache_bytes", "the cited inputs overflow the KV calculation"))
-        required = allocation["weights_bytes"]["value"] + kv_bytes + allocation["runtime_headroom_bytes"]["value"]
+        required = allocation["weights_bytes"]["value"] + kv_bytes
+        if not missing_headroom:
+            required += allocation["runtime_headroom_bytes"]["value"]
         if isinstance(required, float) and not math.isfinite(required):
-            return unknown(("required_bytes", "the cited inputs overflow the memory calculation"))
+            return unknown((memory_field, "the cited inputs overflow the memory calculation"))
+        headroom = allocation.get("runtime_headroom_bytes")
         calculations.append({**allocation, "device": index, "kv_cache_bytes": kv_bytes,
-                             "required_bytes": required, "margin_bytes": capacity_bytes - required})
+                             "runtime_headroom_bytes": headroom if headroom is not None
+                             else HeadroomNotRequired().model_dump(),
+                             memory_field: required, "margin_bytes": capacity_bytes - required})
     margin = min(device["margin_bytes"] for device in calculations)
+    if missing_headroom and margin >= 0:
+        devices = f"devices {missing_headroom}" if len(missing_headroom) <= 8 else f"{len(missing_headroom)} devices"
+        return unknown(("runtime_headroom_bytes",
+                        f"Verified runtime headroom is missing for {devices}; "
+                        "their lower bounds do not establish fit."))
     assumptions = [
         "This is an estimate; runtime execution and successful fit have not been established.",
         "Every device uses the cited allocation for this exact runtime, quantisation, batch and context.",
@@ -324,8 +378,11 @@ def check(payload: Any, snapshot: Any, expected_snapshot: str | None = None) -> 
     ]
     if request.memory is not None:
         assumptions.append("Memory capacity is the caller's override in decimal GB per device.")
+    if missing_headroom:
+        assumptions.append("The lower bound excludes runtime headroom on every device; omitted headroom is not zero.")
     return 200, {**common, "status": "estimated", "estimated_fit": "likely" if margin >= 0 else "unlikely",
-                 "margin_bytes": margin, "formula": FORMULA, "record_id": row["id"],
+                 "basis": basis, "margin_bytes": margin,
+                 "formula": LOWER_BOUND_FORMULA if missing_headroom else FORMULA, "record_id": row["id"],
                  "observed_at": row["observed_at"], "verification": row["verification"],
                  "capacity_bytes": capacity_input,
                  "model_context_max": context_input, "per_device": calculations,

@@ -1,0 +1,6 @@
+Exit code: 0
+Tested SHA: 2919a7e029605c3e249bfec45039fe5c4d9e5f92
+PATH prefix: /Users/terbeest/.nvm/versions/node/v22.22.3/bin
+Command: /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+
+11485 passed, 9 skipped, 11 warnings in 1218.92s (0:20:18)

@@ -724,10 +724,11 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "at most 16 KB."
         ),
         "hardware_fit": (
-            "Does this model fit this workload? "
-            "Returns measured with an exact cited run; estimated with sourced inputs, formula, "
-            "assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. "
-            "Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. "
+            "Does this workload fit? "
+            "Returns measured for an exact cited run, estimated with sources, or undetermined. "
+            "Uses basis full with sourced headroom, or basis lower_bound for unlikely only. "
+            "Missing headroom cannot establish likely. "
+            "Estimates never prove fit. Memory is decimal GB per device, never pooled. "
             f"{price([w['decide.full']], tiers)} "
             "It doesn't choose a model. "
             f"Proxies POST {API}/v1/hardware-fit."

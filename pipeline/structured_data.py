@@ -144,6 +144,26 @@ def breadcrumbs(path: str) -> dict[str, Any]:
     }
 
 
+def use_case_graph(path: str, name: str, description: str, as_of: str,
+                   *, article: bool) -> list[dict[str, Any]]:
+    """Dated examples describe visible text, without a review or rating claim."""
+    items = [
+        {"@type": "ListItem", "position": 1, "name": "ModelSpec", "item": f"{BASE}/"},
+        {"@type": "ListItem", "position": 2, "name": "Use-case examples",
+         "item": f"{BASE}/use-cases/"},
+    ]
+    if article:
+        items.append({"@type": "ListItem", "position": 3, "name": name, "item": BASE + path})
+    nodes = [{"@type": "BreadcrumbList", "itemListElement": items}]
+    if article:
+        nodes.append({
+            "@type": "Article", "@id": BASE + path + "#example", "url": BASE + path,
+            "headline": name, "description": description, "dateModified": as_of,
+            "publisher": {"@id": ORG},
+        })
+    return nodes
+
+
 def graph(path: str, tree: Path, root: Path = ROOT) -> list[dict[str, Any]]:
     """The JSON-LD objects for the page at `path`."""
     if path == "/":

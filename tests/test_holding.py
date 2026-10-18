@@ -355,10 +355,50 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
     assert live.thin_pages(ms) == []
     assert "Content-Signal: search=yes, ai-input=yes, ai-train=yes" in (ms / "robots.txt").read_text()
     sitemap = (ms / "sitemap.xml").read_text(encoding="utf-8")
-    assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == len(live.PAGES)
+    from pipeline.surface_lint import sitemap_entries
+    source_use_cases = {
+        url: stamp for url, stamp in sitemap_entries(
+            (trees["real"] / "modelspec/sitemap.xml").read_text(encoding="utf-8")
+        ) if url.startswith(live.BASE + "/use-cases/")
+    }
+    assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == (
+        len(live.PAGES) + len(source_use_cases)
+    )
+    assert {url: stamp for url, stamp in sitemap_entries(sitemap)
+            if url.startswith(live.BASE + "/use-cases/")} == source_use_cases
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page
+
+
+def test_live_use_cases_preserve_public_image_discovery_and_noindex_states(trees):
+    from pipeline.surface_lint import Page, sitemap_entries
+
+    source = trees["real"] / "modelspec"
+    tree = trees["live"] / "modelspec"
+    assert "/use-cases/" in Page((tree / "method/index.html").read_text()).links
+    assert live.resolves(tree, "/use-cases/")
+    source_entries = dict(sitemap_entries((source / "sitemap.xml").read_text()))
+    live_entries = dict(sitemap_entries((tree / "sitemap.xml").read_text()))
+    expected = {url: stamp for url, stamp in source_entries.items()
+                if url.startswith(live.BASE + "/use-cases/")}
+    actual = {url: stamp for url, stamp in live_entries.items()
+              if url.startswith(live.BASE + "/use-cases/")}
+    assert actual == expected
+    assert live.BASE + "/use-cases/" in actual
+    assert any(url != live.BASE + "/use-cases/" for url in actual)
+    assert set(actual.values()) == {builder.use_case_image_date(ROOT).isoformat()}
+    noindex = []
+    for page in (source / "use-cases").rglob("index.html"):
+        rel = page.relative_to(source)
+        path = "/" + rel.parent.as_posix() + "/"
+        assert live.resolves(tree, path), path
+        assert (tree / rel).read_bytes() == page.read_bytes()
+        if "noindex" in Page(page.read_text()).meta["robots"]:
+            noindex.append(path)
+            assert live.BASE + path not in actual
+    assert noindex
+    assert live.dead_links(tree) == []
 
 
 def test_every_live_page_carries_one_json_ld_graph(trees):

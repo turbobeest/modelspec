@@ -263,6 +263,13 @@ def presence(
             findings.append(
                 Finding("method/index.html", "presence.lead", first, entity.ONE_SENTENCE)
             )
+    # Noindex examples are still public copy, so discovery through the sitemap
+    # alone is insufficient coverage.
+    for path, raw in sorted(texts.items()):
+        if path.startswith("use-cases/") and path.endswith(".html"):
+            first = Page(raw).first_paragraph
+            if not first.startswith(entity.ONE_SENTENCE):
+                findings.append(Finding(path, "presence.lead", first, entity.ONE_SENTENCE))
     for path in ("about/index.html", "method/index.html", "llms.txt"):
         page_text = texts.get(path, "")
         text = Page(page_text).visible if path.endswith(".html") else normalize(page_text)
@@ -734,6 +741,12 @@ def live_tree(
         *live.DISCOVERY,
         *(path.lstrip("/") + "index.html" for path in live.PAGES),
     }
+    from decision.templates import load_templates
+    paths.add("use-cases/index.html")
+    paths.update(
+        f'use-cases/{template["category"]}/{template["id"]}/index.html'
+        for template in load_templates()
+    )
     paths.discard("index.html")
     if "sitemap.xml" in texts:
         try:
@@ -821,13 +834,23 @@ def expected_lastmods(
         build = json.loads(texts["api/build.json"])
         stamp = datetime.fromisoformat(build["built_at"].replace("Z", "+00:00")).date().isoformat()
         if "models/index.html" in texts:
-            return {
+            dates = {
                 urlsplit(url).path: stamp for url, _ in sitemap_entries(texts["sitemap.xml"])
-            }, ""
+            }
+            from pipeline.build import use_case_image_date
+            image_date = use_case_image_date(ROOT).isoformat()
+            dates.update({path: image_date for path in dates if path.startswith("/use-cases/")})
+            return dates, ""
         from pipeline.export import _commit
 
         if not deployed or build["commit"] == _commit(ROOT):
-            return {path: live.lastmod(path) for path in live.PAGES}, ""
+            dates = {path: live.lastmod(path) for path in live.PAGES}
+            from pipeline.build import use_case_image_date
+            image_date = use_case_image_date(ROOT).isoformat()
+            dates.update({urlsplit(url).path: image_date
+                          for url, _ in sitemap_entries(texts["sitemap.xml"])
+                          if urlsplit(url).path.startswith("/use-cases/")})
+            return dates, ""
     except (ValueError, KeyError, TypeError, ET.ParseError):
         pass
     return None, "Source-change dates not checked: deployed build differs from this checkout."

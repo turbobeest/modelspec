@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -77,3 +79,55 @@ def test_modelspec_pages_do_not_name_benchgraph_dev(dist: Path) -> None:
         if NEEDLE in path.read_bytes():
             hits.append(rel)
     assert hits == []
+
+
+def test_use_case_pages_are_published_with_image_dates_and_method_discovery(dist: Path) -> None:
+    from pipeline import surface_lint
+    from decision.templates import load_templates
+
+    tree = dist / "modelspec"
+    templates = load_templates()
+    image_date = builder.use_case_image_date(ROOT).isoformat()
+    assert (tree / "use-cases/index.html").is_file()
+    assert 'href="/use-cases/"' in (tree / "method/index.html").read_text()
+    entries = dict(surface_lint.sitemap_entries((tree / "sitemap.xml").read_text()))
+    for template in templates:
+        path = f'/use-cases/{template["category"]}/{template["id"]}/'
+        page = surface_lint.Page((tree / path.lstrip("/") / "index.html").read_text())
+        url = "https://modelspec.dev" + path
+        if "noindex" in page.meta["robots"]:
+            assert url not in entries
+        else:
+            assert entries[url] == image_date
+        assert page.ld
+    assert entries["https://modelspec.dev/use-cases/"] == image_date
+
+
+def test_built_use_case_pages_have_no_visible_json_literals(dist: Path) -> None:
+    from pipeline.surface_lint import Page
+
+    tree = dist / "modelspec"
+    pages = sorted((tree / "use-cases").rglob("*.html"))
+    assert len(pages) > 1
+    failures = []
+    for path in pages:
+        visible = Page(path.read_text()).visible
+        literals = re.findall(r"\b(?:null|true|false)\b", visible, re.I)
+        if literals:
+            failures.append(f"{path.relative_to(tree)}: {sorted(set(literals))}")
+    assert not failures, "\n".join(failures[:5])
+
+
+def test_built_use_case_pages_have_no_empty_band_tables(dist: Path) -> None:
+    tree = dist / "modelspec"
+    pages = sorted((tree / "use-cases").rglob("*.html"))
+    assert len(pages) > 1
+    checked = 0
+    failures = []
+    for path in pages:
+        for markup in re.findall(r"<table\b[^>]*>.*?</table>", path.read_text(), re.S):
+            checked += 1
+            if not ET.fromstring(markup).findall("./tbody/tr"):
+                failures.append(str(path.relative_to(tree)))
+    assert checked > 0
+    assert not failures, "\n".join(failures[:5])

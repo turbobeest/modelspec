@@ -1,0 +1,4 @@
+Known executor shell, flock, pytest controller, and xdist worker processes have exited.
+Command: ps -p 72388,72389,18670,18671,18672,18673,18674 -o pid=,ppid=,etime=,comm=
+Exit code: 1 (no matching processes); stdout: empty.
+No background process started by the executor remains running.
