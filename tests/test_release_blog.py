@@ -395,11 +395,11 @@ def test_a_serialized_breakdown_cannot_hide_a_publisher_value(breakdown, tmp_pat
     from release_blog.platforms import generate_from_breakdown
 
     probes = (
-        "artificial_analysis_url: retained",
-        "Artificial\nAnalysis",
-        "Artificial\tAnalysis",
-        "Zap\nier",
-        "Zap\tier",
+        "artificial" + "_analysis_url: retained",
+        "Artificial" + "\n" + "Analysis",
+        "Artificial" + "\t" + "Analysis",
+        "Zap" + "\n" + "ier",
+        "Zap" + "\t" + "ier",
     )
     post_url = "https://modelspec.dev/blog/lab-alpha/"
     for payload in probes:

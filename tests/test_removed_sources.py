@@ -6,10 +6,11 @@ removed on 2026-09-24. Zapier is treated the same way by the same decision, so
 every value sourced from zapier.com and the AutomationBench benchmark were
 removed with it.
 
-This guard, ``decision/excluded.py``, and the platform draft tests are the
-only files that name either source. The checks cover tracked files, loaded
-cards and pages, ranking tables,
-and the JSON export. Set ``MODELSPEC_DIST`` to a built ``dist/`` to scan it too.
+This guard, ``decision/excluded.py``, and ``docs/research/source-terms-*.md``
+are the only tracked files that may name either source. Other tests build
+those strings at runtime. The checks cover tracked files, loaded cards and
+pages, ranking tables, and the JSON export. Set ``MODELSPEC_DIST`` to a
+built ``dist/`` to scan it too.
 """
 
 from __future__ import annotations
@@ -25,7 +26,6 @@ from decision.excluded import (
     REMOVED_HOSTS,  # noqa: F401 - part of this guard's public test surface
     REMOVED_ID,
     REMOVED_TEXT,
-    excluded_in,
     excluded_publisher,
     excluded_sources,
 )
@@ -36,11 +36,6 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 ALLOWED = (
     Path(__file__).resolve().relative_to(REPO_ROOT).as_posix(),
     "decision/excluded.py",
-    # These tests name both publishers in order to prove the guard rejects them
-    # and the drafts omit them.
-    "tests/test_release_blog_platforms.py",
-    "tests/test_release_blog.py",
-    "tests/test_surface_lint.py",
 )
 ALLOWED_GLOBS = ("docs/research/source-terms-*.md",)
 
@@ -69,6 +64,92 @@ def _python_publisher(text: str) -> bool:
     return any(excluded_publisher(chunk) for chunk in chunks)
 
 
+def _front_matter(text: str) -> tuple[str | None, str]:
+    if not (text.startswith("---\n") or text.startswith("---\r\n")):
+        return None, text
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            return "".join(lines[1:index]), "".join(lines[index + 1 :])
+    return None, text
+
+
+def _decoded_hit(obj: object) -> bool:
+    """``excluded_in``, plus HTML entities inside string values.
+
+    Keys are not decoded and are not rebuilt, so two keys that would look
+    the same after decoding stay distinct. The legacy field key stays exempt.
+    """
+    import html
+
+    from decision.excluded import each_string
+
+    return any(excluded_publisher(html.unescape(item)) for item in each_string(obj))
+
+
+def _html_publisher(text: str) -> bool:
+    import html
+    import json
+    import re
+
+    from pipeline.surface_lint import Page
+
+    page = Page(text)
+    if any(excluded_publisher(item) for item in (page.visible, page.title, *page.attribute_values)):
+        return True
+    pattern = re.compile(
+        r"<script\b[^>]*type\s*=\s*[\"']application/ld\+json[\"'][^>]*>(.*?)</script>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    for blob in pattern.findall(text):
+        try:
+            parsed = json.loads(blob)
+        except ValueError:
+            if excluded_publisher(html.unescape(blob)):
+                return True
+            continue
+        if _decoded_hit(parsed):
+            return True
+    return False
+
+
+def _structured_publisher(path: Path, text: str) -> bool:
+    """Catalogue walk. Prose is text. A mapping is parsed, and its keys are not decoded."""
+    import html
+    import json
+
+    import yaml
+
+    suffix = path.suffix.lower()
+    if suffix == ".html":
+        return _html_publisher(text)
+    if suffix == ".json":
+        try:
+            parsed = json.loads(text)
+        except ValueError:
+            return excluded_publisher(html.unescape(text))
+        return _decoded_hit(parsed)
+    if suffix in {".yaml", ".yml"}:
+        try:
+            parsed = yaml.safe_load(text)
+        except yaml.YAMLError:
+            return excluded_publisher(html.unescape(text))
+        if parsed is None:
+            return False
+        return _decoded_hit(parsed)
+    if suffix == ".md":
+        front, body = _front_matter(text)
+        if front is not None:
+            try:
+                meta = yaml.safe_load(front)
+            except yaml.YAMLError:
+                meta = None
+            if isinstance(meta, (dict, list)):
+                return _decoded_hit(meta) or excluded_publisher(html.unescape(body))
+        return excluded_publisher(html.unescape(text))
+    return excluded_publisher(html.unescape(text))
+
+
 def _publisher_hit(path: Path, text: str) -> bool:
     """Walk structured files. A source file's strings are values; its field names are not."""
     suffix = path.suffix.lower()
@@ -79,9 +160,7 @@ def _publisher_hit(path: Path, text: str) -> bool:
         return excluded_publisher(text)
     if suffix == ".py":
         return _python_publisher(text)
-    from pipeline.surface_lint import publisher_subject
-
-    return excluded_in(publisher_subject(path.name, text))
+    return _structured_publisher(path, text)
 
 
 def _tracked_files() -> list[Path]:

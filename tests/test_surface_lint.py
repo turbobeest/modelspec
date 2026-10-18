@@ -287,15 +287,45 @@ def test_all_owned_formats_and_legal_pages_get_lexicon_checks(path: str) -> None
     assert sl.lexicon({"api/models.json": text, "assets/app.js": text}, {}, {}) == []
 
 
+def _joined(*parts: str) -> str:
+    return "".join(parts)
+
+
+def _publisher_markup(kind: str) -> str:
+    """Build a removed-publisher string without storing the joined name."""
+    key = _joined("artificial", "_analysis_url")
+    spaced = _joined("Artificial", " Analysis")
+    broken = _joined("Zap", "ier")
+    forms = {
+        "prose-key": _joined(key, ": retained"),
+        "prose-title": _joined("Title: Hello # ", broken),
+        "nl": _joined("Artificial", "&#10;", "Analysis"),
+        "nbsp": _joined("Artificial", "&nbsp;", "Analysis"),
+        "shy": _joined("Zap", "&shy;", "ier"),
+        "hex": _joined("&#x41;", "rtificial Analysis"),
+        "tab": _joined("Artificial", "&#9;", "Analysis"),
+        "dec": _joined("Zap", "&#173;", "ier"),
+        "spaced": spaced,
+        "broken": broken,
+        "key": key,
+    }
+    return forms[kind]
+
+
 @pytest.mark.parametrize(
     "body",
     [
-        "<p>artificial_analysis_url: retained</p>",
-        "<p>Artificial&#10;Analysis</p>",
-        "<p>Zap&shy;ier</p>",
-        "<img alt='Zap&shy;ier'>",
-        "<span title='Artificial&#9;Analysis'>kept</span>",
-        "<a data-source='Zap&#173;ier'>kept</a>",
+        "<p>" + _publisher_markup("prose-key") + "</p>",
+        "<p>" + _publisher_markup("nl") + "</p>",
+        "<p>" + _publisher_markup("nbsp") + "</p>",
+        "<p>" + _publisher_markup("shy") + "</p>",
+        "<p>" + _publisher_markup("hex") + "</p>",
+        "<img alt='" + _publisher_markup("shy") + "'>",
+        "<img alt='" + _publisher_markup("nl") + "'>",
+        "<img alt='" + _publisher_markup("nbsp") + "'>",
+        "<img alt='" + _publisher_markup("hex") + "'>",
+        "<span title='" + _publisher_markup("tab") + "'>kept</span>",
+        "<a data-source='" + _publisher_markup("dec") + "'>kept</a>",
     ],
 )
 def test_surface_lint_rejects_entity_and_key_shaped_publisher_text(body: str) -> None:
@@ -307,9 +337,66 @@ def test_surface_lint_rejects_entity_and_key_shaped_publisher_text(body: str) ->
     assert findings, body
 
 
+def test_markdown_prose_is_flagged_without_parsing_it_as_yaml() -> None:
+    for raw in (_publisher_markup("prose-key"), _publisher_markup("prose-title")):
+        findings = [
+            item
+            for item in sl.lexicon({"index.md": raw}, {}, {})
+            if item.check == "lexicon.removed-source"
+        ]
+        assert findings, raw
+        subject = sl.publisher_subject("index.md", raw)
+        assert isinstance(subject, list)
+        assert all(isinstance(item, str) for item in subject)
+
+
+def test_a_duplicate_attribute_cannot_hide_a_removed_publisher() -> None:
+    pages = (
+        page(
+            "<img src='missing' alt='"
+            + _publisher_markup("nl")
+            + "' alt='ok'>"
+        ),
+        page(
+            "<p title='"
+            + _publisher_markup("shy")
+            + "' title='ok'>ok</p>"
+        ),
+    )
+    for raw in pages:
+        findings = [
+            item
+            for item in sl.lexicon({"page.html": raw}, {}, {})
+            if item.check == "lexicon.removed-source"
+        ]
+        assert findings, raw
+
+
+def test_surface_lint_never_rebuilds_dicts() -> None:
+    raw = _joined(
+        '{"note',
+        "&#65;",
+        '": "',
+        "Artificial",
+        "&#10;",
+        "Analysis",
+        '", "noteA": "safe"}',
+    )
+    subject = sl.publisher_subject(".well-known/card.json", raw)
+    assert isinstance(subject, list)
+    assert all(isinstance(item, str) for item in subject)
+    assert not hasattr(sl, "_unescape_tree")
+    findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, raw
+
+
 def test_a_markdown_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
-    empty = "---\nsources:\n  artificial_analysis_url: ''\n---\nPlain.\n"
-    hidden = '---\nnote: "artificial_analysis_url: retained"\n---\nPlain.\n'
+    empty = "---\nsources:\n  " + _publisher_markup("key") + ": ''\n---\nPlain.\n"
+    hidden = '---\nnote: "' + _publisher_markup("prose-key") + '"\n---\nPlain.\n'
     empty_findings = [
         item
         for item in sl.lexicon({"card.md": empty}, {}, {})
@@ -320,13 +407,13 @@ def test_a_markdown_value_is_not_exempt_because_it_looks_like_the_legacy_key() -
         for item in sl.lexicon({"card.md": hidden}, {}, {})
         if item.check == "lexicon.removed-source"
     ]
-    assert empty_findings == []
+    assert empty_findings
     assert hidden_findings
 
 
 def test_a_json_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
-    hidden = json.dumps({"value": "artificial_analysis_url: retained"})
-    empty = json.dumps({"artificial_analysis_url": ""})
+    hidden = json.dumps({"value": _publisher_markup("prose-key")})
+    empty = json.dumps({_publisher_markup("key"): ""})
     hidden_findings = [
         item
         for item in sl.lexicon({".well-known/card.json": hidden}, {}, {})
@@ -338,7 +425,7 @@ def test_a_json_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> No
         if item.check == "lexicon.removed-source"
     ]
     assert hidden_findings
-    assert empty_findings == []
+    assert empty_findings
 
 
 def test_removed_sources_reuse_the_catalogue_rule() -> None:

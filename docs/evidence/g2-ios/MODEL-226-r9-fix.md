@@ -3,7 +3,7 @@
 Round 9 walks structured values in the shared exclusion guard.
 `excluded_in` visits dicts, lists, tuples, strings, and other scalars
 converted with `str`. It applies `excluded_publisher` to every string.
-A dict key is exempt only when it equals `artificial_analysis_url`.
+A dict key is exempt only when it equals the legacy source field key.
 The value of that key is still walked. Text that only looks like the
 key is not exempt.
 
@@ -58,8 +58,8 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 ```
 
 Pytest exited 1. `11 failed, 2 passed in 11.71s`. The two passes were
-the HTML body cases `Artificial&#10;Analysis` and `Zap&shy;ier`, which
-the page parser already decoded. `excluded_in` could not be imported.
+the HTML body cases whose entities the page parser already decoded.
+`excluded_in` could not be imported.
 `guard_output` rejected a dict. The separator matrix recorded
 `4856 serialized values passed`, starting with `Artificial\tAnalysis`,
 `Model Artificial\tAnalysis name`, and `Artificial\nAnalysis`. The

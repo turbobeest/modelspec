@@ -20,7 +20,7 @@ from urllib.parse import urljoin, urlsplit
 import yaml
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT, excluded_in, publisher_excerpt
+from decision.excluded import REMOVED_TEXT, excluded_publisher, publisher_excerpt
 from pipeline import agent_copy, entity, worker_flags
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,10 +128,11 @@ class Page(HTMLParser):
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        attributes = dict(attrs)
-        for value in attributes.values():
+        # Record every value from the raw pairs before dict() drops duplicates.
+        for _name, value in attrs:
             if value:
                 self.attribute_values.append(html.unescape(value))
+        attributes = dict(attrs)
         if tag == "meta":
             key = attributes.get("name") or attributes.get("property")
             if key:
@@ -237,16 +238,6 @@ def lexicon_text(path: str, text: str) -> str:
     return normalize(text.replace(chr(96), ""))
 
 
-def _unescape_tree(value: Any) -> Any:
-    if isinstance(value, str):
-        return html.unescape(value)
-    if isinstance(value, dict):
-        return {_unescape_tree(key): _unescape_tree(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_unescape_tree(item) for item in value]
-    return value
-
-
 def _split_front_matter(text: str) -> tuple[str | None, str]:
     if not (text.startswith("---\n") or text.startswith("---\r\n")):
         return None, text
@@ -257,57 +248,23 @@ def _split_front_matter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
-def _markdown_subject(raw: str) -> object:
-    front, body = _split_front_matter(raw)
-    if front is not None:
-        try:
-            meta = yaml.safe_load(front)
-        except yaml.YAMLError:
-            meta = None
-        if isinstance(meta, (dict, list)):
-            return [_unescape_tree(meta), html.unescape(body)]
-    try:
-        loaded = yaml.safe_load(raw)
-    except yaml.YAMLError:
-        loaded = None
-    if isinstance(loaded, (dict, list)):
-        return _unescape_tree(loaded)
-    return html.unescape(raw)
+def publisher_subject(path: str, raw: str) -> list[str]:
+    """Text checked for a removed publisher. No parsed objects.
 
-
-def publisher_subject(path: str, raw: str) -> object:
-    """The strings and objects the publisher walk should see for this file.
-
-    HTML stays text: visible copy and every attribute value, after entity
-    decoding. JSON, YAML, and Markdown front matter are parsed so a field
-    key is a key. JSON-LD is parsed the same way.
+    HTML contributes the visible text, the title, and every attribute value
+    from the raw pairs, so a duplicate attribute is kept. Markdown and every
+    other file contribute the unescaped file text. A genuine front-matter
+    block is included again as text and is never parsed as a mapping.
     """
     if path.endswith(".html"):
         page = Page(raw)
-        parts: list[object] = [page.visible, page.title, *page.attribute_values]
-        for blob in page.ld:
-            decoded = html.unescape(blob)
-            try:
-                parts.append(_unescape_tree(json.loads(decoded)))
-            except ValueError:
-                parts.append(decoded)
-        return parts
-    if path.endswith(".json"):
-        try:
-            return _unescape_tree(json.loads(raw))
-        except ValueError:
-            return html.unescape(raw)
-    if path.endswith((".yaml", ".yml")):
-        try:
-            loaded = yaml.safe_load(raw)
-        except yaml.YAMLError:
-            return html.unescape(raw)
-        if loaded is None:
-            return ""
-        return _unescape_tree(loaded)
+        return [html.unescape(page.visible), html.unescape(page.title), *page.attribute_values]
+    texts = [html.unescape(raw)]
     if path.endswith(".md"):
-        return _markdown_subject(raw)
-    return html.unescape(raw)
+        front, _body = _split_front_matter(raw)
+        if front is not None:
+            texts.append(html.unescape(front))
+    return texts
 
 
 def presence(
@@ -485,7 +442,7 @@ def lexicon(
                         "current registry and decision-approved claims",
                     )
                 )
-        if excluded_in(subject):
+        if any(excluded_publisher(item) for item in subject):
             excerpt = publisher_excerpt(subject) or text[:120]
             findings.append(
                 Finding(
