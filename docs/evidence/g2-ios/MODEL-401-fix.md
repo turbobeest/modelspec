@@ -1,7 +1,8 @@
 # MODEL-401 hardware-fit lower-bound evidence
 
 Draft PR: [#812](https://github.com/turbobeest/modelspec/pull/812).
-Status: focused checks and CI pass; the full-suite retry after web setup is pending the shared lock.
+Status: READY. The locked full suite, focused checks, and applicable CI checks pass.
+PR #812 remains a draft for cross-model review.
 
 Base SHA: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`, also the fetched
 `origin/main` used for the publication comparisons. The first commit,
@@ -193,13 +194,27 @@ assertion changed, and no dependency failure is ignored. The corresponding
 logs are `resume/web-build.log.gz`, `resume/web-tests.log.gz`, and
 `resume/landing-after-web-build.log.gz`.
 
-All 18 applicable CI checks on `a66d4170889f74fa35624e1984df0a537f8d986f`
-passed; six deployment or merge checks were skipped. The read-only command
-`gh pr checks 812 --json name,state` exited 0, recorded in
-[ci-a66d4170.json](MODEL-401/resume/ci-a66d4170.json).
+All 18 applicable CI checks passed on both
+`a66d4170889f74fa35624e1984df0a537f8d986f` and
+`2919a7e029605c3e249bfec45039fe5c4d9e5f92`; six deployment or merge checks
+were skipped. The read-only command `gh pr checks 812 --json name,state`
+exited 0, recorded in
+[ci-a66d4170.json](MODEL-401/resume/ci-a66d4170.json) and
+[ci-2919a7e0.json](MODEL-401/resume/ci-2919a7e0.json).
 
-The full-suite retry after the web build is queued for the shared lock.
-Its final exit status and summary will replace this paragraph before delivery.
+The full-suite retry after the web build exited **0** with **11,485 passed,
+9 skipped, and 11 warnings in 1,218.92 seconds (20:18)**. It tested
+`2919a7e029605c3e249bfec45039fe5c4d9e5f92` using the exact shared-lock command
+above. The [complete output](MODEL-401/resume/full-suite.log.gz) and
+[summary with exit status](MODEL-401/resume/full-suite-summary.txt) are retained.
+No tests or assertions were weakened, and no dependency failure was ignored.
+The delivery commit changes evidence only; the final implementation remains
+`2cd5f104c362d5c40ba5f10dbba5a7d01fca8df5`.
+
+The executor's shell, flock, pytest controller, and four xdist worker processes
+have exited, verified by a scoped process check in
+[process-cleanup.txt](MODEL-401/resume/process-cleanup.txt). No executor
+background process remains running.
 
 Delivery uses `CI_LOCAL_SKIP=1 git push -u origin model-401-hardware-fit-lower-bound`
 after focused checks pass. The user scope exception explicitly authorizes
