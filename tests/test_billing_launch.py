@@ -1,10 +1,50 @@
 """MODEL-96's production access boundary through the real Worker entry."""
 import asyncio
 import json
+from pathlib import Path
+import subprocess
+import sys
+import textwrap
 
 import pytest
 
 from tests.replay_billing_launch import NOW, replay
+
+
+@pytest.mark.parametrize("prior", ["absent", "module", "none"])
+def test_replay_preserves_imports_and_restores_only_runtime_stubs(prior):
+    result = subprocess.run(
+        [sys.executable, "-c", textwrap.dedent("""
+            import asyncio
+            import sys
+            from types import ModuleType
+            from tests.replay_billing_launch import replay
+
+            names = ("js", "workers", "bundled_data")
+            prior = sys.argv[1]
+            saved = {} if prior == "absent" else {
+                name: ModuleType(name) if prior == "module" else None for name in names
+            }
+            assert all(name not in sys.modules for name in names)
+            sys.modules.update(saved)
+            assert "pydantic.root_model" not in sys.modules
+
+            assert asyncio.run(replay({"calls": []})) == []
+
+            assert "pydantic.root_model" in sys.modules
+            for name in names:
+                if prior == "absent":
+                    assert name not in sys.modules
+                else:
+                    assert name in sys.modules
+                    assert sys.modules[name] is saved[name]
+
+            from pydantic import RootModel
+            assert RootModel[dict[str, int]]({"value": 1}).model_dump() == {"value": 1}
+        """), prior],
+        cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def call(path="/v1/decide", *, visit=None, turnstile=None, now=NOW, body=None, method=None):
