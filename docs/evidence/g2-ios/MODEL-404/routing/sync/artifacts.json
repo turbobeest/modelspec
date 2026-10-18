@@ -1,0 +1,79 @@
+{
+  "approved_head": "7b833056a4cb8aa10c0f56cf6001b13224634ada",
+  "details_links_preserved": true,
+  "guide_version": "1-f226d9942791da1c",
+  "literal_catalogue_pins": {
+    "cli_text": "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86",
+    "guide": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
+    "mcp": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8"
+  },
+  "merged_upstream": "8971608aab849862b4a4870f1bc06e46fc9e7dd2",
+  "optional_as_of_preserved": true,
+  "qa_and_cli_pins_match": true,
+  "regenerated_files": {
+    "api/worker/openapi.yaml": {
+      "changed_from_approved_head": true,
+      "matches_upstream": false,
+      "sha256": "7e30bfcd60cef8ba9b273650e05186a35581eb7fddf82be3614c45ed4036aa3b"
+    },
+    "api/worker/src/agent_guide.py": {
+      "changed_from_approved_head": false,
+      "matches_upstream": false,
+      "sha256": "ab40849d972f578840728aafde99629353a4ae51d8f3bb109fd6215fceb55c8c"
+    },
+    "cli/modelspec/agent-bundle.json": {
+      "changed_from_approved_head": true,
+      "changed_semantic_keys": [
+        "source_hashes"
+      ],
+      "changed_source_pins": {
+        "pipeline/agent_copy.py": "59706622db7ad21467b49d17232e9f1e8282ebdf7e8964cc274b421ca6e2ea2f"
+      },
+      "matches_upstream": false,
+      "sha256": "fc703e9793773c72f8372d712ab5fb1fb6c7e6dfbd37bceef4d5b528d8c600d1"
+    },
+    "cli/modelspec/feedback.schema.json": {
+      "changed_from_approved_head": false,
+      "matches_upstream": true,
+      "sha256": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
+    },
+    "cli/modelspec/spec.schema.json": {
+      "changed_from_approved_head": false,
+      "matches_upstream": true,
+      "sha256": "62189b5725b8bc9df91bcf6e6775e06a628e9588a687b9adbbf007f1390f7f4f"
+    },
+    "docs/agents.md": {
+      "changed_from_approved_head": false,
+      "matches_upstream": false,
+      "sha256": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37"
+    },
+    "mcp/src/agent-copy.json": {
+      "changed_from_approved_head": false,
+      "matches_upstream": false,
+      "sha256": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8"
+    },
+    "qa/fixtures/mcp-tools.json": {
+      "changed_from_approved_head": true,
+      "changed_semantic_keys": [
+        "source_hashes"
+      ],
+      "changed_source_pins": {
+        "api/worker/openapi.yaml": "7e30bfcd60cef8ba9b273650e05186a35581eb7fddf82be3614c45ed4036aa3b"
+      },
+      "matches_upstream": false,
+      "sha256": "413082d5741c69d8ec2e80be585ca37848f323bd2cc0a38b9d70e13aadc4bce6"
+    },
+    "site/holding/index.html": {
+      "changed_from_approved_head": false,
+      "matches_upstream": true,
+      "sha256": "035fb219784beb4aa9a596e32dc5fc708a3087d63802a05cba71aed4a8b75928"
+    }
+  },
+  "vocabulary_required": [
+    "facets",
+    "domains",
+    "templates",
+    "models",
+    "estate"
+  ]
+}

@@ -1,0 +1,37 @@
+MODEL-404-sync: fresh web verification
+
+Approved base: 7b833056a4cb8aa10c0f56cf6001b13224634ada
+Merge target: 8971608aab849862b4a4870f1bc06e46fc9e7dd2
+Verification used the merged index/worktree while the merge commit was pending.
+Started: 2026-10-18T21:36:17.896210+00:00
+Finished: 2026-10-18T21:36:40.707805+00:00
+
+Toolchain: Node v22.22.3; npm 10.9.8
+PATH prefix: /Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin
+Working directory: /Users/terbeest/dev/worktrees/model-404/web
+Environment: VITE_HUMAN_GATE_ENABLED=false; VITE_VISIT_GATE_ENABLED=false; MODELSPEC_CORPUS_DIR unset.
+
+Scope: fresh npm ci, npm run build, npm test, sequentially. No browser matrix or screenshot rerun was requested or performed.
+Merged web source, tests, package.json and package-lock.json are unchanged from approved 7b833056 before and after this chain.
+The unresolved CLI/QA generated files and billing Python tests were owned by other merge workers; no web unit/build source references those files.
+
+Direct child-process results:
+$ npm ci
+direct exit: 0; wall time: 1.94s
+added 346 packages, and audited 347 packages in 2s
+10 vulnerabilities (1 low, 2 moderate, 7 high)
+
+$ npm run build
+direct exit: 0; wall time: 3.58s
+✓ built in 138ms
+
+$ npm test
+direct exit: 0; wall time: 17.12s
+ Test Files  56 passed | 1 skipped (57)
+      Tests  898 passed (898)
+   Duration  16.77s (tests 67%, environment 21%, import 5%, setup 4%, transform 3%)
+
+npm test default suite: 898 passed; 56 files passed; 1 opt-in corpus file skipped. The corpus suite was outside this assigned verification.
+npm ci reported 10 audit findings (1 low, 2 moderate, 7 high); dependency files are unchanged by this merge and verification.
+No product/test edits, staging, commits, browser servers or screenshot changes were made by this verification worker.
+Structured direct exits: chain.json. Full local output: npm-ci.log, build.log, unit.log (ignored logs; key results are reproduced above).

@@ -1,0 +1,51 @@
+{
+  "head": "7b833056a4cb8aa10c0f56cf6001b13224634ada",
+  "merge_head": "8971608aab849862b4a4870f1bc06e46fc9e7dd2",
+  "artifacts": {
+    "mcp/src/agent-copy.json": {
+      "HEAD": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",
+      "MERGE_HEAD": "0618ceb1e4cc7e951378ce188f2b061327c61c02da5bf53d9f099be7a5befc6a",
+      "working_before": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8"
+    },
+    "docs/agents.md": {
+      "HEAD": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
+      "MERGE_HEAD": "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
+      "working_before": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37"
+    },
+    "cli/modelspec/agent-bundle.json": {
+      "HEAD": "33e400d08479ce2c43e6e6888b213c9ca52790b885a0d2c661f42d0ef587bdab",
+      "MERGE_HEAD": "45f2d8cb3338506384a4c6d8712f7097c4db249b96dd8cd76f9bf1398f5e10c1",
+      "working_before": "6c027bc5814dd557ae38aa3625888eb3673f18d1740425b58ab97adb25fb2e73"
+    },
+    "cli/modelspec/spec.schema.json": {
+      "HEAD": "62189b5725b8bc9df91bcf6e6775e06a628e9588a687b9adbbf007f1390f7f4f",
+      "MERGE_HEAD": "62189b5725b8bc9df91bcf6e6775e06a628e9588a687b9adbbf007f1390f7f4f",
+      "working_before": "62189b5725b8bc9df91bcf6e6775e06a628e9588a687b9adbbf007f1390f7f4f"
+    },
+    "cli/modelspec/feedback.schema.json": {
+      "HEAD": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b",
+      "MERGE_HEAD": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b",
+      "working_before": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
+    },
+    "site/holding/index.html": {
+      "HEAD": "035fb219784beb4aa9a596e32dc5fc708a3087d63802a05cba71aed4a8b75928",
+      "MERGE_HEAD": "035fb219784beb4aa9a596e32dc5fc708a3087d63802a05cba71aed4a8b75928",
+      "working_before": "035fb219784beb4aa9a596e32dc5fc708a3087d63802a05cba71aed4a8b75928"
+    },
+    "api/worker/src/agent_guide.py": {
+      "HEAD": "ab40849d972f578840728aafde99629353a4ae51d8f3bb109fd6215fceb55c8c",
+      "MERGE_HEAD": "c9290aee042c3b42320cba791dc94622e6c2974a74a923473a0a480dd63b4ba3",
+      "working_before": "ab40849d972f578840728aafde99629353a4ae51d8f3bb109fd6215fceb55c8c"
+    },
+    "api/worker/openapi.yaml": {
+      "HEAD": "4856fae354f22642f19b77c57b18d823a59ed0d4ccb1cf159f6e0d3d68b3ab0e",
+      "MERGE_HEAD": "4fc7fa15317b923490b64823ac278e2d55482d0aa1665620056fa2b85ac58c3a",
+      "working_before": "7e30bfcd60cef8ba9b273650e05186a35581eb7fddf82be3614c45ed4036aa3b"
+    },
+    "qa/fixtures/mcp-tools.json": {
+      "HEAD": "221a6438534b4cad5890261ddbc7fb2eb839df53f053ada475ce1d88ac8a50de",
+      "MERGE_HEAD": "40f39a3221ae932aaf4a19d2e6e0c97945b548d436925ce821be7a7d485043a7",
+      "working_before": "7ef773ceb584e6f9a55f1b897b20ea73e56b93b266d668b8505aa6e990deaf13"
+    }
+  }
+}

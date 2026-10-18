@@ -1,0 +1,12 @@
+MODEL-404-sync3 locked full suite
+Source before and after: 61e8dbfa2e69077f6ed72940eaf0789d558188df
+origin/main: 8971608aab849862b4a4870f1bc06e46fc9e7dd2
+Command:
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+Started: 2026-10-18T21:58:33Z
+Ended: 2026-10-18T22:22:02Z
+Direct exit: 0
+12102 passed, 9 skipped, 11 warnings in 1408.89s (0:23:28)
+The eleven warnings are RuntimeWarning lines from unsigned decision-vocabulary fetches in CLI snapshot tests.
+The progress log stays in the gitignored .generated directory and is not part of this commit.
+full-pytest-sync2.txt has no summary line and is not a pass.

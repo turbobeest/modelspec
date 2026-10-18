@@ -410,3 +410,85 @@ was observed. Gate verification uses browser stubs and the real local Worker
 admission service; it includes the unchanged keyless-machine HTTP 401 behavior.
 Cross-model review and Jamie's visual review remain pending. The wsl gate was not
 run, as required by the executor brief.
+
+## Main sync after approval
+
+This is the requested merge-only sync of draft PR #814. The approved starting
+head was `7b833056a4cb8aa10c0f56cf6001b13224634ada`. `git fetch origin` followed by
+`git merge origin/main` integrated main `8971608aab849862b4a4870f1bc06e46fc9e7dd2`,
+including #808, #824 and #825 and the intervening main changes. Merge commit
+`61e8dbfa2e69077f6ed72940eaf0789d558188df` retains both parents. No rebase or reset
+was used. Later changes in this sync contain evidence only.
+
+The merge command exited 1 with exactly four content conflicts. All four were
+resolved as follows:
+
+| Conflicted file | Resolution |
+| --- | --- |
+| `cli/modelspec/agent-bundle.json` | Regenerated with `pipeline.agent_copy write`. This preserves #814's detailed-board guidance and main's MODEL-406 source-pin formatting. The merged generator source hash was derived by the generator. |
+| `qa/fixtures/mcp-tools.json` | Recaptured with `qa.contracts` after regenerating agent copy and OpenAPI. This retains main's separate source-key/digest layout and derives the merged OpenAPI hash. Tool descriptions and input schemas remain unchanged. |
+| `tests/replay_billing_launch.py` | Both branches fixed the same module-cleanup defect. Kept main's helper byte-for-byte: restore only `js`, `workers` and `bundled_data` in `try/finally`, distinguish absent entries from entries holding `None`, and preserve newly imported modules. |
+| `tests/test_billing_launch.py` | Combined the required imports and retained both regression families without changing their assertions: main's absent/module/`None` cases and #814's subsequent OpenAPI/hardware-fit schema generation case. |
+
+Main's guides, comparison pages, platform drafts, surface-lint implementation and
+remaining fixture fixes survive. The approved `web/` tree and vocabulary date
+projection are byte-identical to the starting head. Both `/decide/` and
+`/decide/details/` remain present. Generic navigation and free-human lookup links
+still target `/decide/`. The new guide and comparison "Apply this template"
+buttons target `/decide/details/?template=...`, exactly like #814's equivalent
+use-case action; their existing test expectations follow that destination.
+The same template and state reach the detailed board. No new page behavior was
+introduced in the resolution.
+
+Generators ran in dependency order using the repository virtual environment:
+`python -m pipeline.agent_copy write`, OpenAPI generation, then
+`python -m qa.contracts`. The exact `python -m api.worker.openapi` module command
+also returned 0 with byte-identical output. Agent-copy and OpenAPI checks returned
+0. No generated field or pinned hash was edited by hand. The three existing
+catalogue digest assertions need no update. Only the CLI bundle, OpenAPI YAML
+and QA capture changed from the approved head; the full hashes and source-pin
+checks are in [generated artifact evidence](MODEL-404/routing/sync/README.md).
+
+Verification uses Python 3.14.4 and Node 22.22.3 with npm 10.9.8. Commands were run
+from the authorized worktree and their direct exits were observed:
+
+| Check | Observed result |
+| --- | --- |
+| Site build | Exit 0 in the prior sync session. |
+| Surface lint and built-link audit | Both exit 0 in the prior sync session. |
+| Fresh web install / build / unit tests | All exit 0; 898 tests passed. |
+| Generated-pin focused suite | Exit 0; 235 passed, 2 skipped. |
+| Billing merge-resolution suite | Exit 0; 44 passed. |
+| Resumed agent-copy / OpenAPI / QA generator commands | All exit 0; all nine generated artifacts unchanged. |
+| Locked full pytest on the sync merge | Exit 0 on `61e8dbfa`: 12,102 passed, 9 skipped, 11 warnings in 1408.89s. |
+
+MODEL-404-sync2 resumed from `61e8dbfa2e69077f6ed72940eaf0789d558188df`.
+A fresh `git fetch origin` confirmed that main remains at `8971608a`, so no
+further merge or site/web rebuild was needed. PR #814 was observed open and
+draft. Its locked pytest log stops without a summary line and is not a pass.
+MODEL-404-sync3 fetched again at 2026-10-18 21:58:06 UTC. Main was still
+`8971608a`, so the recorded site build and web chain were not repeated.
+`pipeline.agent_copy check`, `api.worker.openapi --check` and `qa.contracts`
+each exited 0, and the nine generated artifacts were unchanged.
+The locked suite then exited 0: 12,102 passed, 9 skipped, 11 warnings in
+1408.89s (23 minutes 28 seconds), from 21:58:33Z to 22:22:02Z. Python 3.14.4,
+pytest 9.1.1 and flock 0.4.0. The tested source stayed `61e8dbfa` throughout.
+Approved `web/` and `display_vocabulary.py` remain byte-identical to
+`7b833056`. The eleven warnings are unsigned decision-vocabulary fetches in
+the CLI snapshot tests. This continuation changes evidence only and needs no
+new red-first regression test. Earlier red/green observations remain recorded
+below.
+
+The initial billing/agent-guide check ran while the QA fixture still contained
+conflict markers. Its five artifact parse failures disappeared after capture;
+no implementation or assertion changed in response. The rerun passed all 44
+checks. [Billing resolution evidence](MODEL-404/transport/sync/notes.md) records
+both runs and the comparison preserving every original test body and decorator.
+
+Exact commands and merge inputs are in [root sync results](MODEL-404/root/sync/results.txt)
+and [merge inputs](MODEL-404/root/sync/merge-inputs.txt). Fresh web results are in
+[web sync results](MODEL-404/gates/sync/results.txt). The generated-pin focused suite
+passed 235 tests with two skips, including main's byte-stability, stale-pin and
+independent-pin merge checks. No screenshots or browser matrix were rerun for
+this merge-only sync. No deployment, paid-provider call, PR readiness change or
+PR merge was performed. The PR stays draft and awaits Jamie's look.
