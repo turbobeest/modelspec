@@ -9,7 +9,7 @@ import re
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from html.parser import HTMLParser
@@ -216,6 +216,25 @@ def strings(value: Any):
             yield from strings(child)
 
 
+def decoded_strings(obj: Any) -> Iterator[str]:
+    """Every string in a parsed JSON or YAML value, including each dict key.
+
+    A key that is not a string is converted with ``str``. This walks ``obj``.
+    It does not build a mapping and it does not rename keys.
+    """
+    if isinstance(obj, str):
+        yield obj
+        return
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            yield from decoded_strings(key if isinstance(key, str) else str(key))
+            yield from decoded_strings(value)
+        return
+    if isinstance(obj, (list, tuple)):
+        for item in obj:
+            yield from decoded_strings(item)
+
+
 def owned(path: str) -> bool:
     return (
         path.endswith((".html", ".md"))
@@ -248,22 +267,53 @@ def _split_front_matter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
-def publisher_subject(path: str, raw: str) -> list[str]:
-    """Text checked for a removed publisher. No parsed objects.
+def _load_json(text: str) -> Any | None:
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
 
-    HTML contributes the visible text, the title, and every attribute value
-    from the raw pairs, so a duplicate attribute is kept. Markdown and every
-    other file contribute the unescaped file text. A genuine front-matter
-    block is included again as text and is never parsed as a mapping.
+
+def _load_yaml(text: str) -> Any | None:
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+
+
+def publisher_subject(path: str, raw: str) -> list[str]:
+    """Strings checked for a removed publisher.
+
+    HTML contributes the visible text, the title, every attribute value, each
+    JSON-LD blob, and the strings inside a blob that parses. Other files
+    contribute the unescaped file text. Owned JSON, YAML, and a genuine
+    Markdown front-matter block also contribute the strings from a successful
+    parse, including keys. A parse error leaves the text checks in place.
+    Nothing here builds a mapping or renames a key. Markdown prose is not parsed.
     """
     if path.endswith(".html"):
         page = Page(raw)
-        return [html.unescape(page.visible), html.unescape(page.title), *page.attribute_values]
+        texts = [html.unescape(page.visible), html.unescape(page.title), *page.attribute_values]
+        for blob in page.ld:
+            texts.append(html.unescape(blob))
+            # Parse the original blob. Unescaping it first turns a character
+            # reference inside a key into a different key, and the parser
+            # then keeps only one of the two values.
+            parsed = _load_json(blob)
+            if parsed is None:
+                parsed = _load_json(html.unescape(blob))
+            texts.extend(html.unescape(item) for item in decoded_strings(parsed))
+        return texts
     texts = [html.unescape(raw)]
     if path.endswith(".md"):
         front, _body = _split_front_matter(raw)
         if front is not None:
             texts.append(html.unescape(front))
+            texts.extend(html.unescape(item) for item in decoded_strings(_load_yaml(front)))
+    elif path.endswith(".json") and owned(path):
+        texts.extend(html.unescape(item) for item in decoded_strings(_load_json(raw)))
+    elif path.endswith((".yaml", ".yml")):
+        texts.extend(html.unescape(item) for item in decoded_strings(_load_yaml(raw)))
     return texts
 
 

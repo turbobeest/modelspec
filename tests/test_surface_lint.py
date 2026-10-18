@@ -428,6 +428,160 @@ def test_a_json_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> No
     assert empty_findings
 
 
+def _unicode_escape(name: str) -> str:
+    return "".join(f"\\u{ord(char):04x}" for char in name)
+
+
+def _publisher_probe_rows() -> list[tuple[str, str, str, bool]]:
+    """The round-10 probe matrix. Owned rows must be flagged."""
+    spaced = _joined("Artificial", " Analysis")
+    broken = _joined("Zap", "ier")
+    newline_name = _joined("Artificial", "\n", "Analysis")
+    entity_key = _joined("note", "&#65;")
+    rows: list[tuple[str, str, str, bool]] = [
+        ("r9-prose-key", "index.md", _publisher_markup("prose-key"), True),
+        ("r9-prose-title", "index.md", _publisher_markup("prose-title"), True),
+        (
+            "r9-duplicate-alt",
+            "page.html",
+            '<img src="missing" alt="' + _publisher_markup("nl") + '" alt="ok">',
+            True,
+        ),
+        (
+            "r9-duplicate-title",
+            "page.html",
+            '<p title="' + _publisher_markup("shy") + '" title="ok">ok</p>',
+            True,
+        ),
+    ]
+    forms = (
+        _publisher_markup("nl"),
+        _publisher_markup("nbsp"),
+        _publisher_markup("shy"),
+        _publisher_markup("hex"),
+    )
+    for value in forms:
+        rows.append(("entity-text", "page.html", "<p>" + value + "</p>", True))
+        rows.append(("entity-attr", "page.html", '<img alt="' + value + '">', True))
+    payload = {entity_key: newline_name, "noteA": "safe"}
+    encoded_yaml = _joined(
+        '"note',
+        "&#65;",
+        '": "Artificial',
+        "\\n",
+        'Analysis"\nnoteA: safe\n',
+    )
+    collision = (
+        (".well-known/card.json", json.dumps(payload)),
+        ("openapi.yaml", encoded_yaml),
+        ("card.md", "---\n" + encoded_yaml + "---\nPlain.\n"),
+        (
+            "page.html",
+            '<script type="application/ld+json">' + json.dumps(payload) + "</script>",
+        ),
+    )
+    for path, raw in collision:
+        rows.append(("r9-exact-entity-key-collision", path, raw, True))
+    plain_controls = (
+        (
+            ".well-known/card.json",
+            json.dumps({entity_key: spaced, "noteA": "safe"}),
+        ),
+        (
+            "openapi.yaml",
+            _joined('"note', "&#65;", '": "', spaced, '"\nnoteA: safe\n'),
+        ),
+    )
+    for path, raw in plain_controls:
+        rows.append(("entity-key-plain-value-control", path, raw, True))
+    for name in (spaced, broken):
+        escaped = _unicode_escape(name)
+        for slot in ("value", "key"):
+            plain = json.dumps({"publisher": name} if slot == "value" else {name: "safe"})
+            encoded = (
+                '{"publisher":"' + escaped + '"}'
+                if slot == "value"
+                else '{"' + escaped + '":"safe"}'
+            )
+            rows.append(("json-plain-" + slot, ".well-known/probe.json", plain, True))
+            rows.append(("json-unicode-" + slot, ".well-known/probe.json", encoded, True))
+            for mode, blob in (("plain", plain), ("unicode", encoded)):
+                raw = '<script type="application/ld+json">' + blob + "</script>"
+                rows.append(("jsonld-" + mode + "-" + slot, "probe.html", raw, True))
+            quoted_name = '"' + escaped + '"'
+            for mode, quoted in (("plain", json.dumps(name)), ("unicode", quoted_name)):
+                raw = (
+                    "publisher: " + quoted + "\n"
+                    if slot == "value"
+                    else quoted + ": safe\n"
+                )
+                rows.append(("yaml-" + mode + "-" + slot, "openapi.yaml", raw, True))
+    for slot in ("value", "key"):
+        quoted = _joined('"Zap', "\\x69", 'er"')
+        raw = "publisher: " + quoted + "\n" if slot == "value" else quoted + ": safe\n"
+        rows.append(("yaml-hex-" + slot, "openapi.yaml", raw, True))
+    prose_escape = 'publisher: "' + _unicode_escape(broken) + '"\n'
+    rows.append(("markdown-prose-unicode", "index.md", prose_escape, False))
+    rows.append(
+        (
+            "markdown-front-unicode",
+            "card.md",
+            "---\n" + prose_escape + "---\nPlain.\n",
+            True,
+        )
+    )
+    rows.append(
+        (
+            "markdown-body-plain",
+            "card.md",
+            "---\nnote: safe\n---\n" + broken + "\n",
+            True,
+        )
+    )
+    for path in ("api/models.json", "probe.json", "probe.yaml", "probe.yml"):
+        rows.append(
+            ("unscanned-control", path, json.dumps({"publisher": broken}), False)
+        )
+    return rows
+
+
+_PUBLISHER_PROBE_ROWS = _publisher_probe_rows()
+
+
+@pytest.mark.parametrize(
+    ("label", "path", "raw", "flagged"),
+    _PUBLISHER_PROBE_ROWS,
+    ids=[
+        f"{index}-{label}-{path}"
+        for index, (label, path, _raw, _flagged) in enumerate(_PUBLISHER_PROBE_ROWS)
+    ],
+)
+def test_publisher_probe_matrix(label: str, path: str, raw: str, flagged: bool) -> None:
+    findings = [
+        item
+        for item in sl.lexicon({path: raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert bool(findings) is flagged, label
+    if path.endswith(".json") and flagged:
+        subject = sl.publisher_subject(path, raw)
+        assert isinstance(subject, list)
+        assert all(isinstance(item, str) for item in subject)
+        assert not hasattr(sl, "_unescape_tree")
+
+
+def test_decoded_strings_yields_keys_without_a_new_mapping() -> None:
+    entity_key = _joined("note", "&#65;")
+    newline_name = _joined("Artificial", "\n", "Analysis")
+    parsed = {entity_key: newline_name, "noteA": "safe", 1: "kept"}
+    found = list(sl.decoded_strings(parsed))
+    assert newline_name in found
+    assert entity_key in found
+    assert "1" in found
+    assert "kept" in found
+    assert not hasattr(sl, "_unescape_tree")
+
+
 def test_removed_sources_reuse_the_catalogue_rule() -> None:
     # The witness comes from the shared publisher names, not a second copy.
     from decision.excluded import PUBLISHER_NAMES, excluded_publisher

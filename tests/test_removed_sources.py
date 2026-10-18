@@ -88,29 +88,9 @@ def _decoded_hit(obj: object) -> bool:
 
 
 def _html_publisher(text: str) -> bool:
-    import html
-    import json
-    import re
+    from pipeline.surface_lint import publisher_subject
 
-    from pipeline.surface_lint import Page
-
-    page = Page(text)
-    if any(excluded_publisher(item) for item in (page.visible, page.title, *page.attribute_values)):
-        return True
-    pattern = re.compile(
-        r"<script\b[^>]*type\s*=\s*[\"']application/ld\+json[\"'][^>]*>(.*?)</script>",
-        re.IGNORECASE | re.DOTALL,
-    )
-    for blob in pattern.findall(text):
-        try:
-            parsed = json.loads(blob)
-        except ValueError:
-            if excluded_publisher(html.unescape(blob)):
-                return True
-            continue
-        if _decoded_hit(parsed):
-            return True
-    return False
+    return any(excluded_publisher(item) for item in publisher_subject("page.html", text))
 
 
 def _structured_publisher(path: Path, text: str) -> bool:
@@ -196,6 +176,22 @@ def _hits(root: Path, files: list[Path]) -> list[str]:
 def test_no_tracked_file_names_a_removed_source() -> None:
     hits = _hits(REPO_ROOT, _tracked_files())
     assert hits == [], "\n".join(hits[:40])
+
+
+@pytest.mark.parametrize("name", ("Artificial" + " Analysis", "Zap" + "ier"))
+@pytest.mark.parametrize(
+    "opening",
+    (
+        '<script type="application/ld+json">',
+        "<script type=application/ld+json>",
+        '<script type="application/ld&#43;json">',
+    ),
+)
+def test_jsonld_script_forms_reach_the_tracked_name_guard(name: str, opening: str) -> None:
+    import json
+
+    raw = opening + json.dumps({"note": name}) + "</script>"
+    assert _publisher_hit(Path("page.html"), raw)
 
 
 def test_no_card_carries_a_removed_value() -> None:
