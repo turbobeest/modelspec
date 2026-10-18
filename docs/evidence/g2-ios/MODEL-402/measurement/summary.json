@@ -1,0 +1,80 @@
+{
+  "fixture": "Full frozen public catalogue; synthetic signed validity overlays",
+  "private_production_data_measured": false,
+  "wrangler_total_upload_kib": 10063.47,
+  "wrangler_gzip_upload_kib": 3371.42,
+  "worker_upload_bytes_exact_from_artifacts": 10304997,
+  "worker_uncompressed_limit_mib": 64,
+  "uncompressed_limit_used_percent": 15.355636596679686,
+  "gzip_below_historical_10_mib_limit": true,
+  "memory_exit_code": 0,
+  "memory": {
+    "runtime": "Pyodide 0.28.3",
+    "before_bytes": 30212096,
+    "peak_bytes": 122425699,
+    "peak_mib": 116.75424480438232,
+    "wasm_peak_bytes": 75366400,
+    "wasm_peak_mib": 71.875,
+    "steady_bytes": 121981099,
+    "steady_mib": 116.3302412033081,
+    "live_non_wasm_bytes": 46614699,
+    "wasm_bytes": 75366400,
+    "requests": [
+      "POST /v1/decide (current)",
+      "POST /v1/decide (successor)",
+      "GET /v1/vocabulary",
+      "POST /v1/rank",
+      "POST /v1/policy-check"
+    ],
+    "limit_bytes": 125829120,
+    "peak_warning_bytes": 117440512
+  },
+  "earlier_cold_download_probe": {
+    "exit_code": 1,
+    "memory": {
+      "runtime": "Pyodide 0.28.3",
+      "before_bytes": 30212096,
+      "peak_bytes": 126652443,
+      "peak_mib": 120.78518199920654,
+      "wasm_peak_bytes": 75366400,
+      "wasm_peak_mib": 71.875,
+      "steady_bytes": 126584515,
+      "steady_mib": 120.7204008102417,
+      "live_non_wasm_bytes": 51218115,
+      "wasm_bytes": 75366400,
+      "requests": [
+        "POST /v1/decide (current)",
+        "POST /v1/decide (successor)",
+        "GET /v1/vocabulary",
+        "POST /v1/rank",
+        "POST /v1/policy-check"
+      ],
+      "limit_bytes": 125829120,
+      "peak_warning_bytes": 117440512
+    },
+    "source_commit": "ef31a864"
+  },
+  "source_sha": "cf7f72cead28e08d1e3152512c3a19202d098de9",
+  "memory_repeat_exit_code": 0,
+  "memory_repeat": {
+    "runtime": "Pyodide 0.28.3",
+    "before_bytes": 30212096,
+    "peak_bytes": 122442571,
+    "peak_mib": 116.77033519744873,
+    "wasm_peak_bytes": 75366400,
+    "wasm_peak_mib": 71.875,
+    "steady_bytes": 121997843,
+    "steady_mib": 116.34620952606201,
+    "live_non_wasm_bytes": 46631443,
+    "wasm_bytes": 75366400,
+    "requests": [
+      "POST /v1/decide (current)",
+      "POST /v1/decide (successor)",
+      "GET /v1/vocabulary",
+      "POST /v1/rank",
+      "POST /v1/policy-check"
+    ],
+    "limit_bytes": 125829120,
+    "peak_warning_bytes": 117440512
+  }
+}

@@ -217,6 +217,9 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         api = site
         paths = ("rank/candidates.json", "rank/hardware.json", "policy/catalogue.json",
                  "decision/snapshot.json.gz", "decision/vocabulary.json")
+        successor = "decision/snapshot-successor.json.gz"
+        if (api / successor).is_file():
+            paths += (successor, "decision/vocabulary-successor.json")
         blobs = {}
         for rel in paths:
             raw = (api / rel).read_bytes()
@@ -251,7 +254,7 @@ def export_data(out: Path, data_dir: Path) -> None:
     """Build only the exports consumed by the Worker, using the shared builders."""
     sys.path.insert(0, str(REPO_ROOT))
     _show_coverage_log()
-    from datetime import date
+    from datetime import UTC, date, datetime
     from decision import registry, snapshot
     from pipeline import data_source, export, hardware, policy_export, ranking
     from pipeline.build import write_decision_vocabulary
@@ -271,10 +274,22 @@ def export_data(out: Path, data_dir: Path) -> None:
         ranking.write_export(out / "rank", cards, graph, build)
         policy_export.write_export(out, cards, build)
         require_cited_policy(out / "policy/catalogue.json")
-        written = snapshot.build_from_repo(
-            root, premier=root / "premier/slice-1.yaml", as_of=date.today(),
-        ).write(out / "decision/snapshot.json.gz")
-        write_decision_vocabulary(root, written, key=snapshot.env_key())
+        successor = out / "decision/snapshot-successor.json.gz"
+        successor_vocabulary = out / "decision/vocabulary-successor.json"
+        successor.unlink(missing_ok=True)
+        successor_vocabulary.unlink(missing_ok=True)
+        current = snapshot.build_from_repo(
+            root, premier=root / "premier/slice-1.yaml", as_of=datetime.now(UTC).date(),
+        )
+        written = current.write(out / "decision/snapshot.json.gz")
+        vocabulary_path = out / "decision/vocabulary.json"
+        vocabularies = [(written, vocabulary_path)]
+        valid_until = current.content.get("valid_until")
+        if valid_until is not None:
+            snapshot.build_from_repo(
+                root, premier=root / "premier/slice-1.yaml", as_of=date.fromisoformat(valid_until),
+            ).write(successor)
+            vocabularies.insert(0, (successor, successor_vocabulary))
         from api.worker.src.display_vocabulary import trim
         display_models = {model.model_id for model in models
                           if model.front.get("lifecycle") != "retired"}
@@ -282,9 +297,10 @@ def export_data(out: Path, data_dir: Path) -> None:
         for facet in registry.default().facets():
             if facet.value_type.kind in {"enum", "boolean"}:
                 values[facet.id] = [True, False] if facet.value_type.kind == "boolean" else sorted(registry.default().allowed_values(facet) or ())
-        vocabulary_path = out / "decision/vocabulary.json"
-        vocabulary = trim(json.loads(vocabulary_path.read_text()), model_ids=display_models, facet_values=values)
-        vocabulary_path.write_text(json.dumps(vocabulary), encoding="utf-8")
+        for snapshot_path, target in vocabularies:
+            write_decision_vocabulary(root, snapshot_path, key=snapshot.env_key())
+            vocabulary = trim(json.loads(vocabulary_path.read_text()), model_ids=display_models, facet_values=values)
+            target.write_text(json.dumps(vocabulary), encoding="utf-8")
 
 
 def require_cited_policy(path: Path) -> None:

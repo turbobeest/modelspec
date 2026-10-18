@@ -1,0 +1,37 @@
+
+> test
+> vitest run test/access-discovery.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-403/mcp
+
+ ❯ test/access-discovery.test.ts (30 tests | 1 failed) 132ms
+   ❯ MCP API-key headers and discovery (30)
+     × serves a public cacheable server card matching tools/list and initialize 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > serves a public cacheable server card matching tools/list and initialize
+AssertionError: expected null to be 'GET' // Object.is equality
+
+- Expected:
+"GET"
+
++ Received:
+null
+
+ ❯ test/access-discovery.test.ts:176:66
+    174|     expect(response.headers.get("cache-control")).toBe("public, max-ag…
+    175|     expect(response.headers.get("access-control-allow-origin")).toBe("…
+    176|     expect(response.headers.get("access-control-allow-methods")).toBe(…
+       |                                                                  ^
+    177|     expect(response.headers.get("access-control-allow-headers")).toBe(…
+    178|     const card = z.object({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 passed (30)
+   Start at  20:40:06
+   Duration  353ms (tests 47%, transform 27%, import 25%, worker 1%)

@@ -1,0 +1,4 @@
+COMMAND: /Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check docs/evidence/g2-ios/MODEL-402/measurement/measure_baseline.py docs/evidence/g2-ios/MODEL-402/measurement/prepare_bundle.py docs/evidence/g2-ios/MODEL-402/measurement/run_measurements.py
+All checks passed!
+
+EXIT_CODE=0

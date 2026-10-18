@@ -1,0 +1,12 @@
+
+> test
+> vitest run test/access-discovery.test.ts test/server.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-403/mcp
+
+
+ Test Files  2 passed (2)
+      Tests  135 passed (135)
+   Start at  20:40:20
+   Duration  400ms (tests 50%, transform 25%, import 24%, worker 1%)

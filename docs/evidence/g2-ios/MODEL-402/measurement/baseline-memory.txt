@@ -1,0 +1,7 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --expose-gc /Users/terbeest/dev/worktrees/model-402/api/worker/measure_memory.cjs /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker/src
+Loading annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+Loaded annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+{"runtime":"Pyodide 0.28.3","before_bytes":30212096,"peak_bytes":109334676,"peak_mib":104.26967239379883,"wasm_peak_bytes":62783488,"wasm_peak_mib":59.875,"steady_bytes":108914692,"steady_mib":103.86914443969727,"live_non_wasm_bytes":46131204,"wasm_bytes":62783488,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":125829120,"peak_warning_bytes":117440512}
+
+EXIT_CODE=0
