@@ -1,0 +1,24 @@
+{
+  "source_sha": "7f04d05f78d5c07ff6604f0e2e9fffc7c7652798",
+  "command": [
+    "/opt/homebrew/bin/flock",
+    "/tmp/modelspec-fullsuite.lock",
+    "env",
+    "PYTHONPATH=/Users/terbeest/dev/worktrees/model-402",
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "-n",
+    "4",
+    "--dist",
+    "loadfile"
+  ],
+  "cwd": "/Users/terbeest/dev/worktrees/model-402",
+  "harness_pid": 13813,
+  "queued_at": "2026-10-18T02:13:50.556457+00:00",
+  "exit_code": 0,
+  "flock_pid": 13818,
+  "completed_at": "2026-10-18T03:17:12.875800+00:00",
+  "source_diff_exit": 0
+}
