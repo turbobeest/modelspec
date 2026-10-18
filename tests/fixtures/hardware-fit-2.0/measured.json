@@ -1,0 +1,86 @@
+{
+  "hardware_fit_version": "2.0",
+  "endpoint": "hardware-fit",
+  "snapshot": "snap_golden_hardware_fit_2_0",
+  "request": {
+    "model": "lab/hardware-model",
+    "sku": "fixture_gpu",
+    "device_count": 1,
+    "runtime": "fixture-runtime@1",
+    "quantisation": "fixture-q4",
+    "batch": 2,
+    "context": 1024
+  },
+  "sources": [
+    {
+      "id": "hardware-spec",
+      "url": "https://hardware.example/spec"
+    },
+    {
+      "id": "run-source",
+      "url": "https://runtime.example/retained-run"
+    },
+    {
+      "id": "src-lab-docs",
+      "url": "https://lab.example.com/docs/models"
+    }
+  ],
+  "status": "measured",
+  "measured_fit": true,
+  "capacity_bytes": {
+    "value": 24000000000,
+    "provenance": "sourced",
+    "record_id": "hardware:fixture_gpu#memory",
+    "source_ids": [
+      "hardware-spec"
+    ],
+    "observed_at": "2026-09-20"
+  },
+  "model_context_max": {
+    "value": 8192,
+    "record_id": "lab/hardware-model#model.context_window",
+    "source_ids": [
+      "src-lab-docs"
+    ],
+    "provenance": "sourced",
+    "observed_at": "2026-09-20"
+  },
+  "measurement": {
+    "record_id": "hardware-fit:fixture",
+    "source_ids": [
+      "run-source"
+    ],
+    "observed_at": "2026-09-20",
+    "memory_bytes_per_device": 24000000000,
+    "measured_memory_bytes": [
+      {
+        "record_id": "hardware-input:observed",
+        "source_ids": [
+          "run-source"
+        ],
+        "value": 5204800000
+      }
+    ],
+    "verification": {
+      "collector": {
+        "agent": "collector-a",
+        "method": "read",
+        "model_family": "family-a"
+      },
+      "date": "2026-09-20",
+      "diff": null,
+      "method": "re-read the cited region",
+      "outcome": "verified",
+      "target": {
+        "id": "hardware-fit:fixture",
+        "kind": "fact",
+        "value_hash": "sha256:d8222c98bb94e6e24d1db843a46151244c52b544d99d67f5a1eb247f1c08efb6"
+      },
+      "verifier": {
+        "agent": "verifier-b",
+        "method": "re-read",
+        "model_family": "family-b"
+      }
+    }
+  }
+}

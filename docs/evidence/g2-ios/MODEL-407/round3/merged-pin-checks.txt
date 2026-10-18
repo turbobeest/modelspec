@@ -1,0 +1,4 @@
+Merged source: e7f422751aa49dcb8461863fd7f5cd7983208e82
+Command: env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_generated_pins.py tests/test_worker_vendor_imports.py tests/test_agent_copy.py tests/test_agent_harness.py
+Direct process exit: 0
+Terminal summary: 166 passed in 141.28s (0:02:21)

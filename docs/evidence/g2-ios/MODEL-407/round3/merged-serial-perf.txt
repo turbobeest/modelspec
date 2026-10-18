@@ -1,0 +1,21 @@
+MODEL-407 merged-source serial performance check
+
+Source commit: e7f422751aa49dcb8461863fd7f5cd7983208e82
+Worktree: /Users/terbeest/dev/worktrees/model-407
+Interpreter: Python 3.14.4
+Execution: local, after merging main's generated-pin changes
+
+Exact command:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:xdist -m perf
+
+Combined stdout/stderr:
+tmp/model-407/round3/perf-merged/merged-perf-raw.txt
+Direct process exit status: 0
+
+Observed output:
+...                                                                      [100%]
+3 passed, 11851 deselected in 172.15s (0:02:52)
+
+The duration is for the complete pytest invocation. Quiet output does not
+report individual passing timing samples. This is local verification, not
+a new CI run; the interpreter differs from CI's Python 3.11.17.

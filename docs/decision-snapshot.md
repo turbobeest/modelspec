@@ -71,6 +71,11 @@ dates for retained comparisons.
 The public decision, bounded decision, and model comparison contracts keep
 their existing versions. Each offering still presents one resolved price.
 
+The private Worker bundle includes [one signed successor and its vocabulary](design/snapshot-successor.md)
+when the current snapshot expires. The holder switches at midnight UTC without
+a deployment. `/v1/health` reports the serving snapshot's ID and expiry, plus
+whether the holder has authenticated a successor and when its prices begin.
+
 ## The completeness gate
 
 With a premier list, the build fails unless every **guaranteed** facet is

@@ -1,0 +1,37 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_successor_load_failure_stays_a_refusal_on_following_requests _______
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108fff100>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_successor_load_failure_stays_a_refusal_on_following_requests(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, tzinfo=UTC)
+        worker, _, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        assert request(worker).status == 200
+        read = bundle.read
+        loads = []
+    
+        def broken_read(path):
+            if path == SUCCESSOR_PATH:
+                loads.append(path)
+                raise OSError("synthetic corrupt bundled compression")
+            return read(path)
+    
+        bundle.read = broken_read
+        utc_clock[0][0] = BOUNDARY
+        for _ in range(2):
+            response = request(worker)
+>           assert response.status == 503, response.json()
+E           AssertionError: {'contract_version': '2.18', 'endpoint': 'decide', 'snapshot': None, 'error': {'code': 'snapshot_unavailable', 'message': 'could not read the published decision snapshot: synthetic corrupt bundled compression'}}
+E           assert 502 == 503
+E            +  where 502 = <tests.test_x402.entry.<locals>._Response object at 0x10994f230>.status
+
+tests/test_snapshot_successor_memory.py:151: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_successor_memory.py::test_successor_load_failure_stays_a_refusal_on_following_requests
+1 failed in 0.66s
