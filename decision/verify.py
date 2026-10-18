@@ -106,6 +106,7 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
+from decision.perplexity_faq import PerplexityFaqExtractor
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
@@ -5383,7 +5384,8 @@ def deterministic_extractors() -> list[Extractor]:
             HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
             StructuredDataExtractor(),
             OfferingPriceExtractor(),
-            SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
+            SubscriptionPageExtractor(), PerplexityFaqExtractor(),
+            TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
             MistralOutputModalitiesExtractor(),
             LabJurisdictionExtractor()]
@@ -5457,6 +5459,21 @@ class StoredRegions:
     def source_url(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
         return None if source is None else str(source.url)
+
+    def page_html(self, source_id: str, copy_ref: str) -> str | None:
+        """Raw retained HTML. The Pro FAQ template is not the normalised region."""
+        if source_id not in self.sources or not self.store.has(copy_ref):
+            return None
+        try:
+            body = self.store.get(copy_ref)
+        except (OSError, ValueError):
+            return None
+        if body.startswith(b"\xef\xbb\xbf"):
+            body = body[3:]
+        try:
+            return body.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
 
 
 # --- comparison ----------------------------------------------------------------------------------
@@ -5992,6 +6009,12 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)
                 or isinstance(extractor, LicenceTermsExtractor)
                 and len(extractor.values(claim.field, text, licence_url=source_url)) == 1]
+    faq = [
+        extractor for extractor in extractors
+        if isinstance(extractor, PerplexityFaqExtractor) and extractor.bound_to(claim, source_url)
+    ]
+    if faq:
+        return faq
     specialized = [extractor for extractor in extractors if (
         isinstance(extractor, MistralOutputModalitiesExtractor)
         and extractor.bound_to(claim, kind, source_url)
@@ -6003,7 +6026,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
-            MistralOutputModalitiesExtractor,
+            MistralOutputModalitiesExtractor, PerplexityFaqExtractor,
         )):
             continue
         accepts = extractor.accepts
@@ -6277,6 +6300,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             cache_key=(source.snapshot_ref, region_id, claim.field,
                                        *claim.names),
                         )
+                    elif isinstance(extractor, PerplexityFaqExtractor):
+                        reader = getattr(regions, "page_html", None)
+                        html = (reader(source.source_id, source.snapshot_ref)
+                                if callable(reader) else None)
+                        if not html:
+                            raise ExtractorError("template drifted")
+                        readings = extractor.extract(claim, html)
                     else:
                         readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
