@@ -55,8 +55,10 @@ It never imports or calls the Worker and never contacts the network.
 
 The existing `decide(parse_spec(template.spec), public_snapshot)` supplies
 the objective scores, intervals, costs, estimates, and probabilities. These
-are the template's full-lineup values, not a newly normalized pair ranking.
-Display that scope beside P(best). Also show the challenger's
+are the template's full-ranked-lineup values, not a newly normalized pair ranking.
+Display that scope beside P(best). Thin ranked models are included; models
+with unknown objective values remain unranked and outside this probability.
+Also show the challenger's
 `p_beats_leader` exactly, labelled as its chance of matching or exceeding
 the leader's objective score. Do not calculate a complementary probability
 or invent a probability when the engine returns null.
@@ -97,8 +99,10 @@ values say "Unavailable". Task-size assumptions stay visible.
 Requirements, their registry reasons, preferences, the applied template spec,
 and the template lesson explain the job. Missing model facts and missing
 facts on the selected offerings come from the shared comparison response's
-states. Evidence and citations come from that response and are limited to
-the job's measured capability benchmarks. No third model or competitor
+states. Evidence, measurement conditions and citations come from that response
+and are limited to the job's measured capability benchmarks. Conditions retain
+effort, harness, subcategory, measurement origin and sample size when returned.
+No third model or competitor
 product is promoted or disparaged in page copy. The neutrality link and
 keyed CLI, API, and MCP access line appear on every page.
 

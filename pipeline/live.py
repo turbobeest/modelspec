@@ -51,7 +51,7 @@ KEEP_DIRS = (
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
     # MODEL-299: the press and brand kit.
-    "brand", "use-cases",
+    "brand", "use-cases", "compare",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -162,6 +162,13 @@ def blog_pages(tree: Path) -> tuple[str, ...]:
                  for page in sorted((tree / "blog").rglob("index.html")))
 
 
+def example_pages(tree: Path) -> tuple[str, ...]:
+    """All worked examples, including pages omitted from the sitemap."""
+    return tuple("/" + page.parent.relative_to(tree).as_posix() + "/"
+                 for directory in ("use-cases", "compare")
+                 for page in sorted((tree / directory).rglob("index.html")))
+
+
 def blog_sitemap_dates(tree: Path) -> dict[str, str]:
     """Keep the blog's source publication dates in the reduced sitemap."""
     pages = set(blog_pages(tree))
@@ -181,7 +188,8 @@ def blog_sitemap_dates(tree: Path) -> dict[str, str]:
 
 def sitemap(dates: dict[str, str] | None = None, *,
             blog_dates: dict[str, str] | None = None,
-            use_case_dates: dict[str, str] | None = None) -> str:
+            use_case_dates: dict[str, str] | None = None,
+            comparison_dates: dict[str, str] | None = None) -> str:
     dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -190,7 +198,8 @@ def sitemap(dates: dict[str, str] | None = None, *,
                   for path in PAGES)
         + "".join(f"  <url><loc>{BASE}{html.escape(path)}</loc>"
                   f"<lastmod>{html.escape(stamp)}</lastmod></url>\n"
-                  for path, stamp in {**(blog_dates or {}), **(use_case_dates or {})}.items())
+                  for path, stamp in {**(blog_dates or {}), **(use_case_dates or {}),
+                                      **(comparison_dates or {})}.items())
         + "</urlset>\n"
     )
 
@@ -274,11 +283,18 @@ def build(src: Path, web: Path, out: Path) -> None:
     for rel in KEEP_FILES:
         shutil.copy2(real / rel, tree / rel)
     namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    source_urls = ET.parse(real / "sitemap.xml").findall("s:url", namespace)
     use_case_dates = {
         row.findtext("s:loc", "", namespace).removeprefix(BASE):
         row.findtext("s:lastmod", "", namespace)
-        for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
+        for row in source_urls
         if row.findtext("s:loc", "", namespace).startswith(BASE + "/use-cases/")
+    }
+    comparison_dates = {
+        row.findtext("s:loc", "", namespace).removeprefix(BASE):
+        row.findtext("s:lastmod", "", namespace)
+        for row in source_urls
+        if row.findtext("s:loc", "", namespace).startswith(BASE + "/compare/")
     }
     blog_dates = {}
     if os.environ.get("BLOG_ENABLED") == "true" and (real / "blog/index.html").is_file():
@@ -307,7 +323,8 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "_redirects").write_text(redirects, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(
-        sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates), encoding="utf-8")
+        sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates,
+                comparison_dates=comparison_dates), encoding="utf-8")
     if blog_dates:
         for page in tree.rglob("*.html"):
             if page.relative_to(tree).parts[0] == "legal":
@@ -365,7 +382,7 @@ def dead_links(tree: Path) -> list[str]:
                            if headers.is_file() else ""):
         if not resolves(tree, path):
             dead.append(f"_headers: {path}")
-    for page in (*PAGES, *blog_pages(tree)):
+    for page in (*PAGES, *blog_pages(tree), *example_pages(tree)):
         rel = page.lstrip("/") + "index.html"
         if not (tree / rel).is_file():
             dead.append(f"{rel}: missing")
