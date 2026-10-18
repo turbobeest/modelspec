@@ -10,6 +10,7 @@ import asyncio
 import importlib.util
 import json
 import sys
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -57,7 +58,13 @@ async def replay(data):
     workers.Response = Response
     workers.WorkerEntrypoint = type("WorkerEntrypoint", (), {})
     bundle.read = lambda path: vocabulary if path == "/api/decision/vocabulary.json" else None
-    with patch.dict(sys.modules, {"js": js, "workers": workers, "bundled_data": bundle}):
+    with ExitStack() as runtime:
+        for name, module in {"js": js, "workers": workers, "bundled_data": bundle}.items():
+            if name in sys.modules:
+                runtime.callback(sys.modules.__setitem__, name, sys.modules[name])
+            else:
+                runtime.callback(sys.modules.pop, name, None)
+            sys.modules[name] = module
         spec = importlib.util.spec_from_file_location(
             "billing_launch_entry", ROOT / "api/worker/src/entry.py")
         entry = importlib.util.module_from_spec(spec)

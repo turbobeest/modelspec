@@ -1,10 +1,12 @@
 """MODEL-96's production access boundary through the real Worker entry."""
 import asyncio
 import json
+import subprocess
+import sys
 
 import pytest
 
-from tests.replay_billing_launch import NOW, replay
+from tests.replay_billing_launch import NOW, ROOT, replay
 
 
 def call(path="/v1/decide", *, visit=None, turnstile=None, now=NOW, body=None, method=None):
@@ -31,6 +33,39 @@ def exchange():
     assert response["status"] == 200
     assert response["visit_objects"] == 0
     return request, json.loads(response["body"])["token"]
+
+
+def test_replay_preserves_subsequent_openapi_schema_generation():
+    # A fresh interpreter makes the runtime import dependencies during replay,
+    # regardless of which modules pytest has already imported during collection.
+    script = """
+import asyncio
+import json
+import sys
+from api.worker import openapi
+from tests.replay_billing_launch import replay
+
+runtime = {name: sys.modules.get(name) for name in ("js", "workers", "bundled_data")}
+response, = asyncio.run(replay({"calls": [{
+    "path": "/v1/decide", "method": "POST",
+    "headers": {"origin": "https://modelspec.dev"}, "body": "{}",
+}]}))
+assert all(sys.modules.get(name) is previous for name, previous in runtime.items())
+spec = openapi.build_spec()
+print(json.dumps({
+    "status": response["status"],
+    "error": json.loads(response["body"])["error"]["code"],
+    "hardware_fit_versions": spec["components"]["schemas"]["HardwareFitRefused"]["properties"]["hardware_fit_version"]["enum"],
+}))
+"""
+    result = subprocess.run([sys.executable, "-c", script], cwd=ROOT,
+                            text=True, capture_output=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "status": 401,
+        "error": "missing_api_key",
+        "hardware_fit_versions": ["2.0"],
+    }
 
 
 @pytest.mark.parametrize("gate", [False, True])
