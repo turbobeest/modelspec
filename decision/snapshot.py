@@ -1198,7 +1198,7 @@ class _Compiler:
         except ValidationError:
             self._exclude(raw.get("model"), "quarantined (invalid hardware-fit record)")
             return
-        value = record.model_dump(mode="json", exclude={"verification"})
+        value = record.model_dump(mode="json", exclude={"verification"}, exclude_none=True)
         numbers = numeric_inputs(record)
         source_ids = sorted(set(record.source_ids) | {
             sid for number in numbers for sid in number.source_ids})

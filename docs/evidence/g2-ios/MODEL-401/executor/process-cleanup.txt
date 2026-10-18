@@ -1,0 +1,2 @@
+Full-suite Python PID 50349 and flock PID 66762 have exited.
+ps returned 1 with no process rows after the full-suite command returned exit 1.

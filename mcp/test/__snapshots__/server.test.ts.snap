@@ -1563,7 +1563,7 @@ takes its key and its plans with it.",
     "name": "compare_models",
   },
   {
-    "description": "Does this model fit this workload? Returns measured with an exact cited run; estimated with sourced inputs, formula, assumptions, likely/unlikely and memory margin; or undetermined naming missing inputs/sources. Estimates never prove fit. Memory overrides are decimal GB per device, never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit.",
+    "description": "Does this workload fit? Returns measured for an exact cited run, estimated with sources, or undetermined. Uses basis full with sourced headroom, or basis lower_bound for unlikely only. Missing headroom cannot establish likely. Estimates never prove fit. Memory is decimal GB per device, never pooled. Needs an API key (Authorization: Bearer). Costs 2 credits a call; $0.0053–$0.02 per credit by plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model. Proxies POST https://api.modelspec.dev/v1/hardware-fit.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,

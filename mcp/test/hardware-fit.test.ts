@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { workerFetch } from "../src/index";
+import assessments from "./fixtures/hardware-fit.json";
 
 const ENV: Env = {
   EXPORT_ORIGIN: "https://modelspec.dev",
@@ -79,6 +80,9 @@ describe("hardware_fit MCP tool", () => {
     expect(tool.description).toContain("undetermined");
     expect(tool.description).toContain("API key");
     expect(tool.description).toContain("per device");
+    expect(tool.description).toContain("basis full");
+    expect(tool.description).toContain("basis lower_bound for unlikely only");
+    expect(tool.description).toContain("Missing headroom cannot establish likely");
     expect(tool.inputSchema.additionalProperties).toBe(false);
     expect(tool.inputSchema.required ?? []).toEqual([]);
     expect(Object.keys(z.record(z.string(), z.unknown()).parse(tool.inputSchema.properties))).toEqual([
@@ -86,10 +90,43 @@ describe("hardware_fit MCP tool", () => {
     ]);
   });
 
+  it.each(assessments.cases)("matches the generated Python API $basis assessment", async api => {
+    const basis = api.basis;
+    expect(api.status).toBe(200);
+    expect(api.body).toMatchObject({ hardware_fit_version: "2.0", status: "estimated", basis });
+    if (basis === "lower_bound") {
+      expect(api.body).toMatchObject({
+        estimated_fit: "unlikely", margin_bytes: -33_704_800_000,
+        per_device: [{
+          weights_bytes: { value: 65_500_000_000 }, kv_cache_bytes: 204_800_000,
+          lower_bound_bytes: 65_704_800_000, margin_bytes: -33_704_800_000,
+          runtime_headroom_bytes: {
+            status: "not_required",
+            reason: "Runtime headroom is not required to establish this lower bound.",
+          },
+        }],
+      });
+      expect(api.body).not.toHaveProperty("per_device.0.required_bytes");
+    } else {
+      expect(api.body).toMatchObject({
+        estimated_fit: "likely", margin_bytes: 18_795_200_000,
+        per_device: [{ runtime_headroom_bytes: { value: 1_000_000_000 }, required_bytes: 5_204_800_000 }],
+      });
+    }
+    originFetch.mockResolvedValueOnce(jsonResponse(api.status, api.body));
+    const result = await call(api.request);
+    expect(result.isError).toBe(false);
+    expect(envelope(result)).toEqual({
+      origin: "https://api.modelspec.dev/v1/hardware-fit", status: api.status, body: api.body,
+    });
+    expect(envelope(result).body).not.toHaveProperty("fits");
+    expect(envelope(result).body).not.toHaveProperty("measured_fit");
+  });
+
   it.each([
     { status: "measured", measured_fit: true, measurement: { id: "run-1", source: "source-run" } },
     {
-      status: "estimated", estimated_fit: "likely", margin_bytes: 1000,
+      status: "estimated", basis: "full", estimated_fit: "likely", margin_bytes: 1000,
       formula: "weights_bytes + kv_bytes_per_token * batch * context + runtime_headroom_bytes",
       inputs: { weights_bytes: 100, kv_bytes_per_token: 2, runtime_headroom_bytes: 30 },
       assumptions: ["Memory remains per device."],
@@ -97,7 +134,7 @@ describe("hardware_fit MCP tool", () => {
     { status: "undetermined", missing: [{ input: "quantisation", reason: "No sourced weights." }] },
   ])("preserves the complete $status response and forwards workload and bearer through the binding", async variant => {
     const body = {
-      hardware_fit_version: "1.0", endpoint: "hardware-fit", snapshot: "snap_test", request,
+      hardware_fit_version: "2.0", endpoint: "hardware-fit", snapshot: "snap_test", request,
       sources: [{ id: "source-run", url: "https://example.test/run" }], ...variant,
     };
     const via = { fetch: vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(200, body)) };
@@ -122,7 +159,7 @@ describe("hardware_fit MCP tool", () => {
     { ...request, quantisation: "unpublished-quantisation" }, { ...request, context: 1_000_000_000 },
   ])("forwards incomplete and unsupported requests for an undetermined answer: %j", async args => {
     const body = {
-      hardware_fit_version: "1.0", endpoint: "hardware-fit", snapshot: "snap_test", request: args,
+      hardware_fit_version: "2.0", endpoint: "hardware-fit", snapshot: "snap_test", request: args,
       status: "undetermined", missing: [{ input: "source", reason: "Required input or source is absent." }],
       sources: [],
     };

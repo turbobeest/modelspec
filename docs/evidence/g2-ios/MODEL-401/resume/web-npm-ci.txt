@@ -1,0 +1,6 @@
+Working directory: /Users/terbeest/dev/worktrees/model-401/web
+Command: PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" npm ci
+Exit code: 0
+Observed result: added 346 packages and audited 347 packages in 2 seconds.
+The command reported 10 existing dependency vulnerabilities (1 low, 2 moderate, 7 high).
+No package manifest or lockfile was changed.

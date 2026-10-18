@@ -1,6 +1,10 @@
 # Hardware-fit API contract
 
-Contract version: **1.0**, identified by `hardware_fit_version`.
+Contract version: **2.0**, identified by `hardware_fit_version`.
+
+Changelog: 2.0 (MODEL-401) permits omitted runtime headroom in estimate records
+and adds `basis: "full"|"lower_bound"`. A lower bound can establish only
+`unlikely`.
 
 `POST /v1/hardware-fit` checks one model, hardware topology, runtime, and
 workload against the signed snapshot. The MCP tool is `hardware_fit`.
@@ -44,16 +48,17 @@ request dimension and the effective memory capacity. It reports the
 observation in that run. Different counts, runtime settings, quantisations,
 batches, contexts, or memory capacities cannot inherit the measurement.
 
-`estimated` carries `estimated_fit: "likely"|"unlikely"`, `margin_bytes`,
+`estimated` carries `basis`, `estimated_fit: "likely"|"unlikely"`, `margin_bytes`,
 the formula, all numeric inputs with provenance, and explicit assumptions.
 Inputs and calculations are per device. The response has no `fits` field.
 An estimate does not establish successful loading, runtime compatibility,
 latency, throughput, or fit in a measured run.
 
-`per_device` lists each device's sourced `weights_bytes`, `kv_bytes_per_token`,
-and `runtime_headroom_bytes`, followed by calculated `kv_cache_bytes`,
-`required_bytes`, and `margin_bytes`. Source numbers carry `value`, `record_id`,
-and `source_ids`. Measurements and estimates retain their winning `verification`.
+For `basis: "full"`, `per_device` lists each device's sourced `weights_bytes`,
+`kv_bytes_per_token`, and `runtime_headroom_bytes`, followed by calculated
+`kv_cache_bytes`, `required_bytes`, and `margin_bytes`. Source numbers carry
+`value`, `record_id`, and `source_ids`. Measurements and estimates retain their
+winning `verification`.
 
 ```text
 kv_cache_bytes = kv_bytes_per_token * batch * context
@@ -61,9 +66,36 @@ required_bytes = weights_bytes + kv_cache_bytes + runtime_headroom_bytes
 margin_bytes = capacity_bytes - required_bytes
 ```
 
-`margin_bytes` is the smallest per-device margin. `estimated_fit` is `likely`
-when every device has a nonnegative margin and `unlikely` otherwise. Device
-memory is never pooled. Every device's sourced weight and cache allocation
+`margin_bytes` is the smallest per-device margin. A full estimate is `likely`
+when every device has a nonnegative margin and `unlikely` otherwise.
+
+If any device lacks sourced runtime headroom, the engine instead calculates
+lower bounds for every device:
+
+```text
+kv_cache_bytes = kv_bytes_per_token * batch * context
+lower_bound_bytes = weights_bytes + kv_cache_bytes
+margin_bytes = capacity_bytes - lower_bound_bytes
+```
+
+If any lower bound exceeds capacity, the response is `estimated` with
+`basis: "lower_bound"` and `estimated_fit: "unlikely"`. Each `per_device`
+entry has `lower_bound_bytes` instead of `required_bytes`. The top-level
+margin is negative. Absent headroom has this explicit shape:
+
+```json
+{"status": "not_required", "reason": "Runtime headroom is not required to establish this lower bound."}
+```
+
+That object is the value of `runtime_headroom_bytes`, never a numeric zero.
+Devices with sourced headroom retain that input, but the lower-bound formula
+excludes headroom on every device. The response includes the formula, sourced
+inputs, caller batch and context, capacity provenance, and this assumption.
+If every lower bound is at or below capacity, missing headroom instead yields
+`undetermined`. Equality without headroom is `undetermined`. A lower bound
+never yields `likely`.
+
+Device memory is never pooled. Every device's sourced weight and cache allocation
 must match the complete requested topology and workload.
 Estimates require verified open weights and a SKU exposing one usable memory pool.
 
@@ -83,8 +115,10 @@ The snapshot builder reads optional curated records from
 `hardware/fit/records.yaml` in the selected data checkout. Each record binds
 the exact model, SKU, device count, runtime, quantisation, batch, and context.
 All records also bind effective memory capacity. Estimate records
-provide each device's resident weight bytes, KV bytes per token, and runtime
-headroom bytes. Numeric inputs retain their record IDs and source IDs.
+provide each device's resident weight bytes and KV bytes per token. Runtime
+headroom bytes may be omitted per device. When present, headroom must be
+sourced under the same admission rules. Numeric inputs retain their record
+IDs and source IDs. Omitted headroom remains absent in the signed record.
 
 The latest independent, value-bound verification covers the whole record.
 Missing, mismatched, quarantined, excluded, or unregistered source evidence
