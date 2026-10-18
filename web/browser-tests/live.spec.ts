@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { z } from "zod";
 
+test.skip(!process.env.MODELSPEC_DECIDE_URL, "requires an explicitly configured deployed page");
+
 // MODEL-203: the deployed decide page answers, against the live vocabulary and
 // api.modelspec.dev, or shows the manual gate when the Worker enables it,
 // with nothing stubbed. Run after each deploy with
