@@ -6,9 +6,13 @@ Jamie's decisions in the ticket govern where the two UX reviews differ.
 ## Page anatomy
 
 `/decide/` shows the existing brand and theme control, a snapshot date from
-`vocabulary.coverage.as_of`, the hero "Which AI model fits your job?", and
+the served vocabulary's optional `as_of` field, the hero "Which AI model fits your job?", and
 "Pick a job. See your options and what each task costs." A missing snapshot
 date says it is unavailable; a hash or build time never substitutes for it.
+The Worker copies this date from the snapshot's `coverage.as_of` while trimming
+catalogue counts. The full vocabulary's `coverage.as_of` remains a fallback for
+the existing catalogue data path. This adds an optional display field without
+changing `vocabulary_version` or the decision contract.
 
 The opening answer is labelled "Example: Everyday help. Pick a job if this
 isn't yours." Six real buttons with `aria-pressed` choose a job. A three-way
@@ -33,6 +37,19 @@ metadata, the API-price qualification, a plain-language explanation derived
 from `blend`, one dated benchmark from the response's evidence, model counts
 from `by_model`, and the independent-measurement tie-breaker as a separate
 sentence when supplied. No outcome, price, source date or count is hardcoded.
+
+The source line uses the unique largest-share estimated capability term in the
+blend. For each verdict member, it reads that term's contribution evidence from
+the member's best-ranked offering; retained `top` contributions can supply it
+when `results` is truncated. Across tied members, candidates sort by the engine's
+priority: highest `estimate_weight`, direct before proxy, then record id in
+Unicode code-point order. Model id breaks an otherwise equal member tie. This
+selection does not depend on result, member or evidence-array order. It does not
+use unweighted domain evidence groups or a cheaper route's unrelated estimate.
+If the response cannot identify the objective, offering or weighted evidence
+faithfully, the line says "Sources and dates: see the full evidence". Conflicting
+equally prioritized records also use that fallback. No vocabulary default
+benchmark substitutes for the evidence that produced the answer.
 
 "See the full evidence" is the sole primary action. Its existing encoded
 `#s=` board state preserves limits, weights, access route and task size.

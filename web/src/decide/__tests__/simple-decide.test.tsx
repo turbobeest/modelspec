@@ -88,7 +88,10 @@ describe("simple engine answer", () => {
     row.offerings[1].cost_per_task = 0.012;
     changed.by_model = changed.by_model.filter((item) => item.status !== "may_qualify");
     changed.blend = changed.blend.filter((term) => term.dimension === "chat_preference");
-    for (const result of changed.results) for (const group of result.evidence) for (const item of group.items) item.date = "2026-10-16";
+    for (const result of changed.results) {
+      for (const group of result.evidence) for (const item of group.items) item.date = "2026-10-16";
+      for (const part of result.contributions) for (const item of part.evidence) item.date = "2026-10-16";
+    }
     render(<SimpleAnswer {...props()} decision={changed} />);
     const claude = within(screen.getByRole("list", { name: "Best matches" })).getAllByRole("listitem")[0];
     expect(claude).toHaveTextContent("via Amazon Bedrock");
@@ -104,7 +107,7 @@ describe("simple engine answer", () => {
     rerender(<SimpleAnswer {...props()} decision={changed} />);
     expect(screen.getByText(/This choice compares/)).toHaveTextContent("More weight goes to estimated running cost.");
   });
-  it("uses retained best-band routes and objective evidence when result rows are truncated", () => {
+  it("uses retained best-band routes and directs to full evidence when member evidence is truncated", () => {
     const changed = structuredClone(decision);
     const id = "anthropic/claude-opus-5-5";
     const band = changed.bands?.best.find((row) => row.model === id);
@@ -118,7 +121,7 @@ describe("simple engine answer", () => {
     const row = within(screen.getByRole("list", { name: "Best matches" })).getAllByRole("listitem")[0];
     expect(row).toHaveTextContent("via Anthropic");
     expect(row).toHaveTextContent("$0.432 per task");
-    expect(screen.getByText(/Source:/)).toBeVisible();
+    expect(screen.getByText("Sources and dates: see the full evidence")).toBeVisible();
   });
   it("keeps no-fit and undetermined answers distinct and offers the engine's blocking limit", () => {
     const remove = vi.fn();

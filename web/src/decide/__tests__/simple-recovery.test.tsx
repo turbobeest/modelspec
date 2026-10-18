@@ -12,7 +12,7 @@ const advance = async () => {
   await act(async () => {});
   await act(async () => { await vi.advanceTimersByTimeAsync(300); });
 };
-function network(load: () => Vocabulary, decide: (init?: RequestInit) => Response = () => json(full)) {
+function network(load: () => unknown, decide: (init?: RequestInit) => Response = () => json(full)) {
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (String(input).endsWith("/vocabulary.json")) return json(load());
     if (String(input).endsWith("/v1/decide")) return decide(init);
@@ -27,6 +27,24 @@ const decisions = (fetch: ReturnType<typeof network>) => fetch.mock.calls
 
 beforeEach(() => { vi.resetModules(); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+it("renders the trimmed vocabulary snapshot date without catalogue coverage", async () => {
+  network(() => ({ ...vocabulary, as_of: "2026-10-04", coverage: undefined }));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByText("Data as of 2026-10-04")).toBeVisible();
+  expect(screen.queryByText("Data date unavailable")).toBeNull();
+});
+
+it("keeps a missing snapshot date explicit", async () => {
+  network(() => ({ ...vocabulary, as_of: undefined, coverage: undefined }));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByText("Data date unavailable")).toBeVisible();
+  expect(screen.queryByText(/^Data as of/)).toBeNull();
+});
 
 it("keeps an unsupported residency limit until the visitor removes it, preserving the other choices", async () => {
   let loads = 0;
@@ -82,13 +100,13 @@ it("renders mutated snapshot date, available-template count and each template's 
   const baseline = render(<SimpleApp />);
   await advance();
   expect(screen.getByRole("link", { name: "All 28 templates" })).toBeVisible();
-  expect(screen.getByText("Data date unavailable")).toBeVisible();
+  expect(screen.getByText("Data as of 2026-10-04")).toBeVisible();
   expect(screen.getByText(/Task size used for these prices: 40,000 input and 4,000 output tokens/)).toBeVisible();
   baseline.unmount();
 
   const changed: Vocabulary = {
     ...vocabulary,
-    coverage: { as_of: "2026-10-16", models: 24, verified: 24, classes: [], domains: [] },
+    as_of: "2026-10-16",
     templates: vocabulary.templates?.filter((template) => [
       "assistant-balanced", "assistant-best", "high-volume-balanced", "coding-balanced",
     ].includes(template.id)).map((template) => ({

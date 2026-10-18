@@ -1,6 +1,6 @@
 root/.live/
 root/pr-body.md
-gates/.generated/
+**/.generated/
 gates/.matrix-*
 root/.corpus/
 root/.corpus-playwright/

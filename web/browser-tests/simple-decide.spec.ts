@@ -2,12 +2,10 @@ import { expect, type Page, type Route } from "@playwright/test";
 import { readFileSync, mkdirSync } from "node:fs";
 import { test } from "./human-gate-fixtures";
 import { decisionSchema, decisionSpecSchema, type Decision } from "../src/decide/adapter/contract";
-import rawVocabulary from "../src/decide/__fixtures__/live-vocabulary.json" with { type: "json" };
-import coveredVocabulary from "../src/decide/__fixtures__/vocabulary.json" with { type: "json" };
+import vocabulary from "../src/decide/__fixtures__/live-vocabulary.json" with { type: "json" };
 import { z } from "zod";
 
 const read = (name: string): unknown => JSON.parse(readFileSync(new URL(`../src/decide/__fixtures__/${name}`, import.meta.url), "utf8"));
-const vocabulary = { ...rawVocabulary, coverage: coveredVocabulary.coverage };
 const fixture = decisionSchema.parse(read("live-assistant-balanced-full.json"));
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET, POST, OPTIONS" };
 const answer = (page: Page) => page.getByRole("region", { name: "Decision answer", exact: true });
@@ -37,7 +35,7 @@ test("opens with a labelled example and an alphabetical tie with equal emphasis"
     return [style.fontSize, style.fontWeight, style.color, style.backgroundColor];
   }));
   expect(new Set(styles.map((style) => JSON.stringify(style))).size).toBe(1);
-  await expect(page.getByText("Data as of 2026-09-25", { exact: true })).toBeVisible();
+  await expect(page.getByText("Data as of 2026-10-04", { exact: true })).toBeVisible();
   await expect(page.locator("header")).not.toContainText("snap_");
   await expect(answer(page).getByText("ModelSpec is neutral: no referral fees, no paid placement.", { exact: true })).toBeVisible();
 });
@@ -119,6 +117,33 @@ test("visible counts, costs and source dates change with the engine response", a
   await expect(answer(page)).toContainText("2 pass these limits. 3 more are missing a fact, so they stay possible.");
   await expect(answer(page)).toContainText("2026-08-19");
   await expect(answer(page)).not.toContainText("2026-09-23");
+});
+
+test("the objective source survives reordering the same answer", async ({ page }) => {
+  const reordered = structuredClone(fixture);
+  const firstGemini = reordered.results.findIndex((row) => row.offering.model === "google/gemini-3-8-flash");
+  if (firstGemini < 0) throw new Error("The fixture must contain Gemini 3.8 Flash");
+  const [gemini] = reordered.results.splice(firstGemini, 1);
+  if (!gemini) throw new Error("The Gemini result must exist");
+  reordered.results.unshift(gemini);
+  let response = fixture;
+  await page.route("**/v1/decide", (route) => reply(route, response));
+  await page.goto("/decide/");
+  const source = "Source: Arena WebDev (Code Arena), 2026-09-23.";
+  await expect(answer(page).getByText(source, { exact: true })).toBeVisible();
+  response = reordered;
+  await page.reload();
+  await expect(answer(page).getByText(source, { exact: true })).toBeVisible();
+  for (const row of reordered.results) {
+    row.evidence.reverse();
+    for (const group of row.evidence) group.items.reverse();
+    row.contributions.reverse();
+    for (const contribution of row.contributions) contribution.evidence.reverse();
+  }
+  await page.reload();
+  await expect(answer(page).getByText(source, { exact: true })).toBeVisible();
+  await expect(answer(page).getByRole("heading", { level: 2 })).toHaveText("These 6 are too close to call.");
+  await expect(answer(page).getByRole("list", { name: "Best matches" }).locator("strong")).toHaveText(names);
 });
 
 test("no-fit and undetermined answers keep uncertainty and a next action", async ({ page }) => {
@@ -255,25 +280,27 @@ test.describe("simple page managed visit gate", () => {
 test("capture simple example, coding, tie, no-fit and detailed board", async ({ page }) => {
   test.skip(process.env.MODELSPEC_CAPTURE_SIMPLE !== "1", "opt-in reproducible evidence capture");
   mkdirSync(evidence, { recursive: true });
-  await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => reply(route, rawVocabulary));
   const captureSchema = z.object({ spec: decisionSpecSchema, decision: decisionSchema });
+  const example = captureSchema.parse(JSON.parse(readFileSync(new URL(".generated/example-decision.json", evidence), "utf8")));
   const coding = captureSchema.parse(JSON.parse(readFileSync(new URL(".generated/coding-decision.json", evidence), "utf8")));
   const noFit = captureSchema.parse(JSON.parse(readFileSync(new URL(".generated/no-fit-decision.json", evidence), "utf8")));
+  const plot = captureSchema.parse(JSON.parse(readFileSync(new URL(".generated/plot-decision.json", evidence), "utf8")));
   await page.route("**/v1/decide", async (route) => {
     if (route.request().method() === "OPTIONS") return reply(route, {});
     const request = decisionSpecSchema.parse(route.request().postDataJSON());
-    const recorded = request.where?.includes("model.weights_openness = open_weights")
+    const recorded = request.capabilities?.chat_preference === "preferred" ? plot
+      : request.where?.includes("model.weights_openness = open_weights")
       && request.where?.some((condition) => condition.startsWith("offering.cost_per_task")) ? noFit
-      : JSON.stringify(request.optimize).includes("software_engineering") ? coding : null;
-    if (recorded) {
-      expect({ ...request, explain: "full" }).toEqual(recorded.spec);
-      await reply(route, recorded.decision);
-    } else await reply(route, fixture);
+      : JSON.stringify(request.optimize).includes("software_engineering") ? coding : example;
+    expect({ ...request, explain: "full" }).toEqual(recorded.spec);
+    await reply(route, recorded.decision);
   });
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
     const size = viewport.width === 390 ? "mobile" : "desktop";
     await page.setViewportSize(viewport);
     await page.goto("/decide/");
+    await expect(page.getByText("Data as of 2026-10-04", { exact: true })).toBeVisible();
+    await expect(answer(page)).toHaveAttribute("data-decision-id", example.decision.decision_id);
     await expect(answer(page).getByRole("list", { name: "Best matches" })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: new URL(`simple-${size}-example.png`, evidence).pathname, fullPage: size === "desktop" });
@@ -283,7 +310,7 @@ test("capture simple example, coding, tie, no-fit and detailed board", async ({ 
     await expect(answer(page).getByRole("heading", { level: 2 })).toBeFocused();
     await page.screenshot({ path: new URL(`simple-${size}-coding.png`, evidence).pathname, fullPage: size === "desktop" });
     await page.getByRole("group", { name: "Choose your job" }).getByRole("button", { name: /^Everyday help/ }).click();
-    await expect(answer(page).getByRole("list", { name: "Best matches" }).getByRole("listitem")).toHaveCount(6);
+    await expect(answer(page)).toHaveAttribute("data-decision-id", example.decision.decision_id);
     await page.screenshot({ path: new URL(`simple-${size}-tie.png`, evidence).pathname, fullPage: size === "desktop" });
     await page.getByRole("group", { name: "Choose your job" }).getByRole("button", { name: /^Self-hosting/ }).click();
     await page.getByRole("group", { name: "What matters most?" }).getByRole("button", { name: "Spend less", exact: true }).click();

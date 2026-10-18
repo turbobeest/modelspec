@@ -22,6 +22,7 @@ export default function SimpleApp() {
   const verdict = useRef<HTMLHeadingElement>(null);
   const result = useSimpleDecision((vocabulary) => selectJob(vocabulary, choices)?.spec ?? null);
   const { vocabulary, vocabularyState, decision, answeredSpec, requestState } = result;
+  const asOf = vocabulary?.as_of ?? vocabulary?.coverage?.as_of;
   const selection = vocabulary ? selectJob(vocabulary, choices) : null;
   const current = selection && answeredSpec && specHash(selection.spec) === specHash(answeredSpec) ? decision : null;
   useEffect(() => { document.documentElement.dataset.decideTheme = theme; storeTheme(theme); }, [theme]);
@@ -53,7 +54,7 @@ export default function SimpleApp() {
     <a className="simple-skip" href="#main">Skip to the decision</a>
     <header className="simple-header">
       <a className="lockup" href="/" aria-label="ModelSpec home"><BrandMark transparent={theme === "dark"} /><span className="wordmark"><b>Model</b>Spec</span></a>
-      <span className="simple-date">{vocabulary?.coverage?.as_of ? `Data as of ${vocabulary.coverage.as_of}` : "Data date unavailable"}</span>
+      <span className="simple-date">{asOf ? `Data as of ${asOf}` : "Data date unavailable"}</span>
       <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "Light" : "Dark"} mode</button>
     </header>
     <main id="main" className="simple-main">

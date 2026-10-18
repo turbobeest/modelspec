@@ -4,6 +4,7 @@ import type { Vocabulary } from "../vocabulary";
 import { ACCESS_ANSWERS, payee } from "../facet-board/routes";
 import { evidenceLink } from "./model";
 import type { Selection } from "./model";
+import { answerSource } from "./source";
 
 const dimensionNames: Record<string, string> = {
   chat_preference: "ratings of conversational responses", software_engineering: "software engineering evidence",
@@ -30,9 +31,7 @@ export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, o
   const heavier = blend.filter((_label, index) => decision.blend[index].share === largestShare);
   const emphasis = blend.length > 1 ? heavier.length === blend.length ? " Each carries equal weight."
     : ` More weight goes to ${new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(heavier)}.` : "";
-  const sources = decision.results.flatMap((row) => row.evidence.filter((group) => dimensions.includes(group.domain)).flatMap((group) => group.items));
-  const source = sources[0] ?? decision.results.flatMap((row) => row.contributions.flatMap((term) => term.evidence))[0]
-    ?? decision.top.flatMap((row) => [...row.evidence.flatMap((group) => group.items), ...row.contributions.flatMap((term) => term.evidence)])[0];
+  const source = answerSource(decision, vocabulary);
   const scope = [
     ...selection.limits.map((limit) => limit.label),
     ...(selection.choices.route === "any" ? [] : [ACCESS_ANSWERS.find((route) => route.id === selection.choices.route)?.label]),
@@ -71,8 +70,8 @@ export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, o
       <p>Task size used for these prices: {selection.spec.tokIn.toLocaleString("en-US")} input and {selection.spec.tokOut.toLocaleString("en-US")} output tokens. List API price, not a chat subscription.</p>
       {(selection.choices.job === "self-host" || selection.choices.route === "own_hardware") && <p>API prices do not include your hardware running costs or confirm that a model fits your device.</p>}
       <p>{blend.length ? `This choice compares ${new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(blend)}.${emphasis}` : "There is not enough evidence to compare these choices."}</p>
-      {source ? <p>Source: <a href={source.source}>{vocabulary.benchmarks.find((benchmark) => benchmark.id === source.benchmark)?.name ?? source.benchmark}</a>, {source.date}.</p>
-        : <p>Source dates are unavailable in this answer. Check the full evidence.</p>}
+      {source ? <p>Source: <a href={source.url}>{source.name}</a>, {source.date}.</p>
+        : <p>Sources and dates: see the full evidence</p>}
       <p>{ranked} pass these limits. {possible} more are missing a fact, so they stay possible.</p>
       {answer?.tie_breakers.most_independently_measured && <p>Most independently measured: {name(answer.tie_breakers.most_independently_measured)}. That does not change the order.</p>}
       {answer?.kind === "separated" && !!decision.bands?.rest.length && <details><summary>The rest</summary><ul className="simple-shortlist">{rows(decision.bands.rest.map((row) => row.model))}</ul></details>}

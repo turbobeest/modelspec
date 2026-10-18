@@ -36,6 +36,9 @@ def trim(vocabulary, *, model_ids, facet_values):
     """Project explicit display fields. Only approved aggregates cross this boundary."""
     result = pick(vocabulary, ("vocabulary_version", "contract_version", "snapshot", "default_task_tokens",
                                "task_types", "providers", "vendors", "template_categories", "template_tiers"))
+    as_of = vocabulary.get("coverage", {}).get("as_of")
+    if as_of is not None:
+        result["as_of"] = as_of
     result["facets"] = [pick(row, FACET_FIELDS) for row in vocabulary.get("facets", [])]
     for row, source in zip(result["facets"], vocabulary.get("facets", [])):
         row["has_data"] = source.get("known", 0) > 0
