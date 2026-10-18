@@ -1,0 +1,30 @@
+[
+  {
+    "human_gate": "false",
+    "visit_gate": "false",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "matrix-false-false.log"
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "false",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "matrix-true-false.log"
+  },
+  {
+    "human_gate": "false",
+    "visit_gate": "true",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "matrix-false-true.log"
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "true",
+    "exit_code": 0,
+    "command": "npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line",
+    "log": "matrix-true-true.log"
+  }
+]

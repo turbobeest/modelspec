@@ -1,0 +1,160 @@
+MODEL-404 browser evidence, 2026-10-17
+Repository: /Users/terbeest/dev/worktrees/model-404
+Branch: model-404-simple-decide
+Tools: Node v22.22.3; npm 10.9.8; Playwright 1.63.0; Python 3.14.4.
+
+These are compact excerpts from observed command output. Full local .log files
+are ignored by Git. Reproduction commands and fixture limits are in README.md.
+All recorded browser commands ran in web/ with:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+
+RED: initial missing simple page
+Command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep "opens with a labelled" --workers=1 --reporter=line
+Exit: 1
+Test: opens with a labelled example and an alphabetical tie with equal emphasis
+Locator: getByText("Example: Everyday help. Pick a job if this isn't yours.", { exact: true })
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+
+Routing already pointed /decide/ at the new entry; the implementation did not
+exist. Vite reported: Failed to load url /src/decide/simple/main.tsx.
+Two earlier setup attempts failed at test imports and were corrected before
+this assertion failed. Those setup errors are not counted as behavioral red tests.
+
+RED: complete initial simple-page suite
+Command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --workers=4 --reporter=line
+Exit: 1
+
+1. opens with a labelled example and an alphabetical tie with equal emphasis
+   Expected the exact example sentence to be visible.
+   Error: element(s) not found; timeout 5000ms.
+2. a keyboard job pick changes the request, focuses the verdict and carries the same question to evidence
+   Expected region "Decision answer" to be visible.
+   Error: element(s) not found; timeout 5000ms.
+3. limits are collapsed, EU and training are separate and route travels with the evidence
+   Expected region "Decision answer" to be visible.
+   Error: element(s) not found; timeout 5000ms.
+4. visible counts, costs and source dates change with the engine response
+   Expected the answer heading: "These 2 are too close to call."
+   Error: element(s) not found; timeout 5000ms.
+5. no-fit and undetermined answers keep uncertainty and a next action
+   Expected the answer to match /No (?:model|confirmed match)/.
+   Error: element(s) not found; timeout 5000ms.
+6. the example fits 390 by 844 with readable contrast, full ties and 44px controls in both themes
+   Expected "Best matches" listitem count: 6
+   Received: 0; timeout 5000ms.
+
+Observed summary:
+  6 failed
+  3 skipped
+  2 passed (35.0s)
+The two passing tests covered legacy state redirects, which already existed.
+
+RED: request normalization regression after initial implementation
+Command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --workers=2 --reporter=line
+Exit: 1
+Test: opens with a labelled example and an alphabetical tie with equal emphasis
+Locator: region "Decision answer", heading level 2
+Expected: "These 6 are too close to call."
+Error: element(s) not found; timeout 5000ms.
+Observed page: loaded job controls and "Checking the evidence…", no answer.
+The same six behavior cases failed; 3 skipped and 2 passed (35.6s).
+The fix normalized the selected question before comparing answered state.
+
+GREEN: final gate matrix on stable source
+These runs were repeated after the 44-pixel home-target fix and final route
+recovery changes. The prior matrix had the same pass and skip counts.
+Shared command:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
+Additional environment for every combination:
+VITE_TURNSTILE_SITE_KEY=public-browser-test-key
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+Exit: 0
+  10 skipped
+  35 passed (15.4s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=false
+Exit: 0
+  8 skipped
+  37 passed (18.1s)
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=true
+Exit: 0
+  1 skipped
+  44 passed (24.8s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=true
+Exit: 0
+  1 skipped
+  44 passed (25.0s)
+
+The final matrix passed all six initial red behavior cases, both legacy
+redirects, manual verification, managed verification and expired-token renewal.
+The local real-Worker case passed and confirmed HTTP 401 for a direct machine
+request without a key. Matrix skips are gate-specific tests and opt-in capture.
+Earlier runs interrupted by source hot reload are not these final results.
+
+GREEN: broad browser command
+Command: npm run test:browser -- --workers=2 --reporter=line
+Environment: VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+Exit: 0
+  16 skipped
+  37 passed (17.0s)
+Skips: gate-specific tests, opt-in capture, absent generated corpus, and
+deployed-site/pricing checks without explicit URLs. The main executor records
+the separate built-corpus run.
+
+GREEN: exact engine-question screenshot capture
+Generation command, from repository root:
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/gates/generate-screenshot-decisions.py
+Exit: 0
+coding: snapshot=snap_e9c30eaacfa8f2f2, status=partial, answer=tied
+no-fit: snapshot=snap_e9c30eaacfa8f2f2, status=no_feasible, answer=None
+
+Capture command, from web/:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep "capture simple" --workers=1 --reporter=line
+Environment: VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+MODELSPEC_CAPTURE_SIMPLE=1
+Exit: 0
+  1 passed (9.1s)
+Test: capture simple example, coding, tie, no-fit and detailed board
+Eleven PNGs were regenerated after the final target and recovery fixes and
+visually inspected again. Actual coding and no-fit
+requests matched the saved engine questions before their responses were served.
+
+Limits: offline fixtures and local Worker only; no production/provider calls.
+Captured live vocabulary has no coverage.as_of, so screenshot headers show
+"Data date unavailable". Coding/no-fit and recorded assistant answers retain
+their distinct source snapshots, documented in screenshot-decisions.json.
+No real screen-reader session, usability study, Firefox or Safari run observed.
+Playwright stopped its servers; final port-5173 listener check found none.
+
+RED/GREEN: final mobile target regression
+Command, from web/:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'the example fits 390' --workers=1 --reporter=line
+Environment: VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+Same Node PATH as above.
+Test: the example fits 390 by 844 with readable contrast, full ties and 44px controls in both themes
+The measurement now includes the header home link and theme button, Change,
+and the primary evidence link, as well as every job and priority button.
+Each target must measure at least 44 CSS pixels in both width and height.
+
+Before the CSS fix, exit 1:
+  Error: dark: ModelSpec home height
+  Expected: >= 44
+  Received:    28
+  1 failed
+
+Fix: .simple-header .lockup { min-height: 44px; }
+After the CSS fix, exit 0:
+  1 passed (2.7s)
+The same run retained the 390-by-844 fold, full six-row tie, primary evidence
+action, no-horizontal-overflow and initial main-content contrast assertions
+in both dark and light themes. Inline text links were outside this target check.

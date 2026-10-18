@@ -1,0 +1,18 @@
+{
+  "origin": "docs/evidence/g2-ios/MODEL-404/root/.live/modelspec",
+  "findings": [
+    {
+      "surface": "decide/details/index.html",
+      "check": "jsonld.visible",
+      "excerpt": "ModelSpec detailed decision board",
+      "expected": "same text in this page's visible body"
+    },
+    {
+      "surface": "decide/details/index.html",
+      "check": "jsonld.visible",
+      "excerpt": "ModelSpec detailed decision board",
+      "expected": "same text in this page's visible body"
+    }
+  ],
+  "notices": []
+}

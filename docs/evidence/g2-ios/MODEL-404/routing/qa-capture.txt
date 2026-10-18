@@ -1,0 +1,2 @@
+Command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+Exit code: 0; command produced no output.

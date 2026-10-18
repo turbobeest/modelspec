@@ -1,0 +1,9 @@
+QA and CLI source hashes match; guide versions match
+OpenAPI differs only in info.description guide version and AgentGuideVersion header const
+Guide version: 1-c87335a7b267ef2f
+docs/agents.md 7a15fbc29407078d53594b0755852b3f4c341ad83f7b68582c92b4b72075821a
+mcp/src/agent-copy.json 36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e
+cli/modelspec/agent-bundle.json 9d3155f5c380925a720cea1f11a7658cca9bc20ce0f18cb0fc6892d02abf4349
+api/worker/src/agent_guide.py 70468d677a1fe2b0ae37e420d49dbeab302cc13ee68064fb845f5e6e61abf72d
+api/worker/openapi.yaml 59e2ea97bc3662c30153118a59316828a42e9188d7d40510353140b9e1ce919c
+qa/fixtures/mcp-tools.json e34180246c8baf9e9ebef5477d0952d6bb0dbc43fa2a557203453ec5124ca3fa

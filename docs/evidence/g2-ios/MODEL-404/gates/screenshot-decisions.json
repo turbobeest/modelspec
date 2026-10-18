@@ -1,0 +1,83 @@
+{
+  "coding": {
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    },
+    "snapshot": "snap_e9c30eaacfa8f2f2",
+    "decision_id": "dec_a9718308c47b554983c2595e",
+    "status": "partial",
+    "answer": {
+      "kind": "tied",
+      "members": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5"
+      ],
+      "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+      "tie_breakers": {
+        "cheapest": "anthropic/claude-sonnet-5-5",
+        "open_weights": null,
+        "most_independently_measured": "anthropic/claude-opus-5-5",
+        "fastest": null
+      },
+      "deterministic_order": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5"
+      ]
+    }
+  },
+  "no-fit": {
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.05",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.5,
+          "-offering.cost_per_task": 0.5
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    },
+    "snapshot": "snap_e9c30eaacfa8f2f2",
+    "decision_id": "dec_f0c89c6b41441beedccaea59",
+    "status": "no_feasible",
+    "answer": null
+  }
+}

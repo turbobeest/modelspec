@@ -1,0 +1,1 @@
+::error::api/worker/openapi.yaml is stale. The implementation changed, or the file was edited by hand. Run `python api/worker/openapi.py` and commit the result.
