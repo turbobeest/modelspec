@@ -1,16 +1,16 @@
 """Dated job comparisons preserve engine evidence without inventing a winner."""
 
+import json
+import socket
 from copy import deepcopy
 from datetime import date
-import json
 from pathlib import Path
-import socket
 
 import pytest
 
-from decision.excluded import REMOVED_TEXT, excluded_publisher, without_legacy_source_keys
+from decision.excluded import REMOVED_TEXT, excluded_in
 from pipeline import build
-from pipeline.surface_lint import Page
+from pipeline.surface_lint import Page, publisher_subject
 
 ROOT = Path(__file__).resolve().parents[1]
 DAY = date(2026, 9, 23)
@@ -193,7 +193,7 @@ def test_page_uses_registry_copy_keyed_access_and_consistent_jsonld(example):
     assert 'href="/legal/neutrality/"' in raw
     assert 'href="/decide/?template=coding-best"' in raw
     assert not REMOVED_TEXT.search(raw)
-    assert excluded_publisher(without_legacy_source_keys(raw)) is False
+    assert excluded_in(publisher_subject("compare/index.html", raw)) is False
     nodes = json.loads(page.ld[0])["@graph"]
     article = next(node for node in nodes if node["@type"] == "Article")
     assert article["headline"] in page.visible
@@ -239,7 +239,7 @@ def test_real_image_is_public_offline_deterministic_and_bounded(tmp_path, monkey
         assert page.meta["robots"] == "index, follow"
         assert "CLI, API, and MCP access requires a key" in page.visible
         assert not REMOVED_TEXT.search(raw.decode())
-        assert excluded_publisher(without_legacy_source_keys(raw.decode())) is False
+        assert excluded_in(publisher_subject("compare/index.html", raw.decode())) is False
         if str(path) != "compare/index.html":
             assert "can't separate them" in page.visible or "The evidence separates them" in page.visible
 

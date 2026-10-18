@@ -287,6 +287,60 @@ def test_all_owned_formats_and_legal_pages_get_lexicon_checks(path: str) -> None
     assert sl.lexicon({"api/models.json": text, "assets/app.js": text}, {}, {}) == []
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        "<p>artificial_analysis_url: retained</p>",
+        "<p>Artificial&#10;Analysis</p>",
+        "<p>Zap&shy;ier</p>",
+        "<img alt='Zap&shy;ier'>",
+        "<span title='Artificial&#9;Analysis'>kept</span>",
+        "<a data-source='Zap&#173;ier'>kept</a>",
+    ],
+)
+def test_surface_lint_rejects_entity_and_key_shaped_publisher_text(body: str) -> None:
+    findings = [
+        item
+        for item in sl.lexicon({"page.html": page(body)}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, body
+
+
+def test_a_markdown_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
+    empty = "---\nsources:\n  artificial_analysis_url: ''\n---\nPlain.\n"
+    hidden = '---\nnote: "artificial_analysis_url: retained"\n---\nPlain.\n'
+    empty_findings = [
+        item
+        for item in sl.lexicon({"card.md": empty}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    hidden_findings = [
+        item
+        for item in sl.lexicon({"card.md": hidden}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert empty_findings == []
+    assert hidden_findings
+
+
+def test_a_json_value_is_not_exempt_because_it_looks_like_the_legacy_key() -> None:
+    hidden = json.dumps({"value": "artificial_analysis_url: retained"})
+    empty = json.dumps({"artificial_analysis_url": ""})
+    hidden_findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": hidden}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    empty_findings = [
+        item
+        for item in sl.lexicon({".well-known/card.json": empty}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert hidden_findings
+    assert empty_findings == []
+
+
 def test_removed_sources_reuse_the_catalogue_rule() -> None:
     # The witness comes from the shared publisher names, not a second copy.
     from decision.excluded import PUBLISHER_NAMES, excluded_publisher

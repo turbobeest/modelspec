@@ -390,6 +390,39 @@ def test_excluded_sources_are_refused() -> None:
         guard_output({}, json.dumps({"note": "per " + REMOVED_HOSTS[1].split(".")[0]}))
 
 
+def test_a_serialized_breakdown_cannot_hide_a_publisher_value(breakdown, tmp_path) -> None:
+    from decision.excluded import excluded_publisher
+    from release_blog.platforms import generate_from_breakdown
+
+    probes = (
+        "artificial_analysis_url: retained",
+        "Artificial\nAnalysis",
+        "Artificial\tAnalysis",
+        "Zap\nier",
+        "Zap\tier",
+    )
+    post_url = "https://modelspec.dev/blog/lab-alpha/"
+    for payload in probes:
+        data = breakdown.model_dump(mode="json", by_alias=True)
+        data["disclosures"]["supplier"] = payload
+        candidate = Breakdown.model_validate(data)
+        encoded = to_bytes(candidate).decode("utf-8")
+        with pytest.raises(BreakdownError, match="excluded source"):
+            guard_output(candidate.sources, encoded)
+        source = tmp_path / "breakdown.json"
+        source.write_text(encoded, encoding="utf-8")
+        written = generate_from_breakdown(
+            breakdown_path=source,
+            post_url=post_url,
+            output_dir=tmp_path / "social",
+        )
+        assert len(written) == 6
+        for path in written.values():
+            draft = Path(path).read_text(encoding="utf-8")
+            assert payload not in draft
+            assert excluded_publisher(draft) is False
+
+
 def test_a_model_with_nothing_admitted_gets_no_breakdown(tmp_path, capsys) -> None:
     path = _write(tmp_path / "a.json.gz", with_new=True)
     after = load_snapshot_bytes(path.read_bytes(), key=None, public_keys=PUBLIC)

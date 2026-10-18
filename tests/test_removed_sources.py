@@ -25,9 +25,9 @@ from decision.excluded import (
     REMOVED_HOSTS,  # noqa: F401 - part of this guard's public test surface
     REMOVED_ID,
     REMOVED_TEXT,
+    excluded_in,
     excluded_publisher,
     excluded_sources,
-    without_legacy_source_keys,
 )
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
@@ -36,8 +36,11 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 ALLOWED = (
     Path(__file__).resolve().relative_to(REPO_ROOT).as_posix(),
     "decision/excluded.py",
-    # The draft tests name both publishers in order to prove the drafts omit them.
+    # These tests name both publishers in order to prove the guard rejects them
+    # and the drafts omit them.
     "tests/test_release_blog_platforms.py",
+    "tests/test_release_blog.py",
+    "tests/test_surface_lint.py",
 )
 ALLOWED_GLOBS = ("docs/research/source-terms-*.md",)
 
@@ -48,6 +51,37 @@ def _removed_host(url: object) -> bool:
 
 def _allowed(rel: str) -> bool:
     return rel in ALLOWED or any(Path(rel).match(g) for g in ALLOWED_GLOBS)
+
+
+def _python_publisher(text: str) -> bool:
+    import io
+    import tokenize
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+        chunks = [
+            token.string
+            for token in tokens
+            if token.type in {tokenize.STRING, tokenize.COMMENT}
+        ]
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return excluded_publisher(text)
+    return any(excluded_publisher(chunk) for chunk in chunks)
+
+
+def _publisher_hit(path: Path, text: str) -> bool:
+    """Walk structured files. A source file's strings are values; its field names are not."""
+    suffix = path.suffix.lower()
+    structural = suffix in {".html", ".json", ".yaml", ".yml", ".md", ".py"}
+    if suffix != ".html" and "&#" not in text and not excluded_publisher(text):
+        return False
+    if not structural:
+        return excluded_publisher(text)
+    if suffix == ".py":
+        return _python_publisher(text)
+    from pipeline.surface_lint import publisher_subject
+
+    return excluded_in(publisher_subject(path.name, text))
 
 
 def _tracked_files() -> list[Path]:
@@ -70,8 +104,7 @@ def _hits(root: Path, files: list[Path]) -> list[str]:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue  # binary: fonts, images, compressed corpora
-        visible = without_legacy_source_keys(text)
-        if excluded_publisher(visible):
+        if _publisher_hit(path, text):
             hits.append(f"{rel}: excluded publisher")
             continue
         match = REMOVED_TEXT.search(text)
@@ -189,14 +222,13 @@ def test_a_glued_publisher_name_and_its_domains_are_excluded() -> None:
 
 
 def test_the_legacy_field_key_is_exempt_and_the_same_spelling_as_a_value_is_not() -> None:
-    from decision.excluded import excluded_publisher, without_legacy_source_keys
+    from decision.excluded import excluded_in, excluded_publisher
 
     assert excluded_publisher("artificial_analysis_url") is True
-    assert excluded_publisher(without_legacy_source_keys("artificial_analysis_url: ''")) is False
-    assert (
-        excluded_publisher(without_legacy_source_keys('{"artificial_analysis_url": ""}')) is False
-    )
-    assert excluded_publisher(without_legacy_source_keys("value artificial_analysis_url")) is True
+    assert excluded_in({"artificial_analysis_url": ""}) is False
+    assert excluded_in('{"artificial_analysis_url": ""}') is True
+    assert excluded_in({"value": "artificial_analysis_url"}) is True
+    assert excluded_publisher("value artificial_analysis_url") is True
 
 
 @pytest.mark.parametrize(
@@ -224,6 +256,72 @@ def test_guard_output_and_lexicon_reject_collapsed_publishers(text: str) -> None
     assert findings, text
 
 
+_PUBLISHER_PROBES = (
+    "artificial_analysis_url: retained",
+    "Artificial\nAnalysis",
+    "Artificial\tAnalysis",
+    "Zap\nier",
+    "Zap\tier",
+    "Artificial - . Analysis",
+    "ArtificialAnalysisPro",
+    "artificialanalysis.ai",
+    "zapier.com",
+)
+
+
+def test_excluded_in_checks_every_string_except_the_legacy_key() -> None:
+    """The key exemption is structural. Text that merely looks like the key is a value."""
+    from decision.excluded import excluded_in
+
+    assert excluded_in({"artificial_analysis_url": ""}) is False
+    assert excluded_in({"artificial_analysis_url": "artificial_analysis_url: retained"}) is True
+    assert excluded_in({"value": "artificial_analysis_url: retained"}) is True
+    assert excluded_in("artificial_analysis_url: retained") is True
+    assert excluded_in('{"artificial_analysis_url": ""}') is True
+    assert excluded_in({"nested": ("ok", {"artificial_analysis_url": ""})}) is False
+    for payload in _PUBLISHER_PROBES:
+        assert excluded_in({"value": payload}) is True, payload
+        assert excluded_in({payload: "kept"}) is True, payload
+
+
+def test_guard_output_reads_serialized_values() -> None:
+    import json
+
+    from release_blog.gates import BreakdownError, guard_output
+
+    guard_output({}, json.dumps({"artificial_analysis_url": ""}))
+    guard_output({}, {"artificial_analysis_url": ""})
+    for payload in _PUBLISHER_PROBES:
+        with pytest.raises(BreakdownError, match="excluded source"):
+            guard_output({}, {"value": payload})
+        with pytest.raises(BreakdownError, match="excluded source"):
+            guard_output({}, json.dumps({"value": payload}))
+
+
+def test_every_separator_inside_a_json_value_is_excluded() -> None:
+    import json
+    from itertools import product
+
+    from release_blog.gates import BreakdownError, guard_output
+
+    runs = [
+        "".join(parts)
+        for length in range(1, 5)
+        for parts in product(" \t\n-_.", repeat=length)
+    ]
+    assert len(runs) == 1554
+    misses = []
+    for left, right in (("Artificial", "Analysis"), ("Zap", "ier")):
+        for sep in runs:
+            for payload in (f"{left}{sep}{right}", f"Model {left}{sep}{right} name"):
+                try:
+                    guard_output({}, json.dumps({"value": payload}))
+                except BreakdownError:
+                    continue
+                misses.append(payload)
+    assert misses == [], f"{len(misses)} serialized values passed; first {misses[:3]!r}"
+
+
 def test_a_snapshot_refuses_a_fact_value_that_names_a_publisher() -> None:
     from decision.snapshot import SnapshotBuildError, build_snapshot
     from tests.snapshot_records import SOURCES, fact, model
@@ -236,6 +334,27 @@ def test_a_snapshot_refuses_a_fact_value_that_names_a_publisher() -> None:
         "artificialanalysis.ai",
         "zapier.com",
     ):
+        facts = [fact("model", "lab/alpha", "model.weights_openness", payload)]
+        with pytest.raises(SnapshotBuildError, match="excluded source"):
+            build_snapshot(
+                inputs(
+                    models=[model("lab/alpha", facts=facts)],
+                    offerings=[],
+                    evidence=[],
+                    sources=SOURCES,
+                ),
+                registry=REGISTRY,
+                as_of=AS_OF,
+                guard=excluded_sources(),
+            )
+
+
+def test_a_snapshot_refuses_a_value_hidden_by_json_escaping() -> None:
+    from decision.snapshot import SnapshotBuildError, build_snapshot
+    from tests.snapshot_records import SOURCES, fact, model
+    from tests.test_decision_snapshot import AS_OF, REGISTRY, inputs
+
+    for payload in _PUBLISHER_PROBES:
         facts = [fact("model", "lab/alpha", "model.weights_openness", payload)]
         with pytest.raises(SnapshotBuildError, match="excluded source"):
             build_snapshot(

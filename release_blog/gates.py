@@ -12,12 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from decision.excluded import (
-    REMOVED_TEXT,
-    excluded_publisher,
-    excluded_sources,
-    without_legacy_source_keys,
-)
+from decision.excluded import REMOVED_TEXT, excluded_in, excluded_sources, removed_text_hit
 from decision.snapshot import (
     LoadedSnapshot,
     SnapshotIntegrityError,
@@ -119,16 +114,36 @@ def signal_only(url: str) -> bool:
     return any(host == item or host.endswith("." + item) for item in SIGNAL_ONLY_HOSTS)
 
 
-def guard_output(sources: Mapping[str, str], text: str) -> None:
-    """Refuse an excluded or signal-only source, or excluded text anywhere."""
+def _as_tree(output: object) -> object:
+    """Parse a JSON document. Any other string is text and stays a string."""
+    if not isinstance(output, str):
+        return output
+    stripped = output.lstrip()
+    if not stripped.startswith(("{", "[")):
+        return output
+    try:
+        return json.loads(output)
+    except ValueError:
+        return output
+
+
+def guard_output(sources: Mapping[str, str], output: object) -> None:
+    """Refuse an excluded or signal-only source, or excluded text in ``output``.
+
+    A JSON string is parsed before the walk. Callers that already hold the
+    object can pass it directly.
+    """
     guard = excluded_sources()
     for source_id, url in sorted(sources.items()):
         if guard.url(url):
             raise BreakdownError(f"excluded source {source_id}: {url}")
         if signal_only(url):
             raise BreakdownError(f"signal-only source {source_id}: {url} is never evidence")
-    if excluded_publisher(without_legacy_source_keys(text)):
+    document = _as_tree(output)
+    if excluded_in(document):
         raise BreakdownError("excluded source text in the output")
-    hit = REMOVED_TEXT.search(text)
+    hit = removed_text_hit(document)
+    if hit is None and isinstance(output, str):
+        hit = REMOVED_TEXT.search(output)
     if hit:
         raise BreakdownError(f"excluded source text in the output: {hit.group(0)!r}")

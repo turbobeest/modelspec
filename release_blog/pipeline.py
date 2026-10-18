@@ -222,7 +222,7 @@ def prepare_release(
     if folder.exists():
         raise ValueError("refusing to replace an existing release revision")
     # Rendering validates source exclusions, numeric footnotes and tone before a write.
-    guard_output(b.sources, to_bytes(b).decode())
+    guard_output(b.sources, b.model_dump(mode="json", by_alias=True))
     from release_blog.render import render
 
     render(b)

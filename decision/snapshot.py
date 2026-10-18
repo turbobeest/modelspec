@@ -54,9 +54,9 @@ import yaml
 
 from decision.excluded import (
     ExcludedSources,
-    excluded_publisher,
+    excluded_in,
     excluded_sources,
-    without_legacy_source_keys,
+    removed_text_hit,
 )
 from decision.model import (
     Measurement,
@@ -1581,9 +1581,8 @@ def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
             guard: ExcludedSources | None) -> Snapshot:
     content = c.content(as_of, premier)
     if guard is not None:
-        text = canonical_json(content).decode("utf-8")
-        hit = guard.text.search(text)
-        publisher = excluded_publisher(without_legacy_source_keys(text))
+        hit = removed_text_hit(content)
+        publisher = excluded_in(content)
         bad = [u for u in content["sources"].values() if guard.url(u)]
         if hit or publisher or bad:
             if hit:

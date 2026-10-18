@@ -17,11 +17,8 @@ REMOVED_TEXT = re.compile(
 REMOVED_ID = re.compile(r"^(aa_|artificial_?analysis|automationbench)|_aa$|_aa_")
 # Substrings of the casefolded letters and digits. No word boundary.
 PUBLISHER_NAMES = ("artificialanalysis", "zapier")
-# The legacy card field. Exempt as a key only. A value with this spelling
-# still collapses to the first publisher name.
-_LEGACY_SOURCE_KEY = re.compile(
-    r"""(?<![\w])["']?artificial_analysis_url["']?(?=\s*:)"""
-)
+# Exempt only when this is the dict key. The same characters in a value are not.
+LEGACY_SOURCE_KEY = "artificial_analysis_url"
 
 
 @dataclass(frozen=True)
@@ -53,23 +50,63 @@ def excluded_publisher(text: str) -> bool:
     and match ``artificialanalysis`` or ``zapier`` as a substring. Domains
     such as ``artificialanalysis.ai`` and ``zapier.com`` match, and so does
     ``ArtificialAnalysisPro``.
-
-    The legacy field key ``artificial_analysis_url`` collapses to the same
-    letters. Callers that read a document pass the text through
-    ``without_legacy_source_keys`` first. That helper removes the key only.
-    A value stays, including a value spelled like the key.
     """
     folded = _fold(text)
     return any(name in folded for name in PUBLISHER_NAMES)
 
 
-def without_legacy_source_keys(text: str) -> str:
-    """Drop the legacy field key. A value with the same spelling stays."""
-    return _LEGACY_SOURCE_KEY.sub("", text)
+def each_string(obj: object):
+    """Every string in ``obj``, except a dict key equal to ``LEGACY_SOURCE_KEY``.
+
+    Lists and tuples are walked. Any other scalar is converted with ``str``.
+    The legacy key's value is walked. A string that only looks like the key
+    is not an exemption.
+    """
+    if isinstance(obj, str):
+        yield obj
+        return
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key != LEGACY_SOURCE_KEY:
+                yield from each_string(key)
+            yield from each_string(value)
+        return
+    if isinstance(obj, (list, tuple)):
+        for item in obj:
+            yield from each_string(item)
+        return
+    yield str(obj)
+
+
+def excluded_in(obj: object) -> bool:
+    """True when any walked string names a removed publisher."""
+    return any(excluded_publisher(text) for text in each_string(obj))
+
+
+def removed_text_hit(obj: object) -> re.Match[str] | None:
+    """An owned-benchmark name in a walked string, if one is present."""
+    for text in each_string(obj):
+        hit = REMOVED_TEXT.search(text)
+        if hit:
+            return hit
+    return None
+
+
+def publisher_excerpt(obj: object, *, before: int = 40, after: int = 80) -> str:
+    """A short slice of the first walked string that names a publisher."""
+    for text in each_string(obj):
+        if not excluded_publisher(text):
+            continue
+        span = publisher_span(text)
+        if span is None:
+            return text[: before + after]
+        start, end = span
+        return text[max(0, start - before) : end + after]
+    return ""
 
 
 def publisher_span(text: str) -> tuple[int, int] | None:
-    """Original slice whose letters contain a publisher, skipping the legacy key."""
+    """Original slice whose letters contain a publisher."""
     indexes: list[int] = []
     chars: list[str] = []
     for index, char in enumerate(text):
@@ -79,26 +116,8 @@ def publisher_span(text: str) -> tuple[int, int] | None:
                 indexes.append(index)
     folded = "".join(chars)
     for name in PUBLISHER_NAMES:
-        start = 0
-        while True:
-            at = folded.find(name, start)
-            if at < 0:
-                break
-            origin = indexes[at]
-            end = indexes[at + len(name) - 1] + 1
-            if not _legacy_key_covers(text, origin, end):
-                return origin, end
-            start = at + 1
+        at = folded.find(name)
+        if at < 0:
+            continue
+        return indexes[at], indexes[at + len(name) - 1] + 1
     return None
-
-
-def _legacy_key_covers(text: str, start: int, end: int) -> bool:
-    left = start
-    while left > 0 and (text[left - 1].isalnum() or text[left - 1] == "_"):
-        left -= 1
-    right = end
-    while right < len(text) and (text[right].isalnum() or text[right] == "_"):
-        right += 1
-    if text[left:right] != "artificial_analysis_url":
-        return False
-    return text[right:].lstrip(" \t\"'").startswith(":")
