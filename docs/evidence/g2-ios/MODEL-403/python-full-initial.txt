@@ -1,0 +1,3334 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+..............................................................s......... [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 41%]
+.................................................F...................... [ 42%]
+..................................FF...............F.................... [ 43%]
+.......................F................................................ [ 43%]
+.......................................................................F [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+......s................................................................. [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+................................................................F....... [ 62%]
+.........s....s......................................................... [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+..........................................s............................. [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 73%]
+................................FFF..FFFF...............F............... [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+..........................................EEEEEEEEEEEE.................. [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+.....................................................ss................. [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 87%]
+.................F..........F.FFFF...................................... [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+.................................s...................................... [ 92%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+....................................s................................... [ 99%]
+........................................................................ [ 99%]
+..........................................                               [100%]
+==================================== ERRORS ====================================
+______ ERROR at setup of test_landing_behaviour_in_browser[altered_data] _______
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+________ ERROR at setup of test_landing_behaviour_in_browser[challenge] ________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_________ ERROR at setup of test_landing_behaviour_in_browser[motion] __________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_______ ERROR at setup of test_landing_behaviour_in_browser[responsive] ________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_________ ERROR at setup of test_landing_behaviour_in_browser[holding] _________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_______ ERROR at setup of test_landing_behaviour_in_browser[forwarding] ________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+____ ERROR at setup of test_landing_behaviour_in_browser[assembled_decide] _____
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_ ERROR at setup of test_landing_behaviour_in_browser[assembled_decide_mobile] _
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+__ ERROR at setup of test_landing_behaviour_in_browser[forwarded_state_ranks] __
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+____ ERROR at setup of test_landing_behaviour_in_browser[method_responsive] ____
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_ ERROR at setup of test_landing_behaviour_in_browser[decide_dark_before_paint] _
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+__ ERROR at setup of test_landing_behaviour_in_browser[decide_theme_persists] __
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-403/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+=================================== FAILURES ===================================
+_______________ test_mcp_capture_matches_current_public_sources ________________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+    def test_mcp_capture_matches_current_public_sources():
+        recorded = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+>       assert recorded == capture_tools()
+                           ^^^^^^^^^^^^^^^
+
+tests/test_agent_harness.py:104:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+___________ test_mcp_capture_reads_generated_copy_and_pins_its_hash ____________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw0/test_mcp_capture_reads_generat0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119330830>
+
+    def test_mcp_capture_reads_generated_copy_and_pins_its_hash(tmp_path, monkeypatch):
+        from qa import contracts
+
+>       recorded = capture_tools()
+                   ^^^^^^^^^^^^^^^
+
+tests/test_agent_harness.py:114:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+_____________ test_full_dry_replay_has_no_network_or_keys[claude] ______________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1193335b0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw0/test_full_dry_replay_has_no_ne0')
+family = 'claude'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_full_dry_replay_has_no_network_or_keys[openai] ______________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11c8eb4d0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw0/test_full_dry_replay_has_no_ne1')
+family = 'openai'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_full_dry_replay_has_no_network_or_keys[gemini] ______________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10be149f0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw0/test_full_dry_replay_has_no_ne2')
+family = 'gemini'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______ test_live_wire_loop_and_separate_judge_share_the_invocation_budget ______
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10afec9f0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw0/test_live_wire_loop_and_separa0')
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+
+    def test_live_wire_loop_and_separate_judge_share_the_invocation_budget(
+        monkeypatch, tmp_path, config
+    ):
+        from qa.providers import KEY_ENV
+
+        for name in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
+            monkeypatch.setenv(name, "sensitive-test-value")
+        config["api_base_url"] = "https://staging.example"
+        config["export_base_url"] = "https://static-staging.example"
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(yaml.safe_dump(config))
+        seen = []
+        model_calls = 0
+
+        def handler(request):
+            nonlocal model_calls
+            seen.append(request)
+            if request.url.host == "staging.example":
+                assert request.headers["authorization"] == "Bearer sensitive-test-value"
+                return httpx.Response(
+                    400,
+                    json={
+                        "error": {
+                            "code": "invalid_spec",
+                            "issues": [{"field": "task", "reason": "free-text task is unsupported"}],
+                        },
+                        "echo": "sensitive-test-value",
+                    },
+                )
+            payload = json.loads(request.content)
+            model_calls += 1
+            assert request.url.path == ("/v1/responses" if model_calls < 3 else "/v1/messages")
+            if model_calls == 1:
+                assert "approved recall evidence" not in payload["input"][0]["content"]
+                output = [
+                    {
+                        "type": "function_call",
+                        "call_id": "c1",
+                        "name": "decide",
+                        "arguments": json.dumps(
+                            {
+                                "spec_version": 1,
+                                "task": "exact prompt",
+                                "optimize": {"max": "reasoning"},
+                            }
+                        ),
+                    }
+                ]
+            elif model_calls == 2:
+                assert "sensitive-test-value" not in json.dumps(payload)
+                assert "invalid_spec" in payload["input"][-1]["output"]
+                output = [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "ModelSpec cannot select a model for this exact prompt.",
+                            }
+                        ],
+                    }
+                ]
+            else:
+                assert model_calls == 3 and "Judge the submitted answer" in payload["system"]
+                assert not payload["tools"]
+                output = [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": json.dumps(
+                                    {
+                                        "passed": True,
+                                        "rationale": "Honest refusal",
+                                        "top_models": [],
+                                        "answer_kind": "abstain",
+                                        "missing_capabilities": ["prompt interpretation"],
+                                    }
+                                ),
+                            }
+                        ],
+                    }
+                ]
+            if model_calls == 3:
+                return httpx.Response(200, json={"content": [{"type": "text", "text": output[0]["content"][0]["text"]}],
+                                                "usage": {"input_tokens": 100, "output_tokens": 50}})
+            return httpx.Response(
+                200, json={"output": output, "usage": {"input_tokens": 100, "output_tokens": 50}}
+            )
+
+        client_class = httpx.Client
+        monkeypatch.setattr(
+            httpx, "Client", lambda **kw: client_class(transport=httpx.MockTransport(handler), **kw)
+        )
+        assert (
+>           main(
+                [
+                    "--config",
+                    str(config_path),
+                    "--agent",
+                    "openai",
+                    "--scenario",
+                    "prompt-code",
+                    "--output-dir",
+                    str(tmp_path),
+                    "--date",
+                    "2026-10-01",
+                ]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:679:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_each_reference_is_under_the_word_budget[api.md] _____________
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+path = PosixPath('/Users/terbeest/dev/worktrees/model-403/docs/api.md')
+
+    @pytest.mark.parametrize("path", REFERENCES, ids=lambda p: p.name)
+    def test_each_reference_is_under_the_word_budget(path: Path) -> None:
+        words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'`_./-]*", _prose(path.read_text(encoding="utf-8")))
+>       assert len(words) < WORD_BUDGET, (
+            f"{path.name} is {len(words)} words of prose; the budget is {WORD_BUDGET}")
+E       AssertionError: api.md is 894 words of prose; the budget is 800
+E       assert 894 < 800
+E        +  where 894 = len(['ModelSpec', 'API', 'reference', 'Use', 'when', 'choosing', ...])
+
+tests/test_api_docs.py:778: AssertionError
+____ test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence _____
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d1bcc90>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/test_rescore_only_calls_the_ro0')
+
+    def test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence(config, monkeypatch, tmp_path):
+        source = saved_report()
+        path = tmp_path / "source.json"
+        path.write_text(json.dumps(source))
+        seen = []
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+        for key in ("OPENAI_API_KEY", "GEMINI_API_KEY", "MODELSPEC_API_KEY"):
+            monkeypatch.delenv(key, raising=False)
+
+        def handler(request):
+            seen.append(request)
+            assert request.url.host == "api.anthropic.com" and request.url.path == "/v1/messages"
+            payload = json.loads(request.content)
+            assert payload["tools"] == []
+            evidence = json.loads(payload["messages"][0]["content"])
+            assert evidence["tool_calls"][0]["result"] == source["tool_responses"]["r1"]
+            assert evidence["final_answer"] == source["runs"][0]["final_answer"]
+            assert "old-judge" not in json.dumps(evidence)
+            return httpx.Response(200, json={"content": [{"type": "text", "text": json.dumps(opinion())}],
+                                            "usage": {"input_tokens": 20, "output_tokens": 10}})
+
+        client = httpx.Client
+        monkeypatch.setattr(httpx, "Client", lambda **kw: client(transport=httpx.MockTransport(handler), **kw))
+>       assert harness.main(["--rescore", str(path), "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 0
+
+tests/test_agent_gaps.py:114:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+__________ test_rescore_dry_run_never_runs_an_agent_or_fetches_tools ___________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1212644b0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/test_rescore_dry_run_never_run0')
+
+    def test_rescore_dry_run_never_runs_an_agent_or_fetches_tools(monkeypatch, tmp_path):
+        path = tmp_path / "source.json"
+        source = saved_report()
+        capped = copy.deepcopy(source["runs"][0])
+        capped.update(final_answer="", status="spend_cap", judge=None)
+        source["runs"].append(capped)
+        source["runs"].append(copy.deepcopy(source["runs"][0]))
+        path.write_text(json.dumps(source))
+
+        def forbidden(*args, **kwargs):
+            pytest.fail("Re-score attempted an agent, tool fetch or HTTP call")
+
+        monkeypatch.setattr(harness, "ReplayAgent", forbidden)
+        monkeypatch.setattr(harness, "ReplayTools", forbidden)
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+>       assert harness.main(["--rescore", str(path), "--dry-run", "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 0
+
+tests/test_agent_gaps.py:143:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_rescore_spend_cap_prevents_the_judge_http_call ______________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11a6f0d70>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw3/test_rescore_spend_cap_prevent0')
+
+    def test_rescore_spend_cap_prevents_the_judge_http_call(monkeypatch, tmp_path):
+        path = tmp_path / "source.json"
+        path.write_text(json.dumps(saved_report()))
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+        monkeypatch.setenv("OPENAI_API_KEY", "offline-key")
+        monkeypatch.setenv("GEMINI_API_KEY", "offline-key")
+        monkeypatch.setattr(httpx.Client, "request", lambda *a, **k: pytest.fail("Unreserved judge call"))
+>       assert harness.main(["--rescore", str(path), "--spend-cap", "0.000001", "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 2
+
+tests/test_agent_gaps.py:159:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_______ test_all_mcp_first_turns_fit_the_budget_without_keys_or_network ________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x121309a20>
+capsys = <_pytest.capture.CaptureFixture object at 0x1213037d0>
+
+    def test_all_mcp_first_turns_fit_the_budget_without_keys_or_network(config, monkeypatch, capsys):
+        for key in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setattr(httpx.Client, "request", lambda *a, **k: pytest.fail("Offline accounting made an HTTP call"))
+>       assert harness.main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:207:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_ test_offline_first_request_matches_the_actual_wire_and_delivers_guide[claude] _
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+family = 'claude'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x121309e80>
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_offline_first_request_matches_the_actual_wire_and_delivers_guide(config, family, monkeypatch):
+        monkeypatch.setenv(KEY_ENV[family], "offline-key")
+        settings = config["agents"][family]
+>       tools = capture_tools()["tools"]
+                ^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:220:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+_ test_offline_first_request_matches_the_actual_wire_and_delivers_guide[openai] _
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+family = 'openai'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119e44210>
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_offline_first_request_matches_the_actual_wire_and_delivers_guide(config, family, monkeypatch):
+        monkeypatch.setenv(KEY_ENV[family], "offline-key")
+        settings = config["agents"][family]
+>       tools = capture_tools()["tools"]
+                ^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:220:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+_ test_offline_first_request_matches_the_actual_wire_and_delivers_guide[gemini] _
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+family = 'gemini'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11cdd0d70>
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_offline_first_request_matches_the_actual_wire_and_delivers_guide(config, family, monkeypatch):
+        monkeypatch.setenv(KEY_ENV[family], "offline-key")
+        settings = config["agents"][family]
+>       tools = capture_tools()["tools"]
+                ^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:220:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+__________ test_compact_schema_keeps_complete_validation_at_execution __________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+
+    def test_compact_schema_keeps_complete_validation_at_execution(config):
+>       tools = capture_tools()["tools"]
+                ^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:269:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+capsys = <_pytest.capture.CaptureFixture object at 0x117513950>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+>       assert main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_guide.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_______________ test_compact_and_control_prompts_and_http_tools ________________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+    def test_compact_and_control_prompts_and_http_tools():
+        full = (ROOT / 'api/worker/openapi.yaml').read_text()
+        for interface in ('mcp', 'http'):
+            compact = agent_context(interface)
+            assert agent_copy.copy()['context_guide'] in compact
+            assert agent_copy.guide()[1].partition('\n## Worked Specs\n')[0] in compact
+            assert full not in compact
+            assert 'https://modelspec.dev/openapi.yaml' in compact
+            assert tokens(compact) <= 4100
+            assert full in agent_context(interface, control_full_spec=True)
+>       tools = capture_tools()['tools']
+                ^^^^^^^^^^^^^^^
+
+tests/test_agent_guide.py:199:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def capture_tools() -> dict:
+        """Mirror the registered inputs; pin the source hashes to detect drift."""
+        source = (ROOT / "mcp/src/server.ts").read_text()
+        constants = {}
+        for name in ("NULL_RULE", "SPEC_GUIDANCE"):
+            match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+            if match:
+                constants[name] = _prose(match.group(1), constants)
+        copy_path = ROOT / "mcp/src/agent-copy.json"
+        agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
+        api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
+        schemas = api["components"]["schemas"]
+
+        def schema(name: str, nullable: bool) -> dict:
+            value = copy.deepcopy(schemas[name])
+
+            def convert(node):
+                if isinstance(node, dict):
+                    is_nullable = node.pop("nullable", False)
+                    if nullable and is_nullable and "type" in node:
+                        node["type"] = [node["type"], "null"]
+                    # Zod's MCP inputs advertise structural validation only. Semantic
+                    # bounds, required policy blocks and prose belong to OpenAPI.
+                    for key in ("description", "default", "required", "minLength", "minItems"):
+                        node.pop(key, None)
+                    for child in node.values():
+                        convert(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        convert(child)
+
+            convert(value)
+            value["additionalProperties"] = True
+            for key in ("environment", "constraints", "policy"):
+                if key in value.get("properties", {}):
+                    # Unknown nested Zod object fields are stripped, not refused.
+                    value["properties"][key].pop("additionalProperties", None)
+            return value
+
+        rank = schema("RankRequest", nullable=True)
+        rank["required"] = ["use_case"]
+        rank["properties"]["use_case"] = {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json",
+        }
+        for key in ("hardware", "runtime"):
+            rank["properties"]["environment"]["properties"][key] = {"type": ["string", "null"]}
+        # Neither of these numbers is bounded by the registered MCP Zod input.
+        for key in ("price_sensitivity", "max_cost_per_million_input_tokens"):
+            rank["properties"]["constraints"]["properties"][key] = {"type": ["number", "null"]}
+        policy = schema("PolicyCheckRequest", nullable=False)
+        policy["required"] = ["policy"]
+        policy["properties"]["policy"]["additionalProperties"] = True
+        commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
+        commercial["properties"]["required"] = {"type": "boolean"}
+        for block in policy["properties"]["policy"]["properties"].values():
+            block.pop("additionalProperties", None)
+        feedback = copy.deepcopy(schemas["FeedbackRequest"])
+        feedback["properties"] = {
+            k: v
+            for k, v in feedback["properties"].items()
+            if k in ("rating", "decision_id", "note", "trying_to_decide", "template")
+        }
+        feedback["required"] = ["rating"]
+        for prop in feedback["properties"].values():
+            prop.pop("nullable", None)
+        decide = _reachable_schema(
+            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+        # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+        defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+        for name in ("explain", "limit", "fields"):
+            decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+        decide = compact_decide_schema(decide)
+        comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+        _compact_in_place(comparison)
+        comparison.pop("description", None)
+        comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        models = comparison["properties"]["models"]
+        # Zod's distinctness refinement is not included in its advertised JSON schema.
+        models.pop("uniqueItems", None)
+        models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+        models["items"]["maxLength"] = 128
+        models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
+        hardware_fit = copy.deepcopy(schemas["HardwareFitRequest"])
+        _compact_in_place(hardware_fit)
+        hardware_fit["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+        hardware_fit["properties"]["memory"]["description"] = "Optional memory override in decimal GB per device"
+        inputs = {
+            "rank": rank,
+            "policy_check": policy,
+            "decide": decide,
+            "compare_models": comparison,
+            "hardware_fit": hardware_fit,
+            "feedback": feedback,
+            "model_info": {
+                "type": "object",
+                "properties": {
+                    "model_id": {"type": "string", "description": "Catalogue id, e.g. openai/gpt-5-6"}
+                },
+                "required": ["model_id"],
+            },
+            "list_use_cases": {"type": "object", "properties": {}},
+            "vocab": {
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": "string",
+                        "enum": [
+                            "starter",
+                            "facets",
+                            "benchmarks",
+                            "domains",
+                            "providers",
+                            "models",
+                            "task_types",
+                            "coverage",
+                            "templates",
+                            "refinements",
+                            "estate",
+                            "vendors",
+                            "template_categories",
+                            "template_tiers",
+                        ],
+                        "description": "Return only this vocabulary section; defaults to starter",
+                    },
+                    "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
+                    "id": {"type": "string", "description": "Return full details for this exact id"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                    "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
+                },
+            },
+        }
+        tools = []
+        for name in TOOL_NAMES:
+            match = re.search(
+                rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
+                r"(.*?),\s*inputSchema:",
+                source,
+                re.S,
+            )
+            if match is None:
+>               raise ValueError(f"Cannot capture MCP description for {name}")
+E               ValueError: Cannot capture MCP description for rank
+
+qa/contracts.py:277: ValueError
+______________ test_harness_prompt_arms_replay_offline[mcp-False] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118c0c1a0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw2/test_harness_prompt_arms_repla0')
+interface = 'mcp', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_harness_prompt_arms_replay_offline[http-False] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1183c7380>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw2/test_harness_prompt_arms_repla1')
+interface = 'http', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[mcp-True] _______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1183c55c0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw2/test_harness_prompt_arms_repla2')
+interface = 'mcp', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[http-True] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x119819400>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-907/popen-gw2/test_harness_prompt_arms_repla3')
+interface = 'http', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+=============================== warnings summary ===============================
+tests/test_cli_snapshot.py: 3 warnings
+tests/test_cli_keyed_origin.py: 7 warnings
+  /Users/terbeest/dev/worktrees/model-403/cli/modelspec/snapshot.py:552: RuntimeWarning: the fetched decision vocabulary is unsigned: it carries no Ed25519 signature the CLI can check, so its model and provider names, outcome records and templates are trusted on the snapshot ID alone.
+    decision_fetch = _fetch_decision_files(origin, directory, credential)
+
+tests/test_cli_snapshot.py::test_successive_fetches_keep_current_and_previous_generations
+  /Users/terbeest/dev/worktrees/model-403/tests/test_cli_snapshot.py:523: RuntimeWarning: the fetched decision vocabulary is unsigned: it carries no Ed25519 signature the CLI can check, so its model and provider names, outcome records and templates are trusted on the snapshot ID alone.
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+FAILED tests/test_agent_harness.py::test_mcp_capture_reads_generated_copy_and_pins_its_hash
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[claude]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[openai]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[gemini]
+FAILED tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget
+FAILED tests/test_api_docs.py::test_each_reference_is_under_the_word_budget[api.md]
+FAILED tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence
+FAILED tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools
+FAILED tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call
+FAILED tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network
+FAILED tests/test_agent_gaps.py::test_offline_first_request_matches_the_actual_wire_and_delivers_guide[claude]
+FAILED tests/test_agent_gaps.py::test_offline_first_request_matches_the_actual_wire_and_delivers_guide[openai]
+FAILED tests/test_agent_gaps.py::test_offline_first_request_matches_the_actual_wire_and_delivers_guide[gemini]
+FAILED tests/test_agent_gaps.py::test_compact_schema_keeps_complete_validation_at_execution
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+FAILED tests/test_agent_guide.py::test_compact_and_control_prompts_and_http_tools
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[altered_data]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[challenge] - F...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[motion] - File...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[responsive] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[holding] - Fil...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarding] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide_mobile]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarded_state_ranks]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[method_responsive]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_dark_before_paint]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_theme_persists]
+21 failed, 11448 passed, 9 skipped, 11 warnings, 12 errors in 1239.45s (0:20:39)
