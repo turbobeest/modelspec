@@ -8,6 +8,7 @@ import socket
 
 import pytest
 
+from decision.excluded import REMOVED_TEXT
 from pipeline import build
 from pipeline.surface_lint import Page
 
@@ -167,7 +168,7 @@ def test_page_uses_registry_copy_keyed_access_and_consistent_jsonld(example):
     assert "CLI, API, and MCP access requires a key" in page.visible
     assert 'href="/legal/neutrality/"' in raw
     assert 'href="/decide/?template=coding-best"' in raw
-    assert "Artificial Analysis" not in raw and "Zapier" not in raw
+    assert not REMOVED_TEXT.search(raw)
     nodes = json.loads(page.ld[0])["@graph"]
     article = next(node for node in nodes if node["@type"] == "Article")
     assert article["headline"] in page.visible
@@ -209,7 +210,7 @@ def test_real_image_is_public_offline_deterministic_and_bounded(tmp_path, monkey
         page = Page(raw.decode())
         assert page.meta["robots"] == "index, follow"
         assert "CLI, API, and MCP access requires a key" in page.visible
-        assert "Artificial Analysis" not in page.visible and "Zapier" not in page.visible
+        assert not REMOVED_TEXT.search(raw.decode())
         if str(path) != "compare/index.html":
             assert "can't separate them" in page.visible or "The evidence separates them" in page.visible
 

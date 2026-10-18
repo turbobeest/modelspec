@@ -46,6 +46,7 @@ Tests were added before the corresponding production code.
 | New collector absent from Worker packaging | `test_every_imported_repository_module_is_vendored` | 1 failed; `decide_service.py imports decision.model_comparison`, absent from `SOURCES` | 126 passed across packaging, collector, Worker and CLI comparison suites |
 | Measurement conditions hidden and probability scope insufficiently precise | `test_measurements_keep_returned_conditions_and_probability_excludes_unranked` plus the tied and separated page tests | 3 failed; missing `xhigh` and `full ranked lineup for this job`; subsequent harness check failed on missing `unregistered` | 9 passed, 1 deselected after displaying returned conditions and clarifying unranked models |
 | Template catalogue shadowed benchmark catalogue in the complete build | Required `pipeline.build --out dist` command | Exit 1, `AttributeError: 'dict' object has no attribute 'for_benchmark'` at `agent_ready.benchmark_markdown` | Complete static build exited 0 after retaining the benchmark catalogue |
+| New assertions and evidence repeated excluded source names | `test_no_tracked_file_names_a_removed_source` | CI shard 2: 1 failed, 3,148 passed, 1 skipped; local reproduction: 1 failed, 5 deselected, identifying the test and evidence file | 14 passed, 1 skipped, 1 deselected in 90.20 seconds; assertions use the existing `decision.excluded.REMOVED_TEXT` pattern against raw HTML |
 
 Representative red output:
 
@@ -85,6 +86,8 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q test
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_worker_vendor_imports.py tests/test_worker_bundle.py tests/test_model_comparison.py tests/test_compare_models_worker.py tests/test_cli_compare_models.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_live_use_cases.py tests/test_comparison_lint.py tests/test_decide_preview_workflow.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_live_use_cases.py tests/test_comparison_lint.py tests/test_decide_preview_workflow.py tests/test_surface_lint.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py -k no_tracked_file
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py tests/test_comparison_pages.py -k 'no_tracked_file or not real_image'
 ```
 
 Generator:
@@ -169,7 +172,7 @@ The independent real-output audit passed 2,288 assertions, including 680
 numeric-value checks over all 40 pairs and the index. It compared against the
 cached public decisions, checked canonical pair selection and offering IDs,
 probability scope, structured data, image dates and access links. The 22
-distinct external anchor URLs had no Artificial Analysis or Zapier domains.
+distinct external anchor URLs had no excluded source domains.
 It did not rerun the engine or check remote source availability. The sorted
 comparison-tree SHA-256 was
 `21d468a861c38c80450c9825c73d8c5d649aeda605b8fdea4b559eb069e60da3`.
