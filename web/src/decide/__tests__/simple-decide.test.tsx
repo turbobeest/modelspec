@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import rawVocabulary from "../__fixtures__/live-vocabulary.json";
 import rawDecision from "../__fixtures__/live-assistant-balanced-full.json";
@@ -147,7 +147,7 @@ it("loads the labelled example and renders a picked job after request normalizat
   fireEvent.click(screen.getByRole("button", { name: /^Everyday help/ }));
   expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: /^Coding/ }));
-  expect(await screen.findByRole("heading", { name: "These 6 are too close to call." })).toHaveFocus();
+  await waitFor(() => expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toHaveFocus());
   expect(screen.queryByText("Example: Everyday help. Pick a job if this isn't yours.")).toBeNull();
   expect(requests).toContainEqual(expect.objectContaining({ optimize: { weights: { software_engineering: 0.7, "-offering.cost_per_task": 0.3 } } }));
 });
