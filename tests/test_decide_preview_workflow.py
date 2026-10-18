@@ -33,6 +33,10 @@ def readable(marker: bytes) -> bytes:
 
 
 def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_path):
+    guide_paths = (
+        'guides/', 'guides/how-to-choose-an-ai-model/',
+        'guides/analysis-of-alternatives-vs-model-router-vs-hard-coded-model/',
+    )
     fixture = {
         'dist/modelspec/index.html': readable(b'<link rel="canonical" href="https://modelspec.dev/">landing'),
         'dist/modelspec/api/index.json': b'{"live":true,"count":1}',
@@ -69,6 +73,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/compare/coding-best/lab-alpha-vs-lab-gamma/index.html': (
             b'<meta name="robots" content="noindex, follow">' + readable(b'Unlisted comparison')
         ),
+        **{f'dist/modelspec/{path}index.html': readable(b'guide page') for path in guide_paths},
         'dist/modelspec/sitemap.xml': (
             b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
             b'<url><loc>https://modelspec.dev/use-cases/</loc><lastmod>2026-09-23</lastmod></url>'
@@ -76,7 +81,10 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
             b'<lastmod>2026-09-23</lastmod></url>'
             b'<url><loc>https://modelspec.dev/compare/</loc><lastmod>2026-09-23</lastmod></url>'
             b'<url><loc>https://modelspec.dev/compare/coding-best/lab-alpha-vs-lab-beta/</loc>'
-            b'<lastmod>2026-09-23</lastmod></url></urlset>'
+            b'<lastmod>2026-09-23</lastmod></url>'
+            + b''.join(f'<url><loc>https://modelspec.dev/{path}</loc>'
+                       '<lastmod>2026-09-23</lastmod></url>'.encode() for path in guide_paths)
+            + b'</urlset>'
         ),
         'dist/modelspec/orchestrators/index.html': readable(b'v1 orchestrator recipe'),
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
@@ -189,6 +197,14 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'https://modelspec.dev/compare/': '2026-09-23',
         'https://modelspec.dev/compare/coding-best/lab-alpha-vs-lab-beta/': '2026-09-23',
     }
+    for path in guide_paths:
+        rel = f'modelspec/{path}index.html'
+        assert page(rel) == fixture['dist/' + rel], rel
+    guide_entries = {
+        url: stamp for url, stamp in surface_lint.sitemap_entries(live['modelspec/sitemap.xml'].decode())
+        if url.startswith('https://modelspec.dev/guides/')
+    }
+    assert guide_entries == {f'https://modelspec.dev/{path}': '2026-09-23' for path in guide_paths}
 
 
 def test_live_workflow_keeps_api_legal_and_pricing():
