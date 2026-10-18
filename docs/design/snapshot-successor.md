@@ -29,23 +29,30 @@ snapshot and vocabulary, and removes both obsolete successor artifacts.
 
 ## Authenticate the pair before serving either snapshot
 
-`entry.py` parses and hash-checks both bundled snapshots during deployment
-snapshot creation. It passes them to `SnapshotHolder` through its existing
-`bundled_snapshot` argument and a new optional `bundled_successor` argument.
-No deployment secret enters that parsing step.
+MODEL-407 changes residency as described in [Worker memory](worker-memory.md).
+`entry.py` parses and hash-checks only the current snapshot during deployment
+snapshot creation. The successor stays compressed, alongside generated
+metadata containing its signed content hash, publisher signature, validity
+interval, snapshot ID, and compressed-payload checksum. No deployment secret
+enters this step.
 
 On the first runtime load, the holder verifies both HMAC signatures with the
 runtime key before accepting either snapshot. A missing key or a tampered
-successor refuses the pair. Later requests reuse those verified objects.
+signature refuses the pair. The successor's content and compressed-payload
+checksum are checked when it is parsed. The signed content must match its
+descriptor before the successor can serve.
 
 For each request, `SnapshotHolder.current()` checks the current UTC date
-against the primary snapshot's signed `[valid_from, valid_until)` interval. If
-that interval excludes the date, it checks the successor's interval. It records
-the selected snapshot as the held snapshot. The response body retains the
-snapshot used for its computation. If neither interval covers the
-date, the existing `503 no_snapshot` response applies. Historical comparison
-loads continue to retain their original prices. After awaiting retained-history
-I/O, comparison selects the current snapshot again before evaluating prices.
+against the snapshot's signed `[valid_from, valid_until)` interval. Once that
+interval excludes the date and the successor can cover it, the holder releases
+the old snapshot and vocabulary, then parses and authenticates the successor.
+Loading occurs on the first request at or after the boundary. No preloading
+timer holds both parsed periods. The response body retains the snapshot ID
+used for its computation. If neither interval covers the date, the existing
+`503 no_snapshot` response applies. Historical comparison loads continue to
+retain their original prices. Comparison releases its initial current reference
+before retained-history I/O, then selects the current snapshot again before
+evaluating prices.
 
 Bundled vocabulary requests select through the same authenticated holder after
 the access gate. Full responses name the selected snapshot, and lookups use its

@@ -213,11 +213,10 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
 # The first request still authenticates their checked hash with the runtime key.
 _decision_registry()
 _bundled_decision_snapshot = None
-_bundled_decision_successor = None
+_bundled_decision_holder = None
+_bundled_successor_metadata = None
 _bundled_vocabulary = None
 _bundled_vocabulary_text = None
-_bundled_successor_vocabulary = None
-_bundled_successor_vocabulary_text = None
 if globals().get("bundled_data") is not None:
     _snapshot_bytes = bundled_data.read(DECISION_SNAPSHOT_PATH)
     if _snapshot_bytes is not None:
@@ -226,13 +225,8 @@ if globals().get("bundled_data") is not None:
             source="bundled decision snapshot",
         )
     del _snapshot_bytes
-    _successor_bytes = bundled_data.read("/api/decision/snapshot-successor.json.gz")
-    if _successor_bytes is not None:
-        _bundled_decision_successor = decide_service.load_snapshot_bytes(
-            _successor_bytes, key=None, public_keys={}, include_archive=True,
-            source="bundled decision successor",
-        )
-    del _successor_bytes
+    _bundled_successor_metadata = getattr(bundled_data, "SNAPSHOTS", {}).get(
+        "/api/decision/snapshot-successor.json.gz")
     _vocabulary_bytes = bundled_data.read("/api/decision/vocabulary.json")
     if _vocabulary_bytes is not None:
         # A malformed required vocabulary must fail deployment snapshot creation,
@@ -240,11 +234,6 @@ if globals().get("bundled_data") is not None:
         _bundled_vocabulary_text = _vocabulary_bytes.decode("utf-8")
         _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
     del _vocabulary_bytes
-    _successor_vocabulary_bytes = bundled_data.read("/api/decision/vocabulary-successor.json")
-    if _successor_vocabulary_bytes is not None:
-        _bundled_successor_vocabulary_text = _successor_vocabulary_bytes.decode("utf-8")
-        _bundled_successor_vocabulary = json.loads(_bundled_successor_vocabulary_text)
-    del _successor_vocabulary_bytes
 
 # Captured as False at deployment, then claimed before the first request awaits.
 # Never retain a request, environment, or timer from deployment in the snapshot.
@@ -340,14 +329,48 @@ def _snapshot_fetcher(url: str):
     return fetch_snapshot
 
 
+def _load_bundled_successor(key):
+    import hashlib
+
+    global _bundled_decision_snapshot, _bundled_vocabulary, _bundled_vocabulary_text
+    _bundled_decision_snapshot = None
+    _bundled_vocabulary = None
+    _bundled_vocabulary_text = None
+    raw = bundled_data.read("/api/decision/snapshot-successor.json.gz")
+    metadata = _bundled_successor_metadata
+    if raw is None or hashlib.sha256(raw).hexdigest() != metadata["blob_sha256"]:
+        raise decide_service.SnapshotRefusalError("bundled successor bytes do not match its descriptor")
+    snapshot = decide_service.load_snapshot(raw, key=key)
+    if (snapshot.content_hash != metadata["content_hash"]
+            or snapshot.snapshot_id != metadata["snapshot_id"]
+            or (snapshot.valid_from.isoformat() if snapshot.valid_from else None)
+            != metadata["valid_from"]
+            or (snapshot.valid_until.isoformat() if snapshot.valid_until else None)
+            != metadata["valid_until"]):
+        raise decide_service.SnapshotRefusalError(
+            "bundled successor does not match its authenticated descriptor")
+    raw_vocabulary = bundled_data.read("/api/decision/vocabulary-successor.json")
+    if raw_vocabulary is not None:
+        _bundled_vocabulary_text = raw_vocabulary.decode("utf-8")
+        _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
+    _bundled_decision_snapshot = snapshot
+    return snapshot
+
+
 def _decision_holder(origin: str):
+    global _bundled_decision_holder
+    if _bundled_decision_holder is not None:
+        return _bundled_decision_holder
     holder = _decision_holders.get(origin)
     if holder is None:
         holder = _decide_service().SnapshotHolder(
             _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH),
             bundled_snapshot=_bundled_decision_snapshot,
-            bundled_successor=_bundled_decision_successor)
+            bundled_successor=_bundled_successor_metadata,
+            load_successor=_load_bundled_successor)
         _decision_holders[origin] = holder
+        if _bundled_decision_snapshot is not None:
+            _bundled_decision_holder = holder
     return holder
 
 
@@ -950,8 +973,6 @@ class Default(WorkerEntrypoint):
 
         if path == "/v1/vocabulary":
             if globals().get("bundled_data") is not None:
-                text = _bundled_vocabulary_text
-                vocabulary = _bundled_vocabulary
                 cache_control = "no-store" if visit_token.enabled(self.env) else "private, max-age=3600"
                 cors = _cors_headers(request, self.env)
                 if method == "OPTIONS":
@@ -1006,7 +1027,7 @@ class Default(WorkerEntrypoint):
                     if meter["reason"]:
                         return _json_response(429, {"error": {"code": human_gate.LIMIT_CODES[meter["reason"]], "message": "Vocabulary lookup limit reached."}},
                                               {**cors, "retry-after": str(meter["retry_after"])})
-                if _bundled_decision_snapshot is not None:
+                if _bundled_decision_snapshot is not None or _bundled_decision_holder is not None:
                     try:
                         snapshot = await _decision_holder(origin).current(
                             str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None)
@@ -1014,15 +1035,16 @@ class Default(WorkerEntrypoint):
                         return _json_response(503, {"error": {"code": "no_snapshot", "message": str(exc)}}, cors)
                     except decide_service.SnapshotRefusalError as exc:
                         return _json_response(503, {"error": {"code": "snapshot_refused", "message": str(exc)}}, cors)
-                    if snapshot is _bundled_decision_successor:
-                        text = _bundled_successor_vocabulary_text
-                        vocabulary = _bundled_successor_vocabulary
                     if snapshot.valid_from is not None or snapshot.valid_until is not None:
                         cache_control = "no-store"
-                    if vocabulary is not None and vocabulary.get("snapshot") != snapshot.snapshot_id:
+                    if (_bundled_vocabulary is not None
+                            and _bundled_vocabulary.get("snapshot") != snapshot.snapshot_id):
                         return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                             "code": "export_unavailable", "message": "bundled vocabulary snapshot does not match",
                         }}, cors)
+                    del snapshot
+                text = _bundled_vocabulary_text
+                vocabulary = _bundled_vocabulary
                 if text is None:
                     return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                         "code": "export_unavailable", "message": "bundled vocabulary is missing",
@@ -1042,6 +1064,8 @@ class Default(WorkerEntrypoint):
                         return _json_response(400, {"error": {"code": "invalid_request", "message": str(exc)}}, cors)
                     text = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
                                        **selected}, ensure_ascii=False)
+                    del selected
+                del vocabulary
                 if not admitted:
                     refusal = await self._meter_catalog_read(api_key, outcome, cors)
                     if refusal is not None:
@@ -1982,6 +2006,7 @@ class Default(WorkerEntrypoint):
             current = await _decision_holder(origin).current(key)
             if expected and expected != current.snapshot_id:
                 current = await _decision_holder(origin).current(key, force=True)
+            del current
             fetched = await _snapshot_fetcher(
                 origin + DECISION_HISTORY_TEMPLATE.format(snapshot_id=compare_to)
             )(None)

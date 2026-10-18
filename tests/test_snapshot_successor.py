@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import gzip
+import hashlib
 import importlib.util
 import json
 import sys
@@ -107,7 +108,24 @@ def deploy(entry, monkeypatch, utc_clock, primary, successor=None):
             }).encode()
     previous = load_snapshot_bytes(primary, key=KEY, public_keys={})
     blobs[f"/api/decision/snapshots/{previous.snapshot_id}.json.gz"] = primary
-    bundle = SimpleNamespace(read=blobs.get)
+    metadata = {}
+    if successor is not None:
+        envelope = json.loads(gzip.decompress(successor))
+        metadata[SUCCESSOR_PATH] = {
+            "content_hash": envelope["content_hash"],
+            "signature": envelope["signature"],
+            "snapshot_id": envelope["snapshot_id"],
+            "valid_from": envelope["content"].get("valid_from"),
+            "valid_until": envelope["content"].get("valid_until"),
+            "blob_sha256": hashlib.sha256(successor).hexdigest(),
+        }
+    reads = []
+
+    def read(path):
+        reads.append(path)
+        return blobs.get(path)
+
+    bundle = SimpleNamespace(read=read, SNAPSHOTS=metadata, blobs=blobs, reads=reads)
     monkeypatch.setitem(sys.modules, "bundled_data", bundle)
     spec = importlib.util.spec_from_file_location("model402_worker", entry.__file__)
     module = importlib.util.module_from_spec(spec)

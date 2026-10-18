@@ -38,6 +38,7 @@ import subprocess
 import tempfile
 import gzip
 import base64
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -193,6 +194,19 @@ def write_tier_policy(out: Path) -> None:
     )
 
 
+def snapshot_metadata(raw: bytes) -> dict:
+    """Keep detached authentication fields without a resident successor index."""
+    envelope = json.loads(gzip.decompress(raw))
+    return {
+        "content_hash": envelope["content_hash"],
+        "signature": envelope["signature"],
+        "snapshot_id": envelope["snapshot_id"],
+        "valid_from": envelope["content"].get("valid_from"),
+        "valid_until": envelope["content"].get("valid_until"),
+        "blob_sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
 def bundle_data(out: Path, data_dir: Path) -> None:
     """Generate private data as an imported module, never a public asset."""
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-") as tmp:
@@ -221,13 +235,17 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         if (api / successor).is_file():
             paths += (successor, "decision/vocabulary-successor.json")
         blobs = {}
+        snapshots = {}
         for rel in paths:
             raw = (api / rel).read_bytes()
             blobs["/api/" + rel] = base64.b64encode(gzip.compress(raw, mtime=0)).decode("ascii")
+            if rel == successor:
+                snapshots["/api/" + rel] = snapshot_metadata(raw)
         (out / "bundled_data.py").write_text(
             "# Generated private Worker data. Never publish as a site asset.\n"
             "import base64, gzip\n"
             + "BLOBS = " + repr(blobs) + "\n"
+            + "SNAPSHOTS = " + repr(snapshots) + "\n"
             + "def read(path):\n    value = BLOBS.get(path)\n"
               "    return gzip.decompress(base64.b64decode(value)) if value else None\n",
             encoding="utf-8",

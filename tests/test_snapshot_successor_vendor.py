@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import gzip
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -193,6 +194,17 @@ def test_bundle_embeds_both_signed_price_snapshots(export_fixture, tmp_path, mon
     successor = _verified_prices(read("/api/" + SUCCESSOR), fixture.public_keys)
     assert [current.fact(OFFERING, "offering.price.input").value,
             successor.fact(OFFERING, "offering.price.input").value] == [2, 4]
+    namespace = {}
+    exec((tmp_path / "bundle/bundled_data.py").read_text(), namespace)
+    metadata = namespace["SNAPSHOTS"]["/api/" + SUCCESSOR]
+    assert metadata == {
+        "snapshot_id": successor.snapshot_id,
+        "content_hash": successor.content_hash,
+        "signature": successor.publisher_signature,
+        "valid_from": successor.valid_from.isoformat(),
+        "valid_until": None,
+        "blob_sha256": hashlib.sha256(read("/api/" + SUCCESSOR)).hexdigest(),
+    }
 
 
 def test_successor_vocabulary_names_its_snapshot_and_reaches_the_bundle(export_fixture, tmp_path, monkeypatch):
