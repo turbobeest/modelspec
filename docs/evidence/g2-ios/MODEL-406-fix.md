@@ -532,7 +532,15 @@ Full verification command:
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
-Full result: pending.
+Full result, exit 0:
+
+```text
+11652 passed, 9 skipped, 11 warnings in 1400.24s (0:23:20)
+```
+
+The command waited for the shared lock before starting. The 11 warnings
+were the existing unsigned-vocabulary warnings from the CLI snapshot and
+keyed-origin tests. The unrelated explanation timing test passed unchanged.
 
 Rechecked tool versions: Python 3.14.4, pytest 9.1.1 and Git 2.50.1.
 The round-2 fix changes tests and their documentation only. It leaves
