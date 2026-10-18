@@ -82,13 +82,21 @@ response does not depend on which snapshot another request selected later.
 
 ## Materialize hardware-fit provenance on demand
 
-Store hardware-fit records once in the snapshot, with source IDs instead of
-repeated resolved URL and citation objects. Keep the index compact and defer
-record materialization until the first hardware-fit request. Resolve IDs
-through the signed source table when constructing that response. Preserve
-record order, winning verification, source ordering, numeric inputs, and
-serialization. Capture golden response bytes from the unchanged implementation
-and compare the new implementation against them.
+Hardware-fit already uses source IDs and resolves URLs through the signed
+source table when constructing responses. The existing snapshot duplicates
+full workload records and also packs them into the general provenance table.
+That table has one column for each distinct nested field path. Adding hardware
+workload and verification fields widens every unrelated provenance row with
+empty slots, so a small set of hardware records can expand the whole corpus.
+
+Store hardware workload and numeric-input records in a separate packed table,
+and index the workloads by record ID. Keep the general provenance table's
+columns unchanged. Defer hardware record materialization until the first
+hardware-fit request. Preserve record order, winning verification, source
+ordering, numeric inputs, and serialization. Capture golden response bytes
+from the unchanged implementation and compare the new implementation against
+them. Normalize only the content-addressed snapshot ID, which changes when
+the signed storage representation changes.
 
 The signed snapshot format must remain explicit about the representation it
 loads. Continue to read existing snapshots where necessary; do not widen any

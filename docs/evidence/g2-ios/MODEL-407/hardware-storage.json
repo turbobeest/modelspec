@@ -1,0 +1,21 @@
+{
+  "python": "3.14.4",
+  "before_shared_table": {
+    "fields": 41,
+    "rows": 7,
+    "slots": 287,
+    "bytes": 4001
+  },
+  "after_general_table": {
+    "fields": 27,
+    "rows": 3,
+    "slots": 81,
+    "bytes": 1966
+  },
+  "after_hardware_table": {
+    "fields": 30,
+    "rows": 4,
+    "slots": 120,
+    "bytes": 2297
+  }
+}

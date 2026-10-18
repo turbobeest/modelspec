@@ -1,0 +1,34 @@
+{
+  "hardware_fit_version": "2.0",
+  "endpoint": "hardware-fit",
+  "snapshot": "snap_golden_hardware_fit_2_0",
+  "request": {
+    "model": "lab/hardware-model",
+    "sku": "fixture_gpu",
+    "device_count": 1,
+    "runtime": "fixture-runtime@1",
+    "quantisation": "fixture-q4",
+    "batch": 2,
+    "context": 1024
+  },
+  "sources": [],
+  "status": "undetermined",
+  "missing": [
+    {
+      "input": "hardware_fit_record",
+      "reason": "no verified record binds this exact topology, workload and memory"
+    },
+    {
+      "input": "weights_bytes",
+      "reason": "verified resident weight bytes for this request are missing"
+    },
+    {
+      "input": "kv_bytes_per_token",
+      "reason": "verified per-device KV bytes for this request are missing"
+    },
+    {
+      "input": "runtime_headroom_bytes",
+      "reason": "verified runtime headroom for this request is missing"
+    }
+  ]
+}

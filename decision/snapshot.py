@@ -1357,12 +1357,16 @@ class _Compiler:
             )
         retained_fit_ids = {row["id"] for row in hardware_fit}
         retained_records = {}
+        retained_fit_records = {}
         for rid in record_ids:
             record = self.records[rid]
             if record.get("kind") == "hardware_fit_input":
                 record = {**record, "verified_by_records": sorted(
                     set(record["verified_by_records"]) & retained_fit_ids)}
-            retained_records[rid] = record
+            if rid in retained_fit_ids or record.get("kind") == "hardware_fit_input":
+                retained_fit_records[rid] = record
+            else:
+                retained_records[rid] = record
         content = {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
@@ -1373,7 +1377,9 @@ class _Compiler:
             "benchmark_domains": domains,
             "capability": capability,
             **({"hardware": dict(sorted(self.hardware.items()))} if self.hardware else {}),
-            **({"hardware_fit_records": hardware_fit} if hardware_fit else {}),
+            **({"hardware_fit_record_ids": [row["id"] for row in hardware_fit],
+                "hardware_fit_record_table": _pack_records(retained_fit_records)}
+               if hardware_fit else {}),
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
@@ -2057,7 +2063,10 @@ class LoadedSnapshot:
         )
         self._sources: dict[str, str] = dict(content["sources"])
         self._hardware = content.get("hardware") or {}
-        self._hardware_fit = tuple(content.get("hardware_fit_records") or ())
+        self._hardware_fit_record_ids = tuple(content.get("hardware_fit_record_ids") or ())
+        self._hardware_fit = (None if self._hardware_fit_record_ids
+                              else tuple(content.get("hardware_fit_records") or ()))
+        self._hardware_fit_record_table = content.get("hardware_fit_record_table")
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
         self.explanation_rebuild_required = (
@@ -2447,8 +2456,13 @@ class LoadedSnapshot:
 
     def record(self, record_id: str) -> Mapping[str, Any]:
         """The admitted record with its winning verification, retained verbatim."""
-        if record_id not in self._records and self._record_table is not None:
-            self._records[record_id] = _unpack_record(self._record_table, record_id)
+        if record_id not in self._records:
+            table = self._record_table
+            if (self._hardware_fit_record_table is not None
+                    and record_id in self._hardware_fit_record_table["rows"]):
+                table = self._hardware_fit_record_table
+            if table is not None:
+                self._records[record_id] = _unpack_record(table, record_id)
         return self._records[record_id]
 
     def hardware_device(self, device_id: str) -> Mapping[str, Any] | None:
@@ -2457,6 +2471,8 @@ class LoadedSnapshot:
 
     def hardware_fit_records(self, model: str, sku: str) -> tuple[Mapping[str, Any], ...]:
         """Admitted measurements and inputs for one model/SKU, without guessing defaults."""
+        if self._hardware_fit is None:
+            self._hardware_fit = tuple(self.record(rid) for rid in self._hardware_fit_record_ids)
         return tuple(row for row in self._hardware_fit if row["model"] == model and row["sku"] == sku)
 
     def facet_ids(self) -> tuple[str, ...]:
