@@ -14,17 +14,17 @@ signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x9
         worker, module, _ = deploy(entry, monkeypatch, utc_clock, *signed_pair)
         old_id = load_snapshot_bytes(signed_pair[0], key=KEY, public_keys={}).snapshot_id
         gate = module.access.gate
-    
+
         async def interleave():
             produced, release = asyncio.Event(), asyncio.Event()
-    
+
             async def delayed_gate(**kwargs):
                 outcome = await gate(**kwargs)
                 if outcome.body.get("snapshot") == old_id:
                     produced.set()
                     await release.wait()
                 return outcome
-    
+
             monkeypatch.setattr(module.access, "gate", delayed_gate)
             headers = {"Authorization": "Bearer " + API_KEY}
             first = asyncio.create_task(worker.fetch(_Req("/v1/decide", SPEC, headers=headers)))
@@ -40,11 +40,11 @@ signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x9
             assert before.headers["x-modelspec-snapshot"] == old_id
             assert second.headers["x-modelspec-snapshot"] == second.json()["snapshot"]
             assert second.json()["snapshot"] != old_id
-    
+
 >       asyncio.run(asyncio.wait_for(interleave(), timeout=5))
 
-tests/test_snapshot_successor.py:348: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_snapshot_successor.py:348:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:204: in run
     return runner.run(main)
            ^^^^^^^^^^^^^^^^
@@ -57,18 +57,18 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:488: in wait_for
     return await fut
            ^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
     async def interleave():
         produced, release = asyncio.Event(), asyncio.Event()
-    
+
         async def delayed_gate(**kwargs):
             outcome = await gate(**kwargs)
             if outcome.body.get("snapshot") == old_id:
                 produced.set()
                 await release.wait()
             return outcome
-    
+
         monkeypatch.setattr(module.access, "gate", delayed_gate)
         headers = {"Authorization": "Bearer " + API_KEY}
         first = asyncio.create_task(worker.fetch(_Req("/v1/decide", SPEC, headers=headers)))
@@ -83,7 +83,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
         assert before.json()["snapshot"] == old_id
 >       assert before.headers["x-modelspec-snapshot"] == old_id
 E       AssertionError: assert 'snap_31c8f35c2efc0746' == 'snap_71375f0b85d48b07'
-E         
+E
 E         - snap_71375f0b85d48b07
 E         + snap_31c8f35c2efc0746
 

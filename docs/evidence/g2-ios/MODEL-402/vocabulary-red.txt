@@ -24,7 +24,7 @@ query = ''
             assert vocabulary.status == 200, vocabulary.json()
 >           assert vocabulary.headers["cache-control"] == "no-store"
 E           AssertionError: assert 'private, max-age=3600' == 'no-store'
-E             
+E
 E             - no-store
 E             + private, max-age=3600
 
@@ -53,7 +53,7 @@ query = '?section=facets&id=offering.price.input&detail=full'
             assert vocabulary.status == 200, vocabulary.json()
 >           assert vocabulary.headers["cache-control"] == "no-store"
 E           AssertionError: assert 'private, max-age=3600' == 'no-store'
-E             
+E
 E             - no-store
 E             + private, max-age=3600
 

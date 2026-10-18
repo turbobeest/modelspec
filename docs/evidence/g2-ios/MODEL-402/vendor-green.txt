@@ -53,6 +53,3 @@ evidence directory.
 Diff review: the existing current snapshot name, canonical writer and signing
 defaults remain in use. The optional successor and its matching vocabulary use
 fixed names and ordered blob insertion. No new diagnostic prints data rows.
-
-
-

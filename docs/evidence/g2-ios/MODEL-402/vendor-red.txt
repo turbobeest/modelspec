@@ -137,7 +137,7 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a1550f0>
         from decision.contract import parse_spec
         from decision.engine import decide
         from decision.vocabulary import build_vocabulary
-    
+
         fixture = export_fixture()
         built = snapshot.build_from_repo(
             fixture.root, premier=fixture.root / "premier/slice-1.yaml", as_of=BOUNDARY,
@@ -153,8 +153,8 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a1550f0>
 >       vocabulary = build_vocabulary(future)
                      ^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_snapshot_successor_vendor.py:230: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_snapshot_successor_vendor.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 decision/vocabulary.py:590: in build_vocabulary
     "templates": _template_rows(snapshot, registry, catalogue["templates"]),
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -163,7 +163,7 @@ decision/vocabulary.py:449: in _template_rows
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 decision/engine.py:494: in decide
     require_current()
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <decision.snapshot.LoadedSnapshot object at 0x10a41acf0>
 today = datetime.date(2026, 11, 30)
@@ -180,5 +180,3 @@ decision/snapshot.py:2160: SnapshotError
 =========================== short test summary info ============================
 FAILED tests/test_snapshot_successor_vendor.py::test_real_vocabulary_builder_can_evaluate_future_price_templates
 1 failed in 0.51s
-
-

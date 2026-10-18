@@ -1,9 +1,9 @@
 CWD: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker
 COMMAND: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool/bin/uv run --project . pywrangler deploy --dry-run --outdir /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/upload-baseline
-INFO     Passing command to npx wrangler: npx --yes wrangler deploy --dry-run   
-         --outdir                                                               
+INFO     Passing command to npx wrangler: npx --yes wrangler deploy --dry-run
+         --outdir
          /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-me
-         asurement/upload-baseline                                              
+         asurement/upload-baseline
 
  ⛅️ wrangler 4.139.0 (update available 4.151.1)
 ───────────────────────────────────────────────
