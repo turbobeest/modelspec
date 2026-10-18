@@ -213,11 +213,8 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
 # The first request still authenticates their checked hash with the runtime key.
 _decision_registry()
 _bundled_decision_snapshot = None
-_bundled_decision_successor = None
 _bundled_vocabulary = None
 _bundled_vocabulary_text = None
-_bundled_successor_vocabulary = None
-_bundled_successor_vocabulary_text = None
 if globals().get("bundled_data") is not None:
     _snapshot_bytes = bundled_data.read(DECISION_SNAPSHOT_PATH)
     if _snapshot_bytes is not None:
@@ -226,13 +223,6 @@ if globals().get("bundled_data") is not None:
             source="bundled decision snapshot",
         )
     del _snapshot_bytes
-    _successor_bytes = bundled_data.read("/api/decision/snapshot-successor.json.gz")
-    if _successor_bytes is not None:
-        _bundled_decision_successor = decide_service.load_snapshot_bytes(
-            _successor_bytes, key=None, public_keys={}, include_archive=True,
-            source="bundled decision successor",
-        )
-    del _successor_bytes
     _vocabulary_bytes = bundled_data.read("/api/decision/vocabulary.json")
     if _vocabulary_bytes is not None:
         # A malformed required vocabulary must fail deployment snapshot creation,
@@ -240,11 +230,6 @@ if globals().get("bundled_data") is not None:
         _bundled_vocabulary_text = _vocabulary_bytes.decode("utf-8")
         _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
     del _vocabulary_bytes
-    _successor_vocabulary_bytes = bundled_data.read("/api/decision/vocabulary-successor.json")
-    if _successor_vocabulary_bytes is not None:
-        _bundled_successor_vocabulary_text = _successor_vocabulary_bytes.decode("utf-8")
-        _bundled_successor_vocabulary = json.loads(_bundled_successor_vocabulary_text)
-    del _successor_vocabulary_bytes
 
 # Captured as False at deployment, then claimed before the first request awaits.
 # Never retain a request, environment, or timer from deployment in the snapshot.
@@ -345,8 +330,7 @@ def _decision_holder(origin: str):
     if holder is None:
         holder = _decide_service().SnapshotHolder(
             _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH),
-            bundled_snapshot=_bundled_decision_snapshot,
-            bundled_successor=_bundled_decision_successor)
+            bundled_snapshot=_bundled_decision_snapshot)
         _decision_holders[origin] = holder
     return holder
 
@@ -745,15 +729,6 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
-def _snapshot_response_headers(body: dict, extra_headers: dict) -> dict:
-    headers = dict(extra_headers)
-    name = _decide_service().SNAPSHOT_HEADER
-    headers.pop(name, None)
-    if body.get("snapshot") is not None:
-        headers[name] = body["snapshot"]
-    return headers
-
-
 class _DecisionTransport:
     def __init__(self):
         self.body: dict | None = None
@@ -770,19 +745,15 @@ def _decision_response(status: int, body: dict,
     # The timed bytes are reused only for the very body they encode: x402's
     # unfunded fallback answers with a copy that adds credits.exhausted.
     serialised = transport.serialised if transport is not None and transport.body is body else None
-    headers = {
-        **(extra_headers or {}),
-        **(transport.headers if transport is not None else {}),
-        "content-type": "application/json; charset=utf-8",
-        "cache-control": "no-store",
-    }
-    # Billing may await after producing the answer while another request changes
-    # the holder. Bind the signal to this response's snapshot.
-    headers = _snapshot_response_headers(body, headers)
     return Response(
         (serialised if serialised is not None else decider.serialise(body)).decode("utf-8"),
         status=status,
-        headers=headers,
+        headers={
+            **(extra_headers or {}),
+            **(transport.headers if transport is not None else {}),
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+        },
     )
 
 
@@ -951,8 +922,6 @@ class Default(WorkerEntrypoint):
         if path == "/v1/vocabulary":
             if globals().get("bundled_data") is not None:
                 text = _bundled_vocabulary_text
-                vocabulary = _bundled_vocabulary
-                cache_control = "no-store" if visit_token.enabled(self.env) else "private, max-age=3600"
                 cors = _cors_headers(request, self.env)
                 if method == "OPTIONS":
                     return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
@@ -1006,23 +975,6 @@ class Default(WorkerEntrypoint):
                     if meter["reason"]:
                         return _json_response(429, {"error": {"code": human_gate.LIMIT_CODES[meter["reason"]], "message": "Vocabulary lookup limit reached."}},
                                               {**cors, "retry-after": str(meter["retry_after"])})
-                if _bundled_decision_snapshot is not None:
-                    try:
-                        snapshot = await _decision_holder(origin).current(
-                            str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None)
-                    except (decide_service.SnapshotMissingError, decide_service.SnapshotValidityError) as exc:
-                        return _json_response(503, {"error": {"code": "no_snapshot", "message": str(exc)}}, cors)
-                    except decide_service.SnapshotRefusalError as exc:
-                        return _json_response(503, {"error": {"code": "snapshot_refused", "message": str(exc)}}, cors)
-                    if snapshot is _bundled_decision_successor:
-                        text = _bundled_successor_vocabulary_text
-                        vocabulary = _bundled_successor_vocabulary
-                    if snapshot.valid_from is not None or snapshot.valid_until is not None:
-                        cache_control = "no-store"
-                    if vocabulary is not None and vocabulary.get("snapshot") != snapshot.snapshot_id:
-                        return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
-                            "code": "export_unavailable", "message": "bundled vocabulary snapshot does not match",
-                        }}, cors)
                 if text is None:
                     return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                         "code": "export_unavailable", "message": "bundled vocabulary is missing",
@@ -1031,7 +983,7 @@ class Default(WorkerEntrypoint):
                 if any(key in query for key in ("section", "search", "id", "ids", "detail", "offset", "limit")):
                     try:
                         selected = display_vocabulary.lookup(
-                            vocabulary, section=query.get("section", ["starter"])[0],
+                            _bundled_vocabulary, section=query.get("section", ["starter"])[0],
                             search=query.get("search", [""])[0],
                             ids=[*query.get("id", []), *(item for value in query.get("ids", []) for item in value.split(","))],
                             detail=query.get("detail", ["compact"])[0],
@@ -1048,7 +1000,7 @@ class Default(WorkerEntrypoint):
                         return refusal
                 return Response("" if method == "HEAD" else text, status=200,
                                 headers={**cors, "content-type": "application/json; charset=utf-8",
-                                         "cache-control": cache_control, "vary": "Origin"})
+                                         "cache-control": "no-store" if visit_token.enabled(self.env) else "private, max-age=3600", "vary": "Origin"})
         if path == "/v1/feedback":
             return await self._feedback(request, method, service_commit)
         if path == "/v1/human-status":
@@ -1343,10 +1295,6 @@ class Default(WorkerEntrypoint):
                 headers["retry-after"] = str(decide_service.RETRY_AFTER_SECONDS)
             headers.update(_decision_holder(origin).headers())
             headers.update(_cors_headers(request, self.env))
-            return _json_response(
-                outcome.status, outcome.body,
-                _snapshot_response_headers(outcome.body, headers),
-            )
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
@@ -1851,7 +1799,7 @@ class Default(WorkerEntrypoint):
             snapshot = await holder.current(key)
             if expected and expected != snapshot.snapshot_id:
                 snapshot = await holder.current(key, force=True)
-        except (decide_service.SnapshotMissingError, decide_service.SnapshotValidityError):
+        except decide_service.SnapshotMissingError:
             return _hardware_fit_error(
                 "no_snapshot", "the published decision snapshot does not exist", status=503)
         except decide_service.SnapshotRefusalError as exc:
@@ -1884,7 +1832,7 @@ class Default(WorkerEntrypoint):
             snapshot = await holder.current(key, timings=snapshot_timings)
             if expected and expected != snapshot.snapshot_id:
                 snapshot = await holder.current(key, force=True, timings=snapshot_timings)
-        except (decider.SnapshotMissingError, decider.SnapshotValidityError):
+        except decider.SnapshotMissingError:
             return decider.no_snapshot("the published decision snapshot does not exist", endpoint=endpoint)
         except decider.SnapshotRefusalError as exc:
             return decider.error_response(
@@ -1985,7 +1933,6 @@ class Default(WorkerEntrypoint):
             fetched = await _snapshot_fetcher(
                 origin + DECISION_HISTORY_TEMPLATE.format(snapshot_id=compare_to)
             )(None)
-            current = await _decision_holder(origin).current(key)
             if fetched.status == 404:
                 return decider.error_response(
                     "comparison_snapshot_unavailable",
@@ -1997,7 +1944,7 @@ class Default(WorkerEntrypoint):
             if fetched.status != 200 or fetched.body is None:
                 raise RuntimeError(f"comparison snapshot returned HTTP {fetched.status}")
             previous = decider.load_snapshot(fetched.body, key=key)
-        except (decider.SnapshotMissingError, decider.SnapshotValidityError):
+        except decider.SnapshotMissingError:
             return decider.no_snapshot(
                 "the published decision snapshot does not exist", endpoint="compare"
             )
@@ -2106,14 +2053,6 @@ class Default(WorkerEntrypoint):
         except Exception as exc:  # noqa: BLE001 - reported, not hidden
             error = error or f"{type(exc).__name__}: {exc}"
 
-        determinations = await self._determinations_health()
-        holder = _decision_holder(origin)
-        try:
-            key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
-            await holder.current(key)
-        except Exception as exc:  # noqa: BLE001 - public load diagnosis, as above
-            error = error or f"{type(exc).__name__}: {exc}"
-
         status = service.HTTP_OK if loaded and policy_loaded else service.HTTP_BAD_GATEWAY
         return _json_response(status, {
             "schema_version": service.SCHEMA_VERSION,
@@ -2133,8 +2072,7 @@ class Default(WorkerEntrypoint):
             # version and the day it was staged, so a KV load can be verified
             # from outside. Deliberately no counts and no content: this is a
             # public endpoint and the determinations are the product.
-            "determinations": determinations,
-            "decision_snapshot": holder.health(),
+            "determinations": await self._determinations_health(),
             "last_error": error or _cache.get("error") or _policy_cache.get("error"),
         })
 
