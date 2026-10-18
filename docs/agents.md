@@ -1,6 +1,6 @@
 # ModelSpec agent guide
 
-Guide version: 1-c87335a7b267ef2f.
+Guide version: 1-f226d9942791da1c.
 Canonical URL: https://modelspec.dev/agents.md
 Full API reference: https://modelspec.dev/openapi.yaml
 Coverage: https://modelspec.dev/api/coverage.json
@@ -9,7 +9,7 @@ ModelSpec is an analysis of alternatives for AI models: it decides which models 
 
 ## CLI, MCP or HTTP
 
-People can inspect the full decision board at https://modelspec.dev/decide/details/.
+Full board: https://modelspec.dev/decide/details/.
 
 Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache. CLI: `uvx --from modelspec-dev modelspec` (or `pipx install modelspec-dev`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. No telemetry. The CLI never uses, sends or logs your provider API keys.
 
@@ -19,10 +19,10 @@ Call decide early with a template-based Spec; refine from reading and recovery h
 Not a router: call it once per job or role, not per request, then route among the models it recommends.
 Orchestrator system prompt and worked Spec: https://modelspec.dev/orchestrators/.
 
-HTTP: POST `https://api.modelspec.dev/v1/decide` with `Content-Type: application/json`, a real
-`User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.
-MCP: call `decide` with the Spec itself as arguments, with Authorization on the
-MCP connection. Do not wrap it in `spec` or `task`. Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link.
+HTTP: POST the Spec JSON to `https://api.modelspec.dev/v1/decide`; headers: `Content-Type: application/json`,
+a real `User-Agent`, `Authorization: Bearer <key>`.
+MCP: `decide` takes Spec arguments, with Authorization on the connection.
+No `spec` or `task` wrapper. Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link.
 
 Minimal valid Spec, minimizing cost without claiming a quality ranking:
 

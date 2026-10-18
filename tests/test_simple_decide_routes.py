@@ -78,7 +78,7 @@ def test_board_links_and_agent_copy_point_to_the_detailed_board():
     assert entity.BOARD == "https://modelspec.dev/decide/details/"
     assert 'href="/decide/details/" class="button primary">Open the board</a>' in landing_chrome.site_header()
     assert entity.BOARD in agent_copy.guide()[1]
-    assert entity.BOARD in agent_copy.copy()["instructions"]
+    assert entity.BOARD in agent_copy.copy()["context_guide"]
     assert entity.BOARD in agent_copy.cli_text()["human_message"]
 
 

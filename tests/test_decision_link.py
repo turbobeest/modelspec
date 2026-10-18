@@ -85,8 +85,8 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
 def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
     # MODEL-404 moves the human board links to /decide/details/ and updates the guide version.
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e"
-    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "7a15fbc29407078d53594b0755852b3f4c341ad83f7b68582c92b4b72075821a"
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "ba2e9673bb58c5d6310a0ad9d2078ed54d5189a5eee2789cee98cea30b980030"
+    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86"
 

@@ -491,7 +491,7 @@ Coverage: {entity.SITE}/api/coverage.json
 
 ## CLI, MCP or HTTP
 
-People can inspect the full decision board at {entity.BOARD}.
+Full board: {entity.BOARD}.
 
 {ACCESS} CLI: `{INSTALL_PATHS[0]}` (or `{INSTALL_PATHS[1]}`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. {CLI_PRIVACY}
 
@@ -501,10 +501,10 @@ People can inspect the full decision board at {entity.BOARD}.
 {NOT_A_ROUTER}
 Orchestrator system prompt and worked Spec: {entity.SITE}/orchestrators/.
 
-HTTP: POST `{API}/v1/decide` with `Content-Type: application/json`, a real
-`User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.
-MCP: call `decide` with the Spec itself as arguments, with Authorization on the
-MCP connection. Do not wrap it in `spec` or `task`. {key_procurement()}
+HTTP: POST the Spec JSON to `{API}/v1/decide`; headers: `Content-Type: application/json`,
+a real `User-Agent`, `Authorization: Bearer <key>`.
+MCP: `decide` takes Spec arguments, with Authorization on the connection.
+No `spec` or `task` wrapper. {key_procurement()}
 
 Minimal valid Spec, minimizing cost without claiming a quality ranking:
 
@@ -813,7 +813,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "vocab": {"minimal_spec": MINIMAL_SPEC, "next": VOCAB_NEXT},
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
-            f"{ACCESS} People can inspect the full decision board at {entity.BOARD}. "
+            f"{ACCESS} "
             f"CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
             "1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
