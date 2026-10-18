@@ -46,6 +46,7 @@ SCHEMA_TYPES = frozenset(
         "Organization",
         "WebSite",
         "Dataset",
+        "PropertyValue",
         "WebAPI",
         "SoftwareApplication",
         "SoftwareSourceCode",

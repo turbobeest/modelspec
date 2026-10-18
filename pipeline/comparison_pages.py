@@ -193,7 +193,8 @@ def comparison_page(template: dict, decision: dict, comparison: dict, as_of: dat
         "about": [{"@type": "Thing", "identifier": model, "name": names[model]} for model in pair],
         "variableMeasured": [{
             "@type": "PropertyValue", "propertyID": f'{entry["model"]}:{field}',
-            "name": f'{names[entry["model"]]}: {field}', "value": entry[field],
+            "name": "P(best), ranked job lineup" if field == "p_best" else "chance",
+            "value": entry[field],
             "unitText": "probability",
         } for entry, field in probabilities],
     }

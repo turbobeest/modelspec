@@ -9,11 +9,45 @@ from pathlib import Path
 import pytest
 
 from pipeline import build, entity, live, surface_lint as sl
+from tests.test_comparison_probability_trace import DAY, comparison, separate  # noqa: F401
 
 INDEX = "compare/index.html"
 PAIR = "compare/coding-best/lab-alpha-vs-lab-beta/index.html"
 NOINDEX = "compare/coding-best/lab-alpha-vs-lab-gamma/index.html"
 IMAGE_DATE = "2026-01-17"
+
+
+@pytest.mark.parametrize("separated", [False, True])
+@pytest.mark.parametrize("missing_probability", [False, True])
+def test_rendered_comparison_probability_data_passes_structured_data_lint(
+    comparison, separated, missing_probability,
+):
+    from pipeline.comparison_pages import comparison_page
+
+    decision = comparison[1]
+    if missing_probability:
+        decision["bands"]["best"][1]["p_beats_leader"] = None
+    if separated:
+        separate(decision)
+    raw = comparison_page(*comparison, DAY)
+
+    findings = sl.structured_data({PAIR: raw})
+    assert findings == [], "\n".join(finding.line() for finding in findings)
+
+
+def test_probability_property_names_must_remain_visible(comparison):
+    from pipeline.comparison_pages import comparison_page
+
+    raw = comparison_page(*comparison, DAY)
+    block = sl.Page(raw).ld[0]
+    graph = json.loads(block)
+    dataset = next(node for node in graph["@graph"] if node["@type"] == "Dataset")
+    dataset["variableMeasured"][0]["name"] = "Hidden probability assertion"
+    corrupted = raw.replace(block, json.dumps(graph))
+
+    findings = sl.structured_data({PAIR: corrupted})
+    assert any(finding.check == "jsonld.visible" and finding.excerpt == "Hidden probability assertion"
+               for finding in findings)
 
 
 def page(body: str = "", *, lead: str = entity.ONE_SENTENCE, noindex: bool = False) -> str:
