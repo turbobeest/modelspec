@@ -412,6 +412,241 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def use_case_image_date(public_root: Path) -> date:
+    """Read the frozen image's date, never the build clock or an overlay."""
+    manifest = public_root / "data-image.json"
+    source = (manifest if manifest.is_file() else
+              public_root / "benchmarks/_census/eligibility/current-report.json")
+    return date.fromisoformat(str(json.loads(source.read_text(encoding="utf-8"))["as_of"]))
+
+
+def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
+    """Apply public templates through the same parse/decide path as /v1/decide."""
+    from decision.contract import parse_spec
+    from decision.engine import decide
+    from decision.snapshot import build_from_repo, load_built_snapshot
+    from decision.templates import load_catalogue as template_catalogue
+
+    as_of = use_case_image_date(public_root)
+    saved_root = decision_registry.REPO_ROOT
+    decision_registry.use_root(public_root)
+    try:
+        registry = decision_registry.load(public_root / "registry", repo_root=public_root)
+        catalogue = template_catalogue(public_root / "registry/templates.yaml", registry=registry)
+        snapshot = load_built_snapshot(
+            build_from_repo(public_root, premier=None, as_of=as_of, registry=registry, gate=False),
+            include_archive=True, source="public use-case build",
+        )
+        decisions = [
+            decide(parse_spec(template["spec"], facets=registry.facet), snapshot,
+                   facets=registry.facet).model_dump(mode="json")
+            for template in catalogue["templates"]
+        ]
+    finally:
+        decision_registry.use_root(saved_root)
+    return catalogue, decisions, as_of
+
+
+def _use_case_path(template: dict) -> str:
+    return f'/use-cases/{template["category"]}/{template["id"]}/'
+
+
+def _use_case_indexable(decision: dict) -> bool:
+    return bool(decision["results"] and decision["answer"])
+
+
+def _use_case_value(value: object) -> str:
+    """Render human values without rounding numbers or inventing missing data."""
+    if value is None:
+        return "Unavailable"
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, str):
+        value = re.sub(r" = (true|false)$",
+                       lambda match: " = " + ("Yes" if match[1] == "true" else "No"), value)
+        return r.esc(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_use_case_value(item) for item in value) + "]"
+    return r.esc(json.dumps(value, ensure_ascii=False, allow_nan=False))
+
+
+def _use_case_spec(value: object) -> str:
+    if isinstance(value, dict):
+        return '<dl>\n' + "".join(
+            f'<dt><code>{r.esc(key)}</code></dt>\n<dd>{_use_case_spec(item)}</dd>\n'
+            for key, item in value.items()
+        ) + '</dl>'
+    if isinstance(value, list):
+        return '<ul>' + "".join(f'<li>{_use_case_spec(item)}</li>' for item in value) + '</ul>'
+    return _use_case_value(value)
+
+
+def _use_case_shell(title: str, description: str, path: str, body: str,
+                    as_of: date, *, indexable: bool, article: bool) -> str:
+    from pipeline import entity, landing_chrome, structured_data
+
+    nodes = structured_data.use_case_graph(
+        path, title, description, as_of.isoformat(), article=article,
+    )
+    robots = "index, follow" if indexable else "noindex, follow"
+    return f'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{r.esc(title)} · ModelSpec</title>
+<meta name="description" content="{r.esc(description)}">
+<meta name="robots" content="{robots}">
+<link rel="canonical" href="https://modelspec.dev{r.esc(path)}">
+{brand.head_links()}{r.FONTS}
+<style>{r.CSS}
+.use-case-table{{overflow-x:auto}}.use-case-table table{{min-width:720px}}
+.use-case-table td{{vertical-align:top}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
+code{{overflow-wrap:anywhere}}.use-case-model{{min-width:180px}}
+:where(.page) h2::before{{content:none}}
+</style>{structured_data.script(nodes)}</head>
+<body><div class="wrap">{r.site_nav([('Decide', '/decide/'), ('How we decide', '/method/'), ('Pricing', '/pricing/')])}<main class="page">
+<p>{r.esc(entity.ONE_SENTENCE)}</p><h1>{r.esc(title)}</h1>
+<p class="lede">{r.esc(description)}</p>
+<p>Worked example as of {as_of.isoformat()}, from the public data image.</p>
+{body}
+<p>Human lookup is free on <a href="/decide/">Decide</a>.
+CLI, API, and MCP access requires a key. <a href="/pricing/">Access and pricing</a>.</p>
+<p><a href="/use-cases/">Use-case examples</a> · <a href="/method/">How we decide</a></p>
+</main>{landing_chrome.footer()}</div></body></html>
+'''
+
+
+def use_case_page(template: dict, decision: dict, as_of: date) -> str:
+    """Render a dated engine response with registry copy and no page-specific claims."""
+    requirements = "".join(
+        f'<li><code>{_use_case_value(row["condition"])}</code>: {r.esc(row["reason"])}</li>'
+        for row in template["where"]
+    )
+    preferences = "".join(
+        f'<li><code>{r.esc(facet)}</code>: {r.esc(row["reason"])}</li>'
+        for facet, row in template["weights"].items()
+    )
+    body = (f'<p>{r.esc(template["tradeoff"])}</p>'
+            f'<h2>Requirements</h2><ul>{requirements}</ul>'
+            f'<h2>Preferences</h2><ul>{preferences}</ul>'
+            '<details><summary>Applied template spec</summary>'
+            f'{_use_case_spec(template["spec"])}</details>'
+            f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
+    answer = decision["answer"]
+    if not _use_case_indexable(decision):
+        body += '<p>No recommendation: the public image has no answer with enough evidence.</p>'
+    else:
+        label = "Tied on the evidence" if answer["kind"] == "tied" else "Separated on the evidence"
+        body += f'<h3>{label}</h3><ul>' + "".join(
+            f'<li><code>{r.esc(model)}</code></li>' for model in answer["members"]
+        ) + f'</ul><p>{r.esc(answer["basis"])}</p>'
+        if answer["kind"] == "tied":
+            tie_breakers = []
+            for key, label in (("cheapest", "Cheapest"), ("fastest", "Fastest"),
+                               ("open_weights", "Open-weights"),
+                               ("most_independently_measured", "Most independently measured")):
+                value = answer["tie_breakers"][key]
+                if value is not None:
+                    tie_breakers.append(f'<li>{label} tie-breaker: {r.esc(value)}</li>')
+            if tie_breakers:
+                body += ('<p>Tie-breakers describe members of the tie. '
+                         'They do not establish a winner.</p><ul>' + "".join(tie_breakers) + '</ul>')
+    if decision["status"] == "partial":
+        body += ('<p>This is a partial answer. Unknown facts or missing objective evidence '
+                 'can leave eligible candidates unranked.</p>')
+    bands = decision.get("bands")
+    if bands:
+        body += (f'<p>{r.esc(bands["basis"])}</p>'
+                 '<p>Score and score interval use the objective\'s dimensionless normalised units. '
+                 'Cost per task is for the engine-selected offering and the applied spec\'s task size. '
+                 'When task size is omitted, the engine uses its documented default. '
+                 'P(best) is the engine probability. Unavailable means the engine did not return a value. '
+                 'Thin evidence is undetermined and is not a recommendation.</p>')
+        for key, label in (("best", "Best band"), ("rest", "Rest band"),
+                           ("thin", "Thin evidence: undetermined")):
+            if not bands[key]:
+                continue
+            rows = []
+            for entry in bands[key]:
+                estimates = "".join(
+                    f'<li>{r.esc(estimate["dimension"])}: {_use_case_value(estimate["value"])}; '
+                    f'interval {_use_case_value(estimate["interval"])}; '
+                    f'benchmarks {_use_case_value(estimate["benchmarks"])}; '
+                    f'direct benchmarks {_use_case_value(estimate["direct_benchmarks"])}</li>'
+                    for estimate in entry["estimates"]
+                )
+                cells = "".join(f'<td>{_use_case_value(entry[field])}</td>' for field in (
+                    "score", "score_interval", "p_best", "cost_per_task",
+                ))
+                rows.append(f'<tr><td class="use-case-model"><code>{r.esc(entry["model"])}</code></td>'
+                            f'{cells}<td><ul>{estimates}</ul></td></tr>')
+            body += (f'<h3>{label}</h3><div class="use-case-table"><table><thead><tr>'
+                     '<th>Model</th><th>Score</th><th>Score interval</th><th>P(best)</th>'
+                     '<th>Cost per task, USD</th><th>Capability estimates and intervals</th>'
+                     '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>')
+    unknown = sorted({facet for candidate in decision.get("may_qualify", [])
+                      for facet in candidate["unknown"]})
+    if unknown:
+        body += '<h3>Unknown requirements</h3><p>Some candidates may qualify. Missing facts:</p><ul>'
+        body += "".join(f'<li><code>{r.esc(facet)}</code></li>' for facet in unknown) + '</ul>'
+    warnings = sorted(set(decision.get("warnings", [])) | {
+        warning for result in decision["results"] for warning in result.get("warnings", [])
+    })
+    for heading, values in (("Engine warnings", warnings), ("Missing evidence and possible changes",
+                                                           decision.get("relax", []))):
+        if values:
+            body += f'<h3>{heading}</h3><ul>' + "".join(
+                f'<li>{r.esc(value)}</li>' for value in values
+            ) + '</ul>'
+    truncated = decision.get("truncated", {})
+    if any(truncated.values()):
+        body += (f'<p>Omitted result rows: models {_use_case_value(truncated["models"])}; '
+                 f'offerings {_use_case_value(truncated["offerings"])}. '
+                 'The bands above include all ranked models.</p>')
+    body += (f'<p>Decision <code>{r.esc(decision["decision_id"])}</code> on public snapshot '
+             f'<code>{r.esc(decision["snapshot"])}</code>.</p>'
+             f'<h2>What this template teaches</h2><p>{r.esc(template["teaches"])}</p>'
+             '<p>The live board uses current data. Its answer can change as evidence changes.</p>'
+             f'<p><a class="button primary" href="/decide/?template={r.esc(template["id"])}">'
+             'Apply this template on Decide</a></p>')
+    return _use_case_shell(template["name"], template["purpose"], _use_case_path(template),
+                           body, as_of, indexable=_use_case_indexable(decision), article=True)
+
+
+def write_use_case_pages(tree: Path, public_root: Path) -> dict:
+    """Write every template; only examples with an answer enter the sitemap."""
+    catalogue, decisions, as_of = use_case_decisions(public_root)
+    paths = ["/use-cases/"]
+    groups = []
+    for kind, label in (("use", "By use"), ("constraint", "By constraint")):
+        categories = []
+        for category in catalogue["categories"]:
+            if category["kind"] != kind:
+                continue
+            links = []
+            for template, decision in zip(catalogue["templates"], decisions, strict=True):
+                if template["category"] != category["id"]:
+                    continue
+                path = _use_case_path(template)
+                page = tree / path.lstrip("/") / "index.html"
+                page.parent.mkdir(parents=True, exist_ok=True)
+                page.write_text(use_case_page(template, decision, as_of), encoding="utf-8")
+                indexable = _use_case_indexable(decision)
+                if indexable:
+                    paths.append(path)
+                note = "" if indexable else " No recommendation from this image."
+                links.append(f'<li><a href="{path}">{r.esc(template["name"])}</a>: '
+                             f'{r.esc(template["tradeoff"])}{note}</li>')
+            categories.append(f'<h3>{r.esc(category["name"])}</h3><ul>{"".join(links)}</ul>')
+        groups.append(f'<section data-kind="{kind}"><h2>{label}</h2>{"".join(categories)}</section>')
+    index = tree / "use-cases/index.html"
+    index.parent.mkdir(parents=True, exist_ok=True)
+    index.write_text(_use_case_shell(
+        "Use-case examples", "Dated worked examples from the public Decide templates.",
+        "/use-cases/", "".join(groups), as_of, indexable=True, article=False,
+    ), encoding="utf-8")
+    return {"sitemap_paths": paths, "sitemap_dates": {path: as_of.isoformat() for path in paths}}
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
@@ -660,6 +895,12 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
+    use_case_counts = write_use_case_pages(ms, Path(args.root).resolve())
+    ms_paths.extend(use_case_counts["sitemap_paths"])
+    method_page = ms / "method/index.html"
+    method_page.write_text(method_page.read_text(encoding="utf-8").replace(
+        "</main>", '<p><a href="/use-cases/">Explore dated use-case examples</a></p></main>', 1,
+    ), encoding="utf-8")
     from pipeline import orchestrators
     ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
     from pipeline import about
@@ -696,7 +937,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today,
-                  lastmods=blog_counts.get("sitemap_dates")), encoding="utf-8")
+                  lastmods={**blog_counts.get("sitemap_dates", {}),
+                            **use_case_counts["sitemap_dates"]}), encoding="utf-8")
     from pipeline import blog_indexnow
     blog_indexnow.write_key(ms)
     # robots.txt is written once, by agent_ready.ship below (MODEL-253).
@@ -742,6 +984,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         "feedback": feedback_counts,
         "brand": brand_counts,
         "blog": blog_counts,
+        "use_cases": use_case_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0
