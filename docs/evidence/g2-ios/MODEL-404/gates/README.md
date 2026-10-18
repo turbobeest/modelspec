@@ -2,13 +2,13 @@
 
 These tests run offline. Browser requests for vocabulary, decisions and Turnstile use fixtures. The billing admission cases run the real local Python Worker service and SQLite admission through `tests/replay_billing_launch.py`; they do not call Cloudflare or a provider.
 
-The latest verification covers the REV-814 fixes at `2488fbc3c92a271d002dc1179b0c6b87345d1c96`. The browser suite serves the genuine generated display vocabulary directly, with no borrowed coverage fields. It asserts the snapshot date and verifies that reordering the same answer's results, evidence and contributions does not change its objective source. [round3/results.txt](round3/results.txt) records exact commands, direct exits, red and green observations, and screenshot provenance.
+The latest verification follows the integration of main #819 at `fcf541f03455c5a95168572093cef5a161a5bef5`. Fresh install, build, unit, general browser, four gate combinations, answer generation and all eleven screenshot captures passed. [round3/post819/results.txt](round3/post819/results.txt) records exact commands and direct exits; [round3/results.txt](round3/results.txt) retains the original REV-814 red and green observations. The browser suite serves the genuine generated display vocabulary directly, with no borrowed coverage fields. It asserts the snapshot date and verifies that reordering the same answer's results, evidence and contributions does not change its objective source.
 
 Both browser regressions failed against the preserved pre-review built JavaScript: the header showed “Data date unavailable” despite the real trim's date, and moving Gemini 3.8 Flash to the front changed the source to “Arena Elo — Coding, 2026-09-13.” The fixed browser passed both checks and the existing response-mutation check. The vocabulary producer's own missing-date red and green are recorded in [the routing evidence](../routing/round3/trim-red.txt).
 
-Fresh sequential `npm ci` and `npm run build` exited 0. The first unit run exposed five historical-fixture provenance assertions that assumed the captured answers shared the regenerated vocabulary's snapshot. The fixture owner corrected those assertions while preserving the original responses. Final `npm test` passed **898 tests**, with one opt-in corpus rendering file skipped. `npm run test:browser -- --workers=2 --reporter=line` passed **38 tests**, with 16 expected skips. The skips cover gate-specific cases, opt-in capture, absent generated corpus and deployed-site/pricing checks without explicit URLs.
+Fresh post-integration `npm ci` and `npm run build` exited 0. `npm test` passed **898 tests**, with one opt-in corpus rendering file skipped. `npm run test:browser -- --workers=2 --reporter=line` passed **38 tests**, with 16 expected skips. The skips cover gate-specific cases, opt-in capture, absent generated corpus and deployed-site/pricing checks without explicit URLs. The earlier round-three unit run had exposed five historical-fixture provenance assertions that assumed the captured answers shared the regenerated vocabulary's snapshot; the fixture owner corrected those assertions while preserving the original responses. This post-integration pass required no additional fix.
 
-All four full gate combinations passed. [round3/matrix.json](round3/matrix.json) records direct exits; [round3/results.txt](round3/results.txt) preserves their summaries. The new source-order test adds one pass to each previous matrix count.
+All four full gate combinations passed again. [round3/post819/matrix.json](round3/post819/matrix.json) records direct exits; [round3/post819/results.txt](round3/post819/results.txt) preserves their summaries. Counts match the pre-integration round-three matrix; the source-order test adds one pass to each earlier matrix count.
 
 | Human gate | Visit gate | Passed | Skipped | Exit |
 | --- | --- | ---: | ---: | ---: |
@@ -25,7 +25,7 @@ PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 VITE_TURNSTILE_SITE_KEY=public-browser-test-key \
 MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python \
-MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/matrix-false-false \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/post819/.generated/matrix-false-false \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts \
   browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
@@ -39,7 +39,7 @@ The vocabulary fixture now comes from the real full-vocabulary producer followed
 
 Every screenshot answer now comes from that same frozen snapshot. The local generator produces the exact example, coding, no-fit and detailed plot questions, derives the date from the vocabulary, and rejects a snapshot mismatch. The capture test checks every request before returning its generated answer; it supplies the full answer to both display phases and normalizes only `explain` for this comparison. [screenshot-decisions.json](screenshot-decisions.json) records the questions, dates and decision IDs. No historical answer fallback remains in the capture path.
 
-All eleven images were regenerated and opened individually. The simple headers show “Data as of 2026-10-04.” The example still has six tied models and fits the complete evidence action within 390 by 844. Coding has two tied models and shows “Source: CursorBench 4.0, 2026-09-28.” The example and tie show “Source: Arena WebDev (Code Arena), 2026-09-23.” The no-fit answer shows the exact fallback “Sources and dates: see the full evidence.” Ten PNGs changed from the review base; the detailed mobile first screen remains byte-identical. [round3/screenshots.json](round3/screenshots.json) records hashes. These are frozen-data demonstrations, not a current recommendation or a claim of production freshness.
+All eleven images were regenerated after #819 and opened individually. They are byte-identical to the preceding round-three captures; [round3/post819/screenshots.json](round3/post819/screenshots.json) records each hash and comparison. The simple headers show “Data as of 2026-10-04.” The example still has six tied models and fits the complete evidence action within 390 by 844. Coding has two tied models and shows “Source: CursorBench 4.0, 2026-09-28.” The example and tie show “Source: Arena WebDev (Code Arena), 2026-09-23.” The no-fit answer shows the exact fallback “Sources and dates: see the full evidence.” Ten PNGs differ from the original review base, as recorded in [round3/screenshots.json](round3/screenshots.json). These are frozen-data demonstrations, not a current recommendation or a claim of production freshness.
 
 | Capture | Desktop | Mobile |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ cd web
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
 VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false \
 MODELSPEC_CAPTURE_SIMPLE=1 \
-MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/.generated/capture \
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/round3/post819/.generated/capture \
 npm exec playwright -- test browser-tests/simple-decide.spec.ts \
   --grep 'capture simple' --workers=1 --reporter=line
 ```

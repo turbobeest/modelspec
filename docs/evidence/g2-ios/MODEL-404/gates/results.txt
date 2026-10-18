@@ -1,5 +1,6 @@
 MODEL-404 browser evidence, 2026-10-17
-Latest REV-814 fixes and refreshed screenshots: round3/results.txt, 2026-10-18.
+Latest post-#819 verification and refreshed screenshots: round3/post819/results.txt, 2026-10-18.
+REV-814 regression red/green: round3/results.txt.
 Earlier second-main integration verification: late-merge-results.txt.
 The historical red tests and earlier verification remain below.
 Repository: /Users/terbeest/dev/worktrees/model-404

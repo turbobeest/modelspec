@@ -1,13 +1,14 @@
 {
-  "base_commit": "53fde1fd302da4fd050758d42a4c5ead8bd7a593",
+  "base_commit": "34807d8b3d63a11228f6e4df283a4e8c7234e18b",
+  "merged_upstream": "34c6dbef95371cff728a7a28aba33dcffe3e50e3",
   "guide_version": "1-f226d9942791da1c",
   "artifact_hashes": {
     "docs/agents.md": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
     "mcp/src/agent-copy.json": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",
     "cli/modelspec/agent-bundle.json": "33e400d08479ce2c43e6e6888b213c9ca52790b885a0d2c661f42d0ef587bdab",
     "api/worker/src/agent_guide.py": "ab40849d972f578840728aafde99629353a4ae51d8f3bb109fd6215fceb55c8c",
-    "api/worker/openapi.yaml": "7e30bfcd60cef8ba9b273650e05186a35581eb7fddf82be3614c45ed4036aa3b",
-    "qa/fixtures/mcp-tools.json": "4e19159461875c105ca223eda3e5932a3d2801a4cce28040f69257fa6084f1f4"
+    "api/worker/openapi.yaml": "4856fae354f22642f19b77c57b18d823a59ed0d4ccb1cf159f6e0d3d68b3ab0e",
+    "qa/fixtures/mcp-tools.json": "221a6438534b4cad5890261ddbc7fb2eb839df53f053ada475ce1d88ac8a50de"
   },
   "literal_pins": {
     "mcp": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",

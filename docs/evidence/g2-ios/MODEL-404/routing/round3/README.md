@@ -1,5 +1,10 @@
 # MODEL-404 round 3: vocabulary date and generated contracts
 
+This section records the **historical pre-#819** implementation and checks.
+The [post-#819 merge verification](post819/README.md) supersedes its producer
+provenance and generated pins. The fixture bytes, snapshot, and date did not
+change when regenerated after that merge.
+
 Base: `53fde1fd302da4fd050758d42a4c5ead8bd7a593`, with this round's working
 tree changes. Python 3.14.4 from `/Users/terbeest/dev/modelspec/.venv/bin/python`;
 Node v22.22.3. All listed exits were captured directly. No production request,
@@ -69,7 +74,7 @@ fixture. The date assertion compares the full vocabulary, trimmed output,
 and pinned snapshot date before writing.
 
 [Generation output](fixture-generation.txt) and
-[provenance](display-vocabulary-provenance.json) record the source base,
+[pre-#819 provenance](post819/pre819-display-vocabulary-provenance.json) record the source base,
 producer/input hashes, full-vocabulary hash, and resulting fixture hash.
 The recorded base commit is supplemented by hashes of the working-tree
 producer inputs, including the changed trim source.
@@ -100,12 +105,12 @@ fixture generations share a snapshot.
 
 Generation ran in dependency order: agent/CLI/Worker copy, OpenAPI, then QA
 capture. [All six artifact hashes and three literal reviewed-catalogue
-digests](generated-pins.json) are unchanged and match their committed pins.
+digests](post819/pre819-generated-pins.json) were unchanged before #819 and matched their committed pins.
 Guide version remains `1-f226d9942791da1c`. QA and CLI source hashes match
 current files. The committed OpenAPI is generated with data split off, so
 it has no vocabulary route and stays unchanged; the flag-on renderer includes
 the optional date with the same required fields, as recorded in
-[flag-on schema proof](flag-on-openapi-proof.json) and exercised by the test.
+[pre-#819 flag-on schema proof](post819/pre819-flag-on-openapi-proof.json) and exercised by the test.
 
 [First-turn budgets](first-turn-budget.json) remain Claude 9,328, OpenAI 9,421,
 Gemini 9,500, within the unchanged 9,500 limit. `git diff --check` and the

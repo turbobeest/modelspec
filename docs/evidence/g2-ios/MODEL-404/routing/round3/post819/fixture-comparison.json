@@ -1,0 +1,17 @@
+{
+  "merged_upstream": "34c6dbef95371cff728a7a28aba33dcffe3e50e3",
+  "fixture_bytes_unchanged": true,
+  "full_vocabulary_bytes_unchanged": true,
+  "snapshot_unchanged": true,
+  "date_unchanged": true,
+  "snapshot": "snap_e9c30eaacfa8f2f2",
+  "as_of": "2026-10-04",
+  "fixture_sha256": "d01851094b4907f9e8ecad14b369c987616a778da5e41d3197809e7f20ae2f23",
+  "models": 44,
+  "templates": 40,
+  "available_templates": 28,
+  "changed_producer_inputs": [
+    "decision/vocabulary.py",
+    "api/worker/vendor.py"
+  ]
+}

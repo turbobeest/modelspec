@@ -33,3 +33,11 @@ Direct exit: 0. modelspec: 2711 files; discovery links resolve.
 Surface lint:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree docs/evidence/g2-ios/MODEL-404/root/round3/.generated/live/modelspec
 Direct exit: 0. 0 findings; 111 files checked.
+
+Full Python suite, queued under the shared lock:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+Source tree: 2488fbc3c92a271d002dc1179b0c6b87345d1c96; later commits contain evidence only.
+Interrupted with SIGINT when main #819 landed, before changing the source tree.
+Direct exit: 130. No full-suite pass is claimed. All owned pytest workers stopped.
+Latest progress was 88%; no failure/error progress markers were present.
+Raw interrupted output is retained locally as pre819-full-pytest.log.

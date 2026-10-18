@@ -1,4 +1,5 @@
 MODEL-404 / REV-814 round 3 browser and screenshot verification, 2026-10-18
+Latest post-#819 integration rerun: post819/results.txt.
 Review base: 53fde1fd302da4fd050758d42a4c5ead8bd7a593
 Verified source: 2488fbc3c92a271d002dc1179b0c6b87345d1c96
 Worktree: /Users/terbeest/dev/worktrees/model-404

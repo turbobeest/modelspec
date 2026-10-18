@@ -1,0 +1,16 @@
+{
+  "render_sha256": "c0de9793dd902ccb4457d709d409f7e9f1d9e0004737f6d45d027c364dfeee10",
+  "as_of": {
+    "type": "string",
+    "format": "date",
+    "description": "Snapshot date copied from the full vocabulary's coverage.as_of; absent when unavailable. This metadata does not include catalogue counts."
+  },
+  "required": [
+    "facets",
+    "domains",
+    "templates",
+    "models",
+    "estate"
+  ],
+  "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, model/plan IDs and display names, and the snapshot date when available. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions, values and synonyms, excluding nested benchmark domains. All query tokens rank first; other hits match a subset of content tokens and interleave so each token's best hit leads. A synonym hit keeps matched as label and adds optional via and matched_tokens. total counts those hits. Empty lookups explain the search and suggest the nearest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide. A funded paid key is charged one credit per 10 successful GET catalog reads ($0.002 each), up front at the start of each block, while the key can pay, capped at 1,000 reads a key a UTC day and 30 a minute, so an agent cannot rebuild a decision from cheap reads. HEAD is the same read as GET and has no body. A key with nothing left to bill for the next block is served under the free tier's daily limit. A visit token, a free-tier key and an exempt key are not charged this way. A refused read is not charged."
+}

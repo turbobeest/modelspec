@@ -1,7 +1,7 @@
 {
   "producer": "docs/evidence/g2-ios/MODEL-404/routing/round3/generate-display-vocabulary.py",
   "producer_sha256": "49a8570286da57053524b6bbc069cd12b0950d05ec500a1ea65982f24d95614a",
-  "source_commit": "53fde1fd302da4fd050758d42a4c5ead8bd7a593",
+  "source_commit": "34807d8b3d63a11228f6e4df283a4e8c7234e18b",
   "inputs": "Frozen public repository; no production or private-data call",
   "snapshot_as_of": "2026-10-04",
   "snapshot": "snap_e9c30eaacfa8f2f2",
@@ -11,10 +11,10 @@
   "fixture_sha256": "d01851094b4907f9e8ecad14b369c987616a778da5e41d3197809e7f20ae2f23",
   "source_hashes": {
     "decision/snapshot.py": "05e1dd681e8efac17475e927d74bc2f3d854c7245b8a73235bc86f0e8540b6eb",
-    "decision/vocabulary.py": "c59b550c40fbc868e5319ca99f2bd4ac9ea435d46686886687292fb285a57193",
+    "decision/vocabulary.py": "fe832a0fe349736971870b5730f391912015decf890c0db9ebb8f26409396acb",
     "pipeline/build.py": "8132a97b4c0ba4eed6b7754860abc32b175755b81a979d9c0e8519d87876df6a",
     "api/worker/src/display_vocabulary.py": "59c4571874fd1c82cf4dadaa2b3a12d2bbdf234f3ffa018efc8648251ad97423",
-    "api/worker/vendor.py": "4b2c248fc43e6ce90ba6f53a88f0c604e44093d4f0bf02da7e350a077af7a6e9",
+    "api/worker/vendor.py": "7d6091bc846cbee417bea15f8d2899b28a8bc7161abad6a44b11ef296cc0163c",
     "registry/templates.yaml": "75ba95e4a1ba56f6fa3256ab13928e6cbfac465d4e13a689f8cfe5b686045b5e"
   },
   "models": 44,
