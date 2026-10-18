@@ -86,7 +86,9 @@ and `successor_valid_from: null`. The existing health error field reports a
 snapshot load failure. The object contains no prices, records, or secrets.
 
 Health uses the same holder selection as decisions, including on a cold
-isolate and at midnight. The new object is additive in the health schema.
+isolate and at midnight. It selects after other metadata reads finish, so
+their I/O cannot cross midnight after selection. The new object is additive
+in the health schema.
 Decision contract 2.18, bounded contract 1.5, and ranking stay unchanged.
 
 ## Verification

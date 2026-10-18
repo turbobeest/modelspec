@@ -327,7 +327,7 @@ Attaching additional modules:
 ├───────────────────────────────────────────┼────────┼─────────────┤
 │ Total (349 modules)                       │        │ 9485.19 KiB │
 └───────────────────────────────────────────┴────────┴─────────────┘
-Total Upload: 9588.66 KiB / gzip: 3011.64 KiB
+Total Upload: 9588.70 KiB / gzip: 3011.68 KiB
 No bindings found.
 --dry-run: exiting now.
 

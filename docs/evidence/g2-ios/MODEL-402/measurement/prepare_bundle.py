@@ -138,7 +138,10 @@ record_peak()
                           "'POST /v1/decide (current)', 'POST /v1/decide (successor)', "
                           "'GET /v1/vocabulary'")
     (SCRATCH / "measure_memory.cjs").write_text(probe, encoding="utf-8")
+    source_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                capture_output=True, text=True, check=True).stdout.strip()
     summary = {"fixture": "Full frozen public export; synthetic signed validity overlays",
+               "source_sha": source_sha,
                "private_production_data_measured": False,
                "bundle_root": str(worker / "src"), "snapshots": details,
                "bundled_data_python_bytes": bundled_path.stat().st_size}

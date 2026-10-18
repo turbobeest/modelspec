@@ -104,6 +104,7 @@ loadPyodide({indexURL: root + '/',
     raw_kib, gzip_kib = map(float, upload.groups())
     summary = {
         "fixture": "Full frozen public catalogue; synthetic signed validity overlays",
+        "source_sha": json.loads((HERE / "fixture.json").read_text())["source_sha"],
         "private_production_data_measured": False,
         "wrangler_total_upload_kib": raw_kib,
         "wrangler_gzip_upload_kib": gzip_kib,

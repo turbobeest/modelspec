@@ -1,9 +1,16 @@
 CWD: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker
 COMMAND: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool/bin/uv run --project . pywrangler deploy --dry-run --outdir /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/upload
-INFO     Passing command to npx wrangler: npx --yes wrangler deploy --dry-run   
-         --outdir                                                               
+INFO     Resolved 6 requirements from
          /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-me
-         asurement/upload                                                       
+         asurement/worker/pylock.toml.
+INFO     Installing packages into python_modules...
+INFO     Packages installed in python_modules.
+INFO     Installing packages into .venv-workers...
+INFO     Packages installed in .venv-workers.
+INFO     Passing command to npx wrangler: npx --yes wrangler deploy --dry-run
+         --outdir
+         /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-me
+         asurement/upload
 
  ⛅️ wrangler 4.139.0 (update available 4.151.1)
 ───────────────────────────────────────────────
@@ -327,8 +334,14 @@ Attaching additional modules:
 ├───────────────────────────────────────────┼────────┼─────────────┤
 │ Total (349 modules)                       │        │ 9959.96 KiB │
 └───────────────────────────────────────────┴────────┴─────────────┘
-Total Upload: 10063.43 KiB / gzip: 3371.42 KiB
+Total Upload: 10063.47 KiB / gzip: 3371.42 KiB
 No bindings found.
 --dry-run: exiting now.
+Using CPython 3.13.15
+Creating virtual environment at: .venv-workers
+Activate with: source .venv-workers/bin/activate
+Using CPython 3.13.2
+Creating virtual environment at: .venv-workers/pyodide-venv
+Activate with: source .venv-workers/pyodide-venv/bin/activate
 
 EXIT_CODE=0

@@ -1,0 +1,2224 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+...........................s............................................ [ 33%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................F..F.FF......... [ 36%]
+...........F............................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+............................................................s........... [ 53%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+.................s....s................................................. [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+................................................................s....... [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+..............................................................FFF..F.... [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+...................................EEEEEEEEEEEE......................... [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+.................................................................ss..... [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 87%]
+..........F............FFFF............................................. [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+............................................s........................... [ 92%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+...........................................F............................ [ 95%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+..............................................s......................... [ 98%]
+........................................................................ [ 99%]
+....................................................                     [100%]
+==================================== ERRORS ====================================
+______ ERROR at setup of test_landing_behaviour_in_browser[altered_data] _______
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+________ ERROR at setup of test_landing_behaviour_in_browser[challenge] ________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_________ ERROR at setup of test_landing_behaviour_in_browser[motion] __________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_______ ERROR at setup of test_landing_behaviour_in_browser[responsive] ________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_________ ERROR at setup of test_landing_behaviour_in_browser[holding] _________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_______ ERROR at setup of test_landing_behaviour_in_browser[forwarding] ________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+____ ERROR at setup of test_landing_behaviour_in_browser[assembled_decide] _____
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_ ERROR at setup of test_landing_behaviour_in_browser[assembled_decide_mobile] _
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+__ ERROR at setup of test_landing_behaviour_in_browser[forwarded_state_ranks] __
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+____ ERROR at setup of test_landing_behaviour_in_browser[method_responsive] ____
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+_ ERROR at setup of test_landing_behaviour_in_browser[decide_dark_before_paint] _
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+__ ERROR at setup of test_landing_behaviour_in_browser[decide_theme_persists] __
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+tmp_path_factory = TempPathFactory(_given_basetemp=PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest...2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2'), _retention_count=3, _retention_policy='all')
+data = LandingData(as_of='2026-10-17', benchmark_count=12, task_input_tokens=40000, task_output_tokens=4000, monthly_tasks=10...': 'snap_b915f399af6446c9', 'url': 'https://modelspec.dev/api/coverage.json'}, band_probability=0.25, cheapest_p=0.391)
+
+    @pytest.fixture(scope="module")
+    def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
+        """Execute both landing variants once in Chromium and return named checks."""
+        browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+        playwright = ROOT / "web" / "node_modules" / "playwright"
+        if not playwright.is_dir():
+            if os.environ.get("CI"):
+                pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
+            pytest.skip("landing browser tests require `npm ci` in web/")
+
+        models = (
+            landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+            landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+            landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+            landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+        )
+        monthly_tasks = 4_321
+        changed = landing.LandingData(
+            as_of="2026-09-28",
+            benchmark_count=7,
+            task_input_tokens=12_000,
+            task_output_tokens=3_000,
+            monthly_tasks=monthly_tasks,
+            models=models,
+            leader_id="synthetic-leader",
+            cheapest_id="synthetic-cheapest",
+            ratio=9,
+            leader_monthly=models[0].cost * monthly_tasks,
+            cheapest_monthly=models[2].cost * monthly_tasks,
+            monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+            routes=(),
+            template_count=0,
+            axes=landing._plot_axes(list(models)),
+            coverage=data.coverage,
+        )
+        directory = tmp_path_factory.mktemp("landing-browser")
+        live = directory / "live.html"
+        holding = directory / "holding.html"
+        method_page = directory / "method.html"
+        live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+        holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+        from pipeline import method
+        method_page.write_text(
+            method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+            encoding="utf-8",
+        )
+        assembled = directory / "assembled"
+        (assembled / "decide").mkdir(parents=True)
+>       shutil.copyfile(
+            ROOT / "web" / "dist" / "decide.html",
+            assembled / "decide" / "index.html",
+        )
+
+tests/test_landing.py:160:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = PosixPath('/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html')
+dst = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/landing-browser0/assembled/decide/index.html')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+
+        """
+        sys.audit("shutil.copyfile", src, dst)
+
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-402/web/dist/decide.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/shutil.py:313: FileNotFoundError
+=================================== FAILURES ===================================
+_______________ test_mcp_capture_matches_current_public_sources ________________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+    def test_mcp_capture_matches_current_public_sources():
+        recorded = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+>       assert recorded == capture_tools()
+E       AssertionError: assert {'source_hash..., ...}}, ...]} == {'source_hash..., ...}}, ...]}
+E
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'source_hashes': {'mcp/src/server.ts': '2eadca1d9e74c4da00caa495987184eda22ae84ce012c930d5bca0edcc1b66fc', 'mcp/src/v...eeaa6', 'docs/decision-contract.schema.json': '1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0', ...}} != {'source_hashes': {'mcp/src/server.ts': '2eadca1d9e74c4da00caa495987184eda22ae84ce012c930d5bca0edcc1b66fc', 'mcp/src/v...eeaa6', 'docs/decision-contract.schema.json': '1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0', ...}}
+E         Use -v to get more diff
+
+tests/test_agent_harness.py:104: AssertionError
+_____________ test_full_dry_replay_has_no_network_or_keys[claude] ______________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11b305320>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_full_dry_replay_has_no_ne0')
+family = 'claude'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_full_dry_replay_has_no_network_or_keys[openai] ______________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109eb5e10>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_full_dry_replay_has_no_ne1')
+family = 'openai'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_full_dry_replay_has_no_network_or_keys[gemini] ______________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e152970>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_full_dry_replay_has_no_ne2')
+family = 'gemini'
+
+    @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+    def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
+        def forbidden(*args, **kwargs):
+            raise AssertionError("Dry-run attempted network I/O")
+
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+        for name in ("MODELSPEC_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        assert (
+>           main(
+                ["--dry-run", "--agent", family, "--output-dir", str(tmp_path), "--date", "2026-10-01"]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:152:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______ test_live_wire_loop_and_separate_judge_share_the_invocation_budget ______
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1191ed7f0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_live_wire_loop_and_separa0')
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+
+    def test_live_wire_loop_and_separate_judge_share_the_invocation_budget(
+        monkeypatch, tmp_path, config
+    ):
+        from qa.providers import KEY_ENV
+
+        for name in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
+            monkeypatch.setenv(name, "sensitive-test-value")
+        config["api_base_url"] = "https://staging.example"
+        config["export_base_url"] = "https://static-staging.example"
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(yaml.safe_dump(config))
+        seen = []
+        model_calls = 0
+
+        def handler(request):
+            nonlocal model_calls
+            seen.append(request)
+            if request.url.host == "staging.example":
+                assert request.headers["authorization"] == "Bearer sensitive-test-value"
+                return httpx.Response(
+                    400,
+                    json={
+                        "error": {
+                            "code": "invalid_spec",
+                            "issues": [{"field": "task", "reason": "free-text task is unsupported"}],
+                        },
+                        "echo": "sensitive-test-value",
+                    },
+                )
+            payload = json.loads(request.content)
+            model_calls += 1
+            assert request.url.path == ("/v1/responses" if model_calls < 3 else "/v1/messages")
+            if model_calls == 1:
+                assert "approved recall evidence" not in payload["input"][0]["content"]
+                output = [
+                    {
+                        "type": "function_call",
+                        "call_id": "c1",
+                        "name": "decide",
+                        "arguments": json.dumps(
+                            {
+                                "spec_version": 1,
+                                "task": "exact prompt",
+                                "optimize": {"max": "reasoning"},
+                            }
+                        ),
+                    }
+                ]
+            elif model_calls == 2:
+                assert "sensitive-test-value" not in json.dumps(payload)
+                assert "invalid_spec" in payload["input"][-1]["output"]
+                output = [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "ModelSpec cannot select a model for this exact prompt.",
+                            }
+                        ],
+                    }
+                ]
+            else:
+                assert model_calls == 3 and "Judge the submitted answer" in payload["system"]
+                assert not payload["tools"]
+                output = [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": json.dumps(
+                                    {
+                                        "passed": True,
+                                        "rationale": "Honest refusal",
+                                        "top_models": [],
+                                        "answer_kind": "abstain",
+                                        "missing_capabilities": ["prompt interpretation"],
+                                    }
+                                ),
+                            }
+                        ],
+                    }
+                ]
+            if model_calls == 3:
+                return httpx.Response(200, json={"content": [{"type": "text", "text": output[0]["content"][0]["text"]}],
+                                                "usage": {"input_tokens": 100, "output_tokens": 50}})
+            return httpx.Response(
+                200, json={"output": output, "usage": {"input_tokens": 100, "output_tokens": 50}}
+            )
+
+        client_class = httpx.Client
+        monkeypatch.setattr(
+            httpx, "Client", lambda **kw: client_class(transport=httpx.MockTransport(handler), **kw)
+        )
+        assert (
+>           main(
+                [
+                    "--config",
+                    str(config_path),
+                    "--agent",
+                    "openai",
+                    "--scenario",
+                    "prompt-code",
+                    "--output-dir",
+                    str(tmp_path),
+                    "--date",
+                    "2026-10-01",
+                ]
+            )
+            == 0
+        )
+
+tests/test_agent_harness.py:679:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+____ test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence _____
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10bf27540>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_rescore_only_calls_the_ro0')
+
+    def test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence(config, monkeypatch, tmp_path):
+        source = saved_report()
+        path = tmp_path / "source.json"
+        path.write_text(json.dumps(source))
+        seen = []
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+        for key in ("OPENAI_API_KEY", "GEMINI_API_KEY", "MODELSPEC_API_KEY"):
+            monkeypatch.delenv(key, raising=False)
+
+        def handler(request):
+            seen.append(request)
+            assert request.url.host == "api.anthropic.com" and request.url.path == "/v1/messages"
+            payload = json.loads(request.content)
+            assert payload["tools"] == []
+            evidence = json.loads(payload["messages"][0]["content"])
+            assert evidence["tool_calls"][0]["result"] == source["tool_responses"]["r1"]
+            assert evidence["final_answer"] == source["runs"][0]["final_answer"]
+            assert "old-judge" not in json.dumps(evidence)
+            return httpx.Response(200, json={"content": [{"type": "text", "text": json.dumps(opinion())}],
+                                            "usage": {"input_tokens": 20, "output_tokens": 10}})
+
+        client = httpx.Client
+        monkeypatch.setattr(httpx, "Client", lambda **kw: client(transport=httpx.MockTransport(handler), **kw))
+>       assert harness.main(["--rescore", str(path), "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 0
+
+tests/test_agent_gaps.py:114:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+__________ test_rescore_dry_run_never_runs_an_agent_or_fetches_tools ___________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11a6f51d0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_rescore_dry_run_never_run0')
+
+    def test_rescore_dry_run_never_runs_an_agent_or_fetches_tools(monkeypatch, tmp_path):
+        path = tmp_path / "source.json"
+        source = saved_report()
+        capped = copy.deepcopy(source["runs"][0])
+        capped.update(final_answer="", status="spend_cap", judge=None)
+        source["runs"].append(capped)
+        source["runs"].append(copy.deepcopy(source["runs"][0]))
+        path.write_text(json.dumps(source))
+
+        def forbidden(*args, **kwargs):
+            pytest.fail("Re-score attempted an agent, tool fetch or HTTP call")
+
+        monkeypatch.setattr(harness, "ReplayAgent", forbidden)
+        monkeypatch.setattr(harness, "ReplayTools", forbidden)
+        monkeypatch.setattr(httpx.Client, "request", forbidden)
+>       assert harness.main(["--rescore", str(path), "--dry-run", "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 0
+
+tests/test_agent_gaps.py:143:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_rescore_spend_cap_prevents_the_judge_http_call ______________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ec666d0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw3/test_rescore_spend_cap_prevent0')
+
+    def test_rescore_spend_cap_prevents_the_judge_http_call(monkeypatch, tmp_path):
+        path = tmp_path / "source.json"
+        path.write_text(json.dumps(saved_report()))
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+        monkeypatch.setenv("OPENAI_API_KEY", "offline-key")
+        monkeypatch.setenv("GEMINI_API_KEY", "offline-key")
+        monkeypatch.setattr(httpx.Client, "request", lambda *a, **k: pytest.fail("Unreserved judge call"))
+>       assert harness.main(["--rescore", str(path), "--spend-cap", "0.000001", "--output-dir", str(tmp_path / "out"),
+                             "--date", "2026-10-03"]) == 2
+
+tests/test_agent_gaps.py:159:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_______ test_all_mcp_first_turns_fit_the_budget_without_keys_or_network ________
+[gw3] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+config = {'spend_cap_usd': 25, 'turn_cap': 8, 'tool_call_cap': 12, 'max_output_tokens': 4096, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10d3f81a0>
+capsys = <_pytest.capture.CaptureFixture object at 0x11af2c450>
+
+    def test_all_mcp_first_turns_fit_the_budget_without_keys_or_network(config, monkeypatch, capsys):
+        for key in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setattr(httpx.Client, "request", lambda *a, **k: pytest.fail("Offline accounting made an HTTP call"))
+>       assert harness.main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_gaps.py:207:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+capsys = <_pytest.capture.CaptureFixture object at 0x12df16bd0>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+>       assert main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_guide.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[mcp-False] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x111758ad0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/test_harness_prompt_arms_repla0')
+interface = 'mcp', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_____________ test_harness_prompt_arms_replay_offline[http-False] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1117591d0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/test_harness_prompt_arms_repla1')
+interface = 'http', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[mcp-True] _______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11b751f60>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/test_harness_prompt_arms_repla2')
+interface = 'mcp', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+______________ test_harness_prompt_arms_replay_offline[http-True] ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11c7912b0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-890/popen-gw2/test_harness_prompt_arms_repla3')
+interface = 'http', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:950: in main
+    parser.error("MCP definitions drifted; run python -m qa.contracts and review the capture")
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2782: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='-c', usage=None, description='Run public ModelSpec agent scenarios. Full offline replay is the de...rness --smoke-vocabulary\n', formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/argparse.py:2769: SystemExit
+----------------------------- Captured stderr call -----------------------------
+usage: -c [-h] [--dry-run | --smoke-vocabulary | --first-turn-breakdown]
+          [--rescore RESCORE] [--config CONFIG] [--scenarios SCENARIOS]
+          [--fixtures FIXTURES] [--output-dir OUTPUT_DIR] [--date DATE]
+          [--api-base-url API_BASE_URL] [--export-base-url EXPORT_BASE_URL]
+          [--spend-cap SPEND_CAP] [--turn-cap TURN_CAP]
+          [--tool-call-cap TOOL_CALL_CAP] [--interface {mcp,http}]
+          [--control-full-spec] [--agent {claude,openai,gemini}]
+          [--scenario SCENARIO]
+-c: error: MCP definitions drifted; run python -m qa.contracts and review the capture
+_______________ test_flag_off_response_equals_main[decide POST] ________________
+[gw1] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+worker = <modelspec_worker_entry_x402.Default object at 0x11c92da90>
+name = 'decide POST'
+
+    @pytest.mark.parametrize("name", sorted(REQUESTS))
+    def test_flag_off_response_equals_main(worker, name):
+        path, body, method, headers = REQUESTS[name]
+        from api.worker.src.agent_guide import GUIDE_VERSION
+        actual = _snapshot(asyncio.run(worker.fetch(_Req(path, body, method, headers))))
+        discovery = actual["headers"]
+        assert discovery.pop("Link") == '<https://modelspec.dev/agents.md>; rel="describedby"'
+        assert discovery.pop("x-modelspec-guide-version") == GUIDE_VERSION
+        exposed = discovery.pop("access-control-expose-headers")
+        added = "Link, x-modelspec-guide-version"
+        assert exposed == added or exposed.endswith(", " + added)
+        if exposed != added:
+            discovery["access-control-expose-headers"] = exposed.removesuffix(", " + added)
+        if name == "vocabulary GET query":
+            assert actual["body"].pop("next") == "next: call decide using these ids; refine from reading"
+        expected = copy.deepcopy(MAIN[name])
+        if expected["status"] == 404:
+            accepted = expected["body"]["error"]["accepted"]
+            accepted.insert(accepted.index("POST /v1/feedback"), "POST /v1/hardware-fit")
+>       assert actual == expected
+E       AssertionError: assert {'status': 20...xample/ok'}]}} == {'body': {'co...'status': 200}
+E
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'headers': {'access-control-allow-headers': 'authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot,...ods': 'POST, OPTIONS', 'access-control-allow-origin': 'https://modelspec.dev', 'access-control-max-age': '86400', ...}} != {'headers': {'access-control-allow-headers': 'authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot,... 'x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing', ...}}
+E         Use -v to get more diff
+
+tests/test_visit_gate_off.py:81: AssertionError
+=============================== warnings summary ===============================
+tests/test_cli_snapshot.py: 3 warnings
+tests/test_cli_keyed_origin.py: 7 warnings
+  /Users/terbeest/dev/worktrees/model-402/cli/modelspec/snapshot.py:552: RuntimeWarning: the fetched decision vocabulary is unsigned: it carries no Ed25519 signature the CLI can check, so its model and provider names, outcome records and templates are trusted on the snapshot ID alone.
+    decision_fetch = _fetch_decision_files(origin, directory, credential)
+
+tests/test_cli_snapshot.py::test_successive_fetches_keep_current_and_previous_generations
+  /Users/terbeest/dev/worktrees/model-402/tests/test_cli_snapshot.py:523: RuntimeWarning: the fetched decision vocabulary is unsigned: it carries no Ed25519 signature the CLI can check, so its model and provider names, outcome records and templates are trusted on the snapshot ID alone.
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[claude]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[openai]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[gemini]
+FAILED tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget
+FAILED tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence
+FAILED tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools
+FAILED tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call
+FAILED tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+FAILED tests/test_visit_gate_off.py::test_flag_off_response_equals_main[decide POST]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[altered_data]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[challenge] - F...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[motion] - File...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[responsive] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[holding] - Fil...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarding] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide_mobile]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarded_state_ranks]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[method_responsive]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_dark_before_paint]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_theme_persists]
+15 failed, 11464 passed, 9 skipped, 11 warnings, 12 errors in 1210.76s (0:20:10)

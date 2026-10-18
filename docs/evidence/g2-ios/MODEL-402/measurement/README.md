@@ -1,5 +1,9 @@
 # Reproduce the MODEL-402 bundle measurements
 
+The primary results measure source
+`cf7f72cead28e08d1e3152512c3a19202d098de9`, including the health metadata
+ordering fix. The prior complete evidence remains in commit `dc8a7c17`.
+
 Run these commands from the MODEL-402 worktree root:
 
 ```bash
@@ -45,21 +49,26 @@ candidate counts. `summary.json` and `baseline-summary.json` record the
 measurements. `upload-manifest.json` records each dual-snapshot output file's
 size and SHA-256 digest.
 
-The observed dual-snapshot upload totals 10,304,957 bytes, or 10,063.43 KiB,
-with 3,371.42 KiB gzip. The one-snapshot baseline totals 9,588.66 KiB,
-with 3,011.64 KiB gzip. Both dry builds and the dual output import check exit 0.
+The observed dual-snapshot upload totals 10,304,997 bytes, or 10,063.47 KiB,
+with 3,371.42 KiB gzip. The one-snapshot baseline totals 9,588.70 KiB,
+with 3,011.68 KiB gzip. Both dry builds and the dual output import check exit 0.
 
-The cached dual memory probe measures 116.3317 MiB steady and 116.3965 MiB peak
-and exits 0. The prior cached run measures 116.3312 MiB steady and
-116.3961 MiB peak and exits 0. Both use 71.875 MiB of Wasm memory.
-The baseline measures 103.8661 MiB steady and 104.2666 MiB peak and exits 0.
-The dual probe increases steady memory by about 12.47 MiB over that baseline.
+The cached dual memory probe measures 116.3302 MiB steady and 116.7542 MiB peak
+and exits 0. The cached repeat measures 116.3462 MiB steady and
+116.7703 MiB peak and exits 0. Both use 71.875 MiB of Wasm memory.
+The baseline measures 103.8691 MiB steady and 104.2697 MiB peak and exits 0.
+The first dual probe increases steady memory by about 12.46 MiB over that baseline.
 
-An earlier dual probe downloads the five dependency wheels in the measured
-process. It measures 120.7204 MiB steady and 120.7852 MiB peak and exits 1
+The prior source `ef31a864` measured 116.3317 MiB steady and 116.3965 MiB peak
+in its cached probe. Its cached repeat measured 116.3312 MiB steady and
+116.3961 MiB peak, and its baseline measured 103.8661 MiB steady.
+Those observations remain in the earlier evidence commit.
+
+An earlier dual probe on source `ef31a864` downloads the five dependency wheels
+in the measured process. It measures 120.7204 MiB steady and 120.7852 MiB peak and exits 1
 because it exceeds the unchanged 120 MiB safety threshold. Every request
 assertion passes. That run has the same 71.875 MiB Wasm allocation as the
-cached runs and about 4.39 MiB more retained non-Wasm memory. The package
+earlier cached runs and about 4.39 MiB more retained non-Wasm memory. The package
 downloads and memory difference suggest setup overhead; the probe does not
 prove the cause. `memory-cold-download.txt` preserves this result.
 

@@ -62,6 +62,7 @@ def main() -> None:
                        if line.startswith('{"runtime"')]
         summary = {
             "fixture": "Same full frozen bundle; only successor snapshot/vocabulary omitted",
+            "source_sha": json.loads((HERE / "fixture.json").read_text())["source_sha"],
             "baseline_bundled_data_python_bytes": baseline_data_bytes,
             "wrangler_total_upload_kib": float(upload[1]),
             "wrangler_gzip_upload_kib": float(upload[2]),

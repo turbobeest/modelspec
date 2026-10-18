@@ -1,13 +1,20 @@
 # MODEL-402 execution evidence
 
-The Worker holds a signed current snapshot and, when it expires, one signed
-successor built from the same checkout. It selects the price period on each
-request using the UTC date. Both signatures must verify before either snapshot
+The Worker bundle contains a signed current snapshot and one signed successor
+when the current snapshot has an expiry. Both come from the same checkout.
+The Worker selects the price period on each request using the UTC date. Both signatures must verify before either snapshot
 can serve. Exhausted coverage returns `503 no_snapshot`.
 
 The bundle also carries matching successor vocabulary. Dated vocabulary uses
 `no-store`, and the response snapshot header comes from that response's body
 so another request cannot change it during an awaited billing operation.
+
+Execution stopped at the spec's path restriction. The additive health schema
+changes the OpenAPI hash captured in `qa/fixtures/mcp-tools.json`. CI requires
+refreshing that capture, which is outside the allowed paths. The spec says to
+stop and report if a file outside `api/worker/`, `decision/`, `docs/`, or
+`tests/` is needed. That capture remains unchanged. This draft is blocked and
+has not passed the required complete suite.
 
 ## Revision and review state
 
@@ -17,7 +24,7 @@ so another request cannot change it during an awaited billing operation.
 - Base: `a551fe82eef93fcb1d4389a435b2f62927d0a25e`.
 - First commit: `7075a312`, design only, published as draft PR
   [#813](https://github.com/turbobeest/modelspec/pull/813) before implementation.
-- Final implementation commit: `ef31a8648cb9b551bbf8f8b7bcbbda1d3a579e73`. The evidence-only commit follows
+- Final implementation commit: `cf7f72cead28e08d1e3152512c3a19202d098de9`. The evidence-only commit follows
   this revision. The completion record reports the final branch SHA, which an
   evidence file cannot contain literally without changing its own commit hash.
 - Independent local review found and verified the vocabulary and concurrent
@@ -48,6 +55,7 @@ existing refusal exception, preserving MODEL-394's holder refusal assertions.
 | Vocabulary remains pinned to old period | `test_vocabulary_and_pinned_decisions_handover_together`, two response forms; `test_expired_warm_bundle_clears_snapshot_header_and_refuses_vocabulary`; `test_successor_vocabulary_names_its_snapshot_and_reaches_the_bundle` | Dated responses retained `private, max-age=3600`; expired vocabulary returned 200; successor vocabulary file was absent. | Full vocabulary, queried facet values, and decisions pinned to the reloaded ID follow the serving period; expired coverage refuses vocabulary. Queried vocabulary keeps its existing response shape. |
 | Future vocabulary evaluates against today's clock | `test_real_vocabulary_builder_can_evaluate_future_price_templates` | `SnapshotError` at `decision/vocabulary.py` when its template evaluation tried to use a future period live. | Build-time template evaluation reads resolved prices; live future and expired decisions still refuse. |
 | Concurrent response header names another request's snapshot | `test_each_response_header_keeps_its_own_snapshot_during_concurrent_handover` | Primary body `snap_71375f0b85d48b07` had successor header `snap_31c8f35c2efc0746`. | Both interleaved responses have headers equal to their own body snapshot references. |
+| Health I/O crosses the boundary after selection | `test_health_selects_after_metadata_io_crosses_midnight` | The serving ID was null instead of `snap_31c8f35c2efc0746` when the determination read crossed midnight. | Health selects after that read, so it reports the successor's ID and expiry. |
 
 The initial Worker run reported `12 failed in 0.84s`. The initial vendor run
 reported `4 failed, 1 passed in 0.48s`. Additional health-schema, vocabulary,
@@ -66,10 +74,12 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor.py::test_health_contract_adds_optional_snapshot_metadata_with_declared_nullability
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor.py -k 'vocabulary or expired_warm'
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor.py::test_each_response_header_keeps_its_own_snapshot_during_concurrent_handover
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor.py::test_health_selects_after_metadata_io_crosses_midnight
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_successor.py tests/test_snapshot_successor_vendor.py tests/test_dated_price_serving.py tests/test_decide_snapshot_refresh.py
 ```
 
-The final combined run exited 0 with `54 passed in 2.66s`. It includes the
+The combined run initially exited 0 with `54 passed in 2.66s`. After the
+health I/O regression, the final run exited 0 with `55 passed in 2.99s`. It includes the
 existing conditional fetch, stale fallback, expiry during concurrent loading,
 and historical comparison regressions from MODEL-394. The new vendor tests
 also passed independently, `7 passed in 1.50s`.
@@ -120,15 +130,49 @@ The required complete suite uses the shared lock:
 env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
-The complete suite's result will be recorded here after completion.
+The required complete suite exited **1** with `15 failed, 11464 passed,
+9 skipped, 11 warnings, 12 errors in 1210.76s`. The [complete output](MODEL-402/full-suite.txt)
+and [source/exit record](MODEL-402/full-suite-source.txt) are retained. Production
+source stayed at `cf7f72ce` throughout the run.
+
+Fourteen failures come from the OpenAPI capture drift, including five
+agent-guide cases beyond the nine seen in the two completed CI artifacts.
+The remaining failure is the snapshot-header fixture mismatch described below.
+All twelve setup errors report a missing `web/dist/decide.html` while preparing
+the landing-page browser fixture. `npm ci` had passed, but the browser output
+was absent in this local worktree. CI's site builds and four browser gate
+configurations passed. No post-stop build or rerun was attempted. The
+[triage note](MODEL-402/full-suite-triage.txt) lists every failed/error node ID.
+Terminal logs retain their test output with trailing whitespace removed.
 
 Tool versions observed: CPython 3.14.4 in the shared repository environment,
-pytest 9.1.1, Node v22.22.3, npm 10.9.8, git 2.50.1, gh 2.102.0, and flock
+pytest 9.1.1, Ruff 0.16.6, Node v22.22.3, npm 10.9.8, git 2.50.1, gh 2.102.0, and flock
 0.4.0. The isolated Worker measurement uses CPython 3.13.15, uv 0.12.19,
 workers-py 1.17.4, workers-runtime-sdk 1.9.0, Wrangler 4.139.0, and Pyodide
 0.28.3. The measurement retained the rejected attempt with preinstalled uv
 0.7.13 and then installed the workflow-pinned version in its own scratch
 directory.
+
+## CI failures and stopped work
+
+The [CI evidence](MODEL-402/ci-failures.txt) records ten failed tests in two
+completed shards. Nine failures come from the OpenAPI capture drift.
+The full recorded/current comparison differs only in the captured OpenAPI
+source hash. Tool definitions are unchanged.
+
+The tenth failure is
+`tests/test_visit_gate_off.py::test_flag_off_response_equals_main[decide POST]`.
+Its expected response in `tests/fixtures/visit_gate_off_main.json` omits the
+snapshot header now copied from the response body. The header is
+`x-modelspec-snapshot: snapshot-test` in the actual response. No fixture update
+or further implementation edit followed discovery of the forbidden QA path.
+
+Both sites, all four human/visit gate browser combinations, Worker bundling,
+MCP tests, decision accuracy, data freeze, and release-chart evidence checks
+passed in CI at the implementation revision. Two pytest shards failed; another
+was still running during evidence capture. These passes do not override the
+failed pytest gate. The PR remains a draft, pending scope expansion and the
+required corrections, another full run, and independent review.
 
 ## Limits and observations
 
@@ -147,13 +191,13 @@ exercise real Argon-like schedules.
 
 | Measurement | One snapshot | Current and successor |
 |---|---:|---:|
-| Uncompressed Worker upload | 9,588.66 KiB | 10,063.43 KiB |
-| Gzip upload | 3,011.64 KiB | 3,371.42 KiB |
-| Cached steady memory | 103.8661 MiB | 116.3317 MiB |
-| Cached peak memory | 104.2666 MiB | 116.3965 MiB |
+| Uncompressed Worker upload | 9,588.70 KiB | 10,063.47 KiB |
+| Gzip upload | 3,011.68 KiB | 3,371.42 KiB |
+| Cached steady memory | 103.8691 MiB | 116.3302 MiB |
+| Cached peak memory | 104.2697 MiB | 116.7542 MiB |
 | Probe exit code | 0 | 0 |
 
-The dual upload totals exactly 10,304,957 bytes, or 15.36% of the current
+The dual upload totals exactly 10,304,997 bytes, or 15.36% of the current
 64 MiB code limit. Its actual dry-run output passes the bundle import check,
 with 76 reachable local modules. The cached probe passes the unchanged
 120 MiB repository safety threshold and drives current-to-successor handover,
@@ -161,8 +205,9 @@ vocabulary, rank, and policy-check with network requests refused by the stub.
 
 An earlier probe downloaded five Pyodide wheels in its measured process and
 reported 120.7204 MiB steady, 120.7852 MiB peak, exit 1 at the 120 MiB safety
-threshold. All request assertions passed. Two repeats with wheels already
-cached passed at about 116.33 MiB steady. Wasm allocation was identical in
+threshold. That observation used source `ef31a864`. All request assertions
+passed. Cached final-source runs passed at 116.3302 and 116.3462 MiB steady.
+Wasm allocation was identical in
 all dual runs, 71.875 MiB. Setup overhead is an inference from the downloads
 and the extra retained non-Wasm memory. The logs preserve the failed
 observation, and no threshold or GC policy was changed. Every observed total

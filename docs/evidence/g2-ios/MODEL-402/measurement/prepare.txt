@@ -2,6 +2,7 @@ CWD: /Users/terbeest/dev/worktrees/model-402
 COMMAND: /Users/terbeest/dev/modelspec/.venv/bin/python /Users/terbeest/dev/worktrees/model-402/docs/evidence/g2-ios/MODEL-402/measurement/prepare_bundle.py
 {
   "fixture": "Full frozen public export; synthetic signed validity overlays",
+  "source_sha": "cf7f72cead28e08d1e3152512c3a19202d098de9",
   "private_production_data_measured": false,
   "bundle_root": "/Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker/src",
   "snapshots": [
