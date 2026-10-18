@@ -261,17 +261,10 @@ describe("modelspec MCP worker", () => {
     expect(originFetch).not.toHaveBeenCalled();
   });
 
-  it.each([undefined, "true", "typo", "", "0"])("requires a key unless the MCP setting explicitly says false (%s)", async (setting) => {
+  it.each([undefined, "true", "false", "typo", "", "0"])("requires a key regardless of the legacy MCP setting (%s)", async (setting) => {
     const { payload } = await rpc("tools/call", { name: "rank", arguments: { use_case: "coding" } }, 1, {}, { ...ENV, MCP_REQUIRE_API_KEY: setting });
     expect(envelopeFromCall(payload).status).toBe(401);
     expect(originFetch).not.toHaveBeenCalled();
-  });
-
-  it("permits anonymous calls only with the explicit MCP opt-out", async () => {
-    originFetch.mockResolvedValueOnce(jsonResponse(200, { result: [] }));
-    const { payload } = await rpc("tools/call", { name: "rank", arguments: { use_case: "coding" } }, 1, {}, { ...ENV, MCP_REQUIRE_API_KEY: "false" });
-    expect(envelopeFromCall(payload).status).toBe(200);
-    expect(originFetch).toHaveBeenCalledOnce();
   });
 
   it("rank happy path proxies the origin JSON and URL", async () => {
