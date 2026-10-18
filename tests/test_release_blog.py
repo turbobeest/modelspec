@@ -454,6 +454,12 @@ def test_headline_rules_are_neutral_and_digit_free() -> None:
     assert long.rule == "leading_band+awaiting,dropped_for_length"
     assert headline(name="Alpha", best=[], ranked_outside=[], thin=[], claims=0,
                     claims_read=0, same_setup=0).rule == "no_estimate+no_claims"
+    versioned = headline(name="Alpha 2.5", best=[("Software engineering", False)],
+                         ranked_outside=[], thin=[], claims=2, claims_read=1, same_setup=1)
+    assert versioned.text == (
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures")
+    assert not any(character.isdigit() for character in versioned.text)
 
 
 # ── an LLM may smooth wording, and nothing else ────────────────────────────

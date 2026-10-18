@@ -1,30 +1,24 @@
 """Fact slots for platform drafts (MODEL-226).
 
-A slot is one formatted fact. Prose and chart text may contain a digit only
-when a slot placed it there. ``Piece.lit`` rejects a digit in a template.
-``audit`` rejects a digit in rendered claim text that is not one of the
-slots for that surface.
+A draft is a list of pieces. A piece is a reviewed literal with no digit, or
+a slot that names a fact and a formatter. ``bind`` rebuilds the draft from
+those pieces and the breakdown, requires the same bytes, and rejects any
+digit that the slot did not place. There is no second channel for text.
 """
 
 from __future__ import annotations
 
-import math
 import re
-from collections import Counter
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
-from html import unescape
-from html.parser import HTMLParser
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 from release_blog.model import Breakdown, Cited
 from release_blog.render import SNAPSHOT_FILE, _number
+from release_blog.wording import difference, plan_line
 
 _DIGIT = re.compile(r"\d")
-# Optional minus so a formatted ``-0.30`` matches the character sequence in the chart.
-_TOKEN = re.compile(r"(?<![\w.^])-?[$]?\d[\d,]*(?:\.\d+)?%?")
-_TEXT = re.compile(r"<text\b[^>]*>(.*?)</text>", re.DOTALL)
-_TITLE = re.compile(r"<title\b[^>]*>(.*?)</title>", re.DOTALL)
-_LABEL = re.compile(r'aria-label="([^"]*)"')
+_DIGITS = re.compile(r"\d+")
+_FORMATTERS = frozenset({"value", "source_url", "read_date"})
 _BARE_UNITS = {None, "percent", "USD", "USD per month", "usd_per_1m_tokens", "probability"}
 
 
@@ -37,59 +31,29 @@ class Fact:
 
 
 @dataclass(frozen=True)
-class FilledSlot:
+class Literal:
+    text: str
+
+    def __post_init__(self) -> None:
+        if _DIGIT.search(self.text):
+            raise ValueError(f"template literal contains a digit: {self.text!r}")
+
+
+@dataclass(frozen=True)
+class Slot:
     fact_id: str
-    source_url: str
-    read_date: str
-    formatted: str
-    chart: str
+    formatter: str = "value"
+
+    def __post_init__(self) -> None:
+        if self.formatter not in _FORMATTERS:
+            raise ValueError(f"unknown formatter {self.formatter}")
 
 
-def _pure(text: str) -> bool:
-    return _TOKEN.fullmatch(text.strip()) is not None
+Piece = Literal | Slot
 
 
-def _cover(text: str) -> bool:
-    """A string that may hide a digit without being a measurement token."""
-    return bool(text) and bool(_DIGIT.search(text)) and not _pure(text)
-
-
-@dataclass
-class Piece:
-    """One chart's sentence. Digits enter through ``put`` or ``data``."""
-
-    chart: str
-    parts: list[str] = field(default_factory=list)
-    slots: list[FilledSlot] = field(default_factory=list)
-    tokens: list[str] = field(default_factory=list)
-    identity: list[str] = field(default_factory=list)
-
-    def lit(self, text: str) -> None:
-        if _DIGIT.search(text):
-            raise ValueError(f"template literal contains a digit: {text!r}")
-        self.parts.append(text)
-
-    def data(self, text: str) -> None:
-        if _cover(text):
-            self.identity.append(text)
-        self.parts.append(text)
-
-    def put(self, fact: Fact) -> None:
-        self.parts.append(fact.formatted)
-        self.tokens.append(fact.formatted)
-        self.slots.append(
-            FilledSlot(
-                fact.fact_id,
-                fact.source_url,
-                fact.read_date,
-                fact.formatted,
-                self.chart,
-            )
-        )
-
-    @property
-    def text(self) -> str:
-        return "".join(self.parts)
+def needs_unit_suffix(unit: str | None) -> bool:
+    return unit not in _BARE_UNITS
 
 
 def _locate(breakdown: Breakdown, cited: Cited) -> tuple[str, str]:
@@ -101,12 +65,20 @@ def _locate(breakdown: Breakdown, cited: Cited) -> tuple[str, str]:
     return SNAPSHOT_FILE.format(id=snap), cited.read_date.isoformat()
 
 
-def _add(book: dict[str, Fact], fact_id: str, formatted: str, url: str, read: str) -> Fact:
+def _label(book: dict[str, Fact], fact_id: str, text: str) -> None:
+    """An identifier copied from the breakdown. It is not a measured reading."""
+    current = book.get(fact_id)
+    if current is not None:
+        if current.formatted != text:
+            raise ValueError(f"label {fact_id} already has a different value")
+        return
+    _add(book, fact_id, text, "", "")
+
+
+def _add(book: dict[str, Fact], fact_id: str, formatted: str, url: str, read: str) -> None:
     if fact_id in book:
         raise ValueError(f"duplicate fact id {fact_id}")
-    fact = Fact(fact_id, formatted, url, read)
-    book[fact_id] = fact
-    return fact
+    book[fact_id] = Fact(fact_id, formatted, url, read)
 
 
 def _add_cited(
@@ -115,38 +87,20 @@ def _add_cited(
     formatted: str,
     breakdown: Breakdown,
     cited: Cited,
-) -> Fact:
+) -> None:
     url, read = _locate(breakdown, cited)
-    return _add(book, fact_id, formatted, url, read)
+    _add(book, fact_id, formatted, url, read)
 
 
-def displayed_estimates(breakdown: Breakdown) -> list[tuple[str, Cited]]:
-    """Rows the standing chart labels, skipping a leader who is the subject."""
-    rows: list[tuple[str, Cited]] = []
-    for index, standing in enumerate(breakdown.standing):
-        seen = {breakdown.model.id}
-        rows.append((f"standing[{index}].estimate", standing.estimate))
-        for leader_index, leader in enumerate(standing.leaders):
-            if leader.model in seen or leader.estimate is None:
-                continue
-            seen.add(leader.model)
-            rows.append((f"standing[{index}].leaders[{leader_index}].estimate", leader.estimate))
-    return rows
-
-
-def _ticks(rows: Sequence[tuple[str, Cited]]) -> list[int]:
-    if not rows:
-        return []
-    lo = min(cited.low or cited.value for _, cited in rows)
-    hi = max(cited.high or cited.value for _, cited in rows)
-    pad = (hi - lo) * 0.05 or 1.0
-    lo, hi = lo - pad, hi + pad
-    return list(range(math.ceil(lo), math.floor(hi) + 1))
-
-
-def catalogue(breakdown: Breakdown) -> dict[str, Fact]:
-    """Every fact a draft can print, keyed by id. Rendering chooses which."""
+def catalogue(breakdown: Breakdown, post_url: str) -> dict[str, Fact]:
+    """Every fact a draft can print, keyed by id."""
     book: dict[str, Fact] = {}
+    as_of = breakdown.generated_from.after.as_of
+    if as_of is None:
+        raise ValueError("generated_from.after.as_of is missing")
+    snapshot = SNAPSHOT_FILE.format(id=breakdown.generated_from.after.snapshot_id)
+    _add(book, "model.name", breakdown.model.name, snapshot, as_of.isoformat())
+    _add(book, "post.url", post_url, "", "")
     for row in breakdown.claims_vs_evidence.claims:
         claim_id = f"claims.{row.benchmark}.claim"
         _add_cited(book, claim_id, _number(row.claim.value, row.claim.unit), breakdown, row.claim)
@@ -178,17 +132,6 @@ def catalogue(breakdown: Breakdown) -> dict[str, Fact]:
                 breakdown,
                 cited,
             )
-    rows = displayed_estimates(breakdown)
-    for base, cited in rows:
-        _add_cited(book, f"{base}.value", f"{cited.value:.2f}", breakdown, cited)
-        if cited.low is None or cited.high is None:
-            continue
-        _add_cited(book, f"{base}.low", f"{cited.low:.2f}", breakdown, cited)
-        _add_cited(book, f"{base}.high", f"{cited.high:.2f}", breakdown, cited)
-    if rows:
-        url, read = _locate(breakdown, rows[0][1])
-        for tick in _ticks(rows):
-            _add(book, f"standing.scale.{tick}", str(tick), url, read)
     for index, offering in enumerate(breakdown.cost.offerings):
         cost = offering.cost_per_task
         if cost is None:
@@ -206,178 +149,83 @@ def catalogue(breakdown: Breakdown) -> dict[str, Fact]:
     held = breakdown.not_yet_measured.held_back or {}
     for reason, cited in held.items():
         _add_cited(book, f"held_back.{reason}", _number(cited.value, cited.unit), breakdown, cited)
+        _label(book, f"label.held.{reason}", reason.replace("_", " "))
+    _label(book, "label.class", breakdown.model.class_.replace("-", " "))
+    gaps = breakdown.not_yet_measured
+    for name in gaps.claims_without_reading:
+        _label(book, f"label.benchmark.{name}", name)
+    for row in breakdown.claims_vs_evidence.claims:
+        _label(book, f"label.benchmark.{row.benchmark}", row.benchmark)
+        for index, reading in enumerate(row.readings):
+            if reading.comparability == "same_setup":
+                continue
+            sentence = difference(reading.comparability, differs_in=reading.differs_in)
+            sentence = sentence[:1].lower() + sentence[1:]
+            _label(book, f"label.relation.{row.benchmark}[{index}]", sentence)
+            if needs_unit_suffix(reading.value.unit):
+                unit = " " + (reading.value.unit or "").replace("_", " ")
+                _label(book, f"label.unit.{row.benchmark}[{index}]", unit)
+    for item in breakdown.claims_vs_evidence.unreported:
+        _label(book, f"label.benchmark.{item.benchmark}", item.benchmark)
+    for index, standing in enumerate(breakdown.standing):
+        name = standing.domain.name
+        _label(book, f"label.standing[{index}].domain", name[:1].lower() + name[1:])
+    for index, name in enumerate(gaps.domains_without_estimate):
+        _label(book, f"label.domain[{index}]", name)
+    for index, row in enumerate(gaps.unknown_facets):
+        _label(book, f"label.facet[{index}]", row.facet)
+    for index, row in enumerate(gaps.domains_inapplicable):
+        _label(book, f"label.inapplicable[{index}].domain", row.domain)
+        _label(book, f"label.inapplicable[{index}].reason", row.reason)
+    for index, plan in enumerate(breakdown.cost.plans):
+        _label(book, f"label.plan[{index}]", plan_line(plan.covers, plan.plan["name"]))
     return book
 
 
-def fill(fact: Fact, chart: str) -> FilledSlot:
-    return FilledSlot(fact.fact_id, fact.source_url, fact.read_date, fact.formatted, chart)
+def piece_text(piece: Piece, book: dict[str, Fact]) -> str:
+    if isinstance(piece, Literal):
+        return piece.text
+    try:
+        fact = book[piece.fact_id]
+    except KeyError as exc:
+        raise ValueError(f"unknown fact id {piece.fact_id}") from exc
+    if piece.formatter == "value":
+        return fact.formatted
+    if piece.formatter == "source_url":
+        return fact.source_url
+    return fact.read_date
 
 
-def claims_chart_slots(breakdown: Breakdown, book: dict[str, Fact]) -> list[FilledSlot]:
-    slots: list[FilledSlot] = []
-    for row in breakdown.claims_vs_evidence.claims:
-        slots.append(fill(book[f"claims.{row.benchmark}.claim"], "claims"))
-        for index, _reading in enumerate(row.readings):
-            slots.append(fill(book[f"claims.{row.benchmark}.readings[{index}].value"], "claims"))
-    return slots
+def assemble(pieces: Sequence[Piece], breakdown: Breakdown, post_url: str) -> str:
+    book = catalogue(breakdown, post_url)
+    return "".join(piece_text(piece, book) for piece in pieces)
 
 
-def claims_chart_tokens(breakdown: Breakdown, book: dict[str, Fact]) -> list[str]:
-    """Each claims-chart number is a bar title and a text label."""
-    tokens: list[str] = []
-    for slot in claims_chart_slots(breakdown, book):
-        tokens.extend((slot.formatted, slot.formatted))
-    return tokens
-
-
-def standing_chart_slots(breakdown: Breakdown, book: dict[str, Fact]) -> list[FilledSlot]:
-    slots: list[FilledSlot] = []
-    for base, cited in displayed_estimates(breakdown):
-        slots.append(fill(book[f"{base}.value"], "standing.chart"))
-        if cited.low is None or cited.high is None:
-            continue
-        slots.append(fill(book[f"{base}.low"], "standing.chart"))
-        slots.append(fill(book[f"{base}.high"], "standing.chart"))
-    for tick in _ticks(displayed_estimates(breakdown)):
-        slots.append(fill(book[f"standing.scale.{tick}"], "standing.chart"))
-    return slots
-
-
-def standing_chart_tokens(breakdown: Breakdown, book: dict[str, Fact]) -> list[str]:
-    """Interval tips are drawn twice. Axis ticks are drawn once."""
-    tokens: list[str] = []
-    for base, cited in displayed_estimates(breakdown):
-        shown = [book[f"{base}.value"].formatted]
-        if cited.low is not None and cited.high is not None:
-            shown.extend((book[f"{base}.low"].formatted, book[f"{base}.high"].formatted))
-        tokens.extend(shown)
-        tokens.extend(shown)
-    for tick in _ticks(displayed_estimates(breakdown)):
-        tokens.append(book[f"standing.scale.{tick}"].formatted)
-    return tokens
-
-
-def cost_chart_slots(breakdown: Breakdown, book: dict[str, Fact]) -> list[FilledSlot]:
-    slots: list[FilledSlot] = []
-    for index, offering in enumerate(breakdown.cost.offerings):
-        if offering.task.basis != "contract_default" or offering.cost_per_task is None:
-            continue
-        slots.append(fill(book[f"cost.offerings[{index}].cost_per_task"], "cost.chart"))
-    return slots
-
-
-def cost_chart_tokens(breakdown: Breakdown, book: dict[str, Fact]) -> list[str]:
-    tokens: list[str] = []
-    for slot in cost_chart_slots(breakdown, book):
-        tokens.extend((slot.formatted, slot.formatted))
-    return tokens
-
-
-def needs_unit_suffix(unit: str | None) -> bool:
-    return unit not in _BARE_UNITS
-
-
-def identity_strings(breakdown: Breakdown, post_url: str) -> list[str]:
-    """Names, links, and dates. Not measurement tokens."""
-    found: list[str] = []
-
-    def add(text: str | None) -> None:
-        if text and _cover(text) and text not in found:
-            found.append(text)
-
-    add(breakdown.model.name)
-    add(breakdown.model.id)
-    add(breakdown.headline.text)
-    add(post_url)
-    add(breakdown.disclosures.neutrality)
-    add(breakdown.disclosures.supplier)
-    add(breakdown.disclosures.early_access)
-    add(SNAPSHOT_FILE.format(id=breakdown.generated_from.after.snapshot_id))
-    for url in breakdown.sources.values():
-        add(url)
-    for name in breakdown.names.values():
-        add(name)
-    for row in breakdown.claims_vs_evidence.claims:
-        add(row.benchmark)
-        add(row.claim.read_date.isoformat())
-        for reading in row.readings:
-            add(reading.value.read_date.isoformat())
-            if reading.difference is not None:
-                add(reading.difference.read_date.isoformat())
-    for item in breakdown.claims_vs_evidence.unreported:
-        add(item.benchmark)
-        add(item.reading.read_date.isoformat())
-    for standing in breakdown.standing:
-        add(standing.domain.name)
-        lowered = standing.domain.name[:1].lower() + standing.domain.name[1:]
-        add(lowered)
-        add(standing.estimate.read_date.isoformat())
-        for leader in standing.leaders:
-            add(leader.model)
-            add(breakdown.names.get(leader.model, leader.model))
-            if leader.estimate is not None:
-                add(leader.estimate.read_date.isoformat())
-    for offering in breakdown.cost.offerings:
-        add(offering.offering)
-        add(offering.provider)
-        add(offering.region)
-        add(offering.tier)
-        add(f"{offering.provider} · {offering.region} · {offering.tier}")
-        if offering.cost_per_task is not None:
-            add(offering.cost_per_task.read_date.isoformat())
-    for cited in (breakdown.not_yet_measured.held_back or {}).values():
-        add(cited.read_date.isoformat())
-    return found
-
-
-def audit(text: str, expected: Iterable[str], identity: Iterable[str], label: str) -> None:
-    """Raise when claim text's numeric tokens are not ``expected``."""
-    stripped = unescape(text)
-    covers = sorted({item for item in identity if _cover(item)}, key=len, reverse=True)
-    for item in covers:
-        stripped = stripped.replace(item, " ")
-    found = _TOKEN.findall(stripped)
-    want = list(expected)
-    if Counter(found) != Counter(want):
-        extra = list((Counter(found) - Counter(want)).elements())[:8]
-        missing = list((Counter(want) - Counter(found)).elements())[:8]
-        raise ValueError(f"{label} digits are not the fact slots: extra {extra} missing {missing}")
-
-
-def svg_claim_text(svg: str) -> str:
-    """Text, titles, and aria-labels. Geometry and CSS are not claim text."""
-    parts = _TEXT.findall(svg) + _TITLE.findall(svg) + _LABEL.findall(svg)
-    return " ".join(unescape(part) for part in parts)
-
-
-class _VisibleHTML(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-        self._skip = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"style", "script", "metadata"}:
-            self._skip += 1
-        if self._skip:
-            return
-        for key, value in attrs:
-            if key in {"alt", "aria-label", "title"} and value:
-                self.parts.append(value)
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in {"style", "script", "metadata"} and self._skip:
-            self._skip -= 1
-
-    def handle_data(self, data: str) -> None:
-        if not self._skip and data.strip():
-            self.parts.append(data)
-
-    def handle_comment(self, data: str) -> None:
-        return
-
-
-def html_claim_text(document: str) -> str:
-    parser = _VisibleHTML()
-    parser.feed(document)
-    return " ".join(parser.parts)
+def bind(output: str, pieces: Sequence[Piece], breakdown: Breakdown, post_url: str) -> None:
+    """Rebuild ``output`` from the manifest and reject a digit the slot did not place."""
+    book = catalogue(breakdown, post_url)
+    spans: list[tuple[int, int]] = []
+    parts: list[str] = []
+    cursor = 0
+    for piece in pieces:
+        if isinstance(piece, Literal):
+            if _DIGIT.search(piece.text):
+                raise ValueError(f"template literal contains a digit: {piece.text!r}")
+            text = piece.text
+        elif isinstance(piece, Slot):
+            text = piece_text(piece, book)
+            spans.append((cursor, cursor + len(text)))
+        else:
+            raise ValueError("manifest piece is not a literal or a slot")
+        parts.append(text)
+        cursor += len(text)
+    expected = "".join(parts)
+    if output != expected:
+        if output.startswith(expected):
+            match = _DIGITS.search(output[len(expected) :])
+            if match:
+                raise ValueError(f"digit sequence {match.group()!r} is not from a fact slot")
+        raise ValueError("draft bytes do not match the manifest")
+    for match in _DIGITS.finditer(output):
+        if not any(start <= match.start() and match.end() <= end for start, end in spans):
+            raise ValueError(f"digit sequence {match.group()!r} is not from a fact slot")

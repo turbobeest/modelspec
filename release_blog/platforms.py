@@ -1,47 +1,35 @@
 """Platform drafts rendered from a release breakdown (MODEL-226).
 
-``render_drafts`` returns one draft per platform. A person posts them.
-The function has no platform client. Every number in claim text is a fact
-slot. ``release_blog.slots`` binds the slot and rejects any other digit in
-that text.
+``render_drafts`` returns one text draft per platform. A person posts them.
+The function has no platform client and writes no image. Instagram is a
+caption: three review rounds found digits in generated cards that were not
+the fact they claimed to be, so the caption says to make the image by hand.
 
-Instagram cards are SVG at 1080 by 1080. Each card's words are a
-``SocialCard`` passed through ``pipeline.social_cards.render_card_html``,
-the MODEL-195 renderer. That renderer's Playwright viewport is 1200 by 630,
-and this module leaves the viewport alone.
-
-Square-shell attributes (the 1080 canvas, coordinates, colours) are chrome.
-``CHROME_TOKENS`` names them. Claim text is not matched against that set,
-and geometry attributes are not scanned.
+Every draft is a manifest of digit-free literals and fact slots. After it
+is rendered, the same manifest and the breakdown are rendered again and the
+bytes must match. A digit that did not come from a slot fails the render.
 """
 
 from __future__ import annotations
 
-import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from html import escape
 from pathlib import Path
 
-from pipeline.social_cards import SocialCard, render_card_html
+from decision.excluded import excluded_sources
 from release_blog.model import Breakdown
-from release_blog.render import charts
 from release_blog.slots import (
-    FilledSlot,
+    Fact,
+    Literal,
     Piece,
-    audit,
+    Slot,
+    assemble,
+    bind,
     catalogue,
-    claims_chart_slots,
-    claims_chart_tokens,
-    cost_chart_slots,
-    cost_chart_tokens,
-    html_claim_text,
-    identity_strings,
     needs_unit_suffix,
-    standing_chart_slots,
-    standing_chart_tokens,
-    svg_claim_text,
+    piece_text,
 )
-from release_blog.wording import difference, held_back, plan_line
+from release_blog.tone import refused_words
 
 AUTOMATIC_POSTING = False
 
@@ -52,38 +40,6 @@ _INSTAGRAM_CAPTION_LIMIT = 2200
 _REDDIT_TITLE_LIMIT = 300
 _REDDIT_BODY_LIMIT = 40_000
 _HN_TITLE_LIMIT = 80
-_CARD = 1080
-_SVG_SIZE = re.compile(r'<svg\b[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"')
-# Posted SVG limits, read 2026-10-17. Bytes are decimal, matching the caps below.
-# X bytes, 5 MB: https://docs.x.com/x-api/media/introduction
-#   and https://docs.x.com/x-api/media/quickstart/best-practices
-# X pixels, 8192 square: https://help.x.com/en/using-x/media-studio-faqs
-# LinkedIn pixels, strictly under 36,152,320 (Images API, view=li-lms-2026-09):
-#   https://learn.microsoft.com/en-us/linkedin/marketing/community-management/
-#   shares/images-api
-# LinkedIn bytes, 5 MB, and aspect from 3:1 to 4:5 (width:height):
-#   https://www.linkedin.com/help/linkedin/answer/a526313
-#   The 552 by 276 minimum is not applied. The claims chart is 680 by 248,
-#   and the draft keeps that file.
-# Facebook bytes, 10MB, no published pixel maximum:
-#   https://developers.facebook.com/docs/graph-api/reference/page/photos/
-#   The shared claims file also stays inside the X 8192 box, so one chart
-#   cannot be a draft X's library refuses.
-# Instagram, 8 MB, aspect 4:5 to 1.91:1, width 320 to 1440:
-#   https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/
-#   reference/ig-user/media
-_X_IMAGE_BYTES = 5_000_000
-_X_IMAGE_SIDE = 8192
-_LINKEDIN_IMAGE_BYTES = 5_000_000
-_LINKEDIN_MAX_PIXELS = 36_152_320
-_LINKEDIN_MIN_ASPECT = 4 / 5
-_LINKEDIN_MAX_ASPECT = 3 / 1
-_FACEBOOK_IMAGE_BYTES = 10_000_000
-_INSTAGRAM_IMAGE_BYTES = 8_000_000
-_INSTAGRAM_MIN_WIDTH = 320
-_INSTAGRAM_MAX_WIDTH = 1440
-_INSTAGRAM_MIN_ASPECT = 4 / 5
-_INSTAGRAM_MAX_ASPECT = 1.91
 _DRAFT_FILES = {
     "x": "x.txt",
     "linkedin": "linkedin.txt",
@@ -101,55 +57,23 @@ _REDDIT_RULES = (
     "This draft is for a person to post, and only in r/LocalLLaMA. "
     "Do not cross-post."
 )
-_CARD_STATES = "The card states each source URL and read date."
-# Square-shell attributes only. Claim text is not matched against this set.
-CHROME_TOKENS = frozenset(
-    {
-        "1080",
-        "96",
-        "40",
-        "42",
-        "24",
-        "16",
-        "6",
-        "150",
-        "640",
-        "28",
-        "46",
-        "12",
-        "8",
-        "0B1426",
-        "EEF2F7",
-        "C7D1E0",
-        "F2C94C",
-    }
+_HAND = "Make the image by hand."
+_JAMIE = "Jamie decides whether to submit."
+_PROSE_FIELDS = (
+    ("headline.text", "headline"),
+    ("disclosures.supplier", "supplier"),
+    ("disclosures.early_access", "early_access"),
+    ("disclosures.neutrality", "neutrality"),
 )
-if CHROME_TOKENS & {"70", "67.9", "70%", "67.9%"}:
-    raise ValueError("chrome allowlist contains a claim token")
-
-
-@dataclass(frozen=True)
-class DraftImage:
-    role: str
-    alt: str
-    svg: str
-    width: int
-    height: int
-    card: SocialCard | None = None
-
-    @property
-    def html(self) -> str | None:
-        if self.card is None:
-            return None
-        return render_card_html(self.card)
 
 
 @dataclass(frozen=True)
 class Draft:
     platform: str
     posts: tuple[str, ...]
-    images: tuple[DraftImage, ...]
     link: str
+    output: str
+    manifest: tuple[Piece, ...]
     title: str = ""
     submission: str = ""
     subreddit: str = ""
@@ -158,38 +82,35 @@ class Draft:
     cross_post: bool = False
     jamie_decides: bool = False
     posted: bool = False
-    manifest: tuple[FilledSlot, ...] = ()
 
     @property
     def text(self) -> str:
-        return "\n\n".join(self.posts)
+        if self.posts:
+            return "\n\n".join(self.posts)
+        return self.submission
 
 
-@dataclass(frozen=True)
-class Block:
-    text: str
-    slots: tuple[FilledSlot, ...] = ()
-    tokens: tuple[str, ...] = ()
-    identity: tuple[str, ...] = ()
+def _emit(pieces: Sequence[Piece], breakdown: Breakdown, post_url: str) -> str:
+    return assemble(pieces, breakdown, post_url)
 
 
-def _block(piece: Piece) -> Block:
-    return Block(piece.text, tuple(piece.slots), tuple(piece.tokens), tuple(piece.identity))
+def _prove(pieces: Sequence[Piece], breakdown: Breakdown, post_url: str) -> str:
+    output = _emit(pieces, breakdown, post_url)
+    bind(output, pieces, breakdown, post_url)
+    return output
 
 
-def _data_block(text: str) -> Block:
-    if not text:
-        return Block("")
-    piece = Piece("label")
-    _say(piece, text)
-    return _block(piece)
-
-
-def _say(piece: Piece, text: str) -> None:
-    if any(character.isdigit() for character in text):
-        piece.data(text)
-    else:
-        piece.lit(text)
+def _require_digit_free(breakdown: Breakdown) -> None:
+    values = {
+        "headline": breakdown.headline.text,
+        "supplier": breakdown.disclosures.supplier,
+        "early_access": breakdown.disclosures.early_access,
+        "neutrality": breakdown.disclosures.neutrality,
+    }
+    for label, key in _PROSE_FIELDS:
+        text = values[key]
+        if text and any(character.isdigit() for character in text):
+            raise ValueError(f"{label} contains a digit")
 
 
 def _default_url(breakdown: Breakdown) -> str:
@@ -197,12 +118,100 @@ def _default_url(breakdown: Breakdown) -> str:
     return f"https://modelspec.dev/blog/{slug}/"
 
 
-def _labels(breakdown: Breakdown, url: str) -> tuple[FilledSlot, ...]:
-    return (
-        FilledSlot("model.name", "", "", breakdown.model.name, "label"),
-        FilledSlot("headline.text", "", "", breakdown.headline.text, "label"),
-        FilledSlot("post.url", "", "", url, "link"),
-    )
+def _render(pieces: Sequence[Piece], book: dict[str, Fact]) -> str:
+    return "".join(piece_text(piece, book) for piece in pieces)
+
+
+def _flatten(blocks: Sequence[Sequence[Piece]], sep: str = "\n\n") -> list[Piece]:
+    pieces: list[Piece] = []
+    for block in blocks:
+        if not block:
+            continue
+        if pieces:
+            pieces.append(Literal(sep))
+        pieces.extend(block)
+    return pieces
+
+
+def _citation_lines(pieces: Sequence[Piece], book: dict[str, Fact]) -> list[list[Piece]]:
+    lines: list[list[Piece]] = []
+    seen: set[tuple[str, str]] = set()
+    for piece in pieces:
+        if not isinstance(piece, Slot) or piece.formatter != "value":
+            continue
+        fact = book[piece.fact_id]
+        if not fact.source_url:
+            continue
+        key = (fact.source_url, fact.read_date)
+        if key in seen:
+            continue
+        seen.add(key)
+        lines.append(
+            [
+                Literal("Source: "),
+                Slot(piece.fact_id, "source_url"),
+                Literal(" (read "),
+                Slot(piece.fact_id, "read_date"),
+                Literal(")."),
+            ]
+        )
+    return lines
+
+
+def _cite_block(pieces: Sequence[Piece], book: dict[str, Fact]) -> list[Piece]:
+    block: list[Piece] = []
+    for line in _citation_lines(pieces, book):
+        if block:
+            block.append(Literal("\n"))
+        block.extend(line)
+    return block
+
+
+def _compose(
+    lead: Sequence[Sequence[Piece]],
+    middle: Sequence[Sequence[Piece]],
+    tail: Sequence[Sequence[Piece]],
+    book: dict[str, Fact],
+) -> list[Piece]:
+    story = _flatten([*lead, *middle])
+    cites = _cite_block(story, book)
+    blocks: list[Sequence[Piece]] = [*lead, *middle]
+    if cites:
+        blocks.append(cites)
+    blocks.extend(tail)
+    return _flatten(blocks)
+
+
+def _fit(
+    lead: Sequence[Sequence[Piece]],
+    optional: Sequence[Sequence[Piece]],
+    tail: Sequence[Sequence[Piece]],
+    book: dict[str, Fact],
+    limit: int,
+) -> list[Piece]:
+    kept: list[Sequence[Piece]] = []
+    for block in optional:
+        if not block:
+            continue
+        trial = _compose(lead, [*kept, block], tail, book)
+        if len(_render(trial, book)) > limit:
+            break
+        kept.append(block)
+    pieces = _compose(lead, kept, tail, book)
+    size = len(_render(pieces, book))
+    if size > limit:
+        raise ValueError(f"required draft text is {size} characters, limit {limit}")
+    return pieces
+
+
+def _file(body: Sequence[Piece]) -> list[Piece]:
+    return [*body, Literal("\n")]
+
+
+def _within(label: str, text: str, limit: int) -> str:
+    if len(text) > limit:
+        raise ValueError(f"{label} is {len(text)} characters, limit {limit}")
+    return text
 
 
 def _gap(breakdown: Breakdown):
@@ -214,495 +223,350 @@ def _gap(breakdown: Breakdown):
     return None
 
 
-def _hook_piece(breakdown: Breakdown) -> Piece:
-    piece = Piece("hook")
-    _hook_sentence(breakdown, piece)
-    return piece
-
-
-def _hook_sentence(breakdown: Breakdown, piece: Piece) -> None:
+def _hook_pieces(breakdown: Breakdown) -> list[Piece]:
     found = _gap(breakdown)
     if found is None:
-        _say(piece, breakdown.headline.text)
-        return
+        return [Literal(breakdown.headline.text)]
     row, index, reading = found
     change = reading.difference
     assert change is not None
-    book = catalogue(breakdown)
     direction = "lower" if change.value < 0 else "higher"
-    _say(piece, breakdown.model.name)
-    piece.lit(": on ")
-    _say(piece, row.benchmark)
-    piece.lit(" the lab reports ")
-    piece.put(book[f"claims.{row.benchmark}.claim"])
-    piece.lit(" and the independent reading is ")
-    piece.put(book[f"claims.{row.benchmark}.readings[{index}].value"])
-    piece.lit(", ")
-    piece.put(book[f"claims.{row.benchmark}.readings[{index}].difference"])
-    piece.lit(f" points {direction}.")
+    return [
+        Slot("model.name"),
+        Literal(": on "),
+        Slot(f"label.benchmark.{row.benchmark}"),
+        Literal(" the lab reports "),
+        Slot(f"claims.{row.benchmark}.claim"),
+        Literal(" and the independent reading is "),
+        Slot(f"claims.{row.benchmark}.readings[{index}].value"),
+        Literal(", "),
+        Slot(f"claims.{row.benchmark}.readings[{index}].difference"),
+        Literal(f" points {direction}."),
+    ]
 
 
-def _hook(breakdown: Breakdown) -> str:
-    return _hook_piece(breakdown).text
+def _short_hook(breakdown: Breakdown) -> list[Piece]:
+    """The two readings, without the model version or the point gap.
+
+    Facebook's post limit cannot also hold the snapshot URL those two would
+    pull in, and the longer drafts carry both.
+    """
+    found = _gap(breakdown)
+    if found is None:
+        return [Literal(breakdown.headline.text)]
+    row, index, _reading = found
+    return [
+        Literal("On "),
+        Slot(f"label.benchmark.{row.benchmark}"),
+        Literal(" the lab reports "),
+        Slot(f"claims.{row.benchmark}.claim"),
+        Literal(" and the independent reading is "),
+        Slot(f"claims.{row.benchmark}.readings[{index}].value"),
+        Literal("."),
+    ]
 
 
-def _require_hook(breakdown: Breakdown) -> Piece:
-    piece = _hook_piece(breakdown)
-    if _hook(breakdown) != piece.text:
-        raise ValueError("hook text does not match its fact slots")
-    return piece
-
-
-def _domain(name: str) -> str:
-    return name[:1].lower() + name[1:]
-
-
-def _standing_block(breakdown: Breakdown, index: int, book: dict) -> Block:
+def _standing_pieces(breakdown: Breakdown, index: int) -> list[Piece]:
     row = breakdown.standing[index]
-    piece = Piece("standing")
-    domain = _domain(row.domain.name)
-    _say(piece, "In ")
-    _say(piece, domain)
+    lead = [Literal("In "), Slot(f"label.standing[{index}].domain")]
     if row.band == "best":
-        piece.lit(", ")
-        _say(piece, breakdown.model.name)
-        piece.lit(" is in the leading band. The band holds ")
-        piece.put(book[f"standing[{index}].band_size"])
-        piece.lit(" models, and the evidence does not separate them.")
-        return _block(piece)
+        return [
+            *lead,
+            Literal(", "),
+            Slot("model.name"),
+            Literal(" is in the leading band. The band holds "),
+            Slot(f"standing[{index}].band_size"),
+            Literal(" models, and the evidence does not separate them."),
+        ]
     if row.band in ("rest", "thin") and row.rank is not None:
         if row.band == "thin":
-            piece.lit(", the estimate's interval is too wide to rank on. ")
-            piece.lit("The place among ")
-            piece.put(book[f"standing[{index}].ranked_models"])
-            piece.lit(" ranked models is ")
-            piece.put(book[f"standing[{index}].rank"])
-            piece.lit(".")
-            return _block(piece)
-        piece.lit(", ")
-        _say(piece, breakdown.model.name)
-        piece.lit(" is outside the leading band, at place ")
-        piece.put(book[f"standing[{index}].rank"])
-        piece.lit(" of ")
-        piece.put(book[f"standing[{index}].ranked_models"])
-        piece.lit(" ranked models.")
-        return _block(piece)
-    piece.lit(", ")
-    _say(piece, breakdown.model.name)
-    piece.lit(" has an estimate and the domain's decision does not rank it.")
-    return _block(piece)
+            return [
+                *lead,
+                Literal(", the estimate's interval is too wide to rank on. The place among "),
+                Slot(f"standing[{index}].ranked_models"),
+                Literal(" ranked models is "),
+                Slot(f"standing[{index}].rank"),
+                Literal("."),
+            ]
+        return [
+            *lead,
+            Literal(", "),
+            Slot("model.name"),
+            Literal(" is outside the leading band, at place "),
+            Slot(f"standing[{index}].rank"),
+            Literal(" of "),
+            Slot(f"standing[{index}].ranked_models"),
+            Literal(" ranked models."),
+        ]
+    return [
+        *lead,
+        Literal(", "),
+        Slot("model.name"),
+        Literal(" has an estimate and the domain's decision does not rank it."),
+    ]
 
 
-def _first_priced(breakdown: Breakdown) -> tuple[int, object] | None:
+def _first_priced(breakdown: Breakdown) -> int | None:
     for index, offering in enumerate(breakdown.cost.offerings):
         if offering.task.basis == "contract_default" and offering.cost_per_task is not None:
-            return index, offering
+            return index
     return None
 
 
-def _cost_block(breakdown: Breakdown, book: dict) -> Block | None:
-    found = _first_priced(breakdown)
-    if found is None:
+def _cost_pieces(breakdown: Breakdown) -> list[Piece] | None:
+    index = _first_priced(breakdown)
+    if index is None:
         return None
-    index, _offering = found
-    piece = Piece("cost")
-    piece.lit("At ")
-    piece.put(book[f"cost.offerings[{index}].task.input"])
-    piece.lit(" input tokens and ")
-    piece.put(book[f"cost.offerings[{index}].task.output"])
-    piece.lit(" output tokens, the list price is ")
-    piece.put(book[f"cost.offerings[{index}].cost_per_task"])
-    piece.lit(" a task.")
-    return _block(piece)
+    return [
+        Literal("At "),
+        Slot(f"cost.offerings[{index}].task.input"),
+        Literal(" input tokens and "),
+        Slot(f"cost.offerings[{index}].task.output"),
+        Literal(" output tokens, the list price is "),
+        Slot(f"cost.offerings[{index}].cost_per_task"),
+        Literal(" a task."),
+    ]
 
 
-def _comparison_blocks(breakdown: Breakdown, book: dict) -> list[Block]:
-    blocks: list[Block] = []
+def _comparison_pieces(breakdown: Breakdown) -> list[list[Piece]]:
+    blocks: list[list[Piece]] = []
     for row in breakdown.claims_vs_evidence.claims:
         for index, reading in enumerate(row.readings):
             if reading.comparability == "same_setup":
                 continue
-            sentence = difference(reading.comparability, differs_in=reading.differs_in)
-            sentence = sentence[:1].lower() + sentence[1:]
-            piece = Piece("comparisons")
-            piece.lit("On ")
-            _say(piece, row.benchmark)
-            piece.lit(", ")
-            _say(piece, sentence)
-            piece.lit(" The lab reports ")
-            piece.put(book[f"claims.{row.benchmark}.claim"])
-            piece.lit(" and the independent reading is ")
-            value = book[f"claims.{row.benchmark}.readings[{index}].value"]
-            piece.put(value)
+            pieces: list[Piece] = [
+                Literal("On "),
+                Slot(f"label.benchmark.{row.benchmark}"),
+                Literal(", "),
+                Slot(f"label.relation.{row.benchmark}[{index}]"),
+                Literal(" The lab reports "),
+                Slot(f"claims.{row.benchmark}.claim"),
+                Literal(" and the independent reading is "),
+                Slot(f"claims.{row.benchmark}.readings[{index}].value"),
+            ]
             if needs_unit_suffix(reading.value.unit):
-                _say(piece, " " + (reading.value.unit or "").replace("_", " "))
-            piece.lit(".")
-            blocks.append(_block(piece))
+                pieces.append(Slot(f"label.unit.{row.benchmark}[{index}]"))
+            pieces.append(Literal("."))
+            blocks.append(pieces)
     return blocks
 
 
-def _held_block(breakdown: Breakdown, book: dict) -> Block:
+def _held_pieces(breakdown: Breakdown) -> list[Piece]:
     gaps = breakdown.not_yet_measured
-    piece = Piece("gaps")
     if gaps.held_back is None:
-        piece.lit(held_back(None, None))
-        return _block(piece)
+        return [
+            Literal(
+                "This snapshot predates per-model held-back counts, so the number of this "
+                "model's readings awaiting a second key is not available."
+            )
+        ]
     if not gaps.held_back:
-        piece.lit(held_back({}, None))
-        return _block(piece)
-    piece.lit("ModelSpec holds readings of this model that have not yet passed the second key: ")
-    for index, (reason, _cited) in enumerate(gaps.held_back.items()):
+        return [
+            Literal("ModelSpec holds no reading of this model that is waiting for a second key.")
+        ]
+    pieces = [
+        Literal("ModelSpec holds readings of this model that have not yet passed the second key: ")
+    ]
+    for index, reason in enumerate(gaps.held_back):
         if index:
-            piece.lit(", ")
-        _say(piece, reason.replace("_", " "))
-        piece.lit(": ")
-        piece.put(book[f"held_back.{reason}"])
-    piece.lit(". Their values are not shown.")
-    return _block(piece)
+            pieces.append(Literal(", "))
+        pieces.append(Slot(f"label.held.{reason}"))
+        pieces.append(Literal(": "))
+        pieces.append(Slot(f"held_back.{reason}"))
+    pieces.append(Literal(". Their values are not shown."))
+    return pieces
 
 
-def _unreported_blocks(breakdown: Breakdown, book: dict) -> list[Block]:
+def _unreported_pieces(breakdown: Breakdown) -> list[list[Piece]]:
     blocks = []
     for item in breakdown.claims_vs_evidence.unreported:
-        piece = Piece("gaps")
-        _say(piece, item.benchmark)
-        piece.lit(" has an independent reading of ")
-        piece.put(book[f"claims.unreported.{item.benchmark}.reading"])
-        piece.lit(" and no lab figure.")
-        blocks.append(_block(piece))
+        blocks.append(
+            [
+                Slot(f"label.benchmark.{item.benchmark}"),
+                Literal(" has an independent reading of "),
+                Slot(f"claims.unreported.{item.benchmark}.reading"),
+                Literal(" and no lab figure."),
+            ]
+        )
     return blocks
 
 
-def _unread_block(breakdown: Breakdown) -> Block | None:
+def _list_pieces(prefix: str, fact_ids: Sequence[str], sep: str = ", ") -> list[Piece] | None:
+    if not fact_ids:
+        return None
+    pieces: list[Piece] = [Literal(prefix)]
+    for index, fact_id in enumerate(fact_ids):
+        if index:
+            pieces.append(Literal(sep))
+        pieces.append(Slot(fact_id))
+    pieces.append(Literal("."))
+    return pieces
+
+
+def _unread_pieces(breakdown: Breakdown) -> list[Piece] | None:
     names = breakdown.not_yet_measured.claims_without_reading
-    if not names:
-        return None
-    piece = Piece("gaps")
-    piece.lit("Lab figures with no independent reading yet: ")
-    for index, name in enumerate(names):
-        if index:
-            piece.lit(", ")
-        _say(piece, name)
-    piece.lit(".")
-    return _block(piece)
+    return _list_pieces(
+        "Lab figures with no independent reading yet: ",
+        [f"label.benchmark.{name}" for name in names],
+    )
 
 
-def _domains_block(breakdown: Breakdown) -> Block | None:
+def _domains_pieces(breakdown: Breakdown) -> list[Piece] | None:
     names = breakdown.not_yet_measured.domains_without_estimate
-    if not names:
-        return None
-    piece = Piece("gaps")
-    piece.lit("Domains with no estimate yet: ")
-    for index, name in enumerate(names):
-        if index:
-            piece.lit(", ")
-        _say(piece, name)
-    piece.lit(".")
-    return _block(piece)
+    return _list_pieces(
+        "Domains with no estimate yet: ",
+        [f"label.domain[{index}]" for index, _name in enumerate(names)],
+    )
 
 
-def _speed_block(breakdown: Breakdown) -> Block | None:
+def _speed_pieces(breakdown: Breakdown) -> list[Piece] | None:
     gaps = breakdown.not_yet_measured
     if any(
         item.time_to_first_token == "unknown" and item.throughput == "unknown"
         for item in gaps.speed
     ):
-        piece = Piece("gaps")
-        piece.lit("Speed is not measured yet.")
-        return _block(piece)
+        return [Literal("Speed is not measured yet.")]
     return None
 
 
-def _facets_block(breakdown: Breakdown) -> Block | None:
+def _facets_pieces(breakdown: Breakdown) -> list[Piece] | None:
     rows = breakdown.not_yet_measured.unknown_facets
-    if not rows:
-        return None
-    piece = Piece("gaps")
-    piece.lit("Guaranteed facts still unknown: ")
-    for index, row in enumerate(rows):
-        if index:
-            piece.lit(", ")
-        _say(piece, row.facet)
-    piece.lit(".")
-    return _block(piece)
+    return _list_pieces(
+        "Guaranteed facts still unknown: ",
+        [f"label.facet[{index}]" for index, _row in enumerate(rows)],
+    )
 
 
-def _inapplicable_block(breakdown: Breakdown) -> Block | None:
+def _inapplicable_pieces(breakdown: Breakdown) -> list[Piece] | None:
     rows = breakdown.not_yet_measured.domains_inapplicable
     if not rows:
         return None
-    piece = Piece("gaps")
-    piece.lit("Domains this class cannot be measured on, so not a gap: ")
-    for index, row in enumerate(rows):
+    pieces: list[Piece] = [Literal("Domains this class cannot be measured on, so not a gap: ")]
+    for index, _row in enumerate(rows):
         if index:
-            piece.lit("; ")
-        _say(piece, row.domain)
-        piece.lit(", because ")
-        _say(piece, row.reason)
-    piece.lit(".")
-    return _block(piece)
+            pieces.append(Literal("; "))
+        pieces.append(Slot(f"label.inapplicable[{index}].domain"))
+        pieces.append(Literal(", because "))
+        pieces.append(Slot(f"label.inapplicable[{index}].reason"))
+    pieces.append(Literal("."))
+    return pieces
 
 
-def _plan_blocks(breakdown: Breakdown) -> list[Block]:
-    return [_data_block(plan_line(plan.covers, plan.plan["name"])) for plan in breakdown.cost.plans]
+def _plan_pieces(breakdown: Breakdown) -> list[list[Piece]]:
+    return [[Slot(f"label.plan[{index}]")] for index, _plan in enumerate(breakdown.cost.plans)]
 
 
-def _class_name(breakdown: Breakdown) -> str:
-    return breakdown.model.class_.replace("-", " ")
-
-
-def _intro_block(breakdown: Breakdown, *, teams: bool) -> Block:
-    piece = Piece("label")
-    _say(piece, breakdown.model.name)
+def _intro_pieces(breakdown: Breakdown, *, teams: bool) -> list[Piece]:
     if teams:
-        piece.lit(" is an analysis of alternatives for teams choosing a ")
+        tail = " is an analysis of alternatives for teams choosing a "
     else:
-        piece.lit(" is an analysis of alternatives for a ")
-    _say(piece, _class_name(breakdown))
-    piece.lit(".")
-    return _block(piece)
+        tail = " is an analysis of alternatives for a "
+    return [Slot("model.name"), Literal(tail), Slot("label.class"), Literal(".")]
 
 
-def _headline_block(breakdown: Breakdown) -> Block:
-    return _data_block(breakdown.headline.text)
+def _disclosure_blocks(breakdown: Breakdown) -> list[list[Piece]]:
+    blocks = []
+    for text in (breakdown.disclosures.supplier, breakdown.disclosures.early_access):
+        if text:
+            blocks.append([Literal(text)])
+    return blocks
 
 
-def _within(label: str, text: str, limit: int) -> str:
-    if len(text) > limit:
-        raise ValueError(f"{label} is {len(text)} characters, limit {limit}")
-    return text
+def _neutrality(breakdown: Breakdown) -> list[Piece]:
+    return [Literal(breakdown.disclosures.neutrality)]
 
 
-def _join(parts: list[str]) -> str:
-    return "\n\n".join(part for part in parts if part)
+def _url() -> list[Piece]:
+    return [Slot("post.url")]
 
 
-def _join_blocks(blocks: list[Block]) -> str:
-    return _join([block.text for block in blocks])
+def _headline(breakdown: Breakdown) -> list[Piece]:
+    return [Literal(breakdown.headline.text)]
 
 
-def _fit_blocks(
-    lead: list[Block], optional: list[Block], tail: list[Block], limit: int
-) -> list[Block]:
-    """Keep the lead and the tail. Drop optional blocks that do not fit."""
-    fixed = [block for block in (*lead, *tail) if block.text]
-    if len(_join_blocks(fixed)) > limit:
-        raise ValueError("required draft text exceeds the platform limit")
-    kept: list[Block] = []
-    for block in optional:
-        if not block.text:
-            continue
-        trial = [item for item in (*lead, *kept, block, *tail) if item.text]
-        if len(_join_blocks(trial)) <= limit:
-            kept.append(block)
-    return [block for block in (*lead, *kept, *tail) if block.text]
+def _present(blocks: Sequence[list[Piece] | None]) -> list[list[Piece]]:
+    return [block for block in blocks if block]
 
 
-def _tokens(blocks: list[Block]) -> list[str]:
-    found: list[str] = []
-    for block in blocks:
-        found.extend(block.tokens)
-    return found
+def _posts_from(
+    blocks: Sequence[Sequence[Piece]],
+    book: dict[str, Fact],
+    limit: int,
+    label: str,
+) -> list[str]:
+    texts = []
+    for index, block in enumerate(blocks):
+        text = _render(block, book)
+        if len(text) > limit:
+            raise ValueError(f"{label} post {index} is {len(text)} characters, limit {limit}")
+        texts.append(text)
+    return texts
 
 
-def _identity(blocks: list[Block]) -> list[str]:
-    found: list[str] = []
-    for block in blocks:
-        found.extend(block.identity)
-    return found
-
-
-def _slots(blocks: list[Block]) -> list[FilledSlot]:
-    found: list[FilledSlot] = []
-    for block in blocks:
-        found.extend(block.slots)
-    return found
-
-
-def _citations(slots: list[FilledSlot]) -> list[str]:
-    lines: list[str] = []
-    seen: set[tuple[str, str]] = set()
-    for slot in slots:
-        if not slot.source_url:
-            continue
-        key = (slot.source_url, slot.read_date)
-        if key in seen:
-            continue
-        seen.add(key)
-        lines.append(f"Source: {slot.source_url} (read {slot.read_date}).")
-    return lines
-
-
-def _citation_blocks(lines: list[str]) -> list[Block]:
-    return [_data_block(line) for line in lines]
-
-
-def _disclosure_texts(breakdown: Breakdown) -> list[str]:
-    return [
-        text
-        for text in (breakdown.disclosures.supplier, breakdown.disclosures.early_access)
-        if text
-    ]
-
-
-def _disclosure_blocks(breakdown: Breakdown) -> list[Block]:
-    return [_data_block(text) for text in _disclosure_texts(breakdown)]
-
-
-def _manifest(
-    breakdown: Breakdown,
-    url: str,
-    blocks: list[Block],
-    *,
-    claims: bool,
-    standing: bool,
-    cost: bool,
-    book: dict,
-) -> tuple[FilledSlot, ...]:
-    slots = list(_labels(breakdown, url))
-    slots.extend(_slots(blocks))
-    if claims:
-        slots.extend(claims_chart_slots(breakdown, book))
-    if standing:
-        slots.extend(standing_chart_slots(breakdown, book))
-    if cost:
-        slots.extend(cost_chart_slots(breakdown, book))
-    return tuple(slots)
-
-
-def _enforce_image_limits(platform: str, image: DraftImage) -> None:
-    """Reject an image the platform's current upload rules will not accept."""
-    width, height = _svg_size(image.svg)
-    width = max(width, image.width)
-    height = max(height, image.height)
-    if width < 1 or height < 1:
-        raise ValueError(f"{platform} image is {width}x{height}")
-    nbytes = len(image.svg.encode("utf-8"))
-    aspect = width / height
-    if platform == "x":
-        if width > _X_IMAGE_SIDE or height > _X_IMAGE_SIDE or nbytes > _X_IMAGE_BYTES:
-            raise ValueError(f"x image is {width}x{height}, {nbytes} bytes")
-        return
-    if platform == "linkedin":
-        pixels = width * height
-        if (
-            pixels >= _LINKEDIN_MAX_PIXELS
-            or aspect < _LINKEDIN_MIN_ASPECT
-            or aspect > _LINKEDIN_MAX_ASPECT
-            or nbytes > _LINKEDIN_IMAGE_BYTES
-        ):
-            raise ValueError(f"linkedin image is {width}x{height}, {nbytes} bytes")
-        return
-    if platform == "facebook":
-        if width > _X_IMAGE_SIDE or height > _X_IMAGE_SIDE or nbytes > _FACEBOOK_IMAGE_BYTES:
-            raise ValueError(f"facebook image is {width}x{height}, {nbytes} bytes")
-        return
-    if platform == "instagram":
-        if (
-            width < _INSTAGRAM_MIN_WIDTH
-            or width > _INSTAGRAM_MAX_WIDTH
-            or aspect < _INSTAGRAM_MIN_ASPECT
-            or aspect > _INSTAGRAM_MAX_ASPECT
-            or nbytes > _INSTAGRAM_IMAGE_BYTES
-        ):
-            raise ValueError(f"instagram image is {width}x{height}, {nbytes} bytes")
-        return
-    raise ValueError(f"{platform} has no image limit")
-
-
-def _svg_size(svg: str) -> tuple[int, int]:
-    match = _SVG_SIZE.search(svg)
-    if match is None:
-        raise ValueError("chart svg has no width and height")
-    return int(match.group(1)), int(match.group(2))
-
-
-def _claims_image(svg: str, alt: str) -> DraftImage:
-    width, height = _svg_size(svg)
-    return DraftImage(role="claims", alt=alt, svg=svg, width=width, height=height)
-
-
-def _wrap(text: str, width: int) -> list[str]:
-    words = text.split()
-    lines: list[str] = []
-    current = ""
-    for word in words:
-        trial = word if not current else f"{current} {word}"
-        if len(trial) <= width:
-            current = trial
-        else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
-    return lines or [text]
-
-
-def _square(title: str, lines: list[str], chart: str | None) -> str:
-    chunks: list[str] = []
-    y = 150
-
-    def add(text: str, size: int, color: str) -> None:
-        nonlocal y
-        chunks.append(
-            f'<text x="96" y="{y}" fill="{color}" font-family="Arial,sans-serif" '
-            f'font-size="{size}">{escape(text)}</text>'
-        )
-        y += size + 16
-
-    add("ModelSpec", 40, "#EEF2F7")
-    y += 24
-    for piece in _wrap(title, 28):
-        add(piece, 42, "#EEF2F7")
-    y += 8
-    for line in lines:
-        for piece in _wrap(line, 46):
-            add(piece, 24, "#C7D1E0")
-        y += 6
-    chart_block = ""
-    if chart:
-        chart_block = (
-            f'<g transform="translate(40,{min(y + 12, 640)})">'
-            f"<!-- chart -->{chart}<!-- /chart --></g>"
-        )
-    label = escape(title, quote=True)
-    body = "\n".join(chunks)
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" '
-        f'viewBox="0 0 1080 1080" role="img" aria-label="{label}">\n'
-        f'<rect width="1080" height="1080" fill="#0B1426"/>\n'
-        f'<rect x="42" y="0" width="6" height="1080" fill="#F2C94C"/>\n'
-        f"{body}\n{chart_block}\n</svg>\n"
+def _x_pieces(breakdown: Breakdown, book: dict[str, Fact]) -> tuple[list[Piece], tuple[str, ...]]:
+    standing = [_standing_pieces(breakdown, index) for index in range(len(breakdown.standing))]
+    gaps = _present(
+        [
+            _unread_pieces(breakdown),
+            _held_pieces(breakdown),
+            *_unreported_pieces(breakdown),
+        ]
     )
-
-
-def _social_card(filename: str, headline: str, sentence: str) -> SocialCard:
-    content = f'<p class="tie-line">{escape(sentence)}</p>' if sentence else ""
-    card = SocialCard(filename=filename, alt=headline, headline=headline, content=content)
-    rendered = render_card_html(card)
-    if "<svg" not in rendered or "ModelSpec" not in rendered:
-        raise ValueError("social card renderer returned an unexpected document")
-    return card
-
-
-def _square_image(
-    role: str,
-    alt: str,
-    lines: list[str],
-    chart: str | None,
-    *,
-    title: str,
-    sentence: str,
-) -> DraftImage:
-    return DraftImage(
-        role=role,
-        alt=alt,
-        svg=_square(title, lines, chart),
-        width=_CARD,
-        height=_CARD,
-        card=_social_card(f"instagram-{role}.svg", title, sentence),
+    blocks = _present(
+        [
+            _hook_pieces(breakdown),
+            _headline(breakdown),
+            *standing,
+            _cost_pieces(breakdown),
+            *gaps,
+            *_disclosure_blocks(breakdown),
+            _neutrality(breakdown),
+            _url(),
+        ]
     )
+    story = _flatten(blocks)
+    cites = _citation_lines(story, book)
+    posts = [*blocks, *cites]
+    texts = tuple(_posts_from(posts, book, _X_LIMIT, "X"))
+    return _file(_flatten(posts)), texts
+
+
+def _story(breakdown: Breakdown, *, teams: bool) -> tuple[list[list[Piece]], list[list[Piece]]]:
+    standing = [_standing_pieces(breakdown, index) for index in range(len(breakdown.standing))]
+    gaps = _present(
+        [
+            _unread_pieces(breakdown),
+            _held_pieces(breakdown),
+            *_unreported_pieces(breakdown),
+            _speed_pieces(breakdown),
+            _domains_pieces(breakdown),
+        ]
+    )
+    lead = [*_disclosure_blocks(breakdown), _intro_pieces(breakdown, teams=teams)]
+    optional = _present(
+        [
+            _headline(breakdown),
+            _hook_pieces(breakdown),
+            *standing,
+            _cost_pieces(breakdown),
+            *_comparison_pieces(breakdown),
+            *gaps,
+            *_plan_pieces(breakdown),
+            _facets_pieces(breakdown),
+            _inapplicable_pieces(breakdown),
+        ]
+    )
+    return lead, optional
+
+
+def _guard(text: str) -> None:
+    found = refused_words(text)
+    if found:
+        raise ValueError(f"draft contains refused wording: {found[0]}")
+    if excluded_sources().text.search(text):
+        raise ValueError("draft names an excluded source")
+    if "router" in text.lower():
+        raise ValueError("draft names a router")
 
 
 def _hn_title(headline: str) -> str:
@@ -716,442 +580,132 @@ def _hn_title(headline: str) -> str:
     return cut[:space] if space > 0 else cut
 
 
-def _with_notes(text: str, notes: list[str]) -> str:
-    extra = [note for note in notes if note and note not in text]
-    if not extra:
-        return text
-    return _join([text, *extra]) if text else _join(extra)
-
-
-def _x(
-    breakdown: Breakdown,
-    url: str,
-    image: DraftImage,
-    hook: Block,
-    headline: Block,
-    standing: list[Block],
-    cost: Block | None,
-    gaps: list[Block],
-    book: dict,
-) -> tuple[Draft, list[str]]:
-    gap_text = " ".join(block.text for block in gaps if block.text)
-    cost_text = (
-        cost.text if cost is not None else "ModelSpec holds no priced offering of this model."
-    )
-    piece = Piece("label")
-    piece.lit("ModelSpec. ")
-    _say(piece, breakdown.disclosures.neutrality)
-    piece.lit(" " + _CARD_STATES + " ")
-    _say(piece, url)
-    disclosure = _block(piece)
-    posts = [
-        hook.text,
-        headline.text,
-        *(block.text for block in standing),
-        cost_text,
-        gap_text,
-        disclosure.text,
-    ]
-    posts = [post for post in posts if post]
-    if not 5 <= len(posts) <= 7:
-        raise ValueError(f"X thread length {len(posts)}")
-    for index, post in enumerate(posts):
-        _within(f"X post {index}", post, _X_LIMIT)
-    shown = [hook, headline, *standing]
-    if cost is not None:
-        shown.append(cost)
-    shown.extend(gaps)
-    manifest = _manifest(breakdown, url, shown, claims=True, standing=False, cost=False, book=book)
-    draft = Draft(platform="x", posts=tuple(posts), images=(image,), link=url, manifest=manifest)
-    return draft, _tokens(shown)
-
-
-def _linkedin(
-    breakdown: Breakdown,
-    url: str,
-    image: DraftImage,
-    book: dict,
-    intro: Block,
-    optional: list[Block],
-    cites: list[str],
-) -> tuple[Draft, list[str]]:
-    tail = [
-        *_citation_blocks(cites),
-        *_disclosure_blocks(breakdown),
-        _data_block(breakdown.disclosures.neutrality),
-        _data_block(url),
-    ]
-    kept = _fit_blocks([intro], optional, tail, _LINKEDIN_LIMIT)
-    text = _within("LinkedIn", _join_blocks(kept), _LINKEDIN_LIMIT)
-    manifest = _manifest(breakdown, url, kept, claims=True, standing=False, cost=False, book=book)
-    draft = Draft(platform="linkedin", posts=(text,), images=(image,), link=url, manifest=manifest)
-    return draft, _tokens(kept)
-
-
-def _facebook(
-    breakdown: Breakdown,
-    url: str,
-    image: DraftImage,
-    hook: Block,
-    headline: Block,
-    book: dict,
-) -> tuple[Draft, list[str]]:
-    piece = Piece("label")
-    piece.lit("ModelSpec.")
-    parts = [
-        _block(piece),
-        headline,
-        hook,
-        _data_block(breakdown.disclosures.neutrality),
-        _data_block(_CARD_STATES),
-        _data_block(url),
-    ]
-    text = _within("Facebook", _join_blocks(parts), _FACEBOOK_LIMIT)
-    manifest = _manifest(
-        breakdown, url, [hook, headline], claims=True, standing=False, cost=False, book=book
-    )
-    draft = Draft(platform="facebook", posts=(text,), images=(image,), link=url, manifest=manifest)
-    return draft, _tokens([hook])
-
-
-def _instagram(
-    breakdown: Breakdown,
-    url: str,
-    made: dict[str, str],
-    standing: list[Block],
-    cost: Block | None,
-    gap_blocks: list[Block],
-    cites: list[str],
-    book: dict,
-) -> tuple[Draft, list[str]]:
-    standing_lines = [block.text for block in standing]
-    gap_lines = [block.text for block in gap_blocks if block.text]
-    notes = [*cites, *_disclosure_texts(breakdown)]
-    images: list[DraftImage] = [
-        _square_image(
-            "headline",
-            _with_notes(breakdown.headline.text, notes),
-            [],
-            None,
-            title=breakdown.headline.text,
-            sentence="",
-        )
-    ]
-    show_standing = bool(standing_lines) and "standing.svg" in made
-    show_cost = cost is not None and "cost.svg" in made
-    if show_standing:
-        prose = " ".join(standing_lines)
-        images.append(
-            _square_image(
-                "standing",
-                _with_notes(prose, notes),
-                standing_lines,
-                made["standing.svg"],
-                title="Where it stands",
-                sentence=prose,
-            )
-        )
-    if show_cost and cost is not None:
-        images.append(
-            _square_image(
-                "cost",
-                _with_notes(cost.text, notes),
-                [cost.text],
-                made["cost.svg"],
-                title="Cost per task",
-                sentence=cost.text,
-            )
-        )
-    gap_prose = " ".join(gap_lines)
-    images.append(
-        _square_image(
-            "gaps",
-            _with_notes(gap_prose, notes),
-            gap_lines,
-            None,
-            title="Not measured yet",
-            sentence=gap_prose,
-        )
-    )
-    if not 3 <= len(images) <= 5:
-        raise ValueError(f"Instagram carousel length {len(images)}")
-    caption_piece = Piece("label")
-    _say(caption_piece, breakdown.model.name)
-    caption_piece.lit(", a release breakdown from ModelSpec.")
-    caption = _block(caption_piece)
-    blurb = _data_block(
-        "The cards are the headline, where the model stands, the list price, "
-        "and what is not measured yet. The link is in this caption. "
-        "The cards do not link."
-    )
-    tail = [
-        *_citation_blocks(cites),
-        *_disclosure_blocks(breakdown),
-        _data_block(breakdown.disclosures.neutrality),
-        _data_block(url),
-    ]
-    caption_blocks = [caption, blurb, *tail]
-    text = _within("Instagram caption", _join_blocks(caption_blocks), _INSTAGRAM_CAPTION_LIMIT)
-    shown = [*standing, *gap_blocks]
-    if show_cost and cost is not None:
-        shown.append(cost)
-    manifest = _manifest(
-        breakdown,
-        url,
-        shown,
-        claims=False,
-        standing=show_standing,
-        cost=show_cost,
-        book=book,
-    )
-    draft = Draft(
-        platform="instagram",
-        posts=(text,),
-        images=tuple(images),
-        link=url,
-        manifest=manifest,
-    )
-    return draft, []
-
-
-def _reddit(
-    breakdown: Breakdown,
-    url: str,
-    blocks: list[Block],
-    book: dict,
-) -> tuple[Draft, list[str]]:
-    title = _within("Reddit title", breakdown.headline.text, _REDDIT_TITLE_LIMIT)
-    body = _within("Reddit", _join_blocks(blocks), _REDDIT_BODY_LIMIT)
-    manifest = _manifest(
-        breakdown, url, blocks, claims=False, standing=False, cost=False, book=book
-    )
-    draft = Draft(
-        platform="reddit",
-        posts=(body,),
-        images=(),
-        link=url,
-        title=title,
-        subreddit="r/LocalLLaMA",
-        rules=_REDDIT_RULES,
-        cross_post=False,
-        manifest=manifest,
-    )
-    return draft, _tokens(blocks)
-
-
-def _hackernews(breakdown: Breakdown, url: str) -> Draft:
-    title = _hn_title(breakdown.headline.text)
-    _within("Hacker News title", title, _HN_TITLE_LIMIT)
-    note = "Jamie decides whether to submit"
-    extra = _disclosure_texts(breakdown)
-    if extra:
-        note = "\n".join([note, *extra])
-    return Draft(
-        platform="hackernews",
-        posts=(),
-        images=(),
-        link=url,
-        title=title,
-        submission=f"{title}\n{url}",
-        note=note,
-        jamie_decides=True,
-        manifest=_labels(breakdown, url),
-    )
-
-
-def _surface(draft: Draft) -> str:
-    return "\n".join(
-        [draft.text, draft.title, draft.submission, draft.note, draft.rules, draft.link]
-    )
-
-
-def _audit_draft(
-    draft: Draft,
-    breakdown: Breakdown,
-    book: dict,
-    text_tokens: list[str],
-    base_identity: list[str],
-    standing_tokens: list[str],
-    cost_tokens: list[str],
-    gap_tokens: list[str],
-) -> None:
-    identity = [*base_identity, *identity_strings(breakdown, draft.link)]
-    audit(_surface(draft), text_tokens, identity, f"{draft.platform} text")
-    for image in draft.images:
-        if image.role == "claims":
-            svg_expected: list[str] = claims_chart_tokens(breakdown, book)
-            alt_expected: list[str] = []
-            html_expected: list[str] = []
-        elif image.role == "standing":
-            svg_expected = [*standing_tokens, *standing_chart_tokens(breakdown, book)]
-            alt_expected = list(standing_tokens)
-            html_expected = list(standing_tokens)
-        elif image.role == "cost":
-            svg_expected = [*cost_tokens, *cost_chart_tokens(breakdown, book)]
-            alt_expected = list(cost_tokens)
-            html_expected = list(cost_tokens)
-        elif image.role == "gaps":
-            svg_expected = list(gap_tokens)
-            alt_expected = list(gap_tokens)
-            html_expected = list(gap_tokens)
-        elif image.role == "headline":
-            svg_expected = []
-            alt_expected = []
-            html_expected = []
-        else:
-            raise ValueError(f"unknown card {image.role}")
-        audit(
-            svg_claim_text(image.svg),
-            svg_expected,
-            identity,
-            f"{draft.platform} {image.role} svg",
-        )
-        audit(image.alt, alt_expected, identity, f"{draft.platform} {image.role} alt")
-        if image.html:
-            audit(
-                html_claim_text(image.html),
-                html_expected,
-                identity,
-                f"{draft.platform} {image.role} html",
-            )
-
-
 def render_drafts(breakdown: Breakdown, *, post_url: str | None = None) -> dict[str, Draft]:
-    """Six drafts for one breakdown. Nothing is posted."""
+    """Six text drafts for one breakdown. Nothing is posted."""
+    _require_digit_free(breakdown)
     url = post_url or _default_url(breakdown)
-    hook = _block(_require_hook(breakdown))
-    book = catalogue(breakdown)
-    headline = _headline_block(breakdown)
-    standing = [_standing_block(breakdown, index, book) for index in range(len(breakdown.standing))]
-    cost = _cost_block(breakdown, book)
-    comparisons = _comparison_blocks(breakdown, book)
-    unread = _unread_block(breakdown)
-    held = _held_block(breakdown, book)
-    unreported = _unreported_blocks(breakdown, book)
-    speed = _speed_block(breakdown)
-    domains = _domains_block(breakdown)
-    facets = _facets_block(breakdown)
-    inapplicable = _inapplicable_block(breakdown)
-    plans = _plan_blocks(breakdown)
-    x_gaps = [block for block in (unread, held, *unreported) if block is not None]
-    long_gaps = [
-        block for block in (unread, held, *unreported, speed, domains) if block is not None
-    ]
-    made = charts(breakdown)
-    story_slots = _slots(
+    book = catalogue(breakdown, url)
+    tail = [_neutrality(breakdown), _url()]
+
+    x_pieces, x_posts = _x_pieces(breakdown, book)
+    x_output = _prove(x_pieces, breakdown, url)
+
+    linkedin_lead, linkedin_optional = _story(breakdown, teams=True)
+    linkedin_body = _fit(linkedin_lead, linkedin_optional, tail, book, _LINKEDIN_LIMIT)
+    linkedin_text = _render(linkedin_body, book)
+    linkedin_pieces = _file(linkedin_body)
+    linkedin_output = _prove(linkedin_pieces, breakdown, url)
+
+    facebook_body = _fit(
+        [*_disclosure_blocks(breakdown), _short_hook(breakdown)],
+        [],
+        tail,
+        book,
+        _FACEBOOK_LIMIT,
+    )
+    facebook_text = _render(facebook_body, book)
+    facebook_output = _prove(_file(facebook_body), breakdown, url)
+
+    instagram_lead, instagram_optional = _story(breakdown, teams=False)
+    instagram_body = _fit(
+        [[Literal(_HAND)], *instagram_lead],
+        instagram_optional,
+        tail,
+        book,
+        _INSTAGRAM_CAPTION_LIMIT,
+    )
+    instagram_text = _render(instagram_body, book)
+    instagram_output = _prove(_file(instagram_body), breakdown, url)
+
+    reddit_lead, reddit_optional = _story(breakdown, teams=False)
+    reddit_lead = [[Literal("This is ModelSpec.")], *reddit_lead]
+    reddit_body = _fit(
+        reddit_lead,
+        reddit_optional,
+        [[Literal(_REDDIT_RULES)], *tail],
+        book,
+        _REDDIT_BODY_LIMIT,
+    )
+    reddit_text = _render(reddit_body, book)
+    title = _within("Reddit title", breakdown.headline.text, _REDDIT_TITLE_LIMIT)
+    reddit_pieces = [Literal(title), Literal("\n\n"), *reddit_body, Literal("\n")]
+    reddit_output = _prove(reddit_pieces, breakdown, url)
+
+    hn_title = _within("Hacker News title", _hn_title(breakdown.headline.text), _HN_TITLE_LIMIT)
+    hn_blocks: list[list[Piece]] = [[Literal(hn_title)], _url()]
+    if hn_title != breakdown.headline.text:
+        hn_blocks.append(_headline(breakdown))
+    hn_blocks.extend(
         [
-            hook,
-            *standing,
-            *([cost] if cost is not None else []),
-            *comparisons,
-            *x_gaps,
-            *long_gaps,
+            _hook_pieces(breakdown),
+            *_disclosure_blocks(breakdown),
+            _neutrality(breakdown),
+            [Literal(_JAMIE)],
         ]
     )
-    story_slots.extend(claims_chart_slots(breakdown, book))
-    if "standing.svg" in made:
-        story_slots.extend(standing_chart_slots(breakdown, book))
-    if cost is not None and "cost.svg" in made:
-        story_slots.extend(cost_chart_slots(breakdown, book))
-    cites = _citations(story_slots)
-    alt = " ".join(
-        [
-            "Lab-reported and independent readings",
-            *cites,
-            *_disclosure_texts(breakdown),
-        ]
-    )
-    image = _claims_image(made["claims.svg"], alt)
-    linkedin_optional = [
-        headline,
-        hook,
-        *standing,
-        *([cost] if cost is not None else []),
-        *comparisons,
-        *([unread] if unread is not None else []),
-        held,
-        *unreported,
-        *([speed] if speed is not None else []),
-        *([domains] if domains is not None else []),
-        *plans,
-        *([facets] if facets is not None else []),
-        *([inapplicable] if inapplicable is not None else []),
-    ]
-    reddit_blocks = [
-        _data_block("This is ModelSpec."),
-        _intro_block(breakdown, teams=False),
-        headline,
-        hook,
-        *standing,
-        *([cost] if cost is not None else []),
-        *comparisons,
-        *long_gaps,
-        *([facets] if facets is not None else []),
-        *([inapplicable] if inapplicable is not None else []),
-        *plans,
-        *_citation_blocks(cites),
-        *_disclosure_blocks(breakdown),
-        _data_block(breakdown.disclosures.neutrality),
-        _data_block(url),
-        _data_block(_REDDIT_RULES),
-    ]
-    x_draft, x_tokens = _x(breakdown, url, image, hook, headline, standing, cost, x_gaps, book)
-    linkedin_draft, linkedin_tokens = _linkedin(
-        breakdown, url, image, book, _intro_block(breakdown, teams=True), linkedin_optional, cites
-    )
-    facebook_draft, facebook_tokens = _facebook(breakdown, url, image, hook, headline, book)
-    instagram_draft, instagram_tokens = _instagram(
-        breakdown, url, made, standing, cost, long_gaps, cites, book
-    )
-    reddit_draft, reddit_tokens = _reddit(breakdown, url, reddit_blocks, book)
-    hn_draft = _hackernews(breakdown, url)
+    hn_story = _flatten(hn_blocks)
+    hn_cites = _cite_block(hn_story, book)
+    if hn_cites:
+        hn_blocks.insert(3, hn_cites)
+    hn_body = _flatten(hn_blocks)
+    hn_output = _prove(_file(hn_body), breakdown, url)
+    submission = hn_output[:-1]
+
     drafts = {
-        "x": x_draft,
-        "linkedin": linkedin_draft,
-        "facebook": facebook_draft,
-        "instagram": instagram_draft,
-        "reddit": reddit_draft,
-        "hackernews": hn_draft,
+        "x": Draft(
+            platform="x",
+            posts=x_posts,
+            link=url,
+            output=x_output,
+            manifest=tuple(x_pieces),
+        ),
+        "linkedin": Draft(
+            platform="linkedin",
+            posts=(linkedin_text,),
+            link=url,
+            output=linkedin_output,
+            manifest=tuple(_file(linkedin_body)),
+        ),
+        "facebook": Draft(
+            platform="facebook",
+            posts=(facebook_text,),
+            link=url,
+            output=facebook_output,
+            manifest=tuple(_file(facebook_body)),
+        ),
+        "instagram": Draft(
+            platform="instagram",
+            posts=(instagram_text,),
+            link=url,
+            output=instagram_output,
+            manifest=tuple(_file(instagram_body)),
+        ),
+        "reddit": Draft(
+            platform="reddit",
+            posts=(reddit_text,),
+            link=url,
+            output=reddit_output,
+            manifest=tuple(reddit_pieces),
+            title=title,
+            subreddit="r/LocalLLaMA",
+            rules=_REDDIT_RULES,
+            cross_post=False,
+        ),
+        "hackernews": Draft(
+            platform="hackernews",
+            posts=(),
+            link=url,
+            output=hn_output,
+            manifest=tuple(_file(hn_body)),
+            title=hn_title,
+            submission=submission,
+            note=_JAMIE,
+            jamie_decides=True,
+        ),
     }
-    text_tokens = {
-        "x": x_tokens,
-        "linkedin": linkedin_tokens,
-        "facebook": facebook_tokens,
-        "instagram": instagram_tokens,
-        "reddit": reddit_tokens,
-        "hackernews": [],
-    }
-    standing_tokens = _tokens(standing)
-    cost_tokens = _tokens([cost] if cost is not None else [])
-    gap_tokens = _tokens(long_gaps)
-    cite_identity = list(cites)
-    for name, draft in drafts.items():
-        _audit_draft(
-            draft,
-            breakdown,
-            book,
-            text_tokens[name],
-            cite_identity,
-            standing_tokens,
-            cost_tokens,
-            gap_tokens,
-        )
-    for name, draft in drafts.items():
-        for picture in draft.images:
-            _enforce_image_limits(name, picture)
+    for draft in drafts.values():
+        _guard(draft.output)
     return drafts
-
-
-def _draft_text(draft: Draft) -> str:
-    if draft.platform == "reddit":
-        body = f"{draft.title}\n\n{draft.text}"
-    elif draft.platform == "hackernews":
-        body = draft.submission
-    else:
-        body = draft.text
-    if not body.endswith("\n"):
-        body += "\n"
-    return body
 
 
 def generate_from_breakdown(
@@ -1160,7 +714,7 @@ def generate_from_breakdown(
     post_url: str,
     output_dir: str | Path,
 ) -> dict[str, str]:
-    """Write the six drafts the release hook asks for. Nothing is posted."""
+    """Write the six text drafts the release hook asks for. Nothing is posted."""
     breakdown = Breakdown.model_validate_json(Path(breakdown_path).read_bytes())
     drafts = render_drafts(breakdown, post_url=post_url)
     destination = Path(output_dir)
@@ -1168,10 +722,6 @@ def generate_from_breakdown(
     written: dict[str, str] = {}
     for platform, filename in _DRAFT_FILES.items():
         target = destination / filename
-        target.write_text(_draft_text(drafts[platform]), encoding="utf-8")
+        target.write_text(drafts[platform].output, encoding="utf-8")
         written[filename] = str(target)
-        for image in drafts[platform].images:
-            picture = destination / f"{platform}-{image.role}.svg"
-            picture.write_text(image.svg, encoding="utf-8")
-            written[picture.name] = str(picture)
     return written
