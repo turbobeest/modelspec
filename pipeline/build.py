@@ -670,15 +670,15 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)
         social_cards.render_template_cards(ms, template_previews)
-    (ms / "decide").mkdir(exist_ok=True)
-    from pipeline.live import decide_capsule
-    (ms / "decide/index.html").write_text(
-        '<!doctype html><html><head><meta name="robots" content="noindex">'
-        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
-        f'<body>{decide_capsule()}</body></html>\n',
-        encoding="utf-8",
-    )
-    ms_paths.append("/decide/")
+    from pipeline.live import decide_capsule, details_capsule
+    for path, capsule in (("/decide/", decide_capsule()), ("/decide/details/", details_capsule())):
+        page = ms / path.lstrip("/") / "index.html"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(
+            '<!doctype html><html><head><meta name="robots" content="noindex">'
+            f'<link rel="canonical" href="https://modelspec.dev{path}"></head>'
+            f'<body>{capsule}</body></html>\n', encoding="utf-8")
+        ms_paths.append(path)
     # MODEL-221. /feedback/, its assets and the published request schema.
     from pipeline import feedback_page
     feedback_counts = feedback_page.write(ms, root)

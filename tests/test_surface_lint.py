@@ -108,6 +108,13 @@ def test_current_registry_surfaces_pass(texts: dict[str, str], copy: dict) -> No
     assert lint(texts, copy) == []
 
 
+@pytest.mark.parametrize("path", ["decide.html", "decide-details.html", "decide/index.html", "decide/details/index.html"])
+def test_both_decide_pages_are_checked(texts: dict[str, str], copy: dict, path: str) -> None:
+    texts[path] = page("ModelSpec is a knowledge graph.")
+    findings = lint(texts, copy)
+    assert [(finding.surface, finding.check) for finding in findings] == [(path, "lexicon.positioning")]
+
+
 def test_fixture_old_title_fails_ci(
     texts: dict[str, str], copy: dict, tmp_path: Path, capsys
 ) -> None:

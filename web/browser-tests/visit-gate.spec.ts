@@ -49,7 +49,7 @@ test.describe("managed visit gate", () => {
         return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
       });
       await page.clock.install();
-      await page.goto("/decide.html?demo=1");
+      await page.goto("/decide/details/?demo=1");
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
       await expect.poll(() => sent.length).toBe(3);
       await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
@@ -102,7 +102,7 @@ test.describe("managed visit gate", () => {
       return route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary });
     });
     await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; specs.push(route.request().postDataJSON()); return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }); });
-    await page.goto("/decide.html?demo=1");
+    await page.goto("/decide/details/?demo=1");
     await expect(page.locator(".board-answer").getByRole("button", { name: "Verify fixture" })).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toBeVisible();
     await expect(page.getByText("For example: require open weights, prefer lower cost, and see which models fit.")).toBeVisible();

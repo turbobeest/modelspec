@@ -44,7 +44,7 @@ const lastMain = (fetch: ReturnType<typeof engine>) =>
   sentSpecs(fetch).filter((body) => !("estate" in body)).at(-1);
 
 beforeEach(() => {
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   localStorage.clear();
 });
 afterEach(() => vi.unstubAllGlobals());

@@ -167,7 +167,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                           "published evidence. The agent needs a ModelSpec API key. Answers start at "
                           "{low_dollars} at the cheapest published rate. You can provide an existing key, "
                           f"review {PRICING}, or look it up yourself on the free board at "
-                          f"{entity.SITE}/decide/."),
+                          f"{entity.BOARD}."),
         "orientation_next": ["Run modelspec key for access and prices.",
                              "Run modelspec setup mcp --client generic to connect an MCP client.",
                              f"Read {GUIDE_URL}; then use modelspec decide --spec FILE with a key."],
@@ -491,6 +491,8 @@ Coverage: {entity.SITE}/api/coverage.json
 
 ## CLI, MCP or HTTP
 
+People can inspect the full decision board at {entity.BOARD}.
+
 {ACCESS} CLI: `{INSTALL_PATHS[0]}` (or `{INSTALL_PATHS[1]}`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. {CLI_PRIVACY}
 
 ## First call
@@ -811,7 +813,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "vocab": {"minimal_spec": MINIMAL_SPEC, "next": VOCAB_NEXT},
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
-            f"{ACCESS} CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
+            f"{ACCESS} People can inspect the full decision board at {entity.BOARD}. "
+            f"CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
             "1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "

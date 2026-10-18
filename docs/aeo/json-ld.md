@@ -9,7 +9,7 @@
 | Page | Nodes |
 |---|---|
 | `/` | `Organization`, `WebSite`, `Dataset`, `WebAPI` + `SoftwareApplication` (the API), `SoftwareApplication` (the MCP server) |
-| `/decide/` | `BreadcrumbList`, `WebApplication` (free offer) |
+| `/decide/`, `/decide/details/` | `BreadcrumbList`, `WebApplication` (free offer) |
 | Every other page in `CRUMBS` | `BreadcrumbList` |
 
 `Organization.sameAs` comes from `brand/social/profiles.json`. Every handle there is empty, so no `sameAs` ships.

@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
+      if (location.hash.startsWith("#s=") || new URLSearchParams(location.search).has("template")) {
+        location.replace("/decide/details/" + location.search + location.hash);
+      }
+    </script>
+    <script>
       // The theme before first paint: initialTheme() in src/decide/theme.ts,
       // which __tests__/theme.test.tsx holds this script to.
       (function () {
@@ -20,10 +25,10 @@
     </script>
     <meta
       name="description"
-      content="Set what matters, watch the field narrow, and choose an AI model from visible evidence."
+      content="Pick a job. See your options and what each task costs."
     />
     <link rel="canonical" href="https://modelspec.dev/decide/" />
-    <title>ModelSpec Facet Board · Decide</title>
+    <title>Which AI model fits your job? · ModelSpec</title>
     <link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -34,10 +39,10 @@
     <meta property="og:site_name" content="ModelSpec" />
     <meta
       property="og:description"
-      content="Set what matters, watch the field narrow, and choose an AI model from visible evidence."
+      content="Pick a job. See your options and what each task costs."
     />
     <!-- social-card-meta:start -->
-    <meta property="og:title" content="ModelSpec Facet Board · Decide">
+    <meta property="og:title" content="Which AI model fits your job? · ModelSpec">
     <meta property="og:url" content="https://modelspec.dev/decide/">
     <meta property="og:image" content="https://modelspec.dev/og-card-decide.png">
     <meta property="og:image:width" content="1200">
@@ -49,6 +54,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/decide/main.tsx"></script>
+    <script type="module" src="/src/decide/simple/main.tsx"></script>
   </body>
 </html>

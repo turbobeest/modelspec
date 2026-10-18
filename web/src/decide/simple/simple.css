@@ -1,0 +1,80 @@
+.simple-app { font-size: 16px; }
+.simple-app a { color: var(--ink); text-underline-offset: 3px; }
+.simple-app button, .simple-app select, .simple-app summary { min-height: 44px; font-size: 14px; }
+.simple-app button:disabled { cursor: not-allowed; opacity: .65; }
+.simple-app button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.simple-header { max-width: 1100px; margin: auto; padding: 12px 24px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--line2); }
+.simple-header .simple-date { margin-left: auto; font-size: 14px; color: var(--muted); }
+.simple-main { max-width: 1000px; margin: auto; padding: 24px; }
+.simple-hero h1 { font-size: clamp(28px, 3.5vw, 44px); line-height: 1.08; letter-spacing: -.035em; }
+.simple-hero p { margin-top: 8px; color: var(--muted); }
+.simple-example { margin: 12px 0 !important; font-size: 14px; }
+.simple-jobs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
+.simple-jobs button { text-align: left; padding: 12px; }
+.simple-jobs strong, .simple-jobs span { display: block; }
+.simple-jobs span { margin-top: 4px; font-size: 13px; }
+.simple-priority { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.simple-helper { font-size: 14px; color: var(--muted); margin-top: 6px !important; }
+.simple-limit-heading { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
+.simple-limit-heading button { margin-left: auto; }
+.simple-limits { background: var(--surface); border: 1px solid var(--line2); padding: 12px; margin-bottom: 12px; font-size: 14px; }
+.simple-limits label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.simple-limits input { width: 20px; height: 20px; }
+.simple-limits .simple-route { flex-wrap: wrap; margin: 8px 0; }
+.simple-route select { max-width: 100%; flex: 1; }
+.simple-answer { padding: 18px; border: 1px solid var(--line2); background: var(--surface); }
+.simple-scope { color: var(--muted); font-size: 14px; margin-bottom: 8px !important; }
+.simple-app .simple-answer h2, .simple-neutrality { font-size: 18px; line-height: 1.3; font-weight: 500; }
+.simple-neutrality { margin: 6px 0 !important; }
+.simple-neutrality a { text-decoration: none; }
+.simple-tie { font-size: 14px; color: var(--muted); }
+.simple-tie span { display: block; }
+.simple-shortlist { list-style: none; padding: 0; margin: 10px 0; }
+.simple-model { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.simple-model strong { display: block; font-weight: 600; font-size: 16px; }
+.simple-provider { display: block; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.simple-price { white-space: nowrap; font-size: 14px; font-variant-numeric: tabular-nums; }
+.simple-app .simple-primary { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; background: var(--ink); color: var(--surface); text-decoration: none; font-weight: 600; }
+.simple-proof { display: grid; gap: 6px; margin-top: 14px; font-size: 14px; color: var(--muted); }
+.simple-proof summary { display: flex; align-items: center; cursor: pointer; text-decoration: underline; }
+.simple-empty { margin: 12px 0; }
+.simple-empty p + p { margin-top: 8px; }
+.simple-agent { margin: 14px 0 4px !important; font-size: 14px; }
+.simple-all { display: inline-flex; min-height: 44px; align-items: center; font-size: 14px; }
+.simple-loading { padding: 24px 0; }
+.simple-footer { max-width: 1000px; margin: auto; padding: 0 24px 20px; }
+.simple-footer nav { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.simple-footer a { display: inline-flex; min-height: 44px; align-items: center; font-size: 14px; }
+.simple-skip { position: absolute; top: -80px; left: 8px; padding: 12px; background: var(--surface); z-index: 10; }
+.simple-skip:focus { top: 8px; }
+@media (max-width: 650px) {
+  .simple-header { padding: 4px 12px; gap: 8px; min-height: 56px; flex-wrap: wrap; }
+  .simple-header .lockup { gap: 6px; }
+  .simple-header .lockup .mark { width: 28px; height: 28px; }
+  .simple-header .lockup .wordmark { font-size: 20px; }
+  .simple-header .simple-date { font-size: 12px; }
+  .simple-header button { padding: 4px 6px; }
+  .simple-main { padding: 12px; }
+  .simple-hero h1 { font-size: 28px; }
+  .simple-hero p { font-size: 14px; margin-top: 5px; }
+  .simple-example { margin: 6px 0 !important; font-size: 14px; }
+  .simple-jobs { grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 6px; }
+  .simple-jobs button { padding: 5px; font-size: 13px; }
+  .simple-jobs span { display: none; }
+  .simple-priority { margin-top: 8px; gap: 5px; }
+  .simple-priority button { padding: 4px 5px; font-size: 13px; }
+  .simple-helper { font-size: 14px; line-height: 1.3; margin-top: 5px !important; }
+  .simple-limit-heading { margin: 2px 0; }
+  .simple-answer { padding: 10px; }
+  .simple-scope { margin-bottom: 5px !important; }
+  .simple-app .simple-answer h2, .simple-neutrality { font-size: 16px; line-height: 1.25; }
+  .simple-neutrality { margin: 5px 0 !important; }
+  .simple-tie { font-size: 14px; line-height: 1.3; }
+  .simple-shortlist { margin: 6px 0; }
+  .simple-model { gap: 6px; padding: 5px 0; line-height: 1.2; }
+  .simple-model strong { font-size: 14px; }
+  .simple-provider { font-size: 13px; }
+  .simple-price { font-size: 13px; }
+  .simple-proof { font-size: 14px; }
+  .simple-footer { padding: 0 12px 12px; }
+}

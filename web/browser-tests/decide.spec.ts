@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function openBoard(page: import("@playwright/test").Page) {
-  await page.goto("/decide.html?demo=1");
+  await page.goto("/decide/details/?demo=1");
   await expect(
     page.getByRole("heading", { name: "Which AI model fits your job?" }),
   ).toBeVisible();
@@ -183,7 +183,7 @@ test("a shared board wins over the default and keeps its chosen chart axes", asy
     tokIn: 40000, tokOut: 4000, bench: "swe_bench_pro", w: { cap: 0.6, cost: 0.3, speed: 0.1 }, conds: [], x: "task$",
     board: { selections: { "model.context_window": { mode: "must", op: ">=", value: 200000 } }, mustOrder: ["model.context_window"], estate: { providers: [], plans: [], hardware: [] }, canvas: { x: "facet:model.context_window", y: "capability:software_engineering" } },
   };
-  await page.goto(`/decide.html#s=${btoa(encodeURIComponent(JSON.stringify(state)))}`);
+  await page.goto(`/decide/details/#s=${btoa(encodeURIComponent(JSON.stringify(state)))}`);
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
   await expect(page.locator(".template-active")).toHaveCount(0);
   await expect(page.getByLabel("X axis")).toHaveValue("facet:model.context_window");
@@ -281,7 +281,7 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
     ? page.waitForResponse((response) => response.url().includes("/v1/human-status"))
     : null;
   // Old table-first links load the same fixed composition.
-  await page.goto("/decide.html?layout=table");
+  await page.goto("/decide/details/?layout=table");
   if (status) await status;
   await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
@@ -382,6 +382,8 @@ for (const viewport of [{ width: 1236, height: 800 }, { width: 1440, height: 800
 test("a facet click in Refine holds its place while the next answer loads", async ({ page }) => {
   await page.setViewportSize({ width: 1236, height: 800 });
   await openBoard(page);
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
+  await expect(page.locator(".loading")).toHaveCount(0);
   // Safari has no scroll anchoring; without the held height the row jumped 1,640px.
   await page.addStyleTag({ content: "* { overflow-anchor: none !important; }" });
   let release = () => {};

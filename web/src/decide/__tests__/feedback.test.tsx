@@ -48,7 +48,7 @@ describe("the per-answer prompt", () => {
   it("asks with the five fixed choices, and sends them tied to the decision", async () => {
     const calls = answering(NOT_RECORDED);
     const user = userEvent.setup();
-    render(<FeedbackForm compact question="Was this answer reliable?" decisionId="dec_3f9a1c2b7d4e" template="coding" page="/decide/" />);
+    render(<FeedbackForm compact question="Was this answer reliable?" decisionId="dec_3f9a1c2b7d4e" template="coding" page="/decide/details/" />);
 
     const group = screen.getByRole("group", { name: "Was this answer reliable?" });
     expect(within(group).getAllByRole("radio").map((r) => r.getAttribute("value"))).toEqual([
@@ -71,7 +71,7 @@ describe("the per-answer prompt", () => {
       client: "page",
       decision_id: "dec_3f9a1c2b7d4e",
       template: "coding",
-      page: "/decide/",
+      page: "/decide/details/",
       trying_to_decide: "a cheap coder",
     });
   });
@@ -79,7 +79,7 @@ describe("the per-answer prompt", () => {
   it("says when it was recorded, what was removed, and can undo it by receipt", async () => {
     const calls = answering(RECORDED, { schema_version: "1.0", endpoint: "feedback", status: "deleted", recorded: false, service_commit: "c0ffee" });
     const user = userEvent.setup();
-    render(<FeedbackForm question="Was this answer reliable?" decisionId="dec_3f9a1c2b7d4e" page="/decide/" />);
+    render(<FeedbackForm question="Was this answer reliable?" decisionId="dec_3f9a1c2b7d4e" page="/decide/details/" />);
     await user.click(screen.getByRole("radio", { name: "Confusing" }));
     await user.type(screen.getByLabelText(/Anything else/), "mail a@b.test");
     await user.click(screen.getByRole("button", { name: "Send feedback" }));
@@ -100,7 +100,7 @@ describe("the per-answer prompt", () => {
       error: { code: "rate_limited", message: "at most 5 a minute", retry_after: 60 },
     }), { status: 429 })));
     const user = userEvent.setup();
-    render(<FeedbackForm question="Was this answer reliable?" page="/decide/" />);
+    render(<FeedbackForm question="Was this answer reliable?" page="/decide/details/" />);
     await user.click(screen.getByRole("radio", { name: "Reliable" }));
     await user.click(screen.getByRole("button", { name: "Send feedback" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("at most 5 a minute");
@@ -110,7 +110,7 @@ describe("the per-answer prompt", () => {
 describe("the page-wide control", () => {
   it("is a labelled, keyboard-reachable button that opens the form", async () => {
     const user = userEvent.setup();
-    render(<FeedbackLauncher page="/decide/" />);
+    render(<FeedbackLauncher page="/decide/details/" />);
     const button = screen.getByRole("button", { name: "Feedback" });
     await user.tab();
     expect(button).toHaveFocus();

@@ -8,7 +8,7 @@ ModelSpec is an analysis of alternatives for AI models: it decides which models 
 
 There are three ways in: this CLI, [remote MCP](https://api.modelspec.dev/mcp),
 and the [HTTP API](https://api.modelspec.dev/v1/decide).
-Only human lookup on the [board](https://modelspec.dev/decide/) is free.
+Only human lookup on the [board](https://modelspec.dev/decide/details/) is free.
 Decisions require a ModelSpec API key. No data download and no local decision
 cache. The CLI does not include the engine, registry, model cards, or offline
 and snapshot commands. Repository tooling retains the

@@ -27,6 +27,6 @@ the live composition and the deploy checks. Rendering uses the existing
 
 The board's Share dialog offers a `Template preview` tab for the active
 starting template. That link contains only the public template ID. The preview
-page links to `/decide/?template=<id>` to adjust it against the latest
+page links to `/decide/details/?template=<id>` to adjust it against the latest
 catalogue. A saved board hash takes priority over that query parameter. Custom
 decision preview URLs and server rendering require a separate privacy review.

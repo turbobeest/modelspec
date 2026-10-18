@@ -1,6 +1,6 @@
 # ModelSpec agent guide
 
-Guide version: 1-79cf5b6e5f3bf838.
+Guide version: 1-c87335a7b267ef2f.
 Canonical URL: https://modelspec.dev/agents.md
 Full API reference: https://modelspec.dev/openapi.yaml
 Coverage: https://modelspec.dev/api/coverage.json
@@ -8,6 +8,8 @@ Coverage: https://modelspec.dev/api/coverage.json
 ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.
 
 ## CLI, MCP or HTTP
+
+People can inspect the full decision board at https://modelspec.dev/decide/details/.
 
 Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache. CLI: `uvx --from modelspec-dev modelspec` (or `pipx install modelspec-dev`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. No telemetry. The CLI never uses, sends or logs your provider API keys.
 

@@ -41,7 +41,7 @@ const view = () =>
     providers: realVocabulary.providers,
   });
 
-beforeEach(() => history.replaceState(null, "", "/decide/"));
+beforeEach(() => history.replaceState(null, "", "/decide/details/"));
 afterEach(() => vi.unstubAllGlobals());
 
 it("keeps the page and the Why panel up after Prefer on Input price", async () => {

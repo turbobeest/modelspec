@@ -244,7 +244,7 @@ def test_the_landing_page_links_to_the_site() -> None:
         coverage=landing.coverage.from_repo(REPO_ROOT, date.today()),
     )
     html = landing.render(data, variant="live")
-    for route in ("/decide/", "#agents", "/legal/terms/", "/legal/privacy/",
+    for route in ("/decide/details/", "#agents", "/legal/terms/", "/legal/privacy/",
                   "/legal/neutrality/"):
         assert f'href="{route}"' in html, f"the landing does not link to {route}"
 

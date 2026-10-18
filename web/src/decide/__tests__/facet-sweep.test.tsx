@@ -11,7 +11,7 @@ import { DesignedApp } from "../App";
 import { groupFacets } from "../facet-board/model";
 import { json, realVocabulary, routeFetch } from "./vocab-fixtures";
 
-beforeEach(() => history.replaceState(null, "", "/decide/"));
+beforeEach(() => history.replaceState(null, "", "/decide/details/"));
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();

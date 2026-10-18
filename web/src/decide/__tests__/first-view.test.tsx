@@ -36,7 +36,7 @@ it.each(["coding-balanced", "budget-coding"])("opens the requested %s template f
   vi.useFakeTimers();
   const requested = realVocabulary.templates?.find((template) => template.id === id);
   if (!requested) throw new Error(`The ${id} template is missing`);
-  history.replaceState(null, "", `/decide/?template=${id}`);
+  history.replaceState(null, "", `/decide/details/?template=${id}`);
   const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
@@ -48,7 +48,7 @@ it.each(["coding-balanced", "budget-coding"])("opens the requested %s template f
 
 it.each(["unknown-template", "coding-fastest", ""])("keeps an unavailable or unknown query template (%s) from opening a different template", async (id) => {
   vi.useFakeTimers();
-  history.replaceState(null, "", `/decide/?template=${id}`);
+  history.replaceState(null, "", `/decide/details/?template=${id}`);
   const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
@@ -114,7 +114,7 @@ it.each(["empty", "coding"].flatMap((kind) =>
   const hash = encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
     ...converted, estate: emptyEstate, canvas: { x: "facet:model.context_window", y: "capability:software_engineering" },
   });
-  history.replaceState(null, "", `/decide/${query}${hash}`);
+  history.replaceState(null, "", `/decide/details/${query}${hash}`);
   const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
   vi.stubGlobal("fetch", fetch);
   const app = render(<DesignedApp />);

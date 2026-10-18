@@ -40,6 +40,7 @@ CRUMBS = {
     "/method/": "How ModelSpec decides",
     "/orchestrators/": "Choose models for your orchestrator",
     "/decide/": "Which AI model fits your job",
+    "/decide/details/": "Which AI model fits your job",
     "/pricing/": "Pricing",
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",
@@ -155,12 +156,12 @@ def graph(path: str, tree: Path, root: Path = ROOT) -> list[dict[str, Any]]:
     if path == "/about/":
         return [organization(root), breadcrumbs(path)]
     nodes = [breadcrumbs(path)]
-    if path == "/decide/":
+    if path in {"/decide/", "/decide/details/"}:
         nodes.append({
             "@type": "WebApplication",
-            "@id": f"{BASE}/decide/#app",
+            "@id": f"{BASE}{path}#app",
             "name": CRUMBS[path],
-            "url": f"{BASE}/decide/",
+            "url": f"{BASE}{path}",
             "applicationCategory": "BusinessApplication",
             "browserRequirements": "Requires JavaScript",
             "offers": _free(),

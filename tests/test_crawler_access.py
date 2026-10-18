@@ -65,6 +65,15 @@ def test_lastmod_is_each_pages_last_source_commit(tmp_path: Path, monkeypatch: p
     assert live.lastmod("/b/", tmp_path) == "2026-09-30"
 
 
+def test_simple_page_lastmod_tracks_nested_ui_sources_and_ignores_unrelated_commits(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "web/src/decide/simple").mkdir(parents=True)
+    _commit(tmp_path, "web/decide.html", "2026-09-01T12:00:00+00:00")
+    _commit(tmp_path, "web/src/decide/simple/SimpleApp.tsx", "2026-09-30T12:00:00+00:00")
+    _commit(tmp_path, "unrelated.txt", "2026-10-01T12:00:00+00:00")
+    assert live.lastmod("/decide/", tmp_path) == "2026-09-30"
+
+
 def test_every_sitemap_url_has_a_lastmod_and_every_page_has_sources() -> None:
     assert set(live.PAGE_SOURCES) == set(live.PAGES)
     for path, sources in live.PAGE_SOURCES.items():

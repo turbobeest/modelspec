@@ -50,6 +50,8 @@ def trees(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     (web / "assets").mkdir(parents=True)
     (web / "decide.html").write_text(
         '<!doctype html><title>Decide</title><body><div id="root"></div></body>', encoding="utf-8")
+    (web / "decide-details.html").write_text(
+        '<!doctype html><title>Detailed board</title><body><div id="root"></div></body>', encoding="utf-8")
     (web / "decision.html").write_text(
         '<!doctype html><meta name="robots" content="noindex, nofollow, noarchive">'
         '<meta name="referrer" content="no-referrer"><title>Decision summary</title>'
