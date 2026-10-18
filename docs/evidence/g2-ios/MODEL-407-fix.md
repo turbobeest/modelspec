@@ -153,7 +153,12 @@ check; data freeze passed. The private workflow patch passed `git apply --check`
 against a scratch copy of its existing workflow, without changing the private
 checkout. Preserved terminal logs have trailing whitespace removed.
 
-The complete-suite result is pending here until the process finishes.
+The required complete suite finished with direct process exit code **0**:
+**11,595 passed, 9 skipped, 11 warnings in 1,410.99 seconds (23 minutes 30
+seconds)**. The [complete terminal output](MODEL-407/full-suite.txt) is retained.
+Only evidence files changed after implementation commit `9bdc7ec7`; the final
+focused run also covered the nonsemantic test-import formatting applied while
+the complete suite was running. All started validation processes finished.
 
 No production deployment, vendor API spending, live billing transaction,
 private-workflow execution, or cross-model review has been observed in this
