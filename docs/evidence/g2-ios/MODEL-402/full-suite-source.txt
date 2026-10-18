@@ -1,8 +1,0 @@
-Source implementation: cf7f72cead28e08d1e3152512c3a19202d098de9
-Observed lock acquisition: 2026-10-18T00:13:23.069750+00:00
-Lock owner: pytest process 21170, parent flock 60267.
-Command: env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-
-Observed final exec session 61311 exit_code: 1
-15 failed, 11464 passed, 9 skipped, 11 warnings, 12 errors in 1210.76s (0:20:10)
-Production and tests were not edited during this run. Implementation source: cf7f72cead28e08d1e3152512c3a19202d098de9.
