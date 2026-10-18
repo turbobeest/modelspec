@@ -1,12 +1,13 @@
 # MODEL-406 execution evidence
 
 Execution dates: 2026-10-17 and 2026-10-18. Worktree: `/Users/terbeest/dev/worktrees/model-406`.
-Branch: `model-406-agent-bundle-merge`. Draft PR:
+Branch: `model-406-agent-bundle-merge`. PR:
 <https://github.com/turbobeest/modelspec/pull/817>.
 
 - Base SHA: `0cf4080a72d354295c434206257d089d26b50ed6`.
 - First commit, design only: `47d3dede60f685e1aaeb27259c6899722c973702`.
-- Final implementation SHA: `03a2c32a548bd94c99f7658b1ed197f0b5cde129`.
+- Round-1 implementation SHA: `03a2c32a548bd94c99f7658b1ed197f0b5cde129`.
+- Round-2 implementation SHA: `b7e7e421d9ed00883dc3275ca803e65344d8727e`.
 - The delivery commit adds only this evidence. Resolve its full SHA with
   `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-406-fix.md`.
   The final execution marker reports that delivery SHA.
@@ -420,10 +421,121 @@ I did not observe a production deployment, a real GitHub merge of two PRs,
 or the remote CI outcome. The merge proof uses ordinary local Git without a
 custom merge driver. No live provider, device or API probe ran. No Linear
 write, workflow edit, automatic regeneration push or merge was performed.
-The PR remains a draft for the independent review.
+The PR remained a draft at the round-1 handoff for the independent review.
 
 Changes to the same source or overlapping generated content can still
 conflict. The one-time format migration may conflict with branches using
 the old layout. The tests prove independent digest edits after both
 branches adopt the new layout; they do not claim arbitrary source changes
 can always merge without review.
+
+## Round 2: bound test generation work
+
+Execution date: 2026-10-18. Starting head:
+`30abcadf4ee0696864481a55f0575c2510a8cdd3`.
+Merged `origin/main` at `6fdc5baef50a1c198a4a0557dbe2299da5f75090`
+without conflicts in merge commit `24529e6603ba40a4e6a8412696b2084bb3aa7088`.
+The user reported 62 setup errors from one generator timeout on CI shard
+2/4 and identified the separate explanation timing failure as out of scope.
+
+The old module fixture ran both writers twice with a 180-second timeout.
+One fixture failure therefore failed setup for all 62 cases. The CLI stale
+probe also launched two complete generator checks. The local baseline
+passed its assertions but failed the requested 60-second file budget:
+
+```text
+pytest exit=0; wall=119.45s; under_60s=False
+62 passed in 119.15s (0:01:59)
+56.49s setup: test_generated_pin_files_are_byte_stable[cli/modelspec/agent-bundle.json]
+54.22s call: test_agent_copy_check_rejects_a_stale_pin
+```
+
+The timing wrapper exited 1. It ran the unchanged test file before the
+round-2 edits. This reproduced the excessive local runtime, not the
+180-second CI timeout itself.
+
+The shared session fixture in `tests/conftest.py` now generates each bundle
+once with `render(cli_bundle())` and `render(capture_tools())`. The 57 merge
+cases reuse those bytes, edit real source files, calculate the edited file's
+SHA-256 using the same expression as the generators, render the new pin,
+and retain all merge and payload assertions. The CLI negative probe reuses
+the fresh bundle while executing the copied module's real `main(["check"])`
+comparison, exit status and diagnostic. All negative probes first accept
+fresh artifacts and restore changed files afterward.
+
+`tests/test_generated_pins_integration.py` contains one `perf` test. It
+removes each copied output, runs each real writer once with a 600-second
+timeout, and compares the resulting bytes with the independent in-process
+generation. This preserves the generation stability check. The test restores
+its outputs even on failure. Subprocesses disable bytecode writes to the
+linked read-only inputs.
+
+The existing CI workflow excludes `perf` from all four parallel shards and
+runs it once in a serial job. No workflow change was needed. Moving the
+end-to-end test into its own module keeps the complete merge test file
+within the requested budget. An intermediate version with the end-to-end
+test in the same file passed 63 tests but took 69.88 seconds, so it did not
+meet the budget.
+
+Final timing, including pytest startup and all 62 tests in
+`tests/test_generated_pins.py`, exited 0:
+
+```text
+pytest exit=0; wall=36.36s; under_60s=True
+62 passed in 36.15s
+27.51s setup: test_generated_pin_files_are_byte_stable[cli/modelspec/agent-bundle.json]
+0.27s call: test_agent_copy_check_rejects_a_stale_pin
+```
+
+Both timings used this command under a Python wrapper with
+`time.monotonic()` around `subprocess.run`, direct exit-code inspection,
+and an additional nonzero exit when elapsed time reached 60 seconds:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_generated_pins.py --durations=10
+```
+
+Fixture and marker checks, all exit 0:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --setup-plan -q tests/test_generated_pins.py tests/test_generated_pins_integration.py -k 'byte_stable or real_generators'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --collect-only -q -m perf tests/test_generated_pins.py tests/test_generated_pins_integration.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --collect-only -q -m 'not perf' tests/test_generated_pins.py tests/test_generated_pins_integration.py
+```
+
+The setup plan showed one `SETUP S generated_pin_bytes` across both modules.
+The `perf` selection collected 1 test and deselected 62; `not perf` collected
+62 and deselected 1.
+
+Regenerated after the merge, all exit 0:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+The commands took 90.42, 0.62 and 0.23 seconds respectively. Regeneration
+left the tracked artifacts unchanged.
+
+Focused verification command:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_generated_pins.py tests/test_generated_pins_integration.py tests/test_agent_copy.py tests/test_agent_harness.py tests/test_agent_guide.py tests/test_decision_link.py tests/test_pypi_packaging.py tests/test_cli_wheel.py tests/test_api_docs.py
+```
+
+Focused result, exit 0: `295 passed, 2 skipped in 122.54s (0:02:02)`.
+
+Full verification command:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+Full result: pending.
+
+Rechecked tool versions: Python 3.14.4, pytest 9.1.1 and Git 2.50.1.
+The round-2 fix changes tests and their documentation only. It leaves
+`test_none_latency_is_within_noise_of_bypassed_explanation` unchanged.
+The user has already marked PR #817 ready for review; this run does not
+change its draft state or merge it. Remote CI performance remains unobserved.
