@@ -1,0 +1,103 @@
+{
+  "sha": "2919a7e029605c3e249bfec45039fe5c4d9e5f92",
+  "command": "gh pr checks 812 --json name,state",
+  "exit_code": 0,
+  "checks": [
+    {
+      "name": "Run pytest",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Smoke-test the deployed decide surfaces",
+      "state": "SKIPPED"
+    },
+    {
+      "name": "Deploy to Cloudflare Pages",
+      "state": "SKIPPED"
+    },
+    {
+      "name": "Deploy the staging rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "name": "Deploy the rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "name": "Build both sites",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Deploy the MCP Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "name": "Check sign-off",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Check evidence against release charts",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "pytest perf and collection",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "pytest shard 2/4",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Test decide page (human gate true, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Test decide page (human gate false, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Test decide page (human gate true, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "pytest shard 4/4",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "MCP Worker tests",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "pytest shard 3/4",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Test decide page (human gate false, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "pytest shard 1/4",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Rank Worker bundle",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Package smoke test",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Decision accuracy",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Data freeze",
+      "state": "SUCCESS"
+    },
+    {
+      "name": "Queue squash auto-merge",
+      "state": "SKIPPED"
+    }
+  ]
+}

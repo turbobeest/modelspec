@@ -35,10 +35,24 @@ def lockup(*, href: str | None = "/") -> str:
     return f'<a class="lockup" href="{href}">{inner}</a>'
 
 
+def site_header(*, current: str | None = None) -> str:
+    """The public-page header. `current` is the href that is this page."""
+    def item(href: str, label: str, *, class_name: str = "") -> str:
+        classes = f' class="{class_name}"' if class_name else ""
+        mark = ' aria-current="page"' if href == current else ""
+        return f'<a href="{href}"{classes}{mark}>{label}</a>'
+
+    return (f'<header class="site-head">{lockup()}<nav>'
+            f'{item("/about/", "About")}'
+            f'{item("/method/", "How it decides")}'
+            f'{item("/#agents", "For agents")}'
+            f'{item("/pricing/", "Pricing")}'
+            f'{item("/decide/", "Open the board", class_name="button primary")}'
+            "</nav></header>")
+
+
 def method_header() -> str:
-    return (f'<header class="site-head">{lockup()}<nav><a href="/method/" aria-current="page">How it decides</a>'
-            '<a href="/#agents">For agents</a><a href="/pricing/">Pricing</a>'
-            '<a class="button primary" href="/decide/">Open the board</a></nav></header>')
+    return site_header(current="/method/")
 
 
 def legal_footer_links(*, base: str = "",

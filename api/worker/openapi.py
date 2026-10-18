@@ -3613,7 +3613,7 @@ def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
             key = fingerprint(node)
             if not root and key in names:
                 return {"$ref": "#/components/schemas/" + names[key]}
-            share = not root and len(key) >= 80 and any(
+            share = not root and len(key) >= 72 and any(
                 field in node for field in ("type", "anyOf", "oneOf", "allOf")
             )
             if share and key in properties:

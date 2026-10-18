@@ -825,9 +825,9 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "7826a7794d3b4a11f4c90f69e71c3ddd31fe8ccd5ea12c5c2c3986c20ff96056",
-    "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "d870582d19dc557ca646b6eabf12054eede51d12a6497c94c9d86588f0e2fee2",
+    "pipeline/agent_copy.py": "1826b682cade0eb45bd846f9f0f3bacac516bd92a48352b610ecc3051e844cef",
+    "pipeline/entity.py": "02224c4012fd9b46a18d0c04dbb74401d6cdbe1238e6d356c1490998a2071969",
+    "pipeline/pricing.py": "73730aba87806d637964d81614324fae7e5ddcebebd89b2f7b0464ec023a176f",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
     "api/worker/tiers.json": "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",

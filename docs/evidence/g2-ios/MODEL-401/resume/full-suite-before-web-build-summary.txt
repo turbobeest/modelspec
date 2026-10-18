@@ -1,0 +1,18 @@
+Exit code: 1
+Command: /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+
+E           FileNotFoundError: [Errno 2] No such file or directory: '/Users/terbeest/dev/worktrees/model-401/web/dist/decide.html'
+
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[altered_data]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[challenge] - F...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[motion] - File...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[responsive] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[holding] - Fil...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarding] - ...
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[assembled_decide_mobile]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[forwarded_state_ranks]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[method_responsive]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_dark_before_paint]
+ERROR tests/test_landing.py::test_landing_behaviour_in_browser[decide_theme_persists]
+11473 passed, 9 skipped, 11 warnings, 12 errors in 1122.07s (0:18:42)

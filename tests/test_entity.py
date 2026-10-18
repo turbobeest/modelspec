@@ -126,6 +126,7 @@ def test_claims_say_only_what_the_service_does_today() -> None:
         assert unshipped not in text, unshipped
     ties = next(c for c in entity.CLAIMS if c.id == "ties-declared").statement
     assert "returns the tie" in ties and "returns the cheapest" not in ties
+    assert 'kind: "tied"' in ties and "tie_breakers" in ties
     assert len({c.id for c in entity.CLAIMS}) == len(entity.CLAIMS)
     assert all(c.proof.startswith(entity.SITE) for c in entity.CLAIMS)
 
