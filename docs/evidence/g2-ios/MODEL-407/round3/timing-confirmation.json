@@ -1,0 +1,277 @@
+{
+  "baseline_ref": "819ba9e1aeb4e5e8a91e305a044224ff061605ed",
+  "historical_ref": "4443bb7a",
+  "candidate_ref": "WORKTREE",
+  "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "fixture": {
+    "compressed_bytes": 62806,
+    "json_utf8_bytes": 1192167,
+    "json_sha256": "7a05ee0c93aee2e464c8048a2b958fa5fd76a7644a386d47bbaa05ca280aaf52"
+  },
+  "timing_contract": "one warm load, five file loads, GC disabled, previous index retained; best <100ms",
+  "variants": {
+    "baseline": {
+      "samples_ms": [
+        73.70295806322247,
+        76.18770794942975,
+        73.90824996400625,
+        74.55916702747345,
+        73.39237502310425
+      ],
+      "best_ms": 73.39237502310425,
+      "passes_unchanged_100ms_gate": true,
+      "index_bytes": 4517095,
+      "snapshot_id": "snap_cbe0b1853f4c8052",
+      "profile": {
+        "total_calls": 2950699,
+        "profile_total_ms": 329.632542,
+        "functions": [
+          {
+            "file": "baseline-snapshot.py",
+            "line": 2548,
+            "function": "load_snapshot_bytes",
+            "calls": 1,
+            "self_ms": 0.027250000000000003,
+            "cumulative_ms": 329.535833
+          },
+          {
+            "file": "baseline-snapshot.py",
+            "line": 2531,
+            "function": "_stream_canonical_envelope",
+            "calls": 1,
+            "self_ms": 0.019957000000000003,
+            "cumulative_ms": 324.977208
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 121,
+            "function": "read_value",
+            "calls": 150297,
+            "self_ms": 48.653936,
+            "cumulative_ms": 324.85620800000004
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 77,
+            "function": "_object",
+            "calls": 264,
+            "self_ms": 3.4018330000000003,
+            "cumulative_ms": 324.853
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 104,
+            "function": "_array",
+            "calls": 10686,
+            "self_ms": 58.996861,
+            "cumulative_ms": 313.319182
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 53,
+            "function": "_starts",
+            "calls": 611093,
+            "self_ms": 53.104625000000006,
+            "cumulative_ms": 80.586455
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 43,
+            "function": "_whitespace",
+            "calls": 318779,
+            "self_ms": 50.04871800000001,
+            "cumulative_ms": 71.45249000000001
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 59,
+            "function": "_scalar",
+            "calls": 143095,
+            "self_ms": 28.999103,
+            "cumulative_ms": 54.018547
+          },
+          {
+            "file": "decoder.py",
+            "line": 351,
+            "function": "raw_decode",
+            "calls": 143110,
+            "self_ms": 18.989916,
+            "cumulative_ms": 19.240956999999998
+          },
+          {
+            "file": "baseline-snapshot.py",
+            "line": 2023,
+            "function": "__init__",
+            "calls": 1,
+            "self_ms": 0.42574800000000007,
+            "cumulative_ms": 4.527209
+          },
+          {
+            "file": "baseline-snapshot.py",
+            "line": 1861,
+            "function": "__init__",
+            "calls": 9,
+            "self_ms": 1.1607330000000002,
+            "cumulative_ms": 2.785041
+          },
+          {
+            "file": "baseline-snapshot.py",
+            "line": 1970,
+            "function": "__init__",
+            "calls": 1,
+            "self_ms": 0.533355,
+            "cumulative_ms": 0.723333
+          },
+          {
+            "file": "baseline-json_stream.py",
+            "line": 36,
+            "function": "_hash_consumed",
+            "calls": 20,
+            "self_ms": 0.134804,
+            "cumulative_ms": 0.5918760000000001
+          },
+          {
+            "file": "baseline-snapshot.py",
+            "line": 238,
+            "function": "__init__",
+            "calls": 2,
+            "self_ms": 0.00075,
+            "cumulative_ms": 0.00075
+          }
+        ]
+      }
+    },
+    "candidate": {
+      "samples_ms": [
+        12.30208296328783,
+        13.265290996059775,
+        13.115291018038988,
+        12.702791020274162,
+        12.769666966050863
+      ],
+      "best_ms": 12.30208296328783,
+      "passes_unchanged_100ms_gate": true,
+      "index_bytes": 4517095,
+      "snapshot_id": "snap_cbe0b1853f4c8052",
+      "profile": {
+        "total_calls": 214235,
+        "profile_total_ms": 30.955249000000002,
+        "functions": [
+          {
+            "file": "candidate-snapshot.py",
+            "line": 2548,
+            "function": "load_snapshot_bytes",
+            "calls": 1,
+            "self_ms": 0.022999000000000002,
+            "cumulative_ms": 30.874708000000002
+          },
+          {
+            "file": "candidate-snapshot.py",
+            "line": 2531,
+            "function": "_stream_canonical_envelope",
+            "calls": 1,
+            "self_ms": 0.017294,
+            "cumulative_ms": 26.647333000000003
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 130,
+            "function": "read_value",
+            "calls": 7567,
+            "self_ms": 2.49169,
+            "cumulative_ms": 26.537208000000003
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 79,
+            "function": "_object",
+            "calls": 144,
+            "self_ms": 2.8100080000000003,
+            "cumulative_ms": 26.533709
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 106,
+            "function": "_array",
+            "calls": 3556,
+            "self_ms": 2.249966,
+            "cumulative_ms": 15.417178
+          },
+          {
+            "file": "decoder.py",
+            "line": 351,
+            "function": "raw_decode",
+            "calls": 10706,
+            "self_ms": 4.9516670000000005,
+            "cumulative_ms": 6.069964000000001
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 45,
+            "function": "_whitespace",
+            "calls": 21698,
+            "self_ms": 3.4037170000000003,
+            "cumulative_ms": 5.070366000000001
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 55,
+            "function": "_starts",
+            "calls": 36662,
+            "self_ms": 3.241092,
+            "cumulative_ms": 4.893499
+          },
+          {
+            "file": "candidate-snapshot.py",
+            "line": 2023,
+            "function": "__init__",
+            "calls": 1,
+            "self_ms": 0.38953000000000004,
+            "cumulative_ms": 4.200792
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 61,
+            "function": "_scalar",
+            "calls": 7135,
+            "self_ms": 1.440708,
+            "cumulative_ms": 3.8172690000000005
+          },
+          {
+            "file": "candidate-snapshot.py",
+            "line": 1861,
+            "function": "__init__",
+            "calls": 9,
+            "self_ms": 1.10377,
+            "cumulative_ms": 2.6323760000000003
+          },
+          {
+            "file": "candidate-snapshot.py",
+            "line": 1970,
+            "function": "__init__",
+            "calls": 1,
+            "self_ms": 0.431358,
+            "cumulative_ms": 0.62175
+          },
+          {
+            "file": "candidate-json_stream.py",
+            "line": 38,
+            "function": "_hash_consumed",
+            "calls": 20,
+            "self_ms": 0.11564,
+            "cumulative_ms": 0.5644600000000001
+          },
+          {
+            "file": "candidate-snapshot.py",
+            "line": 238,
+            "function": "__init__",
+            "calls": 2,
+            "self_ms": 0.000833,
+            "cumulative_ms": 0.000833
+          }
+        ]
+      }
+    }
+  }
+}

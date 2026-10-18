@@ -5,21 +5,74 @@ Design-first commit: `008da9cc`.
 Draft PR: https://github.com/turbobeest/modelspec/pull/820.
 Initial implementation SHA: `9bdc7ec7a8566bba47e7a5d332fe980a1dae0598`.
 Private follow-up began at `8df90ee01e6a10c08058ffef5966c16026aaae7d`.
-Final executable implementation: `bb41f0f68cb90c0616263e4c4853c77ee3d916a4`.
+Round 2 executable implementation: `bb41f0f68cb90c0616263e4c4853c77ee3d916a4`.
+Round 3 executable implementation: `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`.
 The final evidence commit is the branch HEAD printed in the execution marker.
 
-The private acceptance target passes: implementation `bb41f0f6` with data
-`74947c3` and the successor loaded retains **104.57278 MiB**, below 115 MiB.
-Warm rollover retains **104.61679 MiB**. The required historical matrix and
-fresh public/private builds are complete. The original current-period public
-pass alone did not establish acceptance; the follow-up fixes below were needed.
-The final full suite passed under the required shared lock: **11,650 passed,
-9 skipped, 11 warnings**, direct exit 0.
+The private acceptance target passes for `f6dbbcd8` with data `74947c3`:
+**104.57322 MiB** with the successor loaded and **103.69368 MiB** after warm
+rollover. The unchanged 100 ms load gate measures **13.30 ms** locally, best
+of five with GC disabled. The 648 focused tests, both serial performance
+tests and non-performance collection pass. The Round 3 full suite is queued
+under the shared lock; confirmation of the corrected load gate on CI is pending.
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
 and warns when retained memory increases by more than 1 MiB against the same
 fixture on main. No ranking, Decision 2.18, bounded 1.5, hardware-fit 2.0,
 legal text, or production switches changed.
+
+## Round 3: restore snapshot load time
+
+REV-820 found that the complete Python token loop passed locally near 73 ms
+but failed the unchanged MODEL-138 gate in Decision accuracy at **149.30 ms**
+best of five. The [original CI failure](MODEL-407/round3/ci-accuracy-before.txt)
+records run `39112262794`. The separate `pytest perf and collection` job
+failed its serial timing step; collection was skipped. Its exact log remains
+unavailable while the parent workflow is running and will be read after completion.
+
+Profiling located roughly 2.95 million calls in per-value parsing. The change
+asks the standard C decoder to parse an array only when the complete array is
+already in the existing buffer. Larger arrays keep the incremental path.
+The buffer limit, exact-source hashing, gzip verification, signed envelope,
+public response bytes and both performance/memory limits are unchanged.
+
+| Measured option | Local best-of-five load | Public successor steady | Decision |
+| --- | ---: | ---: | --- |
+| Previous Python token loop | 69.98 ms | 104.51080 MiB in Round 2 | CI fails the 100 ms gate |
+| Whole-document C decode, text released before indexing | 5.62 ms | 116.48983 MiB | Reject: fails 115 MiB |
+| Complete buffered arrays decoded in C | 13.30 ms | 104.51238 MiB | Passes both local limits |
+
+The decoder shares dictionary keys across streamed objects and separate C
+calls. A version without that sharing fails all three new
+`test_streamed_arrays_share_keys_with_surrounding_objects` cases. The final
+reader passes them and the failed-array lifetime case with GC disabled.
+The two legacy-depth cases now use nested objects, so buffered-array decoding
+does not bypass the fallback those cases exercise. The final reader rerun
+passed all 42 tests, direct exit 0.
+See [the red result](MODEL-407/round3/key-sharing-red.txt) and
+[the focused result](MODEL-407/round3/focused-final.txt).
+
+Fresh public and private bundles were built from committed `f6dbbcd8` by
+`vendor.py --data-dir`, with no generated-source patches. All three scenarios
+pass 115 MiB using Node 22.22.3 and Pyodide 0.28.3. The private detached
+worktree was removed and the authorized private scratch directory is empty.
+Only memory values and engine/data commit SHAs were exported.
+
+Local validation: **648 passed in 224.30 seconds**, serial performance
+**2 passed, 11,661 deselected in 37.24 seconds**, and non-performance
+collection **11,661 of 11,663 tests collected, 2 deselected**, all direct exit 0.
+The first collection attempt overlapped a temporary public vendor overlay
+and encountered duplicate plugin registrations. After that build exited and
+removed its overlay, the exact collection command passed. No collection
+configuration or test limit was changed. The locked full-suite result and
+CI confirmation remain pending.
+
+The [timing/profile recipe and samples](MODEL-407/round3/profiling.md),
+[public memory commands and artifacts](MODEL-407/round3/memory-commands.md),
+and [Round 3 validation commands](MODEL-407/round3/validation-commands.md)
+make these measurements reproducible. The differential reader check passed
+16,040 acceptance/value/exact-hash comparisons plus the key-sharing and
+GC-disabled lifetime cases.
 
 ## Red-first defects and corrections
 
@@ -69,9 +122,12 @@ runtime reports Python 3.13.2 and Pydantic 2.10.6.
 | Starting `b4a7074f`, enforcing 115 MiB | 116.47690 | 71.875 | Exit 1 |
 | Initial implementation, current | 104.47210 | 59.875 | Exit 0 at 115 MiB |
 | Initial implementation, successor | 115.58447 | 71.875 | Exit 1 at 115 MiB |
-| Final `bb41f0f6`, current | 104.48928 | 59.875 | Exit 0 at 115 MiB |
-| Final `bb41f0f6`, successor | 104.51080 | 59.875 | Exit 0 at 115 MiB |
-| Final `bb41f0f6`, warm rollover | 104.53250 | 59.875 | Exit 0 at 115 MiB |
+| Round 2 `bb41f0f6`, current | 104.48928 | 59.875 | Exit 0 at 115 MiB |
+| Round 2 `bb41f0f6`, successor | 104.51080 | 59.875 | Exit 0 at 115 MiB |
+| Round 2 `bb41f0f6`, warm rollover | 104.53250 | 59.875 | Exit 0 at 115 MiB |
+| Round 3 `f6dbbcd8`, current | 104.48933 | 59.875 | Exit 0 at 115 MiB |
+| Round 3 `f6dbbcd8`, successor | 104.51238 | 59.875 | Exit 0 at 115 MiB |
+| Round 3 `f6dbbcd8`, warm rollover | 104.53329 | 59.875 | Exit 0 at 115 MiB |
 
 The initial current-period implementation had 10.53 MiB of public headroom,
 but the successor-period check exposed a failure. The two baseline
@@ -111,19 +167,22 @@ target uses `74947c3` with this implementation.
 | Initial implementation, current | `8df90ee0` | `74947c3` | 122,218,799 | 116.55693 | 71.875 |
 | Initial implementation, successor | `8df90ee0` | `74947c3` | 137,295,447 | 130.93514 | 86.25 |
 | Initial implementation, warm rollover | `8df90ee0` | `74947c3` | 137,346,492 | 130.98382 | 86.25 |
-| Final implementation, current | `bb41f0f6` | `74947c3` | 109,651,736 | 104.57204 | 59.875 |
-| Final implementation, successor | `bb41f0f6` | `74947c3` | 109,652,504 | 104.57278 | 59.875 |
-| Final implementation, warm rollover | `bb41f0f6` | `74947c3` | 109,698,653 | 104.61679 | 59.875 |
+| Round 2 implementation, current | `bb41f0f6` | `74947c3` | 109,651,736 | 104.57204 | 59.875 |
+| Round 2 implementation, successor | `bb41f0f6` | `74947c3` | 109,652,504 | 104.57278 | 59.875 |
+| Round 2 implementation, warm rollover | `bb41f0f6` | `74947c3` | 109,698,653 | 104.61679 | 59.875 |
+| Round 3 implementation, current | `f6dbbcd8` | `74947c3` | 109,652,912 | 104.57317 | 59.875 |
+| Round 3 implementation, successor | `f6dbbcd8` | `74947c3` | 109,652,968 | 104.57322 | 59.875 |
+| Round 3 implementation, warm rollover | `f6dbbcd8` | `74947c3` | 108,730,708 | 103.69368 | 59.875 |
 
 The historical four-cell runs exit successfully at the unchanged 120 MiB
 deployment gate. All three initial implementation runs fail the 115 MiB gate;
-all three final implementation runs exit 0 at that same 115 MiB gate.
+all Round 2 and Round 3 implementation runs exit 0 at that same 115 MiB gate.
 The successor run uses the same four requests at the current period's UTC
 boundary. Warm rollover first serves the current decision, advances to the
 boundary, repeats that decision request, and runs the remaining three requests.
 It asserts the predecessor is released before reading the successor bytes.
 
-Post-sample private attribution for the final implementation's current period measures
+Post-sample private attribution for the Round 2 implementation's current period measures
 4,044,223 bytes for the loaded snapshot index, including 2,367,442 bytes for
 general provenance and 51,644 bytes for hardware provenance. Vocabulary
 accounts for 636,274 bytes. These categories overlap and are not additive
@@ -136,10 +195,14 @@ measurements contains only memory numbers and commit SHAs. The detached data
 worktrees were removed and `/tmp/model-407-private` was verified empty after
 exporting those permitted measurements.
 
-The final public and private runs allocate the same 59.875 MiB Wasm heap.
-Their steady totals differ by less than 0.09 MiB in each matching scenario,
-providing measured calibration for the committed public recipe. The highest
-final private result leaves 10.38 MiB of headroom below the 115 MiB gate.
+The public and private runs allocate the same 59.875 MiB Wasm heap.
+Round 2 steady totals differ by less than 0.09 MiB in each matching scenario.
+Round 3 current and successor totals also differ by less than 0.09 MiB;
+the public warm result is 0.84 MiB higher than the private sample. This is
+within the observed V8 variation and conservatively represents private warm
+memory. The highest Round 3 private result leaves 10.43 MiB below 115 MiB.
+The [Round 3 private memory-only results](MODEL-407/round3/private-memory-numbers.json)
+record the latest samples.
 The [private memory-only results](MODEL-407/private-memory-numbers.json) and
 public [current](MODEL-407/public-final-current.json),
 [successor](MODEL-407/public-final-successor.json), and
@@ -164,7 +227,8 @@ New tests cover chunk boundaries, Unicode and escapes, EOF, malformed syntax,
 content tampering before indexing, duplicate outer content, inner last-value
 semantics, deep legacy input, and cleanup after a failed parse. Existing gzip
 CRC, size, truncation and concatenated-member tests pass. The original 100 ms
-load-time limit remains: final standalone best-of-five samples were 71.64–75.68 ms.
+load-time limit remains. Round 2 standalone best-of-five samples were 71.64–75.68 ms;
+REV-820 exposed the CI failure, corrected in Round 3 above.
 
 The policy change retains only the requested page and the first ten required
 undetermined examples. Full-catalogue verdict counts and provenance still
@@ -187,8 +251,9 @@ Main advanced to `34c6dbef95371cff728a7a28aba33dcffe3e50e3`, reverting #813
 until a lazy successor could meet the memory budget. Merge commit
 `3cf60629630d225e486f0726cf5001450fb738ca` restores the tested successor
 implementation and regressions, while retaining main's removal of obsolete
-MODEL-402 evidence. `git diff --exit-code bb41f0f6 HEAD -- api decision pipeline
-schema` confirms the executable source is identical to the measured build.
+MODEL-402 evidence. `git diff --exit-code bb41f0f6 3cf60629 -- api decision
+pipeline schema` confirms that merge's executable source is identical to the
+Round 2 measured build. Round 3 changes only the reader as described above.
 
 The public workflow also handles main versions without a successor bundle:
 main's current baseline remains required; an explicit notice replaces only
@@ -253,13 +318,13 @@ covering snapshot loading and rollover, hardware responses, rank, policy,
 workflow gates, and Worker compression. Its output is in
 [focused-final.txt](MODEL-407/focused-final.txt).
 
-The final complete suite at merge commit
+The Round 2 complete suite at merge commit
 `3cf60629630d225e486f0726cf5001450fb738ca` passed under the required shared
 lock with direct process exit code **0**: **11,650 passed, 9 skipped,
 11 warnings in 1,286.78 seconds (21 minutes 26 seconds)**. The executable
 source remains identical to the measured `bb41f0f6` implementation. The
-[final terminal output](MODEL-407/full-suite-final.txt) is retained. The
-verification process has exited; subsequent edits record evidence only.
+[final terminal output](MODEL-407/full-suite-final.txt) is retained. That
+verification process exited before the Round 3 changes.
 
 No production deployment, vendor API spending, live billing transaction,
 private-workflow execution, or cross-model review has been observed in this

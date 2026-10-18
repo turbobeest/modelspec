@@ -1,0 +1,116 @@
+{
+  "head": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
+  "source_sha256": {
+    "decision/snapshot.py": "50a76a2584b9a25f38367ab090785e428c611492a7581e601752ece6523de4f0",
+    "decision/json_stream.py": "64f5a32e1268daad6d1bd5b99870ed9ff4686bfa2e969bb96b268dd825c522b8",
+    "api/worker/src/entry.py": "eadbdd13f957c188b89cb7b2623196b40cc82bcfde10a4411b9dc85a2d7a511c",
+    "api/worker/src/policy_service.py": "0f9b67d7f5e45cdab33c24bea04f7f90454dbea1e9671ba7973159fb8ab31c12",
+    "api/worker/vendor.py": "ed4aabddf955051a19073c72a8fc90c21d7ed792c77dd03a83bf4a5b6148b6f4",
+    "api/worker/measure_memory.cjs": "1a282440fa87d6b0e1b56a72a58fac7927a170c845d765e4b11d4af29943c5db",
+    "api/worker/memory-fixture.json": "72c408ea8308f5b2379fb9988a14fc8355361d9d178b3d0340624ca4ae38b963"
+  },
+  "runtime": {
+    "node": "v22.22.3",
+    "pyodide": "0.28.3"
+  },
+  "commands": [
+    [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "api/worker/vendor.py",
+      "--data-dir",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/public-data",
+      "--out",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-bounded-array-final"
+    ],
+    [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "api/worker/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-bounded-array-final",
+      "--limit-mib",
+      "115",
+      "--attribute",
+      "--output",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bounded-array-final-current.json"
+    ],
+    [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "api/worker/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-bounded-array-final",
+      "--successor",
+      "--limit-mib",
+      "115",
+      "--attribute",
+      "--output",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bounded-array-final-successor.json"
+    ],
+    [
+      "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+      "--expose-gc",
+      "--require",
+      "./docs/evidence/g2-ios/MODEL-407/rollover-probe-hook.cjs",
+      "api/worker/measure_memory.cjs",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bundle-bounded-array-final",
+      "--limit-mib",
+      "115",
+      "--attribute",
+      "--output",
+      "/Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/memory/bounded-array-final-warm.json"
+    ]
+  ],
+  "build": {
+    "exit": 0,
+    "seconds": 206.756
+  },
+  "generated_snapshot_sha256": "50a76a2584b9a25f38367ab090785e428c611492a7581e601752ece6523de4f0",
+  "bundle_sha256": "b990a8240465db6d34eadc10cfd8a5505be1f99abcd1b57713b159788d311683",
+  "snapshots": [
+    {
+      "path": "/api/decision/snapshot.json.gz",
+      "snapshot_id": "snap_4a7d44f0961cb6a6",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740101,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": null,
+      "valid_until": "2026-10-21"
+    },
+    {
+      "path": "/api/decision/snapshot-successor.json.gz",
+      "snapshot_id": "snap_0f8efcaccaa46937",
+      "compressed_bytes": 343255,
+      "json_bytes": 2740100,
+      "hardware_fixture_records": 15,
+      "synthetic_sources": 68,
+      "valid_from": "2026-10-21",
+      "valid_until": null
+    }
+  ],
+  "probes": [
+    {
+      "mode": "current",
+      "exit": 0,
+      "seconds": 3.023,
+      "steady_mib": 104.48933124542236,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 107.86203479766846
+    },
+    {
+      "mode": "successor",
+      "exit": 0,
+      "seconds": 3.601,
+      "steady_mib": 104.51237964630127,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 104.9474458694458
+    },
+    {
+      "mode": "warm",
+      "exit": 0,
+      "seconds": 2.991,
+      "steady_mib": 104.53328895568848,
+      "wasm_peak_mib": 59.875,
+      "peak_mib": 107.71491432189941
+    }
+  ]
+}

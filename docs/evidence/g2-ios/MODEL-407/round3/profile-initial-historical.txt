@@ -1,0 +1,84 @@
+         30650 function calls in 0.009 seconds
+
+   Ordered by: cumulative time
+   List reduced from 87 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.009    0.009 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2647(load_snapshot)
+        1    0.000    0.000    0.009    0.009 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2531(load_snapshot_bytes)
+        1    0.000    0.000    0.004    0.004 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2023(__init__)
+        2    0.004    0.002    0.004    0.002 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+        9    0.001    0.000    0.003    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1861(__init__)
+      930    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1851(_equality_key)
+        1    0.000    0.000    0.001    0.001 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1970(__init__)
+     7651    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+    10474    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+     1980    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1792(_key)
+      292    0.000    0.000    0.000    0.000 {method 'update' of '_hashlib.HASH' objects}
+     2820    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1802(_ordered)
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:641(decompress)
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+        1    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:395(check_snapshot_offering_regions)
+        1    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib.Decompress' objects}
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}
+      300    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1854(<genexpr>)
+     2507    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:385(check_identity_region)
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:773(read_bytes)
+      939    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2115(<genexpr>)
+        1    0.000    0.000    0.000    0.000 {method 'decode' of 'bytes' objects}
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:763(open)
+        1    0.000    0.000    0.000    0.000 {built-in method _io.open}
+      292    0.000    0.000    0.000    0.000 {method 'encode' of 'str' objects}
+       90    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/decision/regions.py:45(identity_region)
+        1    0.000    0.000    0.000    0.000 {built-in method zlib.crc32}
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/decision/regions.py:37(require_identity_region)
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:190(__fspath__)
+        2    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:251(__str__)
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:341(drive)
+      292    0.000    0.000    0.000    0.000 {built-in method builtins.min}
+        1    0.000    0.000    0.000    0.000 {method 'sort' of 'list' objects}
+      229    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+
+
+         30650 function calls in 0.009 seconds
+
+   Ordered by: internal time
+   List reduced from 87 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        2    0.004    0.002    0.004    0.002 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+        9    0.001    0.000    0.003    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1861(__init__)
+     7651    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+    10474    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+      292    0.000    0.000    0.000    0.000 {method 'update' of '_hashlib.HASH' objects}
+        1    0.000    0.000    0.004    0.004 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2023(__init__)
+        1    0.000    0.000    0.001    0.001 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1970(__init__)
+     1980    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1792(_key)
+      930    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1851(_equality_key)
+     2820    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1802(_ordered)
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+        1    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib.Decompress' objects}
+        1    0.000    0.000    0.009    0.009 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2531(load_snapshot_bytes)
+     2507    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:395(check_snapshot_offering_regions)
+      939    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2115(<genexpr>)
+        1    0.000    0.000    0.000    0.000 {method 'decode' of 'bytes' objects}
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}
+      300    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:1854(<genexpr>)
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:385(check_identity_region)
+      292    0.000    0.000    0.000    0.000 {method 'encode' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method zlib.crc32}
+        1    0.000    0.000    0.000    0.000 {built-in method _io.open}
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/decision/regions.py:37(require_identity_region)
+       90    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/decision/regions.py:45(identity_region)
+      292    0.000    0.000    0.000    0.000 {built-in method builtins.min}
+        1    0.000    0.000    0.009    0.009 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2647(load_snapshot)
+      229    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:641(decompress)
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/decision/regions.py:33(accepted_identity_region)
+       90    0.000    0.000    0.000    0.000 {method 'rsplit' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 {method 'sort' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 <frozen posixpath>:72(join)
+      120    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/historical-snapshot.py:2084(<lambda>)

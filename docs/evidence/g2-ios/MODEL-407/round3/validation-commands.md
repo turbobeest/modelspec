@@ -1,0 +1,83 @@
+# MODEL-407 Round 3 validation commands
+
+Run from `/Users/terbeest/dev/worktrees/model-407`. The executable implementation
+is `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`. Later evidence-only commits do
+not change the measured source. See the main report for final exit statuses.
+The installed host Python is 3.14.4; Node is 22.22.3 and Pyodide is 0.28.3.
+
+```sh
+export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+export PYTHONPATH=$PWD
+export MODEL407_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+
+"$MODEL407_PYTHON" -m pytest -q \
+  tests/test_snapshot_streaming.py tests/test_decision_snapshot.py \
+  tests/test_snapshot_successor.py tests/test_snapshot_successor_memory.py \
+  tests/test_snapshot_successor_vendor.py tests/test_snapshot_response_headers.py \
+  tests/test_dated_price_snapshot.py tests/test_decide_snapshot_refresh.py \
+  tests/test_hardware_fit_memory.py tests/test_hardware_fit_worker.py \
+  tests/test_worker_memory.py tests/test_ci_workflows.py tests/test_worker_compression.py \
+  tests/test_rank_worker.py tests/test_policy_check.py tests/test_policy_commercial_use.py \
+  tests/test_policy_shape.py tests/test_policy_store_state.py
+"$MODEL407_PYTHON" -m pytest -q -p no:xdist -m perf
+"$MODEL407_PYTHON" -m pytest --collect-only -q -m 'not perf'
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD \
+  "$MODEL407_PYTHON" -m pytest -q -n 4 --dist loadfile
+```
+
+`npm ci` ran successfully in `web` before the full suite. The serial timing
+and collection commands match `.github/workflows/test.yml`. Wait for public
+vendor builds to remove their temporary repository overlays before running
+unscoped collection. The public reproduction recipe uses a hidden temporary
+directory to prevent discovery of those transient links.
+
+The private run used the ordinary vendor path, with all generated files,
+bundles, logs, and probe outputs under the authorized scratch directory:
+
+```sh
+git -C /Users/terbeest/dev/modelspec-data worktree add --detach \
+  /tmp/model-407-private/data-74947c3 74947c3
+mkdir -p /tmp/model-407-private/tmp
+export TMPDIR=/tmp/model-407-private/tmp
+export TZ=UTC PYTHONDONTWRITEBYTECODE=1 MODELSPEC_REQUIRE_DATA_DIR=1
+export MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key
+unset MODELSPEC_SNAPSHOT_ED25519_KEY GITHUB_STEP_SUMMARY MODEL407_MEMORY_MODE
+export NODE_PATH="$PWD/tmp/model-407/memory_probe/runtime/node_modules"
+"$MODEL407_PYTHON" api/worker/vendor.py \
+  --data-dir /tmp/model-407-private/data-74947c3 \
+  --out /tmp/model-407-private/bundle-round3-final \
+  > /tmp/model-407-private/vendor.log 2>&1
+```
+
+After the build, tracked top-level `api/worker/src/*.py` modules were copied
+into that bundle by the same `git ls-files` loop in
+[the public recipe](memory-commands.md). No generated source was patched.
+The exact native CI requests and the already committed warm hook ran as
+follows, each with its direct process status checked:
+
+```sh
+node --expose-gc api/worker/measure_memory.cjs \
+  /tmp/model-407-private/bundle-round3-final --limit-mib 115 --attribute \
+  --output /tmp/model-407-private/current.json \
+  > /tmp/model-407-private/current.log 2>&1
+node --expose-gc api/worker/measure_memory.cjs \
+  /tmp/model-407-private/bundle-round3-final --successor --limit-mib 115 --attribute \
+  --output /tmp/model-407-private/successor.json \
+  > /tmp/model-407-private/successor.log 2>&1
+MODEL407_MEMORY_MODE=warm node --expose-gc \
+  --require ./docs/evidence/g2-ios/MODEL-407/rollover-probe-hook.cjs \
+  api/worker/measure_memory.cjs /tmp/model-407-private/bundle-round3-final \
+  --limit-mib 115 --attribute --output /tmp/model-407-private/warm.json \
+  > /tmp/model-407-private/warm.log 2>&1
+```
+
+The native successor mode crosses the period boundary before the CI request
+sequence. The warm hook serves the current period first, crosses the boundary,
+then serves the successor and remaining CI requests. It asserts predecessor
+release before successor bytes are read. Attribution follows the memory
+sample; neither mode forces collection between requests.
+
+Only whitelisted memory numbers and engine/data commit SHAs were exported to
+`private-memory-numbers.json`. The detached data worktree was removed using
+`git worktree remove`, then every remaining scratch child was deleted with a
+path-guarded Python cleanup. The scratch directory was verified empty.

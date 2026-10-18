@@ -88,11 +88,13 @@ public check missed. Both periods now run as separate 115 MiB gates. Each
 compares with its matching period on main when that period exists. A separate warm-rollover
 measurement also serves the current period before crossing the boundary.
 
-The final implementation `bb41f0f6` measures 104.48928 MiB current,
-104.51080 MiB with the successor loaded, and 104.53250 MiB on warm rollover
+The final implementation `f6dbbcd8` measures 104.48933 MiB current,
+104.51238 MiB with the successor loaded, and 104.53329 MiB on warm rollover
 for this public recipe. With private data `74947c3`, the corresponding totals
-are 104.57204, 104.57278 and 104.61679 MiB. Every scenario uses 59.875 MiB
-of Wasm memory. The public/private steady differences are below 0.09 MiB;
+are 104.57317, 104.57322 and 103.69368 MiB. Every scenario uses 59.875 MiB
+of Wasm memory. Current and successor steady differences are below 0.09 MiB.
+The public warm sample is 0.84 MiB above the private sample, within the
+observed V8 variation and conservative for the private target. Together,
 these measurements calibrate the fixture without publishing private rows or
 structural counts. The private scratch directory is empty after measurement.
 
@@ -161,12 +163,22 @@ snapshot was released. Diagnostic allocation samples located the next peaks
 in snapshot JSON parsing and then ranking-catalogue JSON parsing.
 
 Read JSON containers incrementally, retaining only a bounded text buffer
-except when an individual scalar is larger. Delegate scalar decoding to the
-standard-library JSON decoder and share object-key strings within one parse,
-as that decoder does. Preserve every parsed value and the public wire format.
+except when an individual scalar is larger. Delegate scalars and complete
+arrays already in that buffer to the standard-library C JSON decoder. Arrays
+that do not fit continue through the incremental path. Share object-key
+strings across both paths, including separate C decoder calls. Preserve
+every parsed value and the public wire format.
 For canonical signed snapshots, hash the exact consumed UTF-8 content while
 reading. Keep semantic-hash compatibility for older noncanonical envelopes,
 and consume the gzip stream to EOF so footer corruption cannot be hidden.
+
+REV-820 exposed the CPU cost of decoding every array element in Python:
+the thirty-model load failed the unchanged 100 ms CI gate at 149 ms. Decoding
+complete buffered arrays measures 13.30 ms locally, best of five with GC off.
+A whole-document C decoder measured 5.62 ms but retained a 71.875 MiB Wasm
+heap after successor loading and failed the public 115 MiB gate at 116.49 MiB.
+Releasing the text before indexing did not remove that allocation peak.
+The bounded decoder keeps the measured 59.875 MiB Wasm allocation.
 
 The ranking and policy catalogues use the same reader. Ranking calculations
 and data remain unchanged. Policy evaluation retains the requested page and

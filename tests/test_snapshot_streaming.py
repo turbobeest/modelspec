@@ -151,19 +151,19 @@ def test_duplicate_content_fields_keep_standard_json_last_value_semantics():
 def test_deep_legacy_snapshot_uses_standard_decoder_without_losing_signature():
     value = 1
     for _ in range(600):
-        value = [value]
+        value = {"child": value}
     loaded = _load(_snapshot({"nested": value}).to_bytes(key=KEY, ed25519_signer=None))
     assert loaded.signature_verified
     actual = loaded.record("streaming")["nested"]
     for _ in range(600):
-        actual = actual[0]
+        actual = actual["child"]
     assert actual == 1
 
 
 def test_deep_fallback_still_rejects_duplicate_outer_content():
     value = 1
     for _ in range(600):
-        value = [value]
+        value = {"child": value}
     raw = _snapshot({"text": "original"}).to_bytes(key=KEY, ed25519_signer=None)
     first_content = json.dumps({"nested": value}, separators=(",", ":")).encode()
     altered = b'{"content":' + first_content + b"," + gzip.decompress(raw)[1:]
