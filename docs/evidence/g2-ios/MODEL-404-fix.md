@@ -3,14 +3,116 @@
 Draft PR: https://github.com/turbobeest/modelspec/pull/814. Work remained in
 `/Users/terbeest/dev/worktrees/model-404`, on `model-404-simple-decide`.
 
+## Round 3 — snapshot date and objective source
+
+Review input: `/Users/terbeest/.codex-g2/exec/REV-814.verdict.md`, reviewed
+HEAD `53fde1fd302da4fd050758d42a4c5ead8bd7a593`. The two blocking findings are
+fixed in `09bbb4203e00fb99a72379c11801885a3f6dae7f`. The historical-fixture
+provenance assertion is corrected in `2488fbc3`. Main later advanced to
+`34c6dbef95371cff728a7a28aba33dcffe3e50e3` (#819, reverting #813). It is
+integrated in merge `fcf541f03455c5a95168572093cef5a161a5bef5`, the final tested
+source for this round. The earlier full suite was interrupted at 88% before
+changing source; its exit 130 is recorded, with no pass claimed.
+
+The Worker's display projection preserves the snapshot date as optional top-level
+`as_of`, copied from the same full vocabulary's `coverage.as_of`. Catalogue counts
+remain trimmed. The header reads that field, with full-vocabulary coverage as a
+fallback. Absent dates remain explicit. Vocabulary version 1, decision 2.18 and
+bounded 1.5 stay unchanged: this is additive optional vocabulary metadata under
+MODEL-59. The frontend schema, vocabulary documentation and OpenAPI generator
+include the field. The flag-on OpenAPI response schema proves it is optional;
+the committed flag-off YAML has no display-vocabulary route. The date addition
+does not change that artifact; the subsequent #819 integration regenerates it
+with main's removal of successor health metadata.
+
+The answer source comes from the unique largest-share estimated capability term.
+It uses that term's contribution evidence on each verdict member's best-ranked
+offering, including retained `top` contributions when needed. Across tied members,
+priority is highest `estimate_weight`, direct before proxy, then record id in the
+engine's Unicode code-point order; model id breaks an otherwise equal member tie.
+This rule is independent of result, member and evidence-array order. Missing or
+conflicting metadata, ambiguous capability terms and missing display names use
+"Sources and dates: see the full evidence". Unweighted domain groups do not
+supply a replacement source. The exact rule is also in the
+[design](../../design/simple-decide-page.md).
+
+| Finding | Observed red | Observed green |
+| --- | --- | --- |
+| Snapshot date dropped by trim | Trim assertion received no `as_of`; rendered header could not find `Data as of 2026-10-04`. The immutable pre-review browser bundle also showed the unavailable-date text with the genuine generated fixture. | Trim/OpenAPI: 33 passed. Vocabulary/vendor: 77 passed. Header/recovery: 7 passed. Browser date assertion passes without grafted coverage. |
+| Source followed result order | The review's Gemini-first mutation changed WebDev to Arena Elo — Coding in both rendered unit and immutable pre-review browser runs. The initial source run had 18 failures. | 54 focused simple tests pass, including 23 source cases; browser reorder and evidence permutations retain the literal WebDev line. |
+| Conflicting duplicate offering metadata | Two additional rendered cases failed the full-evidence fallback. | Both now fall back; merely reordered equivalent records still produce the same source. |
+| Historical capture compared with new vocabulary | Fresh web run: five snapshot assertions failed. Captured decisions retain contract 2.12/snapshot `snap_483dd2fb6c5915b5`; the real generated vocabulary is contract 2.18/snapshot `snap_e9c30eaacfa8f2f2`. | Eight fixture-stub tests pass. Original response bytes are unchanged; the test explicitly pins their historical snapshot and still exercises matching a request with the new vocabulary snapshot. |
+
+The vocabulary fixture is produced by the repository snapshot/vocabulary code and
+actual `trim()`, with the vendor's model and enum allowlists. It uses the frozen
+public repository at snapshot date 2026-10-04, not production or private data.
+Its 44 model names and 40 template specs match the previous capture; 28 templates
+are available. The [producer and provenance](MODEL-404/routing/round3/README.md)
+record the exact inputs and hashes. Historical decision stubs remain clearly
+labelled; new screenshot decisions use this same generated snapshot and verify
+every request against its generated response. The new Coding capture cites
+CursorBench 4.0 (2026-09-28) from software-engineering contribution evidence;
+the example and tie cite Arena WebDev (2026-09-23).
+
+Round 3 command results and screenshots are recorded in
+[final root results](MODEL-404/root/round3/post819/results.txt),
+[initial root red/green results](MODEL-404/root/round3/results.txt),
+[post-#819 routing results](MODEL-404/routing/round3/post819/README.md),
+[source results](MODEL-404/transport/round3/notes.md), and
+[browser evidence](MODEL-404/gates/README.md).
+
+The required checks were rerun after #819 on source
+`fcf541f03455c5a95168572093cef5a161a5bef5`:
+
+| Verification | Final result |
+| --- | --- |
+| `pipeline.build --out dist` | Exit 0 |
+| Fresh `npm ci` / `npm run build` | Both exit 0 |
+| `npm test` | 898 passed; one opt-in corpus file skipped; exit 0 |
+| `npm run test:browser` | 38 passed, 16 expected skips; exit 0 |
+| Four human/visit gate combinations | 36/10, 38/8, 45/1, 45/1 passed/skipped; all exit 0 |
+| `pipeline.live build` | 2,711 files; discovery links resolve; exit 0 |
+| Surface lint | 0 findings across 111 pages; exit 0 |
+| Full pytest, shared lock, 4 workers, `--dist loadfile` | **11,540 passed, 9 skipped, 11 warnings in 1271.39s; exit 0** |
+| Data freeze / protected code / composed link audit | Pass; About and all 40 use-case template pages retain the inventory |
+| Screenshot capture | All 11 regenerated and inspected after #819; hashes match the manifest |
+
+The post-#819 full run waited for the shared lock, then ran to completion without
+source changes. Later commits contain evidence only. The regenerated OpenAPI hash
+is `4856fae354f22642f19b77c57b18d823a59ed0d4ccb1cf159f6e0d3d68b3ab0e`;
+the QA capture hash is
+`221a6438534b4cad5890261ddbc7fb2eb839df53f053ada475ce1d88ac8a50de`.
+The other four generated artifacts and all three literal catalogue digests remain
+unchanged. All six artifact hashes and all eleven screenshot hashes were verified
+against their recorded manifests.
+
+At the final source-CI observation, 15 checks passed and six deployment/auto-merge
+checks were skipped. The remaining Python shard (1/4) was still running; no CI
+failure was reported. `Build both sites`, `Check evidence against release charts`
+and `Data freeze` passed. The aggregate `Run pytest` check awaits that shard;
+its CI pass is not claimed. See the [captured source-CI state](MODEL-404/root/round3/post819/ci-source-results.json)
+and [test workflow](https://github.com/turbobeest/modelspec/actions/runs/39105507954).
+The final evidence-only push starts a fresh CI run.
+
+No production deployment or live decision, paid-provider call, Firefox/Safari
+run, assistive-technology session or recruited usability session was performed.
+The PR remains draft for independent follow-up review and Jamie's visual review.
+The final evidence-only handoff SHA is recorded in the PR body and executor result;
+the reproducible tested source SHA is above.
+
+## Earlier implementation and integration evidence
+
+The remaining sections record work through `53fde1fd`. Their test totals and
+source SHAs are historical; round 3 verification above supersedes them.
+
 - Base SHA: `72cd65f81aeae93add87b9a52157ae8cbce698a3`.
-- Current integrated main SHA: `b4a7074f37a3ba940bd86db9d1e2459a25fd40af`
+- Prior integrated main SHA: `b4a7074f37a3ba940bd86db9d1e2459a25fd40af`
   (#813 and #816, following the first integration of #811 and #812; #810 was already in the original base).
 - Design-only first commit: `eeaf493e` (`docs/design/simple-decide-page.md`).
 - MODEL-404 implementation SHA: `e0053beaa0515892667dfcbb3225422560ea43d5`.
-- Current product/build source SHA: `1b3d8e3a66b3ddf572702ab11e3d40fdbc580226`.
+- Prior product/build source SHA: `1b3d8e3a66b3ddf572702ab11e3d40fdbc580226`.
   Product code, generated artifacts, composed pages and screenshots retain this source.
-- Final tested source SHA: `f4b13af3e11618304a73d07bcec685fe372e46cc`.
+- Prior final tested source SHA: `f4b13af3e11618304a73d07bcec685fe372e46cc`.
   Its only source change awaits actual verdict focus in the Coding unit assertion.
   Full Python passed with 11,584 tests; all required CI checks passed.
 - Earlier fully verified source SHA: `dcf398d6f27f8a84e72c5aef0492ec1f73aee1af`.

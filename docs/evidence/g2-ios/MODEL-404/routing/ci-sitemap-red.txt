@@ -23,14 +23,14 @@ path = '/decide/', entry = 'decide.html'
         (web / "decision.html").write_text('<div id="root"></div>')
 >       live.build(src, web, out)
 
-tests/test_simple_decide_routes.py:32: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_simple_decide_routes.py:32:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 pipeline/live.py:306: in build
     for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:1219: in parse
     tree.parse(source, parser)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <xml.etree.ElementTree.ElementTree object at 0x7f47034802d0>
 source = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co0/source/modelspec/sitemap.xml')
@@ -38,14 +38,14 @@ parser = None
 
     def parse(self, source, parser=None):
         """Load external XML document into element tree.
-    
+
         *source* is a file name or file object, *parser* is an optional parser
         instance that defaults to XMLParser.
-    
+
         ParseError is raised if the parser fails to parse the document.
-    
+
         Returns the root element of the given source document.
-    
+
         """
         close_source = False
         if not hasattr(source, "read"):
@@ -80,14 +80,14 @@ path = '/decide/details/', entry = 'decide-details.html'
         (web / "decision.html").write_text('<div id="root"></div>')
 >       live.build(src, web, out)
 
-tests/test_simple_decide_routes.py:32: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_simple_decide_routes.py:32:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 pipeline/live.py:306: in build
     for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:1219: in parse
     tree.parse(source, parser)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <xml.etree.ElementTree.ElementTree object at 0x7f4709c9e650>
 source = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co1/source/modelspec/sitemap.xml')
@@ -95,14 +95,14 @@ parser = None
 
     def parse(self, source, parser=None):
         """Load external XML document into element tree.
-    
+
         *source* is a file name or file object, *parser* is an optional parser
         instance that defaults to XMLParser.
-    
+
         ParseError is raised if the parser fails to parse the document.
-    
+
         Returns the root element of the given source document.
-    
+
         """
         close_source = False
         if not hasattr(source, "read"):
