@@ -41,10 +41,11 @@ successor refuses the pair. Later requests reuse those verified objects.
 For each request, `SnapshotHolder.current()` checks the current UTC date
 against the primary snapshot's signed `[valid_from, valid_until)` interval. If
 that interval excludes the date, it checks the successor's interval. It records
-the selected snapshot as the held snapshot, which supplies the response header
-and the decision response's snapshot reference. If neither interval covers the
+the selected snapshot as the held snapshot. The response body retains the
+snapshot used for its computation. If neither interval covers the
 date, the existing `503 no_snapshot` response applies. Historical comparison
-loads continue to retain their original prices.
+loads continue to retain their original prices. After awaiting retained-history
+I/O, comparison selects the current snapshot again before evaluating prices.
 
 Bundled vocabulary requests select through the same authenticated holder after
 the access gate. Full responses name the selected snapshot, and lookups use its
@@ -53,10 +54,13 @@ a cached primary vocabulary cannot persist across midnight. A client that gets
 `409 snapshot_changed` can reload vocabulary and retry with the successor's ID.
 Unbounded vocabulary keeps its existing bytes and cache behavior.
 
-Decision response headers use the snapshot reference in their own response
-body. Billing can await after a decision has been computed, so reading the
-shared holder at response time could instead name another concurrent request's
-snapshot.
+Decide, compare, compare-models, and hardware-fit response headers use a shared
+helper to bind the ID to their own body snapshot reference. A null reference
+omits the ID header. Billing can await after an answer has been computed, so
+reading the shared holder at response time could instead name another
+concurrent request's snapshot. Each route retains its existing serialization
+and service headers. Routes that emit no decision snapshot ID header keep
+their existing response contracts.
 
 An alternative would make every holder manage a general collection of dated
 snapshots, including fetched snapshots. That would change refresh, ETag, and

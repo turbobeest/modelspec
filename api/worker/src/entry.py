@@ -745,6 +745,15 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+def _snapshot_response_headers(body: dict, extra_headers: dict) -> dict:
+    headers = dict(extra_headers)
+    name = _decide_service().SNAPSHOT_HEADER
+    headers.pop(name, None)
+    if body.get("snapshot") is not None:
+        headers[name] = body["snapshot"]
+    return headers
+
+
 class _DecisionTransport:
     def __init__(self):
         self.body: dict | None = None
@@ -769,9 +778,7 @@ def _decision_response(status: int, body: dict,
     }
     # Billing may await after producing the answer while another request changes
     # the holder. Bind the signal to this response's snapshot.
-    headers.pop(decider.SNAPSHOT_HEADER, None)
-    if body.get("snapshot") is not None:
-        headers[decider.SNAPSHOT_HEADER] = body["snapshot"]
+    headers = _snapshot_response_headers(body, headers)
     return Response(
         (serialised if serialised is not None else decider.serialise(body)).decode("utf-8"),
         status=status,
@@ -1336,6 +1343,10 @@ class Default(WorkerEntrypoint):
                 headers["retry-after"] = str(decide_service.RETRY_AFTER_SECONDS)
             headers.update(_decision_holder(origin).headers())
             headers.update(_cors_headers(request, self.env))
+            return _json_response(
+                outcome.status, outcome.body,
+                _snapshot_response_headers(outcome.body, headers),
+            )
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
@@ -1974,6 +1985,7 @@ class Default(WorkerEntrypoint):
             fetched = await _snapshot_fetcher(
                 origin + DECISION_HISTORY_TEMPLATE.format(snapshot_id=compare_to)
             )(None)
+            current = await _decision_holder(origin).current(key)
             if fetched.status == 404:
                 return decider.error_response(
                     "comparison_snapshot_unavailable",
