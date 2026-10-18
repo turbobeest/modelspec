@@ -32,7 +32,7 @@ If that check fails, defer Business too.
 ## Reader contract
 
 Use a narrow engine module and exclusive verification dispatch for the four
-consumer subscription facets and Business models. The parser takes only a
+consumer subscription facets and Business model coverage and coverage quote. The parser takes only a
 registered first-party source, a retained copy, a canonical offering subject
 and a facet. The registry contains no executable parser instructions.
 
@@ -58,8 +58,8 @@ Preserve HTML through the existing `text-default` source recipe with a whole
 page citation. This keeps SVG markup and avoids changing shared HTML
 normalization. Hash the exact representation that `StoredRegions` gives the
 verifier, with the same recipe and version. Register new private source IDs;
-do not change normalizers for historical citations. Source fingerprints then
-include glyph and layout changes. The raw retained copy has a separate hash
+do not change normalizers for historical citations. Normalized fingerprints
+retain SVG and layout markup; the raw copy hash detects every byte change. The raw retained copy has a separate hash
 in the retrieval manifest and CopyStore verifies it before use. The template
 must also match that raw copy hash: Unicode normalization can otherwise turn
 a changed or invalid SVG command into the approved normalized path. A citation
