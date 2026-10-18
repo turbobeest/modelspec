@@ -910,12 +910,12 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     ms_paths.extend(method_counts["sitemap_paths"])
     from pipeline import comparison_pages
     public_root = Path(args.root).resolve()
-    with public_use_case_image(public_root) as (catalogue, decisions, as_of, snapshot, registry):
+    with public_use_case_image(public_root) as (templates, decisions, as_of, snapshot, registry):
         use_case_counts = write_use_case_pages(
-            ms, public_root, examples=(catalogue, decisions, as_of),
+            ms, public_root, examples=(templates, decisions, as_of),
         )
         comparison_counts = comparison_pages.write_examples(
-            ms, catalogue, decisions, as_of, snapshot, registry,
+            ms, templates, decisions, as_of, snapshot, registry,
         )
     ms_paths.extend(use_case_counts["sitemap_paths"])
     ms_paths.extend(comparison_counts["sitemap_paths"])
