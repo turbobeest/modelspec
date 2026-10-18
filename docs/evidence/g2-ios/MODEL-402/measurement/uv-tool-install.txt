@@ -1,0 +1,8 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/.local/bin/uv pip install --python /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/uv-tool/bin/python uv==0.12.19
+Using Python 3.13.15 environment at: api/worker/.scratch-model402-measurement/uv-tool
+Resolved 1 package in 147ms
+Installed 1 package in 2ms
+ + uv==0.12.19
+
+EXIT_CODE=0

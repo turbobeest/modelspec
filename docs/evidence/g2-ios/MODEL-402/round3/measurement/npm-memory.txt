@@ -1,0 +1,6 @@
+CWD: /Users/terbeest/dev/worktrees/model-402
+COMMAND: /Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm install --prefix /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-round3-measurement/memory --no-save pyodide@0.28.3
+
+added 2 packages in 276ms
+
+EXIT_CODE=0

@@ -1,0 +1,9 @@
+CWD: /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker
+COMMAND: /Users/terbeest/.local/bin/uv run --project . pywrangler deploy --dry-run --outdir /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/upload
+ERROR    uv version at least 0.12.3 required, have 0.7.13.
+ERROR    Update uv with `uv self update`.
+Using CPython 3.13.15
+Creating virtual environment at: .venv-workers
+Activate with: source .venv-workers/bin/activate
+
+EXIT_CODE=1

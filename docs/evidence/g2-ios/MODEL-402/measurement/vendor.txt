@@ -1,0 +1,5 @@
+COMMAND: /Users/terbeest/dev/modelspec/.venv/bin/python /Users/terbeest/dev/worktrees/model-402/api/worker/vendor.py --out /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker/src --data-dir /Users/terbeest/dev/worktrees/model-402
+vendored 123 files into /Users/terbeest/dev/worktrees/model-402/api/worker/.scratch-model402-measurement/worker/src
+premier models: known 0, explicit null 0, gap 0; gap labs outside premier:
+
+EXIT_CODE=0
