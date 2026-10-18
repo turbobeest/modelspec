@@ -58,6 +58,7 @@ import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
+from io import BytesIO, TextIOWrapper
 from urllib.parse import parse_qs, urlparse
 
 # Load the private bundle before request schemas.
@@ -96,6 +97,7 @@ from js import fetch
 from workers import Response, WorkerEntrypoint
 
 from decision.registry import default as _decision_registry
+from decision.json_stream import load_json
 from decision import hardware_fit
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
@@ -260,7 +262,8 @@ async def _get_json(url: str):
     if bundled:
         if raw is None:
             raise RuntimeError("private bundle is missing a required export")
-        return json.loads(raw)
+        with TextIOWrapper(BytesIO(raw), encoding="utf-8") as stream:
+            return load_json(stream)
     response = await fetch(url)
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
@@ -273,7 +276,8 @@ if globals().get("bundled_data") is not None:
     _rank_bytes = bundled_data.read(CANDIDATES_PATH)
     if _rank_bytes is not None:
         # Malformed required candidates must fail deployment snapshot creation.
-        _rank_export = json.loads(_rank_bytes)
+        with TextIOWrapper(BytesIO(_rank_bytes), encoding="utf-8") as _rank_stream:
+            _rank_export = load_json(_rank_stream)
         _hardware_bytes = None
         try:
             _hardware_bytes = bundled_data.read(HARDWARE_PATH)

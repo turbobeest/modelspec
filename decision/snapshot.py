@@ -53,6 +53,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 import yaml
 
 from decision.excluded import ExcludedSources, excluded_sources
+from decision.json_stream import JSONStreamReader
 from decision.model import (
     Measurement,
     evidence_verification_value,
@@ -2528,6 +2529,23 @@ def verify_hmac_signature(digest: str, signature: Mapping[str, Any] | None,
         raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
 
 
+def _stream_canonical_envelope(data: bytes) -> tuple[dict[str, Any], str] | None:
+    prefix = '{"content":{'
+    with io.TextIOWrapper(gzip.GzipFile(fileobj=io.BytesIO(data)),
+                          encoding="utf-8", newline="") as stream:
+        if stream.read(len(prefix)) != prefix:
+            return None
+        digest = hashlib.sha256()
+        reader = JSONStreamReader(stream, initial="{", digest=digest)
+        content = reader.read_value()
+        suffix = reader.remainder().lstrip()
+        envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+        if "content" in envelope:
+            raise ValueError("duplicate content member")
+        envelope["content"] = content
+        return envelope, "sha256:" + digest.hexdigest()
+
+
 def load_snapshot_bytes(
     data: bytes,
     *,
@@ -2538,25 +2556,26 @@ def load_snapshot_bytes(
 ) -> LoadedSnapshot:
     """Check and index a gzipped snapshot already held in memory."""
     try:
-        text = gzip.decompress(data).decode("utf-8")
-        stored_digest = None
-        if text.startswith('{"content":{'):
-            # raw_decode finds the JSON boundary, including escaped quotes and
-            # nested objects. Never search for a delimiter inside content.
-            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
-            suffix = text[end:].lstrip()
-            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
-            if "content" in envelope:
-                raise SnapshotIntegrityError(f"{source}: duplicate content member")
-            envelope["content"] = content
-            # Hash the canonical content without copying the full JSON string
-            # and then allocating a second full UTF-8 buffer in the isolate.
-            digest = hashlib.sha256()
-            for offset in range(len('{"content":'), end, 4096):
-                digest.update(text[offset:min(offset + 4096, end)].encode("utf-8"))
-            stored_digest = "sha256:" + digest.hexdigest()
+        try:
+            streamed = _stream_canonical_envelope(data)
+        except RecursionError:
+            # Preserve the standard decoder's greater depth for legacy files.
+            streamed = None
+        if streamed is not None:
+            envelope, stored_digest = streamed
         else:
-            envelope = json.loads(text)
+            text = gzip.decompress(data).decode("utf-8")
+            if text.startswith('{"content":{'):
+                content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
+                suffix = text[end:].lstrip()
+                envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+                if "content" in envelope:
+                    raise ValueError("duplicate content member")
+                envelope["content"] = content
+            else:
+                envelope = json.loads(text)
+            stored_digest = None
+            del text
     except (OSError, EOFError, ValueError) as exc:
         raise SnapshotIntegrityError(f"{source}: not a gzipped JSON snapshot: {exc}") from exc
     if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:

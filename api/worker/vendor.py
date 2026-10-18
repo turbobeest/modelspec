@@ -74,6 +74,7 @@ SOURCES = {
     Path("decision/filter.py"): Path("decision/filter.py"),
     Path("decision/hardware.py"): Path("decision/hardware.py"),
     Path("decision/hardware_fit.py"): Path("decision/hardware_fit.py"),
+    Path("decision/json_stream.py"): Path("decision/json_stream.py"),
     Path("decision/model.py"): Path("decision/model.py"),
     Path("decision/next_move.py"): Path("decision/next_move.py"),
     Path("decision/normalise.py"): Path("decision/normalise.py"),
