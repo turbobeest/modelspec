@@ -134,10 +134,22 @@ the engine supplies in `relax` and offer to remove a named selected limit.
 Distinguish missing facts from confirmed failures. Removing one condition
 keeps the other requirements and never happens automatically.
 
+A selected route can lack the objective measurements needed for a comparison,
+even when no hard condition failed. For that state, explain that no comparison
+is available for the selected route and offer "Try all routes". That explicit
+action removes only the route restriction; it preserves the job, priority,
+other limits and workload. It does not promise a match or change the weights.
+
 When `answer` is absent, say the evidence cannot determine a shortlist for
 the selected job. Do not call thin or unranked models a best group. Preserve
 the job and link to the evidence. A request failure says the answer could
 not load and offers retry; old rows never appear beneath new choices.
+
+If a snapshot refresh changes the actual question, stop before requesting the
+changed question and require another lookup. Metadata-only refreshes reuse the
+existing action. This avoids spending another admission without a visitor's
+choice. Re-selecting a job or priority restores its template's requirements,
+including Self-hosting's defining gates, while retaining explicit extra limits.
 
 ## Verification
 

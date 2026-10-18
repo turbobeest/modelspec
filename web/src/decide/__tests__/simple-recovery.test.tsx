@@ -116,3 +116,91 @@ it("renders mutated snapshot date, available-template count and each template's 
     { input: 6789, output: 456 }, { input: 6789, output: 456 },
   ]);
 });
+
+it("can choose Self-hosting again after removing its open-weights limit and preserves explicit limits", async () => {
+  const fetch = network(() => vocabulary);
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "No customer-data training" }));
+  fireEvent.click(screen.getByRole("button", { name: /Self-hosting/ }));
+  await advance();
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).toBeChecked();
+
+  fireEvent.click(screen.getByRole("checkbox", { name: "Open weights" }));
+  await advance();
+  expect(screen.getByRole("button", { name: /Everyday help/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).not.toBeChecked();
+  const selfHost = screen.getByRole("button", { name: /Self-hosting/ });
+  expect(selfHost).toBeEnabled();
+
+  fireEvent.click(selfHost);
+  await advance();
+  expect(selfHost).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "No customer-data training" })).toBeChecked();
+  for (const priority of ["Spend less", "Balanced", "Quality counts most"]) {
+    const button = screen.getByRole("button", { name: priority });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await advance();
+    const latest = decisions(fetch).at(-1);
+    expect(latest?.where).toContain("model.weights_openness = open_weights");
+    expect(latest?.where).toContain("licence.commercial_use in {permitted, permitted_with_conditions}");
+    expect(latest?.where).toContain("offering.data.trains_on_customer_data = false");
+  }
+});
+
+it.each(["chat_app", "own_hardware"])("offers an explicit all-routes recovery for %s without changing the question", async (route) => {
+  const noComparison = {
+    ...full,
+    status: "no_feasible",
+    answer: null,
+    bands: null,
+    results: [],
+    top: [],
+    by_model: [],
+    relax: ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"],
+    relax_single: null,
+  };
+  const fetch = network(() => vocabulary, (init) => json(requestBody(init).access ? noComparison : full));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  fireEvent.click(screen.getByRole("button", { name: /High volume/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Spend less" }));
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "No customer-data training" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "How will you use the model?" }), { target: { value: route } });
+  await advance();
+
+  const answer = screen.getByRole("region", { name: "Decision answer" });
+  expect(within(answer).getByRole("heading", { name: "No confirmed match." })).toBeVisible();
+  const recover = within(answer).getByRole("button", { name: "Try all routes" });
+  expect(answer).toHaveTextContent("No comparison is available for the selected route with these choices.");
+  expect(answer).not.toHaveTextContent(/chat_preference|offering\.cost_per_task|Blocking limit/);
+  expect(within(answer).getByRole("link", { name: "See the full evidence" })).toHaveAttribute("href", expect.stringContaining("/decide/details/#s="));
+  const before = decisions(fetch).at(-1);
+  if (!before) throw new Error("Expected the selected-route request");
+  expect(before.access).toBe(route);
+  expect(before.where).toContain("offering.data.trains_on_customer_data = false");
+  expect(before.task_tokens).toEqual({ input: 2000, output: 500 });
+  const count = decisions(fetch).length;
+  await advance();
+  expect(decisions(fetch)).toHaveLength(count);
+  expect(screen.getByRole("combobox", { name: "How will you use the model?" })).toHaveValue(route);
+
+  fireEvent.click(recover);
+  await advance();
+  expect(decisions(fetch)).toHaveLength(count + 2);
+  for (const request of decisions(fetch).slice(count)) {
+    expect(request).toEqual({ ...before, access: undefined, explain: request.explain });
+  }
+  expect(screen.getByRole("combobox", { name: "How will you use the model?" })).toHaveValue("any");
+  expect(screen.getByRole("button", { name: /High volume/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Spend less" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "No customer-data training" })).toBeChecked();
+  expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Try all routes" })).toBeNull();
+});

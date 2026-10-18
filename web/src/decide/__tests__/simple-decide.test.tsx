@@ -68,7 +68,7 @@ describe("simple decision question", () => {
 });
 
 describe("simple engine answer", () => {
-  const props = () => ({ vocabulary, selection: selection(), decision, onRemoveLimit: vi.fn() });
+  const props = () => ({ vocabulary, selection: selection(), decision, onRemoveLimit: vi.fn(), onTryAllRoutes: vi.fn() });
   it("shows the whole tie alphabetically with equal rows and no winner marks", () => {
     render(<SimpleAnswer {...props()} />);
     const list = screen.getByRole("list", { name: "Best matches" });

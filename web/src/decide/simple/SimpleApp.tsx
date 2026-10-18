@@ -60,10 +60,10 @@ export default function SimpleApp() {
       <div className="simple-hero"><h1>Which AI model fits your job?</h1><p>Pick a job. See your options and what each task costs.</p></div>
       {!picked && <p className="simple-example">Example: Everyday help. Pick a job if this isn't yours.</p>}
       <div className="simple-jobs" role="group" aria-label="Choose your job">
-        {jobs.map((job) => <button key={job.id} disabled={!vocabulary || !selectJob(vocabulary, { ...choices, job: job.id })} aria-pressed={choices.job === job.id} onClick={() => { setPicked(true); change({ ...choices, job: job.id, removedFacets: [] }); }}><strong>{job.label}</strong><span>{job.subtitle}</span></button>)}
+        {jobs.map((job) => <button key={job.id} disabled={!vocabulary || !selectJob(vocabulary, { ...choices, job: job.id, removedFacets: [] })} aria-pressed={choices.job === job.id} onClick={() => { setPicked(true); change({ ...choices, job: job.id, removedFacets: [] }); }}><strong>{job.label}</strong><span>{job.subtitle}</span></button>)}
       </div>
       <div className="simple-priority" role="group" aria-label="What matters most?">
-        {priorities.map((priority) => <button key={priority.id} disabled={!vocabulary || !selectJob(vocabulary, { ...choices, priority: priority.id })} aria-pressed={choices.priority === priority.id} onClick={() => change({ ...choices, priority: priority.id, removedFacets: [] })}>{priority.label}</button>)}
+        {priorities.map((priority) => <button key={priority.id} disabled={!vocabulary || !selectJob(vocabulary, { ...choices, priority: priority.id, removedFacets: [] })} aria-pressed={choices.priority === priority.id} onClick={() => change({ ...choices, priority: priority.id, removedFacets: [] })}>{priority.label}</button>)}
       </div>
       <p className="simple-helper">Spend less still weighs quality. It is not the lowest price.</p>
       <div className="simple-limit-heading"><span>Hard limit: {limitsSummary}.</span><button aria-expanded={limitsOpen} aria-controls="simple-limits" onClick={() => setLimitsOpen(!limitsOpen)}>{limitsOpen ? "Done" : "Change"}</button></div>
@@ -86,7 +86,7 @@ export default function SimpleApp() {
         {limitDefinitions.filter((limit) => choices.limits.includes(limit.id) && !supportedLimits(vocabulary).some((supported) => supported.id === limit.id))
           .map((limit) => <p key={limit.id}>{limit.label} is no longer supported by this data. <button onClick={() => removeLimit(limit.facet)}>Remove {limit.label}</button></p>)}
       </section>}
-      {current && selection && vocabulary ? <SimpleAnswer decision={current} selection={selection} vocabulary={vocabulary} verdictRef={verdict} onRemoveLimit={removeLimit} />
+      {current && selection && vocabulary ? <SimpleAnswer decision={current} selection={selection} vocabulary={vocabulary} verdictRef={verdict} onRemoveLimit={removeLimit} onTryAllRoutes={() => change({ ...choices, route: "any" })} />
         : requestState.kind !== "error" && (selection || vocabularyState.kind === "loading") && <p role="status" className="simple-loading">{result.gateStatus === true ? "Choose your job, then verify and look up this decision." : "Checking the evidence…"}</p>}
       {requestState.kind === "success" && requestState.details === "unavailable" && <p role="status">The summary is available, but the full explanation could not load.</p>}
       <p className="simple-agent"><a href="/agents.md">An agent can ask this same question.</a> <a href="/pricing/">A key is required.</a> Looking this up here is free.</p>

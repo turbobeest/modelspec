@@ -11,11 +11,12 @@ const dimensionNames: Record<string, string> = {
 };
 const money = (cost: number | null | undefined) => cost == null ? "Task cost unknown" : `$${cost.toFixed(cost < 0.01 ? 4 : 3)} per task`;
 
-export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, verdictRef }: {
+export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, onTryAllRoutes, verdictRef }: {
   decision: Decision;
   vocabulary: Vocabulary;
   selection: Selection;
   onRemoveLimit: (facet: string) => void;
+  onTryAllRoutes: () => void;
   verdictRef?: Ref<HTMLHeadingElement>;
 }) {
   const answer = decision.answer;
@@ -60,7 +61,9 @@ export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, v
         : `The available evidence cannot determine a shortlist for ${selection.jobLabel}. These results are not a recommendation.`}</p>
       {decision.status === "no_feasible" && <>
         {blocker.map((limit) => <p key={limit.facet}>Blocking limit: {limit.label}. <button onClick={() => onRemoveLimit(limit.facet)}>Remove {limit.label}</button></p>)}
-        {blocker.length === 0 && <p>{decision.relax.length ? decision.relax.join(". ") : "The evidence page shows which requirements or missing measurements prevent an answer."}</p>}
+        {selection.choices.route !== "any"
+          ? <p>No comparison is available for the selected route with these choices. <button onClick={onTryAllRoutes}>Try all routes</button></p>
+          : blocker.length === 0 && <p>{decision.relax.length ? decision.relax.join(". ") : "The evidence page shows which requirements or missing measurements prevent an answer."}</p>}
       </>}
     </div>}
     <a className="simple-primary" href={evidenceLink(selection)}>See the full evidence</a>

@@ -143,12 +143,19 @@ test("the example fits 390 by 844 with readable contrast, full ties and 44px con
   await page.evaluate(() => document.fonts.ready);
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode", exact: true }).click();
-    const controls = page.getByRole("group", { name: "Choose your job" }).getByRole("button").or(page.getByRole("group", { name: "What matters most?" }).getByRole("button"));
+    const controls = page.getByRole("group", { name: "Choose your job" }).getByRole("button")
+      .or(page.getByRole("group", { name: "What matters most?" }).getByRole("button"))
+      .or(page.getByRole("link", { name: "ModelSpec home", exact: true }))
+      .or(page.locator("header").getByRole("button", { name: /^(?:Light|Dark) mode$/ }))
+      .or(page.getByRole("button", { name: "Change", exact: true }))
+      .or(page.getByRole("link", { name: "See the full evidence", exact: true }));
     for (const control of await controls.all()) {
       const box = await control.boundingBox();
       expect(box).not.toBeNull();
       if (!box) continue;
-      expect(box.height).toBeGreaterThanOrEqual(44);
+      const name = await control.getAttribute("aria-label") ?? await control.innerText();
+      expect(box.height, `${theme}: ${name} height`).toBeGreaterThanOrEqual(44);
+      expect(box.width, `${theme}: ${name} width`).toBeGreaterThanOrEqual(44);
       expect(box.y + box.height).toBeLessThanOrEqual(844);
     }
     for (const item of await answer(page).getByRole("list", { name: "Best matches" }).getByRole("listitem").all()) {
