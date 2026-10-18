@@ -166,8 +166,13 @@ describe("compare_models MCP tool", () => {
       expect(result.isError).toBe(true);
       const text = result.content.map(block => block.text).join("\n");
       expect(Buffer.byteLength(text, "utf8")).toBeLessThanOrEqual(AGENT_BYTES);
-      expect(text).toContain("response_too_large");
-      expect(text).toContain("No comparison data was returned");
+      if (kind === "network") {
+        expect(text).toContain("origin_unreachable");
+        expect(text).toContain("The origin request failed. Retry later.");
+      } else {
+        expect(text).toContain("response_too_large");
+        expect(text).toContain("No comparison data was returned");
+      }
       expect(text).not.toContain(pad);
       expect(text).not.toContain('"representation":"bounded"');
       expect(text).not.toContain("decide");

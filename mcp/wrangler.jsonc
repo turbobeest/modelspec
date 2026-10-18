@@ -18,7 +18,8 @@
   // so this is a route on the existing proxied api.modelspec.dev record, not a
   // new hostname. See docs/rank-api.md.
   "routes": [
-    { "pattern": "api.modelspec.dev/mcp*", "zone_name": "modelspec.dev" }
+    { "pattern": "api.modelspec.dev/mcp*", "zone_name": "modelspec.dev" },
+    { "pattern": "api.modelspec.dev/.well-known/mcp/server-card.json", "zone_name": "modelspec.dev" }
   ],
   // rank, policy_check, and decide reach the rank Worker through this binding.
   // Over the public hostname a same-zone Worker-to-Worker fetch skips the route

@@ -103,7 +103,7 @@ describe("MCP API-key headers and discovery", () => {
     const { response, payload, text } = await rpc({ headers });
     expect(response.status).toBe(400);
     expect(response.headers.get("content-type")).toContain("application/json");
-    expect(payload).toMatchObject({ jsonrpc: "2.0", error: {
+    expect(payload).toMatchObject({ jsonrpc: "2.0", id: 403, error: {
       code: -32600, message: expect.stringMatching(/Authorization.*x-api-key.*(match|conflict|disagree)/i),
     } });
     expect(text).not.toContain("bearer_secret");
@@ -172,7 +172,15 @@ describe("MCP API-key headers and discovery", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toBe("GET");
+    expect(response.headers.get("access-control-allow-headers")).toBe("Content-Type");
     const card = z.object({
+      $schema: z.literal("https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json"),
+      version: z.literal("1.0"),
+      protocolVersion: z.string(),
+      transport: z.object({ type: z.literal("streamable-http"), endpoint: z.literal("/mcp") }),
+      capabilities: z.object({ tools: z.object({}) }),
       serverInfo,
       authentication: z.object({ required: z.literal(true), schemes: z.array(z.string()) }),
       tools: z.array(tool),

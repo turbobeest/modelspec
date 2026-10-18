@@ -46,8 +46,8 @@ direct `/v1/*` API calls still accept only Bearer authentication.
 The public server card requires no key. Its `serverInfo` matches `initialize`,
 including the deployed commit as its version. It declares
 `authentication: {"required": true, "schemes": ["bearer"]}` and generates its
-tools from the same registrations as `tools/list`. The card uses a short public
-cache lifetime.
+tools from the same registrations as `tools/list`. The card uses
+`Cache-Control: public, max-age=300`.
 
 Sources: [Smithery publishing](https://smithery.ai/docs/build/publish) and
 [configuration transport](https://smithery.ai/docs/build/session-config).
@@ -78,6 +78,8 @@ Workers routes `api.modelspec.dev/mcp*` and
 `api.modelspec.dev/.well-known/mcp/server-card.json` on zone `modelspec.dev`
 belong to this Worker. The rank Worker already owns `api.modelspec.dev/*`;
 the more specific patterns win.
+The card route is exact, so discovery clients must use its URL without a query
+string. Other API routes keep their existing Worker.
 The CI token can edit Workers routes and cannot create DNS, so there is no
 new hostname.
 
