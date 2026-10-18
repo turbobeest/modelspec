@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import itertools
 import json
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -28,10 +28,11 @@ PAIRS = [
 ]
 
 
-def run(root, *command):
+def run(root, *command, timeout=180):
     return subprocess.run(
-        command, cwd=root, env={**os.environ, "PYTHONPATH": str(ROOT)},
-        capture_output=True, text=True, timeout=180,
+        command, cwd=root,
+        env={**os.environ, "PYTHONPATH": str(ROOT), "PYTHONDONTWRITEBYTECODE": "1"},
+        capture_output=True, text=True, timeout=timeout,
     )
 
 
@@ -45,7 +46,7 @@ def git(root, *args):
     return result
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def generator_repo(tmp_path_factory):
     root = tmp_path_factory.mktemp("pin-generators")
     # Own every writable input/output; link the frozen catalogue and other read-only inputs.
@@ -74,50 +75,22 @@ def generator_repo(tmp_path_factory):
     return root
 
 
-def generate(root, artifact, command="write"):
-    if artifact == ARTIFACTS[0]:
-        args = [str(root / "pipeline/agent_copy.py"), command]
-    else:
-        args = [str(root / "qa/contracts.py")]
-    return run(root, sys.executable, *args)
-
-
-@pytest.fixture(scope="module")
-def generations(generator_repo):
-    results = {}
-    for artifact in ARTIFACTS:
-        passes = []
-        for _ in range(2):
-            result = generate(generator_repo, artifact)
-            assert result.returncode == 0, result.stdout + result.stderr
-            passes.append((generator_repo / artifact).read_bytes())
-        variants = {}
-        for source in SOURCES[artifact]:
-            updated = json.loads(passes[0])
-            # Simulate a source-only whitespace edit through the production serializer.
-            changed = (generator_repo / source).read_bytes() + b"\n"
-            updated["source_hashes"][source] = hashlib.sha256(changed).hexdigest()
-            variants[source] = render(updated).encode()
-        results[artifact] = (passes, variants)
-    return results
-
-
 @pytest.mark.parametrize("artifact", ARTIFACTS)
-def test_generated_pin_files_are_byte_stable(generations, artifact):
-    passes, _ = generations[artifact]
-    assert passes[0] == passes[1]
-    assert passes[0].decode() == render(json.loads(passes[0]))
-    hashes = json.loads(passes[0])["source_hashes"]
+def test_generated_pin_files_are_byte_stable(generated_pin_bytes, artifact):
+    generated = generated_pin_bytes[artifact]
+    assert generated == (ROOT / artifact).read_bytes()
+    assert generated.decode() == render(json.loads(generated))
+    hashes = json.loads(generated)["source_hashes"]
     assert list(hashes) == sorted(hashes)
 
 
 @pytest.mark.parametrize("artifact,first,second", PAIRS)
-def test_independent_source_changes_merge_cleanly(tmp_path, generations, artifact, first, second):
-    passes, variants = generations[artifact]
-    baseline = json.loads(passes[0])
+def test_independent_source_changes_merge_cleanly(tmp_path, generated_pin_bytes, artifact, first, second):
+    generated = generated_pin_bytes[artifact]
+    baseline = json.loads(generated)
     target = tmp_path / artifact
     target.parent.mkdir(parents=True)
-    target.write_bytes(passes[0])
+    target.write_bytes(generated)
     for source in (first, second):
         path = tmp_path / source
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -125,14 +98,16 @@ def test_independent_source_changes_merge_cleanly(tmp_path, generations, artifac
     git(tmp_path, "init", "-q", "-b", "base")
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "base")
-    expected = json.loads(passes[0])
+    expected = json.loads(generated)
     for branch, source in (("first", first), ("second", second)):
         git(tmp_path, "switch", "-qc", branch, "base")
         path = tmp_path / source
         path.write_bytes(path.read_bytes() + b"\n")
-        target.write_bytes(variants[source])
-        updated = json.loads(variants[source])
+        updated = json.loads(generated)
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        updated["source_hashes"][source] = digest
+        target.write_text(render(updated), encoding="utf-8")
+        updated = json.loads(target.read_bytes())
         assert updated["source_hashes"][source] == digest
         expected["source_hashes"][source] = digest
         assert {k: v for k, v in updated.items() if k != "source_hashes"} == {
@@ -151,27 +126,31 @@ def test_independent_source_changes_merge_cleanly(tmp_path, generations, artifac
         ).hexdigest()
 
 
-def test_agent_copy_check_rejects_a_stale_pin(generator_repo, generations):
+def test_agent_copy_check_rejects_a_stale_pin(generator_repo, generated_pin_bytes, monkeypatch, capsys):
+    spec = importlib.util.spec_from_file_location("pin_agent_copy", generator_repo / "pipeline/agent_copy.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     artifact = ARTIFACTS[0]
     target = generator_repo / artifact
-    baseline = generations[artifact][0][0]
-    assert generate(generator_repo, artifact, "check").returncode == 0
+    baseline = generated_pin_bytes[artifact]
+    # The source inputs stay fixed; reuse their real generated bundle while testing check's file comparison.
+    monkeypatch.setattr(module, "cli_bundle", lambda: json.loads(baseline))
+    assert module.main(["check"]) == 0
     digest = json.loads(baseline)["source_hashes"]["pipeline/entity.py"]
     try:
         target.write_bytes(baseline.replace(digest.encode(), b"0" * 64))
-        result = generate(generator_repo, artifact, "check")
-        assert result.returncode == 1
-        assert f"{artifact} is stale: run python -m pipeline.agent_copy write" in result.stderr
+        assert module.main(["check"]) == 1
+        assert f"{artifact} is stale: run python -m pipeline.agent_copy write" in capsys.readouterr().err
     finally:
         target.write_bytes(baseline)
 
 
-def test_capture_freshness_check_rejects_a_stale_pin(generator_repo, generations, monkeypatch):
+def test_capture_freshness_check_rejects_a_stale_pin(generator_repo, generated_pin_bytes, monkeypatch):
     from tests import test_agent_harness
 
     artifact = ARTIFACTS[1]
     target = generator_repo / artifact
-    baseline = generations[artifact][0][0]
+    baseline = generated_pin_bytes[artifact]
     stale = json.loads(baseline)
     stale["source_hashes"]["mcp/src/server.ts"] = "0" * 64
     monkeypatch.setattr(test_agent_harness, "HERE", generator_repo / "qa")
@@ -184,7 +163,7 @@ def test_capture_freshness_check_rejects_a_stale_pin(generator_repo, generations
         target.write_bytes(baseline)
 
 
-def test_openapi_check_rejects_a_stale_artifact(generator_repo, generations, monkeypatch, capsys):
+def test_openapi_check_rejects_a_stale_artifact(generator_repo, monkeypatch, capsys):
     from api.worker import openapi
 
     target = generator_repo / "api/worker/openapi.yaml"

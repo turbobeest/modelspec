@@ -79,12 +79,18 @@ not part of this solution.
 
 ## Validation and limits
 
-Tests will run both generators twice and compare bytes and serialization.
+Tests generate each pin file once per pytest session in process and reuse
+those bytes. One end-to-end test runs each writing command once, with a
+600-second timeout, and compares its output with that independent baseline.
+The existing `perf` marker routes this test to CI's single serial job.
+The ordinary tests compare committed bytes, serialization and sorted keys.
 For every pair of pinned sources, they will mutate source bytes in a
 temporary repository, serialize the updated digests through the production
 formatter, commit two branches, and run a real three-way Git merge. They
 will check both merged digests against the merged sources and check that
-the payload is unchanged. Stale-pin probes will keep the CLI
+the payload is unchanged. The CLI stale-pin probe reuses the fresh bundle
+while running the real check command's comparison and diagnostic logic.
+Stale-pin probes will keep the CLI
 check, MCP capture assertion, package hook and OpenAPI check effective.
 Run the focused suites, installed-package smoke test, and the full suite
 under `/tmp/modelspec-fullsuite.lock` after `npm ci` in `web`.
