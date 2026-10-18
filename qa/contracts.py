@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from pipeline.agent_copy import render
+
 ROOT = Path(__file__).resolve().parents[1]
 TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide",
               "compare_models", "hardware_fit", "vocab", "feedback")
@@ -294,5 +296,5 @@ def capture_tools() -> dict:
 
 if __name__ == "__main__":
     (ROOT / "qa/fixtures/mcp-tools.json").write_text(
-        json.dumps(capture_tools(), indent=2, ensure_ascii=False) + "\n"
+        render(capture_tools()), encoding="utf-8"
     )
