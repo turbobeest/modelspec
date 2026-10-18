@@ -14,7 +14,8 @@ The private acceptance target passes for `f6dbbcd8` with data `74947c3`:
 rollover. The unchanged 100 ms load gate measures **13.30 ms** locally, best
 of five with GC disabled. The 648 focused tests, both serial performance
 tests and non-performance collection pass. The Round 3 full suite is queued
-under the shared lock; confirmation of the corrected load gate on CI is pending.
+under the shared lock. CI `pytest perf and collection` passes at `8a0009d4`;
+the separate Decision accuracy check also passes (1,301 deterministic tests).
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
 and warns when retained memory increases by more than 1 MiB against the same
@@ -26,9 +27,11 @@ legal text, or production switches changed.
 REV-820 found that the complete Python token loop passed locally near 73 ms
 but failed the unchanged MODEL-138 gate in Decision accuracy at **149.30 ms**
 best of five. The [original CI failure](MODEL-407/round3/ci-accuracy-before.txt)
-records run `39112262794`. The separate `pytest perf and collection` job
-failed its serial timing step; collection was skipped. Its exact log remains
-unavailable while the parent workflow is running and will be read after completion.
+records run `39112262794`. The [separate perf-job log](MODEL-407/round3/ci-perf-before.txt)
+from run `39112262785`, job `117630715894`, reports the same sole failure at
+**208.75 ms** best of five. Its serial command produced one failed and one
+passed test; collection was skipped. That log became available after the
+superseded workflow was cancelled. There was no additional perf failure.
 
 Profiling located roughly 2.95 million calls in per-value parsing. The change
 asks the standard C decoder to parse an array only when the complete array is
@@ -64,8 +67,16 @@ collection **11,661 of 11,663 tests collected, 2 deselected**, all direct exit 0
 The first collection attempt overlapped a temporary public vendor overlay
 and encountered duplicate plugin registrations. After that build exited and
 removed its overlay, the exact collection command passed. No collection
-configuration or test limit was changed. The locked full-suite result and
-CI confirmation remain pending.
+configuration or test limit was changed. CI `pytest perf and collection`
+passes at `8a0009d4` (run `39114952450`, job `117638819060`). The locked
+full-suite result remains pending. [Decision accuracy also passes](MODEL-407/round3/ci-accuracy-final.txt)
+at that PR head (run `39114952430`, job `117638749339`): 1,301 deterministic
+tests, 678 parity tests with one skip, and 227 web-adapter tests. The successful
+CI output confirms the unchanged assertion without printing its five samples.
+[Worker memory headroom also passes](MODEL-407/round3/ci-memory-final.txt):
+104.74959 MiB current and 104.74835 MiB successor, each with 59.875 MiB Wasm
+and the unchanged 115 MiB bound. That public CI run uses Pyodide 0.28.3 and
+Node 22.23.3; the local public/private measurements use Node 22.22.3.
 
 The [timing/profile recipe and samples](MODEL-407/round3/profiling.md),
 [public memory commands and artifacts](MODEL-407/round3/memory-commands.md),

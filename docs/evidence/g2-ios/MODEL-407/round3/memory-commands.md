@@ -86,7 +86,7 @@ Only tracked top-level source files are copied, so a stale generated
 `bundled_data.py` or `tier_policy.py` in the checkout cannot overwrite the fresh
 exports. The original run used `round3/memory/tmp`; the replay uses a hidden
 `.tmp` directory to keep pytest collection out of vendor's temporary repository
-links. Vendor removed both temporary directories after the measured build.
+links. Vendor removed its temporary overlay after the measured build.
 
 ```sh
 "$MODEL407_NODE" --expose-gc api/worker/measure_memory.cjs \
