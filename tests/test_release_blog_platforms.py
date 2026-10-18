@@ -1,15 +1,17 @@
 """Platform drafts for a release breakdown (MODEL-226).
 
-Drafts are text views of the MODEL-224 sample breakdown. Nothing is posted.
-Expected draft text is written out in this file. It is not built by the
-production formatters.
+A draft is one string. It names what changed and which model, and it points
+at the breakdown for every number. Expected text is written in this file.
 """
 
 from __future__ import annotations
 
 import ast
 import re
+import unicodedata
+from dataclasses import fields
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -17,20 +19,120 @@ from decision.excluded import excluded_sources
 from release_blog import platforms
 from release_blog.breakdown import to_bytes
 from release_blog.model import Breakdown
-from release_blog.platforms import AUTOMATIC_POSTING, generate_from_breakdown, render_drafts
+from release_blog.platforms import (
+    AUTOMATIC_POSTING,
+    Draft,
+    generate_from_breakdown,
+    posts_of,
+    render_drafts,
+)
 from release_blog.tone import refused_words
 
-_LAB = "https://lab.example.com/alpha-launch"
-_BOARD = "https://board.example.org/results"
-_PRICE = "https://lab.example.com/pricing"
-_SNAPSHOT = "https://modelspec.dev/api/decision/snapshots/snap_ee376ecc9678d46b.json.gz"
-_READ_LAB = "2026-09-20"
-_READ_SNAP = "2026-09-26"
 _URL = "https://modelspec.dev/blog/lab-alpha/"
 _NEUTRALITY = "No referral fees, no paid placement, no provider-paid visibility, permanently."
 _SUPPLIER = "ModelSpec supplies evaluation services to this lab."
 _EARLY = "ModelSpec received early access without editorial conditions."
 _HAND = "Make the image by hand."
+_CHANGE = (
+    "On swe_bench_pro, an independent reading of the same setup is lower than the lab's figure."
+)
+_HEADLINE = (
+    "This model is in the leading band for software engineering; "
+    "independent readings sit beside the lab's figures"
+)
+_COVER = "The breakdown covers the new model."
+_ANALYSIS = "ModelSpec is an analysis of alternatives for a text generator."
+_TEAMS = "ModelSpec is an analysis of alternatives for teams choosing a text generator."
+_LINK = f"Read the full breakdown, with sources: {_URL}"
+_RULES = (
+    "Target subreddit: r/LocalLLaMA. "
+    "Its Limit Self-Promotion rule requires affiliation to be disclosed, "
+    "and self-promotion to stay a small share of the account's posts and comments. "
+    "No engagement farming. "
+    "Its low-effort rule refuses undisclosed LLM-written copy. "
+    "This draft is for a person to post, and only in r/LocalLLaMA. "
+    "Do not cross-post."
+)
+_HN_TITLE = "This model is in the leading band for software engineering"
+_JAMIE = "Jamie decides whether to submit."
+_NUMBER_CATEGORIES = frozenset({"Nd", "No", "Nl"})
+
+
+# Written from the signed fixture's headline, class, and same-setup direction.
+# The fixture URL has no digit. Alpha 2.5 does, so the draft says "the new model".
+_ORACLE = {
+    "x": (
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
+    ),
+    "linkedin": (
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for teams choosing a text generator.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
+    ),
+    "facebook": (
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
+    ),
+    "instagram": (
+        "Make the image by hand.\n\n"
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
+    ),
+    "reddit": (
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "This is ModelSpec.\n\n"
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "Target subreddit: r/LocalLLaMA. "
+        "Its Limit Self-Promotion rule requires affiliation to be disclosed, "
+        "and self-promotion to stay a small share of the account's posts and comments. "
+        "No engagement farming. "
+        "Its low-effort rule refuses undisclosed LLM-written copy. "
+        "This draft is for a person to post, and only in r/LocalLLaMA. "
+        "Do not cross-post.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/"
+    ),
+    "hackernews": (
+        "This model is in the leading band for software engineering\n\n"
+        "This model is in the leading band for software engineering; "
+        "independent readings sit beside the lab's figures\n\n"
+        "On swe_bench_pro, an independent reading of the same setup is lower "
+        "than the lab's figure.\n\n"
+        "The breakdown covers the new model.\n\n"
+        "ModelSpec is an analysis of alternatives for a text generator.\n\n"
+        "No referral fees, no paid placement, no provider-paid visibility, permanently.\n\n"
+        "Read the full breakdown, with sources: https://modelspec.dev/blog/lab-alpha/\n\n"
+        "Jamie decides whether to submit."
+    ),
+}
 
 
 @pytest.fixture(scope="module")
@@ -61,271 +163,173 @@ def _with_repeated_readings(breakdown: Breakdown, benchmark: str, repeats: int) 
 
 def _related(breakdown: Breakdown, **disclosures: str) -> Breakdown:
     related = breakdown.model_copy(
-        update={
-            "disclosures": breakdown.disclosures.model_copy(update=disclosures),
-        }
+        update={"disclosures": breakdown.disclosures.model_copy(update=disclosures)}
     )
     Breakdown.model_validate(related.model_dump(by_alias=True))
     return related
 
 
-# Checked against the signed fixture fields, then written here as text.
-# swe_bench_pro: lab 70% and board 67.9%, both read 2026-09-20, gap 2.1
-# points lower from the snapshot read 2026-09-26. mmlu_pro: 80% and 0.78
-# fraction. terminal_bench: 50% and 48%. livecodebench: 72%, no lab figure.
-# Leading band size 2. General reasoning is place 3 of 3. Task price is
-# 40,000 input tokens, 4,000 output tokens, $0.112. Held back: 1 quarantined.
-_ORACLE = {
-    "x": (
-        "Alpha 2.5: on swe_bench_pro the lab reports 70% and the independent reading is 67.9%, 2."
-        "1 points lower.\n\nThis model is in the leading band for software engineering; independe"
-        "nt readings sit beside the lab's figures\n\nIn software engineering, Alpha 2.5 is in the"
-        " leading band. The band holds 2 models, and the evidence does not separate them.\n\nIn g"
-        "eneral reasoning, Alpha 2.5 is outside the leading band, at place 3 of 3 ranked models."
-        "\n\nAt 40,000 input tokens and 4,000 output tokens, the list price is $0.112 a task.\n\n"
-        "Lab figures with no independent reading yet: cursorbench.\n\nModelSpec holds readings of"
-        " this model that have not yet passed the second key: quarantined: 1. Their values are no"
-        "t shown.\n\nlivecodebench has an independent reading of 72% and no lab figure.\n\nNo ref"
-        "erral fees, no paid placement, no provider-paid visibility, permanently.\n\nhttps://mode"
-        "lspec.dev/blog/lab-alpha/\n\nSource: https://modelspec.dev/api/decision/snapshots/snap_e"
-        "e376ecc9678d46b.json.gz (read 2026-09-26).\n\nSource: https://lab.example.com/alpha-laun"
-        "ch (read 2026-09-20).\n\nSource: https://board.example.org/results (read 2026-09-20).\n"
-        "\nSource: https://lab.example.com/pricing (read 2026-09-26).\n"
-    ),
-    "linkedin": (
-        "Alpha 2.5 is an analysis of alternatives for teams choosing a text generator.\n\nThis mo"
-        "del is in the leading band for software engineering; independent readings sit beside the"
-        " lab's figures\n\nAlpha 2.5: on swe_bench_pro the lab reports 70% and the independent re"
-        "ading is 67.9%, 2.1 points lower.\n\nIn software engineering, Alpha 2.5 is in the leadin"
-        "g band. The band holds 2 models, and the evidence does not separate them.\n\nIn general "
-        "reasoning, Alpha 2.5 is outside the leading band, at place 3 of 3 ranked models.\n\nAt 4"
-        "0,000 input tokens and 4,000 output tokens, the list price is $0.112 a task.\n\nOn mmlu_"
-        "pro, the two use a different unit, so ModelSpec does not compare them. The lab reports 8"
-        "0% and the independent reading is 0.78 fraction.\n\nOn terminal_bench, the setups differ"
-        " in effort, so ModelSpec shows both numbers and computes no difference. The lab reports "
-        "50% and the independent reading is 48%.\n\nLab figures with no independent reading yet: "
-        "cursorbench.\n\nModelSpec holds readings of this model that have not yet passed the seco"
-        "nd key: quarantined: 1. Their values are not shown.\n\nlivecodebench has an independent "
-        "reading of 72% and no lab figure.\n\nSpeed is not measured yet.\n\nDomains with no estim"
-        "ate yet: engineering_stem, maths, legal, medical, finance, writing, marketing_seo, agent"
-        "ic_tool_use, vision_documents, multilingual, chat_preference.\n\nLite: does not cover th"
-        "e model.\n\nPro: covers the model.\n\nTeam: coverage not yet verified.\n\nGuaranteed fac"
-        "ts still unknown: feature.batch, feature.effort_controls, feature.streaming, feature.str"
-        "uctured_output, feature.tool_calling, licence.commercial_use, licence.fine_tuning, licen"
-        "ce.output_training, model.max_output_tokens, model.output_modalities, model.release_date"
-        ", offering.attestation.baa, offering.attestation.soc2, offering.data.retention, offering"
-        ".data.trains_on_customer_data, offering.data.zero_retention, offering.price.batch_input,"
-        " offering.price.batch_output, offering.price.cached_input, origin.base_lineage, origin.l"
-        "ab_jurisdiction, origin.weights_hosting.\n\nDomains this class cannot be measured on, so"
-        " not a gap: retrieval, because retrieval is graded on an embedding or reranking model's "
-        "ranking, and this class is neither.\n\nSource: https://modelspec.dev/api/decision/snapsh"
-        "ots/snap_ee376ecc9678d46b.json.gz (read 2026-09-26).\nSource: https://lab.example.com/al"
-        "pha-launch (read 2026-09-20).\nSource: https://board.example.org/results (read 2026-09-2"
-        "0).\nSource: https://lab.example.com/pricing (read 2026-09-26).\n\nNo referral fees, no "
-        "paid placement, no provider-paid visibility, permanently.\n\nhttps://modelspec.dev/blog/"
-        "lab-alpha/\n"
-    ),
-    "facebook": (
-        "On swe_bench_pro the lab reports 70% and the independent reading is 67.9%.\n\nSource: ht"
-        "tps://lab.example.com/alpha-launch (read 2026-09-20).\nSource: https://board.example.org"
-        "/results (read 2026-09-20).\n\nNo referral fees, no paid placement, no provider-paid vis"
-        "ibility, permanently.\n\nhttps://modelspec.dev/blog/lab-alpha/\n"
-    ),
-    "instagram": (
-        "Make the image by hand.\n\nAlpha 2.5 is an analysis of alternatives for a text generator"
-        ".\n\nThis model is in the leading band for software engineering; independent readings si"
-        "t beside the lab's figures\n\nAlpha 2.5: on swe_bench_pro the lab reports 70% and the in"
-        "dependent reading is 67.9%, 2.1 points lower.\n\nIn software engineering, Alpha 2.5 is i"
-        "n the leading band. The band holds 2 models, and the evidence does not separate them.\n"
-        "\nIn general reasoning, Alpha 2.5 is outside the leading band, at place 3 of 3 ranked mo"
-        "dels.\n\nAt 40,000 input tokens and 4,000 output tokens, the list price is $0.112 a task"
-        ".\n\nOn mmlu_pro, the two use a different unit, so ModelSpec does not compare them. The "
-        "lab reports 80% and the independent reading is 0.78 fraction.\n\nOn terminal_bench, the "
-        "setups differ in effort, so ModelSpec shows both numbers and computes no difference. The"
-        " lab reports 50% and the independent reading is 48%.\n\nLab figures with no independent "
-        "reading yet: cursorbench.\n\nModelSpec holds readings of this model that have not yet pa"
-        "ssed the second key: quarantined: 1. Their values are not shown.\n\nlivecodebench has an"
-        " independent reading of 72% and no lab figure.\n\nSpeed is not measured yet.\n\nDomains "
-        "with no estimate yet: engineering_stem, maths, legal, medical, finance, writing, marketi"
-        "ng_seo, agentic_tool_use, vision_documents, multilingual, chat_preference.\n\nLite: does"
-        " not cover the model.\n\nPro: covers the model.\n\nTeam: coverage not yet verified.\n\nS"
-        "ource: https://modelspec.dev/api/decision/snapshots/snap_ee376ecc9678d46b.json.gz (read "
-        "2026-09-26).\nSource: https://lab.example.com/alpha-launch (read 2026-09-20).\nSource: h"
-        "ttps://board.example.org/results (read 2026-09-20).\nSource: https://lab.example.com/pri"
-        "cing (read 2026-09-26).\n\nNo referral fees, no paid placement, no provider-paid visibil"
-        "ity, permanently.\n\nhttps://modelspec.dev/blog/lab-alpha/\n"
-    ),
-    "reddit": (
-        "This model is in the leading band for software engineering; independent readings sit bes"
-        "ide the lab's figures\n\nThis is ModelSpec.\n\nAlpha 2.5 is an analysis of alternatives "
-        "for a text generator.\n\nThis model is in the leading band for software engineering; ind"
-        "ependent readings sit beside the lab's figures\n\nAlpha 2.5: on swe_bench_pro the lab re"
-        "ports 70% and the independent reading is 67.9%, 2.1 points lower.\n\nIn software enginee"
-        "ring, Alpha 2.5 is in the leading band. The band holds 2 models, and the evidence does n"
-        "ot separate them.\n\nIn general reasoning, Alpha 2.5 is outside the leading band, at pla"
-        "ce 3 of 3 ranked models.\n\nAt 40,000 input tokens and 4,000 output tokens, the list pri"
-        "ce is $0.112 a task.\n\nOn mmlu_pro, the two use a different unit, so ModelSpec does not"
-        " compare them. The lab reports 80% and the independent reading is 0.78 fraction.\n\nOn t"
-        "erminal_bench, the setups differ in effort, so ModelSpec shows both numbers and computes"
-        " no difference. The lab reports 50% and the independent reading is 48%.\n\nLab figures w"
-        "ith no independent reading yet: cursorbench.\n\nModelSpec holds readings of this model t"
-        "hat have not yet passed the second key: quarantined: 1. Their values are not shown.\n\nl"
-        "ivecodebench has an independent reading of 72% and no lab figure.\n\nSpeed is not measur"
-        "ed yet.\n\nDomains with no estimate yet: engineering_stem, maths, legal, medical, financ"
-        "e, writing, marketing_seo, agentic_tool_use, vision_documents, multilingual, chat_prefer"
-        "ence.\n\nLite: does not cover the model.\n\nPro: covers the model.\n\nTeam: coverage not"
-        " yet verified.\n\nGuaranteed facts still unknown: feature.batch, feature.effort_controls"
-        ", feature.streaming, feature.structured_output, feature.tool_calling, licence.commercial"
-        "_use, licence.fine_tuning, licence.output_training, model.max_output_tokens, model.outpu"
-        "t_modalities, model.release_date, offering.attestation.baa, offering.attestation.soc2, o"
-        "ffering.data.retention, offering.data.trains_on_customer_data, offering.data.zero_retent"
-        "ion, offering.price.batch_input, offering.price.batch_output, offering.price.cached_inpu"
-        "t, origin.base_lineage, origin.lab_jurisdiction, origin.weights_hosting.\n\nDomains this"
-        " class cannot be measured on, so not a gap: retrieval, because retrieval is graded on an"
-        " embedding or reranking model's ranking, and this class is neither.\n\nSource: https://m"
-        "odelspec.dev/api/decision/snapshots/snap_ee376ecc9678d46b.json.gz (read 2026-09-26).\nSo"
-        "urce: https://lab.example.com/alpha-launch (read 2026-09-20).\nSource: https://board.exa"
-        "mple.org/results (read 2026-09-20).\nSource: https://lab.example.com/pricing (read 2026-"
-        "09-26).\n\nTarget subreddit: r/LocalLLaMA. Its Limit Self-Promotion rule requires affili"
-        "ation to be disclosed, and self-promotion to stay a small share of the account's posts a"
-        "nd comments. No engagement farming. Its low-effort rule refuses undisclosed LLM-written "
-        "copy. This draft is for a person to post, and only in r/LocalLLaMA. Do not cross-post.\n"
-        "\nNo referral fees, no paid placement, no provider-paid visibility, permanently.\n\nhttp"
-        "s://modelspec.dev/blog/lab-alpha/\n"
-    ),
-    "hackernews": (
-        "This model is in the leading band for software engineering\n\nhttps://modelspec.dev/blog"
-        "/lab-alpha/\n\nThis model is in the leading band for software engineering; independent r"
-        "eadings sit beside the lab's figures\n\nSource: https://modelspec.dev/api/decision/snaps"
-        "hots/snap_ee376ecc9678d46b.json.gz (read 2026-09-26).\nSource: https://lab.example.com/a"
-        "lpha-launch (read 2026-09-20).\nSource: https://board.example.org/results (read 2026-09-"
-        "20).\n\nAlpha 2.5: on swe_bench_pro the lab reports 70% and the independent reading is 6"
-        "7.9%, 2.1 points lower.\n\nNo referral fees, no paid placement, no provider-paid visibil"
-        "ity, permanently.\n\nJamie decides whether to submit.\n"
-    ),
-}
+def _named(breakdown: Breakdown, name: str) -> Breakdown:
+    return breakdown.model_copy(update={"model": breakdown.model.model_copy(update={"name": name})})
+
+
+def _numberless(text: str, url: str) -> None:
+    remaining = text.replace(url, "")
+    for character in remaining:
+        assert unicodedata.category(character) not in _NUMBER_CATEGORIES
+        assert not character.isdigit()
+        assert not character.isnumeric()
+    folded = unicodedata.normalize("NFKC", remaining).casefold()
+    assert "%" not in folded
+    assert "percent" not in folded
+    assert "per cent" not in folded
 
 
 def test_signed_fixture_drafts_match_the_written_oracle(breakdown) -> None:
     """Expected text is written in this file. The test does not format it."""
     drafts = render_drafts(breakdown)
     for name, expected in _ORACLE.items():
-        assert drafts[name].output == expected, name
+        assert drafts[name].text == expected, name
+        assert posts_of(drafts[name].text)
+        assert "\n\n".join(posts_of(drafts[name].text)) == drafts[name].text
+
+
+def test_oracle_values_are_literals() -> None:
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    assignment = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "_ORACLE" for target in node.targets)
+    )
+    oracle = ast.literal_eval(assignment.value)
+    assert set(oracle) == set(_ORACLE)
+    for text in oracle.values():
+        assert isinstance(text, str)
+        assert "Alpha 2.5" not in text
+        _numberless(text, _URL)
+
+
+def test_a_draft_has_no_second_text_attribute() -> None:
+    assert [field.name for field in fields(Draft)] == ["text"]
 
 
 def test_sample_drafts_exist_for_every_platform(breakdown) -> None:
     drafts = render_drafts(breakdown)
     assert set(drafts) == {"x", "linkedin", "facebook", "instagram", "reddit", "hackernews"}
     assert AUTOMATIC_POSTING is False
-    assert all(draft.posted is False and draft.platform == name for name, draft in drafts.items())
-    assert all(not hasattr(draft, "images") for draft in drafts.values())
+    assert all(isinstance(draft, Draft) for draft in drafts.values())
     again = render_drafts(breakdown)
-    assert [draft.output for draft in again.values()] == [draft.output for draft in drafts.values()]
+    assert [draft.text for draft in again.values()] == [draft.text for draft in drafts.values()]
 
 
-def test_drafts_stay_neutral_and_never_name_an_excluded_source(breakdown) -> None:
-    blob = "\n".join(draft.output for draft in render_drafts(breakdown).values())
-    assert refused_words(blob) == []
-    assert excluded_sources().text.search(blob) is None
-    assert "router" not in blob.lower()
+def test_drafts_name_modelspec_and_carry_no_number(breakdown) -> None:
+    for name, draft in render_drafts(breakdown).items():
+        assert "ModelSpec is an analysis of alternatives" in draft.text, name
+        assert "Alpha 2.5" not in draft.text
+        assert "the new model" in draft.text
+        assert _LINK in draft.text
+        assert _NEUTRALITY in draft.text
+        _numberless(draft.text, _URL)
+        assert refused_words(draft.text) == []
+        assert excluded_sources().text.search(draft.text) is None
+        assert "router" not in draft.text.lower()
 
 
-def test_x_thread_fits_and_opens_on_the_claims_gap(breakdown) -> None:
+def test_x_thread_fits_and_opens_on_the_change(breakdown) -> None:
     draft = render_drafts(breakdown)["x"]
-    assert draft.posts
-    too_long = [(index, len(post)) for index, post in enumerate(draft.posts) if len(post) > 280]
-    assert too_long == []
-    hook = draft.posts[0]
-    assert "swe_bench_pro" in hook
-    assert "2.1" in hook and "lower" in hook
-    assert "70%" in hook and "67.9%" in hook
-    assert "lab reports 70%" in hook
-    assert "independent reading is 67.9%" in hook
-    assert draft.link in draft.output
-    assert _LAB in draft.output and _BOARD in draft.output and _SNAPSHOT in draft.output
+    posts = posts_of(draft.text)
+    assert posts
+    assert [(index, len(post)) for index, post in enumerate(posts) if len(post) > 280] == []
+    assert posts[0] == _CHANGE
+    assert "70%" not in draft.text
+    assert "67.9%" not in draft.text
+    assert "2.1" not in draft.text
+    assert _URL in draft.text
 
 
 def test_linkedin_keeps_the_full_url(breakdown) -> None:
     draft = render_drafts(breakdown)["linkedin"]
-    assert "analysis of alternatives" in draft.text
+    assert "ModelSpec is an analysis of alternatives" in draft.text
+    assert "teams choosing" in draft.text
     assert len(draft.text) <= 3000
-    assert draft.link in draft.text
+    assert _URL in draft.text
     assert _NEUTRALITY in draft.text
     assert "text generator" in draft.text
 
 
-def test_facebook_post_carries_the_hook_the_link_and_the_sources(breakdown) -> None:
+def test_facebook_post_carries_the_change_and_the_link(breakdown) -> None:
     draft = render_drafts(breakdown)["facebook"]
     assert len(draft.text) <= 500
-    assert draft.link in draft.text
-    assert "70%" in draft.text and "67.9%" in draft.text
-    assert _LAB in draft.text and _BOARD in draft.text and _READ_LAB in draft.text
+    assert _URL in draft.text
+    assert _CHANGE in draft.text
     assert _NEUTRALITY in draft.text
+    assert "70%" not in draft.text
 
 
 def test_instagram_is_a_caption_and_tells_the_person_to_make_the_image(breakdown) -> None:
     draft = render_drafts(breakdown)["instagram"]
-    assert _HAND in draft.text
-    assert draft.link in draft.text
+    assert draft.text.startswith(_HAND)
+    assert _URL in draft.text
     assert len(draft.text) <= 2200
-    assert "<svg" not in draft.output
-    assert "70%" in draft.text and _LAB in draft.text
+    assert "<svg" not in draft.text
+    assert "70%" not in draft.text
 
 
 def test_reddit_draft_names_one_subreddit_and_does_not_cross_post(breakdown) -> None:
     draft = render_drafts(breakdown)["reddit"]
-    assert draft.subreddit == "r/LocalLLaMA"
-    assert len(draft.title) <= 300
+    posts = posts_of(draft.text)
+    assert posts[0] == breakdown.headline.text
+    assert len(posts[0]) <= 300
     assert len(draft.text) <= 40_000
-    assert draft.title == breakdown.headline.text
-    assert "ModelSpec" in draft.text
+    assert "This is ModelSpec." in draft.text
+    assert "ModelSpec is an analysis of alternatives" in draft.text
     assert "Do not cross-post." in draft.text
-    assert draft.cross_post is False
     assert set(re.findall(r"r/[A-Za-z0-9_]+", draft.text)) == {"r/LocalLLaMA"}
-    assert "self-promotion" in draft.rules.lower()
-    assert "disclos" in draft.rules.lower()
-    assert draft.link in draft.text
-    assert not any(character.isdigit() for character in draft.title)
+    assert "self-promotion" in draft.text.lower()
+    assert "disclos" in draft.text.lower()
+    assert _URL in draft.text
+    _numberless(posts[0], _URL)
 
 
 def test_hacker_news_is_a_title_and_url_jamie_decides(breakdown) -> None:
     draft = render_drafts(breakdown)["hackernews"]
-    assert draft.posts == ()
-    assert len(draft.title) <= 80
-    assert breakdown.headline.text.startswith(draft.title)
-    assert draft.link in draft.submission
-    assert draft.title in draft.submission
-    assert "Jamie decides whether to submit" in draft.submission
-    assert draft.jamie_decides is True
-    assert _NEUTRALITY in draft.output
-    assert not any(character.isdigit() for character in draft.title)
+    posts = posts_of(draft.text)
+    assert posts[0] == _HN_TITLE
+    assert len(posts[0]) <= 80
+    assert breakdown.headline.text.startswith(posts[0])
+    assert breakdown.headline.text in draft.text
+    assert _URL in draft.text
+    assert _JAMIE in draft.text
+    assert _NEUTRALITY in draft.text
+    _numberless(posts[0], _URL)
 
 
 def test_caller_can_supply_the_breakdown_url(breakdown) -> None:
     url = "https://modelspec.dev/blog/lab-alpha-r1/"
     draft = render_drafts(breakdown, post_url=url)["x"]
-    assert draft.link == url
-    assert url in draft.output
+    assert url in draft.text
+    assert f"Read the full breakdown, with sources: {url}" in draft.text
+    _numberless(draft.text, url)
 
 
-def test_platform_module_has_no_posting_client() -> None:
+def test_platform_module_has_no_posting_client_or_fact_slots() -> None:
+    assert not Path("release_blog/slots.py").exists()
+    path = Path("release_blog/platforms.py")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     modules: list[str] = []
-    for path in (Path("release_blog/platforms.py"), Path("release_blog/slots.py")):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                modules.extend(alias.name for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                modules.append(node.module)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
     banned = ("requests", "httpx", "urllib", "tweepy", "praw", "socket", "http", "subprocess")
     for name in modules:
         assert not any(name == item or name.startswith(item + ".") for item in banned), name
-    source = Path("release_blog/platforms.py").read_text(encoding="utf-8")
+    source = path.read_text(encoding="utf-8")
+    assert "release_blog.slots" not in source
     assert "render_card_html" not in source
     assert "<svg" not in source
-    slots = Path("release_blog/slots.py").read_text(encoding="utf-8")
-    assert "def data" not in slots
-    assert "svg_claim_text" not in slots
 
 
 def test_long_threads_keep_the_linkedin_url_and_disclosure(breakdown) -> None:
@@ -335,28 +339,35 @@ def test_long_threads_keep_the_linkedin_url_and_disclosure(breakdown) -> None:
         draft = render_drafts(longer, post_url=url)["linkedin"]
         assert url in draft.text
         assert breakdown.disclosures.neutrality in draft.text
-        assert "analysis of alternatives" in draft.text
+        assert "ModelSpec is an analysis of alternatives" in draft.text
         assert len(draft.text) <= 3000
+        _numberless(draft.text, url)
 
 
 def test_disclosures_are_in_every_platforms_written_copy(breakdown) -> None:
     related = _related(breakdown, supplier=_SUPPLIER, early_access=_EARLY)
     for name, draft in render_drafts(related).items():
-        assert _SUPPLIER in draft.output, name
-        assert _EARLY in draft.output, name
+        assert _SUPPLIER in draft.text, name
+        assert _EARLY in draft.text, name
+        assert len(draft.text) <= {"facebook": 500, "x": 10_000}.get(name, 40_000)
+        _numberless(draft.text, _URL)
 
 
-def test_source_lines_accompany_the_numbers_they_belong_to(breakdown) -> None:
-    for name, draft in render_drafts(breakdown).items():
-        text = draft.output
-        if "70%" in text:
-            assert _LAB in text and _READ_LAB in text, name
-        if "67.9%" in text:
-            assert _BOARD in text and _READ_LAB in text, name
-        if "2.1" in text:
-            assert _SNAPSHOT in text and _READ_SNAP in text, name
-        if "$0.112" in text:
-            assert _PRICE in text and _READ_SNAP in text, name
+def test_a_digit_free_name_is_used_and_versioned_names_are_not(breakdown) -> None:
+    versioned = render_drafts(breakdown)
+    assert all("Alpha 2.5" not in draft.text for draft in versioned.values())
+    assert all("the new model" in draft.text for draft in versioned.values())
+    clean = render_drafts(_named(breakdown, "Alpha"))
+    assert all("Alpha 2.5" not in draft.text for draft in clean.values())
+    assert all("The breakdown covers Alpha." in draft.text for draft in clean.values())
+    assert all(
+        f"Read the full breakdown of Alpha, with sources: {_URL}" in draft.text
+        for draft in clean.values()
+    )
+    aliased = breakdown.model_copy(update={"names": {breakdown.model.id: "Alpha"}})
+    drafts = render_drafts(aliased)
+    assert all("Alpha 2.5" not in draft.text for draft in drafts.values())
+    assert all("The breakdown covers Alpha." in draft.text for draft in drafts.values())
 
 
 @pytest.mark.parametrize(
@@ -379,53 +390,89 @@ def test_a_digit_in_prose_from_the_breakdown_is_rejected(breakdown, field, value
         render_drafts(related)
 
 
-def test_swapping_claim_and_reading_is_rejected(breakdown, monkeypatch) -> None:
-    original = platforms._emit
-
-    def swapped(pieces, source, post_url):
-        text = original(pieces, source, post_url)
-        return text.replace("70%", "SWAP").replace("67.9%", "70%").replace("SWAP", "67.9%")
-
-    monkeypatch.setattr(platforms, "_emit", swapped)
-    with pytest.raises(ValueError, match="manifest"):
+@pytest.mark.parametrize("character", ["⁷⁰", "②", "①", "٣", "½", "Ⅳ"])
+def test_unicode_digits_in_a_literal_are_rejected(breakdown, monkeypatch, character) -> None:
+    monkeypatch.setattr(platforms, "_HAND", platforms._HAND + character)
+    with pytest.raises(ValueError, match="digit"):
         render_drafts(breakdown)
 
 
-def test_a_digit_in_a_literal_is_rejected(breakdown, monkeypatch) -> None:
-    from release_blog.slots import Literal
+@pytest.mark.parametrize("character", ["⁷⁰", "②", "①", "٣"])
+@pytest.mark.parametrize(
+    ("field", "label"),
+    [
+        ("headline", "headline.text"),
+        ("supplier", "disclosures.supplier"),
+        ("early_access", "disclosures.early_access"),
+        ("neutrality", "disclosures.neutrality"),
+    ],
+)
+def test_unicode_digits_in_inputs_are_rejected(breakdown, character, field, label) -> None:
+    value = f"Noted {character}"
+    if field == "headline":
+        related = breakdown.model_copy(
+            update={"headline": breakdown.headline.model_copy(update={"text": value})}
+        )
+    else:
+        related = _related(breakdown, **{field: value})
+    with pytest.raises(ValueError, match=re.escape(label)):
+        render_drafts(related)
 
-    with pytest.raises(ValueError, match="literal"):
-        Literal("The extra figure is 70%.")
-    original = platforms._hook_pieces
 
-    def extra(source):
-        original(source)
-        return [Literal("The extra figure is 70%.")]
+def test_a_unicode_digit_in_a_model_name_is_not_copied(breakdown) -> None:
+    drafts = render_drafts(_named(breakdown, "Alpha⁷⁰"))
+    blob = "\n".join(draft.text for draft in drafts.values())
+    assert "Alpha⁷⁰" not in blob
+    assert "⁷⁰" not in blob
+    assert "the new model" in blob
 
-    monkeypatch.setattr(platforms, "_hook_pieces", extra)
-    with pytest.raises(ValueError, match="literal"):
+
+def test_a_swapped_number_is_rejected(breakdown, monkeypatch) -> None:
+    original = platforms._draft_text
+
+    def swapped(breakdown, platform, post_url):
+        text = original(breakdown, platform, post_url)
+        return text + "\n\nThe lab reports 67.9% and the independent reading is 70%."
+
+    monkeypatch.setattr(platforms, "_draft_text", swapped)
+    with pytest.raises(ValueError, match="digit"):
         render_drafts(breakdown)
 
 
 def test_a_glued_digit_sequence_is_rejected(breakdown, monkeypatch) -> None:
-    original = platforms._emit
+    original = platforms._draft_text
 
-    def extra(pieces, source, post_url):
-        return original(pieces, source, post_url) + " score70%"
+    def extra(breakdown, platform, post_url):
+        return original(breakdown, platform, post_url) + " score70%"
 
-    monkeypatch.setattr(platforms, "_emit", extra)
-    with pytest.raises(ValueError, match="digit sequence"):
+    monkeypatch.setattr(platforms, "_draft_text", extra)
+    with pytest.raises(ValueError, match="digit"):
         render_drafts(breakdown)
 
 
-def test_bypassing_the_manifest_is_rejected(breakdown, monkeypatch) -> None:
-    original = platforms._emit
+def test_a_number_via_any_attribute_is_rejected(breakdown, monkeypatch) -> None:
+    original = platforms._assemble
 
-    def extra(pieces, source, post_url):
-        return original(pieces, source, post_url) + " Unreviewed."
+    def leaky(breakdown, post_url):
+        drafts = original(breakdown, post_url)
+        return {
+            name: SimpleNamespace(text=draft.text, aside="70") for name, draft in drafts.items()
+        }
 
-    monkeypatch.setattr(platforms, "_emit", extra)
-    with pytest.raises(ValueError, match="manifest"):
+    monkeypatch.setattr(platforms, "_assemble", leaky)
+    with pytest.raises(ValueError, match="aside"):
+        render_drafts(breakdown)
+
+
+@pytest.mark.parametrize("addition", [" percent", " per cent", " %"])
+def test_a_spelled_percent_is_rejected(breakdown, monkeypatch, addition) -> None:
+    original = platforms._draft_text
+
+    def extra(breakdown, platform, post_url):
+        return original(breakdown, platform, post_url) + addition
+
+    monkeypatch.setattr(platforms, "_draft_text", extra)
+    with pytest.raises(ValueError, match="percent"):
         render_drafts(breakdown)
 
 
@@ -450,6 +497,17 @@ def test_generate_writes_six_text_files_and_no_images(breakdown, tmp_path) -> No
         "x.txt",
     ]
     assert set(written) == set(names)
+    drafts = render_drafts(breakdown, post_url=_URL)
+    files = {
+        "x": "x.txt",
+        "linkedin": "linkedin.txt",
+        "facebook": "facebook.txt",
+        "instagram": "instagram.txt",
+        "reddit": "reddit.md",
+        "hackernews": "hn.txt",
+    }
+    for platform, filename in files.items():
+        assert (social / filename).read_text(encoding="utf-8") == drafts[platform].text + "\n"
     linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
     assert _URL in linkedin
     assert breakdown.disclosures.neutrality in linkedin
@@ -468,8 +526,9 @@ def test_model_225_hook_uses_the_merged_pipeline(breakdown, tmp_path) -> None:
     assert message == "Platform drafts generated for manual review and posting."
     social = folder / "social"
     for name in ("x.txt", "linkedin.txt", "facebook.txt", "instagram.txt", "reddit.md", "hn.txt"):
-        assert (social / name).is_file(), name
-        assert "<svg" not in (social / name).read_text(encoding="utf-8")
+        text = (social / name).read_text(encoding="utf-8")
+        assert text
+        assert "<svg" not in text
+        assert "https://modelspec.dev/blog/lab-alpha/" in text
     linkedin = (social / "linkedin.txt").read_text(encoding="utf-8")
-    assert "https://modelspec.dev/blog/lab-alpha/" in linkedin
     assert breakdown.disclosures.neutrality in linkedin

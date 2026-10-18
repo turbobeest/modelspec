@@ -55,8 +55,8 @@ def headline(
 
     ``best`` is ``(domain name, alone in the band)`` for each domain where the
     model is in the best band. No rule writes a digit or a superlative.
-    A version inside ``name`` is not copied into the headline. The draft names
-    that model through its own fact slot.
+    A version inside ``name`` is not copied into the headline. A platform draft
+    names that model only when the name itself has no digit.
     """
     if any(character.isdigit() for character in name):
         name = "This model"
