@@ -285,24 +285,33 @@ def publisher_subject(path: str, raw: str) -> list[str]:
     """Strings checked for a removed publisher.
 
     HTML contributes the visible text, the title, every attribute value, each
-    JSON-LD blob, and the strings inside a blob that parses. Other files
-    contribute the unescaped file text. Owned JSON, YAML, and a genuine
-    Markdown front-matter block also contribute the strings from a successful
-    parse, including keys. A parse error leaves the text checks in place.
-    Nothing here builds a mapping or renames a key. Markdown prose is not parsed.
+    JSON-LD blob, and the strings from each successful parse of that blob and
+    of the HTML-unescaped blob. Other files contribute the unescaped file
+    text. Owned JSON, YAML, and a genuine Markdown front-matter block also
+    contribute the strings from a successful parse, including keys. A parse
+    error leaves the text checks in place. Nothing here builds a mapping or
+    renames a key. Markdown prose is not parsed.
     """
     if path.endswith(".html"):
         page = Page(raw)
         texts = [html.unescape(page.visible), html.unescape(page.title), *page.attribute_values]
         for blob in page.ld:
             texts.append(html.unescape(blob))
-            # Parse the original blob. Unescaping it first turns a character
-            # reference inside a key into a different key, and the parser
-            # then keeps only one of the two values.
-            parsed = _load_json(blob)
-            if parsed is None:
-                parsed = _load_json(html.unescape(blob))
-            texts.extend(html.unescape(item) for item in decoded_strings(parsed))
+            # Parse the original blob and the HTML-unescaped blob separately.
+            # Unescaping first turns a character reference inside a key into
+            # a different key, and the parser then keeps only one of the two
+            # values. The original parse keeps that earlier value. An escape
+            # whose backslash is a character reference still parses as JSON,
+            # so only the unescaped parse decodes it.
+            candidates = [blob]
+            unescaped_blob = html.unescape(blob)
+            if unescaped_blob != blob:
+                candidates.append(unescaped_blob)
+            for candidate in candidates:
+                parsed = _load_json(candidate)
+                if parsed is None:
+                    continue
+                texts.extend(html.unescape(item) for item in decoded_strings(parsed))
         return texts
     texts = [html.unescape(raw)]
     if path.endswith(".md"):

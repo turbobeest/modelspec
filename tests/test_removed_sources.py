@@ -194,6 +194,21 @@ def test_jsonld_script_forms_reach_the_tracked_name_guard(name: str, opening: st
     assert _publisher_hit(Path("page.html"), raw)
 
 
+@pytest.mark.parametrize("name", ("Artificial" + " Analysis", "Zap" + "ier"))
+@pytest.mark.parametrize("slot", ("value", "key"))
+def test_jsonld_entity_encoded_unicode_escapes_reach_the_tracked_name_guard(
+    name: str, slot: str
+) -> None:
+    escaped = "".join(f"&#92;u{ord(char):04x}" for char in name)
+    blob = (
+        '{"publisher":"' + escaped + '"}'
+        if slot == "value"
+        else '{"' + escaped + '":"safe"}'
+    )
+    raw = '<script type="application/ld+json">' + blob + "</script>"
+    assert _publisher_hit(Path("page.html"), raw)
+
+
 def test_no_card_carries_a_removed_value() -> None:
     bad = []
     for model in load_models(REPO_ROOT):
