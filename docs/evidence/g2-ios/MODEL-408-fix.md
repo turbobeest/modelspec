@@ -2,7 +2,7 @@
 
 Engine base: `badf4be5fdff0a0803fd69387b165307f4190909`.
 Design-only first commit: `581833f1`.
-Final implementation and private engine pin:
+Final xAI production implementation and private engine pin:
 `a22355bf9c3d9511ff563494791dd99282411898`.
 Private data base: `92f1f227dcd64394a362e827dfedb306a99beead`.
 Final private data commit: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`,
@@ -98,6 +98,28 @@ external cross-model review required before merging.
 
 ## Validation
 
+The first engine CI run exposed a pre-existing billing replay isolation
+defect in pytest shard 3/4. In
+[run 39116778969](https://github.com/turbobeest/modelspec/actions/runs/39116778969),
+`test_schema_compaction_preserves_every_original_rule` failed with
+`KeyError: 'pydantic.root_model'`. The billing helper restored all of
+`sys.modules` after loading the Worker, deleting modules loaded during the
+replay while leaving their classes cached on parent packages. A fresh-process
+regression, `test_openapi_can_build_after_billing_replay`, reproduced that
+same error before the fix: one failed, exit 1. The helper now restores only
+the three runtime stubs it replaces. No schema assertion or production
+behavior changed. The complete billing-launch, billing-smoke and agent-guide
+suites plus the Worker access check passed 57 tests, exit 0.
+`billing-isolation-red.txt.gz` and `billing-isolation-green.txt.gz` retain
+the outputs. This test-only fix follows the private engine pin; the pinned
+xAI production implementation is unchanged. The local reproduction used
+Pydantic 2.13.5, matching CI (whose Python was 3.11.17).
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py::test_openapi_can_build_after_billing_replay
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py tests/test_agent_guide.py tests/test_billing_smokes.py tests/test_decide_worker.py::test_billing_launch_enforces_keys_and_keeps_the_free_browser_visit_gate
+```
+
 The focused suite passed 760 tests, exit 0, in `focused-green.txt.gz`.
 Web dependency installation, the web build and all 843 web tests exited 0.
 The test runner reported one skipped test file. Logs are in `web-build.txt.gz`
@@ -166,3 +188,10 @@ raw API entitlement, production deployment, merge, Linear write, workflow
 dispatch, Firecrawl credit or paid-provider call was exercised. The data
 pin's main-ancestry gate remains a merge-order dependency until the engine
 implementation reaches main. Both PRs are drafts for human review.
+
+The first private CI run,
+[39116623991](https://github.com/turbobeest/modelspec-data/actions/runs/39116623991),
+stopped before tests at the engine-main ancestry check, exit 1, because
+`a22355bf9c3d9511ff563494791dd99282411898` is not on main. The read-only command
+`gh run view 39116623991 --repo turbobeest/modelspec-data --log-failed`
+confirmed that cause. No gate was bypassed and no merge was attempted.

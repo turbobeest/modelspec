@@ -57,11 +57,21 @@ async def replay(data):
     workers.Response = Response
     workers.WorkerEntrypoint = type("WorkerEntrypoint", (), {})
     bundle.read = lambda path: vocabulary if path == "/api/decision/vocabulary.json" else None
-    with patch.dict(sys.modules, {"js": js, "workers": workers, "bundled_data": bundle}):
+    stubs = {"js": js, "workers": workers, "bundled_data": bundle}
+    missing = object()
+    original = {name: sys.modules.get(name, missing) for name in stubs}
+    sys.modules.update(stubs)
+    try:
         spec = importlib.util.spec_from_file_location(
             "billing_launch_entry", ROOT / "api/worker/src/entry.py")
         entry = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(entry)
+    finally:
+        for name, module in original.items():
+            if module is missing:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
 
     def request_key(payload):
         return json.dumps({key: value for key, value in payload.items() if key != "snapshot"}, sort_keys=True)

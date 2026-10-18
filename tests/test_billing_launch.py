@@ -1,10 +1,12 @@
 """MODEL-96's production access boundary through the real Worker entry."""
 import asyncio
 import json
+import subprocess
+import sys
 
 import pytest
 
-from tests.replay_billing_launch import NOW, replay
+from tests.replay_billing_launch import NOW, ROOT, replay
 
 
 def call(path="/v1/decide", *, visit=None, turnstile=None, now=NOW, body=None, method=None):
@@ -23,6 +25,21 @@ def call(path="/v1/decide", *, visit=None, turnstile=None, now=NOW, body=None, m
 
 def run(calls, **flags):
     return asyncio.run(replay({"calls": calls, **flags}))
+
+
+def test_openapi_can_build_after_billing_replay():
+    result = subprocess.run(
+        [sys.executable, "-c", (
+            "import asyncio\n"
+            "from api.worker import openapi\n"
+            "from decision import model\n"
+            "from tests.replay_billing_launch import replay\n"
+            "asyncio.run(replay({'calls': []}))\n"
+            "assert 'openapi' in openapi.build_spec()\n"
+        )],
+        cwd=ROOT, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def exchange():
