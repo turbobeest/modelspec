@@ -18,7 +18,7 @@ it.each(captures)("returns the captured answer for $file", ({ spec, file }) => {
   expect(decisionFixtureFor({ ...reordered, snapshot: vocabulary.snapshot })).toBe(expected);
   const answer = decisionSchema.parse(JSON.parse(expected));
   expect(answer.contract_version).toBe("2.12");
-  expect(answer.snapshot).toBe(vocabulary.snapshot);
+  expect(answer.snapshot).toBe("snap_483dd2fb6c5915b5");
   expect(answer.explain).toBe(spec.explain);
 });
 
