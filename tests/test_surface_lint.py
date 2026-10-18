@@ -570,6 +570,30 @@ def test_publisher_probe_matrix(label: str, path: str, raw: str, flagged: bool) 
         assert not hasattr(sl, "_unescape_tree")
 
 
+def _entity_encoded_unicode_escape(name: str) -> str:
+    """A JSON ``\\uXXXX`` escape whose backslash is the character reference ``&#92;``."""
+    return "".join(f"&#92;u{ord(char):04x}" for char in name)
+
+
+@pytest.mark.parametrize("name", (_joined("Artificial", " Analysis"), _joined("Zap", "ier")))
+@pytest.mark.parametrize("slot", ("value", "key"))
+def test_jsonld_entity_encoded_unicode_escapes_are_flagged(name: str, slot: str) -> None:
+    escaped = _entity_encoded_unicode_escape(name)
+    blob = (
+        '{"publisher":"' + escaped + '"}'
+        if slot == "value"
+        else '{"' + escaped + '":"safe"}'
+    )
+    raw = '<script type="application/ld+json">' + blob + "</script>"
+    assert sl.Page(raw).ld == [blob]
+    findings = [
+        item
+        for item in sl.lexicon({"page.html": raw}, {}, {})
+        if item.check == "lexicon.removed-source"
+    ]
+    assert findings, slot
+
+
 def test_decoded_strings_yields_keys_without_a_new_mapping() -> None:
     entity_key = _joined("note", "&#65;")
     newline_name = _joined("Artificial", "\n", "Analysis")
