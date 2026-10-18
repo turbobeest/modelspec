@@ -1,5 +1,6 @@
 """Extractable guides teach the method with a dated, engine-computed example."""
 
+from collections import Counter
 from datetime import date
 import json
 from pathlib import Path
@@ -23,7 +24,7 @@ PATHS = ("/guides/", CHOOSE, COMPARE)
 DAY = date(2026, 9, 23)
 
 
-def _image(price: float, *, additional_models: int = 0):
+def _image(price: float, *, additional_models: int = 0, excluded_models: int = 0):
     models, offerings, measurements = [], [], []
     candidates = [("alpha", "text-generator", price),
                   ("beta", "text-generator", 0.5),
@@ -31,6 +32,8 @@ def _image(price: float, *, additional_models: int = 0):
                   ("image", "image-generator", 0.5)]
     candidates.extend((f"extra-{index:02}", "text-generator", 0.5)
                       for index in range(additional_models))
+    candidates.extend((f"excluded-{index:03}", "text-generator", 10)
+                      for index in range(excluded_models))
     for name, kind, rate in candidates:
         mid = "lab/" + name
         models.append(model(mid, facts=[
@@ -68,9 +71,29 @@ def image_root(tmp_path, monkeypatch):
 def _expected(built):
     facets = registry.load(ROOT / "registry", repo_root=ROOT).facet
     template = next(t for t in load_catalogue()["templates"] if t["id"] == "budget-coding")
-    spec = parse_spec({**template["spec"], "explain": "full"}, facets=facets)
+    spec = parse_spec(template["spec"], facets=facets)
     decision = decide(spec, snapshot.load_built_snapshot(built, include_archive=True), facets=facets)
     return template, spec, decision.model_dump(mode="json")
+
+
+def _exclusions(built):
+    facets = registry.load(ROOT / "registry", repo_root=ROOT).facet
+    template = next(t for t in load_catalogue()["templates"] if t["id"] == "budget-coding")
+    spec = parse_spec({**template["spec"], "explain": "full"}, facets=facets)
+    decision = decide(spec, snapshot.load_built_snapshot(built, include_archive=True), facets=facets)
+    return decision.model_dump(mode="json")["eliminated"]["models"]
+
+
+def _write_pages(tree, public_root):
+    from pipeline import guides
+
+    with build.public_use_case_image(public_root) as (catalogue, decisions, as_of, image, reg):
+        template = next(t for t in catalogue["templates"] if t["id"] == "budget-coding")
+        exclusions = build.use_case_exclusions(template, image, reg)
+        build.write_use_case_pages(tree, public_root, examples=(catalogue, decisions, as_of),
+                                   exclusions={template["id"]: exclusions})
+        return guides.write_examples(tree, catalogue, decisions, as_of, image, reg,
+                                     exclusions=exclusions)
 
 
 def _rows(raw, table_id):
@@ -82,12 +105,10 @@ def _rows(raw, table_id):
 
 @pytest.fixture
 def rendered(tmp_path, monkeypatch, image_root):
-    from pipeline import guides
-
     built = _image(0.5)
     monkeypatch.setattr(snapshot, "build_from_repo", lambda *a, **kw: built)
     tree = tmp_path / "site"
-    result = guides.write(tree, image_root)
+    result = _write_pages(tree, image_root)
     pages = {path: (tree / path.lstrip("/") / "index.html").read_text() for path in PATHS}
     return tree, result, pages, _expected(built)
 
@@ -117,14 +138,70 @@ def test_swapping_public_image_changes_engine_numbers_and_exclusions(tmp_path, m
         tokens = spec.task_tokens or DEFAULT_TASK_TOKENS
         assert f"{tokens.input} input tokens" in page.visible
         assert f"{tokens.output} output tokens" in page.visible
+        reasons = _exclusions(built)
+        counts = {row[0]: int(row[1]) for row in _rows(raw, "example-exclusion-counts")[1:]}
+        assert counts == Counter(reason["condition"] for reason in reasons)
         excluded = _rows(raw, "example-excluded")[1:]
-        assert len(excluded) == len(decision["eliminated"]["models"])
-        for row, reason in zip(excluded, decision["eliminated"]["models"], strict=True):
+        assert len(excluded) == min(10, len(reasons))
+        for row, reason in zip(excluded, reasons[:10], strict=True):
             assert row[2] == reason["condition"]
             assert row[3] == surface_lint.Page(build._use_case_value(reason["value"])).visible
-        rendered_rows.append((rows, excluded))
-    assert rendered_rows[0] != rendered_rows[1]
-    assert len(rendered_rows[1][1]) > len(rendered_rows[0][1])
+        rendered_rows.append((rows, counts))
+    assert rendered_rows[0][0] != rendered_rows[1][0]
+    assert sum(rendered_rows[1][1].values()) > sum(rendered_rows[0][1].values())
+
+
+@pytest.mark.parametrize("identifier", ["dec_", "snap_"])
+def test_guide_and_linked_use_case_have_same_identifiers(rendered, identifier):
+    tree, _, pages, _ = rendered
+    use_case = (tree / "use-cases/coding/budget-coding/index.html").read_text()
+    pattern = rf"{identifier}[a-z0-9]+"
+    guide_ids = set(re.findall(pattern, surface_lint.Page(pages[CHOOSE]).visible))
+    use_case_ids = set(re.findall(pattern, surface_lint.Page(use_case).visible))
+    assert len(guide_ids) == len(use_case_ids) == 1
+    assert guide_ids == use_case_ids
+
+
+def test_guide_and_linked_use_case_have_same_scores_probability_and_cost(rendered):
+    tree, _, pages, _ = rendered
+    use_case = (tree / "use-cases/coding/budget-coding/index.html").read_text()
+    use_case_rows = [
+        [surface_lint.Page(cell).visible for cell in re.findall(r'<td\b[^>]*>(.*?)</td>', row, re.S)]
+        for table in re.findall(r'<table\b[^>]*>(.*?)</table>', use_case, re.S)
+        if '<th>P(best)</th>' in table
+        for body in re.findall(r'<tbody>(.*?)</tbody>', table, re.S)
+        for row in re.findall(r'<tr\b[^>]*>(.*?)</tr>', body, re.S)
+    ]
+    assert use_case_rows
+    assert [row[2:] for row in _rows(pages[CHOOSE], "example-results")[1:]] == [
+        row[1:5] for row in use_case_rows
+    ]
+
+
+def test_large_screened_out_list_stays_a_short_explainer(tmp_path, monkeypatch, image_root):
+    from pipeline import guides
+
+    built = _image(0.5, excluded_models=400)
+    monkeypatch.setattr(snapshot, "build_from_repo", lambda *a, **kw: built)
+    guides.write(tmp_path / "site", image_root)
+    raw = (tmp_path / "site" / CHOOSE.lstrip("/") / "index.html").read_text()
+    page = surface_lint.Page(raw)
+    reasons = _exclusions(built)
+    assert len(reasons) > 400
+    assert len(page.visible.split()) <= 3000
+    assert 1 <= len(_rows(raw, "example-excluded")[1:]) <= 15
+    counts = {row[0]: int(row[1]) for row in _rows(raw, "example-exclusion-counts")[1:]}
+    assert counts == Counter(reason["condition"] for reason in reasons)
+    assert "/use-cases/coding/budget-coding/#screened-out" in page.links
+
+
+def test_guide_links_to_full_screened_out_list_on_use_case(rendered):
+    tree, _, pages, _ = rendered
+    use_case = (tree / "use-cases/coding/budget-coding/index.html").read_text()
+    reasons = _exclusions(_image(0.5))
+    assert 'id="screened-out"' in use_case
+    assert len(_rows(use_case, "use-case-excluded")[1:]) == len(reasons)
+    assert "/use-cases/coding/budget-coding/#screened-out" in surface_lint.Page(pages[CHOOSE]).links
 
 
 def test_example_has_exact_public_image_label_tie_rules_and_template_link(rendered):
@@ -168,6 +245,7 @@ def test_guide_keeps_every_band_model_when_results_are_truncated(tmp_path, monke
 
 def test_guides_compare_categories_without_product_names(rendered):
     _, _, pages, (_, _, decision) = rendered
+    excluded = _exclusions(_image(0.5))
     denylist = ["".join(parts).casefold() for parts in (
         ("Open", "Router"), ("Lite", "LLM"), ("Port", "key"), ("Not ", "Diamond"),
         ("Route", "LLM"), ("Chat", "GPT"), ("Clau", "de"), ("Gemi", "ni"),
@@ -176,6 +254,7 @@ def test_guides_compare_categories_without_product_names(rendered):
         assert not REMOVED_TEXT.search(raw)
         assert not any(name in raw.casefold() for name in denylist)
         assert all(row["model"] not in raw for row in decision["by_model"])
+        assert all(row["model"] not in raw for row in excluded)
         assert not re.search(r"affiliate|sponsored", raw, re.I)
     rows = _rows(pages[COMPARE], "category-comparison")
     assert rows[0] == ["Question", "Analysis of alternatives", "Model router", "Hard-coded model"]
@@ -201,6 +280,7 @@ def test_guides_have_dated_sitemap_entries_and_visible_structured_data(rendered)
         article = next(node for node in nodes if node.get("@type") == "Article")
         assert article["headline"] in page.visible
         assert article["dateModified"] == DAY.isoformat()
+        assert article["dateModified"] in page.visible
         assert article["url"] == entity.SITE + path
         assert not surface_lint.structured_data({path.lstrip("/") + "index.html": pages[path]})
         terms = [node for node in nodes if node.get("@type") == "DefinedTerm"]
@@ -208,6 +288,15 @@ def test_guides_have_dated_sitemap_entries_and_visible_structured_data(rendered)
         for term in terms:
             assert term["name"] == "analysis of alternatives for AI models"
             assert term["description"] in page.visible
+
+
+def test_defined_term_describes_deciding_model_fit_and_showing_work(rendered):
+    _, _, pages, _ = rendered
+    page = surface_lint.Page(pages[CHOOSE])
+    terms = [node for block in page.ld for node in surface_lint.objects(json.loads(block))
+             if node.get("@type") == "DefinedTerm"]
+    assert len(terms) == 1
+    assert "decides which models fit a job and shows its work" in terms[0]["description"]
 
 
 def test_guides_are_readable_and_linked_without_client_javascript(rendered, monkeypatch):
@@ -230,8 +319,12 @@ def test_guide_without_supported_answer_keeps_the_limit_visible(tmp_path):
 
     reg = registry.load(ROOT / "registry", repo_root=ROOT)
     built = snapshot.build_snapshot(snapshot.SnapshotInputs(models=[], sources=SOURCES), as_of=DAY, gate=False)
-    guides.write_examples(tmp_path, load_catalogue(), DAY,
-                          snapshot.load_built_snapshot(built), reg)
+    catalogue = load_catalogue()
+    image = snapshot.load_built_snapshot(built)
+    decisions = [decide(parse_spec(template["spec"], facets=reg.facet), image,
+                        facets=reg.facet).model_dump(mode="json")
+                 for template in catalogue["templates"]]
+    guides.write_examples(tmp_path, catalogue, decisions, DAY, image, reg)
     page = surface_lint.Page((tmp_path / CHOOSE.lstrip("/") / "index.html").read_text())
     assert "No recommendation" in page.visible
     assert "noindex" not in page.meta.get("robots", "")

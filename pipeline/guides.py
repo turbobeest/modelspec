@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
-from decision.engine import decide
 from pipeline import build, entity, render as r
 
 INDEX = "/guides/"
@@ -15,8 +15,8 @@ COMPARE = INDEX + "analysis-of-alternatives-vs-model-router-vs-hard-coded-model/
 TEMPLATE = "budget-coding"
 TERM = "analysis of alternatives for AI models"
 DEFINITION = (
-    "An analysis of alternatives for AI models compares models against a job's requirements, "
-    "sourced benchmark evidence and real cost, and explains which alternatives qualify."
+    "An analysis of alternatives for AI models decides which models fit a job and shows its work, "
+    "using the job's requirements, sourced benchmarks and real cost."
 )
 CHOOSE_TITLE = "How to choose an AI model for a job"
 COMPARE_TITLE = "Analysis of alternatives, model router or hard-coded model: which job each does"
@@ -38,15 +38,16 @@ def _table(identifier: str, headings: tuple[str, ...], rows: list[list[str]]) ->
             f'<table id="{identifier}"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>')
 
 
-def _example(template: dict, decision: dict, tokens) -> str:
+def _example(template: dict, decision: dict, tokens, exclusions: list[dict]) -> str:
     value = build._use_case_value
     bands = decision.get("bands")
+    examples = exclusions[:10]
     models = {row["model"] for row in decision["by_model"]}
+    models.update(row["model"] for row in examples)
     if bands:
         models.update(entry["model"] for band in ("best", "rest", "thin") for entry in bands[band])
     aliases = {model: f"Alternative {_letters(index)}" for index, model in enumerate(sorted(models), 1)}
-    offerings = {tuple(row["offering"].values()) for model in decision["by_model"]
-                 for row in model["offerings"]}
+    offerings = {tuple(row["offering"].values()) for row in examples}
     routes = {key: f"Offering {_letters(index)}" for index, key in
               enumerate(sorted(offerings, key=lambda key: tuple(part or "" for part in key)), 1)}
     body = (f'<p>This delayed example applies the <a href="{build._use_case_path(template)}">'
@@ -81,7 +82,7 @@ def _example(template: dict, decision: dict, tokens) -> str:
         body += '</ul>'
     body += (f'<p>Cost per task is in USD for the engine-selected offering at '
              f'{tokens.input} input tokens and {tokens.output} output tokens. '
-             'The engine applies the offering\'s price schedule to that task size. '
+             'The engine applies the offering\'s input and output prices to that task size. '
              'This template uses the engine\'s default task size. It does not measure retries '
              'or the cost of correcting an answer. Unavailable cost is not free.</p>'
              '<p>Scores and score intervals use dimensionless normalised objective units. '
@@ -99,18 +100,23 @@ def _example(template: dict, decision: dict, tokens) -> str:
     else:
         body += '<p>No candidates have ranked scores in this image.</p>'
     body += ('<h3>Which alternatives were screened out?</h3>'
-             '<p>The engine lists each excluded candidate with the condition it failed and the observed '
-             'value. An offering can fail while another offering of the same model qualifies. '
-             'Offering labels identify routes within this example.</p>')
+             '<p>These counts group exclusion rows by failed condition. A model can appear under '
+             'more than one condition or offering, so the counts are not distinct model totals. '
+             'An offering can fail while another offering of the same model qualifies.</p>')
     rows = [[aliases[row["model"]], routes[tuple(row["offering"].values())],
-             value(row["condition"]), value(row["value"]), value(row["unit"])]
-            for row in decision["eliminated"]["models"]]
+             value(row["condition"]), value(row["values"] or row["value"]), value(row["unit"])]
+            for row in examples]
     if rows:
-        body += ('<details><summary>Read the screened-out list and reasons</summary>'
-                 + _table("example-excluded", ("Alternative", "Route", "Failed condition", "Observed value", "Unit"), rows)
-                 + '</details>')
+        counts = Counter(row["condition"] for row in exclusions)
+        body += _table("example-exclusion-counts", ("Failed condition", "Exclusion rows"),
+                       [[value(condition), value(count)] for condition, count in sorted(counts.items())])
+        body += (f'<p>Showing {len(rows)} of {len(exclusions)} exclusion rows. '
+                 'Offering labels identify routes within this example.</p>'
+                 + _table("example-excluded", ("Alternative", "Route", "Failed condition", "Observed value", "Unit"), rows))
     else:
         body += '<p>No candidates were screened out by a known failed condition.</p>'
+    body += (f'<p><a href="{build._use_case_path(template)}#screened-out">'
+             'Read the full screened-out list on the dated use-case page</a>.</p>')
     unknown = sorted({facet for candidate in decision["may_qualify"] for facet in candidate["unknown"]})
     if unknown:
         body += ('<p>Some candidates may qualify but lack a required fact or objective value: '
@@ -153,7 +159,7 @@ objective evidence. A model that may qualify still needs evidence before it beco
 {example}'''
 
 
-def _comparison() -> str:
+def _comparison(as_of: date) -> str:
     rows = [
         ["When do you decide?", "Before deployment or when a job's requirements change.",
          "For each request on live traffic.", "During implementation or a planned configuration change."],
@@ -185,6 +191,7 @@ def _comparison() -> str:
 for each request, and a hard-coded model to keep an already suitable integration stable.
 A router is the better tool for per-request routing on live traffic.
 A hard-coded model is the better tool when one model already fits and change is costly.</p>'''
+            + f'<p>Updated <time datetime="{as_of.isoformat()}">{as_of.isoformat()}</time>.</p>'
             + _table("category-comparison", ("Question", "Analysis of alternatives", "Model router", "Hard-coded model"),
                      [[r.esc(cell) for cell in row] for row in rows])
             + '''<h2>Can these approaches work together?</h2>
@@ -195,10 +202,14 @@ requirements change. ModelSpec decides per job or role and does not proxy model 
 or inspect <a href="/compare/">model comparisons</a>. <a href="/about/">About ModelSpec</a> states its claims.</p>''')
 
 
-def write_examples(tree: Path, catalogue: dict, as_of: date, snapshot, registry) -> dict:
-    template = next(t for t in catalogue["templates"] if t["id"] == TEMPLATE)
-    spec = parse_spec({**template["spec"], "explain": "full"}, facets=registry.facet)
-    decision = decide(spec, snapshot, facets=registry.facet).model_dump(mode="json")
+def write_examples(tree: Path, catalogue: dict, decisions: list[dict], as_of: date,
+                   snapshot, registry, *, exclusions: list[dict] | None = None) -> dict:
+    template, decision = next((template, decision) for template, decision in
+                              zip(catalogue["templates"], decisions, strict=True)
+                              if template["id"] == TEMPLATE)
+    spec = parse_spec(template["spec"], facets=registry.facet)
+    if exclusions is None:
+        exclusions = build.use_case_exclusions(template, snapshot, registry)
     term = {"@type": "DefinedTerm", "@id": entity.SITE + CHOOSE + "#term",
             "name": TERM, "description": DEFINITION, "url": entity.SITE + CHOOSE}
     index = (f'<p>Start with <a href="{CHOOSE}">{CHOOSE_TITLE}</a> to turn a job into requirements '
@@ -211,9 +222,9 @@ def write_examples(tree: Path, catalogue: dict, as_of: date, snapshot, registry)
     pages = (
         (INDEX, "Guides", "Choose models for a job and understand which decision tools fit.", index, []),
         (CHOOSE, CHOOSE_TITLE, "State Must and Prefer, read the evidence, and inspect a dated worked example.",
-         _choose(_example(template, decision, spec.task_tokens or DEFAULT_TASK_TOKENS)), [term]),
+         _choose(_example(template, decision, spec.task_tokens or DEFAULT_TASK_TOKENS, exclusions)), [term]),
         (COMPARE, COMPARE_TITLE, "Choose a decision method for the job and the moment a model must be selected.",
-         _comparison(), []),
+         _comparison(as_of), []),
     )
     for path, title, description, body, nodes in pages:
         page = tree / path.lstrip("/") / "index.html"
@@ -227,5 +238,10 @@ def write_examples(tree: Path, catalogue: dict, as_of: date, snapshot, registry)
 
 
 def write(tree: Path, public_root: Path) -> dict:
-    with build.public_use_case_image(public_root) as (catalogue, _, as_of, snapshot, registry):
-        return write_examples(tree, catalogue, as_of, snapshot, registry)
+    with build.public_use_case_image(public_root) as (catalogue, decisions, as_of, snapshot, registry):
+        template = next(t for t in catalogue["templates"] if t["id"] == TEMPLATE)
+        exclusions = build.use_case_exclusions(template, snapshot, registry)
+        build.write_use_case_pages(tree, public_root, examples=(catalogue, decisions, as_of),
+                                   exclusions={TEMPLATE: exclusions})
+        return write_examples(tree, catalogue, decisions, as_of, snapshot, registry,
+                              exclusions=exclusions)

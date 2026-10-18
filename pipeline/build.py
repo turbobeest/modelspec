@@ -455,6 +455,16 @@ def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
         return catalogue, decisions, as_of
 
 
+def use_case_exclusions(template: dict, snapshot, registry) -> list[dict]:
+    """Expand only exclusion reasons; the stored-spec decision remains canonical."""
+    from decision.contract import parse_spec
+    from decision.engine import decide
+
+    spec = parse_spec({**template["spec"], "explain": "full"}, facets=registry.facet)
+    return [row.model_dump(mode="json") for row in
+            decide(spec, snapshot, facets=registry.facet).eliminated.models]
+
+
 def _use_case_path(template: dict) -> str:
     return f'/use-cases/{template["category"]}/{template["id"]}/'
 
@@ -544,7 +554,8 @@ def _use_case_template_intro(template: dict) -> str:
             f'{_use_case_spec(template["spec"])}</details>')
 
 
-def use_case_page(template: dict, decision: dict, as_of: date) -> str:
+def use_case_page(template: dict, decision: dict, as_of: date, *,
+                  exclusions: list[dict] | None = None) -> str:
     """Render a dated engine response with registry copy and no page-specific claims."""
     body = (_use_case_template_intro(template)
             + f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
@@ -600,6 +611,25 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
                      '<th>Model</th><th>Score</th><th>Score interval</th><th>P(best)</th>'
                      '<th>Cost per task, USD</th><th>Capability estimates and intervals</th>'
                      '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>')
+    if exclusions is not None:
+        body += ('<h3 id="screened-out">Screened-out candidates</h3>'
+                 '<p>Each row gives a failed condition and its observed value. A model can appear '
+                 'under multiple conditions or offerings. One offering can fail while another '
+                 'offering of the same model qualifies.</p>')
+        if exclusions:
+            rows = []
+            for row in exclusions:
+                route = "/".join(str(part) for part in row["offering"].values() if part is not None)
+                cells = "".join(f'<td>{_use_case_value(value)}</td>' for value in (
+                    row["model"], route, row["condition"], row["values"] or row["value"], row["unit"],
+                ))
+                rows.append(f'<tr>{cells}</tr>')
+            body += ('<div class="use-case-table"><table id="use-case-excluded"><thead><tr>'
+                     '<th>Model</th><th>Offering</th><th>Failed condition</th>'
+                     '<th>Observed value</th><th>Unit</th></tr></thead><tbody>'
+                     + "".join(rows) + '</tbody></table></div>')
+        else:
+            body += '<p>No candidates were screened out by a known failed condition.</p>'
     unknown = sorted({facet for candidate in decision.get("may_qualify", [])
                       for facet in candidate["unknown"]})
     if unknown:
@@ -629,7 +659,8 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
                            body, as_of, indexable=_use_case_indexable(decision), article=True)
 
 
-def write_use_case_pages(tree: Path, public_root: Path, *, examples=None) -> dict:
+def write_use_case_pages(tree: Path, public_root: Path, *, examples=None,
+                         exclusions: dict[str, list[dict]] | None = None) -> dict:
     """Write every template; only examples with an answer enter the sitemap."""
     catalogue, decisions, as_of = examples if examples is not None else use_case_decisions(public_root)
     paths = ["/use-cases/"]
@@ -646,7 +677,9 @@ def write_use_case_pages(tree: Path, public_root: Path, *, examples=None) -> dic
                 path = _use_case_path(template)
                 page = tree / path.lstrip("/") / "index.html"
                 page.parent.mkdir(parents=True, exist_ok=True)
-                page.write_text(use_case_page(template, decision, as_of), encoding="utf-8")
+                page.write_text(use_case_page(template, decision, as_of,
+                                               exclusions=(exclusions or {}).get(template["id"])),
+                                encoding="utf-8")
                 indexable = _use_case_indexable(decision)
                 if indexable:
                     paths.append(path)
@@ -915,13 +948,17 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import comparison_pages, guides
     public_root = Path(args.root).resolve()
     with public_use_case_image(public_root) as (templates, decisions, as_of, snapshot, registry):
+        guide_template = next(t for t in templates["templates"] if t["id"] == guides.TEMPLATE)
+        guide_exclusions = use_case_exclusions(guide_template, snapshot, registry)
         use_case_counts = write_use_case_pages(
             ms, public_root, examples=(templates, decisions, as_of),
+            exclusions={guides.TEMPLATE: guide_exclusions},
         )
         comparison_counts = comparison_pages.write_examples(
             ms, templates, decisions, as_of, snapshot, registry, public_root=public_root,
         )
-        guide_counts = guides.write_examples(ms, templates, as_of, snapshot, registry)
+        guide_counts = guides.write_examples(ms, templates, decisions, as_of, snapshot, registry,
+                                             exclusions=guide_exclusions)
     ms_paths.extend(use_case_counts["sitemap_paths"])
     ms_paths.extend(comparison_counts["sitemap_paths"])
     ms_paths.extend(guide_counts["sitemap_paths"])
