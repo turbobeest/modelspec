@@ -78,8 +78,19 @@ Repeating the baseline gate returned 116.47690 MiB with the same 71.875 MiB
 Wasm allocation, showing about 1.07 MiB of V8 measurement variation. The
 candidate's Wasm allocation was 59.875 MiB. The 1 MiB regression warning can
 therefore include runtime noise and should be investigated with repeat runs.
-The private four-cell matrix and final private target are pending measurement
-under `/tmp/model-407-private`.
+The private four-cell matrix is recorded in the execution evidence. Its first
+follow-up exposed a successor-loaded failure that the original current-period
+public check missed. Both periods now run as separate 115 MiB gates, each
+compared with the corresponding period on main. A separate warm-rollover
+measurement also serves the current period before crossing the boundary.
+
+The final implementation `bb41f0f6` measures 104.48928 MiB current,
+104.51080 MiB with the successor loaded, and 104.53250 MiB on warm rollover
+for this public recipe. With private data `74947c3`, the corresponding totals
+are 104.57204, 104.57278 and 104.61679 MiB. Every scenario uses 59.875 MiB
+of Wasm memory. The public/private steady differences are below 0.09 MiB;
+these measurements calibrate the fixture without publishing private rows or
+structural counts. The private scratch directory is empty after measurement.
 
 To refresh, measure the four private combinations and the final private build
 with the pinned probe, using only synthetic signing credentials. Keep private
@@ -130,6 +141,28 @@ today, return the existing 503 refusal. Comparison reselects after historical
 I/O. Decision and hardware-fit headers continue to use their own response
 body's snapshot ID across credit commit and release awaits. A completed
 response does not depend on which snapshot another request selected later.
+
+## Bound temporary JSON allocations
+
+WebAssembly memory does not shrink when Python releases a temporary buffer.
+The first private successor measurement remained over budget after the old
+snapshot was released. Diagnostic allocation samples located the next peaks
+in snapshot JSON parsing and then ranking-catalogue JSON parsing.
+
+Read JSON containers incrementally, retaining only a bounded text buffer
+except when an individual scalar is larger. Delegate scalar decoding to the
+standard-library JSON decoder and share object-key strings within one parse,
+as that decoder does. Preserve every parsed value and the public wire format.
+For canonical signed snapshots, hash the exact consumed UTF-8 content while
+reading. Keep semantic-hash compatibility for older noncanonical envelopes,
+and consume the gzip stream to EOF so footer corruption cannot be hidden.
+
+The ranking and policy catalogues use the same reader. Ranking calculations
+and data remain unchanged. Policy evaluation retains the requested page and
+first ten error examples while aggregating counts and provenance over every
+evaluated row. This avoids holding all response rows alongside summary sets.
+Memory acceptance uses the actual requests without extra collections or
+diagnostic instrumentation; attribution follows the sample.
 
 ## Materialize hardware-fit provenance on demand
 

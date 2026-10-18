@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -118,9 +120,86 @@ def test_public_memory_workflow_gates_and_compares_the_main_bundle():
     assert len(commands) == 4
     assert sum("--successor" in command for command in commands) == 2
     assert all("--measure-only" in command for command in commands[:2])
-    assert all("--limit-mib 115" in command and "--baseline" in command
-               for command in commands[2:])
-    assert "--baseline \"$RUNNER_TEMP/memory-main-successor.json\"" in commands[-1]
+    assert all("--limit-mib 115" in command for command in commands[2:])
+    assert "--baseline" in commands[2]
+
+
+@pytest.mark.parametrize("main_has_successor", [False, True])
+def test_public_memory_workflow_requires_both_candidate_periods_on_historical_main(
+    tmp_path, main_has_successor,
+):
+    workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
+    steps = workflow["jobs"]["memory"]["steps"]
+    detection = next((step for step in steps if step.get("id") == "main_periods"), None)
+    assert detection is not None, "detect the actual baseline bundle's successor before probing it"
+    bundle = tmp_path / "memory-main-bundle"
+    bundle.mkdir()
+    blobs = ({"/api/decision/snapshot-successor.json.gz": "fixture",
+              "/api/decision/vocabulary-successor.json": "fixture"} if main_has_successor else {})
+    (bundle / "bundled_data.py").write_text(f"BLOBS = {blobs!r}\n")
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    (binaries / "python").symlink_to(sys.executable)
+    node = binaries / "node"
+    node.write_text(
+        f"#!{sys.executable}\nimport json, os, sys\n"
+        "with open(os.environ['MEMORY_CALLS'], 'a') as log:\n"
+        "    log.write(json.dumps(sys.argv[1:]) + '\\n')\n")
+    node.chmod(0o755)
+    output = tmp_path / "outputs"
+    calls = tmp_path / "calls"
+    env = {**os.environ, "RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output),
+           "MEMORY_CALLS": str(calls), "PATH": f"{binaries}{os.pathsep}{os.environ['PATH']}"}
+    result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", detection["run"]],
+                            cwd=ROOT, env=env, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    capability = str(main_has_successor).lower()
+    assert f"successor={capability}" in output.read_text().splitlines()
+    logs = result.stdout
+    for step in steps:
+        script = step.get("run", "")
+        if "node --expose-gc" not in script:
+            continue
+        script = script.replace("${{ steps.main_periods.outputs.successor }}", capability)
+        result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", script],
+                                cwd=ROOT, env=env, text=True, capture_output=True)
+        assert result.returncode == 0, result.stderr
+        logs += result.stdout
+    commands = [json.loads(line) for line in calls.read_text().splitlines()]
+    baseline = [args for args in commands if "--measure-only" in args]
+    candidate = [args for args in commands if "--measure-only" not in args]
+    assert len(baseline) == 1 + main_has_successor
+    assert "--successor" not in baseline[0]
+    assert len(candidate) == 2
+    assert ["--successor" in args for args in candidate] == [False, True]
+    assert all(args[args.index("--limit-mib") + 1] == "115" for args in candidate)
+    assert candidate[0][candidate[0].index("--baseline") + 1] == str(tmp_path / "memory-main.json")
+    if main_has_successor:
+        assert candidate[1][candidate[1].index("--baseline") + 1] == str(
+            tmp_path / "memory-main-successor.json")
+    else:
+        assert "--baseline" not in candidate[1]
+        assert "::notice::" in logs and "successor" in logs
+
+
+@pytest.mark.parametrize("only_member", ["snapshot-successor.json.gz", "vocabulary-successor.json"])
+def test_public_memory_workflow_rejects_incomplete_main_successor(tmp_path, only_member):
+    workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
+    steps = workflow["jobs"]["memory"]["steps"]
+    detection = next((step for step in steps if step.get("id") == "main_periods"), None)
+    assert detection is not None, "detect successor capability without hiding malformed bundles"
+    bundle = tmp_path / "memory-main-bundle"
+    bundle.mkdir()
+    (bundle / "bundled_data.py").write_text(
+        f"BLOBS = {{'/api/decision/{only_member}': 'fixture'}}\n")
+    output = tmp_path / "outputs"
+    env = {**os.environ, "RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output)}
+    script = detection["run"].replace("python -", f'"{sys.executable}" -')
+    result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", script],
+                            cwd=ROOT, env=env, text=True, capture_output=True)
+    assert result.returncode != 0
+    assert "incomplete successor" in result.stderr
+    assert not output.exists() or "successor=false" not in output.read_text()
 
 
 def test_private_memory_workflow_patch_gates_and_compares_both_periods():
