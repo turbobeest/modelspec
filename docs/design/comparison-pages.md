@@ -131,7 +131,8 @@ No third model or competitor
 product is promoted or disparaged in page copy. The neutrality link and
 keyed CLI, API, and MCP access line appear on every page.
 
-Round 2 merged `origin/main` at `b4a7074f`; MODEL-404 had not merged. Link to
+Round 2 merged `origin/main` at `b4a7074f`, then its revert at `34c6dbef`;
+MODEL-404 had not merged. Link to
 `/decide/?template=<id>`. The board reads the template query but has no URL
 support for model pins. Say the link applies the template to the current
 lineup; do not claim it pins the pair or add ignored query parameters.

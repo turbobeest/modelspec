@@ -4,6 +4,9 @@ Worktree: `/Users/terbeest/dev/worktrees/model-219-cmp`.
 Branch: `model-219-comparison-pages`.
 Draft PR: https://github.com/turbobeest/modelspec/pull/818.
 
+The original execution below is historical. Round 2 records the display-name,
+percentage and prose changes after REV-818 in the final section of this file.
+
 Base SHA: `7908f238465ea88f0568738f13d8e8bbec949deb`.
 Design-only first commit: `86fb8f663b63315c17c5f99891e0d29a0bac6cf6`.
 Final implementation and test SHA: `5e7f10ae3a9a1fe68435bebcf4015ef1817a1bbe`.
@@ -255,3 +258,234 @@ fallback image date; this work reproduces the image and engine results and
 does not correct or independently verify frozen data. The first lint probe
 ran on the incomplete failed build and reported missing generated files;
 only a lint run after a successful build qualifies as final verification.
+
+## Round 2: human-readable comparison pages
+
+REV-818 approved `ab7a2342540507d005d1da394efbc24312c9d14a` without blocking
+findings. This follow-up changes presentation only. Before editing, the requested
+merge brought in `origin/main` at `b4a7074f37a3ba940bd86db9d1e2459a25fd40af`;
+merge commit: `f46cd664ed57efaf1ef2d370d2ba16657f1b4b02`.
+The first round 2 implementation commit is
+`4746136a08fb3a6d5eef1a4a952c6cc224e85a06`; the metadata lint correction is
+`4b0d8b72`. While verification was running, main reverted MODEL-402 in #819.
+That revert (`34c6dbef95371cff728a7a28aba33dcffe3e50e3`) was merged cleanly
+before final verification. The final implementation and merged-main SHA is
+`67895a99289325af713f06f83b87be850c65d6b7`.
+The subsequent evidence commit is identified by the final executor marker.
+
+Display names come from the explicit frozen public root's model cards, using
+the same `Model.display_name` property that feeds Decide's vocabulary. Missing
+names fall back to IDs. URLs, pair order, engine lookups and `data-model` keep
+the original IDs. Names are escaped in visible text and retained alongside
+IDs in JSON-LD.
+
+Probabilities use decimal half-up rounding after multiplication by 100.
+Values below 0.01, including zero, display as `under 1%`; null displays as
+`Unavailable`. For example, 0.63671875 becomes 64%, 0.3852 becomes 39%, and
+0.015 becomes 2%. Exact response values remain in `data-probability` and
+JSON-LD Dataset PropertyValue entries, identified by model and engine field.
+Other engine numbers retain their original formatting. The design note
+documents the rule. Mutations check both changed percentages and changed
+exact values within the same rounding bucket.
+
+The verdicts use plain sentences and public names. Only separated pages retain
+the warning that separation from one challenger does not establish a unique
+best model in the full lineup. The shared scope paragraph still explains
+ranked, thin and unranked models. Pair selection and verdict logic are unchanged.
+
+Round 2 red-first results (all failures were assertions or the missing name
+argument, with direct exit 1; none were crashes):
+
+| Behavior | Test | Red result | Green result |
+| --- | --- | --- | --- |
+| Display names, escaping and fallback | `test_display_names_replace_ids_in_visible_copy_and_fall_back_when_absent` | 1 failed: unexpected `model_names` argument | Included in 40 passing final rendering tests |
+| Readable tied and separated sentences | `test_tied_page_formats_probabilities_and_keeps_other_engine_numbers_and_equal_rows`, `test_separated_verdict_states_job_date_and_probability_scope` | 2 failed: requested percentages and sentences absent | Included in 40 passing final rendering tests |
+| Percentage boundaries and exact HTML/JSON-LD trace | `tests/test_comparison_probability_trace.py` | 19 failed: probability spans and Dataset absent | 20 passed, including the additional same-bucket mutation |
+| Article follows the rounded number | `test_probability_articles_follow_the_rendered_number` | 6 failed, 4 passed: `a 8%`, `a 11%`, `a 18%`, and `a 80%`–`a 89%` | Included in 40 passing final rendering tests |
+| Probability metadata passes the existing surface checks | `test_rendered_comparison_probability_data_passes_structured_data_lint` | 4 failed, 1 corruption guard passed: unrecognized PropertyValue and invisible field labels; both artifact lints reported 240 findings | 169 passed, 1 real-image test deselected across rendering and lint suites |
+
+Commands ran from the same worktree, using Python 3.14.4, pytest 9.1.1,
+Node 22.22.3 and npm 10.9.8. Each command's exit status was read directly.
+The following commands produced the red results, then the green results
+after the corresponding implementation change:
+
+```bash
+git fetch origin main
+git merge --no-ff origin/main -m 'MODEL-219: merge origin/main before comparison-page polish' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_pages.py -k display_names
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_pages.py -k 'tied_page or separated_verdict'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_probability_trace.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_probability_grammar.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_probability_grammar.py tests/test_comparison_probability_trace.py tests/test_comparison_pages.py -k 'not real_image'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_pages.py tests/test_comparison_probability_trace.py tests/test_comparison_lint.py tests/test_model_comparison.py tests/test_live_use_cases.py tests/test_decide_preview_workflow.py tests/test_holding.py tests/test_worker_vendor_imports.py
+```
+
+The final rendering command passed 40 tests with one real-image test deselected
+in 0.87 seconds. The broader focused command passed 105 tests in 401.23 seconds,
+including the offline real-image test and its byte-identical builds. That
+broader command started before the final article correction; the full suite
+below covers the final code, including that correction and the new grammar tests.
+
+The repository generators verified the merged pins rather than hand-merging
+them. Worker vendoring regenerated 124 ignored files and passed isolated imports.
+The CLI bundle, OpenAPI YAML and complete QA MCP capture already matched their
+generators, so they needed no tracked changes. All commands exited 0:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import json
+from pathlib import Path
+from qa.contracts import capture_tools
+path = Path('qa/fixtures/mcp-tools.json')
+expected = json.dumps(capture_tools(), indent=2, ensure_ascii=False) + '\n'
+if path.read_text() != expected:
+    print('QA MCP capture differs from the repository generator; regeneration requires review.')
+    raise SystemExit(1)
+print('QA MCP capture exactly matches its generator; no regeneration required.')
+PY
+```
+
+Web verification ran each command separately from `web/` with
+`PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH`,
+`npm_config_offline=true` and `npm_config_audit=false`:
+
+```bash
+npm ci
+npm run build
+npm test
+```
+
+All exited 0. The build compiled TypeScript and Vite 8.0.3. Vitest 5.0.1 passed
+843 tests across 52 files, with one file skipped, in 20.17 seconds. Prebuild
+created no tracked web changes. The npm cache supplied all packages offline.
+
+Round 2 logs are retained under the ignored `.model-219-p2/` ticket scratch
+directory: `root/round2/`, `compare-trace/grammar-*`,
+`review-pages/round2-*` and `integration-plan/round2/`.
+
+The metadata fix adds only `PropertyValue` to the reviewed schema-type allowlist
+and uses visible property labels. Schema.org explicitly permits that type in
+a Dataset's [variableMeasured](https://schema.org/variableMeasured) and documents
+its [propertyID, value and unitText fields](https://schema.org/PropertyValue).
+All generic name/description visibility checks remain intact. A corruption
+test verifies that an invisible probability label still fails lint.
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_lint.py -k probability
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_comparison_lint.py tests/test_surface_lint.py tests/test_structured_data.py tests/test_comparison_probability_trace.py tests/test_comparison_probability_grammar.py tests/test_comparison_pages.py -k 'not real_image'
+git fetch origin main
+git merge --no-ff origin/main -m 'MODEL-219: follow main revert before final verification' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+```
+
+The first queued full-suite command was stopped while still waiting for the
+shared lock (exit 143, no pytest output), so it could not test a partial merge.
+An in-progress build was also stopped (exit 143). After the clean merge,
+vendoring refreshed the Worker bundle before the full suite was requeued.
+Other tickets' lock holders and test processes were untouched.
+
+The local browser check used the Playwright workflow recorded above, with
+session `model219r2`. External requests were aborted before navigation. The
+separated page below was inspected at 390 × 844; the tied page at 1280 × 900.
+Document widths equalled their viewport widths. Both screenshots show readable
+display names, whole percentages and the expected verdict. DOM inspection
+confirmed exact probability attributes and the existing template links.
+The browser session and local HTTP server were closed. This visual check preceded
+the metadata-label correction and main's revert; neither changes visible copy
+or CSS. The final artifact audit and lint run cover those subsequent changes.
+
+### Round 2 visible text: tied page
+
+Page: `/compare/assistant-balanced/anthropic--claude-opus-5-5-vs-google--gemini-3-8-flash/`.
+
+> Claude Opus 5.5 vs Gemini 3.8 Flash for General assistant (balanced), as of 2026-09-23
+>
+> The evidence can't separate them for this job.
+>
+> Gemini 3.8 Flash has a 42% chance of matching or beating Claude Opus 5.5 on this job's objective.
+
+The exact challenger value is 0.4154. Table P(best) values 0.4140625 and
+0.0703125 display as 41% and 7%. There is no separation caveat on this tie.
+
+### Round 2 visible text: separated page
+
+Page: `/compare/assistant-best/anthropic--claude-fable-5-vs-anthropic--claude-opus-5-5/`.
+
+> Claude Fable 5 vs Claude Opus 5.5 for General assistant (best available), as of 2026-09-23
+>
+> The evidence separates them: Claude Opus 5.5 leads for General assistant (best available), with a 64% chance of being the best model in the full lineup for this job, as of 2026-09-23.
+>
+> Claude Fable 5 has a 25% chance of matching or beating Claude Opus 5.5 on this job's objective.
+
+The exact leader P(best) is 0.63671875 and the challenger probability is 0.2473.
+Fable's table P(best), 0.1015625, displays as 10%. These values remain engine
+outputs from the frozen image, not independently verified benchmark claims.
+
+### Round 2 final artifact checks
+
+After merging main's revert, all four generator checks ran again and exited 0.
+The rendering/lint regression command above then passed 169 tests with one
+real-image test deselected in 3.39 seconds. The final artifact commands were:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out dist/live
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/live/modelspec
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/.model-219-p2/review-pages/audit-command.log
+```
+
+All exited 0. Static lint checked 5,362 files with zero findings; live lint
+checked 151 files with zero findings. Live composition reported 2,748 files
+and resolving discovery links. The independent audit passed 2,809 assertions,
+including 680 numeric checks, over all 40 pairs across 17 jobs and the index.
+It checks raw traces against cached public engine responses and percentages
+against the documented rounding rule. Public card names, unchanged numeric
+cells, canonical IDs, full-lineup scope, keyed access and neutrality agree.
+
+There are 25 tied and 15 separated pages. All 41 HTML files are distinct and
+byte-identical between the static and live trees. Their canonical-path SHA-256
+is `fafd6132cc169c2e32ef31f3e222a49a605a281670d01b9029cbf6b867284a8a`.
+The final quotes above were extracted again from this artifact. Sitemaps retain
+the public image date, `2026-09-23`.
+
+Final artifact logs are `root/round2/build-after-revert.log`,
+`live-after-revert.log`, `lint-static-final.log` and `lint-live-final.log`;
+the independent audit files are `review-pages/final-after-revert-*.log`.
+Generator logs use the `-after-revert` suffix.
+
+The full suite ran under the shared lock against the final implementation:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+Direct exit 0: **11,588 passed, 9 skipped, 11 warnings in 1396.25 seconds**
+(23 minutes 16 seconds). The warnings concern unsigned vocabulary fixtures in
+the existing CLI snapshot tests. The log is
+`root/round2/full-suite-after-revert.log`. This includes the final real-image
+test's two byte-identical builds, all rounding/mutation and metadata-lint
+regressions, and the preserved comparison/Worker behavior.
+
+The final `git fetch origin main` still returned
+`34c6dbef95371cff728a7a28aba33dcffe3e50e3`; MODEL-404/#814 was not merged.
+Links therefore remain `/decide/?template=<id>`. The single PR metadata query
+confirmed #818 is open and draft on `model-219-comparison-pages`, targeting main.
+No PR metadata was changed. The final documentation commit and push follow
+these successful checks.
+
+```bash
+git diff --exit-code origin/main -- decision/contract.py decision/engine.py api/ranking/engine.py registry models benchmarks docs/legal
+git diff --check
+gh pr view 818 --json number,state,isDraft,headRefName,headRefOid,baseRefName,url
+CI_LOCAL_SKIP=1 git push -u origin model-219-comparison-pages
+```
+
+The protected-file comparison and whitespace check exited 0. No contract,
+ranking, frozen-data or legal edits are introduced by this PR. Round 2 did not
+deploy, merge the PR, query the live Worker, call a paid provider, access private
+data, or observe production search indexing. Its browser checks used local
+artifacts and blocked external requests. All launched browser, server, build,
+generator and test processes finished or were explicitly stopped as noted.
