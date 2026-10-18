@@ -1,0 +1,193 @@
+
+> test
+> vitest run test/access-discovery.test.ts test/server.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-403/mcp
+
+ ❯ test/access-discovery.test.ts (30 tests | 22 failed) 96ms
+   ❯ MCP API-key headers and discovery (30)
+     × x-api-key alone succeeds and sends only normalized Bearer to the origin 25ms
+     × case-insensitive header and scheme succeeds and sends only normalized Bearer to the origin 5ms
+     × conflicting headers return HTTP 400 and a clear JSON-RPC error 1ms
+     × conflicting headers return HTTP 400 and a clear JSON-RPC error 2ms
+     × conflicting headers return HTTP 400 and a clear JSON-RPC error 1ms
+     × conflicting headers return HTTP 400 and a clear JSON-RPC error 1ms
+     ❯ DATA_SPLIT_ENABLED=true (8)
+       × rank requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × model_info requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × list_use_cases requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × policy_check requires a key even with MCP_REQUIRE_API_KEY=false 5ms
+       × decide requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × compare_models requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × vocab requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+     ❯ DATA_SPLIT_ENABLED=false (8)
+       × rank requires a key even with MCP_REQUIRE_API_KEY=false 3ms
+       × model_info requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+       × list_use_cases requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+       × policy_check requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+       × decide requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+       × compare_models requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+       × vocab requires a key even with MCP_REQUIRE_API_KEY=false 2ms
+     × does not expose credentials from an origin transport exception 1ms
+     × serves a public cacheable server card matching tools/list and initialize 0ms
+ ❯ test/server.test.ts (105 tests | 1 failed) 146ms
+   ❯ modelspec MCP worker (99)
+     × requires a key regardless of the legacy MCP setting (false) 5ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 23 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > x-api-key alone succeeds and sends only normalized Bearer to the origin
+AssertionError: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/access-discovery.test.ts:86:50
+     84|       const { response, payload } = await rpc({ headers, path, env: { …
+     85|       expect(response.status).toBe(200);
+     86|       expect(readEnvelope(payload).value.status).toBe(200);
+       |                                                  ^
+     87|     }
+     88|     expect(via.fetch).toHaveBeenCalledTimes(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/23]⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > case-insensitive header and scheme succeeds and sends only normalized Bearer to the origin
+AssertionError: expected 'bEaReR alias_test_secret' to be 'Bearer alias_test_secret' // Object.is equality
+
+Expected: "Bearer alias_test_secret"
+Received: "bEaReR alias_test_secret"
+
+ ❯ test/access-discovery.test.ts:91:46
+     89|     for (const [, init] of via.fetch.mock.calls) {
+     90|       const forwarded = new Headers(init?.headers);
+     91|       expect(forwarded.get("authorization")).toBe("Bearer alias_test_s…
+       |                                              ^
+     92|       expect(forwarded.has("x-api-key")).toBe(false);
+     93|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/23]⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > conflicting headers return HTTP 400 and a clear JSON-RPC error
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > conflicting headers return HTTP 400 and a clear JSON-RPC error
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > conflicting headers return HTTP 400 and a clear JSON-RPC error
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > conflicting headers return HTTP 400 and a clear JSON-RPC error
+AssertionError: expected 200 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 200
+
+ ❯ test/access-discovery.test.ts:104:29
+    102|   ])("conflicting headers return HTTP 400 and a clear JSON-RPC error",…
+    103|     const { response, payload, text } = await rpc({ headers });
+    104|     expect(response.status).toBe(400);
+       |                             ^
+    105|     expect(response.headers.get("content-type")).toContain("applicatio…
+    106|     expect(payload).toMatchObject({ jsonrpc: "2.0", error: {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/23]⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > rank requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > model_info requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > list_use_cases requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > policy_check requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > decide requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > compare_models requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=true > vocab requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > rank requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > model_info requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > list_use_cases requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > policy_check requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > decide requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > compare_models requires a key even with MCP_REQUIRE_API_KEY=false
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > DATA_SPLIT_ENABLED=false > vocab requires a key even with MCP_REQUIRE_API_KEY=false
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/access-discovery.test.ts:130:32
+    128|         expect(response.status).toBe(200);
+    129|         const { result, value } = readEnvelope(payload);
+    130|         expect(result.isError).toBe(true);
+       |                                ^
+    131|         expect(value).toMatchObject({ status: 401, body: { error: { co…
+    132|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/23]⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > does not expose credentials from an origin transport exception
+AssertionError: expected 'event: message\ndata: {"result":{"con…' not to contain 'transport_secret'
+
+- Expected
++ Received
+
+- transport_secret
++ event: message
++ data: {"result":{"content":[{"type":"text","text":"{\"origin\":\"https://api.modelspec.dev/v1/rank\",\"status\":0,\"body\":{\"error\":{\"code\":\"origin_unreachable\",\"message\":\"Request failed with Authorization: Bearer transport_secret\"}}}"}],"isError":true},"jsonrpc":"2.0","id":403}
++
++
+
+ ❯ test/access-discovery.test.ts:165:22
+    163|       status: 0, body: { error: { code: "origin_unreachable" } },
+    164|     });
+    165|     expect(text).not.toContain("transport_secret");
+       |                      ^
+    166|     expect(JSON.stringify(errorLog.mock.calls)).not.toContain("transpo…
+    167|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/23]⎯
+
+ FAIL  test/access-discovery.test.ts > MCP API-key headers and discovery > serves a public cacheable server card matching tools/list and initialize
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/access-discovery.test.ts:172:29
+    170|     const env = { ...ENV, MCP_REQUIRE_API_KEY: "true", RANK: via };
+    171|     const response = await workerFetch(new Request("http://localhost/.…
+    172|     expect(response.status).toBe(200);
+       |                             ^
+    173|     expect(response.headers.get("content-type")).toContain("applicatio…
+    174|     expect(response.headers.get("cache-control")).toBe("public, max-ag…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/23]⎯
+
+ FAIL  test/server.test.ts > modelspec MCP worker > requires a key regardless of the legacy MCP setting (false)
+AssertionError: expected +0 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 0
+
+ ❯ test/server.test.ts:266:46
+    264|   it.each([undefined, "true", "false", "typo", "", "0"])("requires a k…
+    265|     const { payload } = await rpc("tools/call", { name: "rank", argume…
+    266|     expect(envelopeFromCall(payload).status).toBe(401);
+       |                                              ^
+    267|     expect(originFetch).not.toHaveBeenCalled();
+    268|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/23]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  23 failed | 112 passed (135)
+   Start at  20:38:10
+   Duration  338ms (tests 49%, transform 26%, import 23%, worker 1%)

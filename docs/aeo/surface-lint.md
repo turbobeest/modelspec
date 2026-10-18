@@ -21,8 +21,10 @@ The weekly workflow also has `workflow_dispatch`. Runs serialize. A closed issue
 |---|---|
 | Landing title | `TITLE`, exact equality |
 | Landing first paragraph, meta description, `og:description` | `ONE_SENTENCE` |
-| `/method/` first paragraph; `llms.txt`, `index.md`, agent skill, brand page | `ONE_SENTENCE` |
-| `/method/`, `llms.txt` | `DISAMBIGUATION` |
+| `/method/` first paragraph; `/about/`, `llms.txt`, `index.md`, agent skill, brand page | `ONE_SENTENCE` |
+| `/about/` first paragraph | `DISAMBIGUATION`, then `ONE_SENTENCE` |
+| `/about/` | each `CLAIMS` statement |
+| `/method/`, `llms.txt`, `/about/` | `DISAMBIGUATION` |
 | MCP card description | `SHORT`, the registry's length-limited form |
 | Landing `Organization.description` | `ONE_SENTENCE`, exact equality |
 
@@ -41,6 +43,7 @@ Owned copy includes HTML, `llms.txt`, Markdown twins, `.well-known/*.json`, `ope
 | Affirmative "sponsored", "featured partner", "promoted", "affiliate" claims | The matching paid-placement, provider-paid-visibility or referral-fee assertion in `neutrality_commitment()` is false | That assertion changes |
 | A removed source, matched by `REMOVED_TEXT` in `decision/excluded.py` (reuse it; never restate the names) | MODEL-117 excluded sources | Never |
 | A named competitor product in a comparison | Comparisons are by category | A decision by Jamie |
+| "instructions for AI", "AI assistants should" | No instructions-for-assistants block on any surface | Never |
 
 | Allowed wording | Why |
 |---|---|

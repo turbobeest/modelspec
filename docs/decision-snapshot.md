@@ -39,6 +39,38 @@ held back keeps its bytes. `LoadedSnapshot.held_back(cid)` returns a subject's
 counts, `{}` when it has none, and `None` for a snapshot built before the key,
 whose per-subject counts cannot be recovered.
 
+## Dated price resolution
+
+MODEL-394 resolves [dated offering price facts](decision-model.md#dated-offering-prices)
+at build time. A snapshot with dated prices requires an explicit `as_of` date.
+The builder selects the entry whose inclusive bounds contain `as_of`, then
+applies the existing source and verification checks to that entry. The facet
+column holds one scalar price. Its retained record identifies the selected
+entry and includes its dates and winning verification.
+
+The builder rejects invalid schedules and fails when no entry covers `as_of`.
+A selected entry that fails verification stays out under the existing admission
+rules. Missing or quarantined future entries never extend the current entry's
+effective end.
+
+Selected, admitted price entries in the lineup and kept archive determine optional signed
+validity bounds in `content`. `valid_from` is the latest selected start date.
+`valid_until` is one day after the earliest selected end date, so it is
+exclusive. Absent bounds stay absent. Current decisions can explicitly request
+retired models, so archived prices also constrain validity. Offerings outside
+the kept snapshot do not shorten validity. Snapshots without dated prices keep
+their existing content shape.
+
+`LoadedSnapshot.require_current(today=None)` refuses live use before
+`valid_from` or on or after `valid_until`. Without `today`, it uses the current
+UTC date. A snapshot with a price through `2026-11-30` expires at the start of
+`2026-12-01`, even if the next snapshot has not been published. The loader still
+accepts historical snapshots, and their prices remain fixed at their `as_of`
+dates for retained comparisons.
+
+The public decision, bounded decision, and model comparison contracts keep
+their existing versions. Each offering still presents one resolved price.
+
 ## The completeness gate
 
 With a premier list, the build fails unless every **guaranteed** facet is
@@ -58,7 +90,8 @@ Gzipped canonical JSON (sorted keys, no whitespace, gzip `mtime=0`):
  "signature": {"alg": "hmac-sha256", "value": "<hex>"} | null,
  "signatures": [{"alg": "ed25519", "key_id": "<id>", "value": "<base64>"}],
  "content": {"as_of", "facet_subjects", "lineup", "archive", "subscriptions",
-             "benchmark_domains", "sources", "excluded", "held_back"}}
+             "benchmark_domains", "sources", "excluded", "held_back",
+             "valid_from"?, "valid_until"?}}
 ```
 
 `content_hash` is SHA-256 over the canonical `content`; the ID is its first 16

@@ -731,3 +731,275 @@ def test_benchmark_page_does_not_link_non_http_urls() -> None:
                         "sources": [{"url": "ftp://x/y", "title": "FTP", "accessed": "2026-09-14"}]})
     assert 'href="javascript:' not in html and 'href="ftp:' not in html
     assert "javascript:alert(1)" in html and "FTP" in html
+
+
+# MODEL-219: dated template examples are another static build output.
+@pytest.fixture
+def use_case_template():
+    from decision.templates import load_templates
+
+    return load_templates()[0]
+
+
+@pytest.fixture
+def use_case_decision():
+    return {
+        "decision_id": "dec_fixture", "snapshot": "snap_fixture", "status": "answered",
+        "answer": {
+            "kind": "tied", "members": ["lab/strong", "lab/cheap"],
+            "basis": "fixture evidence basis", "deterministic_order": ["lab/strong", "lab/cheap"],
+            "tie_breakers": {"cheapest": "lab/cheap", "fastest": None,
+                             "open_weights": "lab/strong", "most_independently_measured": None},
+        },
+        "bands": {
+            "basis": "fixture evidence basis", "best": [
+                {"model": "lab/strong", "score": 0.812345, "score_interval": [-0.12345, 1.23456],
+                 "p_best": 0.56789, "cost_per_task": 0.4321,
+                 "estimates": [{"dimension": "software_engineering", "value": 1.3579,
+                                "interval": [-0.2468, 2.9753], "benchmarks": 7,
+                                "direct_benchmarks": 3}]},
+                {"model": "lab/cheap", "score": 0.75678, "score_interval": [0.1, 1.3],
+                 "p_best": None, "cost_per_task": 0.01234, "estimates": []},
+            ], "rest": [], "thin": [
+                {"model": "lab/unknown", "score": 0.5, "score_interval": None,
+                 "p_best": None, "cost_per_task": None, "estimates": []}],
+        },
+        "results": [{"model": "lab/strong"}], "warnings": ["fixture_warning"],
+        "truncated": {"offerings": 4, "models": 2},
+    }
+
+
+def test_use_case_page_preserves_engine_values_and_registry_copy(use_case_template, use_case_decision):
+    from pipeline.surface_lint import Page
+
+    page = Page(builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23)))
+    for value in (use_case_template["name"], use_case_template["tradeoff"],
+                  use_case_template["purpose"], use_case_template["teaches"],
+                  *[row["reason"] for row in use_case_template["where"]],
+                  *[row["reason"] for row in use_case_template["weights"].values()]):
+        assert value in page.visible
+    for value in ("lab/strong", "lab/cheap", "lab/unknown", "0.812345", "-0.12345",
+                  "1.23456", "0.56789", "0.4321", "1.3579", "-0.2468", "2.9753"):
+        assert value in page.visible
+    assert "P(best)" in page.visible
+    assert "Unavailable" in page.visible
+    assert "fixture_warning" in page.visible
+
+
+@pytest.mark.parametrize("has_optional_tie_breakers", [False, True])
+def test_use_case_tie_is_not_a_cost_recommendation(
+    use_case_template, use_case_decision, has_optional_tie_breakers,
+):
+    from pipeline.surface_lint import Page
+
+    if has_optional_tie_breakers:
+        use_case_decision["answer"]["tie_breakers"].update(
+            fastest="lab/strong", most_independently_measured="lab/cheap",
+        )
+    page = Page(builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23)))
+    assert "Tied" in page.visible
+    assert "fixture evidence basis" in page.visible
+    assert "Cheapest tie-breaker: lab/cheap" in page.visible
+    assert "Open-weights tie-breaker: lab/strong" in page.visible
+    if has_optional_tie_breakers:
+        assert "Fastest tie-breaker: lab/strong" in page.visible
+        assert "Most independently measured tie-breaker: lab/cheap" in page.visible
+    else:
+        assert "Fastest tie-breaker:" not in page.visible
+        assert "Most independently measured tie-breaker:" not in page.visible
+    assert "undetermined" in page.visible
+    assert "cheapest model is best" not in page.visible.lower()
+
+
+def test_use_case_values_are_readable_without_changing_engine_precision(use_case_decision):
+    from copy import deepcopy
+
+    from decision import registry
+    from decision.contract import parse_spec
+    from decision.templates import load_templates
+    from pipeline.surface_lint import Page
+
+    template = deepcopy(next(t for t in load_templates() if t["id"] == "regulated-best"))
+    facets = registry.load(REPO_ROOT / "registry", repo_root=REPO_ROOT).facet
+    template["spec"] = parse_spec(template["spec"], facets=facets).model_dump(mode="json")
+    use_case_decision["bands"]["best"][0]["p_best"] = 0.12345678912345678
+    original = deepcopy(use_case_decision)
+    page = Page(builder.use_case_page(template, use_case_decision, date(2026, 9, 23)))
+
+    assert not re.search(r"\b(?:null|true|false)\b", page.visible, re.I)
+    assert '"spec_version"' not in page.visible
+    assert '"value"' not in page.visible
+    assert "offering.data.zero_retention = Yes" in page.visible
+    assert "offering.data.trains_on_customer_data = No" in page.visible
+    assert "Unavailable" in page.visible
+    assert "0.12345678912345678" in page.visible
+    assert "[-0.12345, 1.23456]" in page.visible
+    assert use_case_decision == original
+
+
+@pytest.mark.parametrize("state", ["empty", "fully-undetermined"])
+def test_use_case_without_answer_is_noindex_and_absent_from_sitemap(
+    state, tmp_path, monkeypatch, use_case_template, use_case_decision,
+):
+    from pipeline.surface_lint import Page
+
+    use_case_decision["answer"] = None
+    if state == "empty":
+        use_case_decision["results"] = []
+        use_case_decision["bands"] = None
+    else:
+        use_case_decision["bands"]["thin"] += use_case_decision["bands"]["best"]
+        use_case_decision["bands"]["best"] = []
+    raw = builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23))
+    page = Page(raw)
+    assert "No recommendation" in page.visible
+    assert "noindex" in page.meta["robots"]
+    assert "<h3>Best band</h3>" not in raw
+    assert "<h3>Rest band</h3>" not in raw
+    if state == "fully-undetermined":
+        assert "Thin evidence: undetermined" in page.visible
+        assert all(model in page.visible for model in ("lab/unknown", "lab/strong", "lab/cheap"))
+    catalogue = {"categories": [{"id": "coding", "name": "Coding", "kind": "use"}],
+                 "templates": [use_case_template]}
+    monkeypatch.setattr(builder, "use_case_decisions",
+                        lambda root: (catalogue, [use_case_decision], date(2026, 9, 23)))
+    result = builder.write_use_case_pages(tmp_path, REPO_ROOT)
+    assert result["sitemap_paths"] == ["/use-cases/"]
+    assert (tmp_path / "use-cases/coding/coding-best/index.html").is_file()
+
+
+def test_use_case_neutrality_and_access(use_case_template, use_case_decision):
+    from decision.excluded import REMOVED_TEXT
+    from pipeline.surface_lint import Page
+
+    raw = builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23))
+    page = Page(raw)
+    assert "/legal/neutrality/" in page.links
+    assert "/decide/?template=coding-best" in page.links
+    assert "Human lookup is free" in page.visible
+    assert "CLI, API, and MCP access requires a key" in page.visible
+    assert REMOVED_TEXT.search(raw) is None
+    for forbidden in ("openrouter", "litellm", "portkey",
+                      "not diamond", "routellm", "affiliate", "paid placement", "keyless"):
+        assert forbidden not in raw.lower()
+
+
+def test_use_case_has_entity_lead_and_visible_dated_jsonld(use_case_template, use_case_decision):
+    from pipeline import entity, surface_lint
+
+    raw = builder.use_case_page(use_case_template, use_case_decision, date(2026, 9, 23))
+    page = surface_lint.Page(raw)
+    assert page.first_paragraph.startswith(entity.ONE_SENTENCE)
+    assert "as of 2026-09-23, from the public data image" in page.visible
+    assert not surface_lint.structured_data({"use-cases/coding/coding-best/index.html": raw})
+    nodes = [node for block in page.ld for node in surface_lint.objects(json.loads(block))]
+    assert any(node.get("@type") == "Article" and node["dateModified"] == "2026-09-23"
+               for node in nodes)
+
+
+@pytest.mark.parametrize("injection", ["instructions for AI", "AI assistants should"])
+def test_use_case_surface_lint_rejects_ai_instructions(injection):
+    from pipeline import surface_lint
+
+    findings = surface_lint.lexicon(
+        {"use-cases/coding/coding-best/index.html": f"<p>{injection}</p>"}, {}, {},
+    )
+    assert any(finding.check == "lexicon.assistant-instructions" for finding in findings)
+
+
+def test_use_case_surface_lint_covers_noindex_pages():
+    from pipeline import surface_lint
+
+    findings = surface_lint.presence({
+        "use-cases/coding/coding-best/index.html": '<meta name="robots" content="noindex"><p>Wrong lead</p>',
+    })
+    assert any(finding.surface == "use-cases/coding/coding-best/index.html"
+               and finding.check == "presence.lead" for finding in findings)
+
+
+def test_use_case_image_date_never_falls_back_to_build_clock(tmp_path):
+    with pytest.raises((ValueError, FileNotFoundError)):
+        builder.use_case_image_date(tmp_path)
+    report = tmp_path / "benchmarks/_census/eligibility/current-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text('{"as_of":"2026-09-23"}')
+    assert builder.use_case_image_date(tmp_path) == date(2026, 9, 23)
+    (tmp_path / "data-image.json").write_text('{"as_of":"2026-01-17"}')
+    assert builder.use_case_image_date(tmp_path) == date(2026, 1, 17)
+
+
+def test_use_case_pages_are_stable_and_index_groups_registry_kinds(
+    tmp_path, monkeypatch, use_case_template, use_case_decision,
+):
+    from pipeline import entity
+
+    other = dict(use_case_template, id="regulated-fixture", category="regulated", name="Fixture regulated")
+    catalogue = {"categories": [{"id": "coding", "name": "Coding", "kind": "use"},
+                                {"id": "regulated", "name": "Regulated data", "kind": "constraint"}],
+                 "templates": [use_case_template, other]}
+    monkeypatch.setattr(builder, "use_case_decisions", lambda root: (
+        catalogue, [use_case_decision, use_case_decision], date(2026, 9, 23)))
+    first = builder.write_use_case_pages(tmp_path / "first", REPO_ROOT)
+    second = builder.write_use_case_pages(tmp_path / "second", REPO_ROOT)
+    assert first == second
+    for page in (tmp_path / "first").rglob("*.html"):
+        assert page.read_bytes() == (tmp_path / "second" / page.relative_to(tmp_path / "first")).read_bytes()
+    index = (tmp_path / "first/use-cases/index.html").read_text()
+    assert 'data-kind="use"' in index and 'data-kind="constraint"' in index
+    assert entity.ONE_SENTENCE in index
+    assert "/use-cases/coding/coding-best/" in index
+    assert "/use-cases/regulated/regulated-fixture/" in index
+    assert first["sitemap_dates"] == {path: "2026-09-23" for path in first["sitemap_paths"]}
+
+
+def test_use_case_complete_and_bounded_contracts_stay_pinned():
+    from decision.contract import BOUNDED_VERSION, CONTRACT_VERSION
+
+    assert CONTRACT_VERSION == "2.18"
+    assert BOUNDED_VERSION == "1.5"
+
+
+def test_use_case_decisions_use_public_image_and_the_shared_engine(monkeypatch, tmp_path):
+    import socket
+
+    from decision import engine, registry, snapshot
+    from decision.contract import parse_spec
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "private-must-not-be-read"))
+    calls = []
+    build_snapshot = snapshot.build_from_repo
+    loaded = []
+    load_snapshot = snapshot.load_built_snapshot
+
+    def collect(root, **kwargs):
+        calls.append((root, kwargs["as_of"]))
+        return build_snapshot(root, **kwargs)
+
+    def load(built, **kwargs):
+        result = load_snapshot(built, **kwargs)
+        loaded.append(result)
+        return result
+
+    def forbid_network(*args, **kwargs):
+        pytest.fail("Static examples must not access the network")
+
+    monkeypatch.setattr(snapshot, "build_from_repo", collect)
+    monkeypatch.setattr(snapshot, "load_built_snapshot", load)
+    monkeypatch.setattr(socket, "create_connection", forbid_network)
+    saved_root = registry.REPO_ROOT
+    private_root = tmp_path / "poison-private-default"
+    registry.use_root(private_root)
+    try:
+        catalogue, decisions, as_of = builder.use_case_decisions(REPO_ROOT)
+        assert registry.REPO_ROOT == private_root
+    finally:
+        registry.use_root(saved_root)
+    expected_date = builder.use_case_image_date(REPO_ROOT)
+    assert calls == [(REPO_ROOT, expected_date)]
+    assert len(decisions) == len(catalogue["templates"])
+    public_registry = registry.load(REPO_ROOT / "registry", repo_root=REPO_ROOT)
+    template = catalogue["templates"][0]
+    expected = engine.decide(parse_spec(template["spec"], facets=public_registry.facet),
+                             loaded[0], facets=public_registry.facet).model_dump(mode="json")
+    assert decisions[0] == expected
+    assert as_of == expected_date

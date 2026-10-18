@@ -1,0 +1,19 @@
+FAILED tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[claude]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[openai]
+FAILED tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys[gemini]
+FAILED tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget
+FAILED tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue
+FAILED tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence
+FAILED tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools
+FAILED tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call
+FAILED tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+FAILED tests/test_agent_guide.py::test_openapi_size_and_all_response_header_descriptions
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+FAILED tests/test_social_cards.py::test_build_emits_every_template_preview_and_card
+FAILED tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout
+18 failed, 11452 passed, 24 skipped, 11 warnings in 1178.23s (0:19:38)

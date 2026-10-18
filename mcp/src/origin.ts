@@ -45,14 +45,14 @@ export async function fetchOrigin(
       // Pass non-JSON through as text. Do not reshape it.
     }
     return { origin, status: response.status, body };
-  } catch (err) {
+  } catch {
     return {
       origin,
       status: 0,
       body: {
         error: {
           code: "origin_unreachable",
-          message: err instanceof Error ? err.message : String(err),
+          message: "The origin request failed. Retry later.",
         },
       },
     };

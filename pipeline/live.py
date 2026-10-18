@@ -46,12 +46,12 @@ BASE = "https://modelspec.dev"
 
 #: Copied whole from the v1 build.
 KEEP_DIRS = (
-    "api", "legal", ".well-known", "method", "orchestrators", landing.ASSET_DIR, "pricing",
+    "api", "legal", ".well-known", "about", "method", "orchestrators", landing.ASSET_DIR, "pricing",
     "pricing-assets", "fonts",
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
     # MODEL-299: the press and brand kit.
-    "brand",
+    "brand", "use-cases",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -61,7 +61,7 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/orchestrators/", "/decide/", "/pricing/", "/feedback/", "/brand/",
+    "/", "/about/", "/method/", "/orchestrators/", "/decide/", "/pricing/", "/feedback/", "/brand/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/", "/legal/dmca/",
     "/legal/tester-terms/",
 )
@@ -104,6 +104,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 #: changes nothing must not make every page look fresh.
 PAGE_SOURCES = {
     "/": ("pipeline/landing.py", "pipeline/landing_chrome.py", "pipeline/entity.py", "models"),
+    "/about/": ("pipeline/about.py", "pipeline/entity.py", "api/worker/tiers.json"),
     "/method/": ("pipeline/method.py", "pipeline/entity.py"),
     "/orchestrators/": ("pipeline/orchestrators.py", "pipeline/landing_assets/orchestrators.css",
                         "registry/templates.yaml"),
@@ -179,7 +180,8 @@ def blog_sitemap_dates(tree: Path) -> dict[str, str]:
 
 
 def sitemap(dates: dict[str, str] | None = None, *,
-            blog_dates: dict[str, str] | None = None) -> str:
+            blog_dates: dict[str, str] | None = None,
+            use_case_dates: dict[str, str] | None = None) -> str:
     dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -188,7 +190,7 @@ def sitemap(dates: dict[str, str] | None = None, *,
                   for path in PAGES)
         + "".join(f"  <url><loc>{BASE}{html.escape(path)}</loc>"
                   f"<lastmod>{html.escape(stamp)}</lastmod></url>\n"
-                  for path, stamp in (blog_dates or {}).items())
+                  for path, stamp in {**(blog_dates or {}), **(use_case_dates or {})}.items())
         + "</urlset>\n"
     )
 
@@ -271,6 +273,13 @@ def build(src: Path, web: Path, out: Path) -> None:
         shutil.copytree(real / rel, tree / rel)
     for rel in KEEP_FILES:
         shutil.copy2(real / rel, tree / rel)
+    namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    use_case_dates = {
+        row.findtext("s:loc", "", namespace).removeprefix(BASE):
+        row.findtext("s:lastmod", "", namespace)
+        for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
+        if row.findtext("s:loc", "", namespace).startswith(BASE + "/use-cases/")
+    }
     blog_dates = {}
     if os.environ.get("BLOG_ENABLED") == "true" and (real / "blog/index.html").is_file():
         blog_dates = blog_sitemap_dates(real)
@@ -297,7 +306,8 @@ def build(src: Path, web: Path, out: Path) -> None:
     redirects = (public_data.REDIRECTS if public_data.enabled() else "") + REDIRECTS
     (tree / "_redirects").write_text(redirects, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
-    (tree / "sitemap.xml").write_text(sitemap(blog_dates=blog_dates), encoding="utf-8")
+    (tree / "sitemap.xml").write_text(
+        sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates), encoding="utf-8")
     if blog_dates:
         for page in tree.rglob("*.html"):
             if page.relative_to(tree).parts[0] == "legal":

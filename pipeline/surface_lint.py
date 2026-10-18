@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CARD = ".well-known/mcp.json"
 BUNDLE = "mcp/src/agent-copy.json"
 SENTENCE_FILES = (
+    "about/index.html",
     "method/index.html",
     "llms.txt",
     "index.md",
@@ -262,16 +263,38 @@ def presence(
             findings.append(
                 Finding("method/index.html", "presence.lead", first, entity.ONE_SENTENCE)
             )
-    for path in ("method/index.html", "llms.txt"):
-        text = (
-            Page(texts.get(path, "")).visible
-            if path.endswith(".html")
-            else normalize(texts.get(path, ""))
-        )
+    # Noindex examples are still public copy, so discovery through the sitemap
+    # alone is insufficient coverage.
+    for path, raw in sorted(texts.items()):
+        if path.startswith("use-cases/") and path.endswith(".html"):
+            first = Page(raw).first_paragraph
+            if not first.startswith(entity.ONE_SENTENCE):
+                findings.append(Finding(path, "presence.lead", first, entity.ONE_SENTENCE))
+    for path in ("about/index.html", "method/index.html", "llms.txt"):
+        page_text = texts.get(path, "")
+        text = Page(page_text).visible if path.endswith(".html") else normalize(page_text)
         if path not in absent and entity.DISAMBIGUATION not in text:
             findings.append(
                 Finding(path, "presence.disambiguation", "missing", entity.DISAMBIGUATION)
             )
+    if "about/index.html" not in absent:
+        about = Page(texts.get("about/index.html", ""))
+        if not about.first_paragraph.startswith(entity.DISAMBIGUATION) or (
+            entity.ONE_SENTENCE not in about.first_paragraph
+        ):
+            findings.append(
+                Finding(
+                    "about/index.html",
+                    "presence.lead",
+                    about.first_paragraph[:200],
+                    entity.DISAMBIGUATION,
+                )
+            )
+        for claim in entity.CLAIMS:
+            if claim.statement not in about.visible:
+                findings.append(
+                    Finding("about/index.html", "presence.claim", "missing", claim.statement)
+                )
     if not holding:
         organizations = []
         for block in page.ld:
@@ -314,6 +337,7 @@ CLI = re.compile(
     re.I,
 )
 SPONSORSHIP = re.compile(r"\b(?:featured partner|sponsored|promoted|affiliate)\b", re.I)
+ASSISTANT_INSTRUCTIONS = re.compile(r"instructions for AI|AI assistants should", re.I)
 COMPARISON = re.compile(
     r"\b(?:versus|vs\.?|compares? (?:to|with)|compared (?:to|with)|comparison|"
     r"better than|alternative to|unlike)\b",
@@ -354,6 +378,7 @@ def lexicon(
             ("lexicon.positioning", SELF_DESCRIPTION, True),
             ("lexicon.cli", CLI, True),
             ("lexicon.removed-source", REMOVED_TEXT, False),
+            ("lexicon.assistant-instructions", ASSISTANT_INSTRUCTIONS, False),
         ]
         if not worker_flags.enabled(dict(variables), "X402_ENABLED"):
             # Adopted legal disclosures describe conditional ledger behaviour.
@@ -716,6 +741,12 @@ def live_tree(
         *live.DISCOVERY,
         *(path.lstrip("/") + "index.html" for path in live.PAGES),
     }
+    from decision.templates import load_templates
+    paths.add("use-cases/index.html")
+    paths.update(
+        f'use-cases/{template["category"]}/{template["id"]}/index.html'
+        for template in load_templates()
+    )
     paths.discard("index.html")
     if "sitemap.xml" in texts:
         try:
@@ -803,13 +834,23 @@ def expected_lastmods(
         build = json.loads(texts["api/build.json"])
         stamp = datetime.fromisoformat(build["built_at"].replace("Z", "+00:00")).date().isoformat()
         if "models/index.html" in texts:
-            return {
+            dates = {
                 urlsplit(url).path: stamp for url, _ in sitemap_entries(texts["sitemap.xml"])
-            }, ""
+            }
+            from pipeline.build import use_case_image_date
+            image_date = use_case_image_date(ROOT).isoformat()
+            dates.update({path: image_date for path in dates if path.startswith("/use-cases/")})
+            return dates, ""
         from pipeline.export import _commit
 
         if not deployed or build["commit"] == _commit(ROOT):
-            return {path: live.lastmod(path) for path in live.PAGES}, ""
+            dates = {path: live.lastmod(path) for path in live.PAGES}
+            from pipeline.build import use_case_image_date
+            image_date = use_case_image_date(ROOT).isoformat()
+            dates.update({urlsplit(url).path: image_date
+                          for url, _ in sitemap_entries(texts["sitemap.xml"])
+                          if urlsplit(url).path.startswith("/use-cases/")})
+            return dates, ""
     except (ValueError, KeyError, TypeError, ET.ParseError):
         pass
     return None, "Source-change dates not checked: deployed build differs from this checkout."

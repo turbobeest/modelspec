@@ -2,7 +2,8 @@
 
 Read-only MCP tools over the ModelSpec catalogue. Data tools require an
 API key. The site stays on Cloudflare Pages; this Worker only answers
-`https://api.modelspec.dev/mcp`.
+`https://api.modelspec.dev/mcp` and its public server card at
+`https://api.modelspec.dev/.well-known/mcp/server-card.json`.
 
 ## Official registry listing
 
@@ -24,6 +25,32 @@ Keys come from [pricing and keys](https://modelspec.dev/pricing/).
 Sources: [registry schema](https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json),
 [official publishing workflow](https://github.com/modelcontextprotocol/registry/blob/v1.8.1/docs/modelcontextprotocol-io/github-actions.mdx),
 and [publisher v1.8.1](https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.1).
+
+## Smithery listing
+
+After review, merge, and a successful MCP deployment, publish the remote URL
+with the required API-key configuration below. Replace `YOUR_SMITHERY_NAMESPACE`
+with the namespace owned by the publishing account:
+
+```bash
+smithery mcp publish "https://api.modelspec.dev/mcp" \
+  -n @YOUR_SMITHERY_NAMESPACE/modelspec \
+  --config-schema '{"type":"object","properties":{"apiKey":{"type":"string","title":"ModelSpec API key","description":"Create one at https://modelspec.dev/pricing/","x-from":{"header":"x-api-key"},"x-to":{"header":"x-api-key"}}},"required":["apiKey"]}'
+```
+
+Smithery collects each user's ModelSpec key and forwards it as the raw
+`x-api-key` header value. The MCP Worker converts it to
+`Authorization: Bearer <key>` for API calls. This alias applies only to MCP;
+direct `/v1/*` API calls still accept only Bearer authentication.
+
+The public server card requires no key. Its `serverInfo` matches `initialize`,
+including the deployed commit as its version. It declares
+`authentication: {"required": true, "schemes": ["bearer"]}` and generates its
+tools from the same registrations as `tools/list`. The card uses
+`Cache-Control: public, max-age=300`.
+
+Sources: [Smithery publishing](https://smithery.ai/docs/build/publish) and
+[configuration transport](https://smithery.ai/docs/build/session-config).
 
 ## SDK and transport
 
@@ -47,8 +74,12 @@ Read (2026-09-18):
 
 ## Route
 
-Workers route `api.modelspec.dev/mcp*` on zone `modelspec.dev`. The rank
-Worker already owns `api.modelspec.dev/*`; the more specific pattern wins.
+Workers routes `api.modelspec.dev/mcp*` and
+`api.modelspec.dev/.well-known/mcp/server-card.json` on zone `modelspec.dev`
+belong to this Worker. The rank Worker already owns `api.modelspec.dev/*`;
+the more specific patterns win.
+The card route is exact, so discovery clients must use its URL without a query
+string. Other API routes keep their existing Worker.
 The CI token can edit Workers routes and cannot create DNS, so there is no
 new hostname.
 
@@ -70,17 +101,20 @@ Successful calls pass through the origin. Null on a card means not researched.
 
 `rank`, `policy_check`, `decide`, `compare_models`, and `hardware_fit` use the `RANK` service binding because a
 same-zone Worker fetch to the public API hostname reaches the zone origin and
-returns 522. All five forward the client's `Authorization: Bearer <key>` header.
+returns 522. All five forward the key as `Authorization: Bearer <key>`.
 The API validates presented keys and returns its auth/payment errors unchanged.
 
-`MCP_REQUIRE_API_KEY` defaults to requiring a key, including when unset. Only
-explicit `"false"` permits anonymous decision calls. With the default, `rank`,
-`policy_check`, `decide`, and `compare_models` return a 401 `missing_api_key` tool error before
-contacting the API when a Bearer credential is absent or malformed. This guard
-checks credentials before proxying decision calls. Machine data access,
-including `vocab`, `model_info` and `list_use_cases`, needs a ModelSpec key.
-`hardware_fit` always requires a Bearer key, including when
-`MCP_REQUIRE_API_KEY="false"`. Feedback stays keyless and carries no model data. Use an existing key, or see
+MCP accepts either `Authorization: Bearer <key>` or `x-api-key: <key>`.
+If both headers are present, their keys must agree; conflicting credentials
+return HTTP 400 with a JSON-RPC error. Keys never appear in logs or error
+messages.
+
+All data tools require a ModelSpec key, including when
+`MCP_REQUIRE_API_KEY="false"`. Missing or malformed credentials return a
+401 `missing_api_key` refusal before any origin call. This includes `rank`,
+`policy_check`, `decide`, `compare_models`, `hardware_fit`, `vocab`,
+`model_info` and `list_use_cases`. `initialize` and `tools/list` remain public.
+Feedback stays keyless and carries no model data. Use an existing key, or see
 [pricing](https://modelspec.dev/pricing/) for availability.
 
 `decide` accepts the decision spec defined by
