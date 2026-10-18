@@ -9,7 +9,7 @@ import re
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from html.parser import HTMLParser
@@ -20,7 +20,7 @@ from urllib.parse import urljoin, urlsplit
 import yaml
 
 from api.ranking.engine import neutrality_commitment
-from decision.excluded import REMOVED_TEXT
+from decision.excluded import REMOVED_TEXT, excluded_publisher, publisher_excerpt
 from pipeline import agent_copy, entity, worker_flags
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,6 +118,7 @@ class Page(HTMLParser):
         self.title_parts: list[str] = []
         self.meta: dict[str, str] = {}
         self.links: list[str] = []
+        self.attribute_values: list[str] = []
         self.ld: list[str] = []
         self.hidden: list[str] = []
         self.in_title = False
@@ -127,6 +128,10 @@ class Page(HTMLParser):
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # Record every value from the raw pairs before dict() drops duplicates.
+        for _name, value in attrs:
+            if value:
+                self.attribute_values.append(html.unescape(value))
         attributes = dict(attrs)
         if tag == "meta":
             key = attributes.get("name") or attributes.get("property")
@@ -211,6 +216,25 @@ def strings(value: Any):
             yield from strings(child)
 
 
+def decoded_strings(obj: Any) -> Iterator[str]:
+    """Every string in a parsed JSON or YAML value, including each dict key.
+
+    A key that is not a string is converted with ``str``. This walks ``obj``.
+    It does not build a mapping and it does not rename keys.
+    """
+    if isinstance(obj, str):
+        yield obj
+        return
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            yield from decoded_strings(key if isinstance(key, str) else str(key))
+            yield from decoded_strings(value)
+        return
+    if isinstance(obj, (list, tuple)):
+        for item in obj:
+            yield from decoded_strings(item)
+
+
 def owned(path: str) -> bool:
     return (
         path.endswith((".html", ".md"))
@@ -231,6 +255,66 @@ def lexicon_text(path: str, text: str) -> str:
         except ValueError:
             return normalize(text)
     return normalize(text.replace(chr(96), ""))
+
+
+def _split_front_matter(text: str) -> tuple[str | None, str]:
+    if not (text.startswith("---\n") or text.startswith("---\r\n")):
+        return None, text
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            return "".join(lines[1:index]), "".join(lines[index + 1 :])
+    return None, text
+
+
+def _load_json(text: str) -> Any | None:
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
+
+
+def _load_yaml(text: str) -> Any | None:
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+
+
+def publisher_subject(path: str, raw: str) -> list[str]:
+    """Strings checked for a removed publisher.
+
+    HTML contributes the visible text, the title, every attribute value, each
+    JSON-LD blob, and the strings inside a blob that parses. Other files
+    contribute the unescaped file text. Owned JSON, YAML, and a genuine
+    Markdown front-matter block also contribute the strings from a successful
+    parse, including keys. A parse error leaves the text checks in place.
+    Nothing here builds a mapping or renames a key. Markdown prose is not parsed.
+    """
+    if path.endswith(".html"):
+        page = Page(raw)
+        texts = [html.unescape(page.visible), html.unescape(page.title), *page.attribute_values]
+        for blob in page.ld:
+            texts.append(html.unescape(blob))
+            # Parse the original blob. Unescaping it first turns a character
+            # reference inside a key into a different key, and the parser
+            # then keeps only one of the two values.
+            parsed = _load_json(blob)
+            if parsed is None:
+                parsed = _load_json(html.unescape(blob))
+            texts.extend(html.unescape(item) for item in decoded_strings(parsed))
+        return texts
+    texts = [html.unescape(raw)]
+    if path.endswith(".md"):
+        front, _body = _split_front_matter(raw)
+        if front is not None:
+            texts.append(html.unescape(front))
+            texts.extend(html.unescape(item) for item in decoded_strings(_load_yaml(front)))
+    elif path.endswith(".json") and owned(path):
+        texts.extend(html.unescape(item) for item in decoded_strings(_load_json(raw)))
+    elif path.endswith((".yaml", ".yml")):
+        texts.extend(html.unescape(item) for item in decoded_strings(_load_yaml(raw)))
+    return texts
 
 
 def presence(
@@ -375,6 +459,7 @@ def lexicon(
         if not owned(path):
             continue
         text = lexicon_text(path, raw)
+        subject = publisher_subject(path, raw)
         rules = [
             ("lexicon.positioning", SELF_DESCRIPTION, True),
             ("lexicon.cli", CLI, True),
@@ -407,6 +492,16 @@ def lexicon(
                         "current registry and decision-approved claims",
                     )
                 )
+        if any(excluded_publisher(item) for item in subject):
+            excerpt = publisher_excerpt(subject) or text[:120]
+            findings.append(
+                Finding(
+                    path,
+                    "lexicon.removed-source",
+                    excerpt,
+                    "current registry and decision-approved claims",
+                )
+            )
         for match in SPONSORSHIP.finditer(text):
             gated = referral_fees if match.group().lower() == "affiliate" else paid_placement
             # A benchmark author's funding is provenance, not ModelSpec paid
