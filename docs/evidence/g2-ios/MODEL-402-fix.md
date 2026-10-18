@@ -14,8 +14,8 @@ schema invalidated the QA capture. The orchestrator then granted an exception
 for the capture and its helper, requiring repository regeneration and limiting
 the diff to this ticket's OpenAPI hash or derived health schema. Regeneration
 changed only the OpenAPI hash. The helper and tool definitions are unchanged.
-All four decide browser configurations passed. The resumed complete suite is
-queued under the shared lock.
+All four decide browser configurations and the resumed complete suite passed.
+The required full run exited 0 with 11,491 passed and nine skipped tests.
 
 ## Revision and review state
 
@@ -223,8 +223,14 @@ env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/mod
 The browser build also exited 0 and supplied `web/dist/decide.html` before the
 resumed full run was queued. The [resumed suite log](MODEL-402/full-suite-resumed.txt)
 and [source record](MODEL-402/full-suite-resumed-source.txt) identify commit
-`4b0c8cea` and the exact required shared-lock command. The complete suite is
-queued under the shared lock.
+`4b0c8cea` and the exact required shared-lock command. The complete suite exited
+**0** with `11491 passed, 9 skipped, 11 warnings in 1170.39s`, after approximately
+39 minutes waiting for the shared lock. The source record identifies the
+executing pytest and lock-holder processes, the evidence-only HEAD, and direct
+exit code. Production and test source stayed identical to `4b0c8cea` throughout.
+The post-run audit also verified production source is identical to the measured
+`cf7f72ce` revision, and that the whole-PR QA capture diff remains one hash
+substitution.
 
 The [browser reproduction note](MODEL-402/browser-resumed/README.md),
 [runner](MODEL-402/browser-resumed/run-browser-matrix.py), and
@@ -246,6 +252,24 @@ outputs with two browser workers, verified all 13 shared `web/dist` files
 unchanged, and released its preview port. No provider calls or source changes
 were needed. The initial shared build's command and direct exit code are in
 the reproduction note.
+
+## CI after the capture correction
+
+CI completed successfully for integration commit `4b0c8cea`: 18 checks passed,
+six deployment or merge jobs were skipped, and none failed or remained pending.
+The [test suite run](https://github.com/turbobeest/modelspec/actions/runs/39083534322)
+reports that exact source SHA and `completed / success`. `Run pytest`, all
+four pytest shards, both site builds, the Worker bundle, data freeze, and the
+evidence checks passed. The PR remained a draft.
+
+The [check set](MODEL-402/ci-resumed-checks.json) and
+[run metadata](MODEL-402/ci-resumed-run.json) came from these commands, both
+exit 0:
+
+```sh
+gh pr checks 813 --json name,bucket,state,workflow,link
+gh run view 39083534322 --json headSha,status,conclusion,url
+```
 
 ## Limits and observations
 
