@@ -1,0 +1,1030 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF                         [100%]
+=================================== FAILURES ===================================
+__ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-free] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif0')
+plan = 'free', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+__ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-plus] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif1')
+plan = 'plus', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif2')
+plan = 'premium', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-super] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif3')
+plan = 'super', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-ultra] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif4')
+plan = 'ultra', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-teams] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif5')
+plan = 'teams', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[price-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif6')
+plan = 'enterprise', field = 'price'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-free] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif7')
+plan = 'free', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-plus] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif8')
+plan = 'plus', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif9')
+plan = 'premium', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-super] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif10')
+plan = 'super', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-ultra] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif11')
+plan = 'ultra', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-teams] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif12')
+plan = 'teams', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif13')
+plan = 'enterprise', field = 'billing_period'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-free] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif14')
+plan = 'free', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-plus] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif15')
+plan = 'plus', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif16')
+plan = 'premium', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-super] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif17')
+plan = 'super', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-ultra] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif18')
+plan = 'ultra', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-teams] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif19')
+plan = 'teams', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif20')
+plan = 'enterprise', field = 'models_covered'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-free] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif21')
+plan = 'free', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-plus] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif22')
+plan = 'plus', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif23')
+plan = 'premium', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-super] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif24')
+plan = 'super', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-ultra] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif25')
+plan = 'ultra', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-teams] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif26')
+plan = 'teams', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif27')
+plan = 'enterprise', field = 'programmatic_or_agent_use'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-free] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif28')
+plan = 'free', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-plus] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif29')
+plan = 'plus', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif30')
+plan = 'premium', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-super] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif31')
+plan = 'super', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-ultra] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif32')
+plan = 'ultra', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-teams] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif33')
+plan = 'teams', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif34')
+plan = 'enterprise', field = 'usage_allowance'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-free] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif35')
+plan = 'free', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-plus] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif36')
+plan = 'plus', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-premium] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif37')
+plan = 'premium', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-super] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif38')
+plan = 'super', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-ultra] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif39')
+plan = 'ultra', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-teams] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif40')
+plan = 'teams', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_ test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-enterprise] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_plan_cannot_verif41')
+plan = 'enterprise', field = 'coverage_quote'
+
+    @pytest.mark.parametrize("plan", PLANS)
+    @pytest.mark.parametrize("field", ["price", "billing_period", "models_covered",
+                                        "programmatic_or_agent_use", "usage_allowance", "coverage_quote"])
+    def test_current_plan_cannot_verify_an_unapproved_document_or_null(tmp_path, plan, field):
+        result = current_check(tmp_path, page=PAGE, plan=plan, field=field, value=None)
+>       assert result.outcome == "mismatch"
+E       AssertionError: assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_xai_consumer_lineup.py:41: AssertionError
+_______ test_current_matrix_mutation_cannot_fall_back[reordered_column] ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c0')
+mutation = 'reordered_column'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+_________ test_current_matrix_mutation_cannot_fall_back[extra_column] __________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c1')
+mutation = 'extra_column'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+_________ test_current_matrix_mutation_cannot_fall_back[swapped_glyph] _________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c2')
+mutation = 'swapped_glyph'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+_________ test_current_matrix_mutation_cannot_fall_back[renamed_plan] __________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c3')
+mutation = 'renamed_plan'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+__________ test_current_matrix_mutation_cannot_fall_back[changed_row] __________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c4')
+mutation = 'changed_row'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+__________ test_current_matrix_mutation_cannot_fall_back[moved_cell] ___________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1063/test_current_matrix_mutation_c5')
+mutation = 'moved_cell'
+
+    @pytest.mark.parametrize("mutation", MUTATIONS)
+    def test_current_matrix_mutation_cannot_fall_back(tmp_path, mutation):
+>       result = current_check(tmp_path, page=MUTATIONS[mutation])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_xai_consumer_lineup.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_xai_consumer_lineup.py:32: in current_check
+    return check(tmp_path, plan=f"xai/subscription/{plan}", field=field,
+tests/test_xai_matrix_reader.py:62: in check
+    result = verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+decision/verify.py:6395: in verify
+    diffs = compare(claim, readings)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5702: in compare
+    candidates = [_diffs(claim, r) for r in own]
+                  ^^^^^^^^^^^^^^^^
+decision/verify.py:5670: in _diffs
+    diffs = [d for d in [_value_diff(claim, reading)] if d is not None]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/verify.py:5619: in _value_diff
+    q = parse_quantity(reading.value, reading.unit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+text = 0, hint = None
+
+    def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None:
+        """A number and its unit from a cell ("71.2%", "400K tokens", "$2.50 / 1M tokens").
+    
+        ``hint`` is the unit a column header states; a bare magnitude ("400K") scales it.
+        """
+        if text is None:
+            return None
+>       text = text.replace(r"\$", "$")
+               ^^^^^^^^^^^^
+E       AttributeError: 'int' object has no attribute 'replace'
+
+decision/verify.py:304: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[price-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[billing_period-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[models_covered-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[programmatic_or_agent_use-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[usage_allowance-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-free]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-plus]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-premium]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-super]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-ultra]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-teams]
+FAILED tests/test_xai_consumer_lineup.py::test_current_plan_cannot_verify_an_unapproved_document_or_null[coverage_quote-enterprise]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[reordered_column]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[extra_column]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[swapped_glyph]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[renamed_plan]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[changed_row]
+FAILED tests/test_xai_consumer_lineup.py::test_current_matrix_mutation_cannot_fall_back[moved_cell]
+48 failed in 11.94s

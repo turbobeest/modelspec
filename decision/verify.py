@@ -6237,6 +6237,14 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
 def _xai_matrix_claim(subject: str, field: str) -> bool:
     prefix = "offering.subscription."
     return (
+        subject in {f"xai/subscription/{plan}" for plan in (
+            "free", "plus", "premium", "super", "ultra", "teams", "enterprise",
+        )}
+        and field in {prefix + suffix for suffix in (
+            "price", "billing_period", "models_covered", "programmatic_or_agent_use",
+            "usage_allowance", "coverage_quote",
+        )}
+    ) or (
         subject in {"xai/subscription/supergrok-lite", "xai/subscription/supergrok-heavy"}
         and field in {prefix + suffix for suffix in (
             "models_covered", "programmatic_or_agent_use", "usage_allowance", "coverage_quote",

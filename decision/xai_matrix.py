@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 
 from decision.normalise import Node, RuleSet, normalise_document
@@ -23,6 +24,7 @@ class MatrixColumn:
     label: str
     subject: str
     path: Path
+    price_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,7 @@ class XaiMatrixTemplate:
     models: tuple[tuple[str, str], ...]
     agent_products: tuple[str, ...] = ()
     unversioned_products: tuple[str, ...] = ()
+    text_cells: tuple[tuple[str, str], ...] = ()
 
 
 def document_sha256(text: str) -> str:
@@ -124,6 +127,7 @@ def read_matrix(template: XaiMatrixTemplate, text: str, *, subject: str, facet: 
     if set(row.label for row in template.rows) != approved_labels:
         raise TemplateDriftError("row has no reviewed interpretation")
     cells = {}
+    text_cells = dict(template.text_cells)
     for row in template.rows:
         if len(row.cells) != len(template.columns):
             raise TemplateDriftError("cell count differs from the recorded columns")
@@ -131,28 +135,62 @@ def read_matrix(template: XaiMatrixTemplate, text: str, *, subject: str, facet: 
         for path in row.cells:
             cell = _at(region, path)
             children = _children(cell)
+            literal = _text(cell)
+            if literal in text_cells and not any(node.tag == "svg" for node in cell.elements()):
+                values.append(text_cells[literal])
+                continue
             if len(children) != 1 or children[0].tag != "svg" or _text(cell):
                 raise TemplateDriftError("cell is not exactly one SVG glyph")
             digest = _dom_sha256(children[0])
             if digest not in glyphs:
                 raise TemplateDriftError("unknown cell glyph")
-            values.append(glyphs[digest])
+            values.append("included" if glyphs[digest] else "not included")
         cells[row.label] = values[column_index]
     if facet == "offering.subscription.models_covered":
-        value = ", ".join(model_id for label, model_id in template.models if cells[label])
+        value = ", ".join(model_id for label, model_id in template.models
+                          if cells[label] == "included")
         if not value:
             raise TemplateDriftError("no included canonical model")
     elif facet == "offering.subscription.programmatic_or_agent_use" and template.agent_products:
-        value = "; ".join(f"{label} {'included' if cells[label] else 'not included'}"
+        value = "; ".join(f"{label} {cells[label]}"
                           for label in template.agent_products)
+    elif facet in {"offering.subscription.price", "offering.subscription.billing_period"}:
+        price_path = template.columns[column_index].price_path
+        if price_path is None:
+            raise TemplateDriftError("column has no reviewed price cell")
+        price = re.fullmatch(r"\$([0-9]+(?:\.[0-9]+)?)/month", _text(_at(region, price_path)))
+        if price is None:
+            raise TemplateDriftError("price is not an exact monthly USD amount")
+        value = price.group(1) if facet.endswith(".price") else "monthly"
     else:
         raise TemplateDriftError("facet has no reviewed reading")
     return template.columns[column_index].subject, value
 
 
-# The 2026-10-18 consumer page has no Lite or Heavy column. No consumer template
-# is approved. The private retained Business page is the only production entry.
+# Reviewed private captures. Current plan identities never alias Lite or Heavy.
 XAI_MATRIX_TEMPLATES = (
+    XaiMatrixTemplate(
+        source_url="https://x.ai/pricing", region_id="page",
+        copy_sha256="bdf1848f0fe27294ccc7497f2016650cb32406e7252ccf191ab5d3b21d16ab21",
+        document_sha256="c6fac83303fe97d19fd186eaf53ba0b828074e67b4bd7d626ba5431f81113bd7",
+        region_sha256="a881126da00c7280c4a9b38810f75ee5e1db2c54cffc587034d2f204caee5708",
+        region_path=(0, 1, 5, 0, 1),
+        header_path=(0, 0), header_children=8, rows_path=(2,), rows_children=7,
+        columns=tuple(
+            MatrixColumn(label, f"xai/subscription/{plan}", (0, 0, i, 0, 0), (0, 0, i, 0, 1))
+            for i, (label, plan) in enumerate((
+                ("Free", "free"), ("Plus", "plus"), ("Premium", "premium"),
+                ("Super", "super"), ("Ultra", "ultra"), ("Teams", "teams"),
+                ("Enterprise", "enterprise"),
+            ), 1)
+        ),
+        rows=(MatrixRow("Grok Build", (2, 5, 0), tuple((2, 5, i) for i in range(1, 8))),
+              MatrixRow("Grok Bot", (2, 6, 0), tuple((2, 6, i) for i in range(1, 8)))),
+        glyphs=(("9964a387eb4c5a7031a444a18bd241e15acd858e5ae07b8a9882b6dbd3f654ee", True),
+                ("38e19557634105609fc861e56d5365a5deb57186a1f59064a3bf3111b1ac6efa", False)),
+        models=(), agent_products=("Grok Build", "Grok Bot"),
+        text_cells=(("Limited", "limited"),),
+    ),
     XaiMatrixTemplate(
         source_url="https://x.ai/grok/business", region_id="page",
         copy_sha256="c1dd2ba990de3cfaead12b59c01762964a2f1af53cfe714ee972106564cf67c1",
