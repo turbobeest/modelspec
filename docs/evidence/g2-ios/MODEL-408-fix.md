@@ -9,6 +9,7 @@ Final private data commit: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`,
 draft [data PR #96](https://github.com/turbobeest/modelspec-data/pull/96).
 The final engine evidence commit is reproducible with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-408-fix.md`.
+Engine draft: [PR #822](https://github.com/turbobeest/modelspec/pull/822).
 
 ## Result and limits
 
@@ -125,8 +126,19 @@ Web dependency installation, the web build and all 843 web tests exited 0.
 The test runner reported one skipped test file. Logs are in `web-build.txt.gz`
 and `web-tests.txt.gz`.
 
-The required full engine suite is queued under the shared lock. Its final
-result will be recorded here before executor completion.
+The required full engine suite ran under the shared lock against
+`cd862ae823084aca9220243bec78ad8dff49dbd3`, including the CI isolation fix.
+It passed 11,752 tests, with nine skips and 11 warnings, exit 0, in 1,412.41
+seconds (23 minutes 32 seconds). The complete output is retained in
+`full-suite.txt.gz`. The final engine commit changes only this evidence.
+The CI rerun against the same code commit,
+[39119100870](https://github.com/turbobeest/modelspec/actions/runs/39119100870),
+completed successfully: all four pytest shards, perf/collection, package
+smoke and the required `Run pytest` aggregate passed. `Build both sites`,
+all four decide-browser configurations, Worker and MCP checks, decision
+accuracy, chart evidence and data freeze also passed on that commit. The
+final evidence-only push may trigger another CI run; these recorded results
+belong to the unchanged code at `cd862ae823084aca9220243bec78ad8dff49dbd3`.
 The static-site build exited 0. Its retained log includes existing frozen-data
 source-registration warnings and the generated manifest, in `site-build.txt.gz`.
 
