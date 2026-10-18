@@ -88,8 +88,9 @@ of `PATH`; Python uses `/Users/terbeest/dev/modelspec/.venv/bin/python`.
 Exit codes were read directly from each process, never through a pipe.
 The final web/browser runs used runtime SHA `36a1dda13c6c8091dedd2fa13f067c363388976e`.
 Subsequent source changes only refreshed agent-copy expectations and shortened
-the generated guide to meet its existing startup budget. The final Python run
-and site composition use `5fb92b253863f436523016a2febfccded418f2a8`.
+the generated guide to meet its existing startup budget. Final site composition
+uses `5fb92b253863f436523016a2febfccded418f2a8`. The queued final Python run
+uses that same source and tests with the evidence-only commit `43055731` applied.
 
 | Check | Result |
 | --- | --- |

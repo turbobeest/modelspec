@@ -21,6 +21,7 @@ def test_both_decide_routes_are_composed_and_describe_their_own_page(tmp_path, p
         (real / name).write_text("<!doctype html><html><head></head><body></body></html>")
     (real / "api/build.json").write_text('{"built_at":"2026-10-17","export_schema_version":"3.0"}')
     (real / "_headers").write_text("/*\n")
+    (real / "sitemap.xml").write_text(live.sitemap(), encoding="utf-8")
     (src / "benchgraph").mkdir()
     (src / "benchgraph/_redirects").write_text("")
     (web / "assets").mkdir(parents=True)
