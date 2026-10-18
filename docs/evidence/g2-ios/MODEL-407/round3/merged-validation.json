@@ -1,0 +1,29 @@
+{
+  "tested_commit": "e7f422751aa49dcb8461863fd7f5cd7983208e82",
+  "source_diff_after_tests": [],
+  "source_diff_paths": [
+    "api",
+    "decision",
+    "pipeline",
+    "schema",
+    "tests"
+  ],
+  "working_directory": "/Users/terbeest/dev/worktrees/model-407",
+  "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "focused_command": "PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_snapshot_streaming.py tests/test_decision_snapshot.py tests/test_snapshot_successor.py tests/test_snapshot_successor_memory.py tests/test_snapshot_successor_vendor.py tests/test_snapshot_response_headers.py tests/test_dated_price_snapshot.py tests/test_decide_snapshot_refresh.py tests/test_hardware_fit_memory.py tests/test_hardware_fit_worker.py tests/test_worker_memory.py tests/test_ci_workflows.py tests/test_worker_compression.py tests/test_rank_worker.py tests/test_policy_check.py tests/test_policy_commercial_use.py tests/test_policy_shape.py tests/test_policy_store_state.py tests/test_model_comparison.py > tmp/model-407/round3/successor-merged/merged-focused.log 2>&1",
+  "focused_direct_exit_code": 0,
+  "focused_summary": "652 passed in 232.25s (0:03:52)",
+  "focused_artifact": "merged-focused.txt",
+  "timing_command": "/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-407/round3/profile_snapshot.py --variants baseline candidate --candidate-ref e7f422751aa49dcb8461863fd7f5cd7983208e82 --profile --out tmp/model-407/round3/successor-merged/merged-timing > tmp/model-407/round3/successor-merged/merged-timing.log 2>&1",
+  "timing_direct_exit_code": 0,
+  "timing_artifact": "merged-timing.json",
+  "candidate_best_ms": 14.526000013574958,
+  "baseline_best_ms": 82.54524995572865,
+  "unchanged_gate_ms": 100,
+  "source_sha256": {
+    "decision/json_stream.py": "64f5a32e1268daad6d1bd5b99870ed9ff4686bfa2e969bb96b268dd825c522b8",
+    "decision/snapshot.py": "50a76a2584b9a25f38367ab090785e428c611492a7581e601752ece6523de4f0",
+    "tests/test_model_comparison.py": "52d7f5c5928d88b68274b56ab596e9e94a74633cc56298a795e11e34cc584770",
+    "tests/test_snapshot_streaming.py": "ab20703587b94688776e2441d5e13943768cd8734a495251ac88763d148a44f3"
+  }
+}

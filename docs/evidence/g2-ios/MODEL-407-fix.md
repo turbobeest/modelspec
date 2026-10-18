@@ -7,16 +7,18 @@ Initial implementation SHA: `9bdc7ec7a8566bba47e7a5d332fe980a1dae0598`.
 Private follow-up began at `8df90ee01e6a10c08058ffef5966c16026aaae7d`.
 Round 2 executable implementation: `bb41f0f68cb90c0616263e4c4853c77ee3d916a4`.
 Round 3 executable implementation: `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`.
+Final merged executable implementation: `e7f422751aa49dcb8461863fd7f5cd7983208e82`.
 The final evidence commit is the branch HEAD printed in the execution marker.
 
-The private acceptance target passes for `f6dbbcd8` with data `74947c3`:
-**104.57322 MiB** with the successor loaded and **103.69368 MiB** after warm
-rollover. The unchanged 100 ms load gate measures **13.30 ms** locally, best
-of five with GC disabled. The 648 focused tests, both serial performance
-tests and non-performance collection pass. The Round 3 full suite passed
-under the shared lock: **11,654 passed, 9 skipped, 11 warnings**, direct exit 0.
-CI `pytest perf and collection` passes at `8a0009d4`;
-the separate Decision accuracy check also passes (1,301 deterministic tests).
+The private acceptance target passes for `e7f42275` with data `74947c3`:
+**103.50889 MiB** with the successor loaded and **104.61812 MiB** after warm
+rollover. The unchanged 100 ms load gate measures **14.53 ms** locally, best
+of five with GC disabled. The merged build passes 652 focused tests, 166
+generated-file/import checks, all three serial performance tests and collection
+of 11,851 non-performance tests. The merged full suite passes under the shared
+lock: **11,845 passed, 9 skipped, 11 warnings**, direct exit 0. CI's load-time,
+perf/collection and memory checks also pass on the merged source; detailed
+results are recorded in the revalidation section below.
 
 The deployment limit remains 120 MiB. The new public PR gate enforces 115 MiB
 and warns when retained memory increases by more than 1 MiB against the same
@@ -76,7 +78,8 @@ passed with **11,654 passed, 9 skipped, 11 warnings in 1,306.36 seconds
 (21 minutes 46 seconds)**, direct exit 0. The [complete terminal output](MODEL-407/round3/full-suite-final.txt)
 records branch HEAD `00a03dbbd837615d90cefee7d32d47e64c266da1`; its runtime
 source is identical to measured `f6dbbcd8`, and its tests match the green CI
-head `8a0009d4`. Subsequent changes record evidence only. [Decision accuracy also passes](MODEL-407/round3/ci-accuracy-final.txt)
+head `8a0009d4`. Commits `00a03dbb` and `7d105449` recorded evidence only,
+before the final main reconciliation described below. [Decision accuracy also passes](MODEL-407/round3/ci-accuracy-final.txt)
 at that PR head (run `39114952430`, job `117638749339`): 1,301 deterministic
 tests, 678 parity tests with one skip, and 227 web-adapter tests. The successful
 CI output confirms the unchanged assertion without printing its five samples.
@@ -94,6 +97,90 @@ GC-disabled lifetime cases. Final ruff, data-freeze and chart checks pass;
 the chart check has nothing to check. Source equality with the measured
 implementation and the empty private scratch directory were verified again.
 The full-suite process has exited.
+
+## Revalidation after the final main merge
+
+The final PR check found a conflict with main's newly landed MODEL-406
+generated-pin formatting. Merge `e7f422751aa49dcb8461863fd7f5cd7983208e82`
+incorporates main `6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49`.
+Running `python -m qa.contracts` resolved the sole conflicting file,
+`qa/fixtures/mcp-tools.json`, using main's formatter. Every JSON value matches
+the pre-merge fixture, including the OpenAPI digest for the restored snapshot
+health fields. The merge also includes main's model-comparison helper in the
+Worker bundle. `decision/json_stream.py` and `decision/snapshot.py` are
+byte-identical to the measured `f6dbbcd8` implementation.
+
+Fresh ordinary vendor builds and all six public/private probes pass the
+unchanged 115 MiB gate on the merged source. Private data remains pinned to
+`74947c3`. Each probe uses Pyodide 0.28.3, Node 22.22.3 and the existing request
+sequence; the warm probe first serves the current period before crossing the
+boundary. Every scenario allocates 59.875 MiB of Wasm.
+
+| Scenario | Public steady MiB | Private steady MiB |
+| --- | ---: | ---: |
+| Current | 104.49017 | 104.57450 |
+| Successor loaded | 104.48999 | 103.50889 |
+| Warm rollover | 104.53363 | 104.61812 |
+
+The highest private sample leaves **10.38 MiB** below 115 MiB. The largest
+public/private difference is 0.98 MiB; Wasm allocation is identical, and
+non-Wasm variation remains within the spread observed in prior runs. Only
+memory measurements and commit identifiers were exported from private
+scratch. The detached data worktree was removed and the scratch directory
+was verified empty after this final measurement.
+
+The [merged timing samples](MODEL-407/round3/merged-timing.json) are
+14.526, 15.524, 15.696, 15.089 and 15.827 ms with GC disabled; the best is
+14.526 ms. [Focused tests](MODEL-407/round3/merged-focused.txt) pass all
+652 cases in 232.25 seconds, including model comparison. The separate
+[generated-file and import checks](MODEL-407/round3/merged-pin-checks.txt)
+pass all 166 cases. The exact [serial performance command](MODEL-407/round3/merged-serial-perf.txt)
+passes all three tests in 172.15 seconds, including main's new generated-pin
+integration test. [Collection](MODEL-407/round3/merged-collection.txt) passes
+with 11,851 of 11,854 tests collected, three deselected, in 34.37 seconds.
+The [merged full suite](MODEL-407/round3/merged-full-suite.txt) passes under
+the required shared lock: **11,845 passed, 9 skipped, 11 warnings in
+1,384.42 seconds (23 minutes 4 seconds)**, direct process exit 0. Its HEAD and
+runtime source are `e7f422751aa49dcb8461863fd7f5cd7983208e82`; only evidence
+files changed while it ran. The process has exited.
+
+[All CI checks pass](MODEL-407/round3/merged-ci-status.json) at the merged
+head: all four pytest shards, perf and collection, Decision accuracy, Worker
+memory headroom, Rank Worker bundle, Build both sites, MCP, data freeze and
+chart checks. Deployment and automerge jobs are skipped. The PR is a draft
+and mergeable. Subsequent commits record evidence only; runtime and test
+files remain identical to this measured and CI-tested source.
+
+The [merged CI perf and collection log](MODEL-407/round3/ci-perf-merged.txt)
+records run `39120815087`, job `117655878891`: **3 passed, 11,851 deselected
+in 451.06 seconds** on CPython 3.11.17. That duration covers the full serial
+invocation, including main's generated-pin integration test. Collection and
+its artifact upload also pass; the collected count is redirected and is not
+printed in this CI log.
+
+[Merged Decision accuracy](MODEL-407/round3/ci-accuracy-merged.txt) passes
+at PR head `e7f42275`, run `39120815089`, job `117655878672`: 1,301
+deterministic tests, 678 Python parity tests with one skip, and 227 web parity
+tests. The deterministic run includes the unchanged snapshot-load gate on
+CPython 3.11.17. Its passing output does not print the individual load samples;
+the 14.53 ms figure above is the separate local measurement.
+
+[CI Worker memory headroom](MODEL-407/round3/ci-memory-merged.txt) passes at
+the merged PR head, run `39120815101`, job `117655878782`: **104.75488 MiB
+current and 104.75492 MiB successor**, with 59.875 MiB Wasm and the unchanged
+115 MiB limit. CI uses Node 22.23.3 and Pyodide 0.28.3. Its checkout is
+`28e70b4218584865a977bf34a495e0119a0936f0`, merging PR head `e7f42275`
+into its main ancestor `6f45c2a7`. Main's current comparison measures
+108.58595 MiB; its bundle has no successor, so only that unavailable main
+comparison is skipped. Both candidate gates run successfully.
+
+See the [merged public recipe](MODEL-407/round3/public-merged-commands.md),
+[private memory-only measurements](MODEL-407/round3/private-merged-memory-numbers.json)
+and [merged local validation metadata](MODEL-407/round3/merged-validation.json).
+The private recipe in [validation commands](MODEL-407/round3/validation-commands.md)
+was repeated with this merged SHA and `bundle-round3-merged` as the bundle path.
+The new ruff, data-freeze and chart checks also exit 0 against main `6f45c2a7`;
+the chart check has nothing to check.
 
 ## Red-first defects and corrections
 
@@ -149,6 +236,9 @@ runtime reports Python 3.13.2 and Pydantic 2.10.6.
 | Round 3 `f6dbbcd8`, current | 104.48933 | 59.875 | Exit 0 at 115 MiB |
 | Round 3 `f6dbbcd8`, successor | 104.51238 | 59.875 | Exit 0 at 115 MiB |
 | Round 3 `f6dbbcd8`, warm rollover | 104.53329 | 59.875 | Exit 0 at 115 MiB |
+| Merged `e7f42275`, current | 104.49017 | 59.875 | Exit 0 at 115 MiB |
+| Merged `e7f42275`, successor | 104.48999 | 59.875 | Exit 0 at 115 MiB |
+| Merged `e7f42275`, warm rollover | 104.53363 | 59.875 | Exit 0 at 115 MiB |
 
 The initial current-period implementation had 10.53 MiB of public headroom,
 but the successor-period check exposed a failure. The two baseline
@@ -194,6 +284,9 @@ target uses `74947c3` with this implementation.
 | Round 3 implementation, current | `f6dbbcd8` | `74947c3` | 109,652,912 | 104.57317 | 59.875 |
 | Round 3 implementation, successor | `f6dbbcd8` | `74947c3` | 109,652,968 | 104.57322 | 59.875 |
 | Round 3 implementation, warm rollover | `f6dbbcd8` | `74947c3` | 108,730,708 | 103.69368 | 59.875 |
+| Final merged implementation, current | `e7f42275` | `74947c3` | 109,654,314 | 104.57450 | 59.875 |
+| Final merged implementation, successor | `e7f42275` | `74947c3` | 108,536,937 | 103.50889 | 59.875 |
+| Final merged implementation, warm rollover | `e7f42275` | `74947c3` | 109,700,047 | 104.61812 | 59.875 |
 
 The historical four-cell runs exit successfully at the unchanged 120 MiB
 deployment gate. All three initial implementation runs fail the 115 MiB gate;
@@ -218,12 +311,14 @@ exporting those permitted measurements.
 
 The public and private runs allocate the same 59.875 MiB Wasm heap.
 Round 2 steady totals differ by less than 0.09 MiB in each matching scenario.
-Round 3 current and successor totals also differ by less than 0.09 MiB;
-the public warm result is 0.84 MiB higher than the private sample. This is
+Pre-merge Round 3 current and successor totals also differ by less than 0.09 MiB;
+that public warm result is 0.84 MiB higher than the private sample. This is
 within the observed V8 variation and conservatively represents private warm
-memory. The highest Round 3 private result leaves 10.43 MiB below 115 MiB.
-The [Round 3 private memory-only results](MODEL-407/round3/private-memory-numbers.json)
-record the latest samples.
+memory. The highest pre-merge Round 3 private result leaves 10.43 MiB below 115 MiB.
+The [pre-merge Round 3 results](MODEL-407/round3/private-memory-numbers.json)
+and [final merged results](MODEL-407/round3/private-merged-memory-numbers.json)
+retain only permitted memory measurements and commit identifiers. The final
+merged measurements and their public comparison are summarized above.
 The [private memory-only results](MODEL-407/private-memory-numbers.json) and
 public [current](MODEL-407/public-final-current.json),
 [successor](MODEL-407/public-final-successor.json), and
@@ -275,7 +370,8 @@ until a lazy successor could meet the memory budget. Merge commit
 implementation and regressions, while retaining main's removal of obsolete
 MODEL-402 evidence. `git diff --exit-code bb41f0f6 3cf60629 -- api decision
 pipeline schema` confirms that merge's executable source is identical to the
-Round 2 measured build. Round 3 changes only the reader as described above.
+Round 2 measured build. The Round 3 performance fix changes only the reader;
+the final merge additionally incorporates main as described above.
 
 The public workflow also handles main versions without a successor bundle:
 main's current baseline remains required; an explicit notice replaces only

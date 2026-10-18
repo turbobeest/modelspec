@@ -1,8 +1,11 @@
 # MODEL-407 Round 3 validation commands
 
-Run from `/Users/terbeest/dev/worktrees/model-407`. The executable implementation
-is `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`. Later evidence-only commits do
-not change the measured source. See the main report for final exit statuses.
+Run from `/Users/terbeest/dev/worktrees/model-407`. The original Round 3
+executable implementation is `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`.
+The final main reconciliation is `e7f422751aa49dcb8461863fd7f5cd7983208e82`.
+Its reader and snapshot loader match the original fix; fresh public/private
+bundles, focused checks, timing and integration checks verify the merged
+source. See the main report and `merged-*` artifacts for those results.
 The installed host Python is 3.14.4; Node is 22.22.3 and Pyodide is 0.28.3.
 
 ```sh
@@ -31,18 +34,20 @@ vendor builds to remove their temporary repository overlays before running
 unscoped collection. The public reproduction recipe uses a hidden temporary
 directory to prevent discovery of those transient links.
 
-The full suite completed at branch HEAD
+The pre-merge full suite completed at branch HEAD
 `00a03dbbd837615d90cefee7d32d47e64c266da1`: 11,654 passed, 9 skipped and
-11 warnings in 1,306.36 seconds, direct exit 0. Final checks below also exited 0;
-the chart check had nothing to check. The source comparison checks runtime
-directories; the nested-object test correction is in `8a0009d4`.
+11 warnings in 1,306.36 seconds, direct exit 0. The final merged full-suite
+result is recorded at the end of this file. The merged checks below also
+exit 0; the chart check has nothing to check. The source comparison checks
+runtime and test directories against the final measured merge. The
+nested-object test correction is in `8a0009d4`.
 
 ```sh
 "$MODEL407_PYTHON" -m ruff check decision/json_stream.py tests/test_snapshot_streaming.py
 "$MODEL407_PYTHON" scripts/data_freeze_guard.py \
-  --base 34c6dbef --head HEAD --branch model-407-worker-memory
-"$MODEL407_PYTHON" scripts/chart_check_pr.py --base 34c6dbef
-git diff --exit-code f6dbbcd8 HEAD -- api decision pipeline schema registry hardware mcp web
+  --base 6f45c2a7 --head HEAD --branch model-407-worker-memory
+"$MODEL407_PYTHON" scripts/chart_check_pr.py --base 6f45c2a7
+git diff --exit-code e7f42275 HEAD -- api decision pipeline schema registry hardware mcp web tests qa cli .github scripts
 git diff --check
 ```
 
@@ -111,3 +116,21 @@ Only whitelisted memory numbers and engine/data commit SHAs were exported to
 `private-memory-numbers.json`. The detached data worktree was removed using
 `git worktree remove`, then every remaining scratch child was deleted with a
 path-guarded Python cleanup. The scratch directory was verified empty.
+
+The final private run repeated this recipe at merge commit
+`e7f422751aa49dcb8461863fd7f5cd7983208e82`, using
+`/tmp/model-407-private/bundle-round3-merged` in place of
+`bundle-round3-final`. Vendor and all three probes returned direct exit 0.
+Only the whitelisted memory fields and engine/data commit identifiers were
+exported to `private-merged-memory-numbers.json`; the detached data worktree
+and every scratch child were removed afterward. No generated source was
+patched in either final run.
+
+The final locked full-suite rerun used the same command above at HEAD
+`e7f422751aa49dcb8461863fd7f5cd7983208e82`. It finished with direct process
+exit 0: **11,845 passed, 9 skipped, 11 warnings in 1,384.42 seconds
+(23 minutes 4 seconds)**. Its complete output is in `merged-full-suite.txt`.
+The merged focused command adds `tests/test_model_comparison.py` to the
+original list; `merged-validation.json` records that exact command and the
+652 passing tests. The exact serial perf and collection commands are unchanged
+and pass three performance tests and collection of 11,851 non-performance tests.

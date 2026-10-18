@@ -88,13 +88,13 @@ public check missed. Both periods now run as separate 115 MiB gates. Each
 compares with its matching period on main when that period exists. A separate warm-rollover
 measurement also serves the current period before crossing the boundary.
 
-The final implementation `f6dbbcd8` measures 104.48933 MiB current,
-104.51238 MiB with the successor loaded, and 104.53329 MiB on warm rollover
+The final merged implementation `e7f42275` measures 104.49017 MiB current,
+104.48999 MiB with the successor loaded, and 104.53363 MiB on warm rollover
 for this public recipe. With private data `74947c3`, the corresponding totals
-are 104.57317, 104.57322 and 103.69368 MiB. Every scenario uses 59.875 MiB
-of Wasm memory. Current and successor steady differences are below 0.09 MiB.
-The public warm sample is 0.84 MiB above the private sample, within the
-observed V8 variation and conservative for the private target. Together,
+are 104.57450, 103.50889 and 104.61812 MiB. Every scenario uses 59.875 MiB
+of Wasm memory. Current and warm steady differences are below 0.09 MiB.
+The public successor sample is 0.98 MiB above the private sample; all three
+differences remain within the non-Wasm spread observed across runs. Together,
 these measurements calibrate the fixture without publishing private rows or
 structural counts. The private scratch directory is empty after measurement.
 
