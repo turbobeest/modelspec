@@ -815,26 +815,40 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
                                fields=sorted(missing))
         catalogue = [by_id[m] for m in request["models"]]
 
-    rows: list[dict[str, Any]] = []
-    for model in sorted(catalogue, key=lambda m: m["model_id"]):
-        for platform in _platforms_for(model, request["platforms"]):
-            rows.append(evaluate(model, platform, constraints, store, unbounded, entitled))
-
     verdict_counts = {v: 0 for v in VERDICTS}
     tallies = {name: _blank_tally() for name in constraints}
     models_by_verdict: dict[str, set[str]] = {v: set() for v in VERDICTS}
+    models_checked: set[str] = set()
     tier_blocked = 0
-    for row in rows:
-        verdict_counts[row["verdict"]] += 1
-        models_by_verdict[row["verdict"]].add(row["model_id"])
-        for c in row["checks"]:
-            tallies[c["constraint"]][c["state"]] += 1
-            if c["state"] == "undetermined" and c["undetermined"]["why"] == "tier":
-                tier_blocked += 1
+    matching_rows = 0
+    page: list[dict[str, Any]] = []
+    offenders: list[dict[str, Any]] = []
+    read_dates: dict[str, set[str]] = {}
+    for model in sorted(catalogue, key=lambda m: m["model_id"]):
+        for platform in _platforms_for(model, request["platforms"]):
+            row = evaluate(model, platform, constraints, store, unbounded, entitled)
+            verdict_counts[row["verdict"]] += 1
+            models_by_verdict[row["verdict"]].add(row["model_id"])
+            models_checked.add(row["model_id"])
+            for c in row["checks"]:
+                tallies[c["constraint"]][c["state"]] += 1
+                if c["state"] == "undetermined" and c["undetermined"]["why"] == "tier":
+                    tier_blocked += 1
+            if (request["require_no_undetermined"] and row["verdict"] == "undetermined"
+                    and len(offenders) < 10):
+                offenders.append(row)
+            if row["verdict"] in request["verdicts"]:
+                if request["offset"] <= matching_rows < request["offset"] + request["limit"]:
+                    page.append(row)
+                matching_rows += 1
+            for constraint, dates in _read_dates([row]).items():
+                read_dates.setdefault(constraint, set()).update(dates)
+    row_count = sum(verdict_counts.values())
+    provenance_dates = {name: sorted(dates) for name, dates in sorted(read_dates.items())}
 
     summary = {
-        "models_checked": len({r["model_id"] for r in rows}),
-        "rows": len(rows),
+        "models_checked": len(models_checked),
+        "rows": row_count,
         "verdicts": verdict_counts,
         # Counted over models, not rows: "47 models pass somewhere" and "47
         # models pass everywhere" are different facts and a per-platform product
@@ -855,13 +869,12 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
     }
 
     if request["require_no_undetermined"] and verdict_counts["undetermined"]:
-        offenders = [r for r in rows if r["verdict"] == "undetermined"]
         return HTTP_UNDETERMINED_PRESENT, {
             **common,
             "error": {
                 "code": "undetermined_present",
                 "message": (
-                    f"{verdict_counts['undetermined']} of {len(rows)} (model, platform) "
+                    f"{verdict_counts['undetermined']} of {row_count} (model, platform) "
                     "rows are undetermined, and the request required none. No verdict "
                     "was inferred for them and none will be."),
                 "undetermined_rows": verdict_counts["undetermined"],
@@ -874,18 +887,16 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
                     if not entitled else
                     "narrow the request with `models` or `platforms`, or drop "
                     "`require_no_undetermined`"),
-                "examples": offenders[:10],
+                "examples": offenders,
             },
-            "provenance": {"determination_read_dates": _read_dates(rows)},
+            "provenance": {"determination_read_dates": provenance_dates},
             "result": [],
         }
 
-    shown = [r for r in rows if r["verdict"] in request["verdicts"]]
-    page = shown[request["offset"]:request["offset"] + request["limit"]]
     return HTTP_OK, {
         **common,
         "provenance": {
-            "determination_read_dates": _read_dates(rows),
+            "determination_read_dates": provenance_dates,
             "determinations_generated_on": (store.get("generated_on") if entitled else None),
         },
         "page": {
@@ -894,8 +905,8 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
             # `summary` always describes the whole catalogue. Only the rows are
             # paged, and the response says so rather than letting a caller read
             # a page as the answer.
-            "matching_rows": len(shown),
-            "truncated": request["offset"] + len(page) < len(shown),
+            "matching_rows": matching_rows,
+            "truncated": request["offset"] + len(page) < matching_rows,
             "verdicts_shown": request["verdicts"],
         },
         "result": page,

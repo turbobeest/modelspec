@@ -1,0 +1,3 @@
+Loading annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+Loaded annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+{"runtime":"Pyodide 0.28.3","before_bytes":30212096,"peak_bytes":109854091,"peak_mib":104.76502513885498,"wasm_peak_bytes":62783488,"wasm_peak_mib":59.875,"steady_bytes":109417643,"steady_mib":104.3487958908081,"live_non_wasm_bytes":46634155,"wasm_bytes":62783488,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":125829120,"peak_warning_bytes":117440512}

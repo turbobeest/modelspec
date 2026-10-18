@@ -1,0 +1,107 @@
+{
+  "hardware_fit_version": "2.0",
+  "endpoint": "hardware-fit",
+  "snapshot": "snap_golden_hardware_fit_2_0",
+  "request": {
+    "model": "lab/hardware-model",
+    "sku": "fixture_gpu",
+    "device_count": 1,
+    "runtime": "fixture-runtime@1",
+    "quantisation": "fixture-q4",
+    "batch": 2,
+    "context": 1024
+  },
+  "sources": [
+    {
+      "id": "hardware-spec",
+      "url": "https://hardware.example/spec"
+    },
+    {
+      "id": "run-source",
+      "url": "https://runtime.example/retained-run"
+    },
+    {
+      "id": "src-lab-docs",
+      "url": "https://lab.example.com/docs/models"
+    }
+  ],
+  "status": "estimated",
+  "estimated_fit": "unlikely",
+  "basis": "lower_bound",
+  "margin_bytes": -33704800000,
+  "formula": "For each device: kv_cache_bytes = kv_bytes_per_token * batch * context; lower_bound_bytes = weights_bytes + kv_cache_bytes; margin_bytes = capacity_bytes - lower_bound_bytes. estimated_fit = unlikely if any margin_bytes < 0; otherwise undetermined without runtime headroom.",
+  "record_id": "hardware-fit:fixture",
+  "observed_at": "2026-09-20",
+  "verification": {
+    "collector": {
+      "agent": "collector-a",
+      "method": "read",
+      "model_family": "family-a"
+    },
+    "date": "2026-09-20",
+    "diff": null,
+    "method": "re-read the cited region",
+    "outcome": "verified",
+    "target": {
+      "id": "hardware-fit:fixture",
+      "kind": "fact",
+      "value_hash": "sha256:4e4acdc264b7bcf67504ce4fb6bda33343729d56db17ce1043bd241fb0cf8deb"
+    },
+    "verifier": {
+      "agent": "verifier-b",
+      "method": "re-read",
+      "model_family": "family-b"
+    }
+  },
+  "capacity_bytes": {
+    "value": 32000000000,
+    "provenance": "sourced",
+    "record_id": "hardware:fixture_gpu#memory",
+    "source_ids": [
+      "hardware-spec"
+    ],
+    "observed_at": "2026-09-20"
+  },
+  "model_context_max": {
+    "value": 8192,
+    "record_id": "lab/hardware-model#model.context_window",
+    "source_ids": [
+      "src-lab-docs"
+    ],
+    "provenance": "sourced",
+    "observed_at": "2026-09-20"
+  },
+  "per_device": [
+    {
+      "kv_bytes_per_token": {
+        "record_id": "hardware-input:kv",
+        "source_ids": [
+          "run-source"
+        ],
+        "value": 100000
+      },
+      "weights_bytes": {
+        "record_id": "hardware-input:weights",
+        "source_ids": [
+          "run-source"
+        ],
+        "value": 65500000000
+      },
+      "device": 0,
+      "kv_cache_bytes": 204800000,
+      "runtime_headroom_bytes": {
+        "status": "not_required",
+        "reason": "Runtime headroom is not required to establish this lower bound."
+      },
+      "lower_bound_bytes": 65704800000,
+      "margin_bytes": -33704800000
+    }
+  ],
+  "assumptions": [
+    "This is an estimate; runtime execution and successful fit have not been established.",
+    "Every device uses the cited allocation for this exact runtime, quantisation, batch and context.",
+    "Device memory is evaluated separately and is never pooled.",
+    "Batch and context are caller inputs; KV allocation scales as batch times context using the cited per-token value.",
+    "The lower bound excludes runtime headroom on every device; omitted headroom is not zero."
+  ]
+}

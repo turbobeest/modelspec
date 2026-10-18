@@ -1,0 +1,115 @@
+{
+  "runtime": {
+    "node": "22.22.3",
+    "pyodide": "0.28.3",
+    "python_in_pyodide": "3.13.2",
+    "pydantic_in_pyodide": "2.10.6"
+  },
+  "private_data_refs": {
+    "without_data93": "fd3145c",
+    "data93": "74947c3"
+  },
+  "engine_refs": {
+    "without_successor": "7908f238",
+    "with_eager_successor": "b4a7074f"
+  },
+  "structural_calibration": {
+    "public": {
+      "source_count": 515,
+      "url_characters": 52114,
+      "cited_regions": 534
+    },
+    "synthetic_recipe": {
+      "source_count_added": 267,
+      "url_characters_added": 24297,
+      "extra_cited_regions": 6,
+      "hardware_records": 15,
+      "sources_per_record": 54
+    }
+  },
+  "observed_initial_fixture_defect": {
+    "hardware_fit_rows_in_built_snapshot": 0,
+    "reason": "qwen/qwen3-8b not in production premier list",
+    "corrected_model": "google/gemma-4-31b-it"
+  },
+  "probe_budget_exit_proof": {
+    "old_probe_exit": 0,
+    "old_measured_mib": 104.3487958908081,
+    "new_probe_exit": 1,
+    "new_measured_mib": 103.36360740661621,
+    "limit_mib": 1,
+    "bundle": "initial valid public bundle; not final workload calibration"
+  },
+  "not_observed": [
+    "No production deployment or paid-provider call."
+  ],
+  "final_implementation": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
+  "final_private_memory": [
+    {
+      "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
+      "data": "74947c3",
+      "period": "current",
+      "exit_code": 0,
+      "steady_bytes": 109651736,
+      "steady_mib": 104.5720443725586,
+      "wasm_bytes": 62783488,
+      "attribution": {
+        "snapshots": [
+          {
+            "snapshot_index_bytes": 4044223,
+            "provenance_table_bytes": 2367442,
+            "verification_value_bytes": 333885,
+            "sources_bytes": 70449,
+            "hardware_fit_bytes": 8,
+            "hardware_provenance_bytes": 51644
+          }
+        ],
+        "vocabulary_bytes": 636274
+      }
+    },
+    {
+      "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
+      "data": "74947c3",
+      "period": "successor",
+      "exit_code": 0,
+      "steady_bytes": 109652504,
+      "steady_mib": 104.5727767944336,
+      "wasm_bytes": 62783488,
+      "attribution": {
+        "snapshots": [
+          {
+            "snapshot_index_bytes": 4044062,
+            "provenance_table_bytes": 2367281,
+            "verification_value_bytes": 333805,
+            "sources_bytes": 70449,
+            "hardware_fit_bytes": 8,
+            "hardware_provenance_bytes": 51644
+          }
+        ],
+        "vocabulary_bytes": 636274
+      }
+    },
+    {
+      "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
+      "data": "74947c3",
+      "period": "warm",
+      "exit_code": 0,
+      "steady_bytes": 109698653,
+      "steady_mib": 104.61678791046143,
+      "wasm_bytes": 62783488,
+      "attribution": {
+        "snapshots": [
+          {
+            "snapshot_index_bytes": 4044062,
+            "provenance_table_bytes": 2367281,
+            "verification_value_bytes": 333805,
+            "sources_bytes": 70449,
+            "hardware_fit_bytes": 8,
+            "hardware_provenance_bytes": 51644
+          }
+        ],
+        "vocabulary_bytes": 636274
+      }
+    }
+  ]
+}

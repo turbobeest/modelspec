@@ -64,6 +64,10 @@ class SnapshotRefusalError(ValueError):
     """The published snapshot cannot be trusted and must not answer a request."""
 
 
+class SnapshotValidityError(SnapshotRefusalError):
+    """No held price period covers the current UTC date."""
+
+
 class SnapshotMissingError(RuntimeError):
     """The static site has not published a decision snapshot yet."""
 
@@ -143,9 +147,16 @@ class SnapshotHolder:
                  forced_interval: float = FORCED_REVALIDATE_SECONDS,
                  sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
                  today: Callable[[], date] | None = None,
-                 bundled_snapshot=None):
+                 bundled_snapshot=None, bundled_successor=None,
+                 load_successor: Callable[[bytes | str], Any] | None = None):
         self._fetch = fetch
         self._bundled_snapshot = bundled_snapshot
+        self._bundled_successor = bundled_successor
+        self._bundled = bundled_snapshot is not None
+        self._load_successor = load_successor
+        self._successor_loaded = False
+        self._bundle_error: str | None = None
+        self._bundle_verified = False
         self._clock = clock
         self._today = today or (lambda: datetime.now(UTC).date())
         self._sleep = sleep
@@ -169,6 +180,23 @@ class SnapshotHolder:
             headers[STALE_HEADER] = self._stale
         return headers
 
+    def health(self) -> dict[str, Any]:
+        """Public metadata after ``current()`` has selected and authenticated."""
+        snapshot = self.snapshot
+        if snapshot is not None:
+            try:
+                self._current_snapshot(snapshot)
+            except SnapshotValidityError:
+                snapshot = None
+        successor = self._bundled_successor if self._bundle_verified else None
+        return {
+            "id": snapshot.snapshot_id if snapshot is not None else None,
+            "valid_until": (snapshot.valid_until.isoformat()
+                            if snapshot is not None and snapshot.valid_until is not None else None),
+            "successor_held": successor is not None,
+            "successor_valid_from": successor.get("valid_from") if successor is not None else None,
+        }
+
     def _due(self, force: bool) -> bool:
         if self._checked_at is None:
             return True
@@ -182,27 +210,60 @@ class SnapshotHolder:
         try:
             snapshot.require_current(self._today())
         except SnapshotError as exc:
-            raise SnapshotRefusalError(str(exc)) from None
+            raise SnapshotValidityError(str(exc)) from None
         return snapshot
 
     async def current(self, key: bytes | str | None, *, force: bool = False,
                       timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
-        if self._bundled_snapshot is not None:
-            if self._held is None:
+        if self._bundled:
+            if not self._bundle_verified:
                 if key is None or key == "" or key == b"":
                     raise SnapshotRefusalError(
                         "the decision snapshot verification key is not configured")
-                snapshot = self._bundled_snapshot
                 try:
-                    verify_hmac_signature(snapshot.content_hash, snapshot.publisher_signature,
-                                          key, source="bundled decision snapshot")
+                    verify_hmac_signature(
+                        self._bundled_snapshot.content_hash,
+                        self._bundled_snapshot.publisher_signature,
+                        key, source="bundled decision snapshot")
+                    if self._bundled_successor is not None:
+                        verify_hmac_signature(
+                            self._bundled_successor["content_hash"],
+                            self._bundled_successor["signature"],
+                            key, source="bundled decision successor")
                 except SnapshotIntegrityError as exc:
                     raise SnapshotRefusalError(str(exc)) from None
-                snapshot.signature_verified = True
-                snapshot.signature_status = "verified (hmac-sha256)"
+                self._bundled_snapshot.signature_verified = True
+                self._bundled_snapshot.signature_status = "verified (hmac-sha256)"
+                self._bundle_verified = True
+            if self._bundle_error is not None:
+                raise SnapshotRefusalError(self._bundle_error)
+            today = self._today()
+            try:
+                self._bundled_snapshot.require_current(today)
+            except SnapshotError as exc:
+                unavailable = str(exc)
+            else:
+                self._held = _Held(self._bundled_snapshot, None, "")
+                return self._bundled_snapshot
+            self._held = None
+            successor = self._bundled_successor
+            if (successor is not None and not self._successor_loaded
+                    and self._load_successor is not None
+                    and successor.get("valid_from") is not None
+                    and today >= date.fromisoformat(successor["valid_from"])):
+                # The expired index must be collectible before parsing its replacement.
+                self._bundled_snapshot = None
+                try:
+                    self._bundled_snapshot = self._load_successor(key)
+                except Exception as exc:  # noqa: BLE001 - an immutable bundle cannot recover
+                    self._bundle_error = str(exc)
+                    raise SnapshotRefusalError(self._bundle_error) from None
+                self._successor_loaded = True
+                snapshot = self._current_snapshot(self._bundled_snapshot)
                 self._held = _Held(snapshot, None, "")
-            return self._current_snapshot(self._held.snapshot)
+                return snapshot
+            raise SnapshotValidityError(unavailable)
         load = self._load
         if self._live(load):
             if self._held is not None and not force:

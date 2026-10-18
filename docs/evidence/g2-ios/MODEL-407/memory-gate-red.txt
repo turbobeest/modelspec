@@ -1,0 +1,140 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_____ test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above ______
+
+    def test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above():
+>       assert assess(115)["passed"] is True
+               ^^^^^^^^^^^
+
+tests/test_worker_memory.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+steady_mib = 115, baseline_mib = None
+
+    def assess(steady_mib: float, *, baseline_mib: float | None = None) -> dict:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("Node is required for the Worker memory probe")
+        program = """
+    const { assessMemory } = require('./api/worker/measure_memory.cjs');
+    const [steady, baseline] = JSON.parse(process.argv[1]);
+    console.log(JSON.stringify(assessMemory(
+      {steady_bytes: steady * 1048576},
+      {limitMiB: 115, baseline: baseline === null ? null : {steady_bytes: baseline * 1048576}}
+    )));
+    """
+        result = subprocess.run([node, "-e", program, json.dumps([steady_mib, baseline_mib])],
+                                cwd=ROOT, text=True, capture_output=True)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: node:internal/modules/cjs/loader:1433
+E           throw err;
+E           ^
+E
+E         Error: Cannot find module 'pyodide'
+E         Require stack:
+E         - /Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs
+E         - /Users/terbeest/dev/worktrees/model-407/[eval]
+E             at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+E             at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+E             at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+E             at Function._load (node:internal/modules/cjs/loader:1216:25)
+E             at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+E             at Module.require (node:internal/modules/cjs/loader:1527:12)
+E             at require (node:internal/modules/helpers:147:16)
+E             at Object.<anonymous> (/Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs:9:25)
+E             at Module._compile (node:internal/modules/cjs/loader:1781:14)
+E             at Object..js (node:internal/modules/cjs/loader:1913:10) {
+E           code: 'MODULE_NOT_FOUND',
+E           requireStack: [
+E             '/Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs',
+E             '/Users/terbeest/dev/worktrees/model-407/[eval]'
+E           ]
+E         }
+E
+E         Node.js v22.22.3
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node', '-e', "\nconst { assessMemory } = requi...7/api/worker/measure_memory.cjs',\n    '/Users/terbeest/dev/worktrees/model-407/[eval]'\n  ]\n}\n\nNode.js v22.22.3\n").returncode
+
+tests/test_worker_memory.py:30: AssertionError
+_________ test_memory_gate_warns_only_above_one_mib_increase_from_main _________
+
+    def test_memory_gate_warns_only_above_one_mib_increase_from_main():
+>       assert assess(111, baseline_mib=110)["warnings"] == []
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_worker_memory.py:40:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+steady_mib = 111, baseline_mib = 110
+
+    def assess(steady_mib: float, *, baseline_mib: float | None = None) -> dict:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("Node is required for the Worker memory probe")
+        program = """
+    const { assessMemory } = require('./api/worker/measure_memory.cjs');
+    const [steady, baseline] = JSON.parse(process.argv[1]);
+    console.log(JSON.stringify(assessMemory(
+      {steady_bytes: steady * 1048576},
+      {limitMiB: 115, baseline: baseline === null ? null : {steady_bytes: baseline * 1048576}}
+    )));
+    """
+        result = subprocess.run([node, "-e", program, json.dumps([steady_mib, baseline_mib])],
+                                cwd=ROOT, text=True, capture_output=True)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: node:internal/modules/cjs/loader:1433
+E           throw err;
+E           ^
+E
+E         Error: Cannot find module 'pyodide'
+E         Require stack:
+E         - /Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs
+E         - /Users/terbeest/dev/worktrees/model-407/[eval]
+E             at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+E             at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+E             at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+E             at Function._load (node:internal/modules/cjs/loader:1216:25)
+E             at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+E             at Module.require (node:internal/modules/cjs/loader:1527:12)
+E             at require (node:internal/modules/helpers:147:16)
+E             at Object.<anonymous> (/Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs:9:25)
+E             at Module._compile (node:internal/modules/cjs/loader:1781:14)
+E             at Object..js (node:internal/modules/cjs/loader:1913:10) {
+E           code: 'MODULE_NOT_FOUND',
+E           requireStack: [
+E             '/Users/terbeest/dev/worktrees/model-407/api/worker/measure_memory.cjs',
+E             '/Users/terbeest/dev/worktrees/model-407/[eval]'
+E           ]
+E         }
+E
+E         Node.js v22.22.3
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node', '-e', "\nconst { assessMemory } = requi...7/api/worker/measure_memory.cjs',\n    '/Users/terbeest/dev/worktrees/model-407/[eval]'\n  ]\n}\n\nNode.js v22.22.3\n").returncode
+
+tests/test_worker_memory.py:30: AssertionError
+________ test_public_fixture_builds_admitted_synthetic_hardware_records ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-975/test_public_fixture_builds_adm0')
+
+    def test_public_fixture_builds_admitted_synthetic_hardware_records(tmp_path):
+>       from api.worker.memory_fixture import materialize
+E       ModuleNotFoundError: No module named 'api.worker.memory_fixture'
+
+tests/test_worker_memory.py:46: ModuleNotFoundError
+________ test_public_memory_workflow_gates_and_compares_the_main_bundle ________
+
+    def test_public_memory_workflow_gates_and_compares_the_main_bundle():
+        workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
+>       job = workflow["jobs"]["memory"]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'memory'
+
+tests/test_worker_memory.py:65: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_worker_memory.py::test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above
+FAILED tests/test_worker_memory.py::test_memory_gate_warns_only_above_one_mib_increase_from_main
+FAILED tests/test_worker_memory.py::test_public_fixture_builds_admitted_synthetic_hardware_records
+FAILED tests/test_worker_memory.py::test_public_memory_workflow_gates_and_compares_the_main_bundle
+4 failed in 0.11s

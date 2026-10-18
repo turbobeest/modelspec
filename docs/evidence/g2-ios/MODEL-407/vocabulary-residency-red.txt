@@ -1,0 +1,218 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary[] _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ac23230>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+query = ''
+
+    @pytest.mark.parametrize("query", ["", "?section=facets&detail=full"])
+    def test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary(
+        entry, monkeypatch, utc_clock, signed_pair, query,
+    ):
+        class TrackedDict(dict):
+            pass
+    
+        utc_clock[0][0] = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC)
+        worker, module, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        module._bundled_vocabulary = TrackedDict(module._bundled_vocabulary)
+        module._bundled_vocabulary["facets"][0] = TrackedDict(
+            module._bundled_vocabulary["facets"][0])
+        expected_body = request(worker, "/v1/vocabulary" + query).body
+        holder = module._decision_holder(worker.env.EXPORT_ORIGIN)
+        previous_id = holder.snapshot.snapshot_id
+        previous = weakref.ref(holder.snapshot)
+        vocabulary = weakref.ref(module._bundled_vocabulary)
+        facet = weakref.ref(module._bundled_vocabulary["facets"][0])
+        read = bundle.read
+        released_at_load = []
+    
+        def check_release(path):
+            if path == SUCCESSOR_PATH:
+                gc.collect()
+                released_at_load.append((previous() is None, vocabulary() is None, facet() is None))
+            return read(path)
+    
+        bundle.read = check_release
+    
+        async def interleave():
+            reached, release = asyncio.Event(), asyncio.Event()
+    
+            async def pause_metering(*args):
+                reached.set()
+                await release.wait()
+                return None
+    
+            monkeypatch.setattr(worker, "_meter_catalog_read", pause_metering)
+            headers = {"Authorization": "Bearer " + API_KEY}
+            pending = asyncio.create_task(worker.fetch(_Req(
+                "/v1/vocabulary" + query, {}, method="GET", headers=headers)))
+            try:
+                await reached.wait()
+                utc_clock[0][0] = BOUNDARY
+                newer = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+                assert newer.status == 200, newer.json()
+                assert newer.json()["snapshot"] != previous_id
+                assert released_at_load == [(True, True, True)]
+                assert previous() is None
+            finally:
+                release.set()
+                before = await pending
+            assert before.status == 200, before.json()
+            assert before.body == expected_body
+    
+>       asyncio.run(asyncio.wait_for(interleave(), timeout=5))
+
+tests/test_snapshot_successor_memory.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:204: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:127: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:488: in wait_for
+    return await fut
+           ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def interleave():
+        reached, release = asyncio.Event(), asyncio.Event()
+    
+        async def pause_metering(*args):
+            reached.set()
+            await release.wait()
+            return None
+    
+        monkeypatch.setattr(worker, "_meter_catalog_read", pause_metering)
+        headers = {"Authorization": "Bearer " + API_KEY}
+        pending = asyncio.create_task(worker.fetch(_Req(
+            "/v1/vocabulary" + query, {}, method="GET", headers=headers)))
+        try:
+            await reached.wait()
+            utc_clock[0][0] = BOUNDARY
+            newer = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+            assert newer.status == 200, newer.json()
+            assert newer.json()["snapshot"] != previous_id
+>           assert released_at_load == [(True, True, True)]
+E           assert [(False, False, False)] == [(True, True, True)]
+E             
+E             At index 0 diff: (False, False, False) != (True, True, True)
+E             Use -v to get more diff
+
+tests/test_snapshot_successor_memory.py:154: AssertionError
+_ test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary[?section=facets&detail=full] _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ac23490>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+query = '?section=facets&detail=full'
+
+    @pytest.mark.parametrize("query", ["", "?section=facets&detail=full"])
+    def test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary(
+        entry, monkeypatch, utc_clock, signed_pair, query,
+    ):
+        class TrackedDict(dict):
+            pass
+    
+        utc_clock[0][0] = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC)
+        worker, module, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        module._bundled_vocabulary = TrackedDict(module._bundled_vocabulary)
+        module._bundled_vocabulary["facets"][0] = TrackedDict(
+            module._bundled_vocabulary["facets"][0])
+        expected_body = request(worker, "/v1/vocabulary" + query).body
+        holder = module._decision_holder(worker.env.EXPORT_ORIGIN)
+        previous_id = holder.snapshot.snapshot_id
+        previous = weakref.ref(holder.snapshot)
+        vocabulary = weakref.ref(module._bundled_vocabulary)
+        facet = weakref.ref(module._bundled_vocabulary["facets"][0])
+        read = bundle.read
+        released_at_load = []
+    
+        def check_release(path):
+            if path == SUCCESSOR_PATH:
+                gc.collect()
+                released_at_load.append((previous() is None, vocabulary() is None, facet() is None))
+            return read(path)
+    
+        bundle.read = check_release
+    
+        async def interleave():
+            reached, release = asyncio.Event(), asyncio.Event()
+    
+            async def pause_metering(*args):
+                reached.set()
+                await release.wait()
+                return None
+    
+            monkeypatch.setattr(worker, "_meter_catalog_read", pause_metering)
+            headers = {"Authorization": "Bearer " + API_KEY}
+            pending = asyncio.create_task(worker.fetch(_Req(
+                "/v1/vocabulary" + query, {}, method="GET", headers=headers)))
+            try:
+                await reached.wait()
+                utc_clock[0][0] = BOUNDARY
+                newer = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+                assert newer.status == 200, newer.json()
+                assert newer.json()["snapshot"] != previous_id
+                assert released_at_load == [(True, True, True)]
+                assert previous() is None
+            finally:
+                release.set()
+                before = await pending
+            assert before.status == 200, before.json()
+            assert before.body == expected_body
+    
+>       asyncio.run(asyncio.wait_for(interleave(), timeout=5))
+
+tests/test_snapshot_successor_memory.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:204: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py:127: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/tasks.py:488: in wait_for
+    return await fut
+           ^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def interleave():
+        reached, release = asyncio.Event(), asyncio.Event()
+    
+        async def pause_metering(*args):
+            reached.set()
+            await release.wait()
+            return None
+    
+        monkeypatch.setattr(worker, "_meter_catalog_read", pause_metering)
+        headers = {"Authorization": "Bearer " + API_KEY}
+        pending = asyncio.create_task(worker.fetch(_Req(
+            "/v1/vocabulary" + query, {}, method="GET", headers=headers)))
+        try:
+            await reached.wait()
+            utc_clock[0][0] = BOUNDARY
+            newer = await worker.fetch(_Req("/v1/decide", SPEC, headers=headers))
+            assert newer.status == 200, newer.json()
+            assert newer.json()["snapshot"] != previous_id
+>           assert released_at_load == [(True, True, True)]
+E           assert [(False, False, False)] == [(True, True, True)]
+E             
+E             At index 0 diff: (False, False, False) != (True, True, True)
+E             Use -v to get more diff
+
+tests/test_snapshot_successor_memory.py:154: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_successor_memory.py::test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary[]
+FAILED tests/test_snapshot_successor_memory.py::test_vocabulary_metering_does_not_retain_old_snapshot_or_parsed_vocabulary[?section=facets&detail=full]
+2 failed in 0.64s

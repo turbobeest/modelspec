@@ -1,0 +1,84 @@
+         2950699 function calls (2792264 primitive calls) in 0.340 seconds
+
+   Ordered by: cumulative time
+   List reduced from 137 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.340    0.340 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2665(load_snapshot)
+        1    0.000    0.000    0.340    0.340 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2548(load_snapshot_bytes)
+        1    0.000    0.000    0.336    0.336 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2531(_stream_canonical_envelope)
+ 150297/1    0.050    0.000    0.336    0.336 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:121(read_value)
+    264/1    0.004    0.000    0.336    0.336 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:77(_object)
+10686/2810    0.061    0.000    0.324    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:104(_array)
+   611093    0.055    0.000    0.084    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:53(_starts)
+   318779    0.052    0.000    0.074    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:43(_whitespace)
+   143095    0.030    0.000    0.055    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:59(_scalar)
+   611098    0.029    0.000    0.029    0.000 {method 'startswith' of 'str' objects}
+   783287    0.027    0.000    0.027    0.000 {built-in method builtins.len}
+   143110    0.020    0.000    0.020    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+   146776    0.008    0.000    0.008    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.004    0.004 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2023(__init__)
+        9    0.001    0.000    0.003    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1861(__init__)
+       19    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:26(_fill)
+        1    0.001    0.001    0.001    0.001 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1970(__init__)
+      930    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1851(_equality_key)
+       20    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:36(_hash_consumed)
+       21    0.000    0.000    0.001    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+     7651    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+     3797    0.000    0.000    0.000    0.000 {method 'setdefault' of 'dict' objects}
+    10475    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+      302    0.000    0.000    0.000    0.000 {method 'update' of '_hashlib.HASH' objects}
+     1980    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1792(_key)
+       21    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:351(read1)
+       21    0.000    0.000    0.000    0.000 {method 'read1' of '_io.BufferedReader' objects}
+       21    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/compression/_common/_streams.py:66(readinto)
+     2820    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1802(_ordered)
+       22    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/gzip.py:545(read)
+        7    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:31(__init__)
+        1    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:395(check_snapshot_offering_regions)
+       20    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib._ZlibDecompressor' objects}
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}
+
+
+         2950699 function calls (2792264 primitive calls) in 0.340 seconds
+
+   Ordered by: internal time
+   List reduced from 137 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+10686/2810    0.061    0.000    0.324    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:104(_array)
+   611093    0.055    0.000    0.084    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:53(_starts)
+   318779    0.052    0.000    0.074    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:43(_whitespace)
+ 150297/1    0.050    0.000    0.336    0.336 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:121(read_value)
+   143095    0.030    0.000    0.055    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:59(_scalar)
+   611098    0.029    0.000    0.029    0.000 {method 'startswith' of 'str' objects}
+   783287    0.027    0.000    0.027    0.000 {built-in method builtins.len}
+   143110    0.020    0.000    0.020    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:351(raw_decode)
+   146776    0.008    0.000    0.008    0.000 {method 'append' of 'list' objects}
+    264/1    0.004    0.000    0.336    0.336 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:77(_object)
+        9    0.001    0.000    0.003    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1861(__init__)
+        1    0.001    0.001    0.001    0.001 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1970(__init__)
+     7651    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+     3797    0.000    0.000    0.000    0.000 {method 'setdefault' of 'dict' objects}
+    10475    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.004    0.004 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2023(__init__)
+      302    0.000    0.000    0.000    0.000 {method 'update' of '_hashlib.HASH' objects}
+     1980    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1792(_key)
+      930    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1851(_equality_key)
+     2820    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1802(_ordered)
+       20    0.000    0.000    0.000    0.000 {method 'decompress' of 'zlib._ZlibDecompressor' objects}
+      570    0.000    0.000    0.000    0.000 <string>:2(__init__)
+       20    0.000    0.000    0.001    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-json_stream.py:36(_hash_consumed)
+        7    0.000    0.000    0.000    0.000 {method 'count' of 'str' objects}
+        7    0.000    0.000    0.000    0.000 {method 'rfind' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:395(check_snapshot_offering_regions)
+       21    0.000    0.000    0.001    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+       22    0.000    0.000    0.000    0.000 {built-in method _codecs.utf_8_decode}
+      939    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2115(<genexpr>)
+       21    0.000    0.000    0.000    0.000 /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/compression/_common/_streams.py:66(readinto)
+      170    0.000    0.000    0.000    0.000 {built-in method builtins.sorted}
+      302    0.000    0.000    0.000    0.000 {method 'encode' of 'str' objects}
+      300    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:1854(<genexpr>)
+      180    0.000    0.000    0.000    0.000 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:385(check_identity_region)
+        1    0.000    0.000    0.340    0.340 /Users/terbeest/dev/worktrees/model-407/tmp/model-407/round3/profile/results/baseline-snapshot.py:2548(load_snapshot_bytes)

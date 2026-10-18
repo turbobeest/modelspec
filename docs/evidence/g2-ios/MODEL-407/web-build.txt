@@ -1,0 +1,34 @@
+
+> web@0.0.0 prebuild
+> cd .. && python -m pipeline.social_cards sync-meta
+
+
+> web@0.0.0 build
+> tsc -b && vite build
+
+vite v8.0.3 building client environment for production...
+[2K
+transforming...
+/fonts/instrument-sans-latin-ext-wdth-normal.woff2 referenced in /fonts/instrument-sans-latin-ext-wdth-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/instrument-sans-latin-wdth-normal.woff2 referenced in /fonts/instrument-sans-latin-wdth-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/jetbrains-mono-latin-ext.woff2 referenced in /fonts/jetbrains-mono-latin-ext.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/jetbrains-mono-latin.woff2 referenced in /fonts/jetbrains-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+✓ 740 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                        0.56 kB │ gzip:  0.34 kB
+dist/decision.html                     0.69 kB │ gzip:  0.37 kB
+dist/decide.html                       2.67 kB │ gzip:  1.02 kB
+dist/assets/decision-Bu3K9mdJ.css      1.59 kB │ gzip:  0.71 kB
+dist/assets/main-DQi3gS0r.css         24.19 kB │ gzip:  5.21 kB
+dist/assets/decide-Br4x97k7.css       64.31 kB │ gzip: 13.32 kB
+dist/assets/decision-CcHGCZBO.js       4.80 kB │ gzip:  1.88 kB
+dist/assets/main-Dnhjc1Pr.js          82.96 kB │ gzip: 26.99 kB
+dist/assets/HumanGate-DiAYTvL2.js    115.09 kB │ gzip: 33.07 kB
+dist/assets/jsx-runtime-dOVKr_ku.js  190.34 kB │ gzip: 59.92 kB
+dist/assets/decide-D_Xf0Uum.js       269.98 kB │ gzip: 81.55 kB
+
+✓ built in 137ms

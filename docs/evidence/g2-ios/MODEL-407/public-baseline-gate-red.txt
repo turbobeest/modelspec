@@ -1,0 +1,5 @@
+Loading annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+Loaded annotated-types, pydantic, pydantic_core, pyyaml, typing-extensions
+{"runtime":"Pyodide 0.28.3","before_bytes":30212096,"peak_bytes":122203148,"peak_mib":116.5420036315918,"wasm_peak_bytes":75366400,"wasm_peak_mib":71.875,"steady_bytes":122134884,"steady_mib":116.47690200805664,"live_non_wasm_bytes":46768484,"wasm_bytes":75366400,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":120586240,"peak_warning_bytes":117440512,"stages":[{"name":"before_worker_import","bytes":82664704,"wasm_bytes":30212096},{"name":"after_worker_import","bytes":122130596,"wasm_bytes":75366400},{"name":"after_decide","bytes":122163444,"wasm_bytes":75366400},{"name":"after_vocabulary","bytes":122166580,"wasm_bytes":75366400},{"name":"after_rank","bytes":122175852,"wasm_bytes":75366400},{"name":"after_policy_check","bytes":122192860,"wasm_bytes":75366400}]}
+::warning::Memory probe noisy peak exceeds 112 MiB
+::error::Steady memory exceeds 115 MiB

@@ -316,7 +316,7 @@ def test_validation_workflow_checks_status_and_report_shape() -> None:
 
 
 def test_workflow_failure_masking_is_explicitly_audited() -> None:
-    """Audit the one warning-only memory probe; other failures still gate CI."""
+    """Every failed validation step must gate CI."""
     unexpected: list[str] = []
     import yaml
     for workflow_path in sorted(WORKFLOWS.glob("*.yml")):
@@ -324,9 +324,7 @@ def test_workflow_failure_masking_is_explicitly_audited() -> None:
         for job_name, job in doc.get("jobs", {}).items():
             assert not job.get("continue-on-error"), (workflow_path.name, job_name)
             for step in job.get("steps", []):
-                if step.get("continue-on-error"):
-                    assert (workflow_path.name, job_name, step.get("id")) == (
-                        "rank-api.yml", "bundle", "memory-public")
+                assert not step.get("continue-on-error"), (workflow_path.name, job_name, step.get("id"))
         for line_number, line in enumerate(
             workflow_path.read_text(encoding="utf-8").splitlines(), start=1
         ):
@@ -409,8 +407,7 @@ def test_deploy_syncs_the_snapshot_verification_secret() -> None:
     bundle = workflow["jobs"]["bundle"]
     deploy = workflow["jobs"]["deploy"]
     assert "secrets.MODELSPEC_SNAPSHOT_KEY" not in yaml.safe_dump(bundle)
-    probe = next(step for step in bundle["steps"] if step.get("name") == "Measure full snapshot memory with public fixtures")
-    assert probe["env"]["MODELSPEC_SNAPSHOT_KEY"] == "model247-ci-fixture-key"
+    assert workflow["jobs"]["memory"]["env"]["MODELSPEC_SNAPSHOT_KEY"] == "model247-ci-fixture-key"
     assert deploy["env"]["MODELSPEC_SNAPSHOT_KEY"] == \
         "${{ secrets.MODELSPEC_SNAPSHOT_KEY }}"
     deploy_text = yaml.safe_dump(deploy)
