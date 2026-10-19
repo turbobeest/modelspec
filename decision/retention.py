@@ -65,3 +65,26 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
 def refuse_disk_scrape(url: object) -> None:
     if is_cite_only(url):
         raise ValueError("cite-only source requires a transient fetch; disk-writing scraper refused")
+
+
+def open_retained_source(request, *, timeout):
+    """Open a source only when every HTTP redirect permits retained content."""
+    from urllib.request import HTTPRedirectHandler, build_opener
+
+    url = request if isinstance(request, str) else request.full_url
+    refusal = "cite-only source cannot supply retained content"
+    if is_cite_only(url):
+        raise ValueError(refusal)
+
+    class RetainedRedirect(HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            if is_cite_only(newurl):
+                fp.close()
+                raise ValueError(refusal)
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    response = build_opener(RetainedRedirect()).open(request, timeout=timeout)
+    if is_cite_only(response.geturl()):
+        response.close()
+        raise ValueError(refusal)
+    return response

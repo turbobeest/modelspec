@@ -95,12 +95,10 @@ VECTORISERS = {
 
 
 def fetch(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
-        from decision.retention import refuse_disk_scrape
+    from decision.retention import open_retained_source
 
-        refuse_disk_scrape(url)
-        refuse_disk_scrape(response.geturl())
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with open_retained_source(request, timeout=180) as response:
         return response.read()
 
 

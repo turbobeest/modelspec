@@ -41,6 +41,23 @@ All writer paths must use the guard, including ordinary rechecks
 boundaries. Collection scripts that cannot safely provide a transient reader
 must refuse before invoking a disk-writing scraper.
 
+Round 2 extends this inventory to the curation watcher and its report, draft,
+and proposal consumers (`scripts/curation/`), benchmark census search caches
+and excerpts (`scripts/benchmarks/census.py`), licence downloads
+(`scripts/policy/`), and historical collector entry points that still fetch
+live sources. The evidence file lists the inspected paths and their guards.
+Collectors that need retained source text refuse restricted redirects before
+returning text to projection builders. Their shared urllib reader checks each
+redirect hop; HTTPX readers inspect the full history, and scraper readers
+inspect all reported origin metadata.
+
+The watcher hashes cite-only responses without normalizing or classifying the
+text. Its state contains only the source and redirect URLs, content hash, and
+fetch time. It exports no source file and supplies no text to draft generation.
+Reusing a known cite-only state, report, or draft cannot revive an earlier text
+copy. This cleanup is limited to those keyed generated artifacts, not the
+deferred migration of historical source copies.
+
 ## Assurance and admission
 
 The new assurance state is `cited`, displayed as "Cited, not machine-verified".
@@ -90,7 +107,12 @@ not permit adding to closed enums without a major bump.
 Keep all existing closed states and verification outcomes. Add citation
 metadata to exports and shown facts as needed, and use
 `cite_only_not_machine_verified` in decision and result warnings. Full,
-bounded, and explain-none decisions must retain the warning. Source dates
+bounded, and explain-none decisions retain the decision warning when this
+answer uses a cited fact: a displayed fact, a ranking input, or a filter
+operand that admits or eliminates a candidate. Citations in unrelated rows or
+unused Boolean branches do not trigger it. Result warnings retain their
+existing row scope. The summary says that this answer uses cited facts.
+Source dates
 continue to mean verification dates (`decision/contract.py:1775` and
 `docs/decision-contract.md:1640`); a cite-only source's verification date is
 null. Fetch dates and hashes belong to citation metadata. Verified-only API

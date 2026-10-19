@@ -534,16 +534,26 @@ def scrape(
     return data
 
 
-def http_get(url: str, timeout: int = 120) -> tuple[str, str]:
+class _RedirectHistory(urllib.request.HTTPRedirectHandler):
+    def __init__(self):
+        self.urls: list[str] = []
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self.urls.append(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def http_get(url: str, timeout: int = 120) -> tuple[str, str, tuple[str, ...]]:
     """Direct GET. Zero Firecrawl credits. Follows redirects."""
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "ModelSpecCensus/1.0 (+https://github.com/modelspec)"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    history = _RedirectHistory()
+    with urllib.request.build_opener(history).open(req, timeout=timeout) as resp:
         raw = resp.read()
         final = resp.geturl()
-    return raw.decode("utf-8", errors="replace"), final
+    return raw.decode("utf-8", errors="replace"), final, tuple(history.urls)
 
 
 def load_or_get(
@@ -560,7 +570,7 @@ def load_or_get(
     if not fetch:
         path, _meta = named_paths(url, cache_dir, suffix=suffix)
         raise FileNotFoundError(f"no cached page for {url} at {path}")
-    text, final_url = http_get(url)
+    text, final_url, resolved_urls = http_get(url)
     fetched_at = datetime.now(UTC).date().isoformat()
     return write_named_cache(
         url,
@@ -568,7 +578,8 @@ def load_or_get(
         cache_dir,
         fetched_at=fetched_at,
         suffix=suffix,
-        extra_meta={"fetcher": "http_get", "final_url": final_url},
+        extra_meta={"fetcher": "http_get", "final_url": final_url,
+                    "resolved_urls": list(resolved_urls)},
     )
 
 

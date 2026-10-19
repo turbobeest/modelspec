@@ -240,8 +240,10 @@ ROWS: list[Row] = [
 
 
 def _fetch(url: str) -> tuple[bytes, str]:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 - pinned URLs
+    with open_retained_source(request, timeout=120) as response:
         return response.read(), response.geturl()
 
 

@@ -294,8 +294,7 @@ def test_finance_projection_links_to_its_retained_source_snapshot(
             return model_192_evidence.URL
 
     monkeypatch.setattr(
-        model_192_evidence.urllib.request,
-        "urlopen",
+        "decision.retention.open_retained_source",
         lambda *_args, **_kwargs: Response(),
     )
     store = CopyStore(tmp_path / "copies")

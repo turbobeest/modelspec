@@ -163,23 +163,18 @@ class Plan:
 
 
 def _get(url: str, cache: Path) -> bytes:
-    from decision.retention import cite_only_origin, is_cite_only, refuse_disk_scrape
+    from decision.retention import open_retained_source, refuse_disk_scrape
 
     refuse_disk_scrape(url)
 
     cache.mkdir(parents=True, exist_ok=True)
     path = cache / (hashlib.sha256(url.encode()).hexdigest() + ".json")
-    if path.is_file() and not is_cite_only(url):
+    if path.is_file():
         return path.read_bytes()
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+    with open_retained_source(request, timeout=180) as response:
         body = response.read()
-        resolved = response.geturl()
-    from decision.retention import refuse_disk_scrape
-
-    refuse_disk_scrape(resolved)
-    if not cite_only_origin(url, (resolved,)):
-        path.write_bytes(body)
+    path.write_bytes(body)
     return body
 
 

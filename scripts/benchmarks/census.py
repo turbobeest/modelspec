@@ -11,6 +11,7 @@ Nothing here writes a page; humans and the writing agents do that.
 from __future__ import annotations
 
 import collections
+import hashlib
 import json
 import os
 import re
@@ -20,6 +21,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -27,6 +29,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch import resolve_key, scrape  # noqa: E402
+from decision.retention import citation_metadata, cite_only_origin, metadata_origins, open_retained_source  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 CENSUS = ROOT / "benchmarks" / "_census"
@@ -75,7 +78,7 @@ def slugify(name: str) -> str:
 
 def get(url: str, timeout: int = 60) -> str:
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with open_retained_source(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
 
 
@@ -264,12 +267,31 @@ GENRES = ["reasoning", "math olympiad", "coding", "software engineering agent", 
           "education tutoring", "creative writing", "conversation dialogue", "theory of mind social", "efficiency latency cost"]
 
 
+def retained_search_results(results: list[dict], *, retrieved_at: datetime | None = None) -> list[dict]:
+    retained = []
+    for result in results:
+        url = result.get("url") or ""
+        origins = (*metadata_origins(result), *metadata_origins(result.get("metadata") or {}))
+        if not cite_only_origin(url, origins):
+            retained.append(result)
+        elif set(result) == {"url", "snapshot_ref", "retrieved_at", "resolved_urls"}:
+            retained.append(result)
+        else:
+            ref = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
+            retained.append(citation_metadata(url, ref, retrieved_at=retrieved_at,
+                                               resolved_urls=origins))
+    return retained
+
+
 def firecrawl_search(query: str, limit: int = 10) -> list[dict]:
-    import hashlib
     cache_dir = CENSUS / "cache"; cache_dir.mkdir(parents=True, exist_ok=True)
     cpath = cache_dir / ("search_" + hashlib.sha256(f"{query}|{limit}".encode()).hexdigest()[:24] + ".json")
     if cpath.exists():
-        return json.loads(cpath.read_text())
+        cached = json.loads(cpath.read_text())
+        retained = retained_search_results(cached)
+        if retained != cached:
+            cpath.write_text(json.dumps(retained))
+        return retained
     key = resolve_key()
     body = json.dumps({"query": query, "limit": limit}).encode()
     req = urllib.request.Request("https://api.firecrawl.dev/v2/search", data=body, method="POST", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
@@ -278,7 +300,8 @@ def firecrawl_search(query: str, limit: int = 10) -> list[dict]:
             with urllib.request.urlopen(req, timeout=90) as r:
                 d = json.load(r)
             data = d.get("data")
-            res = (data.get("web") if isinstance(data, dict) else data) or []
+            res = retained_search_results((data.get("web") if isinstance(data, dict) else data) or [],
+                                          retrieved_at=datetime.now(UTC))
             cpath.write_text(json.dumps(res))
             return res
         except urllib.error.HTTPError as e:
@@ -326,6 +349,8 @@ def src_aggregators() -> None:
             data = scrape(url, ["markdown", "links"])
         except Exception as e:
             print("scrape failed", url, e)
+            continue
+        if cite_only_origin(url, metadata_origins(data.get("metadata") or {})):
             continue
         md = data.get("markdown") or ""
         for m in re.finditer(r"\[([^\]]{2,60})\]\((https?://[^)\s]+)\)", md):

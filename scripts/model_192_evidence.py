@@ -47,11 +47,10 @@ ROW = re.compile(
 
 
 def fetch_rows(store: CopyStore) -> tuple[list[dict], str]:
-    request = urllib.request.Request(URL, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
-        from decision.retention import refuse_disk_scrape
+    from decision.retention import open_retained_source
 
-        refuse_disk_scrape(response.geturl())
+    request = urllib.request.Request(URL, headers={"User-Agent": USER_AGENT})
+    with open_retained_source(request, timeout=60) as response:
         raw = response.read()
     fetched_copy = store.put(raw, source_url=URL)
     html = raw.decode("utf-8")

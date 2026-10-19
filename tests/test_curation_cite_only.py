@@ -339,3 +339,17 @@ def test_draft_cli_does_not_rewrite_cite_only_snippets_from_prior_manifest(tmp_p
     items = json.loads(manifest.read_text())
     assert not items[0]["accepted"]
     assert items[1] == ordinary
+
+
+@pytest.mark.parametrize("origin_field", ["sourceURL", "final_url"])
+def test_state_guard_preserves_alias_origins_for_later_watch(tmp_path, origin_field):
+    url = "https://example.test/start"
+    bench = benchmark(tmp_path, url)
+    state = tmp_path / "state"
+    watch.save_state(state, url, {"url": url, "hash": "a" * 64, "fetched_at": NOW,
+                                  origin_field: "https://x.ai/pricing"}, MARK)
+    watch.watch(["probe"], state, bench_dir=bench, fetcher=lambda _: fetched(url, MARK),
+                js_hosts=set(), max_workers=1, now=NOW)
+    assert disk_hits(state) == []
+    meta = json.loads((state / f"{watch.state_key(url)}.json").read_text())
+    assert "https://x.ai/pricing" in meta["resolved_urls"]

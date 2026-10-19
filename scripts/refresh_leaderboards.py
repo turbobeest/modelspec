@@ -1022,13 +1022,11 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
 
 
 def _fetch(url: str) -> bytes:
+    from decision.retention import open_retained_source
+
     require_allowed_source(url)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310 - fixed registry URLs
-        from decision.retention import refuse_disk_scrape
-
-        refuse_disk_scrape(url)
-        refuse_disk_scrape(response.geturl())
+    with open_retained_source(request, timeout=180) as response:
         return response.read()
 
 

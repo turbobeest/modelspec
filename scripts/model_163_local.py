@@ -346,14 +346,18 @@ def parse_memory_configuration(
 
 
 def _fetch_json(url: str) -> object:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with open_retained_source(request, timeout=30) as response:
         return json.load(response)
 
 
 def _fetch_text(url: str) -> str:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with open_retained_source(request, timeout=30) as response:
         return response.read().decode("utf-8", errors="replace")
 
 

@@ -259,9 +259,10 @@ def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple
 
 def save_state(state_dir: Path, url: str, meta: dict, text: str | None) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
-    if cite_only_origin(url, metadata_origins(meta)):
+    origins = metadata_origins(meta)
+    if cite_only_origin(url, origins):
         meta = {"url": url, "hash": meta.get("hash"), "fetched_at": meta.get("fetched_at"),
-                "resolved_urls": list(meta.get("resolved_urls", ()))}
+                "resolved_urls": list(origins)}
         text = None
         (state_dir / f"{state_key(url)}.txt").unlink(missing_ok=True)
     (state_dir / f"{state_key(url)}.json").write_text(json.dumps(meta, indent=1, sort_keys=True))

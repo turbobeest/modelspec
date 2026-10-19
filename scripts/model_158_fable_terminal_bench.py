@@ -53,13 +53,11 @@ SECTION = re.compile(r"8\.6 Terminal-Bench 4\.0 .*?(?= 8\.7 )")
 
 
 def system_card_copy(store: CopyStore) -> str:
-    request = urllib.request.Request(CARD_URL, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 - fixed URL
-        body, resolved = response.read(), response.geturl()
-    from decision.retention import refuse_disk_scrape
+    from decision.retention import open_retained_source
 
-    refuse_disk_scrape(CARD_URL)
-    refuse_disk_scrape(resolved)
+    request = urllib.request.Request(CARD_URL, headers={"User-Agent": "ModelSpec/1.0"})
+    with open_retained_source(request, timeout=120) as response:
+        body, resolved = response.read(), response.geturl()
     reader = pypdf.PdfReader(BytesIO(body))
     pages = (171, 172)
     text = re.sub(r"\s+", " ", " ".join(reader.pages[n - 1].extract_text() for n in pages))
