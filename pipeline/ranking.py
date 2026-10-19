@@ -151,7 +151,9 @@ def build_candidates(cards: list[Any], sink: CollectingSink, *,
         scores = {k: float(v) for k, v in card.benchmarks.scores.items()
                   if isinstance(v, (int, float))}
         verified: set[str] = set()
-        cited_benchmarks = {}
+        source = card.benchmarks.benchmark_source
+        cited_benchmarks = ({key: {"status": "cited", "url": source} for key in scores}
+                            if is_cite_only(source) else {})
         for record in card.benchmarks.evidence:
             scores[record.benchmark_id] = float(record.score)
             if is_cite_only(record.source_url):

@@ -61,6 +61,9 @@ Benchmark file exports keep cite-only catalogue results in the additive
 `disposition.cited_results` array, with `citation: {status: "cited", url: ...}`.
 Those rows are excluded from `disposition.verified_results`. Model fact exports
 preserve each fact's ID and add citation metadata to the affected record.
+Flat benchmark scores with a cite-only shared source add `benchmarks.scores_citation`
+to the model export. Their ranking and coverage rows carry citation metadata;
+structured evidence for the same benchmark retains its existing precedence.
 
 ## Worked example
 

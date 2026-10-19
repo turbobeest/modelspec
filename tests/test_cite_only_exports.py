@@ -157,3 +157,42 @@ def test_standalone_rank_report_preserves_fact_citation(tmp_path, monkeypatch, c
     monkeypatch.setattr("sys.argv", ["ranking", "coding"])
     ranking.main()
     assert "Cited, not machine-verified" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("source,cited", [(URL, True), ("https://lab.example/scores", False)])
+def test_flat_score_source_citation_survives_exports_rank_and_model_page(tmp_path, source, cited):
+    from pipeline.render import model_page
+
+    front, path = card_tree(tmp_path, "https://lab.example/models")
+    front["benchmarks"]["benchmark_source"] = source
+    front["benchmarks"]["evidence"] = [{
+        "benchmark_id": "humaneval", "model_id_as_evaluated": "Cited model",
+        "score": 95, "unit": "percent", "source_url": "https://lab.example/results",
+        "source_kind": "provider_self_report", "evidence_date": "2026-10-19",
+        "date_type": "published", "verified_at": "2026-10-19",
+    }]
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+    candidate = ranking.build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
+    assert candidate.benchmark_scores["humaneval"] == 95
+    assert candidate.verified_benchmarks == {"humaneval"}
+    expected = {key: {"status": "cited", "url": source}
+                for key in ("swe_bench_verified", "live_code_bench", "scicode")} if cited else {}
+    assert candidate.cited_benchmarks == expected
+    score = ranking.score(candidate, {"benchmark_weights": {"swe_bench_verified": 1}})
+    assert ("cite_only_not_machine_verified" in score.get("warnings", [])) is cited
+    assert score["verified_contributions"] == 0
+    models = load_models(tmp_path)
+    coverage = export.models_by_benchmark(models, [])
+    assert "citation" not in coverage["humaneval"][0]
+    assert coverage["humaneval"][0]["attribution"] == "verified"
+    assert ("citation" in coverage["swe_bench_verified"][0]) is cited
+    if cited:
+        assert coverage["swe_bench_verified"][0]["citation"] == expected["swe_bench_verified"]
+    out = tmp_path / "export"
+    catalogue = Catalogue(BUILD.as_of)
+    export.write(out, models, [], catalogue, BUILD)
+    exported = json.loads((out / "models/lab/cited.json").read_text())["card"]["benchmarks"]
+    assert ("scores_citation" in exported) is cited
+    page = model_page(models[0], BUILD, {}, catalogue)
+    score_section = page.split("<h2>Reported benchmark scores</h2>", 1)[1]
+    assert ("Cited, not machine-verified" in score_section) is cited

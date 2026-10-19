@@ -152,9 +152,12 @@ def models_by_benchmark(models: list[Model],
         reviewed = {str(record["benchmark_id"]) for record in model.evidence}
         for key, value in model.scores.items():
             if key not in reviewed:
-                index[key].append(_coverage_row(
+                row = _coverage_row(
                     model, value, model.scores_as_of, model.scores_source,
-                    "unverified-legacy", {}))
+                    "unverified-legacy", {})
+                if model.scores_citation:
+                    row["citation"] = model.scores_citation
+                index[key].append(row)
     ascending = {b.benchmark_id for b in benchmarks if b.lower_is_better}
     for key, rows in index.items():
         sign = 1.0 if key in ascending else -1.0
@@ -235,6 +238,8 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
                 if record in model.cited_evidence else record
                 for record in card["benchmarks"]["evidence"]
             ]}}
+        if model.scores_citation:
+            card = {**card, "benchmarks": {**card["benchmarks"], "scores_citation": model.scores_citation}}
         dump(f"models/{model.model_id}.json", {
             "build": build.to_json(),
             "card": card,

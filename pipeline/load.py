@@ -113,6 +113,15 @@ class Model:
         value = block.get("benchmark_source") if isinstance(block, dict) else None
         return str(value) if value else None
 
+    @property
+    def scores_citation(self) -> dict[str, str] | None:
+        from decision.retention import is_cite_only
+
+        source = self.scores_source
+        if self.scores and source and is_cite_only(source):
+            return {"status": "cited", "url": source}
+        return None
+
 
 @dataclass(frozen=True)
 class Benchmark:

@@ -1433,6 +1433,10 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
              f'({esc(as_of)}) and a source list rather than a source per score, so they cannot be '
              'attributed individually. They are shown as reported and are not verified evidence. '
              'Benchmark pages carry the reviewed, dated evidence where it exists.</div>') if scores else ""
+    if model.scores_citation:
+        stale = ('<div class="notice">Cited, not machine-verified: the shared '
+                 f'<a href="{esc(model.scores_citation["url"])}" rel="nofollow noopener">score source</a> '
+                 'is retained as a citation without a page copy.</div>') + stale
 
     rel = relations
     chips = ""
