@@ -12,7 +12,7 @@ private `.engine-pin` only after #840 and #822 have merged.
 - Integration HEAD: `ffd4e74a017b96c60f7450fd2cffcad3e63bc3d8`.
 - Initial private data: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`.
 - Final private data: `c11e335c0f9d5a36a990920963ccdf748aadae77`.
-- Final tested code revision: `95944ce7248e07aebaf5b93a2b4d9a27fe0f1191`.
+- Final tested code revision: `a0a13e70eb1193e8a42365762baba364b6e0b4f2`.
   Full-suite result is pending below. The final
   evidence-only commit is discoverable with `git log -1 --format=%H --
   docs/evidence/g2-ios/MODEL-408-cite-fix.md`.
@@ -44,6 +44,7 @@ file writes. The old MODEL-408 evidence is explicitly marked superseded.
 | Private `audit_cite_only.py` | 38 assertion failures in 6 tests: missing citation metadata, retained artifacts and machine-verification records | 6 tests pass; every existing value/state unchanged |
 | `test_xai_capture_helper_is_retired_before_browser_or_output` | Offline browser stub reached: `launch attempted` | Helper exits 1 with cite-only retirement message; no browser import or output directory |
 | Collect `test_cite_only_collector_writers.py` with only `.[dev]` installed | CI and isolated Python 3.11 collection exit 2: `ModuleNotFoundError: No module named 'pypdf'` | 35 collector tests pass; full isolated collection finds 12,528 tests with no errors |
+| `bundle_check.py` on the actual Wrangler output | CI and local dry-run output fail: `missing vendored file registry/source-retention.json` | Original checker with `--require-data` passes; 79 reachable local modules and exact retention policy bytes |
 
 The first 16 citation failures ran against the initial code before the #840
 merge. See [red output](MODEL-408-cite/citations-red.log.gz). The expanded
@@ -77,6 +78,38 @@ The clean environment resolved pypdf 6.21.1, passed all 35 synthetic collector
 tests, and collected all 12,528 tests without import errors. The runtime CLI
 dependency set is unchanged. Commands, direct exits, versions and timings are
 in [isolated environment evidence](MODEL-408-cite/py311-ci.json).
+
+The next CI run exposed a separate #840 packaging omission in the
+[Rank Worker bundle](https://github.com/turbobeest/modelspec/actions/runs/39290873807/job/118191002670).
+The vendor manifest included `registry/source-retention.json`, but Wrangler's
+Data rules included only registry YAML. The actual build succeeded, then the
+unchanged bundle checker rejected the missing file. Adding that exact JSON
+path to the existing Data rule fixes the omission; no variables, bindings,
+compatibility settings or production switches changed. The configuration uses
+the documented [additional module rules](https://developers.cloudflare.com/workers/wrangler/configuration/#bundling)
+and CI's pinned Wrangler 4.139.0.
+
+A scratch Worker project combined the already-checked private exports with all
+32 tracked handwritten Worker modules, the current vendored Python, and the
+unchanged worker lockfiles. With the original config, the real dry run exited
+0 and `bundle_check.py` exited 1 for the missing JSON. With only the fixed
+config substituted, the dry run and original checker both exited 0. The built
+policy equals the source's 87 bytes (SHA-256
+`16743d1bd9b2e5adb6bfb8236438ba2010434fd3595388d0839f26bec24126d0`), and the
+private data module is byte-identical to the staged exports. Seven focused
+bundle/vendor tests passed. Commands, config delta, versions and direct exits
+are in [Worker packaging evidence](MODEL-408-cite/worker-package.json).
+
+Packaging used Python 3.13.15, workers-py 1.17.4, uv 0.12.19, Wrangler 4.139.0
+and Node 22.22.3. The machine's older uv initially refused before packaging;
+the successful runs use CI's pinned uv in scratch. A supplemental byte-proof
+script initially had a dictionary-iteration typo; the corrected proof passed.
+The two direct comparisons below also exited 0:
+
+```bash
+cmp registry/source-retention.json tmp/model-408-cite/public-checks/worker-package/green-bundle/registry/source-retention.json
+cmp tmp/model-408-cite/public-checks/worker-package/stage/src/bundled_data.py tmp/model-408-cite/public-checks/worker-package/green-bundle/bundled_data.py
+```
 
 ## Private migration and export proof
 
@@ -167,7 +200,9 @@ citation tests: **263 passed**. Site surface lint: **0 findings, 5,366 files**.
 Web: **902 tests passed, 57 files passed, 1 file skipped**. Initial generator
 checks needed no artifact changes. After the CI dependency correction,
 `pipeline.agent_copy write` refreshed only the CLI bundle's pyproject hash;
-`pipeline.agent_copy check` then passed again (exit 0). The release-chart guard had no evidence
+`pipeline.agent_copy check` then passed again (exit 0). The Worker rule fix
+also refreshed only its CLI input fingerprint; the same generator write/check
+commands passed again. The release-chart guard had no evidence
 changes to check. The data-freeze guard passed.
 
 Exact public-check arguments, working directories, timings, versions and exit
