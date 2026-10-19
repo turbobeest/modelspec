@@ -92,7 +92,7 @@ def main() -> None:
     snapshots: dict[str, str] = {}
     for filename in sorted({row[1] for row in SELECTED.values()}):
         labels = {row[2] for row in SELECTED.values() if row[1] == filename}
-        snapshots[filename] = store.put(canonical_snapshot(inputs / filename, labels))
+        snapshots[filename] = store.put(canonical_snapshot(inputs / filename, labels), source_url=source_url(inputs / filename))
 
     registered = load_sources(ROOT / "registry" / "sources.yaml")
     queue = Queue(ROOT / "verification")
@@ -115,7 +115,7 @@ def main() -> None:
         )
         if filename == "arena-text.json":
             source_rows = StructuredDataExtractor._rows(
-                store.get(ref.snapshot_ref).decode("utf-8")
+                store.get(ref.snapshot_ref, source_url=str(registered[ref.source_id].url)).decode("utf-8")
             ) or []
             expected = normalise_name(str(row.get("model_id_as_evaluated") or ""))
             exact = []
@@ -187,13 +187,14 @@ def main() -> None:
     row = dict(candidates[0])
     original = evidence_key(row)
     fact_ref = SourceRef.model_validate(card["facts"][0]["sources"][0])
-    source_text = store.get(fact_ref.snapshot_ref).decode("utf-8")
+    source_text = store.get(fact_ref.snapshot_ref,
+                            source_url=str(registered[fact_ref.source_id].url)).decode("utf-8")
     expected_row = "| GPQA Diamond (Pass@1) | 93.4 | **94.1** | 92.9 | 88.1 | 92.4 | 89.9 | 90.9 |"
     if expected_row not in source_text:
         raise SystemExit("DeepSeek provider table no longer contains the cited GPQA row")
     projection_ref = store.put(
-        b"model | GPQA-Diamond | date\nDeepSeek-V4.1-Flash | 90.9% | 2026-09-10\n"
-    )
+        b"model | GPQA-Diamond | date\nDeepSeek-V4.1-Flash | 90.9% | 2026-09-10\n",
+        source_url=str(registered[fact_ref.source_id].url))
     evidence_ref = SourceRef(
         source_id=fact_ref.source_id,
         snapshot_ref=projection_ref,

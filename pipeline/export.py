@@ -142,15 +142,22 @@ def models_by_benchmark(models: list[Model],
     index: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for model in models:
         for record in model.evidence:
-            index[str(record["benchmark_id"])].append(_coverage_row(
+            cited = record in model.cited_evidence
+            row = _coverage_row(
                 model, record["score"], record.get("evidence_date"),
-                record.get("source_url"), "verified", record))
+                record.get("source_url"), "unverified-legacy" if cited else "verified", record)
+            if cited:
+                row["citation"] = {"status": "cited", "url": record["source_url"]}
+            index[str(record["benchmark_id"])].append(row)
         reviewed = {str(record["benchmark_id"]) for record in model.evidence}
         for key, value in model.scores.items():
             if key not in reviewed:
-                index[key].append(_coverage_row(
+                row = _coverage_row(
                     model, value, model.scores_as_of, model.scores_source,
-                    "unverified-legacy", {}))
+                    "unverified-legacy", {})
+                if model.scores_citation:
+                    row["citation"] = model.scores_citation
+                index[key].append(row)
     ascending = {b.benchmark_id for b in benchmarks if b.lower_is_better}
     for key, rows in index.items():
         sign = 1.0 if key in ascending else -1.0
@@ -199,6 +206,11 @@ def benchmark_summary(bench: Benchmark, catalogue: Catalogue, covered: int) -> d
 PARTS_ALL = ("index", "models", "catalogue", "benchmarks")
 
 
+def _fact_identity(fact: dict[str, Any]) -> str:
+    return json.dumps({key: value for key, value in fact.items()
+                       if key not in {"verification", "citation"}}, sort_keys=True, default=str)
+
+
 def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
           catalogue: Catalogue, build: Build,
           parts: tuple[str, ...] = PARTS_ALL) -> dict[str, int]:
@@ -215,13 +227,26 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
 
     if "models" in parts:
       for model in models:
+        card = model.front
+        if model.cited_facts:
+            cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
+            card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
+                                     for fact in card.get("facts") or []]}
+        if model.cited_evidence:
+            card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
+                {**record, "citation": {"status": "cited", "url": record["source_url"]}}
+                if record in model.cited_evidence else record
+                for record in card["benchmarks"]["evidence"]
+            ]}}
+        if model.scores_citation:
+            card = {**card, "benchmarks": {**card["benchmarks"], "scores_citation": model.scores_citation}}
         dump(f"models/{model.model_id}.json", {
             "build": build.to_json(),
-            "card": model.front,
+            "card": card,
             "body": model.body,
+            **({"cited_facts": model.cited_facts} if model.cited_facts else {}),
             # MODEL-97. Derived from the card's class, never stored on it, so
-            # the `card` tree above stays the frontmatter verbatim and no
-            # field in it changes type, name, meaning or range. A consumer
+            # no applicability field is written into the card. A consumer
             # that ignores this key reads exactly what it read before; one
             # that reads it can tell a null nobody has researched from a null
             # this class can never have.
@@ -241,7 +266,9 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
                 "status": disposition.status,
                 "canonical_id": disposition.canonical_id,
                 "reasons": list(disposition.reasons),
-                "verified_results": list(disposition.results),
+                "verified_results": list(disposition.verified_results),
+                **({"cited_results": list(disposition.cited_results)}
+                   if disposition.cited_results else {}),
             },
             "models_covered": coverage.get(bench.benchmark_id, []),
         })

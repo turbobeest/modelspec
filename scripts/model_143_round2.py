@@ -412,14 +412,14 @@ def register_and_fetch() -> tuple[dict[str, Source], dict[str, SourceRef], dict[
         ref = state.snapshot.copy_ref
         refs[id_] = SourceRef(source_id=id_, snapshot_ref=ref, cited_regions=["audit"])
         texts[id_] = normalise_document(
-            store.get(ref), NORMALISERS[sources[id_].normaliser]
+            store.get(ref, source_url=str(sources[id_].url)), NORMALISERS[sources[id_].normaliser]
         ).text
     for id_, ref in RENDERED_REFS.items():
         if not store.has(ref):
             raise SystemExit(f"missing retained rendered copy: {id_} {ref}")
         refs[id_] = SourceRef(source_id=id_, snapshot_ref=ref, cited_regions=["audit"])
         texts[id_] = normalise_document(
-            store.get(ref), NORMALISERS[sources[id_].normaliser]
+            store.get(ref, source_url=str(sources[id_].url)), NORMALISERS[sources[id_].normaliser]
         ).text
     return sources, refs, texts
 
@@ -643,7 +643,7 @@ def source_texts(
         else:
             source = sources[ref.source_id]
             text = normalise_document(
-                store.get(ref.snapshot_ref), NORMALISERS[source.normaliser]
+                store.get(ref.snapshot_ref, source_url=str(source.url)), NORMALISERS[source.normaliser]
             ).text
         if not text.strip():
             raise SystemExit(f"{fact.id}: empty retained copy for {ref.source_id}")

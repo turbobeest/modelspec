@@ -659,6 +659,9 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
     return { ...envelope, body: trimmedError() };
   }
   const bare = slimDecision(envelope.body);
+  const citationWarnings = Array.isArray(bare.warnings)
+    && bare.warnings.includes("cite_only_not_machine_verified")
+      ? ["cite_only_not_machine_verified"] : [];
   const fitted = { ...envelope, body: bare };
   if (withinBudget(fitted)) return fitted;
   const omitted = noticeOmitted(bare);
@@ -669,8 +672,8 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
     delete bare[key];
   }
   if (!withinBudget({ ...envelope, body: bare }) && Array.isArray(bare.warnings) && bare.warnings.length > 0) {
-    addCount(omitted, "warnings", bare.warnings.length);
-    bare.warnings = [];
+    addCount(omitted, "warnings", bare.warnings.length - citationWarnings.length);
+    bare.warnings = citationWarnings;
   }
   if (!withinBudget({ ...envelope, body: bare }) && "coverage" in bare) {
     addCount(omitted, "coverage", 1);
@@ -705,7 +708,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
     projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, CURRENT_CONTRACT_VERSION), 16),
     status: shortText(bare.status, "trimmed"),
     answer: { kind: "tied", members: [] },
-    warnings: [],
+    warnings: citationWarnings,
     results: [],
     may_qualify: [],
     explanation: {

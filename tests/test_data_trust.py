@@ -529,8 +529,8 @@ def test_reader_coverage_probes_llm_facts(catalogue, registry, monkeypatch, tmp_
     store = CopyStore(tmp_path)
     ref = store.put(
         b"Model: Test Model\nmodel.context window: 128000 tokens\n"
-        b"model.weights openness: open_weights\n"
-    )
+        b"model.weights openness: open_weights\n",
+        source_url="https://fixture.example/")
     for f in catalogue.facts:
         f["sources"][0]["snapshot_ref"] = ref
     monkeypatch.setattr(sampling, "CopyStore", lambda *a: store)

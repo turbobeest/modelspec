@@ -249,7 +249,7 @@ def main() -> None:
         labels_by_file.setdefault(filename, set()).add(label)
     for filename, labels in sorted(labels_by_file.items()):
         path = inputs_dir / filename
-        ref = store.put(canonical_snapshot(path, labels))
+        ref = store.put(canonical_snapshot(path, labels), source_url=source_url(path))
         snapshots[filename] = ref
         new_sources.append({
             "id": source_id(filename),

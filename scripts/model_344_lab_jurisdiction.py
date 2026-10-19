@@ -281,10 +281,13 @@ def atomic_write(path: Path, text: str) -> None:
 def retain(fetch: Path, store) -> dict[str, str]:
     refs: dict[str, str] = {}
     for src in sources():
+        from decision.retention import refuse_disk_scrape
+
+        refuse_disk_scrape(src.url)
         path = fetch / src.file
         if not path.is_file():
             raise SystemExit(f"missing fetch file: {path}")
-        refs[src.id] = store.put(path.read_bytes())
+        refs[src.id] = store.put(path.read_bytes(), source_url=src.url)
     return refs
 
 

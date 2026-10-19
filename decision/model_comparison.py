@@ -41,9 +41,13 @@ def collect_models(
                 "value": found.value,
                 "unit": definition.unit,
             }
-            if found.state == "known":
+            citation = (snapshot.record(found.record_id).get("citation")
+                        if found.record_id is not None else None)
+            if found.state == "known" or citation is not None:
                 row["record_id"] = found.record_id
                 row["source_ids"] = source_ids(snapshot, [found.record_id])
+                if citation is not None:
+                    row["citation"] = citation
             rows.append(row)
         return rows
 

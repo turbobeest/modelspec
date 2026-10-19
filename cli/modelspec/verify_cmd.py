@@ -1,8 +1,9 @@
 """``modelspec verify``: verification and decision-engine accuracy.
 
 Reads the queue in ``verification/queue/events.jsonl``, re-reads each claim from
-its retained source copy with the deterministic extractors, appends every
-outcome to ``verification/log.jsonl`` and prints a summary. Pass
+its retained source copy with the deterministic extractors, appends verification
+records to ``verification/log.jsonl`` and prints a summary. Cite-only sources
+are marked checked without reading a copy or logging a verification. Pass
 ``--llm-reader claude`` (Claude Sonnet) or ``--llm-reader mistral`` (Mistral
 Large on the local ollama host) to add a prose reader after the deterministic
 readers, and a licence reader for ``licence.*`` claims cited to a licence or
@@ -81,7 +82,7 @@ def verify(
         typer.echo(json.dumps({"command": "verify", **report.to_dict()}, indent=2))
         return
     scope = "re-queued by change detection" if changed_only else "queued"
-    typer.echo(f"Verified what was {scope}: {len(report.results)} value(s).")
+    typer.echo(f"Checked what was {scope}: {len(report.results)} value(s).")
     for outcome, n in report.counts.items():
         typer.echo(f"  {outcome}: {n}")
     for r in report.results:

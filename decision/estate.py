@@ -36,6 +36,8 @@ from decision import plans as plans_module
 from decision.computed import Computed
 from decision.contract import (
     Access,
+    CITE_ONLY_NOTICE,
+    CITE_ONLY_WARNING,
     Decision,
     Estate,
     EstateGap,
@@ -321,6 +323,9 @@ def _mark(computed: Any, cid: str, current: Reach, access: Access | None) -> Est
             _, surface, coverage = match
             coverage = plans_module.listed_coverage(
                 coverage, plans_module.tool_listing(current.plans[hold_id], surface, access))
+            cited = getattr(computed, "cited_facts", None)
+            if cited is not None and cited(hold_id):
+                coverage = plans_module.listed_coverage(coverage, CITE_ONLY_NOTICE)
     return EstateMark(
         via=EstateHold(kind=kind, id=hold_id), cost_basis=_COST_BASIS[kind],
         marginal_cost_per_task_usd=cost, coverage=coverage,
@@ -395,7 +400,11 @@ def with_estate(
         plan = catalogue.plans[plan_id]
         gap.summary += f" {plan.name} ({plan_id}) is closed to new buyers; your existing subscription remains usable."
     gain = _gain(catalogue, estate, (providers, plans, devices), current, ran, run, access)
-    warnings = []
+    warnings = [warning for warning in decision.warnings if warning == CITE_ONLY_WARNING]
+    cited = getattr(snapshot, "cited_facts", None)
+    if (CITE_ONLY_WARNING not in warnings and cited is not None
+            and any(item.add.kind == "plan" and cited(item.add.id) for item in gain)):
+        warnings.append(CITE_ONLY_WARNING)
     if access is not None and access.kind == "own_software" and any(
         catalogue.plans[plan_id].surfaces is not None
         and plans_module.API not in catalogue.plans[plan_id].surfaces

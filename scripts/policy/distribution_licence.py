@@ -33,6 +33,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from decision.retention import open_retained_source  # noqa: E402
+
 API = "https://huggingface.co/api/models/{repo}"
 RAW = "https://huggingface.co/{repo}/resolve/main/{path}"
 UA = "modelspec-licence-audit"
@@ -57,7 +60,7 @@ LICENCE_NAMES = ("license", "licence", "copying", "notice")
 def get_json(url: str) -> dict:
     """The JSON document at `url`."""
     request = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(request, timeout=60) as response:
+    with open_retained_source(request, timeout=60) as response:
         return json.load(response)
 
 
@@ -65,7 +68,7 @@ def get_text(url: str) -> tuple[str | None, str | None]:
     """`(text, None)`, or `(None, reason)` so a file that will not fetch is recorded."""
     request = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with open_retained_source(request, timeout=60) as response:
             return response.read().decode("utf-8", "replace"), None
     except urllib.error.HTTPError as exc:
         return None, f"HTTP {exc.code}"

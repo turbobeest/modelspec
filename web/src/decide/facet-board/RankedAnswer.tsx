@@ -174,6 +174,7 @@ export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
   );
 
   return <section className="panel board-ranked-answer">
+    {decision.warnings.includes("cite_only_not_machine_verified") && <p className="note">Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy.</p>}
     {ranked && (decision.answer || decision.bands) && <TieAwareAnswer answer={decision.answer} decision={decision} dimensionName={dimensionName} />}
     {!ranked && <p className="board-unranked">Not ranked yet: listed alphabetically</p>}
     {ranked && !decision.answer && !decision.bands && inseparable.length > 0 && <p className="board-inseparable">
@@ -207,6 +208,7 @@ export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
             <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}{thin.has(model) && <span className="board-thin-tag">not enough evidence</span>}</strong>
             <span className="eligibility status-qualifies"><span aria-hidden="true">✓</span> Qualifies</span>
             <small>{row.m.labName}</small>
+            {resultsFor(model).some((result) => result.warnings.includes("cite_only_not_machine_verified")) && <small>Cited, not machine-verified</small>}
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {
               const result = decision.results.find((item) => item.offering.model === `${row.m.lab}/${row.m.id}`);

@@ -34,8 +34,8 @@ def check(tmp_path: Path, page: str, *, terms: str = SENTENCE,
           terms_url: str = TERMS_URL, policy_url: str = POLICY_URL,
           terms_kind: str = "provider_terms", binding_registered: bool = True):
     store = CopyStore(tmp_path / "copies")
-    terms_ref = store.put(terms.encode())
-    policy_ref = store.put(page.encode())
+    terms_ref = store.put(terms.encode(), source_url="https://fixture.example/")
+    policy_ref = store.put(page.encode(), source_url="https://fixture.example/")
     sources = {
         "terms": Source.model_validate({
             "id": "terms", "url": terms_url, "normaliser": "text-default",
@@ -61,7 +61,7 @@ def check(tmp_path: Path, page: str, *, terms: str = SENTENCE,
     # Only this reviewed fixture is approved. Never hash the current probe or
     # reapprove a changed href, label, table, attribute or source URL.
     reviewed_source = sources["policy"].model_copy(update={"url": POLICY_URL})
-    reviewed_ref = store.put(binding_page("/legal/terms").encode())
+    reviewed_ref = store.put(binding_page("/legal/terms").encode(), source_url="https://fixture.example/")
     reviewed_text = verify.StoredRegions(store, {"policy": reviewed_source}).text(
         "policy", reviewed_ref, "page",
     )

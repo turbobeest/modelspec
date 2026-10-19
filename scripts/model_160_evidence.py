@@ -415,17 +415,27 @@ class Registry:
     rendered_cache: Path | None = None
 
     def fetch(self, url: str) -> tuple[bytes, str]:
+        from decision.retention import open_retained_source, refuse_disk_scrape
+
+        refuse_disk_scrape(url)
         if url not in self.fetched:
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+            with open_retained_source(request, timeout=180) as response:
+                resolved = response.geturl()
                 body = response.read()
-            self.fetched[url] = (body, self.store.put(body))
+            self.fetched[url] = (body, self.store.put(body, source_url=url, resolved_urls=(resolved,)))
         return self.fetched[url]
 
     def fetch_rendered(self, url: str) -> tuple[str, str]:
         """The page as Firecrawl renders it to markdown (``FIRECRAWL_API_KEY``), retained."""
+        from decision.retention import (
+            cite_only_origin, metadata_origins, open_retained_source, refuse_disk_scrape,
+        )
+
+        refuse_disk_scrape(url)
         cache = self.rendered_cache and self.rendered_cache / (
             hashlib.sha256(url.encode()).hexdigest() + ".md")
+        origins = ()
         if cache and cache.is_file():
             markdown = cache.read_text(encoding="utf-8")
         else:
@@ -436,12 +446,16 @@ class Registry:
                 headers={"Authorization": f"Bearer {os.environ['FIRECRAWL_API_KEY']}",
                          "Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
-                markdown = json.load(response)["data"]["markdown"]
+            with open_retained_source(request, timeout=180) as response:
+                data = json.load(response)["data"]
+                markdown = data["markdown"]
+                origins = metadata_origins(data.get("metadata") or {})
+            if cite_only_origin(url, origins):
+                raise ValueError("cite-only source cannot supply a retained board projection")
             if cache:
                 cache.parent.mkdir(parents=True, exist_ok=True)
                 cache.write_text(markdown, encoding="utf-8")
-        return markdown, self.store.put(markdown.encode())
+        return markdown, self.store.put(markdown.encode(), source_url=url, resolved_urls=origins)
 
     def add(self, key: str, source_id: str, url: str, body: bytes, label: str,
             *, fraction: bool = False, fetch: str = "http") -> None:
@@ -450,7 +464,7 @@ class Registry:
             "cited_regions": [{"id": "rows", "locator": {"kind": "page", "value": ""}}],
         })
         rows = json.loads(body)["rows"]
-        self.copies[key] = Copy(source_id, url, self.store.put(body), label, rows, fraction)
+        self.copies[key] = Copy(source_id, url, self.store.put(body, source_url=url), label, rows, fraction)
 
 
 SCALE_URL = "https://labs.scale.com/leaderboard/swe_bench_pro_public"

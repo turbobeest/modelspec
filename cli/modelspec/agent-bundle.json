@@ -477,7 +477,7 @@
           "offerings": 2
         }
       ],
-      "snapshot": "snap_8e980466239818b1",
+      "snapshot": "snap_fbc893a4e55bba59",
       "url": "https://modelspec.dev/api/coverage.json"
     }
   },
@@ -830,7 +830,7 @@
     "api/worker/wrangler.jsonc":
       "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
     "docs/decision-contract.schema.json":
-      "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
+      "effe8552b43e1f0557d7cc4b388bd615680f7f83c1bc6300a611d043fd86ff2d",
     "pipeline/agent_copy.py":
       "59706622db7ad21467b49d17232e9f1e8282ebdf7e8964cc274b421ca6e2ea2f",
     "pipeline/entity.py":

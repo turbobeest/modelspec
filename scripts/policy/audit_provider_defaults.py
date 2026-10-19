@@ -33,6 +33,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.policy.commercial_use import licence_of_record  # noqa: E402
 from scripts.policy.licences import reading_for  # noqa: E402
+from decision.retention import cite_only_origin  # noqa: E402
 
 READ_ON = "2026-09-18"
 CAP = 250
@@ -532,6 +533,8 @@ def _absolute_license_url(repo: str, link: str) -> str:
 
 
 def _hf_get(client: httpx.Client, url: str) -> httpx.Response | None:
+    if cite_only_origin(url):
+        return None
     delay = 1.5
     last: httpx.Response | None = None
     for _ in range(5):
@@ -541,6 +544,8 @@ def _hf_get(client: httpx.Client, url: str) -> httpx.Response | None:
             time.sleep(delay)
             delay = min(delay * 2, 16)
             continue
+        if cite_only_origin(url, (str(item.url) for item in (*last.history, last))):
+            return None
         if last.status_code != 429:
             return last
         time.sleep(delay)

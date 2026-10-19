@@ -212,7 +212,7 @@ def fallback_to(
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))
-        if _in_scope(tracked.fact, claim, latest) is None:
+        if _in_scope(tracked.fact, claim, latest, sources) is None:
             source_ids.update(s.source_id for s in claim.sources)
     excluded = excluded_sources()
     candidates = {}
@@ -269,7 +269,13 @@ def fallback_to(
         }
         checkpoint(firecrawl.credits_spent + firecrawl.credits_per_call)
         result = firecrawl.fetch(url)
-        if result.outcome == "ok":
+        from decision.retention import citation_metadata, cite_only_origin
+        from decision.sources import fingerprint_bytes
+
+        restricted = cite_only_origin(url, result.resolved_urls)
+        if restricted:
+            (directory / name).unlink(missing_ok=True)
+        if result.outcome == "ok" and not restricted:
             (directory / name).write_bytes(result.body)
         pages[url] = {
             "file": name,
@@ -277,6 +283,13 @@ def fallback_to(
             "status": result.status,
             "error": result.error,
         }
+        if result.outcome == "ok" and restricted:
+            from datetime import UTC, datetime
+
+            pages[url]["citation"] = citation_metadata(
+                url, fingerprint_bytes(result.body), retrieved_at=result.retrieved_at or datetime.now(UTC),
+                resolved_urls=result.resolved_urls)
+            pages[url]["error"] = None
         checkpoint(firecrawl.credits_spent)
     checkpoint(firecrawl.credits_spent)
 

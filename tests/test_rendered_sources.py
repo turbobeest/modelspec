@@ -30,7 +30,11 @@ class FakePage:
 
     def goto(self, url, *, wait_until, timeout):
         self.events.append("navigate")
-        return SimpleNamespace(status=self.status)
+        self.url = url
+        return SimpleNamespace(
+            status=self.status, url=url,
+            request=SimpleNamespace(url=url, redirected_from=None),
+        )
 
     def wait_for_load_state(self, state, *, timeout):
         self.events.append("idle")

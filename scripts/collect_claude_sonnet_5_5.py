@@ -118,6 +118,11 @@ BENCHMARK_VERSION = {"hle_tools": "Humanity's Last Exam (with tools)"}
 def fetch(client: httpx.Client, url: str) -> bytes:
     response = client.get(url, follow_redirects=True, timeout=60)
     response.raise_for_status()
+    from decision.retention import refuse_disk_scrape
+
+    refuse_disk_scrape(url)
+    for hop in (*response.history, response):
+        refuse_disk_scrape(hop.url)
     return response.content
 
 
@@ -537,6 +542,35 @@ def file_claims(card: dict, offering_rows: list[list[dict]]) -> None:
             )
 
 
+SOURCE_URLS = {
+    'model': MODEL_URL,
+    'launch': LAUNCH_URL,
+    'anthropic_pricing': ANTHROPIC_PRICING_URL,
+    'aws_page': AWS_PRICING_URL,
+    'aws_map': AWS_PRICE_MAP_URL,
+    'vertex_pricing': VERTEX_PRICING_URL,
+    'terms': COMMERCIAL_TERMS_URL,
+    'anthropic_retention': ANTHROPIC_RETENTION_URL,
+    'anthropic_training': ANTHROPIC_TRAINING_URL,
+    'anthropic_zdr': ANTHROPIC_ZDR_URL,
+    'anthropic_attestations': ANTHROPIC_ATTESTATIONS_URL,
+    'aws_retention': AWS_RETENTION_URL,
+    'aws_attestations': AWS_ATTESTATIONS_URL,
+    'vertex_data': VERTEX_DATA_URL,
+    'google_attestations': GOOGLE_ATTESTATIONS_URL,
+    'model_facts': MODEL_URL,
+    'terms_facts': COMMERCIAL_TERMS_URL,
+    'anthropic_retention_facts': ANTHROPIC_RETENTION_URL,
+    'anthropic_training_facts': ANTHROPIC_TRAINING_URL,
+    'anthropic_zdr_facts': ANTHROPIC_ZDR_URL,
+    'anthropic_attestation_facts': ANTHROPIC_ATTESTATIONS_URL,
+    'aws_retention_facts': AWS_RETENTION_URL,
+    'aws_attestation_facts': AWS_ATTESTATIONS_URL,
+    'vertex_data_facts': VERTEX_DATA_URL,
+    'google_attestation_facts': GOOGLE_ATTESTATIONS_URL,
+}
+
+
 def main() -> None:
     target = ROOT / "models/anthropic/claude-sonnet-5-5.md"
     store = CopyStore()
@@ -558,11 +592,11 @@ def main() -> None:
             "vertex_data": fetch(client, VERTEX_DATA_URL),
             "google_attestations": fetch(client, GOOGLE_ATTESTATIONS_URL),
         }
-    refs = {name: store.put(body) for name, body in bodies.items()}
-    refs["launch"] = store.put(launch_evidence_data(bodies["launch"]))
-    refs["anthropic_rendered"] = store.put(anthropic_rendered_table(bodies["anthropic_pricing"]))
-    refs["aws_rendered"] = store.put(aws_rendered_table(bodies["aws_page"], bodies["aws_map"]))
-    refs.update({name: store.put(body) for name, body in rendered_fact_sources(bodies).items()})
+    refs = {name: store.put(body, source_url=SOURCE_URLS[name]) for name, body in bodies.items()}
+    refs["launch"] = store.put(launch_evidence_data(bodies["launch"]), source_url=LAUNCH_URL)
+    refs["anthropic_rendered"] = store.put(anthropic_rendered_table(bodies["anthropic_pricing"]), source_url=ANTHROPIC_PRICING_URL)
+    refs["aws_rendered"] = store.put(aws_rendered_table(bodies["aws_page"], bodies["aws_map"]), source_url=AWS_PRICING_URL)
+    refs.update({name: store.put(body, source_url=SOURCE_URLS[name]) for name, body in rendered_fact_sources(bodies).items()})
 
     card = make_card(refs)
     prose = f"""# Claude Sonnet 5.5
