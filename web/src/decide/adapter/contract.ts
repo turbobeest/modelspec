@@ -183,6 +183,7 @@ const modelOfferingSchema = z
     cost_per_task: z.number().nullable(),
     unknown: z.array(facetId),
     reason: z.string().nullable(),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
   .strict();
 
@@ -237,6 +238,7 @@ const bandEntrySchema = z
     p_best: z.number().min(0).max(1).nullable(),
     p_beats_leader: z.number().min(0).max(1).nullable(),
     cost_per_task: z.number().nullable(),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
     estimates: z.array(
       z
         .object({
@@ -293,6 +295,7 @@ const mayQualifySchema = z
     model: modelId,
     offering: offeringRefSchema.nullable(),
     unknown: z.array(facetId),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
   .strict();
 
@@ -587,6 +590,7 @@ export const decisionSchema = z
               condition: z.string(),
               value: scalar.nullable(),
               formula: nullableString.optional(),
+              warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
             })
             .strict(),
         ),
@@ -605,6 +609,7 @@ export const decisionSchema = z
                     condition: z.string(),
                     value: scalar.nullable(),
                     formula: nullableString.optional(),
+                    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                   })
                   .strict()
                   .nullable(),
@@ -618,6 +623,7 @@ export const decisionSchema = z
                       condition: z.string(),
                       value: scalar.nullable(),
                       formula: nullableString.optional(),
+                      warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                     })
                     .strict(),
                 ),

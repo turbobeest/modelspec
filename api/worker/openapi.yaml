@@ -2116,6 +2116,9 @@ components:
         estimates:
           items: {$ref: '#/components/schemas/DecisionDimensionEstimate'}
           type: array
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          type: array
       required: [model, offering, score, score_interval]
       type: object
     DecisionBands:
@@ -3139,6 +3142,9 @@ components:
           - {$ref: '#/components/schemas/DecisionOfferingRef'}
           - {type: 'null'}
         unknown: *id026
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          type: array
       required: [model, unknown]
       type: object
     DecisionMemberEvidence:
@@ -3196,6 +3202,9 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          type: array
       required: [model, condition]
       type: object
     DecisionModelEliminationGroup:
@@ -3258,6 +3267,9 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          type: array
       required: [offering, status]
       type: object
     DecisionModelRef:
@@ -3417,6 +3429,9 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          type: array
       required: [offering, condition]
       type: object
     DecisionOfferingRef:

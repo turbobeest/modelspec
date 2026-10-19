@@ -58,15 +58,15 @@ def test_unrelated_cited_candidate_excluded_by_class_does_not_warn(level):
 
 
 @pytest.mark.parametrize("level", ["none", "summary", "full"])
-def test_cited_filter_elimination_warns_even_when_only_plain_result_remains(level):
+def test_cited_filter_elimination_does_not_warn_for_plain_answer(level):
     answer, bounded = answer_for(index_with_citation(), level=level,
                                  where=["model.context_window >= 100000"])
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
     assert answer.results[0].warnings == []
-    assert WARNING in answer.warnings
-    assert NOTICE in bounded["summary_for_user"]
-    assert "This answer uses cited facts" in bounded["summary_for_user"]
-    assert any("This answer uses cited facts" in item for item in bounded["must_mention"])
+    assert WARNING not in answer.warnings
+    assert WARNING not in bounded["warnings"]
+    assert NOTICE not in bounded["summary_for_user"]
+    assert all(NOTICE not in item for item in bounded["must_mention"])
 
 
 @pytest.mark.parametrize("condition", [
@@ -98,10 +98,10 @@ def test_unused_hidden_citation_on_returned_row_keeps_only_row_warning(level):
     assert all(NOTICE not in item for item in bounded["must_mention"])
 
 
-def test_cited_ranking_input_outside_limit_warns():
+def test_cited_ranking_input_outside_answer_does_not_warn():
     answer, _ = answer_for(index_with_citation())
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
-    assert WARNING in answer.warnings
+    assert WARNING not in answer.warnings
     assert answer.results[0].warnings == []
 
 
@@ -111,7 +111,7 @@ def test_retired_candidate_citation_is_not_used():
     assert WARNING not in answer.warnings
 
 
-def test_cited_reference_threshold_warns_after_reference_model_is_excluded():
+def test_cited_reference_threshold_warns_when_it_admits_recommended_model():
     answer, _ = answer_for(index_with_citation(), where=[
         "model.class = text-generator", "model.context_window >= model(lab/cited)",
     ])
@@ -119,19 +119,28 @@ def test_cited_reference_threshold_warns_after_reference_model_is_excluded():
     assert WARNING in answer.warnings
 
 
-def test_shown_citation_outside_result_limit_warns():
+@pytest.mark.parametrize("margin", ["0", "1e30"])
+def test_lower_cited_best_anchor_does_not_warn_for_plain_answer(margin):
+    answer, _ = answer_for(index_with_citation(), where=[
+        f"model.context_window >= best({margin})",
+    ])
+    assert answer.answer.members == ["lab/plain"]
+    assert WARNING not in answer.warnings
+
+
+def test_shown_citation_outside_answer_does_not_warn():
     answer, _ = answer_for(index_with_citation("model.class"), level="full")
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
     assert any(item.citation is not None for row in answer.top for item in row.facts)
-    assert WARNING in answer.warnings
+    assert WARNING not in answer.warnings
 
 
 @pytest.mark.parametrize("where, warned", [
-    (["model.max_output_tokens >= 5000 soft(0.2)"], True),
+    (["model.max_output_tokens >= 5000 soft(0.2)"], False),
     (["model.max_output_tokens >= 5000 soft(0.2)", "model.class = text-generator"], False),
     (["model.class = text-generator", "model.max_output_tokens >= 5000 soft(0.2)"], False),
 ])
-def test_cited_soft_penalty_only_warns_when_candidate_is_ranked(where, warned):
+def test_cited_soft_penalty_outside_answer_does_not_warn(where, warned):
     answer, _ = answer_for(index_with_citation("model.max_output_tokens"), where=where)
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
     assert (WARNING in answer.warnings) is warned
@@ -156,4 +165,20 @@ def test_computed_cost_tracks_cited_price_only_for_used_offering(limited):
                            where=["offering.provider = sambanova"] if limited else [])
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
     assert answer.results[0].warnings == []
-    assert (WARNING in answer.warnings) is not limited
+    assert WARNING not in answer.warnings
+
+
+@pytest.mark.parametrize("level", ["none", "summary", "full"])
+@pytest.mark.parametrize("objective, where, members", [
+    ({"min": "model.context_window"}, [], ["lab/cited"]),
+    ({"max": "model.max_output_tokens"}, ["model.context_window >= 0"], ["lab/cited", "lab/plain"]),
+    ({"max": "model.max_output_tokens"}, ["model.context_window < 100000"], ["lab/cited"]),
+])
+def test_cited_recommended_models_warn_for_objective_or_admitting_must(level, objective, where, members):
+    answer, bounded = answer_for(index_with_citation(), level=level, objective=objective,
+                                 where=where, limit=1)
+    assert answer.answer.members == members
+    assert WARNING in answer.warnings
+    assert WARNING in bounded["warnings"]
+    assert NOTICE in bounded["summary_for_user"]
+    assert any(NOTICE in item for item in bounded["must_mention"])

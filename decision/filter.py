@@ -374,7 +374,7 @@ def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str]
 
 class _Run:
     def __init__(self, resolved: Resolved, index: Any, reach: Any = None,
-                 fact_used: Callable[[str, str], None] | None = None) -> None:
+                 fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> None:
         self.resolved = resolved
         self.index = index
         self.reach = reach
@@ -795,14 +795,20 @@ class _Run:
         facet = _facet_of(cond)
         if facet is None or self._is_domain(facet) or self._is_evidence(cond):
             return
-        for cid in self._ids_of(bits):
-            self.fact_used(cid, facet)
+        owners = tuple(self._ids_of(bits))
+        for cid in owners:
+            self.fact_used(cid, facet, (cid,))
         if isinstance(cond, Compare):
             if isinstance(cond.value, ModelRef):
-                self.fact_used(cond.value.model, facet)
+                self.fact_used(cond.value.model, facet, owners)
             elif isinstance(cond.value, BestRef):
-                for cid in self._ids_of(self.anchor or 0):
-                    self.fact_used(cid, facet)
+                values = {cid: self._known_value(cid, facet)
+                          for cid in self._ids_of(self.anchor or 0)}
+                highest = max((value for value in values.values() if _numeric(value)),
+                              default=None)
+                for cid, value in values.items():
+                    if _numeric(value) and value == highest:
+                        self.fact_used(cid, facet, owners)
 
     def _decisive(self, cond: Any, bit: int, leg: Leg) -> Any:
         if isinstance(cond, NotOf):
@@ -941,7 +947,7 @@ class _Run:
                 weights = self.index.fact(cid, "model.weights_openness")
                 if (self.fact_used is not None
                         and (self.resolved.include_retired or not retired & bit)):
-                    self.fact_used(cid, "model.weights_openness")
+                    self.fact_used(cid, "model.weights_openness", (cid,))
                 if weights.state != "known" or weights.value != "open_weights":
                     no_route |= bit
         eliminations: list[Elimination] = []
@@ -1063,7 +1069,7 @@ def _split(raw: Bits, mask: int) -> tuple[int, int, int]:
 
 
 def apply(resolved: Resolved, index: Any, reach: Any = None, *,
-          fact_used: Callable[[str, str], None] | None = None) -> FilterResult:
+          fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> FilterResult:
     """Filter ``index`` by the resolved conditions. The same inputs give the same result.
 
     ``reach`` (``decision.estate.Reach``) restricts the lineup to the rows a
@@ -1071,5 +1077,6 @@ def apply(resolved: Resolved, index: Any, reach: Any = None, *,
 
     ``fact_used`` optionally observes the fact operands affecting filtering or
     a surviving candidate's soft penalty, without observing whole-column reads.
+    It receives the source candidate, facet and candidates relying on that operand.
     """
     return _Run(resolved, index, reach, fact_used).run()
