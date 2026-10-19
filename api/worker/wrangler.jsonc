@@ -24,7 +24,7 @@
   // Python files under src/ are discovered automatically; non-Python files need
   // a module rule or Wrangler leaves them out of the upload.
   "rules": [
-    { "type": "Data", "globs": ["registry/*.yaml", "hardware/*.yaml", "pipeline/vocab_synonyms.json"], "fallthrough": true }
+    { "type": "Data", "globs": ["registry/*.yaml", "registry/source-retention.json", "hardware/*.yaml", "pipeline/vocab_synonyms.json"], "fallthrough": true }
   ],
   "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,

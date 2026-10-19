@@ -69,6 +69,11 @@ def facet_unit(facet_id):
     return registry_facet(facet_id).unit
 
 
+def _citation_warnings(snapshot, candidate):
+    cited = getattr(snapshot, "cited_facts", None)
+    return [CITE_ONLY_WARNING] if cited and cited(candidate) else []
+
+
 def _unverified_suffix(facet_id):
     """Governance unknowns are eliminated. Capability unknowns may still qualify."""
     if facet_id:
@@ -722,6 +727,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         unit=unit,
                         records=records,
                         formula=formula,
+                        warnings=_citation_warnings(snapshot, reason.candidate),
                     )
                 )
             if (
@@ -759,13 +765,15 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         condition=condition,
                         value=None if is_collection else reason.value,
                         values=list(reason.value) if is_collection else [],
+                        warnings=_citation_warnings(snapshot, reason.candidate),
                     )
                 )
         for cid, dominators in ordered.dominance.items():
             ref = offering_ref(snapshot, cid)
             decision.eliminated.models.append(
                 ModelElimination(
-                    model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators)
+                    model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators),
+                    warnings=_citation_warnings(snapshot, cid),
                 )
             )
         grouped = {}

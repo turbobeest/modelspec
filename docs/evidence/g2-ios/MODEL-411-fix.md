@@ -562,3 +562,362 @@ Round-2 local logs are under `tmp/model-411-r2/{root,watcher,warnings,scope}`.
 No live provider call, paid scrape, deployment, private-data edit, production
 switch change, merge, or historical-source migration was performed. This work
 is ready for renewed independent review, with PR #840 kept as a draft.
+
+## Round 3 — recommendation-scoped citation warnings (2026-10-19)
+
+This section supersedes round 2's warning-scope interpretation. The orchestrator
+explicitly excluded citations used only by eliminated, screened-out, rest or
+may-qualify candidates from the decision-level warning. The writer protections,
+verification/admission rules and ordinary-host behavior established in round 2
+are unchanged.
+
+- Base: `58482dc3d50a9b8746662e8033fb14274e5a1788`.
+- Implementation: `1d8e4a8f4976edb94e10e77c18d9132883975546`.
+- Final implementation and generated-artifact head:
+  `84295ada123e9eec6959b69bd08adb4ac34c5be3`.
+- Final head: the evidence-only commit containing this section, recorded by the
+  executor's final `CODEX_EXEC_DONE MODEL-411-r3` line.
+- Worktree and branch remained `model-411-cite-only`; PR #840 remains a draft.
+
+### Behavior and boundaries
+
+The engine records which candidates depend on cited facts and checks that set
+against the answer's recommendation models. All top/tied members count, including
+a tied member beyond the result limit. With no named answer, the returned ranked
+results define the recommendation. Partial answers use their ranked recommendations;
+an empty recommendation has no decision-level citation warning.
+
+Shown facts, objective/ranking inputs and Must operands admitting those models
+can trigger the warning. A cited `model()` reference or winning `best()` value
+still counts when it supplies the recommendation's admission threshold. Lower
+`best()` anchors do not count. The source comparison happens before subtracting
+the margin, avoiding floating-point cancellation. Eliminated sibling offerings
+are excluded before identifying the recommended model. Estate gain-only warnings
+remain on the estate response and no longer promote an unrelated decision notice.
+
+Complete and bounded answers use this scope, including `summary_for_user` and
+`must_mention`. None, summary and full use the same rule. A fact displayed only by
+full can legitimately trigger a full-only notice; ranking and Must dependencies
+are tested across all three levels. The existing notice, "This answer uses cited
+facts", now describes the recommendation rather than other catalogue rows.
+
+Other cited rows retain their own disclosure. Optional, empty-omitted `warnings`
+fields cover may-qualify rows, flat/grouped eliminations, grouped offerings and
+band entries; strict web parsing accepts them. Existing result warnings are
+unchanged. Only the citation code propagates into the new grouped fields, so
+ordinary rows retain their serialized shape even when they have another warning.
+No contract versions or closed enums changed.
+
+### Red-first evidence and focused verification
+
+All commands ran in the named worktree, with direct exit codes. Python commands
+use `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python`.
+
+| Check | Before implementation | Final focused result |
+| --- | --- | --- |
+| `tests/test_cite_only_warning_scope.py` | 7 failed, 25 passed: elimination-only, ranking/rest, displayed rest, soft-penalty and computed-price over-warning | Included in 674 passing tests below |
+| `test_cited_estate_gain_does_not_warn_for_current_answer` | 1 failed: unrelated estate gain promoted the decision warning | Passing |
+| `test_lower_cited_best_anchor_does_not_warn_for_plain_answer[1e30]` | 1 failed, 1 passed: lower anchor incorrectly attributed after rounding | Both margins pass |
+| `tests/test_cite_only_row_warnings.py` | 12 failed, 1 passed; 11 missing-field/propagation failures and one malformed best-band fixture | Passing; best-band fixture corrected to supply its required leader |
+| Web `cite-only-row-contract.test.ts` | 4 failed: strict schemas rejected the new row warning fields | Passing |
+| `test_existing_non_citation_result_warning_does_not_expand_grouped_rows` | 1 failed: copying all codes expanded ordinary output | Passing after citation-only propagation |
+
+Red logs are `root/red-scope-final.log`, `root/red-estate.log`,
+`root/red-best-rounding.log`, `rows/red-python.log`, `rows/red-web.log` and
+`rows/red-ordinary.log` under `tmp/model-411-r3/`. The first exploratory scope
+run also contained two incorrect tie fixtures and an incorrect reference-threshold
+expectation; those were corrected before the recorded seven-failure baseline.
+The initial broader row run had 306 passes and two failures: the malformed band
+fixture and the expected stale generated schema. Both were resolved.
+
+The fixture matrix builds snapshots with `xai/grok-4-7` cited through each of
+`x.ai`, `docs.x.ai` and `perplexity.ai`. Its 12 cases cover rest, eliminated,
+recommended and tied positions: rest/eliminated have only row warnings;
+recommended/tied also have the decision warning. A further 33 passing regressions
+cover all explanation levels, sibling offerings, partial/may-qualify answers,
+ties beyond the limit, null-answer lexicographic/Pareto recommendations and cited
+reference thresholds. Those 33 cases were added after the initial fix and are
+not claimed as pre-fix red tests.
+
+The initial focused run passed all 674 tests in 49.85s. The final run also
+includes the agent-guide checks (exit **0**, **693 passed in 54.84s**):
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_cite_only*.py tests/test_decision_filter.py tests/test_decision_optimise.py tests/test_decision_explain.py tests/test_decision_by_model.py tests/test_decision_bands.py tests/test_decision_contract.py tests/test_decide_bounded.py tests/test_bounded_pick.py tests/test_agent_guide.py
+```
+
+### Scenario B and the reviewer's exact probe
+
+The before/after replay uses the exact signed scenario-B snapshot and unchanged
+40 templates from INV-409, isolating the warning code change. Synthetic committed
+tests above rebuild snapshots; the private investigation snapshot is reused
+without rebuilding or changing its data. It contains 52 cited records with null
+verification, including Grok's 31 facts (21 model and 10 offering facts).
+
+| Fixed input | SHA-256 |
+| --- | --- |
+| `/tmp/inv-409/scenarios/B/exports/decision/snapshot.json.gz` | `2e0a9fec00530a0d2307900d9d5caff4b7674f4ac2888a8dc68c953d2fa2d761` |
+| `/tmp/inv-409/scenarios/B/code/registry/templates.yaml` | `75ba95e4a1ba56f6fa3256ab13928e6cbfac465d4e13a689f8cfe5b686045b5e` |
+| `/tmp/inv-409/scenarios/B/code/registry/source-retention.json` | `45833a6c7e183acb5f852284171063c592be6c01e62ba155973e6c9f00c697b8` |
+
+The snapshot is `snap_137b83f6cc49f84f`, as of 2026-10-19; the local test-key
+signature verifies. Policy hosts are exactly `x.ai`, `docs.x.ai`, `perplexity.ai`.
+All 12 registry-overlay hashes also match before/after. The baseline module
+hashes match `58482dc3`; final module hashes are in
+`tmp/model-411-r3/scenario/after_final/inputs.json`.
+
+The final replay's module hashes match committed implementation
+`84295ada123e9eec6959b69bd08adb4ac34c5be3`. The modules changed from the baseline
+have these final digests:
+
+| Module | Final SHA-256 |
+| --- | --- |
+| `decision/bands.py` | `fdeffc67836bae72476b2828630d71cfb52ab551a760c95e84557f63d455d33d` |
+| `decision/by_model.py` | `db8e6c5673e122b2e18b31a6718f5038edfdd7855fe3468a6bb9c224eaea567c` |
+| `decision/contract.py` | `39b3bb988321e254e1d91e2b1f398879f059aba29805b958cf220997de0f69bc` |
+| `decision/engine.py` | `b974948ca50e518c14ccaee8ad9b0d77e6c2442dd6a70b410f19a079c1c54d3c` |
+| `decision/explain.py` | `abf9549025446e92ec172238604bb64bdf74923066f0f647a40284063466e5e6` |
+| `decision/filter.py` | `e641bc92febc53ac1d0310ac75d36cfa72c892cb12bec18aec4122f764eeee7a` |
+
+| Replay mode | Round-2 decision warnings | Round-3 decision warnings |
+| --- | ---: | ---: |
+| Default summary, 40 templates | 40/40 | **1/40** |
+| Full, 40 templates | 40/40 | **1/40** |
+| None with limit 500, 40 templates | 40/40 | **1/40** |
+
+Only `assistant-balanced` retains the decision warning: Grok is in its top/tied
+set. Across all 120 comparisons, answer objects, top/tied members, status,
+decision/spec IDs, ordering, existing result-row warnings and truncation are
+unchanged. Status counts remain 5 answered, 23 partial, 12 no-feasible.
+
+Grok's existing result-row warning remains in `coding-balanced`,
+`assistant-balanced`, `high-volume-best`, `high-volume-balanced` and
+`high-volume` at the default limit. The expanded limit also shows warned Grok
+rows in `coding-best`, `maths` and `assistant-best`. New warnings on diagnostic
+row shapes are intentional and outside the existing-result-row comparison.
+
+Reproducible commands (each exit **0**; baseline ran before editing engine code):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python tmp/model-411-r3/scenario/run_scenario_b.py baseline
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python tmp/model-411-r3/scenario/run_scenario_b.py after_final
+PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python tmp/model-411-r3/scenario/check_replay.py after_final
+```
+
+The independent check validates inputs and all 120 comparisons. The full
+40-template table, exact redirect-to-log commands and source hashes are in
+`tmp/model-411-r3/scenario/evidence-fragment.md` and `check-after-final.log`.
+
+After the final contract metadata update, the final replay, independent checker
+and exact reviewer probe ran again; each exited **0**. All 120 raw decision
+responses are byte-for-byte identical to the preceding round-3 replay, preserved
+in `tmp/model-411-r3/scenario/after_final.before_metadata/`. Only the contract
+module hash changed between those two runs. The warning counts and all baseline
+answer comparisons above remain unchanged.
+
+The scratch runner `check_reviewer_probe.py` imports the original fixture from
+`/tmp/rev840/test_probe_scope.py`, uses its exact spec, adds explicit no-warning
+and bounded-notice assertions, and tests all three explanation levels. It exits
+**1** against the preserved round-2 implementation and **0** against round 3.
+The final metadata rerun also passes at every explanation level: only `lab/plain`
+is returned and recommended, with no decision or result-row warning and no
+citation notice in `summary_for_user` or `must_mention`. The cited record retains
+null verification and `citation.status: cited`.
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python tmp/model-411-r3/scenario/check_reviewer_probe.py --code-root /tmp/inv-409/scenarios/B/code
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python tmp/model-411-r3/scenario/check_reviewer_probe.py
+```
+
+### Required gates and limitations
+
+Tools: Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5, PyYAML 6.0.3,
+Node v22.22.3, npm 10.9.8, Vitest 5.0.1 and Git 2.50.1.
+Node commands used `/Users/terbeest/.nvm/versions/node/v22.22.3/bin` first on PATH.
+
+Each command below was run separately and its exit code read directly, without
+piping through a log reader. Logs are under `tmp/model-411-r3/root/`.
+
+| Command | Exit | Observed result |
+| --- | ---: | --- |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema --check` | 0 | Generated schema current |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check` | 0 | Final generated bundle current |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi --check` | 0 | OpenAPI matches implementation |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts` | 0 | QA fixture current |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist` | 0 | Site build completed |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec` | 0 | **0 findings; 5,366 files checked** |
+| `(cd web && npm ci)` | 0 | Dependencies installed from lockfile |
+| `(cd web && npm run build)` | 0 | TypeScript/Vite build passed |
+| `(cd web && npm test)` | 0 | **904 passed; 58 files passed, 1 skipped** |
+
+Generation commands `python -m decision.schema`, `python -m api.worker.openapi`,
+`python -m pipeline.agent_copy write` and `python -m qa.contracts` also exited 0
+with the Python executable/environment above. The first agent-copy check exited
+1 for the stale schema digest in `cli/modelspec/agent-bundle.json`; regeneration
+changed that digest only, and the final check passed. Existing frozen hardware
+source-registration diagnostics appeared during the generator/site build;
+they did not fail either final check. No registry/data changes were made.
+
+An independent JSON comparison against the base found exactly five new optional
+warning fields in the decision schema; removing those five properties yielded
+the identical base schema. Contract versions remain unchanged. A path comparison
+also confirmed no round-3 changes to frozen data, retention, verification or
+admission code, writer scripts, legal text or ranking policy.
+
+The first full suite, at `c66dd255b2d63289f7c58c19f24b15b95ebda6ea`, exited
+**1**: **1 failed, 12,386 passed, 9 skipped, 11 warnings in 1596.02s**.
+The sole failure was
+`tests/test_agent_guide.py::test_openapi_size_and_all_response_header_descriptions`:
+the generated OpenAPI document was 233,008 bytes, eight bytes above its existing
+233,000-byte limit. A separate run reproduced that failure before the fix
+(`root/openapi-budget-red.log`, exit 1).
+
+The fix adds the same description to the five new row-warning fields. This lets
+the existing OpenAPI generator share their schemas through YAML aliases. Neither
+the generator nor the byte/token limits changed. The regenerated document is
+232,783 bytes and an estimated 58,192 tokens, using the local gate's
+`ceil(characters / 4)` fallback because `tiktoken` is not installed. A parsed
+comparison against the previous round-3
+OpenAPI found only those five descriptions; the larger textual diff reflects
+alias renumbering. Removing the five new optional properties from the decision
+JSON schema still yields the round-2 schema exactly. The isolated size regression
+then passed (`root/openapi-budget-green.log`, exit 0), as did all 693 focused tests.
+The CLI bundle and QA fixture source digests were regenerated.
+
+The semantic comparisons are reproducible with this command (exit **0**):
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import json
+from pathlib import Path
+import subprocess
+import yaml
+
+rows = ('MayQualify', 'ModelElimination', 'OfferingElimination', 'BandEntry', 'ModelOffering')
+def at(commit, path):
+    return subprocess.check_output(['git', 'show', f'{commit}:{path}'])
+schema = json.loads(Path('docs/decision-contract.schema.json').read_bytes())
+for name in rows:
+    assert 'warnings' not in schema['$defs'][name].get('required', [])
+    del schema['$defs'][name]['properties']['warnings']
+assert schema == json.loads(at('58482dc3', 'docs/decision-contract.schema.json'))
+openapi = yaml.safe_load(Path('api/worker/openapi.yaml').read_bytes())
+for name in rows:
+    openapi['components']['schemas']['Decision' + name]['properties']['warnings'].pop('description', None)
+assert openapi == yaml.safe_load(at('c66dd255', 'api/worker/openapi.yaml'))
+print('Schema and OpenAPI scope comparisons passed')
+PY
+```
+
+The final full suite was started at `84295ada` under the shared lock, with the
+pinned Node directory first on PATH:
+
+```sh
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+The final full suite completed with direct exit **0**:
+
+```text
+12387 passed, 9 skipped, 11 warnings in 1570.55s (0:26:10)
+```
+
+The 11 warnings concern unsigned vocabulary fixtures in the CLI snapshot tests.
+The run waited for the preceding suite to release the shared lock. Its last
+active worker was observed using CPU while the remaining workers waited; no
+test was interrupted or excluded. Every started generator/build/test process
+has exited. No source or generated-artifact edits followed `84295ada`; only this
+evidence changed afterward. `git diff --check` passed. The PR head and draft state
+are checked after pushing.
+
+Final logs under `tmp/model-411-r3/root/` are `fullsuite-final.log`,
+`focused-metadata-final.log`, `schema-check-final.log`,
+`openapi-check-final.log`, `agent-copy-check-final.log`,
+`qa-contracts-generate-final.log`, `site-build-final.log`,
+`surface-lint-final.log`, `web-ci-final.log`, `web-build-final.log` and
+`web-test-final.log`. The first full-suite failure is preserved in `fullsuite.log`.
+
+No live publisher fetch, paid provider call, private-data edit, retention-policy
+edit, deployment, production switch, merge or additional writer change was made
+in round 3. No new claim is made about historical source cleanup. The round-2
+writer audit remains applicable; this round changes warning scope and disclosure.
+
+## Round 4 — CI (2026-10-19)
+
+Round 4 fixes CI only. It does not change cite-only behaviour, warning scope,
+contract versions, ranking floors, legal text or production switches. #840's CI
+at `58482dc3` was red on Rank Worker bundle, pytest shard 1/4, pytest perf and
+collection, and Run pytest. Both causes were already fixed on the MODEL-408
+branch (`model-408-xai-consumer`). They were cherry-picked here with `-x`, and no
+other MODEL-408 change was brought in:
+
+- `95944ce7` → `68262db4`: adds `pypdf>=6.19` to the `dev` extra in
+  `pyproject.toml`. The retention collector tests import it, and a clean CI
+  environment did not have it.
+- `a0a13e70` → `e39ba21a`: adds `registry/source-retention.json` to the
+  Worker's Data rule in `api/worker/wrangler.jsonc`. Without it the bundle
+  ships without the retention policy, and `bundle_check.py` fails.
+
+### Generated pins
+
+The generators were run after both picks. Each exited **0** and left no diff
+beyond the picks, so `cli/modelspec/agent-bundle.json` matches generator
+output. Only the `pyproject.toml` and `api/worker/wrangler.jsonc` fingerprints
+changed.
+
+```sh
+python -m pipeline.agent_copy write   # rc 0
+python -m pipeline.agent_copy check   # rc 0
+python -m api.worker.openapi          # rc 0
+python -m api.worker.openapi --check  # rc 0, "matches the implementation"
+python -m qa.contracts                # rc 0
+```
+
+### Rank Worker bundle (local reproduction of `rank-api.yml`)
+
+This used `DATA_SPLIT_ENABLED=true` (the repository variable), uv `0.12.19`,
+Node 22 and wrangler `4.139.0`, as CI pins them.
+
+```sh
+python api/worker/vendor.py --check                       # rc 0, imports cleanly
+uv sync --project api/worker --frozen                     # rc 0
+(cd api/worker && uv run --project . pywrangler deploy --dry-run --outdir ../../dist/rank-worker)  # rc 0
+(cd api/worker && python bundle_check.py ../../dist/rank-worker)  # rc 0
+```
+
+`bundle_check.py` printed "bundle import graph complete: 78 local modules
+reachable from entry.py", and `dist/rank-worker/registry/source-retention.json`
+is present. Negative control: with round 3's `wrangler.jsonc` the dry-run still
+exits 0, but `bundle_check.py` exits **1** with "missing vendored file
+registry/source-retention.json", the same error CI reported.
+
+### Clean environment (local reproduction of `test.yml`)
+
+A fresh Python 3.11 venv at `/tmp/m411r4-venv` was built only from
+`pyproject.toml`, using the workflow's pinned install line (`-e ".[dev]"` and
+the same pins). It installed pypdf 6.21.1.
+
+- Negative control: with pypdf uninstalled, `pytest --collect-only` on the
+  three retention files exits **2** with `ModuleNotFoundError: No module named
+  'pypdf'` in `tests/test_cite_only_collector_writers.py`.
+- With pypdf reinstalled, `tests/test_cite_only_collector_writers.py`,
+  `tests/test_cite_only_retention.py` and `tests/test_curation_cite_only.py`
+  exit **0**: 100 passed.
+- Perf and collection job: `pytest -q -p no:xdist -m perf` exits **0** (3
+  passed). `pytest --collect-only -q -m "not perf"` exits **0** (12393/12396
+  collected, 3 deselected, no collection errors).
+- Shard 1/4 (`scripts/pytest_shards.py --shard-count 4 --shard-index 0`, 79
+  files, `-n 4 --dist loadfile -m "not perf"`) exits **0**: 3080 passed.
+
+### Full suite
+
+```sh
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+This exited **0**: `12387 passed, 9 skipped, 11 warnings in 1544.74s
+(0:25:44)`. The warnings are the same unsigned-vocabulary fixture warnings as in
+round 3.
+
+The scratch venv and the uv tool venv were removed afterwards. No vendor API
+call, deployment, production switch or merge was made, and the PR stays a draft.

@@ -250,6 +250,15 @@
           ],
           "title": "Score Interval",
           "type": "array"
+        },
+        "warnings": {
+          "description": "Assurance warnings for this row.",
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
         }
       },
       "required": [
@@ -3696,6 +3705,15 @@
           },
           "title": "Unknown",
           "type": "array"
+        },
+        "warnings": {
+          "description": "Assurance warnings for this row.",
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
         }
       },
       "required": [
@@ -3906,6 +3924,15 @@
           },
           "title": "Values",
           "type": "array"
+        },
+        "warnings": {
+          "description": "Assurance warnings for this row.",
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
         }
       },
       "required": [
@@ -4085,6 +4112,15 @@
             "type": "string"
           },
           "title": "Unknown",
+          "type": "array"
+        },
+        "warnings": {
+          "description": "Assurance warnings for this row.",
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
           "type": "array"
         }
       },
@@ -4643,6 +4679,15 @@
             ]
           },
           "title": "Values",
+          "type": "array"
+        },
+        "warnings": {
+          "description": "Assurance warnings for this row.",
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
           "type": "array"
         }
       },

@@ -339,3 +339,22 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_368_cite_only.py tests/test_model_368_perplexity_faq.py tests/test_cite_only_retention.py tests/test_cite_only_verification.py tests/test_cite_only_redirects.py tests/test_rendered_sources.py
 /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
+
+## Main sync after #840
+
+#840 (MODEL-411) was squash-merged to main as `2bdc4eb3`. This branch had
+merged #840's branch at `58482dc3`, so `git merge origin/main` conflicted on
+ten files. In each one this branch had no change of its own relative to
+main `6568b0eb` plus `58482dc3`, so main's version (#840 as merged) was
+taken whole: `api/worker/openapi.yaml`, `cli/modelspec/agent-bundle.json`,
+`decision/engine.py`, `decision/filter.py`, `docs/decision-contract.md`,
+`docs/design/cite-only-sources.md`, `docs/evidence/g2-ios/MODEL-411-fix.md`,
+`qa/fixtures/mcp-tools.json`, `tests/test_cite_only_surfaces.py` and
+`tests/test_cite_only_warning_scope.py`. Each of the branch's own 12 files has
+the same diff against main as before the merge. The reader, the cite-only
+integration, the tests, the evidence and the `verify_private.py --key` option
+are unchanged. `pipeline.agent_copy write`/`check`,
+`api.worker.openapi`/`--check` and `qa.contracts` regenerated no change, and
+`openapi.yaml` is 232,783 bytes, the same as main. The focused tests gave
+605 passed. The full suite under the shared lock gave exit 0, with 12,410
+passed and 9 skipped in 1,982.77s.
