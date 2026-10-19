@@ -5505,7 +5505,9 @@ class StoredRegions:
         return None if source is None else str(source.url)
 
     def page_html(self, source_id: str, copy_ref: str) -> str | None:
-        """Raw retained HTML. The Pro FAQ template is not the normalised region."""
+        """Raw retained HTML for sources whose retention policy permits it."""
+        if self.cite_only(source_id, copy_ref):
+            return None
         if source_id not in self.sources or not self.store.has(copy_ref):
             return None
         try:
@@ -5518,6 +5520,7 @@ class StoredRegions:
             return body.decode("utf-8")
         except UnicodeDecodeError:
             return None
+
     def is_whole_document(self, source_id: str, region_id: str, normaliser: str) -> bool:
         source = self.sources.get(source_id)
         return source is not None and source.normaliser == normaliser and any(

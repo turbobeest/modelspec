@@ -1,5 +1,8 @@
 # MODEL-368
 
+This records the original run. The cite-only rework supersedes its retention and
+verification behavior; see [MODEL-368-cite-fix.md](MODEL-368-cite-fix.md).
+
 Base `6fdc5baef50a1c198a4a0557dbe2299da5f75090`. The reader and tests are `747bff47fbddc008592f18c5077c158417fa6dcd`. This evidence file is the following commit on `model-368-perplexity-faq`.
 
 The expanded FAQ names five models. `GPT-5.6 Terra` and `Claude Sonnet 5` map to `openai/gpt-5-6-terra` and `anthropic/claude-sonnet-5`. `Gemini 3.1 Pro Thinking`, `Grok 4.1`, and `Perplexity's in-house Sonar 2 model` have no canonical card. The reader raises `incomplete mapping` and `verify` skips the claim. The historical pair stays filed. The production queue was not appended. No contract field was widened.

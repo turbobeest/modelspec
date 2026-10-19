@@ -2,7 +2,7 @@
 
 The reviewed structural hash was taken with this parser. Void tags are not
 pushed, and a non-void start-end tag stays open, because that is how the
-retained page hashed.
+original retrieval hashed.
 """
 
 from __future__ import annotations
@@ -21,7 +21,8 @@ if TYPE_CHECKING:
 
 QUESTION = "What models do I get access to?"
 PREFIX = "Pro includes "
-SUFFIX = ". You can switch between models with one click depending on your task."
+SUFFIX_LENGTH = 70
+SUFFIX_SHA256 = "d08feeac87a47183bd3e1ac74fec9de98a36ebd257bc7e92e7dae433a467c1b0"
 FAQ_STRUCTURAL_HASH = "sha256:5bbb70cd6701e04065ea2497e4c0498b4bc2ec6b33b9d420f8f09c3713f2a0e2"
 LIVE_ITEMS = (
     "GPT-5.6 Terra",
@@ -93,9 +94,11 @@ def _find_faq(node: _Node) -> _Node | None:
 
 def _slots(text: str) -> list[str] | None:
     collapsed = " ".join(text.split())
-    if not (collapsed.startswith(PREFIX) and collapsed.endswith(SUFFIX)):
+    if not collapsed.startswith(PREFIX):
         return None
-    middle = collapsed[len(PREFIX):-len(SUFFIX)]
+    if hashlib.sha256(collapsed[-SUFFIX_LENGTH:].encode()).hexdigest() != SUFFIX_SHA256:
+        return None
+    middle = collapsed[len(PREFIX):-SUFFIX_LENGTH]
     if ", and " not in middle:
         return None
     head, last = middle.rsplit(", and ", 1)
@@ -242,9 +245,7 @@ def prepare_pro_faq(page: Any, timeout: float) -> None:
                 .find(node => node.textContent.trim() === question);
             if (!button || button.getAttribute('aria-expanded') !== 'true') return false;
             const item = button.parentElement;
-            return !!item && item.textContent.includes('Pro includes ')
-                && item.textContent.includes(
-                    'You can switch between models with one click depending on your task.');
+            return !!item && item.textContent.includes('Pro includes ');
         }""",
         arg=QUESTION,
         timeout=remaining_ms(),
