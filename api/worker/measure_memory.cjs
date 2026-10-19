@@ -187,7 +187,10 @@ details = []
 for snapshot in snapshots:
     table = snapshot._record_table or {}
     fields = table.get('fields', [])
-    verification_positions = {position for row in table.get('rows', {}).values()
+    # The streaming loader packs rows as shifted positions (MODEL-417).
+    rows = [row if isinstance(row, list) else [None if p == 0 else p - 1 for p in row]
+            for row in table.get('rows', {}).values()]
+    verification_positions = {position for row in rows
                               for field, position in zip(fields, row)
                               if field and field[0] == 'verification' and position is not None}
     details.append({

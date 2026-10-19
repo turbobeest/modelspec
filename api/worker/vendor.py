@@ -246,15 +246,23 @@ def bundle_data(out: Path, data_dir: Path) -> None:
             blobs["/api/" + rel] = base64.b64encode(gzip.compress(raw, mtime=0)).decode("ascii")
             if rel == successor:
                 snapshots["/api/" + rel] = snapshot_metadata(raw)
-        (out / "bundled_data.py").write_text(
-            "# Generated private Worker data. Never publish as a site asset.\n"
-            "import base64, gzip\n"
-            + "BLOBS = " + repr(blobs) + "\n"
-            + "SNAPSHOTS = " + repr(snapshots) + "\n"
-            + "def read(path):\n    value = BLOBS.get(path)\n"
-              "    return gzip.decompress(base64.b64decode(value)) if value else None\n",
-            encoding="utf-8",
-        )
+        (out / "bundled_data.py").write_text(bundled_data_source(blobs, snapshots),
+                                             encoding="utf-8")
+
+
+def bundled_data_source(blobs: dict[str, str], snapshots: dict[str, dict]) -> str:
+    """The generated `bundled_data` module for compressed, base64 export blobs."""
+    return (
+        "# Generated private Worker data. Never publish as a site asset.\n"
+        "import base64, gzip, io\n"
+        + "BLOBS = " + repr(blobs) + "\n"
+        + "SNAPSHOTS = " + repr(snapshots) + "\n"
+        + "def read(path):\n    value = BLOBS.get(path)\n"
+          "    return gzip.decompress(base64.b64decode(value)) if value else None\n"
+        # MODEL-417: decompress while decoding, never holding a whole export.
+        + "def stream(path):\n    value = BLOBS.get(path)\n"
+          "    return gzip.GzipFile(fileobj=io.BytesIO(base64.b64decode(value))) if value else None\n"
+    )
 
 
 _coverage_log_ready = False

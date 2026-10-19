@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Mapping
 from typing import Any, TextIO
 
 _CHUNK_SIZE = 65536
@@ -10,10 +11,18 @@ _WHITESPACE = " \t\r\n"
 _VALUE_END = ",]}:" + _WHITESPACE
 
 
+#: A path trie of object members whose values are converted as soon as each is
+#: decoded: member name (or ``"*"`` for any member) to a subtrie, and ``None``
+#: to the conversion for the value at that path. Converting while reading keeps
+#: a large container's decoded form from being held whole (MODEL-417).
+Transforms = Mapping[str | None, Any]
+
+
 class JSONStreamReader:
     """Read one value, optionally hashing its exact UTF-8 source as it is consumed."""
 
-    def __init__(self, stream: TextIO, *, initial: str = "", digest: Any = None):
+    def __init__(self, stream: TextIO, *, initial: str = "", digest: Any = None,
+                 transforms: Transforms | None = None):
         self._stream = stream
         self._buffer = initial
         self._cursor = 0
@@ -24,6 +33,7 @@ class JSONStreamReader:
             keys.setdefault(key, key): value for key, value in pairs
         })
         self._digest = digest
+        self._transforms = transforms
 
     def _fill(self, size: int | None = None) -> None:
         self._hash_consumed()
@@ -76,7 +86,7 @@ class JSONStreamReader:
             self._fill(size)
             size = min(size * 2, 1024 * 1024)
 
-    def _object(self) -> dict[str, Any]:
+    def _object(self, transforms: Transforms | None = None) -> dict[str, Any]:
         self._cursor += 1
         result = {}
         self._whitespace()
@@ -93,7 +103,13 @@ class JSONStreamReader:
             if not self._starts(":"):
                 raise self._error("missing JSON object key separator")
             self._cursor += 1
-            result[key] = self.read_value()
+            if transforms is None:
+                result[key] = self.read_value()
+            else:
+                child = transforms.get(key)
+                if child is None:
+                    child = transforms.get("*")
+                result[key] = self._read_transformed(child)
             self._whitespace()
             if self._starts("}"):
                 self._cursor += 1
@@ -127,7 +143,19 @@ class JSONStreamReader:
                 raise self._error("missing JSON array value separator")
             self._cursor += 1
 
+    def _read_transformed(self, transforms: Transforms | None) -> Any:
+        if transforms is None:
+            return self.read_value()
+        self._whitespace()
+        value = self._object(transforms) if self._starts("{") else self.read_value()
+        convert: Callable[[Any], Any] | None = transforms.get(None)
+        return value if convert is None else convert(value)
+
     def read_value(self) -> Any:
+        if self._transforms is not None:
+            # The root value. Nested values are read with their own subtrie.
+            transforms, self._transforms = self._transforms, None
+            return self._read_transformed(transforms)
         self._whitespace()
         if self._starts("{"):
             return self._object()
