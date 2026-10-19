@@ -330,3 +330,235 @@ snapshot tests. The full output is retained in `root/full-pytest-final.log`.
   `root`, `retention`, `verification`, and `surfaces`. The red/green excerpts and
   commands above are the committed review evidence. Individual workers' test
   sets overlap; their counts must not be added together.
+
+
+## Round 2 — REV-840 changes
+
+Review baseline: `3b2745368523dfe64f1ead318e1376876b406b9f` (PR #840).
+Original feature base: `bbfa93be5eed392878a2af0d709ca6e774302c5c`.
+All round-1 results above describe that round only. This section supersedes its
+writer inventory and decision-warning scope. Work stays on
+`model-411-cite-only`; PR #840 remains a draft.
+
+### Defects and regressions
+
+The watcher now applies the same host policy as CopyStore to direct URLs and
+all observed redirect origins. Restricted responses bypass normalization and
+classification. State contains only URL, redirect URLs, hash and fetch time;
+there is no source `.txt`, report export, extracted change snippet or drafter
+input. Reused known cite-only state/export/report/manifest artifacts cannot
+revive retained text. Cleanup is limited to URL-keyed generated artifacts.
+Ordinary output and unmapped historical artifacts are preserved.
+
+The URL matrix covers x.ai, docs.x.ai, sub.docs.x.ai, www.perplexity.ai,
+uppercase, trailing dot, port, redirect to x.ai, and an ordinary control. Real
+urllib redirect handling is exercised with a synthetic HTTPS transport,
+including ordinary → restricted → ordinary. Firecrawl origins and HTTP-to-
+Firecrawl fallback histories are covered. All network fixtures are offline.
+
+The decision warning now follows cited facts actually used by this answer:
+shown facts, ranking inputs, and filter operands affecting admission or
+elimination. Whole-catalog scans and promotion of broad row warnings are gone.
+Row warnings retain their previous scope. The citation notice in the summary
+and must-mention list starts “This answer uses cited facts.” Tests cover none/summary/full, bounded answers,
+short-circuit predicates, provider/class exclusions, retired candidates,
+computed prices, soft penalties, hidden returned facts and ranking inputs
+outside the displayed limit.
+
+The reviewer's exact `lab/plain` probe has a contradictory expectation in the
+round-2 request: it removes `lab/cited` using that model's cited context limit.
+That meets the explicit rule requiring a warning for cited eliminations. The
+implementation follows that rule. The exact probe still warns; the no-warning
+regression selects the ordinary class/provider before any cited predicate can
+affect a candidate. An optional clarification was requested; no contrary
+direction was received during execution. This is an explicit interpretation,
+not a claim that the exact original filter probe now has no warning.
+
+Ordinary-host scope is restored: `docs/api.md` is byte-identical to the original
+base; comparison provenance is emitted for known facts, with a narrow explicit
+citation exception; the contract again says “known provenance”; and benchmark
+provider failures again use `str(payload)[:300]`. Pricing again invokes the
+Firecrawl CLI with the existing wait/main-content options and credential/credit
+behavior. Direct restricted hosts fail before subprocess invocation. The single
+CLI call returns JSON to memory so all reported origins can be checked before
+writing its exact markdown. There is no second scrape, HTTP preflight, Python
+key resolver, credit guard or benchmark hash-cache write.
+
+The CLI output-routing flag was checked against installed firecrawl-cli 1.23.3:
+`--json` formats stdout and is not the billable JSON extraction format. With no
+output path, the output helper writes no page file. Its interaction metadata
+contains only scrape ID, URL and creation time. No live scrape was run.
+
+The repo-wide audit found additional source-to-write gaps. Census search caches
+now discard restricted titles, descriptions and markdown; replay uses the same
+guard. Census excerpt and licence readers refuse restricted content before
+parsing or writing. Board and local-memory collectors no longer lose redirect
+provenance before creating quoted projections. Legacy urllib excerpt readers
+now share a retention-aware opener that refuses direct, intermediate and final
+restricted origins. The benchmark HTTP cache instead follows the chain in
+memory, retains its origins and writes only citation metadata. Its ordinary
+cache and transient body behavior remain intact.
+
+### Red-first and focused evidence
+
+Python: 3.14.4; pytest: 9.1.1; Node: v22.22.3; npm: 10.9.8.
+All commands run from `/Users/terbeest/dev/worktrees/model-411-cite-only` unless
+a subdirectory is stated. Test commands below use the exact prefix:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q
+```
+
+Each table argument list follows that prefix. Output is redirected as
+`> tmp/model-411-r2/<log> 2>&1`; exit codes come directly from the process
+result, never from a pipe. Counts from overlapping suites must not be added.
+
+| Arguments | Log | Exit | Result |
+|---|---|---:|---|
+| `tests/test_curation_cite_only.py` | `watcher/red-matrix.log` | 1 | 8 failed, 1 passed |
+| `tests/test_curation_cite_only.py -k 'http_fetch or firecrawl'` | `watcher/red-fetch-origins.log` | 1 | 5 failed, 8 passed, 9 deselected |
+| `tests/test_curation_cite_only.py -k 'stale or repeat or preserves_prior'` | `watcher/red-reuse.log` | 1 | 5 failed, 1 passed, 22 deselected |
+| `tests/test_curation_cite_only.py -k draft` | `watcher/red-drafts.log` | 1 | 12 failed, 1 passed, 28 deselected |
+| `tests/test_curation_cite_only.py -k proposal_gate` | `watcher/red-proposals.log` | 1 | 2 failed, 1 passed, 41 deselected |
+| `tests/test_curation_cite_only.py -k preserves_prior` | `watcher/red-unrelated-state.log` | 1 | 1 failed, 43 deselected |
+| `tests/test_curation_cite_only.py -k prior_manifest` | `watcher/red-prior-manifest.log` | 1 | 1 failed, 44 deselected |
+| `tests/test_curation_cite_only.py tests/test_curation_loop.py tests/test_workflow_dependencies.py tests/test_writer_artifacts.py tests/test_cite_only_retention.py tests/test_cite_only_redirects.py` | `watcher/green-final.log` | 0 | 168 passed |
+| `tests/test_cite_only_warning_scope.py` | `warnings/red-scope.log` | 1 | 11 failed, 4 passed |
+| `tests/test_cite_only_warning_scope.py -k unused_hidden_citation_on_returned_row` | `warnings/red-hidden-returned.log` | 1 | 3 failed, 20 deselected |
+| `tests/test_cite_only_warning_scope.py` | `warnings/green-scope-final.log` | 0 | 23 passed |
+| `tests/test_cite_only_warning_scope.py tests/test_decision_filter.py tests/test_decision_optimise.py tests/test_decision_explain.py tests/test_decision_summary.py tests/test_decide_bounded.py tests/test_cite_only_surfaces.py` | `warnings/green-focused.log` | 0 | 247 passed; before final hidden-returned correction |
+| `tests/test_cite_only_warning_scope.py tests/test_decision_explain.py tests/test_decision_summary.py tests/test_decide_bounded.py tests/test_cite_only_surfaces.py` | `warnings/green-final-consumers.log` | 0 | 163 passed on final warning implementation |
+| `tests/test_cite_only_scope.py` | `scope/red.log` | 1 | 7 failed, 1 passed |
+| `tests/test_cite_only_scope.py tests/test_cite_only_retention.py tests/test_fetch_pricing.py tests/test_fetch.py tests/test_model_comparison.py tests/test_cite_only_surfaces.py tests/test_api_docs.py tests/test_decision_contract.py` | `scope/green.log` | 0 | 389 passed, 2 skipped |
+| `tests/test_cite_only_writer_audit.py` | `root/writer-audit-red.log` | 1 | 6 failed, 1 passed |
+| `tests/test_cite_only_writer_audit.py -k provider` | `root/provider-licence-red.log` | 1 | 2 failed, 1 passed, 7 deselected |
+| `tests/test_cite_only_writer_audit.py` | `root/writer-audit-final.log` | 0 | 10 passed, before intermediate-hop follow-up |
+| `tests/test_cite_only_http_cache.py` | `root/http-cache-red.log` | 1 | 4 failed, 1 passed |
+| `tests/test_cite_only_http_cache.py tests/test_fetch.py tests/test_cite_only_retention.py tests/test_cite_only_redirects.py` | `root/http-cache-green.log` | 0 | 52 passed |
+
+The exact reviewer scope command also passed (1 test, exit 0):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -s -p no:cacheprovider /tmp/rev840/test_probe_scope.py > tmp/model-411-r2/warnings/reviewer-probe.log 2>&1
+```
+
+It confirms old verification is null, citation status is cited, and the only
+result `lab/plain` has no row warning; the decision warning reflects the cited
+filter elimination described above. The original reviewer writer probes were
+read, not blindly rerun: their pricing mock targets the former Python scraper
+and could launch the restored real CLI. Equivalent assertions use safe local
+fixtures in the committed tests.
+
+Key defect-to-test mapping (names are in the command files above/below):
+
+- Watcher retention and redirect provenance: `test_watch_retains_only_citation_metadata_for_restricted_origins`, `test_http_fetch_records_real_urllib_redirect_chain`, `test_firecrawl_watch_uses_every_reported_origin`.
+- Reused state, exports and drafts: `test_export_independently_refuses_stale_cite_only_text_and_report`, `test_watch_repeat_preserves_cite_only_policy_and_removes_its_stale_exports`, `test_draft_page_refuses_cite_only_sources_before_prompt_or_file_write`, `test_proposal_gate_refuses_restored_cite_only_accepted_manifests`, `test_draft_cli_does_not_rewrite_cite_only_snippets_from_prior_manifest`, `test_state_guard_preserves_alias_origins_for_later_watch`.
+- Warning scope: `test_unrelated_cited_candidate_excluded_by_class_does_not_warn`, `test_unused_hidden_citation_on_returned_row_keeps_only_row_warning`, `test_cited_filter_elimination_warns_even_when_only_plain_result_remains`.
+- Ordinary-host scope: `test_ordinary_comparison_preserves_known_only_provenance`, `test_ordinary_pricing_scrape_uses_cli_without_python_credit_or_cache`, `test_ordinary_benchmark_scrape_preserves_provider_failure_message`.
+- Census/licence writers: `test_census_search_retains_citation_without_restricted_snippets`, `test_census_aggregator_does_not_write_leads_from_cite_only_redirect`, `test_licence_download_refuses_cite_only_redirect_before_document_write`, `test_provider_licence_audit_does_not_derive_notes_from_cite_only_documents`.
+- Projection and hop escapes: `test_board_redirect_cannot_retain_a_new_projection_hash`, `test_rendered_board_redirect_cannot_retain_projection_text`, `test_local_memory_redirect_cannot_retain_quoted_table`, `test_intermediate_cite_only_hop_is_refused_before_following`, `test_named_http_cache_respects_every_redirect`.
+
+The remaining red-first cases and final focused follow-ups use the same prefix
+and direct-exit convention:
+
+| Arguments | Log | Exit | Result |
+|---|---|---:|---|
+| `tests/test_cite_only_collector_writers.py` | `scope/collector-red.log` | 1 | 10 failed, 1 passed; four sentinel writes in projections |
+| `tests/test_cite_only_collector_writers.py -k 'intermediate_cite_only or ordinary_redirect_chain'` | `scope/collector-hops-red.log` | 1 | 11 failed, 11 passed, 11 deselected |
+| `tests/test_cite_only_collector_writers.py -k 'rendered and (intermediate_cite_only or ordinary_redirect_chain)'` | `scope/collector-rendered-hops-red.log` | 1 | 1 failed, 1 passed, 33 deselected |
+| `tests/test_cite_only_collector_writers.py tests/test_model_160_evidence.py tests/test_model_163_lineup_data.py tests/test_model_174_hardware_private.py tests/test_model_191_refinements.py tests/test_model_192_research.py tests/test_leaderboard_refresh.py tests/test_oll_leftovers.py tests/test_oll_v2_keys.py tests/test_cite_only_redirects.py tests/test_cite_only_retention.py tests/test_cite_only_writer_audit.py` | `scope/collector-hops-green.log` | 0 | 366 passed; before final rendered case |
+| `tests/test_cite_only_collector_writers.py` | `scope/collector-final-green.log` | 0 | 35 passed on final collector implementation |
+| `tests/test_cite_only_writer_audit.py` | `watcher/red-shared-urllib.log` | 1 | 3 failed, 10 passed |
+| `tests/test_curation_cite_only.py -k alias_origins` | `watcher/red-alias-origins.log` | 1 | 2 failed, 45 deselected |
+| `tests/test_cite_only_writer_audit.py -k standalone_cli` | `watcher/red-licence-cli.log` | 1 | 1 failed, 16 deselected |
+| `tests/test_cite_only_writer_audit.py tests/test_curation_cite_only.py tests/test_curation_loop.py tests/test_cite_only_retention.py tests/test_cite_only_redirects.py tests/test_workflow_dependencies.py tests/test_worker_vendor_imports.py tmp/model-411-r2/watcher/test_secondary_redirects.py` | `watcher/green-shared-final-cli.log` | 0 | 185 passed |
+
+The intermediate-hop reds reported `DID NOT RAISE ValueError` or found retained
+source text; their ordinary redirect controls passed. The watcher alias red
+showed sourceURL/final_url provenance disappearing from state before a later
+read; all origin aliases now persist in resolved_urls. The standalone licence
+red was `ModuleNotFoundError: decision.retention` without PYTHONPATH; repo-root
+import setup restores its documented direct invocation. The test uses empty
+stdin and a temporary working directory, with no fetch.
+
+The final collector controls preserve HTTP headers, timeouts, payloads, ordinary
+redirects and memo/rendered/OLL cache reuse. Existing Finance Benchmark result
+assertions are unchanged; its mock now targets the shared reader boundary.
+An early collector test setup omitted the synthetic Firecrawl key and raised
+KeyError; it was corrected before the saved red run and production changes.
+
+### Whole-repository writer audit
+
+The [writer audit](MODEL-411-writer-audit.md) records the exact search, all 187
+initial non-test writer hits, and path-by-path dispositions for shared readers,
+curation state/reports/drafts, collectors, licence/census writers, enrichment,
+copy/upload workflows, and metadata-only helpers. Every newly confirmed
+programmatic source-to-cache/excerpt bypass was reproduced and guarded.
+
+The audit does not claim that arbitrary external agent CLIs cannot persist
+page text. `scripts/benchmarks/run_eligible.py` and agent-test harnesses save
+external CLI transcripts; that runtime was not executed or certified. These
+are explicitly listed as observation limits, not silently counted as guarded
+source readers. Likewise, scraper checks can inspect only origin metadata the
+service reports. No live service/browser cache was observed.
+
+Known reused curation artifacts and restricted search rows are sanitized.
+Historical CopyStore files, supplied local snapshots, authored quotations,
+preexisting ordinary caches without origin metadata, and the 718 existing
+premier facts remain the separate MODEL-409 migration. No frozen data, ranking
+floors, neutrality terms, legal text, production switches or private data were
+changed. Private workflows require a later engine-pin update before these
+changes affect their runs; no private workflow/cache/artifact was run or
+inspected live here.
+
+### Round-2 complete gates
+
+Final implementation SHA: `44f8ca7623edbc7ae4f4d2ad51205d43d3e6065b`.
+The final evidence-only commit is reported in the executor's final marker;
+no production or test changes follow this implementation SHA unless recorded
+in a subsequent repair section below.
+
+The generator and site/web checks below ran on the completed decision and
+surface implementation; the later source-writer-only fixes do not alter their
+inputs. The full suite runs on the implementation SHA above. Each process exit
+was read directly. Tool versions were checked with `python --version`,
+`python -m pytest --version`, `node --version`, and `npm --version` using the
+pinned binaries noted above.
+
+| Exact command | Exit | Result / log |
+|---|---:|---|
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check` | 0 | Generated bundle current; no rewrite |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi --check` | 0 | OpenAPI matches implementation |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts` | 0 | No tracked generated changes |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist` | 0 | `root/site-build.log` |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec` | 0 | 0 findings; 5,366 files; `root/surface-lint.log` |
+| `cd web` then `export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH` and `npm ci` | 0 | `root/web-ci.log` |
+| Same web directory/PATH, `npm run build` | 0 | `root/web-build.log` |
+| Same web directory/PATH, `npm test` | 0 | 57 files passed, 1 skipped; 900 tests passed; `root/web-test.log` |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/chart_check_pr.py --base bbfa93be` | 0 | nothing to check |
+| `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base bbfa93be --head HEAD --branch model-411-cite-only` | 0 | data freeze: ok |
+| `git diff --exit-code bbfa93be -- docs/api.md api/ranking/engine.py docs/legal tests/test_class_fit.py docs/cli-contract.md docs/policy-check-api.md` | 0 | Named protected/ordinary files unchanged |
+
+Full suite command, with Node 22.22.3 first on PATH:
+
+```sh
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile > tmp/model-411-r2/root/full-pytest.log 2>&1
+```
+
+The full suite completed with direct exit **0** at the implementation SHA above:
+
+```text
+12317 passed, 9 skipped, 11 warnings in 2033.61s (0:33:53)
+```
+
+The 11 warnings concern unsigned vocabulary fixtures in the CLI snapshot tests.
+The final active worker was observed using CPU while the parent waited; no test
+was interrupted or excluded. Every started generator/build/test process has
+exited. `git diff --check` passed. No source or test edits followed the tested
+implementation commit; the remaining changes are this evidence and the writer
+audit. The draft PR head is checked again after pushing the evidence commit.
+
+Round-2 local logs are under `tmp/model-411-r2/{root,watcher,warnings,scope}`.
+No live provider call, paid scrape, deployment, private-data edit, production
+switch change, merge, or historical-source migration was performed. This work
+is ready for renewed independent review, with PR #840 kept as a draft.
