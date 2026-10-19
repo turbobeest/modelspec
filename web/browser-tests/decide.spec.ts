@@ -276,7 +276,8 @@ test("agent hand-off leads with the CLI and copies one message with the current 
 
 for (const location of ["answer", "detail"] as const) test(`${location} evidence source links meet AA in both themes`, async ({ page }) => {
   await openBoard(page);
-  const source = location === "answer" ? page.locator(".answer-source a") : page.getByRole("link", { name: /Source/ }).first();
+  if (location === "detail") await page.getByRole("region", { name: "Decision table" }).getByRole("button", { name: "Claude Opus 5.5", exact: true }).click();
+  const source = location === "answer" ? page.locator(".answer-source a") : page.getByRole("region", { name: "Why this model", exact: true }).getByRole("link", { name: /Source/ }).first();
   await expect(source).toBeVisible();
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
@@ -613,6 +614,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
   await page.locator(".board-templates").getByRole("button", { name: /^General assistant · Balanced:/ }).click();
+  await page.getByRole("region", { name: "Decision table" }).getByRole("button", { name: "Claude Opus 5.5", exact: true }).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {
     await page.getByRole("button", { name: buttonName }).click();
