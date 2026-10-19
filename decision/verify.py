@@ -111,6 +111,13 @@ from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 from decision.units import _MAGNITUDE, UNITS, unit_id
+from decision.xai_matrix import (
+    XAI_MATRIX_TEMPLATES,
+    TemplateDriftError,
+    XaiMatrixTemplate,
+    document_sha256,
+    read_matrix,
+)
 from schema import private_errors
 from schema.enums import ArchitectureType
 
@@ -5379,8 +5386,36 @@ class LabJurisdictionExtractor:
         return [Reading(claim.names[0], ", ".join(sorted(codes)))]
 
 
+class XaiMatrixExtractor:
+    """Read only source-bound reviewed xAI matrices through exclusive dispatch."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="xai-exact-template@1")
+
+    def __init__(self, *, templates: Sequence[XaiMatrixTemplate] = XAI_MATRIX_TEMPLATES):
+        self.templates = tuple(templates)
+
+    def accepts(self, text: str) -> bool:
+        return False  # A generic text-only call lacks the required source binding.
+
+    def extract(self, claim: Claim, text: str, *, source_url: str | None = None,
+                region_id: str | None = None, copy_ref: str | None = None) -> list[Reading]:
+        digest = document_sha256(text)
+        matches = [template for template in self.templates
+                   if template.source_url == source_url and template.region_id == region_id
+                   and copy_ref == "sha256:" + template.copy_sha256
+                   and template.document_sha256 == digest
+                   and any(column.subject == claim.subject for column in template.columns)]
+        if len(matches) != 1:
+            raise TemplateDriftError("no unique approved document for this offering")
+        subject, value = read_matrix(matches[0], text, subject=claim.subject, facet=claim.field,
+                                     catalogue_ids=_catalogue_ids())
+        return [Reading(subject, value)]
+
+
 def deterministic_extractors() -> list[Extractor]:
-    return [HFConfigExtractor(), ModelCardParamsExtractor(), DenseActiveEqualsTotalExtractor(),
+    return [XaiMatrixExtractor(), HFConfigExtractor(), ModelCardParamsExtractor(),
+            DenseActiveEqualsTotalExtractor(),
             HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
             StructuredDataExtractor(),
             OfferingPriceExtractor(),
@@ -5474,6 +5509,12 @@ class StoredRegions:
             return body.decode("utf-8")
         except UnicodeDecodeError:
             return None
+    def is_whole_document(self, source_id: str, region_id: str, normaliser: str) -> bool:
+        source = self.sources.get(source_id)
+        return source is not None and source.normaliser == normaliser and any(
+            region.id == region_id and region.locator.kind == "page" and region.locator.value == ""
+            for region in source.cited_regions
+        )
 
 
 # --- comparison ----------------------------------------------------------------------------------
@@ -6026,7 +6067,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
-            MistralOutputModalitiesExtractor, PerplexityFaqExtractor,
+            MistralOutputModalitiesExtractor, PerplexityFaqExtractor, XaiMatrixExtractor,
         )):
             continue
         accepts = extractor.accepts
@@ -6215,6 +6256,70 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
                   _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
 
 
+def _xai_matrix_claim(subject: str, field: str) -> bool:
+    prefix = "offering.subscription."
+    return (
+        subject in {"xai/subscription/supergrok-lite", "xai/subscription/supergrok-heavy"}
+        and field in {prefix + suffix for suffix in (
+            "models_covered", "programmatic_or_agent_use", "usage_allowance", "coverage_quote",
+        )}
+    ) or (subject == "xai/subscription/business" and field in {
+        prefix + "models_covered", prefix + "coverage_quote",
+    })
+
+
+def _verify_xai_matrix(claim: Claim, regions: Regions, extractors: Sequence[Extractor],
+                       today: date) -> Result:
+    actor = XaiMatrixExtractor.actor
+    if not _independent(claim, actor, today):
+        return Result(claim.target, "skipped", reason="no_independent_extractor")
+
+    def drift(detail: str) -> Result:
+        reason = str(TemplateDriftError(detail))
+        diffs = (Diff("template", "reviewed xAI matrix", reason),)
+        return Result(claim.target, "mismatch",
+                      _verification(claim, actor, "mismatch", today, diffs), diffs, reason)
+
+    if claim.target.kind != "fact" or claim.target.id != f"{claim.subject}#{claim.field}" \
+            or not _xai_matrix_claim(claim.subject, claim.field):
+        return drift("canonical fact and offering differ")
+    readers = [reader for reader in extractors if isinstance(reader, XaiMatrixExtractor)]
+    if len(readers) != 1:
+        return drift("exact reader is unavailable or ambiguous")
+    source_url = "https://x.ai/grok/business" if claim.subject == "xai/subscription/business" \
+        else "https://x.ai/pricing"
+    url_of = getattr(regions, "source_url", None)
+    whole_document = getattr(regions, "is_whole_document", None)
+    readings = []
+    for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
+        if not callable(url_of) or url_of(source.source_id) != source_url \
+                or kind != "provider_documentation" or source.cited_regions != ["page"] \
+                or not callable(whole_document) \
+                or not whole_document(source.source_id, "page", "text-default"):
+            return drift("source URL, kind or whole-page citation differs")
+        text = regions.text(source.source_id, source.snapshot_ref, "page")
+        if text is None:
+            return Result(claim.target, "unreachable",
+                          _verification(claim, actor, "unreachable", today),
+                          reason=f"unreachable:{source.source_id}#page")
+        try:
+            readings.extend(readers[0].extract(
+                claim, text, source_url=source_url, region_id="page", copy_ref=source.snapshot_ref,
+            ))
+        except TemplateDriftError as exc:
+            reason = str(exc)
+            diffs = (Diff("template", "reviewed xAI matrix", reason),)
+            return Result(claim.target, "mismatch",
+                          _verification(claim, actor, "mismatch", today, diffs), diffs, reason)
+    # This reader binds the canonical offering ID directly, without alias matching.
+    if not readings or any(reading.subject != claim.subject for reading in readings):
+        return drift("reading does not bind the canonical offering")
+    diffs = tuple(diff for reading in readings for diff in _diffs(claim, reading))
+    outcome = "mismatch" if diffs else "verified"
+    return Result(claim.target, outcome, _verification(claim, actor, outcome, today, diffs), diffs)
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
@@ -6236,6 +6341,10 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
     """
+    if _xai_matrix_claim(claim.subject, claim.field) or _xai_matrix_claim(
+        claim.target.id.rsplit("#", 1)[0], claim.target.id.rsplit("#", 1)[-1]
+    ):
+        return _verify_xai_matrix(claim, regions, extractors, today)
     if dated_price_claim(claim):
         return _verify_dated_price(claim, regions, today=today)
     if isinstance(claim.value, dict) and "score" in claim.value:

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "model": "google/gemma-4-31b-it",
+  "sku": "nvidia_rtx_4090",
+  "dated_offering": "openai/openai/gpt-6-sol.yaml",
+  "price_boundary_days": 3,
+  "hardware_fit_records": 15,
+  "source_count": 267,
+  "sources_per_record": 54,
+  "source_url_characters": 91,
+  "extra_cited_regions": 6
+}

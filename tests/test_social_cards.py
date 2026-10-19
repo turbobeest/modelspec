@@ -161,6 +161,7 @@ def test_renderer_writes_every_card_at_the_contract_size(
     assert {card.filename for card in cards} == {
         social_cards.LANDING_IMAGE,
         social_cards.DECIDE_IMAGE,
+        social_cards.DETAILS_IMAGE,
         social_cards.PRICING_IMAGE,
     }
     for card in cards:
@@ -366,7 +367,7 @@ def test_build_emits_every_template_preview_and_card(
         assert f'href="https://modelspec.dev/decide/templates/{template_id}/"' in source
         assert html.escape(template["name"]) in source
         assert html.escape(template["tradeoff"]) in source
-        assert f'href="/decide/?template={template_id}"' in source
+        assert f'href="/decide/details/?template={template_id}"' in source
         assert _png_size(tree / image) == (1200, 630)
 
 

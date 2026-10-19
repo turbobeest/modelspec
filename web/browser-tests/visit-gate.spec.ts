@@ -49,11 +49,11 @@ test.describe("managed visit gate", () => {
         return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
       });
       await page.clock.install();
-      await page.goto("/decide.html?demo=1");
+      await page.goto("/decide/details/?demo=1");
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
       await expect.poll(() => sent.length).toBe(3);
-      await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
-      await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
+      await expect(page.getByRole("region", { name: "Ask this from your agent" })).toBeVisible();
+      await page.getByRole("region", { name: "Ask this from your agent" }).getByRole("button", { name: "Spec", exact: true }).click();
       expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(sent[0].spec);
       await expect(page.getByLabel("Spec snippet")).not.toContainText("visit-1");
       await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
@@ -102,12 +102,12 @@ test.describe("managed visit gate", () => {
       return route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary });
     });
     await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; specs.push(route.request().postDataJSON()); return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }); });
-    await page.goto("/decide.html?demo=1");
+    await page.goto("/decide/details/?demo=1");
     await expect(page.locator(".board-answer").getByRole("button", { name: "Verify fixture" })).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toBeVisible();
     await expect(page.getByText("For example: require open weights, prefer lower cost, and see which models fit.")).toBeVisible();
     await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Give this to my agent" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Ask this from your agent" })).toHaveCount(0);
     expect(initialRequests).toBe(0);
     expect(vocabularyRequests).toBe(0);
     expect(check).toBe(0);
@@ -116,7 +116,7 @@ test.describe("managed visit gate", () => {
     await expect(page.getByText("One quick check keeps this free")).toHaveCount(0);
     await expect.poll(() => initialRequests).toBe(3);
     await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
-    await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
+    await page.getByRole("region", { name: "Ask this from your agent" }).getByRole("button", { name: "Spec", exact: true }).click();
     expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(specs[0]);
     expect(specs.filter((spec) => spec.explain === "summary")).toHaveLength(1);
     expect(specs[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });

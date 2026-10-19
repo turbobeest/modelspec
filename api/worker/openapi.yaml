@@ -7,7 +7,7 @@ info:
   title: ModelSpec API
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-79cf5b6e5f3bf838). Call decide early with a template-based Spec; refine
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-f226d9942791da1c). Call decide early with a template-based Spec; refine
     from reading and recovery hints.
 
 
@@ -1915,6 +1915,14 @@ components:
             commit: {type: string}
             export_schema_version: {type: string}
           required: [built_at, commit, export_schema_version]
+        decision_snapshot:
+          type: object
+          properties:
+            id: {type: string, nullable: true}
+            successor_held: {type: boolean}
+            successor_valid_from: {type: string, nullable: true}
+            valid_until: {type: string, nullable: true}
+          required: [id, successor_held, successor_valid_from, valid_until]
         determinations:
           type: object
           properties:
@@ -5803,4 +5811,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-79cf5b6e5f3bf838}
+      schema: {type: string, const: 1-f226d9942791da1c}

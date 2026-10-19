@@ -1,0 +1,60 @@
+MODEL-407 round 3: successful CI performance and collection job
+
+Head SHA: 8a0009d446aeb6dfe2ed9ac4f04d237847f19a14
+Workflow: Test suite
+Run: 39114952450
+Job: 117638819060, pytest perf and collection
+URL: https://github.com/turbobeest/modelspec/actions/runs/39114952450/job/117638819060
+Job status: completed
+Job conclusion: success
+Job completed at: 2026-10-18T09:24:36Z
+Observed Python version: CPython 3.11.17
+
+Log retrieval command, direct exit 0:
+gh run view 39114952450 --job 117638819060 --log
+
+Raw public log:
+tmp/model-407/round3/perf/ci-perf-final-raw.txt
+
+Python setup log excerpt:
+2026-10-18T09:21:07.6404132Z Successfully set up CPython (3.11.17)
+
+Observed completed steps:
+
+Run timing tests serially
+  Conclusion: success
+  Started: 2026-10-18T09:21:25Z
+  Completed: 2026-10-18T09:23:07Z
+  Exact workflow command:
+  python -m pytest -q -p no:xdist -m perf
+  Exact pytest summary at 2026-10-18T09:23:06.8024149Z:
+  2 passed, 11788 deselected in 100.54s (0:01:40)
+
+Collect the full non-performance suite
+  Conclusion: success
+  Started: 2026-10-18T09:23:07Z
+  Completed: 2026-10-18T09:24:32Z
+  Exact workflow command:
+  python -m pytest --collect-only -q -m "not perf" > full-collection.txt
+
+Upload full collection
+  Conclusion: success
+  Completed: 2026-10-18T09:24:33Z
+  Action: actions/upload-artifact@v4
+  Artifact name: pytest-full-collection
+  Artifact path: full-collection.txt
+
+The job log confirms both commands above and the performance-test summary.
+The 100.54 seconds is the full pytest invocation duration, not an individual
+snapshot load sample. Passing tests print no individual timing samples.
+The collection output was redirected to full-collection.txt, so its node count
+is not observed in this log. No timings or counts are inferred from local
+tests, the earlier failed job, or the collection artifact, which was not read.
+The log does not print numeric exit codes for the successful test commands;
+the cached metadata records both steps as successful.
+
+The refreshed cached metadata in
+tmp/model-407/round3/root/ci-suite-status.json records the parent Test suite
+workflow as completed with conclusion success. The head SHA is recorded in
+tmp/model-407/round3/root/ci-runs.json. The workflow command definitions were
+also checked in .github/workflows/test.yml.

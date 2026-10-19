@@ -34,22 +34,31 @@ it("reads the leading models from the bands, else from the answer", () => {
   expect(leadingModels({ ...view(separatedJson), answer: null, bands: null })).toBeNull();
 });
 
-it("names one leader, a tied group, a long tied group, or no leader", () => {
+it("names a separated leader or no leader, and omits tied groups", () => {
   expect(bestNowLine(view(separatedJson), true)).toBe("Best now: Alpha");
-  expect(bestNowLine(view(tiedJson), true)).toBe("Best now: Alpha · Gamma (tied)");
+  expect(bestNowLine(view(tiedJson), true)).toBeNull();
   const decision = view(bandsJson);
-  const five = { ...decision, bands: { ...decision.bands!, best: ["steady", "cheap", "strong", "weak", "unproven"].map((id) => ({ ...decision.bands!.best[0], model: `lab/${id}` })) } };
-  expect(bestNowLine(five, true)).toBe("Best now: Steady · Cheap · Strong +2 more (tied)");
-  expect(bestNowLine({ ...decision, bands: { ...decision.bands!, best: [] } }, true)).toBe("Best now: none has enough evidence yet");
+  const bands = decision.bands;
+  if (!bands?.best[0]) throw new Error("Expected a best band in the fixture");
+  const five = { ...decision, bands: { ...bands, best: ["steady", "cheap", "strong", "weak", "unproven"].map((id) => ({ ...bands.best[0], model: `lab/${id}` })) } };
+  expect(bestNowLine(five, true)).toBeNull();
+  expect(bestNowLine({ ...decision, answer: null, bands: { ...bands, best: [] } }, true)).toBe("Best now: none has enough evidence yet");
   expect(bestNowLine(decision, false)).toBeNull();
 });
 
-it("shows a fourth number and the best-now line on the board counter", () => {
+it("counts the whole tied group without a star or best-now headline", () => {
   const narrowing = counter(tiedJson);
   expect([...narrowing.querySelectorAll(".narrowing-number")].map((node) => node.textContent)).toEqual(["3", "0", "1", "2"]);
-  expect(within(narrowing).getByText("★ best for your weights")).toBeInTheDocument();
-  expect(narrowing.querySelector(".narrowing-best")).toHaveTextContent("Best now: Alpha · Gamma (tied)");
+  expect(within(narrowing).getByText("best for your weights")).toBeInTheDocument();
+  expect(narrowing).not.toHaveTextContent("★");
+  expect(narrowing.querySelector(".narrowing-best")).toBeNull();
   expect(within(narrowing).getByRole("status")).toHaveTextContent("3 qualify · 0 may qualify · 1 out · 2 best for your weights");
+});
+
+it("keeps the star and best-now headline for a separated leader", () => {
+  const narrowing = counter(separatedJson);
+  expect(within(narrowing).getByText("★ best for your weights")).toBeInTheDocument();
+  expect(narrowing.querySelector(".narrowing-best")).toHaveTextContent("Best now: Alpha");
 });
 
 it("shows a dash and no best-now line while nothing is ranked", () => {

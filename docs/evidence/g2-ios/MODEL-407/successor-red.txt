@@ -1,0 +1,175 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+________ test_successor_is_not_read_parsed_or_verified_at_isolate_start ________
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10918b100>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_successor_is_not_read_parsed_or_verified_at_isolate_start(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        parsed, verified = [], []
+        load = entry.decide_service.load_snapshot_bytes
+        verify = entry.decide_service.verify_hmac_signature
+    
+        def record_parse(*args, **kwargs):
+            parsed.append(kwargs.get("source"))
+            return load(*args, **kwargs)
+    
+        def record_verify(*args, **kwargs):
+            verified.append(kwargs.get("source"))
+            return verify(*args, **kwargs)
+    
+        monkeypatch.setattr(entry.decide_service, "load_snapshot_bytes", record_parse)
+        monkeypatch.setattr(entry.decide_service, "verify_hmac_signature", record_verify)
+        _, _, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+>       assert parsed == ["bundled decision snapshot"]
+E       AssertionError: assert ['bundled dec...on successor'] == ['bundled decision snapshot']
+E         
+E         Left contains one more item: 'bundled decision successor'
+E         Use -v to get more diff
+
+tests/test_snapshot_successor_memory.py:39: AssertionError
+_________ test_successor_stays_unparsed_through_the_utc_preload_window _________
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10918b360>
+utc_clock = ([datetime.datetime(2026, 11, 29, 23, 59, 59, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_successor_stays_unparsed_through_the_utc_preload_window(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 29, 23, 59, 59, tzinfo=UTC)
+        worker, _, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        for instant in (
+            utc_clock[0][0],
+            datetime(2026, 11, 30, tzinfo=UTC),
+            datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC),
+        ):
+            utc_clock[0][0] = instant
+            response = request(worker)
+            assert response.status == 200, response.json()
+            assert response.json()["results"][0]["cost_per_task"] == 12
+>           assert SUCCESSOR_PATH not in bundle.reads
+E           AssertionError: assert '/api/decision/snapshot-successor.json.gz' not in ['/api/decision/snapshot.json.gz', '/api/decision/snapshot-successor.json.gz', '/api/decision/vocabulary.json', '/api/decision/vocabulary-successor.json', '/api/rank/candidates.json', '/api/rank/hardware.json']
+E            +  where ['/api/decision/snapshot.json.gz', '/api/decision/snapshot-successor.json.gz', '/api/decision/vocabulary.json', '/api/decision/vocabulary-successor.json', '/api/rank/candidates.json', '/api/rank/hardware.json'] = namespace(read=<function deploy.<locals>.read at 0x109112090>, SNAPSHOTS={'/api/decision/snapshot-successor.json.gz': ...n/vocabulary.json', '/api/decision/vocabulary-successor.json', '/api/rank/candidates.json', '/api/rank/hardware.json']).reads
+
+tests/test_snapshot_successor_memory.py:59: AssertionError
+_ test_rollover_releases_current_snapshot_and_vocabulary_before_loading_successor _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10929bad0>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_rollover_releases_current_snapshot_and_vocabulary_before_loading_successor(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, tzinfo=UTC)
+        worker, module, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        assert request(worker, "/v1/vocabulary").status == 200
+        holder = module._decision_holder(worker.env.EXPORT_ORIGIN)
+        previous = weakref.ref(holder.snapshot)
+        read = bundle.read
+        loads = []
+    
+        def check_release(path):
+            if path == SUCCESSOR_PATH:
+                gc.collect()
+                assert previous() is None
+                assert module._bundled_vocabulary is None
+                assert module._bundled_vocabulary_text is None
+                loads.append(path)
+            return read(path)
+    
+        bundle.read = check_release
+        utc_clock[0][0] = BOUNDARY
+        response = request(worker, "/v1/vocabulary")
+        assert response.status == 200, response.json()
+>       assert loads == [SUCCESSOR_PATH]
+E       AssertionError: assert [] == ['/api/decisi...ssor.json.gz']
+E         
+E         Right contains one more item: '/api/decision/snapshot-successor.json.gz'
+E         Use -v to get more diff
+
+tests/test_snapshot_successor_memory.py:93: AssertionError
+_ test_successor_metadata_signature_refuses_current_more_than_24_hours_before_expiry _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108deb240>
+utc_clock = ([datetime.datetime(2026, 11, 29, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+
+    def test_successor_metadata_signature_refuses_current_more_than_24_hours_before_expiry(
+        entry, monkeypatch, utc_clock, signed_pair,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 29, tzinfo=UTC)
+        worker, _, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        bundle.SNAPSHOTS[SUCCESSOR_PATH]["signature"]["value"] = "0" * 64
+        response = request(worker)
+>       assert response.status == 503
+E       assert 200 == 503
+E        +  where 200 = <tests.test_x402.entry.<locals>._Response object at 0x108eede50>.status
+
+tests/test_snapshot_successor_memory.py:105: AssertionError
+_ test_successor_payload_must_match_authenticated_content_and_exact_blob[False] _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109054270>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+replace_blob_hash = False
+
+    @pytest.mark.parametrize("replace_blob_hash", [False, True])
+    def test_successor_payload_must_match_authenticated_content_and_exact_blob(
+        entry, monkeypatch, utc_clock, signed_pair, replace_blob_hash,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, tzinfo=UTC)
+        worker, module, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        assert request(worker).status == 200
+        bundle.blobs[SUCCESSOR_PATH] = signed_pair[0]
+        if replace_blob_hash:
+            bundle.SNAPSHOTS[SUCCESSOR_PATH]["blob_sha256"] = hashlib.sha256(signed_pair[0]).hexdigest()
+        utc_clock[0][0] = BOUNDARY
+        response = request(worker)
+>       assert response.status == 503
+E       assert 200 == 503
+E        +  where 200 = <tests.test_x402.entry.<locals>._Response object at 0x1090675c0>.status
+
+tests/test_snapshot_successor_memory.py:122: AssertionError
+_ test_successor_payload_must_match_authenticated_content_and_exact_blob[True] _
+
+entry = <module 'modelspec_worker_entry_x402' from '/Users/terbeest/dev/worktrees/model-407/api/worker/src/entry.py'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109081a50>
+utc_clock = ([datetime.datetime(2026, 12, 1, 0, 0, tzinfo=datetime.timezone.utc)], <class 'tests.test_snapshot_successor.utc_clock.<locals>.FrozenDatetime'>)
+signed_pair = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff\xcdX\xddr\xa3:\x0c~\x95\x1d\xf6\x96\xb4\xfe\xc3\xc6\xb9:\xef\xd1\xec0\xfem...a\xe6\xd8\x11\x0f\xf7\x8ad\xf1\x19h4v|\xa4<\x95\xde\xf0\x86\x01\xb3b\x1e\x0c\xf4\xfa\x1f{\x04\x8a\x06\xf2\x14\x00\x00')
+replace_blob_hash = True
+
+    @pytest.mark.parametrize("replace_blob_hash", [False, True])
+    def test_successor_payload_must_match_authenticated_content_and_exact_blob(
+        entry, monkeypatch, utc_clock, signed_pair, replace_blob_hash,
+    ):
+        utc_clock[0][0] = datetime(2026, 11, 30, tzinfo=UTC)
+        worker, module, bundle = deploy(entry, monkeypatch, utc_clock, *signed_pair)
+        assert request(worker).status == 200
+        bundle.blobs[SUCCESSOR_PATH] = signed_pair[0]
+        if replace_blob_hash:
+            bundle.SNAPSHOTS[SUCCESSOR_PATH]["blob_sha256"] = hashlib.sha256(signed_pair[0]).hexdigest()
+        utc_clock[0][0] = BOUNDARY
+        response = request(worker)
+>       assert response.status == 503
+E       assert 200 == 503
+E        +  where 200 = <tests.test_x402.entry.<locals>._Response object at 0x108ff2060>.status
+
+tests/test_snapshot_successor_memory.py:122: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_snapshot_successor_memory.py::test_successor_is_not_read_parsed_or_verified_at_isolate_start
+FAILED tests/test_snapshot_successor_memory.py::test_successor_stays_unparsed_through_the_utc_preload_window
+FAILED tests/test_snapshot_successor_memory.py::test_rollover_releases_current_snapshot_and_vocabulary_before_loading_successor
+FAILED tests/test_snapshot_successor_memory.py::test_successor_metadata_signature_refuses_current_more_than_24_hours_before_expiry
+FAILED tests/test_snapshot_successor_memory.py::test_successor_payload_must_match_authenticated_content_and_exact_blob[False]
+FAILED tests/test_snapshot_successor_memory.py::test_successor_payload_must_match_authenticated_content_and_exact_blob[True]
+6 failed in 0.63s

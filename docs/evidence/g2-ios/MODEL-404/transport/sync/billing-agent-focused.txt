@@ -1,0 +1,271 @@
+...........................F............FFFF                             [100%]
+=================================== FAILURES ===================================
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+
+capsys = <_pytest.capture.CaptureFixture object at 0x109c23380>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+>       assert main(["--first-turn-breakdown"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_agent_guide.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:948: in main
+    definitions = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x1088f7cb0>
+s = '{\n  "source_hashes": {\n<<<<<<< HEAD\n    "mcp/src/server.ts": "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c...            "description": "Optional. The decision template in use."\n          }\n        }\n      }\n    }\n  ]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:361: JSONDecodeError
+______________ test_harness_prompt_arms_replay_offline[mcp-False] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109d640c0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1119/test_harness_prompt_arms_repla0')
+interface = 'mcp', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:948: in main
+    definitions = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x1088f7cb0>
+s = '{\n  "source_hashes": {\n<<<<<<< HEAD\n    "mcp/src/server.ts": "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c...            "description": "Optional. The decision template in use."\n          }\n        }\n      }\n    }\n  ]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:361: JSONDecodeError
+_____________ test_harness_prompt_arms_replay_offline[http-False] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109d643d0>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1119/test_harness_prompt_arms_repla1')
+interface = 'http', control = False
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:948: in main
+    definitions = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x1088f7cb0>
+s = '{\n  "source_hashes": {\n<<<<<<< HEAD\n    "mcp/src/server.ts": "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c...            "description": "Optional. The decision template in use."\n          }\n        }\n      }\n    }\n  ]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:361: JSONDecodeError
+______________ test_harness_prompt_arms_replay_offline[mcp-True] _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c6d9320>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1119/test_harness_prompt_arms_repla2')
+interface = 'mcp', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:948: in main
+    definitions = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x1088f7cb0>
+s = '{\n  "source_hashes": {\n<<<<<<< HEAD\n    "mcp/src/server.ts": "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c...            "description": "Optional. The decision template in use."\n          }\n        }\n      }\n    }\n  ]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:361: JSONDecodeError
+______________ test_harness_prompt_arms_replay_offline[http-True] ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c6d8280>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1119/test_harness_prompt_arms_repla3')
+interface = 'http', control = True
+
+    @pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+    def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+        import httpx
+        from qa.agent_harness import main, load_scenarios
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError('Prompt arm attempted network I/O')
+
+        monkeypatch.setattr(httpx.Client, 'request', forbidden)
+        args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+                '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+                '--date', '2026-10-03']
+        if control:
+            args.append('--control-full-spec')
+>       assert main(args) == 0
+               ^^^^^^^^^^
+
+tests/test_agent_guide.py:230:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+qa/agent_harness.py:948: in main
+    definitions = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x1088f7cb0>
+s = '{\n  "source_hashes": {\n<<<<<<< HEAD\n    "mcp/src/server.ts": "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c...            "description": "Optional. The decision template in use."\n          }\n        }\n      }\n    }\n  ]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py:361: JSONDecodeError
+=========================== short test summary info ============================
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+5 failed, 39 passed in 6.22s

@@ -50,7 +50,8 @@ import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { AnswerBoundary } from "./components/AnswerBoundary";
 import { Share } from "./components/Share";
-import { AgentHandoff, AnswerAssurances } from "./components/AgentHandoff";
+import { AgentHandoff } from "./components/AgentHandoff";
+import { AnswerProof } from "./components/AnswerProof";
 import { prepareDecisionRequest } from "./adapter/request-spec";
 import { SnapshotId } from "./components/SnapshotId";
 import { BrandMark } from "./components/BrandMark";
@@ -334,6 +335,7 @@ export function DesignedApp({
     e = decision?.explanation,
     boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
     selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
+    highlightedId = decision?.answer?.kind === "tied" ? selected : selectedId,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
     simulatedError = sim === "error" && !retried,
@@ -958,7 +960,7 @@ export function DesignedApp({
           </span>
         </button>
         <div className="spacer" />
-        {decision && <SnapshotId snapshot={decision.snapshot} />}
+        {decision && <SnapshotId snapshot={decision.snapshot} asOf={vocabulary?.snapshot === decision.snapshot ? vocabulary.as_of ?? vocabulary.coverage?.as_of ?? null : null} />}
         <button
           onClick={() => {
             const next = theme === "dark" ? "light" : "dark";
@@ -971,6 +973,7 @@ export function DesignedApp({
         <button onClick={() => setShare(true)}>
           Share
         </button>
+        <FeedbackLauncher page="/decide/details/" />
       </header>
       <main className="work">
           <BoardIntro />
@@ -1027,7 +1030,7 @@ export function DesignedApp({
               {decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                {handoffSpec && <AnswerAssurances spec={handoffSpec} />}
+                <AnswerProof decision={decision} vocabulary={vocabulary} />
                 {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
@@ -1070,7 +1073,7 @@ export function DesignedApp({
                   }}
                   onMust={setCanvasMust}
                   selections={boardSelections}
-                  selected={selectedId}
+                  selected={highlightedId}
                   onSelect={setSelected}
                 />
               ) : (
@@ -1081,7 +1084,7 @@ export function DesignedApp({
                   onAxis={setAxis}
                   onSpec={changeSpec}
                   onAdd={add}
-                  selected={selectedId}
+                  selected={highlightedId}
                   onSelect={setSelected}
                   onRelax={relax}
                   boardRanked={boardRanked}
@@ -1103,7 +1106,7 @@ export function DesignedApp({
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}
               {hostedDecision && hasAdjustedBoard && <section className="panel answer-feedback" aria-label="Was this answer reliable?">
-                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/" />
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/details/" />
               </section>}
             </>}
           />}
@@ -1113,7 +1116,7 @@ export function DesignedApp({
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
-                selected={selectedId}
+                selected={highlightedId}
                 onSelect={setSelected}
               />
               <Why
@@ -1162,7 +1165,6 @@ export function DesignedApp({
           <a href="/feedback/">Feedback</a>
         </nav>
       </footer>
-      <FeedbackLauncher page="/decide/" />
       {provenance && (
         <div
           className="provenance-popover"

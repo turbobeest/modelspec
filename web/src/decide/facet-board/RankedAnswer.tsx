@@ -164,7 +164,6 @@ export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
       ?? vocabulary.refinements?.find((refinement) => refinement.weight_key === bare)?.name
       ?? facetName(bare);
   };
-  const showsTied = visible.some((row) => tied.has(`${row.m.lab}/${row.m.id}`));
   const warnedModels = new Set(
     decision.results
       .filter((result) => result.warnings.includes("not_separable"))
@@ -185,7 +184,6 @@ export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
       <span />
       <small>{capability.name}, estimated · 80% interval</small>
     </div>}
-    {showsTied && <p className="board-tie-caption">Order within the tied group is not evidence that one is better.</p>}
     {visibleGroups.map((group) => <Fragment key={group.id}>
     {group.label && <h2 className="board-class-heading">{group.label}</h2>}
     <ol>

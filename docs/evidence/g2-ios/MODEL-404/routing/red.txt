@@ -1,0 +1,83 @@
+.FFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_both_decide_routes_are_composed_and_describe_their_own_page[/decide/details/-decide-details.html] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-896/test_both_decide_routes_are_co1')
+path = '/decide/details/', entry = 'decide-details.html'
+
+    @pytest.mark.parametrize("path,entry", ROUTES)
+    def test_both_decide_routes_are_composed_and_describe_their_own_page(tmp_path, path, entry):
+        src, web, out = (tmp_path / name for name in ("source", "web", "live"))
+        real = src / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (real / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            (real / name).write_text("<!doctype html><html><head></head><body></body></html>")
+        (real / "api/build.json").write_text('{"built_at":"2026-10-17","export_schema_version":"3.0"}')
+        (real / "_headers").write_text("/*\n")
+        (src / "benchgraph").mkdir()
+        (src / "benchgraph/_redirects").write_text("")
+        (web / "assets").mkdir(parents=True)
+        for _, name in ROUTES:
+            source = ROOT / "web" / name
+            # A missing production entry must fail the route assertion, not fixture setup.
+            (web / name).write_text(source.read_text() if source.exists() else '<div id="root"></div>')
+        (web / "decision.html").write_text('<div id="root"></div>')
+        live.build(src, web, out)
+        published = out / "modelspec" / path.lstrip("/") / "index.html"
+>       assert published.is_file(), f"{path} is absent from the live composition"
+E       AssertionError: /decide/details/ is absent from the live composition
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-896/test_both_decide_routes_are_co1/live/modelspec/decide/details/index.html').is_file
+
+tests/test_simple_decide_routes.py:34: AssertionError
+___________ test_both_decide_urls_have_source_dated_sitemap_entries ____________
+
+    def test_both_decide_urls_have_source_dated_sitemap_entries():
+        entries = ET.fromstring(live.sitemap()).findall("{*}url")
+        dates = {row.findtext("{*}loc"): row.findtext("{*}lastmod") for row in entries}
+        for path, _ in ROUTES:
+>           assert f"https://modelspec.dev{path}" in dates
+E           AssertionError: assert 'https://modelspec.dev/decide/details/' in {'https://modelspec.dev/': '2026-10-18', 'https://modelspec.dev/about/': '2026-10-18', 'https://modelspec.dev/method/': '2026-10-18', 'https://modelspec.dev/orchestrators/': '2026-10-15', ...}
+
+tests/test_simple_decide_routes.py:47: AssertionError
+________ test_first_visit_description_and_card_match_the_simple_choices ________
+
+    def test_first_visit_description_and_card_match_the_simple_choices():
+        page = (ROOT / "web/decide.html").read_text()
+>       assert "Pick a job. See your options and what each task costs." in page
+E       assert 'Pick a job. See your options and what each task costs.' in '<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset="UTF-8" />\n    <meta name="viewport" content="width=d...body>\n    <div id="root"></div>\n    <script type="module" src="/src/decide/main.tsx"></script>\n  </body>\n</html>\n'
+
+tests/test_simple_decide_routes.py:54: AssertionError
+_________ test_board_links_and_agent_copy_point_to_the_detailed_board __________
+
+    def test_board_links_and_agent_copy_point_to_the_detailed_board():
+>       assert entity.BOARD == "https://modelspec.dev/decide/details/"
+E       AssertionError: assert 'https://mode...c.dev/decide/' == 'https://mode...cide/details/'
+E
+E         - https://modelspec.dev/decide/details/
+E         ?                              --------
+E         + https://modelspec.dev/decide/
+
+tests/test_simple_decide_routes.py:65: AssertionError
+________ test_template_preview_opens_its_template_on_the_detailed_board ________
+
+    def test_template_preview_opens_its_template_on_the_detailed_board():
+        preview = social_cards.TemplatePreview(
+            id="coding-balanced", name="Coding", tradeoff="Balanced", as_of="2026-10-17",
+            models=("Example model",), unavailable_reason=None,
+        )
+>       assert 'href="/decide/details/?template=coding-balanced"' in social_cards.template_page(preview)
+E       assert 'href="/decide/details/?template=coding-balanced"' in '<!doctype html><html lang="en"><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initia...ges.</p>\n<a class="adjust" href="/decide/?template=coding-balanced">Adjust this template</a>\n</main></body></html>\n'
+E        +  where '<!doctype html><html lang="en"><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initia...ges.</p>\n<a class="adjust" href="/decide/?template=coding-balanced">Adjust this template</a>\n</main></body></html>\n' = <function template_page at 0x108239dd0>(TemplatePreview(id='coding-balanced', name='Coding', tradeoff='Balanced', as_of='2026-10-17', models=('Example model',), unavailable_reason=None))
+E        +    where <function template_page at 0x108239dd0> = social_cards.template_page
+
+tests/test_simple_decide_routes.py:77: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_simple_decide_routes.py::test_both_decide_routes_are_composed_and_describe_their_own_page[/decide/details/-decide-details.html]
+FAILED tests/test_simple_decide_routes.py::test_both_decide_urls_have_source_dated_sitemap_entries
+FAILED tests/test_simple_decide_routes.py::test_first_visit_description_and_card_match_the_simple_choices
+FAILED tests/test_simple_decide_routes.py::test_board_links_and_agent_copy_point_to_the_detailed_board
+FAILED tests/test_simple_decide_routes.py::test_template_preview_opens_its_template_on_the_detailed_board
+5 failed, 1 passed in 1.58s

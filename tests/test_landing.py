@@ -156,10 +156,14 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: land
         encoding="utf-8",
     )
     assembled = directory / "assembled"
-    (assembled / "decide").mkdir(parents=True)
+    (assembled / "decide/details").mkdir(parents=True)
     shutil.copyfile(
         ROOT / "web" / "dist" / "decide.html",
         assembled / "decide" / "index.html",
+    )
+    shutil.copyfile(
+        ROOT / "web" / "dist" / "decide-details.html",
+        assembled / "decide" / "details" / "index.html",
     )
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
     # The decide page loads the site's faces from /fonts/, as deployed.
@@ -242,8 +246,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number has a source." in holding
     assert "When the board opens, each one is a click away." in holding
     assert "Every number is one click from its source." not in holding
-    assert 'href="/decide/">Open the board</a>' in live
-    assert 'href="/decide/">Open the board</a>' not in holding
+    assert 'href="/decide/details/">Open the board</a>' in live
+    assert 'href="/decide/details/">Open the board</a>' not in holding
     for page in (live, holding):
         assert 'href="/graph/"' not in page
     for page in (live, holding):
@@ -397,10 +401,11 @@ def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingDa
 
 
 def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
-    from decision.excluded import REMOVED_TEXT
+    from decision.excluded import REMOVED_TEXT, excluded_in
     from pipeline import method
     from pipeline.build import llms_txt
     from pipeline.export import Build
+    from pipeline.surface_lint import publisher_subject
 
     llms = llms_txt(site="ModelSpec", base="https://modelspec.dev",
                     build=Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00",
@@ -419,5 +424,6 @@ def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
         for phrase in ("dod", "-grade", "compliant with", "complies with", "certified"):
             assert phrase not in lowered, phrase
         assert REMOVED_TEXT.search(page) is None
+        assert excluded_in(publisher_subject("page.html", page)) is False
     assert "an analysis of alternatives" in pages[0].lower()
     assert "an analysis of alternatives" in llms.lower()

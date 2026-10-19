@@ -1,0 +1,38 @@
+........................................................................ [ 40%]
+.....................................................................FF. [ 80%]
+...................................                                      [100%]
+=================================== FAILURES ===================================
+_______ test_the_committed_copy_is_what_the_registry_and_tiers_generate ________
+
+    def test_the_committed_copy_is_what_the_registry_and_tiers_generate() -> None:
+>       assert agent_copy.OUT.read_text(encoding="utf-8") == agent_copy.render(agent_copy.copy()), (
+            "mcp/src/agent-copy.json is stale or hand-edited: run python -m pipeline.agent_copy write")
+E       AssertionError: mcp/src/agent-copy.json is stale or hand-edited: run python -m pipeline.agent_copy write
+E       assert '{\n  "_gener...  }\n  }\n}\n' == '{\n  "_gener...  }\n  }\n}\n'
+E
+E         Skipping 128 identical leading characters in diff, use -v to show
+E         - sion": "1-c87335a7b267ef2f",
+E         + sion": "1-79cf5b6e5f3bf838",
+E             "guide_url": "https://modelspec.dev/agents.md",
+E         -   "context_guide": "# ModelSpec agent guide\n\nGuide version: 1-c87335a7b267ef2f.\nCanonical URL: https://modelspec.dev/agents.md\nFull API reference: https://modelspec.dev/openapi.yaml\nCoverage: https://modelspec.dev/api/coverage.json\n\nModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows ...
+E
+E         ...Full output truncated (62 lines hidden), use '-vv' to show
+
+tests/test_agent_copy.py:27: AssertionError
+___ test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources ___
+
+    def test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources() -> None:
+        bundle = json.loads(agent_copy.CLI_OUT.read_text(encoding="utf-8"))
+>       assert bundle["text"] == agent_copy.cli_text()
+E       AssertionError: assert {'access': 'T...e.json.', ...} == {'access': 'T...e.json.', ...}
+E
+E         Omitting 33 identical items, use -vv to show
+E         Differing items:
+E         {'human_message': 'ModelSpec can check this model choice against your requirements and its published evidence. The age...ey, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.'} != {'human_message': 'ModelSpec can check this model choice against your requirements and its published evidence. The age...ew https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/details/.'}
+E         Use -v to get more diff
+
+tests/test_agent_copy.py:33: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_agent_copy.py::test_the_committed_copy_is_what_the_registry_and_tiers_generate
+FAILED tests/test_agent_copy.py::test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources
+2 failed, 177 passed in 144.20s (0:02:24)

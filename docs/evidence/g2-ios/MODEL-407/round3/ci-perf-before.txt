@@ -1,0 +1,34 @@
+MODEL-407 round 3: original CI performance failure
+
+Source SHA: 819ba9e1aeb4e5e8a91e305a044224ff061605ed
+Workflow: Test suite
+Run: 39112262785
+Job: 117630715894, pytest perf and collection
+URL: https://github.com/turbobeest/modelspec/actions/runs/39112262785/job/117630715894
+CI Python: 3.11.17
+
+Retrieval command, direct exit 0:
+gh run view 39112262785 --job 117630715894 --log-failed
+
+Failed CI command, direct exit 1:
+python -m pytest -q -p no:xdist -m perf
+
+Relevant log excerpt from 2026-10-18T08:41:22Z:
+
+>       assert elapsed < 0.1, f"loaded in {elapsed * 1000:.0f} ms (best of 5)"
+E       AssertionError: loaded in 209 ms (best of 5)
+E       assert 0.20874805500000093 < 0.1
+
+tests/test_decision_snapshot.py:1029: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_decision_snapshot.py::test_a_thirty_model_snapshot_is_small_and_loads_fast - AssertionError: loaded in 209 ms (best of 5)
+assert 0.20874805500000093 < 0.1
+1 failed, 1 passed, 11723 deselected in 106.79s (0:01:46)
+##[error]Process completed with exit code 1.
+
+The filter timing test passed. The subsequent full-collection step was skipped
+after the timing failure. This is separate from the Decision accuracy run
+39112262794, which failed the same snapshot test at 149 ms.
+
+GitHub CLI initially refused this log while the parent workflow was running.
+The successful retrieval followed push 8a0009d4. No API bypass was used.

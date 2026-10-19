@@ -1,0 +1,54 @@
+MODEL-407 round 3: merged-source CI performance and collection evidence
+
+Workflow: Test suite (.github/workflows/test.yml)
+Run: 39120815087
+Job: 117655878891, pytest perf and collection
+URL: https://github.com/turbobeest/modelspec/actions/runs/39120815087/job/117655878891
+PR head SHA: e7f422751aa49dcb8461863fd7f5cd7983208e82
+Base SHA: 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+Executed GitHub merge SHA: 28e70b4218584865a977bf34a495e0119a0936f0
+Job conclusion: success (parent's completed-job check)
+Observed Python version: CPython 3.11.17 (raw line 140)
+
+The parent retrieved the completed public job log and reported direct fetch
+exit status 0. This extraction made no GitHub call.
+Raw log: tmp/model-407/round3/root/merged-ci-perf-raw.txt
+Raw log SHA-256: 86f010f5e2c27e493645be061295cd1dec832c187722fc0b9b83d2ea895fad64
+
+Run timing tests serially
+Exact command, raw lines 396-397:
+python -m pytest -q -p no:xdist -m perf
+Observed summary, raw line 408:
+3 passed, 11851 deselected in 451.06s (0:07:31)
+
+Collect the full non-performance suite
+Exact command, raw lines 409-410:
+python -m pytest --collect-only -q -m "not perf" > full-collection.txt
+Result: success. The job continued to the successful collection upload.
+Artifact: pytest-full-collection, ID 12133954497 (raw lines 447-449)
+
+The collection command redirects its output to full-collection.txt; the job
+log does not show its collected-test count. The artifact was not downloaded
+or read for this extraction. No collection count is inferred from other runs
+or the performance deselection count.
+
+The 451.06 seconds is the complete pytest invocation duration, not an
+individual snapshot-load sample. Passing quiet output prints no individual
+load samples. The original 100 ms acceptance gate is unchanged, as recorded
+with test-file identity in ci-accuracy-merged.txt. Numeric exit codes for the
+successful test commands are not printed in the job log.
+
+Selected raw excerpts follow. Added prefixes identify original raw-log line
+numbers. Trailing whitespace is removed from each displayed line; internal
+characters, timestamps, and text are preserved. The SHA-256 above applies to
+the unmodified raw log, not these normalized excerpts.
+120: pytest perf and collection	Checkout	2026-10-18T10:50:18.6482220Z HEAD is now at 28e70b4 Merge e7f422751aa49dcb8461863fd7f5cd7983208e82 into 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+123: pytest perf and collection	Checkout	2026-10-18T10:50:18.6582459Z 28e70b4218584865a977bf34a495e0119a0936f0
+140: pytest perf and collection	Set up Python 3.11	2026-10-18T10:50:18.8830871Z Successfully set up CPython (3.11.17)
+396: pytest perf and collection	Run timing tests serially	﻿2026-10-18T10:50:37.1759184Z ##[group]Run python -m pytest -q -p no:xdist -m perf
+408: pytest perf and collection	Run timing tests serially	2026-10-18T10:58:09.4182776Z 3 passed, 11851 deselected in 451.06s (0:07:31)
+409: pytest perf and collection	Collect the full non-performance suite	﻿2026-10-18T10:58:10.2772424Z ##[group]Run python -m pytest --collect-only -q -m "not perf" > full-collection.txt
+422: pytest perf and collection	Upload full collection	2026-10-18T10:59:34.8801915Z   name: pytest-full-collection
+423: pytest perf and collection	Upload full collection	2026-10-18T10:59:34.8802197Z   path: full-collection.txt
+447: pytest perf and collection	Upload full collection	2026-10-18T10:59:35.5857308Z Artifact pytest-full-collection.zip successfully finalized. Artifact ID 12133954497
+449: pytest perf and collection	Upload full collection	2026-10-18T10:59:35.5864525Z Artifact download URL: https://github.com/turbobeest/modelspec/actions/runs/39120815087/artifacts/12133954497

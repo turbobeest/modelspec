@@ -1,0 +1,193 @@
+EEE                                                                      [100%]
+==================================== ERRORS ====================================
+________ ERROR at setup of test_live_method_link_reaches_use_case_index ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_method_link_reaches_0')
+
+    @pytest.fixture
+    def composed(tmp_path: Path) -> tuple[Path, Path]:
+        source, web, out = tmp_path / "source", tmp_path / "web", tmp_path / "live"
+        tree = source / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (tree / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            _write(tree, name, "{}" if name.endswith(".json") else "<html><head></head><body>Fixture</body></html>")
+        _write(tree, "api/build.json", json.dumps({
+            "export_schema_version": "3.0", "built_at": "2026-10-17T00:00:00Z",
+        }))
+        _write(tree, "_headers", "/*\n  X-Content-Type-Options: nosniff\n")
+        _write(source, "data-image.json", json.dumps({"as_of": IMAGE_DATE}))
+        _write(tree, "method/index.html", '<html><head></head><body><a href="/use-cases/">Use-case examples</a></body></html>')
+        for path in (INDEX, ANSWERED, THIN, UNLISTED):
+            robots = "noindex, follow" if path == THIN else "index, follow"
+            _write(tree, path.lstrip("/") + "index.html",
+                   f'<html><head><meta name="robots" content="{robots}"></head><body>{path}</body></html>')
+        _write(tree, "sitemap.xml", (
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            f'<url><loc>{BASE}{INDEX}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}{ANSWERED}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}/models/</loc><lastmod>2026-10-17</lastmod></url>'
+            '<url><loc>https://other.test/use-cases/foreign/</loc><lastmod>2026-10-17</lastmod></url>'
+            '</urlset>'
+        ))
+        _write(source, "benchgraph/_redirects", "/   https://modelspec.dev/             301\n")
+        (web / "assets").mkdir(parents=True)
+        for name in ("decide.html", "decision.html"):
+            _write(web, name, '<html><head></head><body><div id="root"></div></body></html>')
+>       live.build(source, web, out)
+
+tests/test_live_use_cases.py:56:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pipeline/live.py:322: in build
+    page = (web / entry).read_text(encoding="utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_method_link_reaches_0/web/decide-details.html')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_method_link_reaches_0/web/decide-details.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+__ ERROR at setup of test_live_sitemap_preserves_only_source_use_case_entries __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_sitemap_preserves_on0')
+
+    @pytest.fixture
+    def composed(tmp_path: Path) -> tuple[Path, Path]:
+        source, web, out = tmp_path / "source", tmp_path / "web", tmp_path / "live"
+        tree = source / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (tree / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            _write(tree, name, "{}" if name.endswith(".json") else "<html><head></head><body>Fixture</body></html>")
+        _write(tree, "api/build.json", json.dumps({
+            "export_schema_version": "3.0", "built_at": "2026-10-17T00:00:00Z",
+        }))
+        _write(tree, "_headers", "/*\n  X-Content-Type-Options: nosniff\n")
+        _write(source, "data-image.json", json.dumps({"as_of": IMAGE_DATE}))
+        _write(tree, "method/index.html", '<html><head></head><body><a href="/use-cases/">Use-case examples</a></body></html>')
+        for path in (INDEX, ANSWERED, THIN, UNLISTED):
+            robots = "noindex, follow" if path == THIN else "index, follow"
+            _write(tree, path.lstrip("/") + "index.html",
+                   f'<html><head><meta name="robots" content="{robots}"></head><body>{path}</body></html>')
+        _write(tree, "sitemap.xml", (
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            f'<url><loc>{BASE}{INDEX}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}{ANSWERED}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}/models/</loc><lastmod>2026-10-17</lastmod></url>'
+            '<url><loc>https://other.test/use-cases/foreign/</loc><lastmod>2026-10-17</lastmod></url>'
+            '</urlset>'
+        ))
+        _write(source, "benchgraph/_redirects", "/   https://modelspec.dev/             301\n")
+        (web / "assets").mkdir(parents=True)
+        for name in ("decide.html", "decision.html"):
+            _write(web, name, '<html><head></head><body><div id="root"></div></body></html>')
+>       live.build(source, web, out)
+
+tests/test_live_use_cases.py:56:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pipeline/live.py:322: in build
+    page = (web / entry).read_text(encoding="utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_sitemap_preserves_on0/web/decide-details.html')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_sitemap_preserves_on0/web/decide-details.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+___ ERROR at setup of test_live_use_case_lastmod_preserves_public_image_date ___
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_use_case_lastmod_pre0')
+
+    @pytest.fixture
+    def composed(tmp_path: Path) -> tuple[Path, Path]:
+        source, web, out = tmp_path / "source", tmp_path / "web", tmp_path / "live"
+        tree = source / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (tree / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            _write(tree, name, "{}" if name.endswith(".json") else "<html><head></head><body>Fixture</body></html>")
+        _write(tree, "api/build.json", json.dumps({
+            "export_schema_version": "3.0", "built_at": "2026-10-17T00:00:00Z",
+        }))
+        _write(tree, "_headers", "/*\n  X-Content-Type-Options: nosniff\n")
+        _write(source, "data-image.json", json.dumps({"as_of": IMAGE_DATE}))
+        _write(tree, "method/index.html", '<html><head></head><body><a href="/use-cases/">Use-case examples</a></body></html>')
+        for path in (INDEX, ANSWERED, THIN, UNLISTED):
+            robots = "noindex, follow" if path == THIN else "index, follow"
+            _write(tree, path.lstrip("/") + "index.html",
+                   f'<html><head><meta name="robots" content="{robots}"></head><body>{path}</body></html>')
+        _write(tree, "sitemap.xml", (
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            f'<url><loc>{BASE}{INDEX}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}{ANSWERED}</loc><lastmod>{IMAGE_DATE}</lastmod></url>'
+            f'<url><loc>{BASE}/models/</loc><lastmod>2026-10-17</lastmod></url>'
+            '<url><loc>https://other.test/use-cases/foreign/</loc><lastmod>2026-10-17</lastmod></url>'
+            '</urlset>'
+        ))
+        _write(source, "benchgraph/_redirects", "/   https://modelspec.dev/             301\n")
+        (web / "assets").mkdir(parents=True)
+        for name in ("decide.html", "decision.html"):
+            _write(web, name, '<html><head></head><body><div id="root"></div></body></html>')
+>       live.build(source, web, out)
+
+tests/test_live_use_cases.py:56:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pipeline/live.py:322: in build
+    page = (web / entry).read_text(encoding="utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_use_case_lastmod_pre0/web/decide-details.html')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-928/test_live_use_case_lastmod_pre0/web/decide-details.html'
+
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+=========================== short test summary info ============================
+ERROR tests/test_live_use_cases.py::test_live_method_link_reaches_use_case_index
+ERROR tests/test_live_use_cases.py::test_live_sitemap_preserves_only_source_use_case_entries
+ERROR tests/test_live_use_cases.py::test_live_use_case_lastmod_preserves_public_image_date
+3 errors in 0.63s

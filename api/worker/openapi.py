@@ -2683,6 +2683,7 @@ def build_spec() -> dict[str, Any]:
     health_schema: dict[str, Any] = {}
     for sample in _health_samples():
         health_schema = _merge(health_schema, _infer(sample))
+    health_schema["required"].remove("decision_snapshot")
     policy_schemas = _policy_schemas(used)
     decision_schemas = _decision_schemas()
 
@@ -3473,6 +3474,10 @@ def _health_samples() -> list[dict[str, Any]]:
         "model_count_label": "Worker serving catalogue cards, including retired models",
         "policy_model_count": _policy_export()["count"],
         "policy_model_count_label": "Worker serving policy catalogue cards, including retired models",
+        "decision_snapshot": {
+            "id": "snap_0123456789abcdef", "valid_until": "2026-12-01",
+            "successor_held": True, "successor_valid_from": "2026-12-01",
+        },
         "last_error": None,
     }
     # One per store state (`entry.py::STORE_*`). Only `broken` has a last_error:
@@ -3495,6 +3500,10 @@ def _health_samples() -> list[dict[str, Any]]:
          "determinations": store(True, "broken", False, "RuntimeError: example",
                                  "RuntimeError: example")},
     ]
+    samples.append({**samples[0], "decision_snapshot": {
+        "id": None, "valid_until": None,
+        "successor_held": False, "successor_valid_from": None,
+    }})
     for name, keys, sample in (("_health", _entry_body_keys("_health"), samples[0]),
                                ("_determinations_health",
                                 _entry_body_keys("_determinations_health"),
@@ -3711,13 +3720,14 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions, values and synonyms, excluding nested benchmark domains. All query tokens rank first; other hits match a subset of content tokens and interleave so each token's best hit leads. A synonym hit keeps matched as label and adds optional via and matched_tokens. total counts those hits. Empty lookups explain the search and suggest the nearest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide." + _catalog_read_note(),
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, model/plan IDs and display names, and the snapshot date when available. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions, values and synonyms, excluding nested benchmark domains. All query tokens rank first; other hits match a subset of content tokens and interleave so each token's best hit leads. A synonym hit keeps matched as label and adds optional via and matched_tokens. total counts those hits. Empty lookups explain the search and suggest the nearest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide." + _catalog_read_note(),
                 "security": [*spec["security"], *([{"visitToken": []}] if visit_gate_enabled() else [])],
                 "parameters": [*vocabulary_parameters(), {"name": "X-ModelSpec-Visit-Token", "in": "header", "required": False, "schema": {"type": "string", "maxLength": 2048}}],
                 "responses": {
                     "400": {"description": "Invalid vocabulary query"},
                     "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
                             "content": {"application/json": {"schema": {"type": "object", "properties": {
+                                "as_of": {"type": "string", "format": "date", "description": "Snapshot date copied from the full vocabulary's coverage.as_of; absent when unavailable. This metadata does not include catalogue counts."},
                                 "starter": {"type": "array", "items": {"type": "object"}, "description": "Compact facets used most often in the template specs; only present in a starter lookup."},
                                 "next": {"type": "string", "description": "Next-call hint on query lookups: call decide after a hit, or retry vocab with suggestions after a miss."},
                                 "spec": {"type": "object", "description": "Ready-to-send minimal Spec on starter lookups. Its cost objective is a discovery default, not a quality recommendation."},

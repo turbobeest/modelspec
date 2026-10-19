@@ -83,7 +83,8 @@ The real modelspec site from `main` is always on the preview branch:
 - https://internal.modelspec-7np.pages.dev
 
 It is byte-identical to the live production tree. `/` is the landing and
-`/decide/` is the board. Their canonical URLs name `modelspec.dev`.
+`/decide/` is the simple chooser, while `/decide/details/` is the detailed board.
+Their canonical URLs name `modelspec.dev`.
 
 https://internal.benchgraph.pages.dev serves the same redirect file as
 production. It does not host the benchmark pages.

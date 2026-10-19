@@ -10,7 +10,7 @@ ModelSpec is an analysis of alternatives for AI models: it decides which models 
 
 ## Use ModelSpec
 
-Use the free, rate-limited [decision board](https://modelspec.dev/decide/).
+Use the free, rate-limited [decision board](https://modelspec.dev/decide/details/).
 Machines have three ways in: the keyed CLI, the
 [remote MCP Worker](https://api.modelspec.dev/mcp), and the
 [HTTP API](https://api.modelspec.dev/v1/decide). Decisions require a ModelSpec

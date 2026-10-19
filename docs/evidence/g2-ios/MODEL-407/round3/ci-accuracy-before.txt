@@ -1,0 +1,9 @@
+Run 39112262794, Decision accuracy, engine 819ba9e1.
+Command: gh run view 39112262794 --log-failed
+
+2026-10-18T08:47:15.7839949Z | deterministic correctness | FAIL | yes | Existing decision-engine suites: 1 failed, 1300 passed in 171.15s (0:02:51) |
+2026-10-18T08:47:15.7853159Z     "E       AssertionError: loaded in 149 ms (best of 5)",
+2026-10-18T08:47:15.7853458Z     "E       assert 0.14930427799998824 < 0.1",
+2026-10-18T08:47:15.7854943Z     "FAILED tests/test_decision_snapshot.py::test_a_thirty_model_snapshot_is_small_and_loads_fast - AssertionError: loaded in 149 ms (best of 5)",
+2026-10-18T08:47:15.7855433Z     "assert 0.14930427799998824 < 0.1",
+2026-10-18T08:47:15.7855710Z     "1 failed, 1300 passed in 171.15s (0:02:51)"

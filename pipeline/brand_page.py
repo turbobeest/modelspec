@@ -355,7 +355,7 @@ def page(assets: tuple[Asset, ...], zipped: int) -> str:
     header = (f'<header class="site-head">{landing_chrome.lockup()}<nav>'
               '<a href="/method/">How it decides</a><a href="/pricing/">Pricing</a>'
               '<button type="button" id="theme-toggle" class="theme-toggle" hidden>Light mode</button>'
-              '<a class="button primary" href="/decide/">Open the board</a></nav></header>')
+              '<a class="button primary" href="/decide/details/">Open the board</a></nav></header>')
     typeface = (f'<p><b>Wordmark.</b> {_inline(wordmark())}. The lockup SVGs set it as live text '
                 'in Segoe UI, so outline it before you use a lockup outside the site.</p>'
                 '<p><b>On the site.</b> Text is set in Instrument Sans and code in JetBrains Mono, '

@@ -1,0 +1,43 @@
+MODEL-404 round 3 root verification
+Worktree: /Users/terbeest/dev/worktrees/model-404
+Starting HEAD: 53fde1fd302da4fd050758d42a4c5ead8bd7a593
+Integrated main: b4a7074f37a3ba940bd86db9d1e2459a25fd40af
+Python: 3.14.4 (/Users/terbeest/dev/modelspec/.venv/bin/python)
+Node: v22.22.3 (/Users/terbeest/.nvm/versions/node/v22.22.3/bin)
+
+Header red-first command (before SimpleApp change, parser accepts new as_of):
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web exec -- vitest run --root web src/decide/__tests__/simple-recovery.test.tsx -t 'trimmed vocabulary snapshot date'
+Direct exit: 1. 1 failed, 5 skipped.
+Test: renders the trimmed vocabulary snapshot date without catalogue coverage
+Unable to find an element with the text: Data as of 2026-10-04.
+Same command after header reads vocabulary.as_of: direct exit 0, 1 passed, 5 skipped.
+
+Full recovery suite after real producer->trim fixture replacement:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web exec -- vitest run --root web src/decide/__tests__/simple-recovery.test.tsx
+Direct exit: 0. 7 passed in 1.90s.
+Covers present/absent date, top-level date mutation, count/workload mutation,
+unsupported residency recovery, Self-hosting reselection and explicit route recovery.
+
+Merge check: git fetch origin main; git merge --no-commit origin/main
+Already up to date. Round 3 started after the prior merge had been completed and pushed.
+
+Behavior commit: 09bbb4203e00fb99a72379c11801885a3f6dae7f
+Site build:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+Direct exit: 0. Full output retained locally in ignored site-build.log.
+
+Composition:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out docs/evidence/g2-ios/MODEL-404/root/round3/.generated/live
+Direct exit: 0. modelspec: 2711 files; discovery links resolve.
+
+Surface lint:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree docs/evidence/g2-ios/MODEL-404/root/round3/.generated/live/modelspec
+Direct exit: 0. 0 findings; 111 files checked.
+
+Full Python suite, queued under the shared lock:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+Source tree: 2488fbc3c92a271d002dc1179b0c6b87345d1c96; later commits contain evidence only.
+Interrupted with SIGINT when main #819 landed, before changing the source tree.
+Direct exit: 130. No full-suite pass is claimed. All owned pytest workers stopped.
+Latest progress was 88%; no failure/error progress markers were present.
+Raw interrupted output is retained locally as pre819-full-pytest.log.

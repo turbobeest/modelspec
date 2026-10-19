@@ -66,7 +66,7 @@ Partial answers explain missing evidence and unknown requirements. Engine
 warnings and omitted result-row counts remain visible. Bands retain every
 ranked model even when the engine limits the detailed result rows.
 
-A link opens `/decide/?template=<template-id>` with the template applied.
+A link opens `/decide/details/?template=<template-id>` with the template applied.
 Human lookup is free. Any CLI, API, or MCP access statement says that a key
 is required. The page links to `/legal/neutrality/` without restating the
 commitment. It contains no competitor comparisons or affiliate links.

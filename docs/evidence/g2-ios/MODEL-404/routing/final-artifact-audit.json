@@ -1,0 +1,86 @@
+{
+  "commit": "e0053beaa0515892667dfcbb3225422560ea43d5",
+  "tree": "docs/evidence/g2-ios/MODEL-404/root/.live/modelspec",
+  "build": {
+    "built_at": "2026-10-18T03:07:21+00:00",
+    "commit": "e0053beaa0515892667dfcbb3225422560ea43d5",
+    "eligibility_as_of": "2026-09-23",
+    "export_schema_version": "3.0"
+  },
+  "routes": {
+    "/decide/": {
+      "canonical": "https://modelspec.dev/decide/",
+      "title": "Which AI model fits your job? \u00b7 ModelSpec",
+      "og_url": "https://modelspec.dev/decide/",
+      "scripts": [
+        "/assets/decide-Dadne7EE.js"
+      ],
+      "words_without_js": 187,
+      "lastmod": "2026-10-17"
+    },
+    "/decide/details/": {
+      "canonical": "https://modelspec.dev/decide/details/",
+      "title": "ModelSpec Facet Board \u00b7 Decide",
+      "og_url": "https://modelspec.dev/decide/details/",
+      "scripts": [
+        "/assets/details-CgoHtKoj.js"
+      ],
+      "words_without_js": 180,
+      "lastmod": "2026-10-17"
+    }
+  },
+  "about_decide_links": [
+    {
+      "href": "/decide/details/",
+      "class": "button primary",
+      "text": "Open the board"
+    },
+    {
+      "href": "https://modelspec.dev/decide/details/",
+      "text": "People decide on the board."
+    }
+  ],
+  "home_decide_links": [
+    {
+      "class": "button primary",
+      "href": "/decide/details/",
+      "text": "Open the board"
+    },
+    {
+      "class": "button board-alt",
+      "href": "/decide/details/",
+      "text": "Open the board"
+    },
+    {
+      "class": "button board-alt",
+      "href": "/decide/details/",
+      "text": "Board"
+    }
+  ],
+  "use_cases": {
+    "pages": 41,
+    "template_pages": 40,
+    "details_primary_links": 40,
+    "introductory_links": 82,
+    "sitemap_entries": 19,
+    "lastmods": [
+      "2026-09-23"
+    ]
+  },
+  "published_bytes": {
+    "agents.md": {
+      "matches": "docs/agents.md",
+      "sha256": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
+      "bytes": 11899
+    },
+    "openapi.yaml": {
+      "matches": "api/worker/openapi.yaml",
+      "sha256": "4856fae354f22642f19b77c57b18d823a59ed0d4ccb1cf159f6e0d3d68b3ab0e",
+      "bytes": 230602
+    }
+  },
+  "thin_pages": [],
+  "thin_page_paths_checked": 14,
+  "sitemap_entries": 33,
+  "findings": []
+}

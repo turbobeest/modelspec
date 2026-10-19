@@ -1,0 +1,7 @@
+root/.live/
+root/pr-body.md
+**/.generated/
+gates/.matrix-*
+root/.corpus/
+root/.corpus-playwright/
+root/.ci-artifacts/

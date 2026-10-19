@@ -1,0 +1,9 @@
+Identical to 0cf4080a: decision/hardware_fit.py
+Identical to 0cf4080a: decision/snapshot.py
+Identical to 0cf4080a: mcp/test/__snapshots__/server.test.ts.snap
+Identical to 0cf4080a: mcp/test/fixtures/generate-hardware-fit.py
+Identical to 0cf4080a: mcp/test/fixtures/hardware-fit.json
+Identical to 0cf4080a: mcp/test/hardware-fit.test.ts
+All MCP tool descriptions match main; hardware-fit 2.0 wording retained.
+Merged context guide links the full board to /decide/details/.
+In-memory Python assessment regeneration matches both saved 2.0 cases.

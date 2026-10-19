@@ -1,0 +1,52 @@
+MODEL-404: MCP verification after the second main integration, 2026-10-18
+Branch HEAD before this integration: 95da0c92fb8238ce7c5e821fe7af9507673393a8
+Incoming main: b4a7074f37a3ba940bd86db9d1e2459a25fd40af
+This includes #813 snapshot boundaries and #816 MCP API-key headers/discovery.
+The resolved merge working tree was tested before its merge commit.
+Node v22.22.3; TypeScript 7.0.2; Vitest 5.0.1.
+Commands ran from /Users/terbeest/dev/worktrees/model-404.
+Every exit code below was returned directly by its process, without a pipe.
+
+1. MCP typecheck, exit 0
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix mcp run typecheck
+Output: late-merge-mcp-typecheck.txt
+tsc --noEmit completed without diagnostics.
+
+2. Full MCP unit suite after final QA regeneration, exit 0
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix mcp test
+Output: late-merge-mcp-tests.txt
+Test Files  11 passed (11)
+Tests       233 passed (233)
+Start at    00:18:51
+Duration    1.49s
+No snapshots or tests were changed for this run.
+The new auth/discovery cases verify:
+- x-api-key and Bearer normalization, including agreeing credentials and casing;
+- conflicting and malformed credentials are refused without origin calls;
+- all eight data tools require a key for both data-split values, even when
+  MCP_REQUIRE_API_KEY is false;
+- errors and logs do not expose supplied keys or origin exception credentials;
+- public server-card tool schemas and server identity match tools/list and
+  initialize, with the required authentication declaration and cache headers.
+The existing hardware-fit, transport, budget and generated-schema suites pass.
+
+3. Main-source and link-inventory parity, exit 0
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/transport/verify-late-mcp-merge.py
+Output: late-merge-mcp-parity.txt
+32 MCP/registry files match incoming main byte for byte, including runtime
+authorization/origin/discovery code, tests, snapshots, dependencies and config.
+The only MCP difference is generated agent-copy context_guide, guide_version
+and instructions for MODEL-404. Every tool description equals main.
+The full-board guide link remains /decide/details/. General human lookup in
+the root README remains /decide/; its explicit board link is /decide/details/.
+The registry metadata and discovery documentation add no decide-page link
+that needs relocation. The parity check also passed after final regeneration.
+
+4. Formatting check, exit 0
+git diff --check -- mcp docs/evidence/g2-ios/MODEL-404/transport/verify-late-mcp-merge.py
+
+Routing owned all generated artifacts and signalled their final write before
+the full MCP test run. This verification changed only transport evidence.
+No production, registry publication, live client, or paid-provider call was
+performed. No background processes remain. Root owns the merge commit and
+the final integration-wide evidence.

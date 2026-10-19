@@ -40,7 +40,7 @@ const providerEstate = {
 const BUDGET_CODING = /^Coding · Budget:/;
 
 function savedEmptyBoard() {
-  history.replaceState(null, "", `/decide/${encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
+  history.replaceState(null, "", `/decide/details/${encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
     selections: {}, mustOrder: [], estate: { providers: [], plans: [], hardware: [] },
   })}`);
 }
@@ -69,7 +69,7 @@ it("sanitizes every unavailable selection in an old namespaced board permalink",
     decide: (init) => json(decisionFor(init)),
   });
   vi.stubGlobal("fetch", fetch);
-  history.replaceState(null, "", `/decide/${permalink}`);
+  history.replaceState(null, "", `/decide/details/${permalink}`);
 
   render(<App />);
 
@@ -89,7 +89,7 @@ it("sanitizes every unavailable selection in an old namespaced board permalink",
 
 it("opens a composer-era permalink as a populated board with migration notes", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
-  history.replaceState(null, "", `/decide/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
+  history.replaceState(null, "", `/decide/details/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
   render(<App />);
   await screen.findByRole("heading", { name: "Which AI model fits your job?" });
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
@@ -108,7 +108,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
 it("applies visible legacy controls and drops the unsupported parts named in the migration note", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
-  history.replaceState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+  history.replaceState(null, "", `/decide/details/${LEGACY_PERMALINKS.unsupportedParts}`);
 
   render(<App />);
 
@@ -129,7 +129,7 @@ it("migrates a composer-era permalink navigated to after vocabulary loads", asyn
   await screen.findByRole("heading", { name: "Which AI model fits your job?" });
   const requestsBeforeNavigation = sentSpecs(fetch).length;
 
-  history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+  history.pushState(null, "", `/decide/details/${LEGACY_PERMALINKS.unsupportedParts}`);
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 
   const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
@@ -230,7 +230,7 @@ function rankedFor(sent: { optimize?: { weights?: Record<string, number> } }, de
   };
 }
 
-beforeEach(() => history.replaceState(null, "", "/decide/"));
+beforeEach(() => history.replaceState(null, "", "/decide/details/"));
 afterEach(() => vi.unstubAllGlobals());
 
 it.each(["facet", "template"] as const)("offers answer feedback only after a %s interaction in this visit", async (interaction) => {
@@ -258,9 +258,9 @@ it("explains the snapshot in the page header and share dialog", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const snapshot = screen.getByText(fixture.snapshot);
+  const snapshot = screen.getByText("Data date unavailable");
   expect(snapshot).toHaveAttribute("tabindex", "0");
-  expect(snapshot).toHaveAccessibleDescription("The data version this answer used");
+  expect(snapshot).toHaveAccessibleDescription(`The data version this answer used: ${fixture.snapshot}`);
 
   fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const dialog = screen.getByRole("dialog", { name: "Share" });
@@ -275,7 +275,7 @@ it("copies a public template preview without the customized task, board, estate 
   const hash = encodeBoardSpec({ ...realBaseSpec(smallVocabulary), task: privateTask, conds: [] }, "task$", {
     selections: {}, mustOrder: [], estate: providerEstate,
   });
-  history.replaceState(null, "", `/decide/?theme=light&private-note=9866${hash}`);
+  history.replaceState(null, "", `/decide/details/?theme=light&private-note=9866${hash}`);
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<DesignedApp />);
   fireEvent.click(await findTemplateCell(BUDGET_CODING));
@@ -1072,7 +1072,7 @@ it("shows no stale designed result after a hosted error", async () => {
 it("treats the legacy demo flag as the public board", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
-  history.replaceState(null, "", "/decide/?demo=1");
+  history.replaceState(null, "", "/decide/details/?demo=1");
   render(<App />);
   expect(await screen.findByRole("heading", { name: "Which AI model fits your job?" })).toBeInTheDocument();
   expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -1149,7 +1149,7 @@ it("renders capability intervals, probability of best and top-three stability", 
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
-  expect(detail).toHaveTextContent("P(best) 62%");
+  expect(detail).toHaveTextContent("Chance of being best: 62%");
   expect(detail).toHaveTextContent("Top-3 stability 91%");
   expect(detail).toHaveTextContent("Not separable: intervals overlap.");
   expect(detail).toHaveTextContent("Proxy evidence only.");

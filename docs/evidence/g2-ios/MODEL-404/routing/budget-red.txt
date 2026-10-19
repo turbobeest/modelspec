@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+
+capsys = <_pytest.capture.CaptureFixture object at 0x10a1d81a0>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+        assert main(["--first-turn-breakdown"]) == 0
+        report = json.loads(capsys.readouterr().out)
+        assert set(report) == {"claude", "openai", "gemini"}
+>       assert all(row["total"] <= 9_500 for row in report.values()), report
+E       AssertionError: {'claude': {'method': 'ceil(characters / 4)', 'components': {'system_prompt': 10, 'harness_scaffolding': 11, 'guide': ...ystem_prompt': 10, 'harness_scaffolding': 11, 'guide': 2128, 'full_spec': 0, ...}, 'total': 9540, 'wire_bytes': 38168}}
+E       assert False
+E        +  where False = all(<generator object test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget.<locals>.<genexpr> at 0x1096c1d80>)
+
+tests/test_agent_guide.py:78: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+1 failed in 0.95s

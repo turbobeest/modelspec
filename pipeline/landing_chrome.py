@@ -47,7 +47,7 @@ def site_header(*, current: str | None = None) -> str:
             f'{item("/method/", "How it decides")}'
             f'{item("/#agents", "For agents")}'
             f'{item("/pricing/", "Pricing")}'
-            f'{item("/decide/", "Open the board", class_name="button primary")}'
+            f'{item("/decide/details/", "Open the board", class_name="button primary")}'
             "</nav></header>")
 
 

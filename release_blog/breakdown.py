@@ -619,7 +619,7 @@ def build_breakdown(
         dumped = breakdown.model_dump(mode="json", by_alias=True)
         breakdown = breakdown.model_copy(
             update={"changes_since_r1": changes_since(first_revision, dumped)})
-    guard_output(breakdown.sources, to_bytes(breakdown).decode("utf-8"))
+    guard_output(breakdown.sources, breakdown.model_dump(mode="json", by_alias=True))
     return breakdown
 
 

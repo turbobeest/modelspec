@@ -136,6 +136,7 @@ export const vocabularySchema = z.object({
   vocabulary_version: z.literal(1),
   contract_version: z.string(),
   snapshot: z.string(),
+  as_of: z.iso.date().optional(),
   default_task_tokens: z.object({
     input: z.number().int().nonnegative(),
     output: z.number().int().nonnegative(),

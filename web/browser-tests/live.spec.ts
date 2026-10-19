@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { z } from "zod";
 
+test.skip(!process.env.MODELSPEC_DECIDE_URL, "requires an explicitly configured deployed page");
+
 // MODEL-203: the deployed decide page answers, against the live vocabulary and
 // api.modelspec.dev, or shows the manual gate when the Worker enables it,
 // with nothing stubbed. Run after each deploy with
@@ -14,18 +16,19 @@ const humanStatusSchema = z.union([
   z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
 ]);
 
-async function answered(page: Page) {
-  const answer = page.getByLabel("Facet board answer");
+async function answered(page: Page, detailed: boolean) {
+  const answer = detailed ? page.getByLabel("Facet board answer") : page.getByRole("region", { name: "Decision answer", exact: true });
   await expect(answer).toBeVisible({ timeout: 45000 });
   await expect(page.getByText(/invalid_response|Decision unavailable/)).toHaveCount(0);
-  await expect(page.locator(".board-routes").first()).toBeVisible();
+  if (detailed) await expect(page.locator(".board-routes").first()).toBeVisible();
 }
 
-test("the deployed page follows the Worker's human gate status", async ({ page }) => {
+for (const detailed of [false, true]) test(`the deployed ${detailed ? "detailed" : "simple"} page follows the Worker's human gate status`, async ({ page, baseURL }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("");
+  if (!baseURL) throw new Error("The deployed page URL is required");
+  await page.goto(new URL(detailed ? "/decide/details/" : "/decide/", baseURL).href);
   await expect(page.getByRole("heading", { name: "Which AI model fits your job?" })).toBeVisible({ timeout: 30000 });
   // Fetch in the browser so the deployed origin and visitor match the page's
   // status request, including the Worker's CORS policy.
@@ -49,10 +52,16 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
     await expect(gate.getByRole("button", { name: "Look up this decision" })).toBeVisible();
     await expect(gate.getByRole("link", { name: "paid API or MCP" })).toBeVisible();
     await expect(gate.getByRole("status")).toBeVisible();
-    await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
+    await expect(detailed ? page.getByLabel("Facet board answer") : page.getByRole("region", { name: "Decision answer", exact: true })).toHaveCount(0);
   } else {
     await expect(gate).toHaveCount(0);
-    await answered(page);
+    await answered(page, detailed);
+    if (!detailed) {
+      await expect(page.getByText("Example: Everyday help. Pick a job if this isn't yours.", { exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: "See the full evidence", exact: true })).toHaveAttribute("href", /^\/decide\/details\/#s=/);
+      expect(errors, "uncaught page errors").toEqual([]);
+      return;
+    }
     await expect(page.locator(".template-active")).toContainText("Starting from: General assistant, balanced");
     await expect(page.getByLabel("X axis")).toHaveValue("facet:offering.cost_per_task");
     await expect(page.getByText("Up and left is better")).toBeVisible();
@@ -62,7 +71,7 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
     if ((await bar.count()) > 0) {
       await bar.click();
       await page.locator(".board-templates button").first().click();
-      await answered(page);
+      await answered(page, detailed);
     }
   }
   expect(errors, "uncaught page errors").toEqual([]);

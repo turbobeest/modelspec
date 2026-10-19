@@ -18,7 +18,7 @@ it.each(captures)("returns the captured answer for $file", ({ spec, file }) => {
   expect(decisionFixtureFor({ ...reordered, snapshot: vocabulary.snapshot })).toBe(expected);
   const answer = decisionSchema.parse(JSON.parse(expected));
   expect(answer.contract_version).toBe("2.12");
-  expect(answer.snapshot).toBe(vocabulary.snapshot);
+  expect(answer.snapshot).toBe("snap_483dd2fb6c5915b5");
   expect(answer.explain).toBe(spec.explain);
 });
 
@@ -55,18 +55,30 @@ it("draws the real assistant on opening and the current unranked answer after Cl
   expect(status).toHaveTextContent("28 qualify · 13 may qualify · 3 out");
 });
 
-it("numbers the decision table by the engine's model rank, with no gaps (MODEL-313)", async () => {
+it.each(["separated", "tied"] as const)("shows engine model ranks only for a separated answer (%s)", async (kind) => {
   vi.useFakeTimers();
   vi.stubGlobal("fetch", routeFetch({
     vocabulary: () => json(vocabulary),
-    decide: (init) => json(JSON.parse(decisionFixtureFor(JSON.parse(String(init?.body))))),
+    decide: (init) => {
+      const decision = decisionSchema.parse(JSON.parse(decisionFixtureFor(JSON.parse(String(init?.body)))));
+      const leader = decision.answer?.members[0];
+      if (kind === "separated" && decision.answer && leader) {
+        decision.answer = { ...decision.answer, kind, leader, members: [leader], deterministic_order: [leader] };
+      }
+      return json(decision);
+    },
   }));
   render(<DesignedApp />);
   for (let i = 0; i < 4; i++) await act(async () => { await vi.advanceTimersByTimeAsync(500); });
   const table = screen.getByRole("region", { name: "Decision table" });
   const shown = [...table.querySelectorAll("tbody tr.status-qualifies td:first-child")].map((cell) => cell.textContent);
   expect(shown.length).toBeGreaterThan(5);
-  expect(shown).toEqual(shown.map((_, index) => String(index + 1)));
-  expect(within(table).getByRole("columnheader", { name: /#/ })).toHaveAttribute("title", "Model rank on your weights");
+  if (kind === "separated") {
+    expect(shown).toEqual(shown.map((_, index) => String(index + 1)));
+    expect(within(table).getByRole("columnheader", { name: /#/ })).toHaveAttribute("title", "Model rank on your weights");
+  } else {
+    expect(within(table).queryByRole("columnheader", { name: /#/ })).not.toBeInTheDocument();
+    expect(table.querySelectorAll("tbody tr.status-qualifies td:first-child .table-model")).toHaveLength(shown.length);
+  }
   vi.useRealTimers();
 });

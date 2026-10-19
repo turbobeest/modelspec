@@ -52,6 +52,15 @@ function parsedSpec(vocabulary: Vocabulary, task: string): Spec {
 const EDITABLE: FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
 
 describe("published templates", () => {
+  it("preserves the optional display snapshot date without requiring catalogue coverage", () => {
+    const { coverage: _coverage, ...display } = v;
+    expect(_coverage?.as_of).toBeTruthy();
+    const parsed = vocabularySchema.parse({ ...display, as_of: "2026-10-04" });
+    expect(parsed).toHaveProperty("as_of", "2026-10-04");
+    expect(parsed.coverage).toBeNull();
+    expect(vocabularySchema.parse(display)).not.toHaveProperty("as_of");
+  });
+
   it("accepts the additive pinned refinements shape", () => {
     const parsed = vocabularySchema.parse({
       ...v,

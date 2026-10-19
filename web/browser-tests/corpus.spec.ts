@@ -54,7 +54,7 @@ async function stub(page: Page, snapshot: string, decision: string) {
 async function openBoard(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("");
+  await page.goto("/decide/details/");
   await expect(page.getByRole("heading", { name: "Which AI model fits your job?" })).toBeVisible();
   await expect(page.getByText("The live answer will appear here.")).toHaveCount(0, { timeout: 15000 });
   return errors;
