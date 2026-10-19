@@ -258,9 +258,9 @@ it("explains the snapshot in the page header and share dialog", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const snapshot = screen.getByText(fixture.snapshot);
+  const snapshot = screen.getByText("Data date unavailable");
   expect(snapshot).toHaveAttribute("tabindex", "0");
-  expect(snapshot).toHaveAccessibleDescription("The data version this answer used");
+  expect(snapshot).toHaveAccessibleDescription(`The data version this answer used: ${fixture.snapshot}`);
 
   fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const dialog = screen.getByRole("dialog", { name: "Share" });
@@ -1149,7 +1149,7 @@ it("renders capability intervals, probability of best and top-three stability", 
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
-  expect(detail).toHaveTextContent("P(best) 62%");
+  expect(detail).toHaveTextContent("Chance of being best: 62%");
   expect(detail).toHaveTextContent("Top-3 stability 91%");
   expect(detail).toHaveTextContent("Not separable: intervals overlap.");
   expect(detail).toHaveTextContent("Proxy evidence only.");

@@ -106,7 +106,8 @@ function collect() {
   const firstPick = main.querySelector(".board-tie-group li strong")
     ?? main.querySelector(".board-tie-answer h2")
     ?? main.querySelector(".board-ranked-answer > ol > li strong");
-  const copy = main.querySelector(".answer-copy");
+  const copy = main.querySelector(".agent-copy");
+  const humanAnswer = main.querySelector(".board-answer");
   return {
     viewport: { width: innerWidth, height: innerHeight },
     scrollWidth: document.documentElement.scrollWidth,
@@ -119,6 +120,7 @@ function collect() {
     probes,
     firstPick: firstPick ? { text: firstPick.textContent, ...box(firstPick) } : null,
     copy: copy ? box(copy) : null,
+    humanAnswer: humanAnswer ? box(humanAnswer) : null,
   };
 }
 
@@ -186,8 +188,8 @@ export function check(layout) {
   const where = desktop ? "above the fold" : "within two screens";
   add(`top pick ${where}`, layout.firstPick !== null && layout.firstPick.bottom <= fold,
     layout.firstPick ? `"${layout.firstPick.text}" bottom ${px(layout.firstPick.bottom)} ≤ ${fold}` : "no ranked answer");
-  add(`"Copy for my agent" ${where}`, layout.copy !== null && layout.copy.bottom <= fold,
-    layout.copy ? `bottom ${px(layout.copy.bottom)} ≤ ${fold}` : "no copy button");
+  add('"Copy for my agent" follows the human answer', layout.copy !== null && layout.humanAnswer !== null && layout.copy.top >= layout.humanAnswer.bottom,
+    layout.copy && layout.humanAnswer ? `button top ${px(layout.copy.top)} ≥ answer bottom ${px(layout.humanAnswer.bottom)}` : "no answer or copy button");
   return rows;
 }
 

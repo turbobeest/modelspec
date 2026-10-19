@@ -60,7 +60,12 @@ export function AgentHandoff({ spec }: { spec: DecisionSpec }) {
     : CURL;
 
   return <section className="panel agent-handoff" aria-labelledby={headingId}>
-    <h2 id={headingId}>Give this to my agent</h2>
+    <h2 id={headingId}>Ask this from your agent</h2>
+    <div className="agent-price">
+      <p>{handoffData.price_line}</p>
+      <small>A full explanation costs {handoffData.full_credits} credits.</small>
+      <p>The price is for a ModelSpec answer, not for using a model.</p>
+    </div>
     <p>Paste it into your agent; <code>modelspec help agent</code> covers keys, MCP and curl.</p>
     <div className="agent-formats" role="group" aria-label="Agent snippet format">
       {FORMATS.map((option) => <button key={option} type="button" aria-pressed={format === option}
@@ -86,20 +91,4 @@ export function AgentHandoff({ spec }: { spec: DecisionSpec }) {
     <small id={keyNoteId}>{handoffData.key_link.note}</small>
     <CopyStatus className="agent-copy-status" quiet={quiet(message)}>{status(message, snippet)}</CopyStatus>
   </section>;
-}
-
-export function AnswerAssurances({ spec }: { spec: DecisionSpec }) {
-  const { copy, status, quiet, confirmed } = useCopy();
-  const message = handoffMessage(spec);
-  return <div className="answer-assurances">
-    <div className="answer-price">
-      <div className="answer-price-line">
-        <p>{handoffData.price_line}</p>
-        <button type="button" className="answer-copy" onClick={() => void copy(message, COPIED, "Could not copy. Use the hand-off panel below the answer.")}>{copyLabel(confirmed(message))}</button>
-      </div>
-      <small>A full explanation costs {handoffData.full_credits} credits.</small>
-      <CopyStatus className="answer-copy-status" quiet={quiet(message)}>{status(message)}</CopyStatus>
-    </div>
-    <a className="answer-trust" href={handoffData.neutrality.href}>{handoffData.neutrality.text} · sourced</a>
-  </div>;
 }

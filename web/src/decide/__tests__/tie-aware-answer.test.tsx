@@ -41,8 +41,9 @@ describe("the banded answer on the board", () => {
     expect(within(group).getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent))
       .toEqual(["Alpha", "Gamma"]);
     expect(block).not.toHaveTextContent(/order of merit|alphabetical/i);
-    expect(block).toHaveTextContent("In score order; the order is not evidence that one is better.");
-    expect(within(group).getAllByRole("listitem")[1]).toHaveTextContent("45% likely to score at least as well as Alpha");
+    expect(block.querySelector("h2")?.nextElementSibling).toHaveTextContent("Order within the tied group is not evidence that one is better.");
+    expect(group.tagName).toBe("UL");
+    expect(group).not.toHaveTextContent(/chance of being best|likely to score at least as well/i);
     expect(within(block).getByRole("heading", { name: "What breaks the tie" })).toBeInTheDocument();
     const breakers = within(block).getAllByRole("list")[1];
     const items = within(breakers).getAllByRole("listitem");
@@ -118,19 +119,21 @@ describe("the banded answer on the board", () => {
     expect(block.querySelector(".board-blend")).toHaveTextContent("On your 60/40 mix of software engineering and cost per task.");
     const terms = block.querySelector(".board-blend-terms") as HTMLElement;
     const [coding, cost] = within(terms).getAllByRole("listitem");
-    expect(coding).toHaveTextContent("Software engineering alone: Strong leads, 61% likely the strongest of the well-measured models; Steady is ahead of it with probability 33%.");
+    expect(coding).toHaveTextContent("Software engineering alone: Strong leads.");
+    expect(terms).not.toHaveTextContent(/likely the strongest|probability|chance of being best/i);
     expect(cost).toHaveTextContent("Cost per task alone: cheapest is Unproven");
   });
 
-  it("orders the best band by chance of being best, and says so", () => {
+  it("keeps the full tied band equally presented without best probabilities", () => {
     show(bandsJson, blended);
     const block = screen.getByRole("heading", { name: "Best for your weights: these 2. The evidence can't separate them." }).closest("section")!;
-    expect(block).toHaveTextContent("Ordered by chance of being best.");
+    expect(block.querySelector("h2")?.nextElementSibling).toHaveTextContent("Order within the tied group is not evidence that one is better.");
     const group = block.querySelector(".board-tie-group") as HTMLElement;
     const items = within(group).getAllByRole("listitem");
     expect(items.map((item) => item.querySelector("strong")?.textContent)).toEqual(["Steady", "Cheap"]);
-    expect(items[0]).toHaveTextContent("32% chance of being best");
-    expect(items[1]).toHaveTextContent("11% chance of being best");
+    expect(group.tagName).toBe("UL");
+    expect(group).not.toHaveTextContent(/chance of being best|likely to score at least as well/i);
+    expect(items.map((item) => item.className)).toEqual(["", ""]);
   });
 
   it("keeps a thin-evidence model out of the best band, even with the top point score", () => {
