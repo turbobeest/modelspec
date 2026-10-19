@@ -1,0 +1,12 @@
+{
+  "command": "PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile",
+  "cwd": "/Users/terbeest/dev/worktrees/model-408",
+  "head_observed_during_execution": "de8b38a8dae8b4fdf40ff5af57bcc2f8fe2aba4a",
+  "queued_observed_utc": "2026-10-19T16:47:43Z",
+  "execution_observed_utc": "2026-10-19T17:46:33Z",
+  "exit_code": 0,
+  "completion_observed_utc": "2026-10-19T18:15:09.685922+00:00",
+  "summary": "12519 passed, 9 skipped, 11 warnings in 1779.98s (0:29:39)",
+  "pytest_runtime_seconds": 1779.98,
+  "final_source_commit": "a0a13e70eb1193e8a42365762baba364b6e0b4f2"
+}

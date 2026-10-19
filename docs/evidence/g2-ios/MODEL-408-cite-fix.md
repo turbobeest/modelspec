@@ -12,10 +12,10 @@ private `.engine-pin` only after #840 and #822 have merged.
 - Integration HEAD: `ffd4e74a017b96c60f7450fd2cffcad3e63bc3d8`.
 - Initial private data: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`.
 - Final private data: `c11e335c0f9d5a36a990920963ccdf748aadae77`.
-- Final tested code revision: `a0a13e70eb1193e8a42365762baba364b6e0b4f2`.
-  Full-suite result is pending below. The final
-  evidence-only commit is discoverable with `git log -1 --format=%H --
-  docs/evidence/g2-ios/MODEL-408-cite-fix.md`.
+- Final executable source revision: `a0a13e70eb1193e8a42365762baba364b6e0b4f2`.
+- Full-suite execution HEAD: `de8b38a8dae8b4fdf40ff5af57bcc2f8fe2aba4a`
+  (an evidence-only commit on that source). The final evidence-only commit is
+  discoverable with `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-408-cite-fix.md`.
 
 #840 supplies the shared host policy, metadata-only CopyStore behavior,
 verification interception and citation serialization. MODEL-408 now exercises
@@ -190,7 +190,7 @@ git diff --exit-code -- qa/fixtures
 "$py" scripts/chart_check_pr.py --base origin/main
 "$py" scripts/data_freeze_guard.py --base origin/main --head HEAD --branch model-408-xai-consumer
 
-# Full suite under the shared lock; result recorded below when complete.
+# Full suite under the shared lock; exit 0, 12,519 passed, 9 skipped.
 /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
 ```
 
@@ -208,6 +208,23 @@ changes to check. The data-freeze guard passed.
 Exact public-check arguments, working directories, timings, versions and exit
 codes are in [public-checks.json](MODEL-408-cite/public-checks.json). Compressed
 logs and private aggregate proof are alongside this report.
+
+The full suite completed with **12,519 passed, 9 skipped, 11 warnings** in
+**1,779.98 seconds (29 minutes 39 seconds)**, direct exit **0**. The warnings
+come from tests exercising unsigned decision-vocabulary responses. The shared
+lock was observed queued at 16:47:43 UTC and execution was observed at
+17:46:33 UTC on 2026-10-19; pytest runtime excludes the lock wait. See
+[full-suite.json](MODEL-408-cite/full-suite.json) for the command, execution
+revision and observed timestamps, and
+[the full output](MODEL-408-cite/full-suite.log.gz).
+
+At 2026-10-19T18:17:08.075861+00:00, CI on the final executable source revision
+had **18 successful checks**; `Run pytest` was still running.
+The four pytest shards, site build, all browser gate combinations and Worker
+checks passed. Deployment and auto-merge jobs were skipped. The exact check
+URLs and states are in [ci-source.json](MODEL-408-cite/ci-source.json). The
+final evidence-only push may start another CI run; this snapshot describes the
+source revision tested before that push.
 
 ## Limits
 
