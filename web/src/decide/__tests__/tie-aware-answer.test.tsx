@@ -59,19 +59,19 @@ describe("the banded answer on the board", () => {
     expect(block).not.toHaveTextContent(/independently measured/i);
   });
 
-  it("lists the rest in order with how likely each is to match the leader", () => {
+  it("lists the rest of a tied answer without a comparison to one member", () => {
     show(tiedJson);
     const block = screen.getByRole("heading", { name: /Best for your weights/ }).closest("section")!;
     expect(within(block).getByRole("heading", { name: "The rest, in order" })).toBeInTheDocument();
     const rest = block.querySelector(".board-band-rest")!;
     const [beta] = within(rest as HTMLElement).getAllByRole("listitem");
     expect(beta).toHaveTextContent("Beta");
-    expect(beta).toHaveTextContent("1% likely to score at least as well as Alpha");
+    expect(beta).not.toHaveTextContent(/likely to score at least as well/);
   });
 
   it("omits a certain chance of matching the leader", () => {
-    const certain = structuredClone(tiedJson);
-    const gamma = certain.bands.best.find((entry) => entry.model === "lab/gamma");
+    const certain = structuredClone(separatedJson);
+    const gamma = certain.bands.rest.find((entry) => entry.model === "lab/gamma");
     const beta = certain.bands.rest.find((entry) => entry.model === "lab/beta");
     if (!gamma || !beta) throw new Error("fixture bands");
     gamma.p_beats_leader = 0;
@@ -84,14 +84,12 @@ describe("the banded answer on the board", () => {
     });
     show(certain);
     const block = screen.getByRole("heading", { name: /Best for your weights/ }).closest("section")!;
-    const group = block.querySelector(".board-tie-group") as HTMLElement;
-    const gammaRow = within(group).getAllByRole("listitem").find((item) => item.textContent?.includes("Gamma"));
-    expect(gammaRow).toBeTruthy();
-    expect(gammaRow).not.toHaveTextContent(/likely to score/);
     const rest = block.querySelector(".board-band-rest") as HTMLElement;
     const rows = within(rest).getAllByRole("listitem");
+    const gammaRow = rows.find((item) => item.querySelector("strong")?.textContent === "Gamma");
     const betaRow = rows.find((item) => item.querySelector("strong")?.textContent === "Beta");
     const deltaRow = rows.find((item) => item.querySelector("strong")?.textContent === "lab/delta");
+    expect(gammaRow).not.toHaveTextContent(/likely to score/);
     expect(betaRow).not.toHaveTextContent(/likely to score/);
     expect(deltaRow).toHaveTextContent("36% likely to score at least as well as Alpha");
   });
