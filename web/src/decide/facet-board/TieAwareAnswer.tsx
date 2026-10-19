@@ -162,7 +162,7 @@ export function TieAwareAnswer({
           <strong>{nameOf(entry.model)}</strong>
           {estimateText(entry) && <small>{estimateText(entry)}</small>}
           {entry.cost_per_task !== null && <small>{money(entry.cost_per_task)} per task</small>}
-          {uncertainBeat(entry.p_beats_leader) && bands.leader && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands.leader)}</small>}
+          {answer?.kind !== "tied" && uncertainBeat(entry.p_beats_leader) && bands.leader && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands.leader)}</small>}
         </li>)}
       </ol>
     </>}

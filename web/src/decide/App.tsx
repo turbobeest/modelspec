@@ -336,7 +336,7 @@ export function DesignedApp({
     boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
     selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
     highlightedId = decision?.answer?.kind === "tied" ? selected : selectedId,
-    row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
+    row = e?.rows.find((candidate) => candidate.m.id === highlightedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
     simulatedError = sim === "error" && !retried,
     error = simulatedError || requestState.kind === "error" || !!mapped.error,

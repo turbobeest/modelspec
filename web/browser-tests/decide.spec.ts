@@ -44,11 +44,67 @@ test("MODEL-405: a tied answer has no winner styling and keeps probabilities in 
   await expect(page.getByRole("region", { name: "Decision table" }).getByRole("columnheader", { name: /^#/ })).toHaveCount(0);
   const detail = page.getByRole("region", { name: "Why this model", exact: true });
   await expect(detail).not.toContainText(/#\d+ of/);
-  await expect(detail).toContainText("Chance of being best");
   const point = page.locator(".point").first();
   await point.click();
   await expect(point).toHaveClass(/selected/);
+  await expect(detail).toContainText("Chance of being best");
 });
+
+for (const width of [1440, 390]) {
+  test(`MODEL-412: tied rest rows never use a member's probability as a reference at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await openDecide(page);
+    const rest = page.locator(".board-band-rest");
+    await expect(rest.getByRole("listitem")).toHaveCount(balanced.bands.rest.length);
+    await expect(rest).not.toContainText("likely to score at least as well as");
+    await expect(rest.getByRole("listitem").first()).toContainText("Muse Spark 1.3");
+    await expect(rest.getByRole("listitem").first()).toContainText("estimate 0.17 (80% interval -0.07 to 0.40)");
+    await expect(rest.getByRole("listitem").first()).toContainText("$0.067 per task");
+  });
+
+  test(`MODEL-412: a tied Why panel opens neutrally until a member is selected at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await openDecide(page);
+    const detail = page.getByRole("region", { name: "Why this model", exact: true });
+    await expect(detail).toHaveText("Select a model to inspect its evidence and conditions.");
+    await expect(detail.getByRole("heading")).toHaveCount(0);
+    await expect(page.locator(".point.selected")).toHaveCount(0);
+    await expect(page.locator(".decision-table tr.selected")).toHaveCount(0);
+
+    const member = page.getByRole("region", { name: "Decision table" }).getByRole("button", { name: "Gemini 3.8 Flash", exact: true });
+    await member.focus();
+    await page.keyboard.press("Enter");
+    await expect(detail.getByRole("heading", { name: "Gemini 3.8 Flash", exact: true })).toBeVisible();
+    await expect(detail).toContainText("Chance of being best");
+    await expect(detail).not.toContainText(/#\d+ of/);
+    await expect(page.locator(".decision-table tr.selected")).toContainText("Gemini 3.8 Flash");
+    await expect(page.locator(".point.selected")).toHaveCount(1);
+  });
+
+  test(`MODEL-412: a non-tied answer retains its reference and initial Why model at ${width}px`, async ({ page }) => {
+    const response = structuredClone(balanced);
+    const leader = response.bands.leader;
+    response.bands.best = response.bands.best.filter((entry) => entry.model === leader);
+    const answer = {
+      ...response.answer,
+      kind: "separated",
+      leader,
+      members: [leader],
+      deterministic_order: [leader],
+      tie_breakers: { cheapest: null, fastest: null, open_weights: null, most_independently_measured: null },
+    };
+    await page.route("**/v1/decide", (route) => route.fulfill({ json: { ...response, answer } }));
+    await page.setViewportSize({ width, height: 1000 });
+    await openDecide(page);
+    await expect(page.locator(".board-band-rest").getByRole("listitem").first()).toContainText("24% likely to score at least as well as Claude Opus 5.5");
+    const detail = page.getByRole("region", { name: "Why this model", exact: true });
+    await expect(detail.getByRole("heading", { name: "Claude Opus 5.5", exact: true })).toBeVisible();
+    await expect(detail).toContainText("Chance of being best");
+    await expect(detail).toContainText("#1 of 24");
+    await expect(page.locator(".point.selected")).toHaveCount(1);
+    await expect(page.locator(".decision-table tr.selected")).toContainText("Claude Opus 5.5");
+  });
+}
 
 test("MODEL-405: agent copy and sourced pricing follow the human answer", async ({ page }) => {
   await openDecide(page);
@@ -220,7 +276,8 @@ test("agent hand-off leads with the CLI and copies one message with the current 
 
 for (const location of ["answer", "detail"] as const) test(`${location} evidence source links meet AA in both themes`, async ({ page }) => {
   await openBoard(page);
-  const source = location === "answer" ? page.locator(".answer-source a") : page.getByRole("link", { name: /Source/ }).first();
+  if (location === "detail") await page.getByRole("region", { name: "Decision table" }).getByRole("button", { name: "Claude Opus 5.5", exact: true }).click();
+  const source = location === "answer" ? page.locator(".answer-source a") : page.getByRole("region", { name: "Why this model", exact: true }).getByRole("link", { name: /Source/ }).first();
   await expect(source).toBeVisible();
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
@@ -557,6 +614,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
   await page.locator(".board-templates").getByRole("button", { name: /^General assistant · Balanced:/ }).click();
+  await page.getByRole("region", { name: "Decision table" }).getByRole("button", { name: "Claude Opus 5.5", exact: true }).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {
     await page.getByRole("button", { name: buttonName }).click();
