@@ -7,7 +7,7 @@ import { THEME_KEY, initialTheme, storedTheme } from "../theme";
 
 beforeEach(() => {
   localStorage.removeItem(THEME_KEY);
-  history.replaceState(null, "", "/decide/?demo=1");
+  history.replaceState(null, "", "/decide/details/?demo=1");
 });
 
 const pageTheme = () =>
@@ -39,16 +39,16 @@ it("remembers the visitor's toggle across visits", () => {
 
 it("lets a ?theme= link override the stored choice without replacing it", () => {
   localStorage.setItem(THEME_KEY, "dark");
-  history.replaceState(null, "", "/decide/?demo=1&theme=light");
+  history.replaceState(null, "", "/decide/details/?demo=1&theme=light");
   render(<App />);
   expect(pageTheme()).toBe("light");
   expect(localStorage.getItem(THEME_KEY)).toBe("dark");
 });
 
 const bootScript = (() => {
-  const html = readFileSync("decide.html", "utf8");
+  const html = readFileSync("decide-details.html", "utf8");
   const match = html.match(/<script>([\s\S]*?)<\/script>/);
-  if (!match) throw new Error("decide.html has no inline theme script");
+  if (!match) throw new Error("decide-details.html has no inline theme script");
   return match[1];
 })();
 
@@ -57,7 +57,7 @@ it.each(
     [null, "light", "dark", "sepia"].map((stored) => [search, stored] as const),
   ),
 )("paints the theme initialTheme() picks, for %j with %j stored", (search, stored) => {
-  history.replaceState(null, "", `/decide/${search}`);
+  history.replaceState(null, "", `/decide/details/${search}`);
   if (stored) localStorage.setItem(THEME_KEY, stored);
   delete document.documentElement.dataset.decideTheme;
   new Function(bootScript)();

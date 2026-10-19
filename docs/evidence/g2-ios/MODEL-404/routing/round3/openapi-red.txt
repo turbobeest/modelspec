@@ -1,0 +1,23 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_openapi_documents_query_lookup_without_changing_legacy_schema ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108333ce0>
+
+    def test_openapi_documents_query_lookup_without_changing_legacy_schema(monkeypatch):
+        import yaml
+        from api.worker import openapi
+        monkeypatch.setenv("DATA_SPLIT_ENABLED", "true")
+        operation = yaml.safe_load(openapi.render())["paths"]["/v1/vocabulary"]["get"]
+        assert {p["name"] for p in operation["parameters"] if p["in"] == "query"} == {"section", "search", "id", "ids", "detail", "offset", "limit"}
+        assert {p["name"] for p in operation["parameters"] if p["in"] == "header"} == {"X-ModelSpec-Visit-Token"}
+        schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+        assert schema["required"] == ["facets", "domains", "templates", "models", "estate"]
+>       assert schema["properties"]["as_of"]["type"] == "string"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'as_of'
+
+tests/test_compact_vocabulary.py:196: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_compact_vocabulary.py::test_openapi_documents_query_lookup_without_changing_legacy_schema
+1 failed in 1.28s

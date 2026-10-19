@@ -1,0 +1,21 @@
+Changed MCP key: guide_version
+insert '' -> 'c8'
+replace '9c' -> '335a7b267e'
+replace '5b6e5' -> '2'
+delete '3bf838' -> ''
+Changed MCP key: context_guide
+insert '' -> 'c8'
+replace '9c' -> '335a7b267e'
+replace '5b6e5' -> '2'
+delete '3bf838' -> ''
+insert '' -> '\n\nPeople can inspect the full decision board at https://modelspec.dev/decide/details/.'
+Changed MCP key: instructions
+insert '' -> 'c8'
+replace '9c' -> '335a7b267e'
+replace '5b6e5' -> '2'
+delete '3bf838' -> ''
+insert '' -> '. People can inspect the full decision board at https://modelspec.dev/decide/details/'
+Changed CLI key: human_message 'ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.' -> 'ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/details/.'
+MCP hash 36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e
+Guide hash 7a15fbc29407078d53594b0755852b3f4c341ad83f7b68582c92b4b72075821a
+CLI text hash 625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86

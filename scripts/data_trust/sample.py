@@ -110,6 +110,13 @@ def reread(
             sid = raw_ref["source_id"] if raw_ref else f"audit-primary-{index}"
             if url not in fetched:
                 response = fetcher.fetch(url)
+                from decision.retention import cite_only_origin
+
+                if cite_only_origin(url, response.resolved_urls):
+                    store.put(response.body, source_url=url,
+                              retrieved_at=response.retrieved_at,
+                              resolved_urls=response.resolved_urls)
+                    return "unreadable", "cite_only_not_machine_verified"
                 fetched[url] = (
                     (response.body, response.content_type)
                     if response.outcome == "ok"
@@ -139,7 +146,7 @@ def reread(
             fresh_refs.append(
                 SourceRef(
                     source_id=sid,
-                    snapshot_ref=store.put(body),
+                    snapshot_ref=store.put(body, source_url=str(source.url)),
                     cited_regions=(raw_ref.get("cited_regions") if raw_ref else None)
                     or [r.id for r in source.cited_regions],
                 )

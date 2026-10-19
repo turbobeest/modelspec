@@ -18,6 +18,17 @@ def subscription_repository() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(scope="session")
+def generated_pin_bytes():
+    from pipeline.agent_copy import cli_bundle, render
+    from qa.contracts import capture_tools
+
+    return {
+        "cli/modelspec/agent-bundle.json": render(cli_bundle()).encode(),
+        "qa/fixtures/mcp-tools.json": render(capture_tools()).encode(),
+    }
+
+
 def pytest_configure(config):
     # Timing assertions. CI runs them in their own serial step (no xdist), so
     # the bound measures the code, not four workers fighting for the runner.

@@ -1103,7 +1103,7 @@ export function DesignedApp({
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}
               {hostedDecision && hasAdjustedBoard && <section className="panel answer-feedback" aria-label="Was this answer reliable?">
-                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/" />
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/details/" />
               </section>}
             </>}
           />}
@@ -1162,7 +1162,7 @@ export function DesignedApp({
           <a href="/feedback/">Feedback</a>
         </nav>
       </footer>
-      <FeedbackLauncher page="/decide/" />
+      <FeedbackLauncher page="/decide/details/" />
       {provenance && (
         <div
           className="provenance-popover"

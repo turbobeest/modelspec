@@ -86,8 +86,10 @@ KNOWN_PRIVATE_BY_MODEL: dict[tuple[str, str], tuple[bool, str, str]] = {
 
 
 def fetch_bytes(url: str) -> bytes:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+    with open_retained_source(request, timeout=180) as response:
         return response.read()
 
 
@@ -282,7 +284,7 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
         source_is_new = primary_body is not None and source_id not in registered
         fit_values = list(result.fits_hardware) if result.fits_hardware is not None else None
         if primary_body is not None:
-            snapshot_ref = store.put(primary_body)
+            snapshot_ref = store.put(primary_body, source_url=base_url)
             registrations.append(source(source_id, base_url))
             source_ref = [{
                 "source_id": source_id,
@@ -408,7 +410,7 @@ def collect_private_deployment(store: CopyStore, registrations: list[dict[str, A
                 source_id = "model-174-" + re.sub(r"[^a-z0-9]+", "-", offering_id).strip("-")
                 source_is_new = source_id not in source_registry
                 body = fetch_bytes(url)
-                snapshot_ref = store.put(body)
+                snapshot_ref = store.put(body, source_url=url)
                 source_id = source_id + "-primary"
                 source_is_new = source_id not in source_registry
                 registrations.append(source(source_id, url))

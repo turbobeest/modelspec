@@ -831,6 +831,7 @@ def _private_corrections(
 #:   the optional scoring metadata needed to determine agreement.
 #: ``public_image_lag`` is an older public fact superseded by a newer verified
 #: private value. It replaces a draw and does not count as assessed or undetermined.
+#: ``cited`` is counted separately when retention policy prevents verification.
 FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined", "public_image_lag")
 _FIDELITY_FAILURES = ("mismatch", "unreachable")
 _ASSESSED = ("verified", "mismatch", "unreachable")
@@ -956,7 +957,7 @@ def verify_fidelity_sample(
                 outcome = "undetermined"
         elif outcome == "unreachable" and unread.get(key) == "render_required":
             outcome, undetermined = "undetermined", "render_required"
-        if key in (private_corrections or {}):
+        if outcome != "cited" and key in (private_corrections or {}):
             correction, public_date, private_date = private_corrections[key]
             same_unit = claim.unit == correction.unit
             if not same_unit and (claim.unit is None or correction.unit is None):
@@ -999,6 +1000,8 @@ def verify_fidelity_sample(
                         reason="private_correction_not_supported",
                     )
                     outcome, undetermined = "mismatch", None
+        if outcome == "cited":
+            counts.setdefault("cited", 0)
         counts[outcome] += 1
         if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
@@ -1028,6 +1031,10 @@ def verify_fidelity_sample(
                     "error_category": "not_recorded",
                     "copy_ref": source.snapshot_ref,
                     "cited_copy_ref": source.snapshot_ref,
+                    **({"retrieved_at": source.retrieved_at.isoformat()}
+                       if source.retrieved_at is not None else {}),
+                    **({"resolved_urls": list(map(str, source.resolved_urls))}
+                       if source.resolved_urls else {}),
                 }
                 for source in claim.sources
             ]),
@@ -1040,12 +1047,14 @@ def verify_fidelity_sample(
             detail["private_correction"] = correction_details
         details.append(detail)
     failed = sum(counts[name] for name in _FIDELITY_FAILURES)
+    cited = counts.get("cited", 0)
     return LayerResult(
         "data_fidelity",
         "fail" if failed else "pass",
         True,
-        f"Re-read {len(claims)} verified values from current source copies; "
-        f"{failed} did not verify.",
+        f"Re-read {len(claims) - cited} verified values from current source copies; "
+        f"{failed} did not verify."
+        + (f" {cited} cited value(s) were not machine-verified." if cited else ""),
         counts,
         details,
     )
@@ -1070,6 +1079,7 @@ def _current_copies(
     this fetch and each is declared ``FetchMode.RENDERED``, the unread reason is
     ``render_required``.
     """
+    from decision.model import SourceRef
     from decision.sources import FetchMode, recheck
 
     selected = {source.source_id for claim, _ in batch for source in claim.sources}
@@ -1093,9 +1103,9 @@ def _current_copies(
         refs: dict[str, str] = {}
         for source in claim.sources:
             ref = fetched.get(source.source_id)
-            if ref is not None and project is not None:
+            if ref is not None and project is not None and store.citation(ref) is None:
                 try:
-                    ref = store.put(project(str(sources[source.source_id].url), store.get(ref)))
+                    ref = store.put(project(str(sources[source.source_id].url), store.get(ref)), source_url=str(sources[source.source_id].url))
                 except (KeyError, TypeError, ValueError):
                     pass
             if ref is not None:
@@ -1104,7 +1114,15 @@ def _current_copies(
             replace(
                 claim,
                 sources=tuple(
-                    source.model_copy(update={"snapshot_ref": refs[source.source_id]})
+                    SourceRef.model_validate({
+                        **source.model_dump(mode="json"),
+                        "snapshot_ref": refs[source.source_id],
+                        "retrieved_at": report.states[source.source_id].snapshot.retrieved_at,
+                        "resolved_urls": list(dict.fromkeys([
+                            *map(str, source.resolved_urls),
+                            *report.fetches[source.source_id].resolved_urls,
+                        ])),
+                    })
                     if source.source_id in refs
                     else source
                     for source in claim.sources
@@ -1117,6 +1135,10 @@ def _current_copies(
             diagnostics = []
             for source in claim.sources:
                 response = report.fetches[source.source_id]
+                observed = report.states[source.source_id].snapshot
+                resolved_urls = list(dict.fromkeys([
+                    *map(str, source.resolved_urls), *response.resolved_urls,
+                ]))
                 error_category = None
                 if response.status is not None and response.status >= 400:
                     error_category = "http_error"
@@ -1138,6 +1160,8 @@ def _current_copies(
                     "error_category": error_category,
                     "copy_ref": refs.get(source.source_id),
                     "cited_copy_ref": source.snapshot_ref,
+                    **({"retrieved_at": observed.retrieved_at.isoformat()} if observed else {}),
+                    **({"resolved_urls": resolved_urls} if resolved_urls else {}),
                 })
             fetch_diagnostics[key] = diagnostics
         if failed and len(failed) == len(claim.sources) and all(
@@ -1161,13 +1185,16 @@ def fidelity_verdict(
     more undetermined draws than ``max_undetermined_share``."""
     assessed = sum(counts[name] for name in _ASSESSED)
     failed = sum(counts[name] for name in _FIDELITY_FAILURES)
-    current_draws = drawn - counts.get("public_image_lag", 0)
+    cited = counts.get("cited", 0)
+    current_draws = drawn - counts.get("public_image_lag", 0) - cited
     share = counts["undetermined"] / current_draws if current_draws else 0.0
     summary = (
         f"Re-read {assessed} verified values from current source copies; "
         f"{failed} did not verify. {counts['undetermined']} of {current_draws} draws "
         f"({share:.0%}) were undetermined: no nightly reader found the value."
     )
+    if cited:
+        summary += f" {cited} cited value(s) were not machine-verified."
     status: Status = "fail" if failed else "pass"
     if assessed < wanted:
         status = "fail"
@@ -1285,6 +1312,8 @@ def data_fidelity(
                 private_corrections=private_corrections,
             )
             for name, count in result.counts.items():
+                if name == "cited":
+                    counts.setdefault("cited", 0)
                 counts[name] += count
             sample.extend(result.details)
     status, summary, share = fidelity_verdict(counts, drawn=drawn, wanted=wanted, config=config)

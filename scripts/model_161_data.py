@@ -95,8 +95,10 @@ VECTORISERS = {
 
 
 def fetch(url: str) -> bytes:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+    with open_retained_source(request, timeout=180) as response:
         return response.read()
 
 
@@ -111,8 +113,8 @@ def projection(url: str, rows: list[dict[str, Any]], provenance: dict[str, Any])
     ).encode()
 
 
-def retain(store: CopyStore, body: bytes) -> str:
-    return store.put(body)
+def retain(store: CopyStore, body: bytes, *, source_url: str) -> str:
+    return store.put(body, source_url=source_url)
 
 
 def source(source_id: str, url: str) -> dict[str, Any]:
@@ -293,7 +295,7 @@ def collect_hardware_facts(
         [{"model": "NVIDIA GeForce RTX 4090", "memory": "24 GB"}],
         {"selector": "RTX 4090 specifications; Standard Memory Config"},
     )
-    nvidia_ref = retain(store, nvidia_body)
+    nvidia_ref = retain(store, nvidia_body, source_url=NVIDIA_4090)
     nvidia_source = "model-161-nvidia-rtx-4090-memory"
     registrations.append(source(nvidia_source, NVIDIA_4090))
 
@@ -321,7 +323,7 @@ def collect_hardware_facts(
                 "working_allowance": WORKING_ALLOWANCE,
             },
         )
-        fit_ref = retain(store, fit_body)
+        fit_ref = retain(store, fit_body, source_url=api_url)
         slug = model_id.split("/", 1)[1]
         fit_source = f"model-161-{slug}-rtx-4090-fit"
         registrations.append(source(fit_source, api_url))
@@ -377,7 +379,7 @@ def main() -> None:
     # Arena rating intervals and vote counts.
     arena_url = ARENA_URL.format(config="text")
     arena_raw = fetch(arena_url)
-    raw_ref = retain(store, arena_raw)
+    raw_ref = retain(store, arena_raw, source_url=arena_url)
     arena_body = project_arena(
         arena_raw,
         "text",
@@ -386,7 +388,7 @@ def main() -> None:
         page_ref=raw_ref,
         read_date=READ_DATE,
     )
-    arena_ref = retain(store, arena_body)
+    arena_ref = retain(store, arena_body, source_url=arena_url)
     # MODEL-160 already registered this exact pinned parquet. Reuse that
     # source identity and retain a richer projection with its intervals.
     arena_source = "model-160-arena-text"
@@ -427,11 +429,11 @@ def main() -> None:
     ):
         raise RuntimeError("MathArena no longer marks AIME 2026 deprecated")
     table_raw = fetch(MATHARENA_URL)
-    table_ref_raw = retain(store, table_raw)
+    table_ref_raw = retain(store, table_raw, source_url=MATHARENA_URL)
     table_body = project_matharena(
         table_raw, url=MATHARENA_URL, page_ref=table_ref_raw, read_date=READ_DATE
     )
-    table_ref = retain(store, table_body)
+    table_ref = retain(store, table_body, source_url=MATHARENA_URL)
     table_source = "model-161-matharena-aime-2026"
     registrations.append(source(table_source, MATHARENA_URL))
     table_rows = json.loads(table_body)["rows"]
@@ -440,7 +442,7 @@ def main() -> None:
         [{"model": "AIME 2026", "deprecated": True}],
         {"selector": 'button[data-competition-id="aime--aime_2026"].is-deprecated'},
     )
-    quality_ref = retain(store, quality_body)
+    quality_ref = retain(store, quality_body, source_url=MATHARENA_INDEX)
     quality_source = "model-161-matharena-aime-2026-quality"
     registrations.append(source(quality_source, MATHARENA_INDEX))
     for model_id in sorted(premier):
@@ -492,12 +494,12 @@ def main() -> None:
             api_url,
             [{"model": published_name, "languages": "en"}],
             {"cardData.language": api_languages},
-        ))
+        ), source_url=api_url)
         mteb_ref = retain(store, projection(
             mteb_url,
             [{"model": published_name, "languages": "en"}],
             {"rows[].model.languages": mteb_languages},
-        ))
+        ), source_url=mteb_url)
         registrations.extend([source(api_source, api_url), source(mteb_source, mteb_url)])
         fact = {
             "id": f"{model_id}#model.languages",

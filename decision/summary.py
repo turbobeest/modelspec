@@ -18,6 +18,8 @@ from decision.contract import (
     AllOf,
     AnyOf,
     Contribution,
+    CITE_ONLY_NOTICE,
+    CITE_ONLY_WARNING,
     Decision,
     InSet,
     InventoryProfile,
@@ -54,6 +56,7 @@ _PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
 _NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
 _TIE_TAIL = "the evidence does not separate them."
 _ESTIMATES = "Some values are estimates, not measurements."
+_CITED_ANSWER = "This answer uses cited facts. " + CITE_ONLY_NOTICE
 _HARDWARE_TAIL = (
     " is an estimate; fit for a specific quantization, context length "
     "or runtime headroom is not established."
@@ -284,6 +287,8 @@ def _compose(
     omit_joint: bool = False,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
+    if CITE_ONLY_WARNING in decision.warnings:
+        parts.append(_CITED_ANSWER)
     parts.extend(_why(
         decision, spec, unapplied, limits, conditions, joint_limit, feasible,
         omit_joint=omit_joint,
@@ -297,7 +302,7 @@ def _paragraph_mentions(
     decision: Decision, mentions: list[tuple[str, str]],
 ) -> list[tuple[str, str]]:
     """Caveats whose fact is not already in the answer, why, or constraints."""
-    skip = {"not_applied", "partial"}
+    skip = {"not_applied", "partial", "citation"}
     if decision.status == "partial":
         # A partial answer's tie keeps its named must_mention text (MODEL-351):
         # the answer sentence names no members for "These N models" to refer to.
@@ -667,6 +672,8 @@ def _mentions(
     tie_breakers: bool = True,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
+    if CITE_ONLY_WARNING in decision.warnings:
+        items.append(("citation", _CITED_ANSWER))
     tie = _tie_item(decision)
     if tie:
         items.append(("tie", tie))

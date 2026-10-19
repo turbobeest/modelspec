@@ -143,7 +143,7 @@ it("takes every numeric and date axis from the vocabulary and explains unavailab
 });
 
 it("fetches and renders an arbitrary covered facet for an excluded model", async () => {
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   const ranking = decisionSchema.parse({
     ...fixtureJson,
     results: fixtureJson.results.filter(
@@ -235,7 +235,7 @@ it("fetches and renders an arbitrary covered facet for an excluded model", async
 });
 
 it("sends a separate preferred-capability request without changing the board ranking request", async () => {
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   const fetch = routeFetch({ decide: () => json(fixtureJson) });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);

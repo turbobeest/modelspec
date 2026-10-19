@@ -1,4 +1,7 @@
-"""MODEL-408 current-plan verification. Every document here is synthetic."""
+"""MODEL-408 parser controls. Every document here is synthetic.
+
+Production citation assurance is covered in test_xai_consumer_citations.py.
+"""
 
 import pytest
 
@@ -27,6 +30,12 @@ MUTATIONS = {
     "moved_cell": PAGE.replace(BOT, BOT.replace(
         f"<td>{MINUS}</td><td>{CHECK}</td>", f"<td>{CHECK}</td><td>{MINUS}</td>", 1)),
 }
+
+
+@pytest.fixture(autouse=True)
+def synthetic_consumer_parser_policy(monkeypatch):
+    """Isolate parsing from retention, without changing the production policy."""
+    monkeypatch.setattr("decision.retention.cite_only_hosts", lambda: ())
 
 
 def current_check(tmp_path, *, plan="free", field="price", value=0, **kwargs):

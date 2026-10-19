@@ -1,0 +1,7 @@
+wrote mcp/src/agent-copy.json
+wrote docs/agents.md
+wrote cli/modelspec/agent-bundle.json
+wrote cli/modelspec/spec.schema.json
+wrote cli/modelspec/feedback.schema.json
+wrote site/holding/index.html
+wrote api/worker/src/agent_guide.py

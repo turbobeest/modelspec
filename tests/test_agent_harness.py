@@ -101,7 +101,9 @@ def test_invented_expectations_are_rejected(tmp_path):
 
 def test_mcp_capture_matches_current_public_sources():
     recorded = json.loads((HERE / "fixtures/mcp-tools.json").read_text())
-    assert recorded == capture_tools()
+    assert recorded == capture_tools(), (
+        "qa/fixtures/mcp-tools.json is stale: run python -m qa.contracts"
+    )
     assert recorded["source_hashes"] == source_hashes()
     assert tuple(t["name"] for t in recorded["tools"]) == TOOL_NAMES
     assert "Call decide early" in recorded["tools"][4]["description"]

@@ -54,7 +54,7 @@ vi.mock("../components/Canvas", async (importOriginal) => {
 const failure = () => screen.queryAllByRole("alert", { name: "The answer could not be shown" });
 
 beforeEach(() => {
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   // React reports every caught render error on console.error; keep the run quiet.
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });

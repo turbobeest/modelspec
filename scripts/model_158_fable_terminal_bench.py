@@ -53,8 +53,10 @@ SECTION = re.compile(r"8\.6 Terminal-Bench 4\.0 .*?(?= 8\.7 )")
 
 
 def system_card_copy(store: CopyStore) -> str:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(CARD_URL, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 - fixed URL
+    with open_retained_source(request, timeout=120) as response:
         body, resolved = response.read(), response.geturl()
     reader = pypdf.PdfReader(BytesIO(body))
     pages = (171, 172)
@@ -68,7 +70,7 @@ def system_card_copy(store: CopyStore) -> str:
         f"resolved to {resolved}, SHA-256 {hashlib.sha256(body).hexdigest()}. "
         "Read 2026-09-25.\n\n"
     )
-    return store.put((header + section.group(0).strip() + "\n").encode())
+    return store.put((header + section.group(0).strip() + "\n").encode(), source_url=CARD_URL, resolved_urls=(resolved,))
 
 
 def register_card_source() -> None:

@@ -167,7 +167,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                           "published evidence. The agent needs a ModelSpec API key. Answers start at "
                           "{low_dollars} at the cheapest published rate. You can provide an existing key, "
                           f"review {PRICING}, or look it up yourself on the free board at "
-                          f"{entity.SITE}/decide/."),
+                          f"{entity.BOARD}."),
         "orientation_next": ["Run modelspec key for access and prices.",
                              "Run modelspec setup mcp --client generic to connect an MCP client.",
                              f"Read {GUIDE_URL}; then use modelspec decide --spec FILE with a key."],
@@ -491,6 +491,8 @@ Coverage: {entity.SITE}/api/coverage.json
 
 ## CLI, MCP or HTTP
 
+Full board: {entity.BOARD}.
+
 {ACCESS} CLI: `{INSTALL_PATHS[0]}` (or `{INSTALL_PATHS[1]}`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. {CLI_PRIVACY}
 
 ## First call
@@ -499,10 +501,10 @@ Coverage: {entity.SITE}/api/coverage.json
 {NOT_A_ROUTER}
 Orchestrator system prompt and worked Spec: {entity.SITE}/orchestrators/.
 
-HTTP: POST `{API}/v1/decide` with `Content-Type: application/json`, a real
-`User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.
-MCP: call `decide` with the Spec itself as arguments, with Authorization on the
-MCP connection. Do not wrap it in `spec` or `task`. {key_procurement()}
+HTTP: POST the Spec JSON to `{API}/v1/decide`; headers: `Content-Type: application/json`,
+a real `User-Agent`, `Authorization: Bearer <key>`.
+MCP: `decide` takes Spec arguments, with Authorization on the connection.
+No `spec` or `task` wrapper. {key_procurement()}
 
 Minimal valid Spec, minimizing cost without claiming a quality ranking:
 
@@ -812,7 +814,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "vocab": {"minimal_spec": MINIMAL_SPEC, "next": VOCAB_NEXT},
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
-            f"{ACCESS} CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
+            f"{ACCESS} "
+            f"CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
             "1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
@@ -827,7 +830,18 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def render(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    """Keep source digest edits separated by stable key lines for three-way merges."""
+    fields = []
+    for key, value in data.items():
+        if key == "source_hashes" and value:
+            pins = [
+                f"    {json.dumps(path, ensure_ascii=False)}:\n      {json.dumps(digest)}"
+                for path, digest in sorted(value.items())
+            ]
+            fields.append('  "source_hashes": {\n' + ",\n".join(pins) + "\n  }")
+        else:
+            fields.append(json.dumps({key: value}, indent=2, ensure_ascii=False)[2:-2])
+    return "{\n" + ",\n".join(fields) + "\n}\n" if fields else "{}\n"
 
 
 def main(argv: list[str] | None = None) -> int:

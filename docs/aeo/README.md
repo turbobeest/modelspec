@@ -31,7 +31,7 @@ This folder holds only the engineering contracts: what the site emits, and what 
 | Surface | Crawlable | Notes |
 |---|---|---|
 | `/`, `/method/`, `/pricing/`, `/legal/*` | yes | Server-rendered HTML |
-| `/decide/` | capsule only | The board is a JavaScript app behind a human gate. MODEL-253 adds a server-rendered capsule (what the board does, with no model data). |
+| `/decide/`, `/decide/details/` | capsule only | The simple chooser and detailed board use JavaScript and the existing human gates. Each page has a server-rendered description with no model data. |
 | `llms.txt`, `.well-known/mcp.json`, `auth.md`, `openapi.yaml` | yes | Agent discovery files |
 | `/api/rank/profiles.json`, `/api/rank/class-fit.json` | yes | Ranking policy, no per-model data |
 | `/graph/`, `llms-full.txt` | being removed | MODEL-251 |

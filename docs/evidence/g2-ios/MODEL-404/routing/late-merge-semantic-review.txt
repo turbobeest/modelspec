@@ -1,0 +1,6 @@
+OpenAPI versus merged main differs only in MODEL-404 guide metadata: ['components.headers.AgentGuideVersion.schema.const', 'info.description']
+OpenAPI versus prior MODEL-404 build adds only upstream optional snapshot health metadata: ['components.schemas.Health.properties.decision_snapshot']
+QA capture versus prior build changes only source pins: ['source_hashes.api/worker/openapi.yaml', 'source_hashes.mcp/src/server.ts']
+claude first-turn estimate: 9328
+openai first-turn estimate: 9421
+gemini first-turn estimate: 9500

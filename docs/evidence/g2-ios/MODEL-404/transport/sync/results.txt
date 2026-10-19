@@ -1,0 +1,48 @@
+MODEL-404-sync / billing replay merge verification
+Merged source: 61e8dbfa2e69077f6ed72940eaf0789d558188df
+Ours: 7b833056a4cb8aa10c0f56cf6001b13224634ada
+Main: 8971608aab849862b4a4870f1bc06e46fc9e7dd2
+Working directory: /Users/terbeest/dev/worktrees/model-404
+
+Conflict resolution
+- tests/replay_billing_launch.py: main's scoped sys.modules restoration retained verbatim.
+  Main helper blob: 592d966ca2e6d2e583b0cbdffa10174f8edd19b4
+- tests/test_billing_launch.py: union of imports and both regression families retained.
+  Ours test blob: b8f36729f0fd3e39fe24302313a58a00eb8d73b8
+  Main test blob: e0e24552235bc3850a5425658679c758263f98b5
+
+Structural preservation check, direct exit 0
+- helper.read_bytes() == git show 592d966ca2e6d2e583b0cbdffa10174f8edd19b4
+- AST comparison (include_attributes=False) of every top-level function against both original blobs:
+  Billing test functions preserved exactly from ours: 11.
+  Billing test functions preserved exactly from main: 11.
+  Merged top-level functions: 12; all bodies, decorators, and assertions retained.
+
+Whitespace check, direct exit 0
+git diff --check -- tests/replay_billing_launch.py tests/test_billing_launch.py
+No output.
+
+Preliminary focused command, direct exit 1
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py tests/test_agent_guide.py > docs/evidence/g2-ios/MODEL-404/transport/sync/billing-agent-focused.txt 2>&1
+5 failed, 39 passed in 6.22s
+Every failure: qa/agent_harness.py:948 parses qa/fixtures/mcp-tools.json, which still contains <<<<<<< HEAD at line 3.
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 3 column 1 (char 23)
+Affected tests:
+- test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+- test_harness_prompt_arms_replay_offline[mcp-False]
+- test_harness_prompt_arms_replay_offline[http-False]
+- test_harness_prompt_arms_replay_offline[mcp-True]
+- test_harness_prompt_arms_replay_offline[http-True]
+
+Final focused command after generated artifacts were stable, direct exit 0
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_billing_launch.py tests/test_agent_guide.py > docs/evidence/g2-ios/MODEL-404/transport/sync/billing-agent-focused-green.txt 2>&1
+44 passed in 16.92s
+
+Preserved isolation regressions exercised by the final command:
+- test_replay_preserves_imports_and_restores_only_runtime_stubs[absent]
+- test_replay_preserves_imports_and_restores_only_runtime_stubs[module]
+- test_replay_preserves_imports_and_restores_only_runtime_stubs[none]
+- test_replay_preserves_subsequent_openapi_schema_generation
+- test_schema_compaction_preserves_every_original_rule
+
+No product behavior additions, assertion changes, full-suite/build/browser runs, staging, or commits by this agent.

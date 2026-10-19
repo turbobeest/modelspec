@@ -38,6 +38,7 @@ import subprocess
 import tempfile
 import gzip
 import base64
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -65,6 +66,7 @@ SOURCES = {
     Path("decision/computed.py"): Path("decision/computed.py"),
     Path("decision/compare.py"): Path("decision/compare.py"),
     Path("decision/contract.py"): Path("decision/contract.py"),
+    Path("decision/citation.py"): Path("decision/citation.py"),
     Path("decision/coverage.py"): Path("decision/coverage.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
     Path("decision/estate.py"): Path("decision/estate.py"),
@@ -73,6 +75,7 @@ SOURCES = {
     Path("decision/filter.py"): Path("decision/filter.py"),
     Path("decision/hardware.py"): Path("decision/hardware.py"),
     Path("decision/hardware_fit.py"): Path("decision/hardware_fit.py"),
+    Path("decision/json_stream.py"): Path("decision/json_stream.py"),
     Path("decision/model.py"): Path("decision/model.py"),
     Path("decision/model_comparison.py"): Path("decision/model_comparison.py"),
     Path("decision/next_move.py"): Path("decision/next_move.py"),
@@ -81,6 +84,7 @@ SOURCES = {
     Path("decision/plans.py"): Path("decision/plans.py"),
     Path("decision/relax.py"): Path("decision/relax.py"),
     Path("decision/reading.py"): Path("decision/reading.py"),
+    Path("decision/retention.py"): Path("decision/retention.py"),
     Path("decision/bounded.py"): Path("decision/bounded.py"),
     Path("decision/summary.py"): Path("decision/summary.py"),
     Path("decision/refinements.py"): Path("decision/refinements.py"),
@@ -111,6 +115,7 @@ SOURCES = {
     Path("registry/providers.yaml"): Path("registry/providers.yaml"),
     Path("registry/refinements.yaml"): Path("registry/refinements.yaml"),
     Path("registry/sources.yaml"): Path("registry/sources.yaml"),
+    Path("registry/source-retention.json"): Path("registry/source-retention.json"),
     Path("registry/templates.yaml"): Path("registry/templates.yaml"),
     # The device IDs `estate.devices` is checked against are these files' stems
     # (registry `values_from: hardware`). Without them the isolate knew no device
@@ -194,6 +199,19 @@ def write_tier_policy(out: Path) -> None:
     )
 
 
+def snapshot_metadata(raw: bytes) -> dict:
+    """Keep detached authentication fields without a resident successor index."""
+    envelope = json.loads(gzip.decompress(raw))
+    return {
+        "content_hash": envelope["content_hash"],
+        "signature": envelope["signature"],
+        "snapshot_id": envelope["snapshot_id"],
+        "valid_from": envelope["content"].get("valid_from"),
+        "valid_until": envelope["content"].get("valid_until"),
+        "blob_sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
 def bundle_data(out: Path, data_dir: Path) -> None:
     """Generate private data as an imported module, never a public asset."""
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-") as tmp:
@@ -218,14 +236,21 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         api = site
         paths = ("rank/candidates.json", "rank/hardware.json", "policy/catalogue.json",
                  "decision/snapshot.json.gz", "decision/vocabulary.json")
+        successor = "decision/snapshot-successor.json.gz"
+        if (api / successor).is_file():
+            paths += (successor, "decision/vocabulary-successor.json")
         blobs = {}
+        snapshots = {}
         for rel in paths:
             raw = (api / rel).read_bytes()
             blobs["/api/" + rel] = base64.b64encode(gzip.compress(raw, mtime=0)).decode("ascii")
+            if rel == successor:
+                snapshots["/api/" + rel] = snapshot_metadata(raw)
         (out / "bundled_data.py").write_text(
             "# Generated private Worker data. Never publish as a site asset.\n"
             "import base64, gzip\n"
             + "BLOBS = " + repr(blobs) + "\n"
+            + "SNAPSHOTS = " + repr(snapshots) + "\n"
             + "def read(path):\n    value = BLOBS.get(path)\n"
               "    return gzip.decompress(base64.b64decode(value)) if value else None\n",
             encoding="utf-8",
@@ -252,7 +277,7 @@ def export_data(out: Path, data_dir: Path) -> None:
     """Build only the exports consumed by the Worker, using the shared builders."""
     sys.path.insert(0, str(REPO_ROOT))
     _show_coverage_log()
-    from datetime import date
+    from datetime import UTC, date, datetime
     from decision import registry, snapshot
     from pipeline import data_source, export, hardware, policy_export, ranking
     from pipeline.build import write_decision_vocabulary
@@ -269,13 +294,28 @@ def export_data(out: Path, data_dir: Path) -> None:
         devices = hardware.load_devices(root)
         graph = derive_graph(cards, hardware.device_classes(devices))
         hardware.compute(graph, cards, devices)
-        ranking.write_export(out / "rank", cards, graph, build)
+        ranking.write_export(
+            out / "rank", cards, graph, build,
+            cited_facts={model.model_id: model.cited_facts for model in models if model.cited_facts},
+        )
         policy_export.write_export(out, cards, build)
         require_cited_policy(out / "policy/catalogue.json")
-        written = snapshot.build_from_repo(
-            root, premier=root / "premier/slice-1.yaml", as_of=date.today(),
-        ).write(out / "decision/snapshot.json.gz")
-        write_decision_vocabulary(root, written, key=snapshot.env_key())
+        successor = out / "decision/snapshot-successor.json.gz"
+        successor_vocabulary = out / "decision/vocabulary-successor.json"
+        successor.unlink(missing_ok=True)
+        successor_vocabulary.unlink(missing_ok=True)
+        current = snapshot.build_from_repo(
+            root, premier=root / "premier/slice-1.yaml", as_of=datetime.now(UTC).date(),
+        )
+        written = current.write(out / "decision/snapshot.json.gz")
+        vocabulary_path = out / "decision/vocabulary.json"
+        vocabularies = [(written, vocabulary_path)]
+        valid_until = current.content.get("valid_until")
+        if valid_until is not None:
+            snapshot.build_from_repo(
+                root, premier=root / "premier/slice-1.yaml", as_of=date.fromisoformat(valid_until),
+            ).write(successor)
+            vocabularies.insert(0, (successor, successor_vocabulary))
         from api.worker.src.display_vocabulary import trim
         display_models = {model.model_id for model in models
                           if model.front.get("lifecycle") != "retired"}
@@ -283,9 +323,10 @@ def export_data(out: Path, data_dir: Path) -> None:
         for facet in registry.default().facets():
             if facet.value_type.kind in {"enum", "boolean"}:
                 values[facet.id] = [True, False] if facet.value_type.kind == "boolean" else sorted(registry.default().allowed_values(facet) or ())
-        vocabulary_path = out / "decision/vocabulary.json"
-        vocabulary = trim(json.loads(vocabulary_path.read_text()), model_ids=display_models, facet_values=values)
-        vocabulary_path.write_text(json.dumps(vocabulary), encoding="utf-8")
+        for snapshot_path, target in vocabularies:
+            write_decision_vocabulary(root, snapshot_path, key=snapshot.env_key())
+            vocabulary = trim(json.loads(vocabulary_path.read_text()), model_ids=display_models, facet_values=values)
+            target.write_text(json.dumps(vocabulary), encoding="utf-8")
 
 
 def require_cited_policy(path: Path) -> None:

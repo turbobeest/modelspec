@@ -55,7 +55,11 @@ def headline(
 
     ``best`` is ``(domain name, alone in the band)`` for each domain where the
     model is in the best band. No rule writes a digit or a superlative.
+    A version inside ``name`` is not copied into the headline. A platform draft
+    names that model only when the name itself has no digit.
     """
+    if any(character.isdigit() for character in name):
+        name = "This model"
     if best:
         alone = [domain for domain, sole in best if sole]
         shared = [domain for domain, sole in best if not sole]
@@ -85,7 +89,10 @@ def headline(
         suffix, part = "", "no_claims"
     if len(main + suffix) > HEADLINE_MAX:
         suffix, part = "", part + ",dropped_for_length"
-    return Headline(text=main + suffix, rule=f"{rule}+{part}")
+    text = main + suffix
+    if any(character.isdigit() for character in text):
+        raise ValueError("headline contains a digit")
+    return Headline(text=text, rule=f"{rule}+{part}")
 
 
 def difference(

@@ -1,0 +1,240 @@
+{
+  "capturedAtUTC": "2026-10-18 05:37:56 UTC",
+  "headRefOid": "f4b13af3e11618304a73d07bcec685fe372e46cc",
+  "isDraft": true,
+  "mergeable": "MERGEABLE",
+  "number": 814,
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:27Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311508/job/117589227884",
+      "name": "Queue squash auto-merge",
+      "startedAt": "2026-10-18T04:47:28Z",
+      "status": "COMPLETED",
+      "workflowName": "Enable auto-merge"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:51:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117589227062",
+      "name": "Test decide page (human gate false, visit gate false)",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:51Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311466/job/117589226998",
+      "name": "Check evidence against release charts",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Check evidence against release charts"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311467/job/117589227065",
+      "name": "Check sign-off",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "DCO"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311474/job/117589226913",
+      "name": "Data freeze",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Data freeze"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311453/job/117589226975",
+      "name": "MCP Worker tests",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "MCP server"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311511/job/117589227139",
+      "name": "Rank Worker bundle",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Rank API"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:36:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284425",
+      "name": "pytest shard 1/4",
+      "startedAt": "2026-10-18T04:47:52Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:52:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117589226983",
+      "name": "Test decide page (human gate false, visit gate true)",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284399",
+      "name": "pytest shard 2/4",
+      "startedAt": "2026-10-18T04:47:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:52:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117589227076",
+      "name": "Test decide page (human gate true, visit gate false)",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:16:19Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284415",
+      "name": "pytest shard 3/4",
+      "startedAt": "2026-10-18T04:47:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:51:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117589227070",
+      "name": "Test decide page (human gate true, visit gate true)",
+      "startedAt": "2026-10-18T04:47:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:34:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284221",
+      "name": "pytest shard 4/4",
+      "startedAt": "2026-10-18T04:47:52Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:47:56Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311453/job/117589304330",
+      "name": "Deploy the MCP Worker",
+      "startedAt": "2026-10-18T04:47:56Z",
+      "status": "COMPLETED",
+      "workflowName": "MCP server"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:01Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311511/job/117591967934",
+      "name": "Deploy the staging rank Worker",
+      "startedAt": "2026-10-18T05:04:01Z",
+      "status": "COMPLETED",
+      "workflowName": "Rank API"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117590138171",
+      "name": "Build both sites",
+      "startedAt": "2026-10-18T04:53:01Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:51:32Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284382",
+      "name": "pytest perf and collection",
+      "startedAt": "2026-10-18T04:47:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:50Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117592111476",
+      "name": "Deploy to Cloudflare Pages",
+      "startedAt": "2026-10-18T05:04:50Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:01Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311511/job/117591968021",
+      "name": "Deploy the rank Worker",
+      "startedAt": "2026-10-18T05:04:01Z",
+      "status": "COMPLETED",
+      "workflowName": "Rank API"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T04:48:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117589284395",
+      "name": "Package smoke test",
+      "startedAt": "2026-10-18T04:47:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:04:50Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311445/job/117592112102",
+      "name": "Smoke-test the deployed decide surfaces",
+      "startedAt": "2026-10-18T05:04:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Build and deploy the sites"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-18T05:37:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/turbobeest/modelspec/actions/runs/39098311458/job/117597494561",
+      "name": "Run pytest",
+      "startedAt": "2026-10-18T05:36:47Z",
+      "status": "COMPLETED",
+      "workflowName": "Test suite"
+    }
+  ],
+  "url": "https://github.com/turbobeest/modelspec/pull/814"
+}

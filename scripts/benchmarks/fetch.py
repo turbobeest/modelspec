@@ -48,6 +48,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from decision.retention import citation_metadata, cite_only_origin, is_cite_only, metadata_origins
+
 ROOT = Path(__file__).resolve().parents[2]
 HASH_CACHE = ROOT / "benchmarks" / "_census" / "cache"
 RAW_CACHE = ROOT / "benchmarks" / "_census" / "ranking_evidence" / "raw"
@@ -327,19 +329,28 @@ def write_named_cache(
     }
     if extra_meta:
         meta.update(extra_meta)
-    path.write_text(text, encoding="utf-8")
+    origins = metadata_origins(extra_meta or {})
+    if cite_only_origin(url, origins):
+        meta = citation_metadata(url, "sha256:" + hashlib.sha256(text.encode()).hexdigest(),
+                                 retrieved_at=fetched_at, resolved_urls=origins)
+    else:
+        path.write_text(text, encoding="utf-8")
     meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return CachedPage(url=url, path=path, text=text, fetched_at=fetched_at, from_cache=False, meta=meta)
 
 
 def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPage | None:
+    if is_cite_only(url):
+        return None
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
     if not path.is_file():
         return None
-    text = path.read_text(encoding="utf-8")
     meta: dict[str, Any] = {}
     if meta_path.is_file():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    if cite_only_origin(url, metadata_origins(meta)):
+        return None
+    text = path.read_text(encoding="utf-8")
     fetched_at = str(meta.get("fetched_at") or "")
     if not fetched_at:
         # A cached file without metadata has no honest observation date.
@@ -385,9 +396,10 @@ def scrape(
     # the time, and a later call may have room for the whole document.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
     key_path = hash_cache_path(url, formats, max_pages=max_pages)
-    if key_path.exists():
+    if key_path.exists() and not is_cite_only(url) and not key_path.with_suffix(".citation.json").exists():
         cached_raw = json.loads(key_path.read_text(encoding="utf-8"))
-        if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False):
+        if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False) and not cite_only_origin(
+                url, metadata_origins(cached_raw.get("metadata") or {})):
             return cached_raw
 
     if named_cache_dir is not None:
@@ -488,9 +500,16 @@ def scrape(
     # A truncated response is cached (so a repeat call at the same budget
     # doesn't re-spend), but flagged so it is never handed back as if it
     # were the complete document (see the cache-read checks above).
-    hash_cache_body = dict(data)
-    hash_cache_body[_HASH_CACHE_TRUNCATED_KEY] = truncated
-    key_path.write_text(json.dumps(hash_cache_body), encoding="utf-8")
+    origins = metadata_origins(metadata)
+    restricted = cite_only_origin(url, origins)
+    if restricted:
+        ref = "sha256:" + hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+        key_path.with_suffix(".citation.json").write_text(json.dumps(citation_metadata(
+            url, ref, retrieved_at=datetime.now(UTC), resolved_urls=origins)), encoding="utf-8")
+    else:
+        hash_cache_body = dict(data)
+        hash_cache_body[_HASH_CACHE_TRUNCATED_KEY] = truncated
+        key_path.write_text(json.dumps(hash_cache_body), encoding="utf-8")
     markdown = str(data.get("markdown") or "")
     if named_cache_dir is not None and markdown:
         write_named_cache(
@@ -500,6 +519,7 @@ def scrape(
             fetched_at=datetime.now(UTC).date().isoformat(),
             suffix=".md",
             extra_meta={
+                "resolved_urls": list(origins),
                 "fetcher": "firecrawl",
                 "formats": formats,
                 "credits_remaining_before": remaining_before,
@@ -514,16 +534,26 @@ def scrape(
     return data
 
 
-def http_get(url: str, timeout: int = 120) -> tuple[str, str]:
+class _RedirectHistory(urllib.request.HTTPRedirectHandler):
+    def __init__(self):
+        self.urls: list[str] = []
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self.urls.append(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def http_get(url: str, timeout: int = 120) -> tuple[str, str, tuple[str, ...]]:
     """Direct GET. Zero Firecrawl credits. Follows redirects."""
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "ModelSpecCensus/1.0 (+https://github.com/modelspec)"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    history = _RedirectHistory()
+    with urllib.request.build_opener(history).open(req, timeout=timeout) as resp:
         raw = resp.read()
         final = resp.geturl()
-    return raw.decode("utf-8", errors="replace"), final
+    return raw.decode("utf-8", errors="replace"), final, tuple(history.urls)
 
 
 def load_or_get(
@@ -540,7 +570,7 @@ def load_or_get(
     if not fetch:
         path, _meta = named_paths(url, cache_dir, suffix=suffix)
         raise FileNotFoundError(f"no cached page for {url} at {path}")
-    text, final_url = http_get(url)
+    text, final_url, resolved_urls = http_get(url)
     fetched_at = datetime.now(UTC).date().isoformat()
     return write_named_cache(
         url,
@@ -548,7 +578,8 @@ def load_or_get(
         cache_dir,
         fetched_at=fetched_at,
         suffix=suffix,
-        extra_meta={"fetcher": "http_get", "final_url": final_url},
+        extra_meta={"fetcher": "http_get", "final_url": final_url,
+                    "resolved_urls": list(resolved_urls)},
     )
 
 
@@ -640,6 +671,12 @@ def main(argv: list[str] | None = None) -> int:
     remaining = guard.last_remaining
     spent = guard.spent()
     print(f"credits remaining={remaining} spent={spent} closing={remaining}", file=sys.stderr)
+    origins = metadata_origins(data.get("metadata") or {})
+    if cite_only_origin(args.url, origins):
+        ref = "sha256:" + hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+        print(json.dumps(citation_metadata(args.url, ref, retrieved_at=datetime.now(UTC),
+                                           resolved_urls=origins)))
+        return 0
     if args.links:
         for link in data.get("links") or []:
             print(link)

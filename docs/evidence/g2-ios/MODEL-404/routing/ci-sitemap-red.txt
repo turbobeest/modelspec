@@ -1,0 +1,113 @@
+test_both_decide_routes_are_composed_and_describe_their_own_page[/decide/-decide.html]
+
+tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co0')
+path = '/decide/', entry = 'decide.html'
+
+    @pytest.mark.parametrize("path,entry", ROUTES)
+    def test_both_decide_routes_are_composed_and_describe_their_own_page(tmp_path, path, entry):
+        src, web, out = (tmp_path / name for name in ("source", "web", "live"))
+        real = src / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (real / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            (real / name).write_text("<!doctype html><html><head></head><body></body></html>")
+        (real / "api/build.json").write_text('{"built_at":"2026-10-17","export_schema_version":"3.0"}')
+        (real / "_headers").write_text("/*\n")
+        (src / "benchgraph").mkdir()
+        (src / "benchgraph/_redirects").write_text("")
+        (web / "assets").mkdir(parents=True)
+        for _, name in ROUTES:
+            source = ROOT / "web" / name
+            # A missing production entry must fail the route assertion, not fixture setup.
+            (web / name).write_text(source.read_text() if source.exists() else '<div id="root"></div>')
+        (web / "decision.html").write_text('<div id="root"></div>')
+>       live.build(src, web, out)
+
+tests/test_simple_decide_routes.py:32:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pipeline/live.py:306: in build
+    for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:1219: in parse
+    tree.parse(source, parser)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xml.etree.ElementTree.ElementTree object at 0x7f47034802d0>
+source = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co0/source/modelspec/sitemap.xml')
+parser = None
+
+    def parse(self, source, parser=None):
+        """Load external XML document into element tree.
+
+        *source* is a file name or file object, *parser* is an optional parser
+        instance that defaults to XMLParser.
+
+        ParseError is raised if the parser fails to parse the document.
+
+        Returns the root element of the given source document.
+
+        """
+        close_source = False
+        if not hasattr(source, "read"):
+>           source = open(source, "rb")
+                     ^^^^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co0/source/modelspec/sitemap.xml'
+
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:570: FileNotFoundError
+
+test_both_decide_routes_are_composed_and_describe_their_own_page[/decide/details/-decide-details.html]
+
+tmp_path = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co1')
+path = '/decide/details/', entry = 'decide-details.html'
+
+    @pytest.mark.parametrize("path,entry", ROUTES)
+    def test_both_decide_routes_are_composed_and_describe_their_own_page(tmp_path, path, entry):
+        src, web, out = (tmp_path / name for name in ("source", "web", "live"))
+        real = src / "modelspec"
+        for directory in live.KEEP_DIRS:
+            (real / directory).mkdir(parents=True, exist_ok=True)
+        for name in live.KEEP_FILES:
+            (real / name).write_text("<!doctype html><html><head></head><body></body></html>")
+        (real / "api/build.json").write_text('{"built_at":"2026-10-17","export_schema_version":"3.0"}')
+        (real / "_headers").write_text("/*\n")
+        (src / "benchgraph").mkdir()
+        (src / "benchgraph/_redirects").write_text("")
+        (web / "assets").mkdir(parents=True)
+        for _, name in ROUTES:
+            source = ROOT / "web" / name
+            # A missing production entry must fail the route assertion, not fixture setup.
+            (web / name).write_text(source.read_text() if source.exists() else '<div id="root"></div>')
+        (web / "decision.html").write_text('<div id="root"></div>')
+>       live.build(src, web, out)
+
+tests/test_simple_decide_routes.py:32:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pipeline/live.py:306: in build
+    for row in ET.parse(real / "sitemap.xml").findall("s:url", namespace)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:1219: in parse
+    tree.parse(source, parser)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xml.etree.ElementTree.ElementTree object at 0x7f4709c9e650>
+source = PosixPath('/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co1/source/modelspec/sitemap.xml')
+parser = None
+
+    def parse(self, source, parser=None):
+        """Load external XML document into element tree.
+
+        *source* is a file name or file object, *parser* is an optional parser
+        instance that defaults to XMLParser.
+
+        ParseError is raised if the parser fails to parse the document.
+
+        Returns the root element of the given source document.
+
+        """
+        close_source = False
+        if not hasattr(source, "read"):
+>           source = open(source, "rb")
+                     ^^^^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/tmp/pytest-of-runner/pytest-0/popen-gw2/test_both_decide_routes_are_co1/source/modelspec/sitemap.xml'
+
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/xml/etree/ElementTree.py:570: FileNotFoundError

@@ -1,0 +1,52 @@
+[
+  {
+    "name": "npm-ci",
+    "command": [
+      "npm",
+      "ci"
+    ],
+    "exit": 0,
+    "summary": []
+  },
+  {
+    "name": "build",
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "exit": 0,
+    "summary": [
+      "\u2713 built in 177ms"
+    ]
+  },
+  {
+    "name": "unit",
+    "command": [
+      "npm",
+      "test"
+    ],
+    "exit": 0,
+    "summary": [
+      "Test Files  56 passed | 1 skipped (57)",
+      "Tests  898 passed (898)",
+      "Duration  20.54s (tests 66%, environment 22%, import 5%, setup 4%, transform 3%)"
+    ]
+  },
+  {
+    "name": "browser",
+    "command": [
+      "npm",
+      "run",
+      "test:browser",
+      "--",
+      "--workers=2",
+      "--reporter=line"
+    ],
+    "exit": 0,
+    "summary": [
+      "16 skipped",
+      "38 passed (17.3s)"
+    ]
+  }
+]

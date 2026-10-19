@@ -59,7 +59,7 @@ ANALYSIS = (
 )
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
-DECIDE_PATH = "/decide/"
+DECIDE_PATH = "/decide/details/"
 #: The landing's tie is /decide's answer to this question: coding alone, over
 #: every priced text generator.
 TIE_SPEC = {

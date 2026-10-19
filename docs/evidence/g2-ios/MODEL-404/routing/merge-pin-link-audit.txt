@@ -1,0 +1,10 @@
+mcp 8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8 matches literal test pin
+guide 6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37 matches literal test pin
+cli_text 625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86 matches literal test pin
+QA: every source hash matches
+CLI: all 9 source hashes match
+Rendered about page: call and board header use /decide/details/
+MCP JSON changed keys from ea1643cc : ['tools.hardware_fit']
+MCP JSON changed keys from 0cf4080a7 : ['context_guide', 'guide_version', 'instructions']
+Use-case source reviewed: template CTA uses /decide/details/?template=; generic navigation and human lookup use /decide/.
+Guide version: 1-f226d9942791da1c

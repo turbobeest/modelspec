@@ -32,6 +32,21 @@ def display(vocabulary):
     return trim(vocabulary, model_ids=set(vocabulary["models"]), facet_values=values)
 
 
+def test_trim_keeps_snapshot_date_without_catalogue_coverage(vocabulary, display, snapshot):
+    assert vocabulary["coverage"]["as_of"] == snapshot.as_of.isoformat() == "2026-09-24"
+    assert display.get("as_of") == "2026-09-24"
+    assert "coverage" not in display
+    for key in ("snapshot", "vocabulary_version", "contract_version"):
+        assert display[key] == vocabulary[key]
+
+
+@pytest.mark.parametrize("coverage", [{}, {"models": 123}, {"as_of": None, "models": 123}])
+def test_trim_does_not_invent_an_absent_snapshot_date(coverage):
+    display = trim({"coverage": coverage}, model_ids=set(), facet_values={})
+    assert "as_of" not in display
+    assert "coverage" not in display
+
+
 @pytest.mark.parametrize("section", SECTIONS)
 def test_every_compact_section_page_has_a_token_budget(section, vocabulary, display):
     for source in (vocabulary, display):
@@ -178,6 +193,9 @@ def test_openapi_documents_query_lookup_without_changing_legacy_schema(monkeypat
     assert {p["name"] for p in operation["parameters"] if p["in"] == "header"} == {"X-ModelSpec-Visit-Token"}
     schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
     assert schema["required"] == ["facets", "domains", "templates", "models", "estate"]
+    assert schema["properties"]["as_of"]["type"] == "string"
+    assert schema["properties"]["as_of"]["format"] == "date"
+    assert "as_of" not in schema["required"]
 
 
 def test_lookup_caps_ids_and_tolerates_a_template_without_a_spec():

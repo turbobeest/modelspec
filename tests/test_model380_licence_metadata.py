@@ -32,7 +32,7 @@ def _licence_case(tmp_path: Path, kind: str | None = None):
         cited_regions=[{"id": "page", "locator": {"kind": "page", "value": ""}}],
     )
     store = CopyStore(tmp_path / "copies")
-    copy_ref = store.put(b"Licence for Fixture Model.\nUse requires permission.\n")
+    copy_ref = store.put(b"Licence for Fixture Model.\nUse requires permission.\n", source_url="https://fixture.example/")
     claim = Claim(
         target=TargetRef(kind="fact", id="fixture/model#licence.user_cap"),
         subject="fixture/model",
@@ -114,7 +114,7 @@ def test_known_disallowed_licence_source_kind_remains_mismatch(
 
 def test_missing_metadata_does_not_hide_a_value_disagreement(tmp_path: Path) -> None:
     claim, regions = _licence_case(tmp_path)
-    copy_ref = regions.store.put(b"Model: Fixture Model\ncontext: 20\n")
+    copy_ref = regions.store.put(b"Model: Fixture Model\ncontext: 20\n", source_url="https://fixture.example/")
     claim = replace(
         claim, target=TargetRef(kind="fact", id="fixture/model#model.context_window"),
         field="context", value=10,

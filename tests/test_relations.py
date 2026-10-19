@@ -205,16 +205,17 @@ def test_freshness_notice_always_shows_eligibility_and_commit_when_built() -> No
 
 def test_verified_evidence_renders_apart_from_legacy_scores() -> None:
     """The two kinds of number must never be mistaken for each other."""
+    from pipeline.load import Model
     from pipeline.render import evidence_section
 
-    class FakeModel:
-        front = {"benchmarks": {"evidence": [{
+    model = Model("openai/gpt-6-astra", Path("models/openai/gpt-6-astra.md"),
+        {"benchmarks": {"evidence": [{
             "benchmark_id": "scicode", "model_id_as_evaluated": "GPT-6 Astra (max)",
             "score": 56.0, "unit": "percent", "source_url": "https://example.test/x",
             "source_kind": "independent_evaluator", "evidence_date": "2026-09-04",
-            "date_type": "published", "verified_at": "2026-09-09"}]}}
+            "date_type": "published", "verified_at": "2026-09-09"}]}}, "")
 
-    html = evidence_section(FakeModel())
+    html = evidence_section(model)
     assert "Verified benchmark evidence" in html
     assert "checked against its source by a reviewer" in html
     assert "GPT-6 Astra (max)" in html, "the identifier as evaluated must be shown"
@@ -244,7 +245,7 @@ def test_the_landing_page_links_to_the_site() -> None:
         coverage=landing.coverage.from_repo(REPO_ROOT, date.today()),
     )
     html = landing.render(data, variant="live")
-    for route in ("/decide/", "#agents", "/legal/terms/", "/legal/privacy/",
+    for route in ("/decide/details/", "#agents", "/legal/terms/", "/legal/privacy/",
                   "/legal/neutrality/"):
         assert f'href="{route}"' in html, f"the landing does not link to {route}"
 

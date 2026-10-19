@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "1.0.0",
-  "guide_version": "1-79cf5b6e5f3bf838",
+  "guide_version": "1-f226d9942791da1c",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -477,7 +477,7 @@
           "offerings": 2
         }
       ],
-      "snapshot": "snap_8e980466239818b1",
+      "snapshot": "snap_fbc893a4e55bba59",
       "url": "https://modelspec.dev/api/coverage.json"
     }
   },
@@ -665,7 +665,7 @@
     "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. If the user works in Claude Code, tell them the optional ModelSpec plugin adds a skill for reporting these answers, installed with `/plugin marketplace add turbobeest/modelspec` then `/plugin install modelspec@modelspec`; suggest it, never install it yourself.",
     "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
     "procurement": "Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
-    "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
+    "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/details/.",
     "orientation_next": [
       "Run modelspec key for access and prices.",
       "Run modelspec setup mcp --client generic to connect an MCP client.",
@@ -825,14 +825,23 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "1826b682cade0eb45bd846f9f0f3bacac516bd92a48352b610ecc3051e844cef",
-    "pipeline/entity.py": "02224c4012fd9b46a18d0c04dbb74401d6cdbe1238e6d356c1490998a2071969",
-    "pipeline/pricing.py": "73730aba87806d637964d81614324fae7e5ddcebebd89b2f7b0464ec023a176f",
-    "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
-    "api/worker/wrangler.jsonc": "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
-    "api/worker/tiers.json": "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",
-    "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
-    "pyproject.toml": "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
-    "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
+    "api/worker/tiers.json":
+      "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",
+    "api/worker/wrangler.jsonc":
+      "5f5e60203de2325623581822f9cb273ecb0433eb11bea5c5ccce3cd6de46161a",
+    "docs/decision-contract.schema.json":
+      "effe8552b43e1f0557d7cc4b388bd615680f7f83c1bc6300a611d043fd86ff2d",
+    "pipeline/agent_copy.py":
+      "59706622db7ad21467b49d17232e9f1e8282ebdf7e8964cc274b421ca6e2ea2f",
+    "pipeline/entity.py":
+      "99ecd2328610f76edf553f2b7898b81600a837ccbd6dc2fe4fda97fbc233c42b",
+    "pipeline/pricing.py":
+      "7a67a900e029891de14e040b34f91be93af6e4b17abba27dce0177fe81638212",
+    "pipeline/worker_flags.py":
+      "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
+    "pyproject.toml":
+      "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
+    "schemas/feedback-v1.schema.json":
+      "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }
 }

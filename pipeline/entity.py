@@ -22,7 +22,7 @@ SITE = "https://modelspec.dev"
 REPOSITORY = "https://github.com/turbobeest/modelspec"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 API_DECIDE = "https://api.modelspec.dev/v1/decide"
-BOARD = f"{SITE}/decide/"
+BOARD = f"{SITE}/decide/details/"
 
 ONE_SENTENCE = (
     "ModelSpec is an analysis of alternatives for AI models: it decides which "

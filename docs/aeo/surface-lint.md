@@ -41,7 +41,7 @@ Owned copy includes HTML, `llms.txt`, Markdown twins, `.well-known/*.json`, `ope
 | `x402`, "pay per call without a key", "Bazaar" | `X402_ENABLED` is false | The PR that turns x402 on (MODEL-261) |
 | `pip install modelspec`, an offline decision CLI, or a CLI data download | MODEL-307 ships the thin keyed `modelspec-dev` client; the `modelspec` package is unrelated | Never |
 | Affirmative "sponsored", "featured partner", "promoted", "affiliate" claims | The matching paid-placement, provider-paid-visibility or referral-fee assertion in `neutrality_commitment()` is false | That assertion changes |
-| A removed source, matched by `REMOVED_TEXT` in `decision/excluded.py` (reuse it; never restate the names) | MODEL-117 excluded sources | Never |
+| A removed source. Publisher names use `excluded_publisher` in `decision/excluded.py`. Owned benchmark names use `REMOVED_TEXT` there. Reuse those. Never restate the names. | MODEL-117 excluded sources | Never |
 | A named competitor product in a comparison | Comparisons are by category | A decision by Jamie |
 | "instructions for AI", "AI assistants should" | No instructions-for-assistants block on any surface | Never |
 

@@ -53,7 +53,7 @@ it.each(boards)("shows the exact API Spec and copies one hand-off message for th
   const user = userEvent.setup();
   const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
   const fetch = liveFetch();
-  if (selections !== null) history.replaceState(null, "", `/decide/${encodeBoardSpec(
+  if (selections !== null) history.replaceState(null, "", `/decide/details/${encodeBoardSpec(
     { ...realBaseSpec(vocabulary), conds: [], access: "own_software" }, "task$", {
       selections, mustOrder: Object.keys(selections), estate: { providers: [], plans: [], hardware: [] },
     },

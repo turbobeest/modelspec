@@ -38,7 +38,7 @@ const accessRadio = (label: string) =>
     .getByRole("radio", { name: new RegExp(`^${label}`) });
 
 beforeEach(() => {
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   localStorage.clear();
 });
 afterEach(() => vi.unstubAllGlobals());

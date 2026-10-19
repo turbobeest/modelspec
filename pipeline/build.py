@@ -455,6 +455,16 @@ def use_case_decisions(public_root: Path) -> tuple[dict, list[dict], date]:
         return catalogue, decisions, as_of
 
 
+def use_case_exclusions(template: dict, snapshot, registry) -> list[dict]:
+    """Expand only exclusion reasons; the stored-spec decision remains canonical."""
+    from decision.contract import parse_spec
+    from decision.engine import decide
+
+    spec = parse_spec({**template["spec"], "explain": "full"}, facets=registry.facet)
+    return [row.model_dump(mode="json") for row in
+            decide(spec, snapshot, facets=registry.facet).eliminated.models]
+
+
 def _use_case_path(template: dict) -> str:
     return f'/use-cases/{template["category"]}/{template["id"]}/'
 
@@ -491,7 +501,8 @@ def _use_case_spec(value: object) -> str:
 
 def _use_case_shell(title: str, description: str, path: str, body: str,
                     as_of: date, *, indexable: bool, article: bool,
-                    collection: str = "use-cases", extra_nodes: list[dict] | None = None) -> str:
+                    collection: str = "use-cases", extra_nodes: list[dict] | None = None,
+                    worked_example: bool = True) -> str:
     from pipeline import entity, landing_chrome, structured_data
 
     nodes = structured_data.use_case_graph(
@@ -499,6 +510,8 @@ def _use_case_shell(title: str, description: str, path: str, body: str,
     )
     nodes.extend(extra_nodes or [])
     robots = "index, follow" if indexable else "noindex, follow"
+    image_label = (f'<p>Worked example as of {as_of.isoformat()}, from the public data image.</p>'
+                   if worked_example else "")
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -516,11 +529,11 @@ code{{overflow-wrap:anywhere}}.use-case-model{{min-width:180px}}
 <body><div class="wrap">{r.site_nav([('Decide', '/decide/'), ('How we decide', '/method/'), ('Pricing', '/pricing/')])}<main class="page">
 <p>{r.esc(entity.ONE_SENTENCE)}</p><h1>{r.esc(title)}</h1>
 <p class="lede">{r.esc(description)}</p>
-<p>Worked example as of {as_of.isoformat()}, from the public data image.</p>
+{image_label}
 {body}
 <p>Human lookup is free on <a href="/decide/">Decide</a>.
 CLI, API, and MCP access requires a key. <a href="/pricing/">Access and pricing</a>.</p>
-<p><a href="/use-cases/">Use-case examples</a> · <a href="/compare/">Model comparisons</a> · <a href="/method/">How we decide</a></p>
+<p><a href="/guides/">Guides</a> · <a href="/use-cases/">Use-case examples</a> · <a href="/compare/">Model comparisons</a> · <a href="/method/">How we decide</a></p>
 </main>{landing_chrome.footer()}</div></body></html>
 '''
 
@@ -541,7 +554,8 @@ def _use_case_template_intro(template: dict) -> str:
             f'{_use_case_spec(template["spec"])}</details>')
 
 
-def use_case_page(template: dict, decision: dict, as_of: date) -> str:
+def use_case_page(template: dict, decision: dict, as_of: date, *,
+                  exclusions: list[dict] | None = None) -> str:
     """Render a dated engine response with registry copy and no page-specific claims."""
     body = (_use_case_template_intro(template)
             + f'<h2>Worked answer</h2><p>Decision status: {r.esc(decision["status"])}.</p>')
@@ -597,6 +611,25 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
                      '<th>Model</th><th>Score</th><th>Score interval</th><th>P(best)</th>'
                      '<th>Cost per task, USD</th><th>Capability estimates and intervals</th>'
                      '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>')
+    if exclusions is not None:
+        body += ('<h3 id="screened-out">Screened-out candidates</h3>'
+                 '<p>Each row gives a failed condition and its observed value. A model can appear '
+                 'under multiple conditions or offerings. One offering can fail while another '
+                 'offering of the same model qualifies.</p>')
+        if exclusions:
+            rows = []
+            for row in exclusions:
+                route = "/".join(str(part) for part in row["offering"].values() if part is not None)
+                cells = "".join(f'<td>{_use_case_value(value)}</td>' for value in (
+                    row["model"], route, row["condition"], row["values"] or row["value"], row["unit"],
+                ))
+                rows.append(f'<tr>{cells}</tr>')
+            body += ('<div class="use-case-table"><table id="use-case-excluded"><thead><tr>'
+                     '<th>Model</th><th>Offering</th><th>Failed condition</th>'
+                     '<th>Observed value</th><th>Unit</th></tr></thead><tbody>'
+                     + "".join(rows) + '</tbody></table></div>')
+        else:
+            body += '<p>No candidates were screened out by a known failed condition.</p>'
     unknown = sorted({facet for candidate in decision.get("may_qualify", [])
                       for facet in candidate["unknown"]})
     if unknown:
@@ -620,13 +653,14 @@ def use_case_page(template: dict, decision: dict, as_of: date) -> str:
              f'<code>{r.esc(decision["snapshot"])}</code>.</p>'
              f'<h2>What this template teaches</h2><p>{r.esc(template["teaches"])}</p>'
              '<p>The live board uses current data. Its answer can change as evidence changes.</p>'
-             f'<p><a class="button primary" href="/decide/?template={r.esc(template["id"])}">'
+             f'<p><a class="button primary" href="/decide/details/?template={r.esc(template["id"])}">'
              'Apply this template on Decide</a></p>')
     return _use_case_shell(template["name"], template["purpose"], _use_case_path(template),
                            body, as_of, indexable=_use_case_indexable(decision), article=True)
 
 
-def write_use_case_pages(tree: Path, public_root: Path, *, examples=None) -> dict:
+def write_use_case_pages(tree: Path, public_root: Path, *, examples=None,
+                         exclusions: dict[str, list[dict]] | None = None) -> dict:
     """Write every template; only examples with an answer enter the sitemap."""
     catalogue, decisions, as_of = examples if examples is not None else use_case_decisions(public_root)
     paths = ["/use-cases/"]
@@ -643,7 +677,9 @@ def write_use_case_pages(tree: Path, public_root: Path, *, examples=None) -> dic
                 path = _use_case_path(template)
                 page = tree / path.lstrip("/") / "index.html"
                 page.parent.mkdir(parents=True, exist_ok=True)
-                page.write_text(use_case_page(template, decision, as_of), encoding="utf-8")
+                page.write_text(use_case_page(template, decision, as_of,
+                                               exclusions=(exclusions or {}).get(template["id"])),
+                                encoding="utf-8")
                 indexable = _use_case_indexable(decision)
                 if indexable:
                     paths.append(path)
@@ -788,7 +824,10 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     graph_counts["relations"] = relations.counts()
 
     from pipeline import ranking
-    ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
+    ranking_counts = ranking.write_export(
+        ms / "api" / "rank", cards, derived, build.to_json(),
+        cited_facts={model.model_id: model.cited_facts for model in models if model.cited_facts},
+    )
 
     # Which *class* of model a problem needs, before ranking within one
     # (MODEL-100). The whole decision rule as static data, keyless, beside
@@ -909,21 +948,28 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
-    from pipeline import comparison_pages
+    from pipeline import comparison_pages, guides
     public_root = Path(args.root).resolve()
     with public_use_case_image(public_root) as (templates, decisions, as_of, snapshot, registry):
+        guide_template = next(t for t in templates["templates"] if t["id"] == guides.TEMPLATE)
+        guide_exclusions = use_case_exclusions(guide_template, snapshot, registry)
         use_case_counts = write_use_case_pages(
             ms, public_root, examples=(templates, decisions, as_of),
+            exclusions={guides.TEMPLATE: guide_exclusions},
         )
         comparison_counts = comparison_pages.write_examples(
             ms, templates, decisions, as_of, snapshot, registry, public_root=public_root,
         )
+        guide_counts = guides.write_examples(ms, templates, decisions, as_of, snapshot, registry,
+                                             exclusions=guide_exclusions)
     ms_paths.extend(use_case_counts["sitemap_paths"])
     ms_paths.extend(comparison_counts["sitemap_paths"])
+    ms_paths.extend(guide_counts["sitemap_paths"])
     method_page = ms / "method/index.html"
     method_page.write_text(method_page.read_text(encoding="utf-8").replace(
         "</main>", '<p><a href="/use-cases/">Explore dated use-case examples</a> · '
-        '<a href="/compare/">Compare models for a job</a></p></main>', 1,
+        '<a href="/compare/">Compare models for a job</a> · '
+        '<a href="/guides/">Read the guides</a></p></main>', 1,
     ), encoding="utf-8")
     from pipeline import orchestrators
     ms_paths.extend(orchestrators.write(ms)["sitemap_paths"])
@@ -935,15 +981,15 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)
         social_cards.render_template_cards(ms, template_previews)
-    (ms / "decide").mkdir(exist_ok=True)
-    from pipeline.live import decide_capsule
-    (ms / "decide/index.html").write_text(
-        '<!doctype html><html><head><meta name="robots" content="noindex">'
-        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
-        f'<body>{decide_capsule()}</body></html>\n',
-        encoding="utf-8",
-    )
-    ms_paths.append("/decide/")
+    from pipeline.live import decide_capsule, details_capsule
+    for path, capsule in (("/decide/", decide_capsule()), ("/decide/details/", details_capsule())):
+        page = ms / path.lstrip("/") / "index.html"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(
+            '<!doctype html><html><head><meta name="robots" content="noindex">'
+            f'<link rel="canonical" href="https://modelspec.dev{path}"></head>'
+            f'<body>{capsule}</body></html>\n', encoding="utf-8")
+        ms_paths.append(path)
     # MODEL-221. /feedback/, its assets and the published request schema.
     from pipeline import feedback_page
     feedback_counts = feedback_page.write(ms, root)
@@ -963,7 +1009,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         r.sitemap("https://modelspec.dev", ms_paths, today,
                   lastmods={**blog_counts.get("sitemap_dates", {}),
                             **use_case_counts["sitemap_dates"],
-                            **comparison_counts["sitemap_dates"]}), encoding="utf-8")
+                            **comparison_counts["sitemap_dates"],
+                            **guide_counts["sitemap_dates"]}), encoding="utf-8")
     from pipeline import blog_indexnow
     blog_indexnow.write_key(ms)
     # robots.txt is written once, by agent_ready.ship below (MODEL-253).

@@ -1,0 +1,66 @@
+Merged public CI memory evidence
+
+Repository: turbobeest/modelspec
+Workflow run: 39120815101
+Job: 117655878782, Worker memory headroom
+Job URL: https://github.com/turbobeest/modelspec/actions/runs/39120815101/job/117655878782
+Job conclusion: SUCCESS
+Gate: PASS for current and successor at the unchanged 115 MiB limit
+Extracted at: 2026-10-18T11:03:15.438649+00:00
+
+PR head: e7f422751aa49dcb8461863fd7f5cd7983208e82
+CI tested merge: 28e70b4218584865a977bf34a495e0119a0936f0
+CI merge target parent: 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+Main comparison checkout: 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+
+Input public log: tmp/model-407/round3/root/merged-ci-memory-raw.txt
+Input log bytes: 81616
+Input log SHA-256: 256fa077d20bed3d80dcad5fa4310f4a7128592fba8d8e91362b82cacc2318f1
+The executor supplied this completed-job log and reported direct fetch exit 0.
+This extraction read that file only; it made no gh calls or polling requests.
+Command to retrieve the same completed job:
+  gh run view 39120815101 --job 117655878782 --log
+
+Actual CI runtime: Node v22.23.3, CPython 3.13.16 builder, Pyodide 0.28.3.
+The local merged-source probes used Node v22.22.3. These measurements are from
+CI's own fresh fixture and ordinary vendor build, not the local bundle.
+
+period       steady MiB               peak MiB                 Wasm MiB  limit MiB  gate
+current      104.75487804412842       107.9228162765503        59.875    115        PASS
+successor    104.7549238204956        105.11729717254639       59.875    115        PASS
+
+Both candidate commands ran under /usr/bin/bash -e and reached post-job
+cleanup. That completed step establishes their zero exits; the log does not
+print separate numeric probe exit lines. Both JSON results retain the original
+four requests: decide, vocabulary, rank, and policy-check.
+
+Main's current-period measurement was 108.58595085144043 MiB steady,
+with 59.875 MiB Wasm, in measurement-only mode. Main's bundle has no successor, so the
+workflow skipped only the main successor comparison. Both candidate 115 MiB
+gates ran. No memory regression warning or memory gate error was emitted.
+This job has no warm rollover probe. Its log does not establish the separate
+Rank Worker bundle job's result.
+
+Relevant source lines follow. Numbers refer to the unmodified input log above.
+Only ANSI command colors and byte-order marks were removed from these excerpts.
+
+125: Worker memory headroom	Run actions/checkout@v4	2026-10-18T10:50:19.3533526Z HEAD is now at 28e70b4 Merge e7f422751aa49dcb8461863fd7f5cd7983208e82 into 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+128: Worker memory headroom	Run actions/checkout@v4	2026-10-18T10:50:19.3596321Z 28e70b4218584865a977bf34a495e0119a0936f0
+131: Worker memory headroom	Check out the main comparison	2026-10-18T10:50:19.3834325Z   ref: 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+220: Worker memory headroom	Check out the main comparison	2026-10-18T10:50:24.2683349Z HEAD is now at 6f45c2a MODEL-406: isolate generated source pins for clean merges (#817)
+223: Worker memory headroom	Check out the main comparison	2026-10-18T10:50:24.2765191Z 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+251: Worker memory headroom	Run actions/setup-python@v5	2026-10-18T10:50:24.5320822Z Successfully set up CPython (3.13.16)
+271: Worker memory headroom	Run actions/setup-node@v4	2026-10-18T10:50:24.6655176Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+275: Worker memory headroom	Run actions/setup-node@v4	2026-10-18T10:50:25.0499578Z node: v22.23.3
+488: Worker memory headroom	Measure available main periods for regression warnings	2026-10-18T11:00:42.9616889Z {"runtime":"Pyodide 0.28.3","period":"current","before_bytes":30212096,"peak_bytes":114316126,"peak_mib":109.02035331726074,"wasm_peak_bytes":62783488,"wasm_peak_mib":59.875,"steady_bytes":113860622,"steady_mib":108.58595085144043,"live_non_wasm_bytes":51077134,"wasm_bytes":62783488,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":125829120,"peak_warning_bytes":117440512,"stages":[{"name":"before_worker_import","bytes":87048730,"wasm_bytes":30212096},{"name":"after_worker_import","bytes":114248854,"wasm_bytes":62783488},{"name":"after_decide","bytes":114277054,"wasm_bytes":62783488},{"name":"after_vocabulary","bytes":114279790,"wasm_bytes":62783488},{"name":"after_rank","bytes":114294926,"wasm_bytes":62783488},{"name":"after_policy_check","bytes":114305206,"wasm_bytes":62783488}]}
+489: Worker memory headroom	Measure available main periods for regression warnings	2026-10-18T11:00:42.9789592Z ##[notice]Main bundle predates successors; skipping only the successor regression comparison.
+491: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9853804Z NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-bundle" --limit-mib 115 --baseline "$RUNNER_TEMP/memory-main.json" --output "$RUNNER_TEMP/memory-pr.json"
+492: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9854956Z successor_baseline=()
+493: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9855280Z if [ "false" = true ]; then
+494: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9855793Z   successor_baseline+=(--baseline "$RUNNER_TEMP/memory-main-successor.json")
+495: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9856314Z fi
+496: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9857515Z NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs "$RUNNER_TEMP/memory-bundle" --successor --limit-mib 115 "${successor_baseline[@]}" --output "$RUNNER_TEMP/memory-pr-successor.json"
+497: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:42.9930351Z shell: /usr/bin/bash -e {0}
+512: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:47.5465817Z {"runtime":"Pyodide 0.28.3","period":"current","before_bytes":30212096,"peak_bytes":113165275,"peak_mib":107.9228162765503,"wasm_peak_bytes":62783488,"wasm_peak_mib":59.875,"steady_bytes":109843451,"steady_mib":104.75487804412842,"live_non_wasm_bytes":47059963,"wasm_bytes":62783488,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":120586240,"peak_warning_bytes":117440512,"stages":[{"name":"before_worker_import","bytes":85512774,"wasm_bytes":30212096},{"name":"after_worker_import","bytes":113108867,"wasm_bytes":62783488},{"name":"after_decide","bytes":113136235,"wasm_bytes":62783488},{"name":"after_vocabulary","bytes":113139371,"wasm_bytes":62783488},{"name":"after_rank","bytes":113148195,"wasm_bytes":62783488},{"name":"after_policy_check","bytes":113158027,"wasm_bytes":62783488}]}
+515: Worker memory headroom	Require 115 MiB in both periods and warn on growth above 1 MiB	2026-10-18T11:00:52.1088634Z {"runtime":"Pyodide 0.28.3","period":"successor","before_bytes":30212096,"peak_bytes":110223475,"peak_mib":105.11729717254639,"wasm_peak_bytes":62783488,"wasm_peak_mib":59.875,"steady_bytes":109843499,"steady_mib":104.7549238204956,"live_non_wasm_bytes":47060011,"wasm_bytes":62783488,"requests":["POST /v1/decide","GET /v1/vocabulary","POST /v1/rank","POST /v1/policy-check"],"limit_bytes":120586240,"peak_warning_bytes":117440512,"stages":[{"name":"before_worker_import","bytes":85511537,"wasm_bytes":30212096},{"name":"after_worker_import","bytes":110159091,"wasm_bytes":62783488},{"name":"after_decide","bytes":110185331,"wasm_bytes":62783488},{"name":"after_vocabulary","bytes":110188067,"wasm_bytes":62783488},{"name":"after_rank","bytes":110197227,"wasm_bytes":62783488},{"name":"after_policy_check","bytes":110213107,"wasm_bytes":62783488}]}
+516: Worker memory headroom	Post Run actions/setup-node@v4	2026-10-18T11:00:52.1319773Z Post job cleanup.

@@ -1098,6 +1098,7 @@ def evidence_section(model: Model) -> str:
     records = block.get("evidence") if isinstance(block, dict) else None
     if not records:
         return ""
+    cited = model.cited_evidence
     rows = []
     for rec in records:
         kind = str(rec.get("source_kind") or "")
@@ -1107,14 +1108,33 @@ def evidence_section(model: Model) -> str:
             f'<td class="num">{esc(format_score(rec.get("score"), rec.get("unit")))}</td>'
             f'<td>{esc(rec.get("evidence_date"))} '
             f'<span class="pill">{esc(rec.get("date_type"))}</span></td>'
-            f'<td><span class="pill">{esc(kind.replace("_", " "))}</span></td>'
+            f'<td><span class="pill">{esc(kind.replace("_", " "))}</span>'
+            + (' <span class="pill">Cited, not machine-verified</span>' if rec in cited else '')
+            + '</td>'
             f'<td><a href="{esc(rec.get("source_url"))}" rel="nofollow noopener">source</a></td></tr>')
-    note = ('<div class="notice ok">Each row was checked against its source by a reviewer, '
+    note = ('<div class="notice">Rows labelled cited retain their source reference without a page copy. '
+            'They are not machine-verified.</div>') if cited else ('<div class="notice ok">Each row was checked against its source by a reviewer, '
             'and carries the model identifier as actually evaluated — which is not always the '
             'same as this card\'s.</div>')
-    return _section("Verified benchmark evidence",
+    return _section("Benchmark evidence" if cited else "Verified benchmark evidence",
                     note + _table(["Benchmark", "Evaluated as", "Score", "Evidence date",
                                    "Source kind", ""], rows))
+
+
+def cited_facts_section(model: Model) -> str:
+    if not model.cited_facts:
+        return ""
+    rows = []
+    for fact in model.cited_facts:
+        for source in fact["citation"]["sources"]:
+            rows.append(
+                f'<tr><td>{esc(fact["facet"])}</td><td>{esc(fact.get("value"))}</td>'
+                f'<td>{_safe_link(source["url"], "source")}</td>'
+                f'<td>{esc(source.get("retrieved_at") or "Fetch date not recorded")}</td>'
+                f'<td class="mono">{esc(source["snapshot_ref"])}</td></tr>')
+    return _section("Cited, not machine-verified", '<p>These facts retain a source URL and '
+                    'content hash. No page copy is retained for machine verification.</p>'
+                    + _table(["Fact", "Value", "Source", "Fetched", "Content hash"], rows))
 
 
 GUIDE_SECTIONS = (
@@ -1354,7 +1374,7 @@ def _card_evidence_basis(model: Model) -> str | None:
         return None
     records = _dig(model.front, "benchmarks", "evidence")
     verified_ids = {str(r.get("benchmark_id")) for r in records
-                    if isinstance(r, dict)} if isinstance(records, list) else set()
+                    if isinstance(r, dict) and r not in model.cited_evidence} if isinstance(records, list) else set()
     verified = sum(1 for key in model.scores if str(key) in verified_ids)
     return _basis(contributing, verified, verified / contributing)
 
@@ -1413,6 +1433,10 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
              f'({esc(as_of)}) and a source list rather than a source per score, so they cannot be '
              'attributed individually. They are shown as reported and are not verified evidence. '
              'Benchmark pages carry the reviewed, dated evidence where it exists.</div>') if scores else ""
+    if model.scores_citation:
+        stale = ('<div class="notice">Cited, not machine-verified: the shared '
+                 f'<a href="{esc(model.scores_citation["url"])}" rel="nofollow noopener">score source</a> '
+                 'is retained as a citation without a page copy.</div>') + stale
 
     rel = relations
     chips = ""
@@ -1429,7 +1453,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <h1>{esc(model.display_name)}</h1>
 <p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>{supplier_disclosure(front)}
 {chips}
-{stat_strip(model)}
+{stat_strip(model)}{cited_facts_section(model)}
 {sections}{authoring_guide_section(front)}{strips}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
@@ -1839,6 +1863,10 @@ def _covered_row(c: dict[str, Any]) -> str:
         attribution += f' <span class="pill">{esc(str(c["source_kind"]).replace("_", " "))}</span>'
     if basis == "verified" and c.get("source"):
         attribution += f' {_safe_link(c["source"], "source")}'
+    if c.get("citation"):
+        attribution += ' <span class="pill">Cited, not machine-verified</span>'
+        if c["citation"].get("url"):
+            attribution += f' {_safe_link(c["citation"]["url"], "source")}'
     return (f'<tr><td>{model}</td><td>{esc(c["provider_display"])}</td>'
             f'<td class="num">{esc(format_score(c["score"], c.get("unit")))}</td>'
             f'<td>{when}</td><td>{attribution}</td></tr>')
@@ -1861,7 +1889,15 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                       f'{esc(disposition.canonical_id)}</a></p>')
 
     verified = ""
-    if disposition.results:
+    result_groups = (
+        ("Verified results", "Each row was checked against its source by a reviewer.",
+         disposition.verified_results),
+        ("Cited results", "Cited, not machine-verified: these rows retain a source reference without a page copy.",
+         disposition.cited_results),
+    )
+    for title, note, results in result_groups:
+        if not results:
+            continue
         rows = "".join(
             f'<tr><td>{esc(r.get("model_id"))}</td>'
             f'<td class="num">{esc(format_score(r.get("score"), r.get("unit")))}</td>'
@@ -1869,12 +1905,12 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             f'<span class="pill">{esc(r.get("date_type"))}</span></td>'
             f'<td>{esc(r.get("source_kind"))}</td>'
             f'<td><a href="{esc(r.get("source_url"))}" rel="nofollow noopener">source</a></td></tr>'
-            for r in disposition.results
+            for r in results
         )
-        verified = ('<h2>Verified results</h2><p class="lede">Each row was checked against its '
-                    'source by a reviewer.</p><div class="scroll"><table><thead><tr><th>Model</th>'
-                    '<th>Score</th><th>Evidence date</th><th>Source kind</th><th>Link</th></tr>'
-                    f'</thead><tbody>{rows}</tbody></table></div>')
+        verified += (f'<h2>{title}</h2><p class="lede">{note}</p>'
+                     '<div class="scroll"><table><thead><tr><th>Model</th>'
+                     '<th>Score</th><th>Evidence date</th><th>Source kind</th><th>Link</th></tr>'
+                     f'</thead><tbody>{rows}</tbody></table></div>')
 
     covered_block = '<p class="lede">No model card in ModelSpec reports this benchmark yet.</p>'
     if covered:
@@ -1887,11 +1923,14 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             notices += ('<div class="notice ok">Rows marked verified come from a card\'s '
                         'evidence records. A reviewer checked each against its source, and each '
                         'carries its own date and source kind.</div>')
-        if "unverified-legacy" in attributions:
+        if any(c["attribution"] == "unverified-legacy" and not c.get("citation") for c in covered):
             notices += ('<div class="notice">Rows marked unverified-legacy come from a card\'s '
                         'flat score list, which carries one collection date per card and no '
                         'per-score source. They are shown as reported, not as verified '
                         'evidence.</div>')
+        if any(c.get("citation") for c in covered):
+            notices += ('<div class="notice">Cited, not machine-verified: these rows retain '
+                        'a source reference without a page copy.</div>')
         covered_block = (
             notices
             + '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'

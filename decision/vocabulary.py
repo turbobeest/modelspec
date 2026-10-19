@@ -441,12 +441,13 @@ def _unknown_reason(may_qualify: Iterable[Any], registry: Any) -> str:
 
 def _template_rows(snapshot: Any, registry: Any, templates: list[dict[str, Any]],
                    ) -> list[dict[str, Any]]:
-    """Templates plus answerability proven by the real decision engine."""
+    """Templates plus answerability at the snapshot's build date."""
     rows = []
     for template in templates:
         spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
         trace = []
-        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append)
+        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append,
+                          _validate_current=False)
         # A starting point must rank something: a decision whose candidates all
         # only may qualify has no answer to show (MODEL-204).
         available = bool(decision.results)
@@ -474,14 +475,27 @@ def _plan_record(plan: Any) -> dict[str, Any]:
 
 
 def _estate_ids(snapshot: Any, registry: Any) -> dict[str, Any]:
+    from decision.contract import CITE_ONLY_WARNING
     from decision.plans import AVAILABILITY, load_plans
 
     fits = registry.allowed_values(registry.facet("model.fits_hardware")) or frozenset()
     plans = load_plans(snapshot, registry)
+    plan_records = [_plan_record(plans[plan_id]) for plan_id in sorted(plans)]
+    cited = getattr(snapshot, "cited_facts", None)
+    if cited is not None:
+        for plan in plan_records:
+            citations = {
+                record["facet"]: record["citation"]
+                for rid in cited(plan["id"])
+                for record in [snapshot.record(rid)]
+            }
+            if citations:
+                plan["citations"] = citations
+                plan["warnings"] = [CITE_ONLY_WARNING]
     availability = registry.facet(AVAILABILITY)
     return {
         "providers": sorted(p.id for p in registry.providers()),
-        "plans": [_plan_record(plans[plan_id]) for plan_id in sorted(plans)],
+        "plans": plan_records,
         "devices": sorted(fits),
         "plan_facets": [{
             "id": availability.id, "name": availability.label,

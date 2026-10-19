@@ -1,0 +1,50 @@
+{
+  "started_at": "2026-10-18T21:36:17.896210+00:00",
+  "approved_base": "7b833056a4cb8aa10c0f56cf6001b13224634ada",
+  "merge_target": "8971608aab849862b4a4870f1bc06e46fc9e7dd2",
+  "node": "v22.22.3",
+  "npm": "10.9.8",
+  "environment": {
+    "VITE_HUMAN_GATE_ENABLED": "false",
+    "VITE_VISIT_GATE_ENABLED": "false",
+    "MODELSPEC_CORPUS_DIR": "unset"
+  },
+  "web_diff_from_approved_before": "",
+  "steps": [
+    {
+      "command": "npm ci",
+      "cwd": "web",
+      "started_at": "2026-10-18T21:36:18.074127+00:00",
+      "duration_seconds": 1.94,
+      "exit_code": 0,
+      "summary": [
+        "added 346 packages, and audited 347 packages in 2s",
+        "10 vulnerabilities (1 low, 2 moderate, 7 high)"
+      ]
+    },
+    {
+      "command": "npm run build",
+      "cwd": "web",
+      "started_at": "2026-10-18T21:36:20.009447+00:00",
+      "duration_seconds": 3.58,
+      "exit_code": 0,
+      "summary": [
+        "\u2713 built in 138ms"
+      ]
+    },
+    {
+      "command": "npm test",
+      "cwd": "web",
+      "started_at": "2026-10-18T21:36:23.586390+00:00",
+      "duration_seconds": 17.12,
+      "exit_code": 0,
+      "summary": [
+        " Test Files  56 passed | 1 skipped (57)",
+        "      Tests  898 passed (898)",
+        "   Duration  16.77s (tests 67%, environment 21%, import 5%, setup 4%, transform 3%)"
+      ]
+    }
+  ],
+  "finished_at": "2026-10-18T21:36:40.707805+00:00",
+  "web_diff_from_approved_after": ""
+}

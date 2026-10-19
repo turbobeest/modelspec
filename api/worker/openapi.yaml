@@ -7,7 +7,7 @@ info:
   title: ModelSpec API
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-79cf5b6e5f3bf838). Call decide early with a template-based Spec; refine
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-f226d9942791da1c). Call decide early with a template-based Spec; refine
     from reading and recovery hints.
 
 
@@ -1869,6 +1869,18 @@ components:
               unranked_reason: {nullable: true}
               verified_benchmark_coverage: {type: number}
               verified_contributions: {type: integer}
+              warnings:
+                type: array
+                items: {type: string}
+                description: Includes cite_only_not_machine_verified when cited inputs are present.
+              cited_facts:
+                type: array
+                items: {type: object}
+                description: Fact records with citation provenance and no verification.
+              cited_benchmarks:
+                type: object
+                additionalProperties: {type: object}
+                description: Benchmark IDs mapped to cite-only source URLs; excluded from verified counts.
             required: [benchmark_contributions, benchmark_count, benchmark_coverage, benchmark_estimate, benchmark_lower_bound, benchmark_score, benchmark_upper_bound,
               capability_score, context_score, context_window, cost_input, cost_score, display_name, evidence_basis, missing_benchmarks, model_id, open_weights, provider,
               rank, rank_status, required_benchmark_count, score, score_kind, score_lower_bound, score_upper_bound, scores_as_of, type_bonus, unranked_reason, verified_benchmark_coverage,
@@ -1915,6 +1927,14 @@ components:
             commit: {type: string}
             export_schema_version: {type: string}
           required: [built_at, commit, export_schema_version]
+        decision_snapshot:
+          type: object
+          properties:
+            id: {type: string, nullable: true}
+            successor_held: {type: boolean}
+            successor_valid_from: {type: string, nullable: true}
+            valid_until: {type: string, nullable: true}
+          required: [id, successor_held, successor_valid_from, valid_until]
         determinations:
           type: object
           properties:
@@ -2024,7 +2044,7 @@ components:
 
         devices. A spec may give the bare kind as a string.'
       properties:
-        kind: &id045
+        kind: &id046
           enum: [chat_app, coding_tool, own_software, own_hardware]
           type: string
         harness:
@@ -2300,6 +2320,21 @@ components:
           type: array
       required: [offering]
       type: object
+    DecisionCitationSource:
+      additionalProperties: false
+      properties:
+        source_id: {type: string}
+        url: {pattern: '^https?://\S+$', type: string}
+        snapshot_ref: {pattern: '^sha256:[0-9a-f]{64}$', type: string}
+        retrieved_at:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+        resolved_urls:
+          items: {pattern: '^https?://\S+$', type: string}
+          type: array
+      required: [source_id, url, snapshot_ref]
+      type: object
     DecisionCitedSource:
       additionalProperties: false
       description: One registered source, listed once per decision. Added in 1.4.
@@ -2335,7 +2370,7 @@ components:
           - {type: number}
           - {format: date, type: string}
           - {type: string}
-        qualifiers: &id047
+        qualifiers: &id048
           anyOf:
           - {$ref: '#/components/schemas/DecisionEvidenceQualifiers'}
           - {type: 'null'}
@@ -2409,6 +2444,10 @@ components:
         source_ids:
           items: {type: string}
           type: array
+        citation: &id045
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionFactCitation'}
+          - {type: 'null'}
       required: [facet, state, value, unit]
       type: object
     DecisionComparisonModel:
@@ -2651,7 +2690,7 @@ components:
         by_model:
           items: {$ref: '#/components/schemas/DecisionModelRow'}
           type: array
-        may_qualify: &id048
+        may_qualify: &id049
           items: {$ref: '#/components/schemas/DecisionMayQualify'}
           type: array
         eliminated: {$ref: '#/components/schemas/DecisionEliminated'}
@@ -2684,7 +2723,7 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/DecisionWithEstate'}
           - {type: 'null'}
-        excluded_plans: &id049
+        excluded_plans: &id050
           items: {$ref: '#/components/schemas/DecisionPlanExclusion'}
           type: array
         feedback: {$ref: '#/components/schemas/DecisionFeedbackPointer'}
@@ -2905,6 +2944,16 @@ components:
           - {format: date, type: string}
           - {type: 'null'}
         direct: {default: false, type: boolean}
+      type: object
+    DecisionFactCitation:
+      additionalProperties: false
+      properties:
+        status: {const: cited, type: string}
+        sources:
+          items: {$ref: '#/components/schemas/DecisionCitationSource'}
+          minItems: 1
+          type: array
+      required: [status, sources]
       type: object
     DecisionFactInterval:
       additionalProperties: false
@@ -3721,7 +3770,7 @@ components:
       additionalProperties: false
       properties:
         facet: {type: string}
-        value: &id053
+        value: &id054
           anyOf:
           - {type: boolean}
           - {type: integer}
@@ -3748,6 +3797,7 @@ components:
         source_ids:
           items: {type: string}
           type: array
+        citation: *id045
       required: [facet]
       type: object
     DecisionSingleGate:
@@ -3827,7 +3877,7 @@ components:
         access:
           anyOf:
           - {$ref: '#/components/schemas/DecisionAccess'}
-          - *id045
+          - *id046
           - {type: 'null'}
       required: [spec_version, optimize]
       type: object
@@ -3872,13 +3922,13 @@ components:
       additionalProperties: false
       properties:
         kind: {const: tied, type: string}
-        members: &id046
+        members: &id047
           items: *id021
           minItems: 2
           type: array
         basis: {type: string}
         tie_breakers: {$ref: '#/components/schemas/DecisionTieBreakers'}
-        deterministic_order: *id046
+        deterministic_order: *id047
       required: [kind, members, basis, tie_breakers, deterministic_order]
       type: object
     DecisionTippingPoint:
@@ -3929,7 +3979,7 @@ components:
           - *id043
           - *id043
           type: array
-        qualifiers: *id047
+        qualifiers: *id048
         soft: *id019
         unknown: *id020
       required: [facet, between]
@@ -3945,7 +3995,7 @@ components:
         results:
           items: {$ref: '#/components/schemas/DecisionEstateResult'}
           type: array
-        may_qualify: *id048
+        may_qualify: *id049
         truncated: {$ref: '#/components/schemas/DecisionTruncated'}
         gap: {$ref: '#/components/schemas/DecisionEstateGap'}
         gain:
@@ -3954,7 +4004,7 @@ components:
         warnings:
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
-        excluded_plans: *id049
+        excluded_plans: *id050
       required: [status, gap]
       type: object
     DecisionRecovery:
@@ -3979,7 +4029,7 @@ components:
         endpoint:
           type: string
           enum: [decide]
-        snapshot: &id050
+        snapshot: &id051
           anyOf:
           - {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
           - {type: 'null'}
@@ -3997,8 +4047,8 @@ components:
               items: {type: object}
               description: Each issue has path, condition, field and reason. An issue about a value outside the facet's vocabulary also has value, value_type, allowed_values
                 (when the list is finite) and next, the vocabulary lookup for that facet.
-            requested: &id051 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
-            current: &id052 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
+            requested: &id052 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
+            current: &id053 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
             recovery:
               type: array
               maxItems: 5
@@ -4072,7 +4122,7 @@ components:
         endpoint:
           type: string
           enum: [decide]
-        snapshot: *id050
+        snapshot: *id051
         error:
           type: object
           additionalProperties: false
@@ -4086,8 +4136,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id051
-            current: *id052
+            requested: *id052
+            current: *id053
     DecisionSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4115,7 +4165,7 @@ components:
         endpoint:
           type: string
           enum: [compare]
-        snapshot: *id050
+        snapshot: *id051
         error:
           type: object
           additionalProperties: false
@@ -4129,8 +4179,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id051
-            current: *id052
+            requested: *id052
+            current: *id053
     ComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4158,7 +4208,7 @@ components:
         endpoint:
           type: string
           enum: [compare-models]
-        snapshot: *id050
+        snapshot: *id051
         error:
           type: object
           additionalProperties: false
@@ -4171,8 +4221,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id051
-            current: *id052
+            requested: *id052
+            current: *id053
     ModelComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4226,7 +4276,7 @@ components:
       additionalProperties: false
       required: [value, unit, records]
       properties:
-        value: *id053
+        value: *id054
         unit:
           anyOf:
           - {type: string}
@@ -4270,7 +4320,7 @@ components:
           type: string
           enum: [facet]
         facet: {type: string}
-        offering: &id054
+        offering: &id055
           oneOf:
           - {$ref: '#/components/schemas/ComparisonOfferingRef'}
           - {$ref: '#/components/schemas/ComparisonOfferingChange'}
@@ -4284,7 +4334,7 @@ components:
         kind:
           type: string
           enum: [cost_per_task]
-        offering: *id054
+        offering: *id055
         old: {$ref: '#/components/schemas/ComparisonCostValue'}
         new: {$ref: '#/components/schemas/ComparisonCostValue'}
     ComparisonCapabilityChange:
@@ -4296,7 +4346,7 @@ components:
           type: string
           enum: [capability]
         domain: {type: string}
-        offering: *id054
+        offering: *id055
         old: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
         new: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
     ComparisonValueChange:
@@ -4357,7 +4407,7 @@ components:
           additionalProperties: false
           required: [old, new]
           properties:
-            old: &id055
+            old: &id056
               type: object
               additionalProperties: false
               required: [id, as_of]
@@ -4367,7 +4417,7 @@ components:
                   anyOf:
                   - {type: string}
                   - {type: 'null'}
-            new: *id055
+            new: *id056
         status:
           type: object
           additionalProperties: false
@@ -4468,11 +4518,11 @@ components:
         kv_bytes_per_token: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
         runtime_headroom_bytes: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
         device: {minimum: 0, type: integer}
-        kv_cache_bytes: &id056
+        kv_cache_bytes: &id057
           anyOf:
           - {minimum: 0, type: integer}
           - {minimum: 0, type: number}
-        required_bytes: *id056
+        required_bytes: *id057
         margin_bytes:
           anyOf:
           - {type: integer}
@@ -4504,10 +4554,10 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: &id058
+        sources: &id059
           items: {$ref: '#/components/schemas/HardwareFitCitation'}
           type: array
-        credits: &id059
+        credits: &id060
           anyOf:
           - {$ref: '#/components/schemas/HardwareFitExhaustedCredits'}
           - {type: 'null'}
@@ -4539,11 +4589,11 @@ components:
     HardwareFitRequest:
       additionalProperties: false
       properties:
-        model: &id057
+        model: &id058
           anyOf:
           - {maxLength: 512, minLength: 1, pattern: \S, type: string}
           - {type: 'null'}
-        sku: *id057
+        sku: *id058
         device_count:
           anyOf:
           - {maximum: 1024, minimum: 1, type: integer}
@@ -4552,8 +4602,8 @@ components:
           anyOf:
           - {exclusiveMinimum: 0, maximum: 1000000, type: number}
           - {type: 'null'}
-        runtime: *id057
-        quantisation: *id057
+        runtime: *id058
+        quantisation: *id058
         batch:
           anyOf:
           - {maximum: 1000000, minimum: 1, type: integer}
@@ -4579,8 +4629,8 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
           - {$ref: '#/components/schemas/HardwareFitHeadroomNotRequired'}
-        kv_cache_bytes: *id056
-        lower_bound_bytes: *id056
+        kv_cache_bytes: *id057
+        lower_bound_bytes: *id057
         margin_bytes:
           anyOf:
           - {type: integer}
@@ -4594,8 +4644,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id058
-        credits: *id059
+        sources: *id059
+        credits: *id060
         status: {const: estimated, type: string}
         margin_bytes:
           anyOf:
@@ -4626,8 +4676,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id058
-        credits: *id059
+        sources: *id059
+        credits: *id060
         status: {const: measured, type: string}
         measured_fit: {type: boolean}
         measurement: {$ref: '#/components/schemas/HardwareFitMeasurement'}
@@ -4639,7 +4689,7 @@ components:
       additionalProperties: false
       properties:
         record_id: {maxLength: 512, minLength: 1, pattern: \S, type: string}
-        source_ids: &id060
+        source_ids: &id061
           items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
           type: array
         observed_at: {format: date, type: string}
@@ -4660,9 +4710,9 @@ components:
     HardwareFitProvenance:
       additionalProperties: false
       properties:
-        value: *id056
-        record_id: *id057
-        source_ids: *id060
+        value: *id057
+        record_id: *id058
+        source_ids: *id061
         provenance:
           enum: [sourced, caller]
           type: string
@@ -4675,7 +4725,7 @@ components:
     HardwareFitSourcedNumber:
       additionalProperties: false
       properties:
-        value: *id056
+        value: *id057
         record_id: {maxLength: 512, minLength: 1, pattern: \S, type: string}
         source_ids:
           items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
@@ -4690,8 +4740,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id058
-        credits: *id059
+        sources: *id059
+        credits: *id060
         status: {const: undetermined, type: string}
         missing:
           items: {$ref: '#/components/schemas/HardwareFitMissingInput'}
@@ -4798,18 +4848,18 @@ components:
               type: object
               additionalProperties: false
               properties:
-                allowed: &id061
+                allowed: &id062
                   type: array
                   nullable: true
                   items: {type: string, minLength: 1}
-                prohibited: *id061
+                prohibited: *id062
             origin:
               description: Country codes, as the card records origin_country. A blank country is undetermined, never allowed.
               type: object
               additionalProperties: false
               properties:
-                permitted_countries: *id061
-                prohibited_countries: *id061
+                permitted_countries: *id062
+                prohibited_countries: *id062
             residency:
               description: 'Regions spelled as the platform publishes them. Matched literally: no country is mapped onto a cloud region.'
               type: object
@@ -4866,7 +4916,7 @@ components:
     PolicyCheckResponse:
       type: object
       properties:
-        build: &id064
+        build: &id065
           type: object
           properties:
             built_at: {type: string}
@@ -4918,7 +4968,7 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: &id065
+                commercial_use: &id066
                   type: object
                   properties:
                     accept_restricted: {type: boolean}
@@ -4944,7 +4994,7 @@ components:
                       type: array
                       items: {type: string}
                   required: [permitted_countries, prohibited_countries]
-                residency: &id066
+                residency: &id067
                   type: object
                   required: [match, required_regions]
                   properties:
@@ -4983,21 +5033,21 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: &id062
+                commercial_use: &id063
                   type: object
                   properties:
                     satisfied: {type: integer}
                     undetermined: {type: integer}
                     violated: {type: integer}
                   required: [satisfied, undetermined, violated]
-                licence: *id062
-                origin: *id062
-                residency: *id062
+                licence: *id063
+                origin: *id063
+                residency: *id063
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {description: 'Counted over models, not rows: passes somewhere, not everywhere.', type: integer}
             rows: {type: integer}
-            verdicts: &id067
+            verdicts: &id068
               type: object
               properties:
                 fail: {type: integer}
@@ -5073,7 +5123,7 @@ components:
             also_violated:
               type: array
               items: {type: string}
-            constraint: &id063
+            constraint: &id064
               type: string
               enum: [licence, origin, commercial_use, residency]
             eliminated_by: {$ref: '#/components/schemas/ViolatedCheck'}
@@ -5128,7 +5178,7 @@ components:
     SatisfiedCheck:
       type: object
       properties:
-        constraint: *id063
+        constraint: *id064
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         satisfied:
           type: object
@@ -5170,7 +5220,7 @@ components:
     ViolatedCheck:
       type: object
       properties:
-        constraint: *id063
+        constraint: *id064
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
@@ -5227,7 +5277,7 @@ components:
     UndeterminedCheck:
       type: object
       properties:
-        constraint: *id063
+        constraint: *id064
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
@@ -5308,7 +5358,7 @@ components:
     UndeterminedPresent:
       type: object
       properties:
-        build: *id064
+        build: *id065
         determinations:
           type: object
           properties:
@@ -5353,8 +5403,8 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: *id065
-                residency: *id066
+                commercial_use: *id066
+                residency: *id067
             name: {nullable: true}
             require_no_undetermined: {type: boolean}
           required: [constraints, name, require_no_undetermined]
@@ -5380,20 +5430,20 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: *id062
-                residency: *id062
+                commercial_use: *id063
+                residency: *id063
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {type: integer}
             rows: {type: integer}
-            verdicts: *id067
+            verdicts: *id068
           required: [by_constraint, models_checked, models_undetermined_somewhere, models_with_a_passing_platform, rows, verdicts]
       required: [build, determinations, endpoint, error, export_origin, policy, provenance, result, schema_version, service_commit, summary]
     DeterminationsUnavailable:
       type: object
       required: [build, endpoint, error, export_origin, result, schema_version, service_commit]
       properties:
-        build: *id064
+        build: *id065
         endpoint: {type: string}
         error:
           type: object
@@ -5534,12 +5584,12 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: &id068 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
-        provider: *id068
+        model_name: &id069 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
+        provider: *id069
         first_seen_url: {type: string, maxLength: 300, format: uri, pattern: '^https://(www\.)?(x\.com|twitter\.com)/'}
         timestamp: {type: string, maxLength: 300, format: date-time}
         confidence: {type: number, minimum: 0, maximum: 1}
-        signal_id: &id069 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
+        signal_id: &id070 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
     ReleaseDiscovery:
       description: 'A primary-source watcher discovery (MODEL-216). The same six fields as release-signal v1; the signal ID starts with watch: and first_seen_url
         is the lab or provider page that listed the model. A discovery is a trigger, never evidence.'
@@ -5547,8 +5597,8 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: *id068
-        provider: *id068
+        model_name: *id069
+        provider: *id069
         first_seen_url:
           type: string
           maxLength: 300
@@ -5563,7 +5613,7 @@ components:
       additionalProperties: false
       required: [signal_id, result]
       properties:
-        signal_id: *id069
+        signal_id: *id070
         result: {type: string, nullable: true}
         pr_url: {type: string, nullable: true, format: uri}
         recheck_due: {type: string, format: date}
@@ -5582,7 +5632,7 @@ components:
         status:
           type: string
           enum: [accepted, duplicate, acknowledged]
-        signal_id: *id069
+        signal_id: *id070
         recheck_days:
           type: array
           items:
@@ -5617,7 +5667,7 @@ components:
           enum: ['1']
         service_commit: {type: string}
         endpoint: {type: string}
-        error: &id070
+        error: &id071
           type: object
           required: [code, message]
           properties:
@@ -5777,7 +5827,7 @@ components:
     Sharede25eeefc86ea:
       properties:
         endpoint: {type: string}
-        error: *id070
+        error: *id071
         result:
           items: {}
           type: array
@@ -5803,4 +5853,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-79cf5b6e5f3bf838}
+      schema: {type: string, const: 1-f226d9942791da1c}

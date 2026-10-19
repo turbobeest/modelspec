@@ -1,0 +1,40 @@
+{
+  "pins": {
+    "base_commit": "34807d8b3d63a11228f6e4df283a4e8c7234e18b",
+    "merged_upstream": "34c6dbef95371cff728a7a28aba33dcffe3e50e3",
+    "guide_version": "1-f226d9942791da1c",
+    "artifact_hashes": {
+      "docs/agents.md": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
+      "mcp/src/agent-copy.json": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",
+      "cli/modelspec/agent-bundle.json": "33e400d08479ce2c43e6e6888b213c9ca52790b885a0d2c661f42d0ef587bdab",
+      "api/worker/src/agent_guide.py": "ab40849d972f578840728aafde99629353a4ae51d8f3bb109fd6215fceb55c8c",
+      "api/worker/openapi.yaml": "4856fae354f22642f19b77c57b18d823a59ed0d4ccb1cf159f6e0d3d68b3ab0e",
+      "qa/fixtures/mcp-tools.json": "221a6438534b4cad5890261ddbc7fb2eb839df53f053ada475ce1d88ac8a50de"
+    },
+    "literal_pins": {
+      "mcp": "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",
+      "guide": "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
+      "cli_text": "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86"
+    },
+    "literal_pins_match": true,
+    "qa_pins_match": true,
+    "cli_pins_match": true
+  },
+  "fixture": {
+    "merged_upstream": "34c6dbef95371cff728a7a28aba33dcffe3e50e3",
+    "fixture_bytes_unchanged": true,
+    "full_vocabulary_bytes_unchanged": true,
+    "snapshot_unchanged": true,
+    "date_unchanged": true,
+    "snapshot": "snap_e9c30eaacfa8f2f2",
+    "as_of": "2026-10-04",
+    "fixture_sha256": "d01851094b4907f9e8ecad14b369c987616a778da5e41d3197809e7f20ae2f23",
+    "models": 44,
+    "templates": 40,
+    "available_templates": 28,
+    "changed_producer_inputs": [
+      "decision/vocabulary.py",
+      "api/worker/vendor.py"
+    ]
+  }
+}

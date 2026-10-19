@@ -7,11 +7,11 @@ import { defineConfig } from "@playwright/test";
 // MODELSPEC_DECIDE_URL names it. Python's http.server resets connections under
 // four parallel browsers, so it does not serve this run.
 const url = process.env.MODELSPEC_DECIDE_URL;
-const preview = "http://127.0.0.1:4173/decide.html";
+const preview = "http://127.0.0.1:4173/decide/details/";
 
 export default defineConfig({
   testDir: "./browser-tests",
-  testMatch: url ? /live\.spec\.ts$/ : /(?:corpus|decide|visit-gate|billing-launch)\.spec\.ts$/,
+  testMatch: url ? /live\.spec\.ts$/ : /(?:corpus|decide|simple-decide|visit-gate|billing-launch)\.spec\.ts$/,
   timeout: 30000,
   fullyParallel: true,
   workers: process.env.CI ? 4 : undefined,

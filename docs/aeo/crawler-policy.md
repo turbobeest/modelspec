@@ -41,9 +41,9 @@ Until 2026-10-01 three modules wrote it: `agent_ready.py`, with the Content-Sign
 * It lists every crawlable HTML page and no machine files.
 * Each `<url>` has a `<lastmod>`: the date of the last commit that touched that page's sources (`pipeline/live.py` `PAGE_SOURCES`), not the build time. A build that changes nothing doesn't make every page look fresh. The site build checks out full history, treeless, so `git log` can answer.
 
-## /decide/
+## /decide/ and /decide/details/
 
-The board is a JavaScript app behind a human gate, so a crawler used to get an empty `<div id="root">`. The live build now puts a short server-rendered description in that div (`pipeline/live.py` `decide_capsule()`). It covers what the board does, how Must and Prefer work, that it is free for people and rate-limited, where machines go, and a link to `/method/`. The app replaces it when it mounts. It holds no model data, so answers stay on the board and the API.
+Both pages need JavaScript for decisions and retain the existing human gates. The live build puts a server-rendered description in each root div. `pipeline/live.py` `decide_capsule()` describes the simple chooser at `/decide/`, its labelled example, jobs, priorities and full-evidence link. `details_capsule()` describes the detailed board at `/decide/details/`, including Must and Prefer. Both explain free, rate-limited human lookup and keyed machine access. Each app replaces its description when it mounts. The descriptions hold no model data; answers stay in the app and API.
 
 ## Checks
 

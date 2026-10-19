@@ -22,7 +22,7 @@ from decision.model import (
     VerificationTarget,
     value_hash,
 )
-from decision.sources import CopyStore
+from decision.sources import CopyStore, load_sources
 from decision.verify import Queue, Result, VerificationLog
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -170,7 +170,8 @@ def verify_hardware(store: CopyStore, log: VerificationLog, queue: Queue,
             if inputs.get("model_snapshot_ref") != source_ref["snapshot_ref"]:
                 raise ValueError(f"{model_id}: parameter input snapshot is not bound")
             retained_parameters = parameter_count_from_primary(
-                store.get(source_ref["snapshot_ref"])
+                store.get(source_ref["snapshot_ref"], source_url=str(
+                    load_sources(ROOT / "registry/sources.yaml")[source_ref["source_id"]].url))
             )
             if retained_parameters != parameters:
                 raise ValueError(
@@ -211,7 +212,8 @@ def verify_private(store: CopyStore, log: VerificationLog, queue: Queue,
                 if fact["facet"] != "offering.private_deployment" or fact["state"] != "known":
                     continue
                 ref = fact["sources"][0]
-                body = store.get(ref["snapshot_ref"])
+                body = store.get(ref["snapshot_ref"], source_url=str(
+                    load_sources(ROOT / "registry/sources.yaml")[ref["source_id"]].url))
                 provider = offering["provider"]
                 if fact["value"]:
                     proof = {

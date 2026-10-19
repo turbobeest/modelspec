@@ -1,0 +1,288 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[False-7] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b4589d0>
+offset = 7, require_no_undetermined = False
+
+    @pytest.mark.parametrize("offset", [7, 20000])
+    @pytest.mark.parametrize("require_no_undetermined", [False, True])
+    def test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance(
+        monkeypatch, offset, require_no_undetermined,
+    ):
+        models = [
+            _model(
+                f"fixture/model-{index:03d}", commercial="allowed",
+                source=None if index % 3 == 0 else {
+                    **CITED, "read_on": "2026-09-17" if index == 199 else "2026-09-16",
+                },
+            )
+            for index in range(200)
+        ]
+        observed = []
+        peak = 0
+        evaluate = service.evaluate
+
+        class ObservedRow(dict):
+            pass
+
+        def observe(*args, **kwargs):
+            nonlocal peak
+            row = ObservedRow(evaluate(*args, **kwargs))
+            observed.append(weakref.ref(row))
+            peak = max(peak, sum(ref() is not None for ref in observed))
+            return row
+
+        monkeypatch.setattr(service, "evaluate", observe)
+        status, body = check({
+            "policy": {"commercial_use": {"required": True}},
+            "verdicts": ["pass"], "offset": offset, "limit": 3,
+            "require_no_undetermined": require_no_undetermined,
+        }, models)
+        assert body["summary"] == {
+            "models_checked": 200, "rows": 200,
+            "verdicts": {"pass": 133, "fail": 0, "undetermined": 67},
+            "models_with_a_passing_platform": 133, "models_undetermined_somewhere": 67,
+            "by_constraint": {"commercial_use": {
+                "satisfied": 133, "violated": 0, "undetermined": 67,
+            }},
+        }
+        assert body["provenance"]["determination_read_dates"] == {
+            "commercial_use": ["2026-09-16", "2026-09-17"],
+        }
+        if require_no_undetermined:
+            assert status == service.HTTP_UNDETERMINED_PRESENT
+            assert body["result"] == []
+            assert body["error"]["undetermined_rows"] == 67
+            assert [row["model_id"] for row in body["error"]["examples"]] == [
+                f"fixture/model-{index:03d}" for index in range(0, 30, 3)
+            ]
+        else:
+            assert status == 200
+            assert [row["model_id"] for row in body["result"]] == (
+                ["fixture/model-011", "fixture/model-013", "fixture/model-014"]
+                if offset == 7 else []
+            )
+            assert body["page"]["matching_rows"] == 133
+            assert body["page"]["truncated"] is (offset == 7)
+>       assert peak <= 15, f"kept {peak} verdict rows for a 3-row page and 10 examples"
+E       AssertionError: kept 200 verdict rows for a 3-row page and 10 examples
+E       assert 200 <= 15
+
+tests/test_policy_check.py:199: AssertionError
+_ test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[False-20000] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b458e90>
+offset = 20000, require_no_undetermined = False
+
+    @pytest.mark.parametrize("offset", [7, 20000])
+    @pytest.mark.parametrize("require_no_undetermined", [False, True])
+    def test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance(
+        monkeypatch, offset, require_no_undetermined,
+    ):
+        models = [
+            _model(
+                f"fixture/model-{index:03d}", commercial="allowed",
+                source=None if index % 3 == 0 else {
+                    **CITED, "read_on": "2026-09-17" if index == 199 else "2026-09-16",
+                },
+            )
+            for index in range(200)
+        ]
+        observed = []
+        peak = 0
+        evaluate = service.evaluate
+
+        class ObservedRow(dict):
+            pass
+
+        def observe(*args, **kwargs):
+            nonlocal peak
+            row = ObservedRow(evaluate(*args, **kwargs))
+            observed.append(weakref.ref(row))
+            peak = max(peak, sum(ref() is not None for ref in observed))
+            return row
+
+        monkeypatch.setattr(service, "evaluate", observe)
+        status, body = check({
+            "policy": {"commercial_use": {"required": True}},
+            "verdicts": ["pass"], "offset": offset, "limit": 3,
+            "require_no_undetermined": require_no_undetermined,
+        }, models)
+        assert body["summary"] == {
+            "models_checked": 200, "rows": 200,
+            "verdicts": {"pass": 133, "fail": 0, "undetermined": 67},
+            "models_with_a_passing_platform": 133, "models_undetermined_somewhere": 67,
+            "by_constraint": {"commercial_use": {
+                "satisfied": 133, "violated": 0, "undetermined": 67,
+            }},
+        }
+        assert body["provenance"]["determination_read_dates"] == {
+            "commercial_use": ["2026-09-16", "2026-09-17"],
+        }
+        if require_no_undetermined:
+            assert status == service.HTTP_UNDETERMINED_PRESENT
+            assert body["result"] == []
+            assert body["error"]["undetermined_rows"] == 67
+            assert [row["model_id"] for row in body["error"]["examples"]] == [
+                f"fixture/model-{index:03d}" for index in range(0, 30, 3)
+            ]
+        else:
+            assert status == 200
+            assert [row["model_id"] for row in body["result"]] == (
+                ["fixture/model-011", "fixture/model-013", "fixture/model-014"]
+                if offset == 7 else []
+            )
+            assert body["page"]["matching_rows"] == 133
+            assert body["page"]["truncated"] is (offset == 7)
+>       assert peak <= 15, f"kept {peak} verdict rows for a 3-row page and 10 examples"
+E       AssertionError: kept 200 verdict rows for a 3-row page and 10 examples
+E       assert 200 <= 15
+
+tests/test_policy_check.py:199: AssertionError
+_ test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[True-7] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b5757f0>
+offset = 7, require_no_undetermined = True
+
+    @pytest.mark.parametrize("offset", [7, 20000])
+    @pytest.mark.parametrize("require_no_undetermined", [False, True])
+    def test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance(
+        monkeypatch, offset, require_no_undetermined,
+    ):
+        models = [
+            _model(
+                f"fixture/model-{index:03d}", commercial="allowed",
+                source=None if index % 3 == 0 else {
+                    **CITED, "read_on": "2026-09-17" if index == 199 else "2026-09-16",
+                },
+            )
+            for index in range(200)
+        ]
+        observed = []
+        peak = 0
+        evaluate = service.evaluate
+
+        class ObservedRow(dict):
+            pass
+
+        def observe(*args, **kwargs):
+            nonlocal peak
+            row = ObservedRow(evaluate(*args, **kwargs))
+            observed.append(weakref.ref(row))
+            peak = max(peak, sum(ref() is not None for ref in observed))
+            return row
+
+        monkeypatch.setattr(service, "evaluate", observe)
+        status, body = check({
+            "policy": {"commercial_use": {"required": True}},
+            "verdicts": ["pass"], "offset": offset, "limit": 3,
+            "require_no_undetermined": require_no_undetermined,
+        }, models)
+        assert body["summary"] == {
+            "models_checked": 200, "rows": 200,
+            "verdicts": {"pass": 133, "fail": 0, "undetermined": 67},
+            "models_with_a_passing_platform": 133, "models_undetermined_somewhere": 67,
+            "by_constraint": {"commercial_use": {
+                "satisfied": 133, "violated": 0, "undetermined": 67,
+            }},
+        }
+        assert body["provenance"]["determination_read_dates"] == {
+            "commercial_use": ["2026-09-16", "2026-09-17"],
+        }
+        if require_no_undetermined:
+            assert status == service.HTTP_UNDETERMINED_PRESENT
+            assert body["result"] == []
+            assert body["error"]["undetermined_rows"] == 67
+            assert [row["model_id"] for row in body["error"]["examples"]] == [
+                f"fixture/model-{index:03d}" for index in range(0, 30, 3)
+            ]
+        else:
+            assert status == 200
+            assert [row["model_id"] for row in body["result"]] == (
+                ["fixture/model-011", "fixture/model-013", "fixture/model-014"]
+                if offset == 7 else []
+            )
+            assert body["page"]["matching_rows"] == 133
+            assert body["page"]["truncated"] is (offset == 7)
+>       assert peak <= 15, f"kept {peak} verdict rows for a 3-row page and 10 examples"
+E       AssertionError: kept 200 verdict rows for a 3-row page and 10 examples
+E       assert 200 <= 15
+
+tests/test_policy_check.py:199: AssertionError
+_ test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[True-20000] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b3d7680>
+offset = 20000, require_no_undetermined = True
+
+    @pytest.mark.parametrize("offset", [7, 20000])
+    @pytest.mark.parametrize("require_no_undetermined", [False, True])
+    def test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance(
+        monkeypatch, offset, require_no_undetermined,
+    ):
+        models = [
+            _model(
+                f"fixture/model-{index:03d}", commercial="allowed",
+                source=None if index % 3 == 0 else {
+                    **CITED, "read_on": "2026-09-17" if index == 199 else "2026-09-16",
+                },
+            )
+            for index in range(200)
+        ]
+        observed = []
+        peak = 0
+        evaluate = service.evaluate
+
+        class ObservedRow(dict):
+            pass
+
+        def observe(*args, **kwargs):
+            nonlocal peak
+            row = ObservedRow(evaluate(*args, **kwargs))
+            observed.append(weakref.ref(row))
+            peak = max(peak, sum(ref() is not None for ref in observed))
+            return row
+
+        monkeypatch.setattr(service, "evaluate", observe)
+        status, body = check({
+            "policy": {"commercial_use": {"required": True}},
+            "verdicts": ["pass"], "offset": offset, "limit": 3,
+            "require_no_undetermined": require_no_undetermined,
+        }, models)
+        assert body["summary"] == {
+            "models_checked": 200, "rows": 200,
+            "verdicts": {"pass": 133, "fail": 0, "undetermined": 67},
+            "models_with_a_passing_platform": 133, "models_undetermined_somewhere": 67,
+            "by_constraint": {"commercial_use": {
+                "satisfied": 133, "violated": 0, "undetermined": 67,
+            }},
+        }
+        assert body["provenance"]["determination_read_dates"] == {
+            "commercial_use": ["2026-09-16", "2026-09-17"],
+        }
+        if require_no_undetermined:
+            assert status == service.HTTP_UNDETERMINED_PRESENT
+            assert body["result"] == []
+            assert body["error"]["undetermined_rows"] == 67
+            assert [row["model_id"] for row in body["error"]["examples"]] == [
+                f"fixture/model-{index:03d}" for index in range(0, 30, 3)
+            ]
+        else:
+            assert status == 200
+            assert [row["model_id"] for row in body["result"]] == (
+                ["fixture/model-011", "fixture/model-013", "fixture/model-014"]
+                if offset == 7 else []
+            )
+            assert body["page"]["matching_rows"] == 133
+            assert body["page"]["truncated"] is (offset == 7)
+>       assert peak <= 15, f"kept {peak} verdict rows for a 3-row page and 10 examples"
+E       AssertionError: kept 200 verdict rows for a 3-row page and 10 examples
+E       assert 200 <= 15
+
+tests/test_policy_check.py:199: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_policy_check.py::test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[False-7]
+FAILED tests/test_policy_check.py::test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[False-20000]
+FAILED tests/test_policy_check.py::test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[True-7]
+FAILED tests/test_policy_check.py::test_paged_policy_bounds_retained_rows_without_losing_catalogue_provenance[True-20000]
+4 failed, 69 deselected in 0.16s

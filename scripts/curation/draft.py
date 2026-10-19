@@ -34,12 +34,14 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
 from scripts.benchmarks.validate import check  # noqa: E402
 
 BENCH_DIR = ROOT / "benchmarks"
 AUTHORING = BENCH_DIR / "AUTHORING.md"
 DEFAULT_OUT = BENCH_DIR / "_curation" / "drafts"
 BEGIN, END = "<<<BEGIN PAGE>>>", "<<<END PAGE>>>"
+CITE_ONLY_ERROR = "cite-only sources cannot produce retained drafts"
 
 
 class Drafter(Protocol):
@@ -196,9 +198,13 @@ def draft_page(page_path: Path, change: dict, source_text: str, drafter: Drafter
                today: str | None = None, out_dir: Path = DEFAULT_OUT, apply: bool = False) -> DraftResult:
     today = today or datetime.now(UTC).date().isoformat()
     page_id = page_path.stem
-    original_text = page_path.read_text(encoding="utf-8")
     res = DraftResult(page=page_id, url=change["url"], kinds=change.get("kinds", []), accepted=False,
                       drafter=drafter.label)
+    if cite_only_origin(change["url"], metadata_origins(change)):
+        res.kinds = []
+        res.errors = [CITE_ONLY_ERROR]
+        return res
+    original_text = page_path.read_text(encoding="utf-8")
     try:
         out = drafter(build_prompt(page_id, original_text, change, source_text, today), original_text)
     except Exception as exc:
@@ -260,10 +266,18 @@ def main(argv: list[str] | None = None) -> int:
         drafter: Drafter = FakeDrafter(url=change["url"], today=today)
     else:
         drafter = ClaudeDrafter()
-    res = draft_page(args.bench_dir / f"{page_id}.md", change, args.source_text.read_text(encoding="utf-8"),
+    source_text = "" if cite_only_origin(change["url"], metadata_origins(change)) \
+        else args.source_text.read_text(encoding="utf-8")
+    res = draft_page(args.bench_dir / f"{page_id}.md", change, source_text,
                      drafter, today=today, out_dir=args.out_dir, apply=args.apply and not args.dry_run)
     if args.manifest:
         items = json.loads(args.manifest.read_text()) if args.manifest.exists() else []
+        for index, item in enumerate(items):
+            origins = metadata_origins(item)
+            if cite_only_origin(item["url"], origins):
+                items[index] = {**asdict(DraftResult(page=item["page"], url=item["url"], kinds=[],
+                                                    accepted=False, errors=[CITE_ONLY_ERROR])),
+                                "resolved_urls": list(origins)}
         items.append(asdict(res))
         args.manifest.write_text(json.dumps(items, indent=1))
     print(json.dumps(asdict(res), indent=1))

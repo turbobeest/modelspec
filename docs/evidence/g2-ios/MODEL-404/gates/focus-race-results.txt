@@ -1,0 +1,90 @@
+MODEL-404 Coding verdict focus assertion, 2026-10-18
+Base: 1b3d8e3a66b3ddf572702ab11e3d40fdbc580226
+Final assertion change: f4b13af3e11618304a73d07bcec685fe372e46cc
+Worktree: /Users/terbeest/dev/worktrees/model-404
+Branch: model-404-simple-decide
+Tools: Node v22.22.3, npm 10.9.8, Vitest 5.0.1, Playwright 1.63.0.
+
+Observed CI red:
+https://github.com/turbobeest/modelspec/actions/runs/39097022487/job/117585483021
+Test decide page (human gate false, visit gate true), Vitest:
+  FAIL src/decide/__tests__/simple-decide.test.tsx:150:90
+  loads the labelled example and renders a picked job after request normalization
+  Error: expect(element).toHaveFocus()
+  Expected: <h2 tabindex="-1">These 6 are too close to call.</h2>
+  Received: <body>...</body>
+  Test Files 1 failed | 55 passed (56)
+  Tests 1 failed | 1270 passed (1271)
+The full CI observation is ../transport/late-ci-gate-failure.txt.
+
+The old assertion awaited heading presence and then checked focus immediately.
+The unchanged component focuses a changed question's verdict in useEffect;
+the unchanged-question Everyday click focuses it synchronously. The test now
+waits for the actual Coding focus assertion, preserving the immediate Everyday
+assertion. No timeout was increased. Production code was not changed.
+
+Local pre-fix reproduction attempts did not reproduce the CI failure:
+12 sequential focused processes each exited 0 (1 passed, 11 skipped per run).
+One full corpus-enabled run exited 0: 1271 passed / 56 files, 26.33s.
+These local green runs are not presented as deterministic reproduction.
+
+Shared command environment, from web/:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=true
+Ordinary unit-test setup stubs both gate flags off, as it does in CI.
+
+Focused command, before and after the assertion change:
+npm exec vitest -- run src/decide/__tests__/simple-decide.test.tsx -t 'loads the labelled example'
+After change: 12 sequential processes each exited 0 (1 passed, 11 skipped).
+
+Controlled negative check, using the same focused command:
+Temporarily suppress HTMLElement.prototype.focus only after the immediate
+Everyday assertion, then click Coding and use the final waitFor assertion.
+Direct child exit: 1
+  Error: expect(element).toHaveFocus()
+  Expected focused heading, received body
+  Test Files 1 failed (1)
+  Tests 1 failed | 11 skipped (12)
+  Duration 6.33s
+This is an injected test-only failure, not reproduction of the original CI
+timing. It confirms that waiting still rejects missing focus. The temporary
+spy was removed in finally before final verification; no probe remains.
+
+Final full-unit command:
+MODELSPEC_CORPUS_REQUIRED=1 MODELSPEC_CORPUS_DIR=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/root/.corpus npm test
+Direct exit: 0
+  Test Files 56 passed (56)
+  Tests 1271 passed (1271)
+  Duration 21.55s
+The pre-fix full run used this identical command and existing corpus.
+
+Final browser command, sequentially for each HUMAN/VISIT combination below:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'a keyboard job pick' --workers=1 --reporter=line
+Additional environment:
+VITE_HUMAN_GATE_ENABLED=HUMAN VITE_VISIT_GATE_ENABLED=VISIT
+VITE_TURNSTILE_SITE_KEY=public-browser-test-key
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/focus-race-browser-HUMAN-VISIT
+Human false / Visit false: direct exit 0; 1 passed (3.1s).
+Human true  / Visit false: direct exit 0; 1 passed (2.9s).
+Human false / Visit true:  direct exit 0; 1 passed (2.3s).
+Human true  / Visit true:  direct exit 0; 1 passed (2.3s).
+Each exercises keyboard Coding selection, actual focused verdict and transfer
+of the same question to the detailed page. The earlier complete browser and
+gate runs in late-merge-results.txt remain applicable to unchanged runtime.
+
+Runtime unchanged proof:
+git diff --name-only 1b3d8e3a -- web
+  web/src/decide/__tests__/simple-decide.test.tsx
+git diff 1b3d8e3a -- web/src/decide/simple web/browser-tests
+  (empty)
+Simple runtime subtree before and after:
+  a33095712012f0b41473a7b42cf6d474f4cca6d3
+Only waitFor import and Coding assertion changed. Existing screenshots remain
+valid; no rendering, style, transport or browser-test source changed.
+
+All test exits above were captured directly, never inferred through a pipe.
+Raw focus-race-*.log files are ignored local diagnostics. This file preserves
+their relevant results. No provider or production call was made.
+Final scoped git diff --check exited 0. No temporary probe remains.
+Playwright stopped its servers; lsof on TCP 5173 returned exit 1 with no output.

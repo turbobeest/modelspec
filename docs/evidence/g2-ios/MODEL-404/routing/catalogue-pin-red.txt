@@ -1,0 +1,17 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_flag_off_agent_copy_matches_reviewed_catalogue ______________
+
+    def test_flag_off_agent_copy_matches_reviewed_catalogue():
+        copy = agent_copy.copy()
+        # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
+>       assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
+E       AssertionError: assert '36064102d8fc...2067189d0803e' == 'faa19be299fb...faa2f6f3841b7'
+E
+E         - faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7
+E         + 36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e
+
+tests/test_decision_link.py:88: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue
+1 failed in 0.75s

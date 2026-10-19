@@ -58,6 +58,14 @@ class Model:
     path: Path
     front: dict[str, Any]
     body: str
+    cited_facts: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def cited_evidence(self) -> list[dict[str, Any]]:
+        from decision.retention import is_cite_only
+
+        return [record for record in self.evidence
+                if is_cite_only(str(record.get("source_url") or ""))]
 
     @property
     def slug(self) -> str:
@@ -104,6 +112,15 @@ class Model:
         block = self.front.get("benchmarks") or {}
         value = block.get("benchmark_source") if isinstance(block, dict) else None
         return str(value) if value else None
+
+    @property
+    def scores_citation(self) -> dict[str, str] | None:
+        from decision.retention import is_cite_only
+
+        source = self.scores_source
+        if self.scores and source and is_cite_only(source):
+            return {"status": "cited", "url": source}
+        return None
 
 
 @dataclass(frozen=True)
@@ -155,6 +172,20 @@ class Disposition:
     def is_active(self) -> bool:
         return self.status == "active"
 
+    @property
+    def cited_results(self) -> tuple[dict[str, Any], ...]:
+        from decision.retention import is_cite_only
+
+        return tuple({**record, "citation": {"status": "cited", "url": record["source_url"]}}
+                     for record in self.results if is_cite_only(record.get("source_url") or ""))
+
+    @property
+    def verified_results(self) -> tuple[dict[str, Any], ...]:
+        from decision.retention import is_cite_only
+
+        return tuple(record for record in self.results
+                     if not is_cite_only(record.get("source_url") or ""))
+
 
 @dataclass
 class Catalogue:
@@ -172,7 +203,13 @@ class Catalogue:
 
 
 def load_models(root: Path | None = None) -> list[Model]:
-    directory = (root or REPO_ROOT) / "models"
+    from decision.citation import fact_citation
+    from decision.sources import load_sources
+
+    root = root or REPO_ROOT
+    directory = root / "models"
+    sources = {sid: str(source.url) for sid, source in
+               load_sources(root / "registry" / "sources.yaml").items()}
     out: list[Model] = []
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
@@ -183,7 +220,12 @@ def load_models(root: Path | None = None) -> list[Model]:
             # Prose without a model_id is not a card; skip rather than fail, the
             # same rule the PR validator applies.
             continue
-        out.append(Model(str(model_id), path, front, body))
+        cited = []
+        for fact in front.get("facts") or []:
+            citation = fact_citation(fact, sources)
+            if citation:
+                cited.append({**fact, "verification": None, "citation": citation})
+        out.append(Model(str(model_id), path, front, body, cited))
     return out
 
 

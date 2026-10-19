@@ -138,9 +138,9 @@ def run(dry_run: bool) -> list[tuple]:
     boards, registrations = {}, []
     for benchmark, (source_id, url) in MATHARENA_BOARDS.items():
         raw = _fetch(url)
-        projected = readers.project_matharena(raw, url=url, page_ref=f"{store.put(raw)} {url}",
+        projected = readers.project_matharena(raw, url=url, page_ref=f"{store.put(raw, source_url=url)} {url}",
                                               read_date=READ_DATE)
-        source = SourceRef(source_id=source_id, snapshot_ref=store.put(projected),
+        source = SourceRef(source_id=source_id, snapshot_ref=store.put(projected, source_url=url),
                            cited_regions=["rows"])
         boards[benchmark] = (url, source, json.loads(projected)["rows"])
         registrations.append({

@@ -1,0 +1,23 @@
+{
+  "producer": "docs/evidence/g2-ios/MODEL-404/routing/round3/generate-display-vocabulary.py",
+  "producer_sha256": "49a8570286da57053524b6bbc069cd12b0950d05ec500a1ea65982f24d95614a",
+  "source_commit": "34807d8b3d63a11228f6e4df283a4e8c7234e18b",
+  "inputs": "Frozen public repository; no production or private-data call",
+  "snapshot_as_of": "2026-10-04",
+  "snapshot": "snap_e9c30eaacfa8f2f2",
+  "vocabulary_version": 1,
+  "contract_version": "2.18",
+  "full_vocabulary_sha256": "d92d64172ad0228b5a833f6b3954b8a9101486b3d1fb909544e2261d3360a636",
+  "fixture_sha256": "d01851094b4907f9e8ecad14b369c987616a778da5e41d3197809e7f20ae2f23",
+  "source_hashes": {
+    "decision/snapshot.py": "05e1dd681e8efac17475e927d74bc2f3d854c7245b8a73235bc86f0e8540b6eb",
+    "decision/vocabulary.py": "fe832a0fe349736971870b5730f391912015decf890c0db9ebb8f26409396acb",
+    "pipeline/build.py": "8132a97b4c0ba4eed6b7754860abc32b175755b81a979d9c0e8519d87876df6a",
+    "api/worker/src/display_vocabulary.py": "59c4571874fd1c82cf4dadaa2b3a12d2bbdf234f3ffa018efc8648251ad97423",
+    "api/worker/vendor.py": "7d6091bc846cbee417bea15f8d2899b28a8bc7161abad6a44b11ef296cc0163c",
+    "registry/templates.yaml": "75ba95e4a1ba56f6fa3256ab13928e6cbfac465d4e13a689f8cfe5b686045b5e"
+  },
+  "models": 44,
+  "templates": 40,
+  "captured_decision_snapshot": "snap_483dd2fb6c5915b5"
+}

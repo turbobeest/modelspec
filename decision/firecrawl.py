@@ -244,7 +244,10 @@ class FirecrawlFetcher:
                 return FetchResult("unreachable", error="Firecrawl returned empty raw HTML")
             if self._key in data["rawHtml"] or self._key.encode("utf-8") in content:
                 return FetchResult("unreachable", error="Firecrawl response contains a credential")
-            return FetchResult("ok", status, body=body, content_type="text/html", charset="utf-8")
+            from decision.retention import metadata_origins
+
+            return FetchResult("ok", status, body=body, content_type="text/html", charset="utf-8",
+                               resolved_urls=metadata_origins(metadata))
         except (httpx.HTTPError, ValueError, UnicodeError, RecursionError):
             # Neither response error strings nor exception messages are safe to log.
             return FetchResult("unreachable", error="Firecrawl request failed or invalid JSON")

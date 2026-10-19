@@ -36,7 +36,7 @@ def retained_policy(tmp_path, monkeypatch):
         "kind": "provider_documentation",
         "cited_regions": [{"id": "page", "locator": {"kind": "page", "value": ""}}],
     })
-    reviewed_ref = store.put(REVIEWED_POLICY.encode())
+    reviewed_ref = store.put(REVIEWED_POLICY.encode(), source_url="https://fixture.example/")
     reviewed_region = verify.StoredRegions(store, {"policy": source}).text(
         "policy", reviewed_ref, "page",
     )
@@ -54,8 +54,8 @@ def retained_policy(tmp_path, monkeypatch):
 
     def check(page=REVIEWED_POLICY, *, model_id="lab/nimbus-3", name="Nimbus 3",
               policy_url=POLICY_URL, terms_url=TERMS_URL, reader=None):
-        terms_ref = store.put(SENTENCE.encode())
-        policy_ref = store.put(page.encode())
+        terms_ref = store.put(SENTENCE.encode(), source_url="https://fixture.example/")
+        policy_ref = store.put(page.encode(), source_url="https://fixture.example/")
         sources = {
             "terms": Source.model_validate({
                 "id": "terms", "url": terms_url, "normaliser": "text-default",

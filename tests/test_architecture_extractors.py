@@ -249,7 +249,7 @@ def retained(tmp_path, docs):
             cited_regions=[{"id": "page", "locator": {"kind": "page"}}],
         )
         refs.append(
-            SourceRef(source_id=sid, snapshot_ref=store.put(text.encode()), cited_regions=["page"])
+            SourceRef(source_id=sid, snapshot_ref=store.put(text.encode(), source_url="https://fixture.example/"), cited_regions=["page"])
         )
     return StoredRegions(store, sources), refs
 

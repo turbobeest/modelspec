@@ -1,0 +1,33 @@
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-404/web
+
+ ❯ src/decide/__tests__/vocabulary.test.ts (223 tests | 1 failed | 222 skipped) 11ms
+   ❯ published templates (4)
+     × preserves the optional display snapshot date without requiring catalogue coverage 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/decide/__tests__/vocabulary.test.ts > published templates > preserves the optional display snapshot date without requiring catalogue coverage
+AssertionError: expected { vocabulary_version: 1, …(16) } to have property "as_of" with value '2026-10-04'
+
+- Expected:
+"2026-10-04"
+
++ Received:
+undefined
+
+ ❯ src/decide/__tests__/vocabulary.test.ts:59:20
+     57|     expect(_coverage?.as_of).toBeTruthy();
+     58|     const parsed = vocabularySchema.parse({ ...display, as_of: "2026-1…
+     59|     expect(parsed).toHaveProperty("as_of", "2026-10-04");
+       |                    ^
+     60|     expect(parsed.coverage).toBeNull();
+     61|     expect(vocabularySchema.parse(display)).not.toHaveProperty("as_of"…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 222 skipped (223)
+   Start at  02:08:19
+   Duration  863ms (environment 54%, import 18%, transform 16%, setup 10%, tests 1%)

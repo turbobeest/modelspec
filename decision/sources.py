@@ -21,23 +21,27 @@ Source records use the shared types in ``decision.model``.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlsplit
 
-import httpx
 import yaml
+
+if TYPE_CHECKING:
+    import httpx
 
 from decision.model import CitedRegion as CitedRegion
 from decision.model import Source, SourceSnapshot
+from decision.retention import citation_metadata, cite_only_origin, require_source_url
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -205,6 +209,9 @@ class FetchResult:
     etag: str | None = None
     last_modified: str | None = None
     error: str | None = None
+    resolved_urls: tuple[str, ...] = ()
+    snapshot_ref: str | None = None
+    retrieved_at: datetime | None = None
 
 
 class Fetcher:
@@ -227,6 +234,8 @@ class Fetcher:
         clock: Callable[[], float] = time.monotonic,
         user_agent: str = USER_AGENT,
     ) -> None:
+        import httpx
+
         self.client = client or httpx.Client()
         self.timeout = timeout
         self.retries = retries
@@ -249,6 +258,8 @@ class Fetcher:
     def fetch(
         self, url: str, *, etag: str | None = None, last_modified: str | None = None
     ) -> FetchResult:
+        import httpx
+
         headers = {"user-agent": self.user_agent}
         if etag:
             headers["if-none-match"] = etag
@@ -281,6 +292,8 @@ class Fetcher:
                     304,
                     etag=response.headers.get("etag"),
                     last_modified=response.headers.get("last-modified"),
+                    resolved_urls=tuple(str(item.url) for item in (*response.history, response)),
+                    retrieved_at=datetime.now(UTC),
                 )
             if response.status_code in self.RETRY_STATUSES:
                 error = f"HTTP {response.status_code}"
@@ -300,6 +313,8 @@ class Fetcher:
                 charset=response.charset_encoding,
                 etag=response.headers.get("etag"),
                 last_modified=response.headers.get("last-modified"),
+                resolved_urls=tuple(str(item.url) for item in (*response.history, response)),
+                retrieved_at=datetime.now(UTC),
             )
         return FetchResult("unreachable", status, error=error)
 
@@ -399,9 +414,17 @@ class RenderedFetcher:
                     prepare(page, self.timeout)
                 except Error as exc:
                     preparation_error = f"rendered preparation failed: {exc}"
+            redirects = []
+            request = response.request
+            while request is not None:
+                redirects.append(str(request.url))
+                request = request.redirected_from
             return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
                                content_type="text/html", charset="utf-8",
-                               error=preparation_error)
+                               error=preparation_error,
+                               resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
+                                                    str(response.url), str(page.url)))),
+                               retrieved_at=datetime.now(UTC))
         except Error as exc:
             return FetchResult("unreachable", error=str(exc))
         finally:
@@ -435,8 +458,17 @@ class CopyStore:
     # The cache directory can be restored from another run's artifact, so a file is
     # trusted only when its bytes still hash to its name (MODEL-235).
 
-    def put(self, body: bytes) -> str:
+    def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
+            resolved_urls: Iterable[str] = ()) -> str:
+        source_url = require_source_url(source_url)
+        resolved_urls = tuple(resolved_urls)
         ref = fingerprint_bytes(body)
+        if cite_only_origin(source_url, resolved_urls):
+            self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
+                                 resolved_urls=resolved_urls)
+            return ref
+        if self.citation(ref) is not None:
+            return ref
         target = self.path(ref)
         if not self.has(ref):
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -446,13 +478,37 @@ class CopyStore:
             os.replace(tmp, target)
         return ref
 
-    def get(self, ref: str) -> bytes:
+    def record_citation(self, ref: str, *, source_url: str,
+                        retrieved_at: datetime | None = None, resolved_urls=()) -> None:
+        target = self.path(ref).with_suffix(".citation.json")
+        metadata = citation_metadata(source_url, ref, retrieved_at=retrieved_at or datetime.now(UTC),
+                                     resolved_urls=resolved_urls)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(metadata, output, sort_keys=True)
+        os.replace(temporary, target)
+
+    def citation(self, ref: str) -> dict | None:
+        target = self.path(ref).with_suffix(".citation.json")
+        if not target.is_file():
+            return None
+        metadata = json.loads(target.read_text(encoding="utf-8"))
+        if metadata.get("snapshot_ref") != ref:
+            raise ValueError("citation metadata does not match its hash")
+        return metadata
+
+    def get(self, ref: str, *, source_url: str | None = None) -> bytes:
+        if self.citation(ref) is not None or source_url is not None and cite_only_origin(source_url):
+            raise ValueError("cite-only source has no readable retained copy")
         body = self.path(ref).read_bytes()
         if fingerprint_bytes(body) != ref:
             raise ValueError(f"retained copy {ref} does not match its hash")
         return body
 
     def has(self, ref: str) -> bool:
+        if self.citation(ref) is not None:
+            return False
         target = self.path(ref)
         if not target.is_file() or target.is_symlink():
             return False
@@ -587,7 +643,7 @@ def recheck(
                         current_copy_ref=current.copy_ref,
                     )
                 )
-        elif result.status is RegionStatus.UNCHANGED:
+        elif result.status is RegionStatus.UNCHANGED and result.detail != "cite-only":
             unchanged.update(c.ref for c in cited)
 
     quarantined_sources = {sid for sid, st in report.states.items() if st.quarantined}
@@ -620,6 +676,28 @@ def _check_one(
     )
     report.fetches[source.id] = result
     old = previous.region_fingerprints if previous else {}
+
+    previous_citation = store.citation(previous.copy_ref) if previous else None
+    resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
+                          *((previous_citation or {}).get("resolved_urls", ())))))
+    if (cite_only_origin(source.url, resolved_urls) or previous_citation is not None) \
+            and result.outcome in {"ok", "not_modified"}:
+        if result.outcome == "not_modified" and previous is None:
+            return replace(state, last_attempt_at=now)
+        ref = (previous.copy_ref if result.outcome == "not_modified" else
+               store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                         resolved_urls=resolved_urls))
+        store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
+                              resolved_urls=resolved_urls)
+        for region in source.cited_regions:
+            before = previous.copy_ref if previous else None
+            status = RegionStatus.UNCHANGED if before == ref else RegionStatus.CHANGED
+            report.regions.append(RegionResult(source.id, region.id, status, before, ref, "cite-only"))
+        report.skipped.append(Skipped(source.id, "cite_only_not_machine_verified"))
+        snapshot = SourceSnapshot(source_id=source.id, retrieved_at=now, copy_ref=ref,
+                                  page_fingerprint=ref, region_fingerprints={},
+                                  etag=result.etag, last_modified=result.last_modified)
+        return SourceState(source.id, snapshot, 0, False, now)
 
     if result.outcome == "not_modified" and previous is not None:
         snapshot = previous.model_copy(update={
@@ -669,7 +747,8 @@ def _check_one(
         retrieved_at=now,
         page_fingerprint=fingerprint(doc.text),
         region_fingerprints=current,
-        copy_ref=store.put(result.body),
+        copy_ref=store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                           resolved_urls=result.resolved_urls),
         etag=result.etag,
         last_modified=result.last_modified,
     )

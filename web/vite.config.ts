@@ -42,6 +42,8 @@ const siteFonts = (): Plugin => ({
 const serveDecisionPage = (server: ViteDevServer | PreviewServer) => {
   server.middlewares.use((req, _res, next) => {
     if (/^\/d(?:\/|\?|$)/.test(req.url ?? "")) req.url = "/decision.html";
+    else if (/^\/decide\/details\/?(?:\?|$)/.test(req.url ?? "")) req.url = "/decide-details.html";
+    else if (/^\/decide\/?(?:\?|$)/.test(req.url ?? "")) req.url = "/decide.html";
     next();
   });
 };
@@ -56,7 +58,7 @@ export default defineConfig({
   define: handoffDefines(),
   plugins: [react(), tailwindcss(), siteFonts(), decisionPage()],
   build: {
-    rolldownOptions: { input: { main: "index.html", decide: "decide.html", decision: "decision.html" } },
+    rolldownOptions: { input: { main: "index.html", decide: "decide.html", details: "decide-details.html", decision: "decision.html" } },
   },
   server: {
     fs: { allow: [".."] },

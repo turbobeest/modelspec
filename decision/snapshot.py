@@ -4,8 +4,9 @@ A decision reads one snapshot and nothing else (design §4.2, §6). This module
 builds it, gates it and loads it:
 
 * ``build_snapshot`` compiles models, offerings and evidence into a columnar
-  snapshot. Only values whose latest verification is ``verified`` enter, and
-  only when every source they name resolves to a registered URL that is not an
+  snapshot. Values enter with independent verification, or as explicitly cited
+  facts when source retention policy forbids a copied page. Every source must
+  resolve to a registered URL that is not an
   excluded source. A ``verified`` from the collector's own model family is not
   a second key (MODEL-159): it is skipped as if never logged, while a
   same-family mismatch still counts. Retired models and their offerings go to
@@ -14,7 +15,7 @@ builds it, gates it and loads it:
   ``out_of_lineup`` and left out (MODEL-157). The legacy flat
   ``benchmarks.scores`` block is never read.
 * The **completeness gate** fails the build when a guaranteed facet is unknown
-  or unverified for a premier model or one of its offerings, naming the
+  or lacks admitted provenance for a premier model or one of its offerings, naming the
   subject, the facet and the source. Computed facets (``computed_by`` in the
   registry, such as ``estimate.capability``) are skipped: slice 1 does not
   compute them.
@@ -52,8 +53,16 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 import yaml
 
-from decision.excluded import ExcludedSources, excluded_sources
+from decision.excluded import (
+    ExcludedSources,
+    excluded_in,
+    excluded_sources,
+    removed_text_hit,
+)
+from decision.json_stream import JSONStreamReader
+from decision.citation import fact_citation
 from decision.model import (
+    Fact,
     Measurement,
     evidence_verification_value,
     fact_verification_value,
@@ -777,15 +786,19 @@ class _Compiler:
         record = self._verification(kind, rid, inline, value)
         return "unverified" if record is None else str(record["outcome"])
 
-    def _retain(self, kind: str, record: dict) -> str:
+    def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
             if kind == "fact"
             else evidence_verification_value(record)
         )
-        retained = {**record, "verification": self._verification(
-            kind, record.get("id"), record.get("verification"), value)}
+        retained = dict(record)
+        retained.pop("citation", None)
+        retained["verification"] = self._verification(
+            kind, record.get("id"), record.get("verification"), value)
+        if citation is not None:
+            retained.update(verification=None, citation=citation)
         if rid in self.records and self.records[rid] != retained:
             raise SnapshotBuildError(f"duplicate record ID {rid}")
         self.records[rid] = retained
@@ -797,7 +810,8 @@ class _Compiler:
         return sorted({str(_as_dict(r)["source_id"]) for r in refs or ()})
 
     def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
-               extra_urls: Iterable[Any] = (), benchmark: Any = None) -> str | None:
+               extra_urls: Iterable[Any] = (), benchmark: Any = None,
+               citation: dict | None = None) -> str | None:
         """Why a record stays out, or ``None`` when it enters."""
         urls = [self.sources[s] for s in source_ids if s in self.sources]
         if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
@@ -805,12 +819,19 @@ class _Compiler:
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
         outcome = self._outcome(kind, rid, inline, value)
-        if outcome != "verified":
+        if citation is not None and outcome in {"mismatch", "unreachable"}:
+            return f"quarantined ({outcome})"
+        if citation is None and outcome != "verified":
             return f"quarantined ({outcome})"
         if not source_ids:
             return "unsourced"
         if len(urls) != len(source_ids):
             return "unresolved_source"
+        if kind == "evidence":
+            from decision.retention import is_cite_only
+
+            if any(is_cite_only(url) for url in [*urls, *extra_urls]):
+                return "quarantined (cited)"
         return None
 
     def _exclude(self, sid: str | None, reason: str) -> None:
@@ -858,18 +879,31 @@ class _Compiler:
                     self.sources.get(s, s) for s in source_ids))
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
+            try:
+                citation = fact_citation(f, self.sources)
+                if citation is not None:
+                    Fact.model_validate({**f, "verification": None},
+                                        context={"registry": self.registry})
+            except ValueError:
+                self._reject((sid, facet_id), "invalid_citation", source_ids)
+                continue
+            if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
+                self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
+                continue
             reason = (
                 "stale_measurement"
                 if measurement is not None and self.as_of is not None
                 and measurement.stale(self.as_of)
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
-                    fact_verification_value(f), source_ids)
+                    fact_verification_value(f), source_ids, citation=citation,
+                    extra_urls=[url for ref in f.get("sources") or ()
+                                for url in ref.get("resolved_urls") or ()])
             )
             if reason is not None:
                 self._reject((sid, facet_id), reason, source_ids)
                 continue
-            self.fact_records.setdefault(sid, {})[facet_id] = self._retain("fact", f)
+            self.fact_records.setdefault(sid, {})[facet_id] = self._retain("fact", f, citation)
             if measurement is not None:
                 self.measurements.setdefault(sid, {})[facet_id] = measurement.model_dump(
                     mode="json")
@@ -1033,6 +1067,14 @@ class _Compiler:
         if sid not in self.subjects:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
+        try:
+            citation = fact_citation(e, self.sources)
+        except ValueError:
+            self._exclude(sid, "invalid_citation")
+            return
+        if citation is not None:
+            self._exclude(sid, "quarantined (cited)")
+            return
         reason = self._admit(
             "evidence",
             e.get("id"),
@@ -1357,12 +1399,16 @@ class _Compiler:
             )
         retained_fit_ids = {row["id"] for row in hardware_fit}
         retained_records = {}
+        retained_fit_records = {}
         for rid in record_ids:
             record = self.records[rid]
             if record.get("kind") == "hardware_fit_input":
                 record = {**record, "verified_by_records": sorted(
                     set(record["verified_by_records"]) & retained_fit_ids)}
-            retained_records[rid] = record
+            if rid in retained_fit_ids or record.get("kind") == "hardware_fit_input":
+                retained_fit_records[rid] = record
+            else:
+                retained_records[rid] = record
         content = {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
@@ -1373,7 +1419,9 @@ class _Compiler:
             "benchmark_domains": domains,
             "capability": capability,
             **({"hardware": dict(sorted(self.hardware.items()))} if self.hardware else {}),
-            **({"hardware_fit_records": hardware_fit} if hardware_fit else {}),
+            **({"hardware_fit_record_ids": [row["id"] for row in hardware_fit],
+                "hardware_fit_record_table": _pack_records(retained_fit_records)}
+               if hardware_fit else {}),
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
@@ -1388,6 +1436,10 @@ class _Compiler:
                 if sid in kept or sid in subscription_ids
             },
         }
+        cited_records = sorted(rid for rid, record in retained_records.items()
+                               if record.get("citation", {}).get("status") == "cited")
+        if cited_records:
+            content["cited_fact_records"] = cited_records
         periods = [period for sid in kept for period in self.price_periods.get(sid, ())]
         starts = [start for start, _until in periods if start is not None]
         ends = [until for _start, until in periods if until is not None and until < date.max]
@@ -1576,12 +1628,17 @@ def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
             guard: ExcludedSources | None) -> Snapshot:
     content = c.content(as_of, premier)
     if guard is not None:
-        text = canonical_json(content).decode("utf-8")
-        hit = guard.text.search(text)
+        hit = removed_text_hit(content)
+        publisher = excluded_in(content)
         bad = [u for u in content["sources"].values() if guard.url(u)]
-        if hit or bad:
-            raise SnapshotBuildError(
-                f"excluded source in the snapshot output: {hit.group(0) if hit else bad[0]!r}")
+        if hit or publisher or bad:
+            if hit:
+                detail = hit.group(0)
+            elif bad:
+                detail = repr(bad[0])
+            else:
+                detail = "'removed publisher'"
+            raise SnapshotBuildError(f"excluded source in the snapshot output: {detail}")
     digest = content_hash(content)
     return Snapshot(content=content, content_hash=digest, snapshot_id=snapshot_id_for(digest))
 
@@ -2057,9 +2114,13 @@ class LoadedSnapshot:
         )
         self._sources: dict[str, str] = dict(content["sources"])
         self._hardware = content.get("hardware") or {}
-        self._hardware_fit = tuple(content.get("hardware_fit_records") or ())
+        self._hardware_fit_record_ids = tuple(content.get("hardware_fit_record_ids") or ())
+        self._hardware_fit = (None if self._hardware_fit_record_ids
+                              else tuple(content.get("hardware_fit_records") or ()))
+        self._hardware_fit_record_table = content.get("hardware_fit_record_table")
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
+        self._cited_fact_records = frozenset(content.get("cited_fact_records", ()))
         self.explanation_rebuild_required = (
             None
             if "fact_records" in content and ("record_table" in content or "records" in content)
@@ -2181,6 +2242,19 @@ class LoadedSnapshot:
 
     def fact(self, cid: str, facet_id: str) -> FactValue:
         return self._facts.get(facet_id, {}).get(self._check(cid), UNKNOWN)
+
+    def cited_facts(self, cid: str) -> tuple[str, ...]:
+        """Cited fact records for a candidate, including inherited model facts or a plan."""
+        if cid in self._row:
+            row = self._row[cid]
+            facts = (column[row] for column in self._facts.values() if row in column)
+        else:
+            plan = next((plan for plan in self._subscription_offerings if plan["id"] == cid), None)
+            if plan is None:
+                return ()
+            facts = iter(plan["facts"].values())
+        return tuple(sorted({fact.record_id for fact in facts
+                             if fact.record_id in self._cited_fact_records}))
 
     def ids_where(self, facet_id: str, op: str, arg: Any) -> Bitset3:
         """Candidates passing, failing, or unknown on ``facet op arg``.
@@ -2447,8 +2521,13 @@ class LoadedSnapshot:
 
     def record(self, record_id: str) -> Mapping[str, Any]:
         """The admitted record with its winning verification, retained verbatim."""
-        if record_id not in self._records and self._record_table is not None:
-            self._records[record_id] = _unpack_record(self._record_table, record_id)
+        if record_id not in self._records:
+            table = self._record_table
+            if (self._hardware_fit_record_table is not None
+                    and record_id in self._hardware_fit_record_table["rows"]):
+                table = self._hardware_fit_record_table
+            if table is not None:
+                self._records[record_id] = _unpack_record(table, record_id)
         return self._records[record_id]
 
     def hardware_device(self, device_id: str) -> Mapping[str, Any] | None:
@@ -2457,6 +2536,8 @@ class LoadedSnapshot:
 
     def hardware_fit_records(self, model: str, sku: str) -> tuple[Mapping[str, Any], ...]:
         """Admitted measurements and inputs for one model/SKU, without guessing defaults."""
+        if self._hardware_fit is None:
+            self._hardware_fit = tuple(self.record(rid) for rid in self._hardware_fit_record_ids)
         return tuple(row for row in self._hardware_fit if row["model"] == model and row["sku"] == sku)
 
     def facet_ids(self) -> tuple[str, ...]:
@@ -2512,6 +2593,23 @@ def verify_hmac_signature(digest: str, signature: Mapping[str, Any] | None,
         raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
 
 
+def _stream_canonical_envelope(data: bytes) -> tuple[dict[str, Any], str] | None:
+    prefix = '{"content":{'
+    with io.TextIOWrapper(gzip.GzipFile(fileobj=io.BytesIO(data)),
+                          encoding="utf-8", newline="") as stream:
+        if stream.read(len(prefix)) != prefix:
+            return None
+        digest = hashlib.sha256()
+        reader = JSONStreamReader(stream, initial="{", digest=digest)
+        content = reader.read_value()
+        suffix = reader.remainder().lstrip()
+        envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+        if "content" in envelope:
+            raise ValueError("duplicate content member")
+        envelope["content"] = content
+        return envelope, "sha256:" + digest.hexdigest()
+
+
 def load_snapshot_bytes(
     data: bytes,
     *,
@@ -2522,25 +2620,26 @@ def load_snapshot_bytes(
 ) -> LoadedSnapshot:
     """Check and index a gzipped snapshot already held in memory."""
     try:
-        text = gzip.decompress(data).decode("utf-8")
-        stored_digest = None
-        if text.startswith('{"content":{'):
-            # raw_decode finds the JSON boundary, including escaped quotes and
-            # nested objects. Never search for a delimiter inside content.
-            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
-            suffix = text[end:].lstrip()
-            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
-            if "content" in envelope:
-                raise SnapshotIntegrityError(f"{source}: duplicate content member")
-            envelope["content"] = content
-            # Hash the canonical content without copying the full JSON string
-            # and then allocating a second full UTF-8 buffer in the isolate.
-            digest = hashlib.sha256()
-            for offset in range(len('{"content":'), end, 4096):
-                digest.update(text[offset:min(offset + 4096, end)].encode("utf-8"))
-            stored_digest = "sha256:" + digest.hexdigest()
+        try:
+            streamed = _stream_canonical_envelope(data)
+        except RecursionError:
+            # Preserve the standard decoder's greater depth for legacy files.
+            streamed = None
+        if streamed is not None:
+            envelope, stored_digest = streamed
         else:
-            envelope = json.loads(text)
+            text = gzip.decompress(data).decode("utf-8")
+            if text.startswith('{"content":{'):
+                content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
+                suffix = text[end:].lstrip()
+                envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+                if "content" in envelope:
+                    raise ValueError("duplicate content member")
+                envelope["content"] = content
+            else:
+                envelope = json.loads(text)
+            stored_digest = None
+            del text
     except (OSError, EOFError, ValueError) as exc:
         raise SnapshotIntegrityError(f"{source}: not a gzipped JSON snapshot: {exc}") from exc
     if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:

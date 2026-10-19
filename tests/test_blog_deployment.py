@@ -82,6 +82,7 @@ def built(tmp_path: Path) -> tuple[Path, Path]:
     )
     (web / "assets").mkdir(parents=True)
     write(web, "decide.html", '<html><body><div id="root"></div></body></html>')
+    write(web, "decide-details.html", '<html><body><div id="root"></div></body></html>')
     write(web, "decision.html", '<html><body><div id="root"></div></body></html>')
     structured_data.inject(tree)
     return source, web

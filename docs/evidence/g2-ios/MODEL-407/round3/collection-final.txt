@@ -1,0 +1,3 @@
+Command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --collect-only -q -m "not perf"
+Direct exit: 0
+11661/11663 tests collected (2 deselected) in 33.03s

@@ -51,7 +51,7 @@ KEEP_DIRS = (
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
     # MODEL-299: the press and brand kit.
-    "brand", "use-cases", "compare",
+    "brand", "use-cases", "compare", "guides",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -61,7 +61,8 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/about/", "/method/", "/orchestrators/", "/decide/", "/pricing/", "/feedback/", "/brand/",
+    "/", "/about/", "/method/", "/orchestrators/", "/decide/", "/decide/details/",
+    "/pricing/", "/feedback/", "/brand/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/", "/legal/dmca/",
     "/legal/tester-terms/",
 )
@@ -109,6 +110,7 @@ PAGE_SOURCES = {
     "/orchestrators/": ("pipeline/orchestrators.py", "pipeline/landing_assets/orchestrators.css",
                         "registry/templates.yaml"),
     "/decide/": ("web/decide.html", "web/src/decide", "pipeline/live.py"),
+    "/decide/details/": ("web/decide-details.html", "web/src/decide", "pipeline/live.py"),
     "/pricing/": ("pipeline/pricing.py", "api/worker/tiers.json"),
     "/feedback/": ("pipeline/feedback_page.py",),
     "/brand/": ("pipeline/brand_page.py", "pipeline/brand.py", "pipeline/brand_assets", "brand"),
@@ -163,9 +165,9 @@ def blog_pages(tree: Path) -> tuple[str, ...]:
 
 
 def example_pages(tree: Path) -> tuple[str, ...]:
-    """All worked examples, including pages omitted from the sitemap."""
+    """Worked examples and guides, including pages omitted from the sitemap."""
     return tuple("/" + page.parent.relative_to(tree).as_posix() + "/"
-                 for directory in ("use-cases", "compare")
+                 for directory in ("use-cases", "compare", "guides")
                  for page in sorted((tree / directory).rglob("index.html")))
 
 
@@ -189,7 +191,8 @@ def blog_sitemap_dates(tree: Path) -> dict[str, str]:
 def sitemap(dates: dict[str, str] | None = None, *,
             blog_dates: dict[str, str] | None = None,
             use_case_dates: dict[str, str] | None = None,
-            comparison_dates: dict[str, str] | None = None) -> str:
+            comparison_dates: dict[str, str] | None = None,
+            guide_dates: dict[str, str] | None = None) -> str:
     dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -199,13 +202,37 @@ def sitemap(dates: dict[str, str] | None = None, *,
         + "".join(f"  <url><loc>{BASE}{html.escape(path)}</loc>"
                   f"<lastmod>{html.escape(stamp)}</lastmod></url>\n"
                   for path, stamp in {**(blog_dates or {}), **(use_case_dates or {}),
-                                      **(comparison_dates or {})}.items())
+                                      **(comparison_dates or {}), **(guide_dates or {})}.items())
         + "</urlset>\n"
     )
 
 
 def decide_capsule() -> str:
-    """What /decide/ says before its JavaScript runs (MODEL-253).
+    """The first-visit page's description before JavaScript loads."""
+    e = lambda text: html.escape(text, quote=False)  # noqa: E731
+    return (
+        '<main class="capsule"><h1>Which AI model fits your job?</h1>'
+        '<p>Pick a job. See your options and what each task costs.</p>'
+        f'<p>{e(entity.ONE_SENTENCE)}</p>'
+        "<p>Example: Everyday help. Pick a job if this isn't yours. Choose Everyday help, "
+        "Coding, Writing, Long documents, High volume or Self-hosting, then choose whether to "
+        "spend less, balance cost and quality, or make quality count most. Spend less still "
+        "weighs quality. It is not the lowest price. Optional hard limits keep only confirmed "
+        "matches. When the evidence cannot separate models, they are listed alphabetically, "
+        "not ranked.</p>"
+        '<p>ModelSpec is neutral: no referral fees, no paid placement. '
+        '<a href="/decide/details/">See the full evidence</a> to inspect requirements, '
+        'providers, task costs and dated sources. Prices are list API prices for the stated '
+        'task size, not a chat subscription.</p>'
+        '<p>The page needs JavaScript. Human lookup is free and rate-limited by the same '
+        'human checks as the detailed board. An agent can ask this same question with an API '
+        'key. See <a href="/pricing/">pricing</a>, <a href="/agents.md">agent docs</a> '
+        'and <a href="/method/">how ModelSpec decides</a>.</p></main>'
+    )
+
+
+def details_capsule() -> str:
+    """What /decide/details/ says before its JavaScript runs (MODEL-253).
 
     The board is a JavaScript app behind a human gate, so a crawler used to get
     an empty `<div id="root">`. This is the page's own description, in the
@@ -245,7 +272,8 @@ def visible_words(page: str) -> int:
 def thin_pages(tree: Path) -> list[str]:
     """Each sitemap page that answers a crawler with no heading or too few words."""
     failed = []
-    for path in PAGES:
+    guide_paths = tuple(path for path in example_pages(tree) if path.startswith("/guides/"))
+    for path in (*PAGES, *guide_paths):
         page = (tree / path.lstrip("/") / "index.html").read_text(encoding="utf-8")
         words = visible_words(page)
         if not re.search(r"<h1[\s>]", page):
@@ -296,6 +324,12 @@ def build(src: Path, web: Path, out: Path) -> None:
         for row in source_urls
         if row.findtext("s:loc", "", namespace).startswith(BASE + "/compare/")
     }
+    guide_dates = {
+        row.findtext("s:loc", "", namespace).removeprefix(BASE):
+        row.findtext("s:lastmod", "", namespace)
+        for row in source_urls
+        if row.findtext("s:loc", "", namespace).startswith(BASE + "/guides/")
+    }
     blog_dates = {}
     if os.environ.get("BLOG_ENABLED") == "true" and (real / "blog/index.html").is_file():
         blog_dates = blog_sitemap_dates(real)
@@ -305,12 +339,17 @@ def build(src: Path, web: Path, out: Path) -> None:
     for rel in social_cards.all_card_filenames():
         if (real / rel).is_file():
             shutil.copy2(real / rel, tree / rel)
-    (tree / "decide").mkdir()
-    decide = (web / "decide.html").read_text(encoding="utf-8")
-    if decide.count('<div id="root"></div>') != 1:
-        raise ValueError("web/dist/decide.html must hold exactly one empty <div id=\"root\">")
-    (tree / "decide" / "index.html").write_text(
-        decide.replace('<div id="root"></div>', f'<div id="root">{decide_capsule()}</div>'), encoding="utf-8")
+    for entry, route, capsule in (
+        ("decide.html", "decide", decide_capsule()),
+        ("decide-details.html", "decide/details", details_capsule()),
+    ):
+        page = (web / entry).read_text(encoding="utf-8")
+        if page.count('<div id="root"></div>') != 1:
+            raise ValueError(f"web/dist/{entry} must hold exactly one empty <div id=\"root\">")
+        destination = tree / route / "index.html"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            page.replace('<div id="root"></div>', f'<div id="root">{capsule}</div>'), encoding="utf-8")
     templates = real / "decide" / "templates"
     if templates.is_dir():
         shutil.copytree(templates, tree / "decide" / "templates")
@@ -324,7 +363,7 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(
         sitemap(blog_dates=blog_dates, use_case_dates=use_case_dates,
-                comparison_dates=comparison_dates), encoding="utf-8")
+                comparison_dates=comparison_dates, guide_dates=guide_dates), encoding="utf-8")
     if blog_dates:
         for page in tree.rglob("*.html"):
             if page.relative_to(tree).parts[0] == "legal":

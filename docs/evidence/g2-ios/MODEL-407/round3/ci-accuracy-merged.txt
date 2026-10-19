@@ -1,0 +1,65 @@
+MODEL-407 round 3: merged-source Decision accuracy CI evidence
+
+Workflow: Decision accuracy (.github/workflows/accuracy.yml)
+Run: 39120815089
+Job: 117655878672, Decision accuracy
+URL: https://github.com/turbobeest/modelspec/actions/runs/39120815089/job/117655878672
+PR head SHA: e7f422751aa49dcb8461863fd7f5cd7983208e82
+Base SHA: 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+Executed GitHub merge SHA: 28e70b4218584865a977bf34a495e0119a0936f0
+Job conclusion: success (parent's completed-job check)
+Accuracy report result: Overall PASS (raw log line 1257)
+
+The parent retrieved the completed public job log and reported direct fetch
+exit status 0. This extraction made no GitHub call.
+Raw log: tmp/model-407/round3/root/merged-ci-accuracy-raw.txt
+Raw log SHA-256: 31364564a9cfe12eca199df10e414963293aee93b367abf8a86276038d65c189
+
+Observed versions:
+- CPython 3.11.17 (raw line 771)
+- Node v24.21.0 and npm 11.19.0 (raw lines 804-805)
+- Vitest v5.0.1 (raw line 1360)
+
+Exact accuracy command, raw lines 1114-1117:
+python scripts/accuracy.py --profile pr \
+  --approved-recall-baseline "$RUNNER_TEMP/approved-recall-baseline.json" \
+  --output-dir accuracy-report
+
+Deterministic correctness command, raw lines 1273-1296:
+/opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q tests/test_decision_cli.py tests/test_decision_compact_explain.py tests/test_decision_compatibility.py tests/test_decision_contract.py tests/test_decision_cost_per_task.py tests/test_decision_filter.py tests/test_decision_optimise.py tests/test_decision_explain.py tests/test_decision_independence.py tests/test_decision_model.py tests/test_decision_offering_evidence.py tests/test_decision_recall_fixes.py tests/test_decision_registry.py tests/test_decision_relax.py tests/test_decision_snapshot.py tests/test_decision_sources.py tests/test_decision_verify.py tests/test_decision_vocabulary.py
+Observed summary, raw line 1317:
+1301 passed in 241.66s (0:04:01)
+
+Python output parity command, raw lines 1327-1334:
+/opt/hostedtoolcache/Python/3.11.17/x64/bin/python -m pytest -q tests/test_decide_worker.py tests/test_decide_page_specs.py
+Observed summary, raw line 1346:
+678 passed, 1 skipped in 212.87s (0:03:32)
+
+Web output parity command, raw lines 1350-1358 (working directory web):
+npm exec -- vitest run src/decide/__tests__/contract.test.ts src/decide/__tests__/vocabulary.test.ts
+Observed summary, raw lines 1365-1366:
+2 test files passed; 227 tests passed.
+
+The deterministic command includes tests/test_decision_snapshot.py without a
+marker exclusion. Its test_a_thirty_model_snapshot_is_small_and_loads_fast
+retains the original acceptance gate at source lines 1019-1029: collect five
+load samples with GC paused, take min(samples), and assert elapsed < 0.1.
+The entire test file has identical Git blob ef29d0b50b90493306735ca6399219b492ffb7eb
+at both pre-fix 819ba9e1 and merged head e7f422751aa49dcb8461863fd7f5cd7983208e82.
+The 100 ms gate was not relaxed.
+
+Passing quiet output does not print individual snapshot-load samples. The
+241.66s and 212.87s values describe complete pytest invocations, not load
+latencies. The log does not print numeric exit codes for those subprocesses;
+their summaries and the accuracy report record success.
+
+Selected raw lines below retain their content with trailing whitespace removed
+and a line-number prefix added. Line numbers refer to the raw file with the SHA-256 recorded above.
+754: Decision accuracy	Checkout	2026-10-18T10:50:24.3802133Z HEAD is now at 28e70b42 Merge e7f422751aa49dcb8461863fd7f5cd7983208e82 into 6f45c2a7dc9ce2e771bd1ecea926a1a29fe1ad49
+757: Decision accuracy	Checkout	2026-10-18T10:50:24.3932081Z 28e70b4218584865a977bf34a495e0119a0936f0
+771: Decision accuracy	Set up Python	2026-10-18T10:50:24.5665228Z Successfully set up CPython (3.11.17)
+1257: Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T11:01:43.5544659Z **Overall: PASS**
+1317: Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T11:01:43.5573201Z     "1301 passed in 241.66s (0:04:01)"
+1346: Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T11:01:43.5581901Z       "678 passed, 1 skipped in 212.87s (0:03:32)"
+1366: Decision accuracy	Run PR accuracy and frozen-image engine recall	2026-10-18T11:01:43.5592723Z       "\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m227 passed\u001b[39m\u001b[22m\u001b[90m (227)\u001b[39m",
+1403: Decision accuracy	Upload accuracy report	2026-10-18T11:01:45.2593574Z Artifact download URL: https://github.com/turbobeest/modelspec/actions/runs/39120815089/artifacts/12133984570
