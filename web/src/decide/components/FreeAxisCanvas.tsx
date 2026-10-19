@@ -234,7 +234,7 @@ export function FreeAxisCanvas({
   const yMust = mustValue(yAxis, selections);
   const height = plotHeight(plotWidth);
   const frontier = frontierIds(points, xAxis, yAxis);
-  const winner = decision.explanation.shortlist.top?.m.id;
+  const winner = decision.answer?.kind === "tied" ? undefined : decision.explanation.shortlist.top?.m.id;
   const nearMisses = new Set(
     decision.nearMisses.map((nearMiss) => nearMiss.row.m.id),
   );

@@ -40,7 +40,8 @@ export function DecisionTable({
 }) {
   const { label, basisName, vocabulary } = useVocab();
   const ranked = spec.boardWeights === undefined || boardHasPreference(spec);
-  const visibleColumns = ranked ? columns : columns.filter(([key]) => key !== "rank");
+  const showRanks = ranked && decision.answer?.kind !== "tied";
+  const visibleColumns = showRanks ? columns : columns.filter(([key]) => key !== "rank");
   const [sort, setSort] = useState(ranked ? "rank" : "name"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
@@ -128,7 +129,7 @@ export function DecisionTable({
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row status-out" : r.status === 0 ? "status-may" : "status-qualifies"}`}
                 onClick={() => onSelect(r.m.id)}
               >
-                {ranked && <td>{r.rank ?? ""}</td>}
+                {showRanks && <td>{r.rank ?? ""}</td>}
                 <td>
                   <button
                     className="table-model"

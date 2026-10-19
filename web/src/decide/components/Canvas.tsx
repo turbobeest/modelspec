@@ -118,7 +118,8 @@ export function Canvas({
   // Labelled: selected, shortlist, frontier and may-qualify points, most
   // important first; any other point while it is hovered or focused.
   const shortlisted = new Set(
-    Object.values(e.shortlist).flatMap((s) =>
+    Object.entries(e.shortlist).flatMap(([key, s]) =>
+      key === "top" && decision.answer?.kind === "tied" ? [] :
       s && typeof s === "object" && "m" in s ? [s.m.id] : [],
     ),
   );
@@ -518,7 +519,8 @@ export function Canvas({
                 {status(hover)}
                 {reason(hover)
                   ? ": " + reason(hover)
-                  : boardRanked ? " · #" + hover.rank + " on your weights" : ""}
+                  : boardRanked && !(decision.answer?.kind === "tied" && decision.answer.members.includes(`${hover.m.lab}/${hover.m.id}`))
+                    ? " · #" + hover.rank + " on your weights" : ""}
               </span>
             </div>
           )}

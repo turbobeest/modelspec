@@ -75,7 +75,19 @@ test("MODEL-405: the header labels the snapshot date and keeps its hash on focus
   await expect(date).toHaveText("Data as of 2026-10-16");
   await date.focus();
   await expect(page.getByRole("tooltip")).toContainText(balanced.snapshot);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(date).toBeVisible();
 });
+
+for (const metadata of ["missing", "mismatched"] as const) {
+  test(`MODEL-405: ${metadata} snapshot metadata never supplies an invented date`, async ({ page }) => {
+    await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({
+      json: { ...vocabularyData, snapshot: metadata === "missing" ? balanced.snapshot : "snap_other", as_of: metadata === "missing" ? undefined : "2026-10-16", coverage: undefined },
+    }));
+    await openDecide(page);
+    await expect(page.locator(".global-header .snapshot")).toHaveText("Data date unavailable");
+  });
+}
 
 test("MODEL-405: Feedback never covers the private assistant card at 390px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -108,6 +120,30 @@ test("MODEL-405: the answer pairs neutrality with a dated engine source", async 
   await expect(citation).toContainText(source.date);
 });
 
+test("MODEL-405: the proof follows changed response evidence without inventing missing sources", async ({ page }) => {
+  const response = structuredClone(balanced);
+  for (const row of [...response.results, ...response.top]) {
+    for (const group of [...row.evidence, ...row.contributions.map((part) => ({ items: part.evidence }))]) {
+      for (const item of group.items) {
+        item.source = "https://example.org/model-405-evidence";
+        item.date = "2026-10-15";
+      }
+    }
+  }
+  await page.route("**/v1/decide", (route) => route.fulfill({ json: response }));
+  await openDecide(page);
+  const citation = page.locator(".board-answer-head .answer-source");
+  await expect(citation.getByRole("link")).toHaveAttribute("href", "https://example.org/model-405-evidence");
+  await expect(citation).toContainText("2026-10-15");
+  for (const row of [...response.results, ...response.top]) {
+    row.evidence = [];
+    for (const part of row.contributions) part.evidence = [];
+  }
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText("has an estimate without sourced evidence");
+  await expect(citation).toHaveCount(0);
+});
+
 test("the public decision page opens on the facet board", async ({ page }) => {
   const requests: { explain?: string; where?: string[]; optimize?: unknown }[] = [];
   page.on("request", (request) => {
@@ -118,9 +154,9 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Ask this from your agent" })).toBeVisible();
   await expect(page.getByText(/^Your agent gets this answer from \$0\.\d+$/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "no paid placement · sourced" })).toHaveAttribute("href", "https://modelspec.dev/legal/neutrality/");
+  await expect(page.getByRole("link", { name: "ModelSpec is neutral: no referral fees, no paid placement." })).toHaveAttribute("href", "https://modelspec.dev/legal/neutrality/");
   await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
   await expect(page.locator(".template-shortcuts button")).toHaveCount(6);
   await expect(page.getByLabel("X axis")).toHaveValue("facet:offering.cost_per_task");
@@ -132,14 +168,14 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   expect(requests[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
   expect(requests[0]).not.toHaveProperty("task_type");
   await expect(page.locator(".board-intro .eyebrow")).toHaveText("Free for people · No paid placement");
-  await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
+  await page.getByRole("region", { name: "Ask this from your agent" }).getByRole("button", { name: "Spec", exact: true }).click();
   expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(requests[0]);
 });
 
 test("agent hand-off leads with the CLI and copies one message with the current Spec", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openBoard(page);
-  const card = page.getByRole("region", { name: "Give this to my agent" });
+  const card = page.getByRole("region", { name: "Ask this from your agent" });
   await expect(card).toBeVisible();
   await expect(page.locator(".agent-handoff")).toHaveCount(1);
   const [answer, handoff] = await Promise.all([
@@ -173,12 +209,6 @@ test("agent hand-off leads with the CLI and copies one message with the current 
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(message);
   await expect(card.getByRole("status")).toHaveText("Hand-off copied for your agent.");
 
-  const price = page.locator(".answer-assurances");
-  await page.evaluate(() => navigator.clipboard.writeText(""));
-  await price.getByRole("button", { name: "Copy for my agent" }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(message);
-  await expect(price.getByRole("status")).toHaveText("Hand-off copied for your agent.");
-
   const updatedRequest = page.waitForRequest((request) => request.url().endsWith("/v1/decide") && request.method() === "POST" && request.postDataJSON().explain === "summary");
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   const updated = (await updatedRequest).postDataJSON();
@@ -187,9 +217,9 @@ test("agent hand-off leads with the CLI and copies one message with the current 
   expect(JSON.parse(await card.getByLabel("Spec snippet").innerText())).toEqual(updated);
 });
 
-test("evidence source links meet AA in both themes", async ({ page }) => {
+for (const location of ["answer", "detail"] as const) test(`${location} evidence source links meet AA in both themes`, async ({ page }) => {
   await openBoard(page);
-  const source = page.getByRole("link", { name: /Source/ }).first();
+  const source = location === "answer" ? page.locator(".answer-source a") : page.getByRole("link", { name: /Source/ }).first();
   await expect(source).toBeVisible();
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
@@ -214,7 +244,7 @@ test("evidence source links meet AA in both themes", async ({ page }) => {
 
 test("the accent card meets AA in both themes and every format", async ({ page }) => {
   await openBoard(page);
-  const card = page.getByRole("region", { name: "Give this to my agent" });
+  const card = page.getByRole("region", { name: "Ask this from your agent" });
   await expect(card).toBeVisible();
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
@@ -374,7 +404,7 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
     page.getByRole("region", { name: "Facets", exact: true }),
     page.locator(".board-answer"),
     page.locator(".board-ranked-answer").last(),
-    page.getByRole("region", { name: "Give this to my agent" }),
+    page.getByRole("region", { name: "Ask this from your agent" }),
     page.locator(".why-panel"),
   ]) await expect(region).toBeVisible();
 }
@@ -413,7 +443,7 @@ for (const [width, scrollbar] of [[1440, 0], [1236, 0], [1124, 0], [1100, 0], [1
       page.locator(".board-answer").boundingBox(),
       page.getByRole("region", { name: "Trade-off canvas" }).boundingBox(),
       page.getByRole("region", { name: "Refine the answer" }).boundingBox(),
-      page.getByRole("region", { name: "Give this to my agent" }).boundingBox(),
+      page.getByRole("region", { name: "Ask this from your agent" }).boundingBox(),
       page.locator(".decision-table").boundingBox(),
     ]);
     // A gated build remounts the board when /v1/human-status answers: keep the

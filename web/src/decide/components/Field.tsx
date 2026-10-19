@@ -85,7 +85,7 @@ function NarrowingDetails({
             { state: "qualifies", n: e.feasible.length, label: "qualify", icon: "✓" },
             { state: "may", n: e.may.length, label: "may qualify", icon: "?" },
             { state: "out", n: e.excluded.length, label: "out", icon: "×" },
-            ...(boardOnly ? [{ state: "best", n: best ?? "—", label: "best for your weights", icon: "★" }] : []),
+            ...(boardOnly ? [{ state: "best", n: best ?? "—", label: "best for your weights", icon: decision.answer?.kind === "tied" ? "" : "★" }] : []),
           ].map(({ state, n, label, icon }) => <div className={`narrowing-total status-${state}`} key={state}>
             <strong className="narrowing-number" key={n}>{n}</strong><span>{icon} {label}</span>
           </div>)}

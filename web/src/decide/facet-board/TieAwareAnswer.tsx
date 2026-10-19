@@ -81,11 +81,7 @@ function termSentence(term: BlendTerm, nameOf: (model: string) => string, dimens
     return `${name} alone: ${leaders} lead${term.leaders.length === 1 ? "s" : ""}.`;
   }
   const leader = nameOf(term.leaders[0]);
-  let text = `${name} alone: ${leader} leads`;
-  if (term.p_best !== null) text += `, ${percent(term.p_best)} likely the strongest of the well-measured models`;
-  if (term.runner_up !== null && term.p_runner_up !== null)
-    text += `; ${nameOf(term.runner_up)} is ahead of it with probability ${percent(term.p_runner_up)}`;
-  return `${text}.`;
+  return `${name} alone: ${leader} leads.`;
 }
 
 export function TieAwareAnswer({
@@ -111,15 +107,12 @@ export function TieAwareAnswer({
       return model === null ? [] : [{ key, label, model }];
     })
     : [];
-  const banded = new Map(bands?.best.map((entry) => [entry.model, entry]) ?? []);
-  const leading = (leadingModels(decision) ?? []).map((model): Pick<BandEntry, "model" | "p_best" | "p_beats_leader" | "cost_per_task"> =>
-    banded.get(model) ?? { model, p_best: null, p_beats_leader: null, cost_per_task: null });
+  const leading = leadingModels(decision) ?? [];
   const heading = leading.length === 0
     ? "No model has enough evidence to lead yet"
     : leading.length === 1
-      ? `Best for your weights: ${nameOf(leading[0].model)}`
+      ? `Best for your weights: ${nameOf(leading[0])}`
       : `Best for your weights: these ${leading.length}. The evidence can't separate them.`;
-  const ordered = leading.some((entry) => entry.p_best !== null);
 
   return <section className="board-tie-answer" aria-labelledby={headingId}>
     {mix && <p className="board-blend">{mix}.</p>}
@@ -128,21 +121,19 @@ export function TieAwareAnswer({
       Every other model with enough evidence is behind it with probability over {percent(1 - bands.band_probability)}.
     </p>}
     {leading.length > 1 && <p className="board-tie-note">
-      {ordered ? "Ordered by chance of being best." : "In score order; the order is not evidence that one is better."}
+      Order within the tied group is not evidence that one is better.
     </p>}
-    {leading.length > 1 && <ol className="board-tie-group">
-      {leading.map((entry) => {
-        const row = byModel.get(entry.model);
-        const pickedBy = picks.filter((pick) => pick.model === entry.model).map((pick) => pick.label);
-        return <li key={entry.model}>
-          <strong>{nameOf(entry.model)}</strong>
+    {leading.length > 1 && <ul className="board-tie-group">
+      {leading.map((model) => {
+        const row = byModel.get(model);
+        const pickedBy = picks.filter((pick) => pick.model === model).map((pick) => pick.label);
+        return <li key={model}>
+          <strong>{nameOf(model)}</strong>
           {row && <small>{row.m.labName} · via {payee(row.best.o.provider)}</small>}
-          {entry.p_best !== null && <small>{percent(entry.p_best)} chance of being best</small>}
-          {uncertainBeat(entry.p_beats_leader) && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands?.leader ?? entry.model)}</small>}
           {pickedBy.length > 0 && <span className="board-tie-pick">picked by {pickedBy.join(", ")}</span>}
         </li>;
       })}
-    </ol>}
+    </ul>}
     {answer?.kind === "tied" && (picks.length > 0
       ? <>
         <h3>What breaks the tie</h3>
