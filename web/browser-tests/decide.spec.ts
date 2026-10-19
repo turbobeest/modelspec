@@ -3,6 +3,8 @@ import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
 import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
 import { check, counterView, measure, openDecide, routeFixtures, routeNarrowedDecision, stickyChartView } from "../scripts/decide-layout-measure.mjs";
+import balanced from "../src/decide/__fixtures__/live-assistant-balanced-full.json" with { type: "json" };
+import vocabularyData from "../src/decide/__fixtures__/live-vocabulary.json" with { type: "json" };
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
@@ -28,6 +30,83 @@ async function openBoard(page: import("@playwright/test").Page) {
   ).toBeVisible();
   await expect(page.locator("textarea")).toHaveCount(0);
 }
+
+test("MODEL-405: a tied answer has no winner styling and keeps probabilities in detail", async ({ page }) => {
+  await openDecide(page);
+  const answer = page.locator(".board-tie-answer");
+  await expect(answer.locator("h2 + p")).toHaveText("Order within the tied group is not evidence that one is better.");
+  await expect(answer.locator(".board-tie-group > li")).toHaveCount(balanced.answer.members.length);
+  await expect(page.locator(".narrowing-best")).toHaveCount(0);
+  await expect(page.getByLabel("Narrowing")).not.toContainText("★");
+  await expect(answer).not.toContainText("chance of being best");
+  await expect(page.locator(".point.selected")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Decision table" }).getByRole("columnheader", { name: /^#/ })).toHaveCount(0);
+  const detail = page.getByRole("region", { name: "Why this model", exact: true });
+  await expect(detail).not.toContainText(/#\d+ of/);
+  await expect(detail).toContainText("Chance of being best");
+  const point = page.locator(".point").first();
+  await point.click();
+  await expect(point).toHaveClass(/selected/);
+});
+
+test("MODEL-405: agent copy and sourced pricing follow the human answer", async ({ page }) => {
+  await openDecide(page);
+  const block = page.getByRole("region", { name: "Ask this from your agent" });
+  await expect(block).toBeVisible();
+  await expect(block.getByRole("button", { name: "Copy for my agent", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Copy for my agent", exact: true })).toHaveCount(1);
+  await expect(block).toContainText("The price is for a ModelSpec answer, not for using a model.");
+  await expect(block).toContainText(/Your agent gets this answer from \$[\d.]+/);
+  await expect(block).toContainText(/A full explanation costs \d+ credits\./);
+  const answer = await page.locator(".board-ranked-answer").last().boundingBox();
+  const cta = await block.boundingBox();
+  expect(answer).not.toBeNull();
+  expect(cta).not.toBeNull();
+  if (!answer || !cta) throw new Error("Answer and agent block must render");
+  expect(cta.y).toBeGreaterThanOrEqual(answer.y + answer.height);
+});
+
+test("MODEL-405: the header labels the snapshot date and keeps its hash on focus", async ({ page }) => {
+  await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({
+    json: { ...vocabularyData, snapshot: balanced.snapshot, as_of: "2026-10-16" },
+  }));
+  await openDecide(page);
+  const date = page.locator(".global-header .snapshot");
+  await expect(date).toHaveText("Data as of 2026-10-16");
+  await date.focus();
+  await expect(page.getByRole("tooltip")).toContainText(balanced.snapshot);
+});
+
+test("MODEL-405: Feedback never covers the private assistant card at 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openDecide(page);
+  const card = page.getByRole("button", { name: /^Private assistant you host yourself/ });
+  const feedback = page.getByRole("button", { name: "Feedback", exact: true });
+  await expect(feedback).toBeVisible();
+  for (const scroll of [false, true]) {
+    if (scroll) await card.scrollIntoViewIfNeeded();
+    const a = await card.boundingBox();
+    const b = await feedback.boundingBox();
+    if (!a || !b) throw new Error("Card and Feedback must render");
+    expect(a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y).toBe(false);
+  }
+  await feedback.click();
+  await expect(page.getByRole("dialog", { name: "Feedback" })).toBeVisible();
+});
+
+test("MODEL-405: the answer pairs neutrality with a dated engine source", async ({ page }) => {
+  await openDecide(page);
+  const proof = page.locator(".board-answer-head");
+  await expect(proof.getByRole("link", { name: "ModelSpec is neutral: no referral fees, no paid placement." })).toHaveAttribute("href", /\/legal\/neutrality\/$/);
+  const citation = proof.locator(".answer-source");
+  await expect(citation.getByRole("link")).toBeVisible();
+  const url = await citation.getByRole("link").getAttribute("href");
+  const evidence = [...balanced.results, ...balanced.top].flatMap((row) => row.evidence.flatMap((group) => group.items));
+  const source = evidence.find((item) => item.source === url);
+  expect(source).toBeDefined();
+  if (!source) throw new Error("Citation must come from the engine response");
+  await expect(citation).toContainText(source.date);
+});
 
 test("the public decision page opens on the facet board", async ({ page }) => {
   const requests: { explain?: string; where?: string[]; optimize?: unknown }[] = [];
