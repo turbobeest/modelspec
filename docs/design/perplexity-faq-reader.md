@@ -1,6 +1,6 @@
 # Perplexity Pro FAQ reader
 
-Perplexity's Pro pricing card no longer lists model versions. The expanded FAQ on `https://www.perplexity.ai/pro` does. This reader can parse that answer transiently in memory. It does not guess a model name, and it does not replace the filed `offering.subscription.models_covered` value.
+The 2026-10-18 read found model versions in the expanded FAQ at `https://www.perplexity.ai/pro`. This reader can parse that answer transiently in memory. It does not guess a model name, and it does not replace the filed `offering.subscription.models_covered` value.
 
 ## Citation policy
 

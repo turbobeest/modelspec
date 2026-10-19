@@ -11,6 +11,7 @@ Private branch: `model-368-perplexity-pro`. Existing draft data PR: #97.
 - Merged #840 SHA: `58482dc3d50a9b8746662e8033fb14274e5a1788`.
 - Final implementation SHA: `2a4e5a4ae28caa1b0ea81628df5222f1a3b29f73`.
 - Initial private SHA: `d299550bc36e863a46c2d8f925ec61e41a0d9b7a`.
+- Final private SHA: `6fb6bea4c5de82843493f7cb461a96ec19297d14`.
 - The subsequent evidence commit contains this report and the standalone private
   export audit. The final code SHA is reported in the executor completion line
   and can be resolved with `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-368-cite-fix.md`.
@@ -23,6 +24,10 @@ main's xAI reader/whole-document helper. Its focused tests passed before the
 second merge. PR #823 depends on #840 merging first.
 
 ## Result
+
+Execution status: **BLOCKED**. The code checks pass, including the required full
+suite. The private export admits five cited facts but quarantines the Pro model
+list because of its existing mismatch. The all-facts-present requirement fails.
 
 Perplexity source retention uses #840's guard for the apex and `www` hosts.
 `verify()` returns `cited` before reading page bytes or invoking an extractor.
@@ -113,7 +118,14 @@ that fact, following the older 2026-09-29 verification. The #840 design and
 for cite-only facts. Neither the append-only log nor the admission rule was
 changed. This blocks the spec's requirement that all curated facts be present
 and cited. A resolution must respect that quarantine policy and the instruction
-not to change fact values.
+not to change fact values. An independent read-only check found no supported
+retraction/supersession outcome that could retire this mismatch under those
+constraints. The current Verification schema rejects `cited`, `retracted`, and
+`superseded`; cited queue checks intentionally do not append verification rows.
+The unchanged value hash is
+`sha256:d8f1c80fb0bbf3ce12db7154fe18f281f96c8325d28609aad7272f5e21d1a685`.
+The winning historical row is private `verification/log.jsonl:21269`;
+its older verified row is at line 16114.
 
 ```sh
 env PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_SNAPSHOT_KEY=model-368-cite-test-signing-key-only /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --data-dir /Users/terbeest/dev/worktrees/data-model-368 --out tmp/model-368-cite/private-worker --check
@@ -128,7 +140,71 @@ The audit's first attempts had script errors for optional `sources` and a
 missing exported facet. The final script handles those cases explicitly and
 reports the actual missing-fact failure above.
 
-Remaining required gate results are recorded below after completion.
+| Check | Exit | Observed result |
+| --- | ---: | --- |
+| Final focused Python suite | 0 | 558 passed in 3.52s |
+| Agent-copy generator check | 0 | Generated bundle current |
+| OpenAPI generator check | 0 | Schema matches implementation |
+| QA contract generation and in-memory comparison | 0 | Checked-in fixture unchanged and matches capture |
+| Site build | 0 | Build completed; `site-build.log` |
+| Surface lint | 0 | 0 findings; 5,366 files checked |
+| Web install / build / test | 0 | 902 tests passed; 57 files passed, one skipped |
+| MCP install / typecheck / test | 0 | 235 tests passed across 12 files |
+| Evidence/release-chart guard | 0 | Nothing to check |
+| Data freeze | 0 | Data freeze: ok |
+| Private Worker export and import check | 0 | 128 vendored files; premier gap 0 |
+| Private authored-data cleanup checks | 0 | 4 passed |
+| Private exported-fact audit | 1 | Five cited facts present; Pro models covered quarantined |
+| Additional private script suite | 1 | 18 failed, 200 passed, 17 skipped, 8 errors; old CopyStore call signatures |
+| Full pytest under the shared lock | 0 | 12,340 passed, 9 skipped, 11 warnings in 1,805.50s (30:05) |
+
+The full run waited for the shared lock, completed in this executor session,
+and returned exit 0 directly. Its log is `tmp/model-368-cite/root/full-pytest.log`.
+No test process from this run remains active.
+
+Tool versions: Python 3.14.4, pytest 9.1.1, Node v22.22.3, npm 10.9.8,
+git 2.50.1, gh 2.102.0. Checked with the corresponding `--version` commands.
+Node commands used `/Users/terbeest/.nvm/versions/node/v22.22.3/bin` first on
+PATH. Process exit codes were read directly, never from a log-display pipe.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+git diff --exit-code -- api/worker/openapi.yaml cli/modelspec/agent-bundle.json qa/fixtures/mcp-tools.json
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/chart_check_pr.py --base origin/main
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base origin/main --head HEAD --branch model-368-perplexity-faq
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+Web commands, working directory `web`, each with the pinned Node PATH:
+
+```sh
+npm ci
+npm run build
+npm test
+```
+
+MCP commands, working directory `mcp`, each with the pinned Node PATH:
+
+```sh
+/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm ci
+/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm run typecheck
+/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm test
+```
+
+Private cleanup check, working directory `data-model-368`:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --assert=plain --tb=short -p no:cacheprovider docs/evidence/g2-ios/MODEL-368-cite/test_cite_cleanup.py
+```
+
+The exact requested `git -C /Users/terbeest/dev/worktrees/data-model-368 diff
+origin/main --stat` was inspected. It contains no retained Perplexity page-copy
+files. The merge-base PR diff contains three files: the subscription YAML,
+the data evidence document, and its offline cleanup test.
 
 ## Observation limits
 
@@ -150,3 +226,19 @@ execution evidence.
 The data branch predates newer data-main work. Its two-dot diff includes
 unrelated main-only MODEL-367 files and the newer main pin. The PR diff against
 the merge base contains this ticket's citation cleanup, not those removals.
+
+## PR state and description restriction
+
+Both branches were pushed with `CI_LOCAL_SKIP=1 git push -u origin <branch>`.
+GitHub confirmed PR #823 and data PR #97 remain drafts at `43082b20` and
+`6fb6bea`, respectively, before this final evidence-only code commit. The final
+code SHA is the report's last commit, resolved by the command above and recorded
+in the executor completion line. No ready transition or merge was attempted.
+
+The spec requires PR description edits, but `CODEX-EXEC.md` explicitly forbids
+`gh pr edit` and `gh api`. An asynchronous question requested a narrow exception
+for these two description bodies. No answer arrived during execution, so
+the prepared [code description](MODEL-368-cite/code-pr-body.md) and
+[data description](MODEL-368-cite/data-pr-body.md) remain for the orchestrator.
+They name the #840 dependency, the deferred data pin, and the actual export
+blocker. No alternative API was used to bypass the command restriction.
