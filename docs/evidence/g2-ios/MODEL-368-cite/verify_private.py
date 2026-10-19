@@ -19,6 +19,8 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--base", default="d299550bc36e863a46c2d8f925ec61e41a0d9b7a")
+    parser.add_argument("--key", default="model-368-cite-test-signing-key-only",
+                        help="test-only snapshot signing key used for the local bundle")
     args = parser.parse_args()
     relative = "offerings/subscriptions/perplexity.yaml"
     original = yaml.safe_load(subprocess.check_output(
@@ -40,7 +42,7 @@ def main() -> None:
     bundle = runpy.run_path(str(args.bundle / "bundled_data.py"))
     raw = bundle["read"]("/api/decision/snapshot.json.gz")
     assert raw is not None, "missing signed snapshot"
-    index = load_snapshot_bytes(raw, key="model-368-cite-test-signing-key-only")
+    index = load_snapshot_bytes(raw, key=args.key)
     plans = {plan["id"]: plan for plan in index.subscription_offerings()}
     sources = load_sources(args.data_dir / "registry/sources.yaml")
     cited = 0

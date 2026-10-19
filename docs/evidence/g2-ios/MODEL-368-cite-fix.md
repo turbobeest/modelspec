@@ -242,3 +242,100 @@ the prepared [code description](MODEL-368-cite/code-pr-body.md) and
 [data description](MODEL-368-cite/data-pr-body.md) remain for the orchestrator.
 They name the #840 dependency, the deferred data pin, and the actual export
 blocker. No alternative API was used to bypass the command restriction.
+
+## Round 3: models_covered
+
+Date: 2026-10-19. Executor: Claude Opus 5.5 (fallback lane). Goal: file a new
+cite-only `perplexity/subscription/pro#offering.subscription.models_covered`
+value from the expanded Pro FAQ, so that it leaves quarantine as a new value.
+
+Result: **BLOCKED**. The correctly curated value is the same set as the filed
+value, so its value hash is the same and the 2026-10-14 `mismatch` still
+quarantines it. Nothing was filed in the data worktree.
+
+### Transient read
+
+| Step | Result |
+| --- | --- |
+| Plain HTTP GET `https://www.perplexity.ai/pro`, 2026-10-19T17:50:00Z | 200, 15,592 bytes, SHA-256 `1eab55e7e9c839c42422146a7f0a7604906279b1e30785823980f4e1819bc62d`. Application shell only; no `#faq` element in the server HTML |
+| Rendered read, local headless Chromium (Playwright 1.63.0 from `web/node_modules`), same user agent and viewport as `RenderedFetcher`, models question expanded as `prepare_pro_faq` does | 200, final URL unchanged |
+| Fetch time of the rendered read | `2026-10-19T17:51:11.546Z` |
+| SHA-256 of the rendered HTML (`page.content()`, UTF-8, 461,908 bytes) | `sha256:8b56772b959dae9c2e610fb59e342ee5871f74e2b269451e2682928e2ca9faac` |
+| `decision/perplexity_faq.py` structure walk on those bytes | Structural hash `sha256:5bbb70cd…f2a0e2` equals the reviewed `FAQ_STRUCTURAL_HASH`; 47 tokens; one five-item list; order equals the reviewed `LIVE_ITEMS` |
+| Firecrawl | Not used; 0 credits |
+
+The page bytes existed only under `/tmp/m368/` and were deleted after the
+parse. No page text, quote or HTML was written to either repository.
+
+### Mapping
+
+Model names only; the answer sentence is not reproduced. Catalogue: `models/`
+in the data worktree at `6fb6bea4`.
+
+| FAQ model name | Canonical ID | Reason |
+| --- | --- | --- |
+| GPT-5.6 Terra | `openai/gpt-5-6-terra` | Card `display_name` is exactly this name |
+| Claude Sonnet 5 | `anthropic/claude-sonnet-5` | Card `display_name` is exactly this name; `claude-sonnet-5-5` is a different model |
+| Gemini 3.1 Pro Thinking | unmapped | No card. `google/gemini-3-1-pro-preview` and `…-preview-customtools` are different, Preview-labelled models |
+| Grok 4.1 | unmapped | No card. `xai/grok-4-1-fast` and `xai/grok-4-1-fast-non-reasoning` are the Fast variants |
+| Sonar 2 | unmapped | No card. `models/perplexity/` holds only `sonar`, `sonar-pro`, `sonar-reasoning-pro` and `sonar-deep-research` |
+
+Mapped 2, unmapped 3. This matches the reviewed `MAPPING` in the reader.
+
+### Why this blocks
+
+The curated value is `["anthropic/claude-sonnet-5", "openai/gpt-5-6-terra"]`,
+the same as the filed value.
+`value_hash` = `sha256:d8f1c80fb0bbf3ce12db7154fe18f281f96c8325d28609aad7272f5e21d1a685`,
+unchanged. The latest log row for that hash is the 2026-10-14 `mismatch`
+(private `verification/log.jsonl:21269`). That row compared the value with the
+`#pricing` region of `model-235-data-perplexity-html` and found no models
+there. The FAQ read today confirms the value. But
+`decision/snapshot.py` `_admit` quarantines a cited fact on its latest
+`mismatch`, keyed only on the value hash. The append-only log and the admission
+rule were not changed.
+
+Not done: `value_hash` is order-sensitive for set facets. The same two IDs in
+FAQ order hash to `sha256:810a5ed5dbcd7201d1bdfcbdd20e95357875cf80e3782eb076336e2bcf8b7ac5`.
+Refiling the same set in another order would leave quarantine without new
+information. That would weaken the quarantine rule, so it was not done. The
+order sensitivity is a separate gap: a set-valued fact can leave a
+mismatch quarantine by reordering alone.
+
+The source reference was also left unchanged. It still cites
+`model-235-data-perplexity-html#pricing`. Moving it to the FAQ (`#faq`, the hash
+and fetch time above) does not change the value hash, so the fact would stay
+quarantined. It would also break the round-2 checks that pin the original
+provenance (`test_cite_cleanup.py`, `verify_private.py`). The URL, fetch time
+and hash above are available for that re-file once the block is resolved.
+
+Ways out, each needing a decision outside this executor:
+
+1. The value changes legitimately. Perplexity changes the FAQ list, or the
+   catalogue gains cards for Gemini 3.1 Pro Thinking, Grok 4.1 or Sonar 2, so
+   that more names map. The set then grows and its hash differs.
+2. A supported way to retire a mismatch recorded against a source region that
+   the fact no longer cites. This changes verification-log semantics.
+3. Leave the fact quarantined. The five other Perplexity facts stay cited.
+
+### Commands and exit codes
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `vendor.py --data-dir …/data-model-368 --out /tmp/m368/private-worker --check`, `MODELSPEC_SNAPSHOT_KEY=model-368-test-key-only` | 0 | 128 files; premier known 26, explicit null 18, gap 0 |
+| `verify_private.py --data-dir … --bundle /tmp/m368/private-worker --key model-368-test-key-only` | 1 | 24 values unchanged; 5 cited exports; `models_covered` absent from snapshot |
+| Focused tests (`test_model_368_cite_only`, `test_model_368_perplexity_faq`, `test_cite_only_retention`, `test_cite_only_verification`, `test_cite_only_redirects`, `test_rendered_sources`) | 0 | 83 passed |
+| `git -C …/data-model-368 diff origin/main --stat` | 0 | No perplexity.ai page copy added. The branch's own diff against the merge base is still `perplexity.yaml`, `MODEL-368-data.md` and `test_cite_cleanup.py`. The two-dot entries under `research/model-367/` are main-only files that the older branch lacks |
+| Full suite under `/tmp/modelspec-fullsuite.lock` | 0 | 12,340 passed, 9 skipped, 11 warnings in 1,595.75s (26:35) |
+
+`verify_private.py` gained a `--key` option, default unchanged, so the audit
+can read a bundle signed with any test key. It still checks for all six
+facts. No other code, test, reader or data changed in round 3. The data
+branch has no round-3 commit. `.engine-pin` is unchanged.
+
+```sh
+env PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_SNAPSHOT_KEY=model-368-test-key-only /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --data-dir /Users/terbeest/dev/worktrees/data-model-368 --out /tmp/m368/private-worker --check
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-368-cite/verify_private.py --data-dir /Users/terbeest/dev/worktrees/data-model-368 --bundle /tmp/m368/private-worker --key model-368-test-key-only
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_368_cite_only.py tests/test_model_368_perplexity_faq.py tests/test_cite_only_retention.py tests/test_cite_only_verification.py tests/test_cite_only_redirects.py tests/test_rendered_sources.py
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
