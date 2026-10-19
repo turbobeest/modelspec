@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import App from "../App";
 import { decisionSpecSchema } from "../adapter/contract";
-import { AgentHandoff, AnswerAssurances } from "../components/AgentHandoff";
+import { AgentHandoff } from "../components/AgentHandoff";
 import { encodeBoardSpec, type BoardSelections } from "../facet-board/model";
 import { realBaseSpec, vocabularySchema } from "../vocabulary";
 import vocabularyJson from "../__fixtures__/live-vocabulary.json";
@@ -59,7 +59,7 @@ it.each(boards)("shows the exact API Spec and copies one hand-off message for th
     },
   )}`);
   render(<App />);
-  const card = await screen.findByRole("region", { name: "Give this to my agent" });
+  const card = await screen.findByRole("region", { name: "Ask this from your agent" });
   await user.click(within(card).getByRole("button", { name: "Spec" }));
   const shown = within(card).getByLabelText("Spec snippet").textContent ?? "";
   const spec: unknown = JSON.parse(shown);
@@ -74,16 +74,14 @@ it.each(boards)("shows the exact API Spec and copies one hand-off message for th
   expect(within(card).getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
   expect(within(card).getByRole("status")).toHaveAttribute("aria-live", "polite");
   expect(within(card).getByRole("status")).toHaveAttribute("aria-atomic", "true");
-  const price = screen.getByText(/^Your agent gets this answer from/).closest(".answer-assurances") as HTMLElement;
-  await user.click(within(price).getByRole("button", { name: "Copy for my agent" }));
-  expect(clipboard).toHaveBeenLastCalledWith(message);
-  expect(within(price).getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
+  expect(within(card).getByText(handoffData.price_line)).toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: "Copied ✓" })).toHaveLength(1);
 });
 
 it("never sends task_type the board did not ask for", async () => {
   const fetch = liveFetch();
   render(<App />);
-  await screen.findByRole("region", { name: "Give this to my agent" });
+  await screen.findByRole("region", { name: "Ask this from your agent" });
   const sent = sentSpecs(fetch).find((spec) => spec.explain === "summary");
   expect(sent).toBeDefined();
   expect(sent).not.toHaveProperty("task_type");
@@ -94,7 +92,7 @@ it("follows current edits and removes the previous board's copy confirmation", a
   const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
   const fetch = liveFetch();
   render(<App />);
-  const card = await screen.findByRole("region", { name: "Give this to my agent" });
+  const card = await screen.findByRole("region", { name: "Ask this from your agent" });
   await user.click(within(card).getByRole("button", { name: "Spec" }));
   const oldSnippet = within(card).getByLabelText("Spec snippet").textContent;
   await user.click(within(card).getByRole("button", { name: "Copy for my agent" }));
@@ -107,7 +105,7 @@ it("follows current edits and removes the previous board's copy confirmation", a
   expect(current).not.toBe(oldSnippet);
   expect(within(card).getByRole("status")).toBeEmptyDOMElement();
   await waitFor(() => expect(sentSpecs(fetch).filter((spec) => spec.explain === "summary")).toHaveLength(2));
-  const updated = await screen.findByRole("region", { name: "Give this to my agent" });
+  const updated = await screen.findByRole("region", { name: "Ask this from your agent" });
   expect(JSON.parse(within(updated).getByLabelText("Spec snippet").textContent ?? ""))
     .toEqual(sentSpecs(fetch).filter((spec) => spec.explain === "summary").at(-1));
   await user.click(within(updated).getByRole("button", { name: "Copy for my agent" }));
@@ -171,22 +169,23 @@ it("announces clipboard failure and clears it when another snippet is selected",
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
 });
 
-it("renders the built price, explanation credits, neutrality excerpt and flag-aware key link", () => {
-  render(<><AnswerAssurances spec={sampleSpec} /><AgentHandoff spec={sampleSpec} /></>);
-  expect(screen.getByText(handoffData.price_line)).toHaveTextContent(/^Your agent gets this answer from \$/);
+it("groups the built price and explanation credits with the agent handoff and identifies what the price buys", () => {
+  render(<AgentHandoff spec={sampleSpec} />);
+  const card = screen.getByRole("region", { name: "Ask this from your agent" });
+  expect(within(card).getByText(handoffData.price_line)).toHaveTextContent(/^Your agent gets this answer from \$/);
   expect(handoffData.price_line).not.toContain("¢");
-  expect(screen.getByText(`A full explanation costs ${handoffData.full_credits} credits.`)).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: `${handoffData.neutrality.text} · sourced` })).toHaveAttribute("href", handoffData.neutrality.href);
-  const key = screen.getByRole("link", { name: handoffData.key_link.label });
+  expect(within(card).getByText(`A full explanation costs ${handoffData.full_credits} credits.`)).toBeInTheDocument();
+  expect(within(card).getByText("The price is for a ModelSpec answer, not for using a model.")).toBeInTheDocument();
+  const key = within(card).getByRole("link", { name: handoffData.key_link.label });
   expect(key).toHaveAttribute("href", handoffData.key_link.href);
   expect(key).toHaveAccessibleDescription(handoffData.key_link.note);
-  expect(screen.getAllByRole("button", { name: "Copy for my agent" })).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: "Copy for my agent" })).toHaveLength(1);
 });
 
-it("confirms a copy on the price-line button for two seconds", async () => {
+it("confirms a copy on the agent handoff button for two seconds", async () => {
   vi.useFakeTimers();
   vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
-  render(<AnswerAssurances spec={sampleSpec} />);
+  render(<AgentHandoff spec={sampleSpec} />);
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Copy for my agent" })); });
   expect(screen.getByRole("button", { name: "Copied ✓" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveClass("template-sr");

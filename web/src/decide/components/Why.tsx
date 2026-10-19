@@ -47,6 +47,8 @@ export function Why({
     insep = e.insep(ranked),
     bd = decision.benchmarks[spec.bench],
     result = decision.results.find((item) => item.offering.model === `${m.lab}/${m.id}`);
+  const tied = (candidate: Row) => decision.answer?.kind === "tied"
+    && decision.answer.members.includes(`${candidate.m.lab}/${candidate.m.id}`);
   const estimatePart =
     spec.basis === "estimate" && spec.domain
       ? result?.contributions.find(
@@ -142,7 +144,7 @@ export function Why({
             }
           >
             {status(row)}
-            {ranked ? ` · #${row.rank} of ${e.feasible.length}` : ""}
+            {ranked && !tied(row) ? ` · #${row.rank} of ${e.feasible.length}` : ""}
           </strong>
           <small>
             {reason(row) ||
@@ -150,7 +152,7 @@ export function Why({
           </small>
           {result && (result.p_best !== null || result.top3_stability !== null) && (
             <small>
-              {result.p_best !== null && `P(best) ${Math.round(result.p_best * 100)}%`}
+              {result.p_best !== null && `Chance of being best: ${Math.round(result.p_best * 100)}%`}
               {result.p_best !== null && result.top3_stability !== null && " · "}
               {result.top3_stability !== null &&
                 `Top-3 stability ${Math.round(result.top3_stability * 100)}%`}
@@ -448,7 +450,7 @@ export function Why({
           {compare && (
             <p>
               {compare.m.name}: {status(compare)}
-              {boardRanked && compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
+              {boardRanked && compare.rank && !tied(compare) ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
               {boardRanked && compare.rank &&
                 `${vocab.benchName(spec.bench)}: ${fmtB(spec.bench, compare.cap)}; ${money(compare.cost)} per task; ${compare.tps ?? "unknown"} tok/s.`}
             </p>

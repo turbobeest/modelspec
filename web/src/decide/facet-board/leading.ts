@@ -11,16 +11,12 @@ export function leadingModels(decision: AdapterDecision): string[] | null {
   return null;
 }
 
-const SHOWN = 3;
-
-/** "Best now: A · B (tied)", or null when the board is not ranked. */
+/** Names a single leader; a tied answer has no best-now headline. */
 export function bestNowLine(decision: AdapterDecision, ranked: boolean): string | null {
+  if (decision.answer?.kind === "tied") return null;
   const leading = ranked ? leadingModels(decision) : null;
   if (leading === null) return null;
   if (leading.length === 0) return "Best now: none has enough evidence yet";
   const names = new Map(decision.explanation.feasible.map((row) => [`${row.m.lab}/${row.m.id}`, row.m.name]));
-  const shown = leading.slice(0, SHOWN).map((model) => names.get(model) ?? model).join(" · ");
-  if (leading.length === 1) return `Best now: ${shown}`;
-  const more = leading.length > SHOWN ? ` +${leading.length - SHOWN} more` : "";
-  return `Best now: ${shown}${more} (tied)`;
+  return leading.length === 1 ? `Best now: ${names.get(leading[0]) ?? leading[0]}` : null;
 }

@@ -56,7 +56,7 @@ async function assertRankedBoard(page) {
   assert.equal(await page.locator("textarea").count(), 0);
   await page.locator(".board-ranked-answer li").first().waitFor();
   await page.getByRole("button", { name: "Share", exact: true }).waitFor();
-  await page.getByRole("region", { name: "Give this to my agent" }).waitFor();
+  await page.getByRole("region", { name: "Ask this from your agent" }).waitFor();
   assert.equal(await page.locator(".agent-handoff").count(), 1);
   const tiers = JSON.parse(fs.readFileSync(new URL("api/worker/tiers.json", root), "utf8"));
   const team = Object.values(tiers.billing.prices).filter((price) => price.kind === "plan" && price.name === "Team" && !price.legacy);
@@ -66,8 +66,8 @@ async function assertRankedBoard(page) {
   const dollars = `$${summary.toFixed(4)}`.replace(/0+$/, "");
   await page.getByText(`Your agent gets this answer from ${dollars}`, { exact: true }).waitFor();
   await page.getByText(`A full explanation costs ${tiers.credits.weights["decide.full"]} credits.`, { exact: true }).waitFor();
-  assert.equal(await page.getByRole("link", { name: "no paid placement · sourced" }).getAttribute("href"), "https://modelspec.dev/legal/neutrality/");
-  const card = page.getByRole("region", { name: "Give this to my agent" });
+  assert.equal(await page.getByRole("link", { name: "ModelSpec is neutral: no referral fees, no paid placement." }).getAttribute("href"), "https://modelspec.dev/legal/neutrality/");
+  const card = page.getByRole("region", { name: "Ask this from your agent" });
   assert.equal(await card.getByLabel("CLI snippet").innerText(),
     "uvx --from modelspec-dev modelspec help agent\nuvx --from modelspec-dev modelspec decide --spec spec.json");
   await card.getByRole("button", { name: "MCP", exact: true }).click();
