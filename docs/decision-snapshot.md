@@ -19,6 +19,7 @@ Inputs, read by `collect_repo`:
 | Sources | `registry/sources.yaml`: `sources: [{id, url}]` (provisional, until MODEL-137 fixes the file) |
 | Domains | each benchmark page's `domains` tags (MODEL-133) |
 | Verification log | `verification/*.jsonl`, one MODEL-134 `Verification` per line; the latest per target wins |
+| Mismatch supersessions | `verification/supersessions.jsonl`, optional and append-only, one `decision.supersession.MismatchSupersession` per line (MODEL-415) |
 
 What never enters:
 
@@ -171,6 +172,12 @@ The optional `record_table` stores sorted dictionary paths, a shared pool of
 canonical JSON values, and one row of pool positions per record ID. A null
 position means an absent field; a position pointing to JSON `null` means an
 explicit null. Every admitted field and the winning verification are retained.
+A cited fact whose stale mismatch was superseded
+([design](design/cite-only-supersession.md)) keeps `verification: null` and
+adds `superseded_mismatches`: the mismatch row with `diff_sha256` in place of
+its diff, the applied supersession record and that record's hash. The field is
+additive and appears only on such records, so other snapshots keep their bytes.
+It is snapshot provenance only; no public response carries it.
 `record(id)` reconstructs and caches the original record on first access. The
 loader also accepts the earlier `records` dictionary.
 

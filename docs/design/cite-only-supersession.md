@@ -155,7 +155,7 @@ New behaviour:
      method, outcome and date, plus `diff_sha256` in place of `diff`. The
      diff of a cite-only check can hold page-derived text, which the
      retention policy forbids copying.
-   - `supersession`: the applied record, normalised JSON.
+   - `supersession`: the applied record, as stored.
    - `supersession_hash`: SHA-256 of that record's canonical JSON.
 
 No path sets `verification` or an outcome of `verified`. A superseded fact is
