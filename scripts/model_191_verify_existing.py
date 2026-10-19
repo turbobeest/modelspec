@@ -104,8 +104,10 @@ CLAIMS = (
 
 
 def _fetch(url: str) -> tuple[bytes, str]:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
+    with open_retained_source(request, timeout=180) as response:
         return response.read(), response.geturl()
 
 
@@ -137,7 +139,7 @@ def _source_copy(plan: SourcePlan, store: CopyStore) -> str:
             f"Provenance: HTML fetched from {resolved}, SHA-256 "
             f"{hashlib.sha256(body).hexdigest()}. Read {READ_DATE}.\n\n{text}\n"
         ).encode()
-    return store.put(retained)
+    return store.put(retained, source_url=plan.url, resolved_urls=(resolved,))
 
 
 def _register_sources() -> None:

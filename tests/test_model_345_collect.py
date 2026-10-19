@@ -47,7 +47,7 @@ def test_the_collector_binds_on_the_cited_region_the_verifier_reads(tmp_path) ->
 """
     store = CopyStore(tmp_path)
     readme = _readme()
-    ref = store.put(outside.encode())
+    ref = store.put(outside.encode(), source_url="https://fixture.example/")
     rules = replace(NORMALISERS["html-default"], strip_volatile=False)
     page = normalise_document(outside.encode(), rules).text
     region = StoredRegions(store, {readme.id: readme}).text(readme.id, ref, BINDING_REGION)
@@ -64,7 +64,7 @@ def test_the_collector_binds_on_the_cited_region_the_verifier_reads(tmp_path) ->
 <p>license_link: https://www.apache.org/licenses/LICENSE-2.0.txt</p>
 </body></html>
 """
-    ref = store.put(inside.encode())
+    ref = store.put(inside.encode(), source_url="https://fixture.example/")
     region = StoredRegions(store, {readme.id: readme}).text(readme.id, ref, BINDING_REGION)
     assert licence_is_bound(names, [region], apache, subject=subject)
     assert readme_binds_licence(readme, store, ref, names, apache, subject)

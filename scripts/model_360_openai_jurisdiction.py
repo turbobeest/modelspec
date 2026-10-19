@@ -300,7 +300,7 @@ def main() -> None:
     mapping = kind_mapping()
     sources_text = upsert_foundation(set_kinds(sources_path.read_text(encoding="utf-8"), mapping))
     store = CopyStore()
-    parent_ref = store.put(body)
+    parent_ref = store.put(body, source_url=FOUNDATION_URL)
     labs_text = rewrite_openai(labs_path.read_text(encoding="utf-8"), parent_ref)
     sources_changed = write_if_changed(sources_path, sources_text)
     labs_changed = write_if_changed(labs_path, labs_text)

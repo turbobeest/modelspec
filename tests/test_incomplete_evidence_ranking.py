@@ -229,7 +229,7 @@ def test_graph_engine_list_interface_returns_ranked_and_report_keeps_unranked(mo
 
 def test_export_versions_changed_shape_and_keeps_unranked_models(tmp_path, monkeypatch):
     from pipeline import ranking
-    monkeypatch.setattr(ranking, 'build_candidates', lambda *args: [measured(), candidate('x', {})])
+    monkeypatch.setattr(ranking, 'build_candidates', lambda *args, cited_facts=None: [measured(), candidate('x', {})])
     ranking.write_export(tmp_path, [], CollectingSink(), {'commit': 'test'})
     payload = json.loads((tmp_path / 'rankings.json').read_text())
     assert payload['schema_version'] == '2.0'
@@ -264,9 +264,10 @@ def test_wizard_floor_is_below_cli_and_does_not_change_cli_default():
 
 def test_cli_report_is_explicit_in_json_and_text(monkeypatch, capsys):
     from pipeline import ranking
+    monkeypatch.setattr('pipeline.load.load_models', lambda root: [])
     monkeypatch.setattr(ModelCard, 'from_yaml_file', lambda path: None)
     monkeypatch.setattr('schema.graph.derive_graph', lambda cards: CollectingSink())
-    monkeypatch.setattr(ranking, 'build_candidates', lambda *args: [measured(), candidate('Absent', {})])
+    monkeypatch.setattr(ranking, 'build_candidates', lambda *args, cited_facts=None: [measured(), candidate('Absent', {})])
     monkeypatch.setattr('sys.argv', ['pipeline.ranking', 'coding', '--json'])
     ranking.main()
     payload = json.loads(capsys.readouterr().out)

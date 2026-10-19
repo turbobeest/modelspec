@@ -592,8 +592,10 @@ def credit_remaining() -> int | None:
 
 
 def scrape_url(url: str, dest: Path) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
+    from decision.retention import metadata_origins, refuse_disk_scrape
+
+    refuse_disk_scrape(url)
+    result = subprocess.run(
         [
             "firecrawl",
             "scrape",
@@ -601,16 +603,26 @@ def scrape_url(url: str, dest: Path) -> None:
             "--wait-for",
             "4000",
             "--only-main-content",
-            "-o",
-            str(dest),
+            "--json",
         ],
         check=True,
+        stdout=subprocess.PIPE,
+        text=True,
     )
+    data = json.loads(result.stdout)
+    metadata = data.get("metadata") or {}
+    for origin in metadata_origins(metadata):
+        refuse_disk_scrape(origin)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(str(data.get("markdown") or ""), encoding="utf-8")
 
 
 def load_page_markdown(
     url: str, cache_dir: Path, fetch: bool
 ) -> tuple[str, Path, bool]:
+    from decision.retention import refuse_disk_scrape
+
+    refuse_disk_scrape(url)
     dest = cache_path_for(url, cache_dir)
     fetched = False
     if dest.exists():

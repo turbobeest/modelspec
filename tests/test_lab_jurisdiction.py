@@ -601,7 +601,7 @@ def test_an_empty_retained_page_fails_the_copy_check_not_the_loader(tmp_path) ->
     from decision.sources import CopyStore
 
     store = CopyStore(tmp_path / "copies")
-    empty = store.put(b"<html><body></body></html>")
+    empty = store.put(b"<html><body></body></html>", source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -628,7 +628,7 @@ def test_an_explicit_null_accepts_a_legal_page_with_text(tmp_path) -> None:
     from decision.sources import CopyStore
 
     store = CopyStore(tmp_path / "copies")
-    ref = store.put(b"<html><body><p>Terms of service. The operator is named and no country of incorporation is stated.</p></body></html>")
+    ref = store.put(b"<html><body><p>Terms of service. The operator is named and no country of incorporation is stated.</p></body></html>", source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -729,7 +729,7 @@ def test_only_prefix_leaves_other_claims_pending(tmp_path) -> None:
 
     store = CopyStore(tmp_path / "copies")
     body = b"<p>Google LLC is a Delaware limited liability company.</p>"
-    ref = store.put(body)
+    ref = store.put(body, source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\nlabs: []\n",
@@ -792,7 +792,7 @@ def test_cli_only_checks_lab_claims(tmp_path, monkeypatch) -> None:
     from decision.verify import Queue
 
     store = CopyStore(tmp_path / "copies")
-    ref = store.put(b"<p>Anthropic is a Delaware public benefit corporation.</p>")
+    ref = store.put(b"<p>Anthropic is a Delaware public benefit corporation.</p>", source_url="https://fixture.example/")
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
     _registry(
         tmp_path,
@@ -974,7 +974,7 @@ def test_check_lab_copies_requires_the_recorded_code(tmp_path) -> None:
     from decision.sources import CopyStore
 
     store = CopyStore(tmp_path / "copies")
-    wrong = store.put(b"<p>Widget LLC was incorporated in the Cayman Islands.</p>")
+    wrong = store.put(b"<p>Widget LLC was incorporated in the Cayman Islands.</p>", source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -999,8 +999,8 @@ def test_check_lab_copies_requires_the_recorded_code(tmp_path) -> None:
 
     both = store.put(
         b"<p>Widget LLC is a Delaware limited liability company. "
-        b"A subsidiary was incorporated in the Cayman Islands.</p>"
-    )
+        b"A subsidiary was incorporated in the Cayman Islands.</p>",
+        source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -1023,7 +1023,7 @@ def test_check_lab_copies_requires_the_recorded_code(tmp_path) -> None:
     with pytest.raises(LabRegistryError, match="outside the recorded set"):
         check_lab_copies(tmp_path, labs, store)
 
-    stated = store.put(b"<p>Widget LLC is a Delaware limited liability company.</p>")
+    stated = store.put(b"<p>Widget LLC is a Delaware limited liability company.</p>", source_url="https://fixture.example/")
     _registry(
         tmp_path,
         "schema_version: 1\n"

@@ -35,7 +35,8 @@ method) is the verifier the log records. Two keys means another model family
 same-family ``verified`` already in the log does not count
 (``Verification.counts``).
 
-Outcomes are ``verified``, ``mismatch`` (with a structured diff) and
+Outcomes are ``verified``, ``mismatch`` (with a structured diff), ``cited``
+(source policy forbids retained bytes; no Verification is logged) and
 ``unreachable`` (the copy, source or region is missing). A claim no
 independent extractor could read is ``skipped``: nothing is logged and it
 stays queued. Anything whose latest logged outcome is not ``verified``, and
@@ -108,6 +109,7 @@ from decision.normalise import (
 )
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
+from decision.retention import cite_only_origin, is_cite_only
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 from decision.units import _MAGNITUDE, UNITS, unit_id
 from decision.xai_matrix import (
@@ -123,7 +125,7 @@ from schema.enums import ArchitectureType
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
 
-Outcome = Literal["verified", "mismatch", "unreachable", "skipped"]
+Outcome = Literal["verified", "mismatch", "unreachable", "skipped", "cited"]
 CONDITION_KEYS = ("effort", "harness", "date", "effective_from", "effective_until")
 
 # --- claims --------------------------------------------------------------------------------------
@@ -224,7 +226,7 @@ class Claim:
             "unit": self.unit,
             "conditions": dict(self.conditions),
             "collector": self.collector.model_dump(),
-            "sources": [s.model_dump() for s in self.sources],
+            "sources": [s.model_dump(mode="json") for s in self.sources],
         }
         if self.base_model:
             data["base_model"] = self.base_model
@@ -5447,6 +5449,8 @@ class StoredRegions:
             {} if cache_documents else None
 
     def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+        if self.cite_only(source_id, copy_ref):
+            return None
         source = self.sources.get(source_id)
         region = next((r for r in source.cited_regions if r.id == region_id), None) \
             if source else None
@@ -5464,6 +5468,11 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def cite_only(self, source_id: str, copy_ref: str) -> bool:
+        source = self.sources.get(source_id)
+        return bool((source is not None and is_cite_only(source.url))
+                    or self.store.citation(copy_ref) is not None)
 
     def source_kind(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
@@ -6319,6 +6328,15 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
     """
+    url_of = getattr(regions, "source_url", None)
+    protected_copy = getattr(regions, "cite_only", None)
+    if any(
+        cite_only_origin(url_of(source.source_id) if callable(url_of) else "",
+                         source.resolved_urls)
+        or (callable(protected_copy) and protected_copy(source.source_id, source.snapshot_ref))
+        for source in claim.sources
+    ):
+        return Result(claim.target, "cited", reason="cite-only retention policy; not machine-verified")
     if _xai_matrix_claim(claim.subject, claim.field) or _xai_matrix_claim(
         claim.target.id.rsplit("#", 1)[0], claim.target.id.rsplit("#", 1)[-1]
     ):
@@ -6329,7 +6347,6 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         return _verify_evidence_reading(claim, regions, extractors, today=today)
     if claim.field == "origin.lab_jurisdiction" and isinstance(claim.value, list):
         return _verify_jurisdiction_set(claim, regions, extractors, today=today)
-    url_of = getattr(regions, "source_url", None)
     if claim.field in ARCHITECTURE_FACTS and callable(url_of) and any(
         _hf_architecture_repo(url_of(source.source_id)) is not None for source in claim.sources
     ):
@@ -6592,7 +6609,7 @@ class Queue:
             (TargetRef(kind=key[0], id=key[1]), entry.last["outcome"])
             for key, entry in self._state().items()
             if entry.last and entry.last["event"] == "checked"
-            and entry.last["outcome"] != "verified"
+            and entry.last["outcome"] not in {"verified", "cited"}
         ]
 
 
@@ -6610,6 +6627,8 @@ class RunReport:
     def counts(self) -> dict[str, int]:
         counts = dict.fromkeys(("verified", "mismatch", "unreachable", "skipped"), 0)
         for r in self.results:
+            if r.outcome == "cited":
+                counts.setdefault("cited", 0)
             counts[r.outcome] += 1
         return counts
 
@@ -6634,8 +6653,8 @@ def ref_str(target: TargetRef) -> str:
 def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequence[Extractor],
         *, today: date, changed_only: bool = False, at: datetime | None = None,
         only: str | None = None) -> RunReport:
-    """Verify what is queued; log every outcome and mark it checked. Skipped claims stay
-    queued, unlogged and so quarantined.
+    """Verify queued claims and log checks. Cited claims are checked without a
+    Verification record; skipped claims stay queued and unlogged.
 
     ``only`` keeps claims whose target id starts with that prefix. Other pending
     claims are not checked and not logged.
@@ -6651,6 +6670,8 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
         report.results.append(result)
         if result.verification is not None:
             log.append(result.verification)
+            queue.checked(result, at=at)
+        elif result.outcome == "cited":
             queue.checked(result, at=at)
     return report
 

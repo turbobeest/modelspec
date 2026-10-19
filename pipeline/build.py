@@ -824,7 +824,10 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     graph_counts["relations"] = relations.counts()
 
     from pipeline import ranking
-    ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
+    ranking_counts = ranking.write_export(
+        ms / "api" / "rank", cards, derived, build.to_json(),
+        cited_facts={model.model_id: model.cited_facts for model in models if model.cited_facts},
+    )
 
     # Which *class* of model a problem needs, before ranking within one
     # (MODEL-100). The whole decision rule as static data, keyless, beside

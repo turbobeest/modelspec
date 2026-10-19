@@ -104,6 +104,8 @@ DecisionId = _matching(DECISION_ID_PATTERN, "a decision ID is dec_<id>")
 SpecHash = _matching(SPEC_HASH_PATTERN, "a spec hash is sha256:<64 hex>")
 Code = _matching(CODE_PATTERN, "a warning is a lowercase code")
 Url = _matching(URL_PATTERN, "a source is an http(s) URL")
+CITE_ONLY_WARNING = "cite_only_not_machine_verified"
+CITE_ONLY_NOTICE = "Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy."
 
 
 def _snapshot_ref(value: str) -> str:
@@ -1453,10 +1455,12 @@ class Result(_ExcludeIf):
         return self
 
 
-class MayQualify(_Strict):
+class MayQualify(_ExcludeIf):
     model: ModelId
     offering: OfferingRef | None = None
     unknown: list[FacetId]
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class FunnelStep(_Strict):
@@ -1475,7 +1479,7 @@ class FunnelStep(_Strict):
     offerings_may_qualify: int = Field(default=0, ge=0)
 
 
-class ModelElimination(_Strict):
+class ModelElimination(_ExcludeIf):
     values: list[Scalar] = Field(default_factory=list)
     offering: OfferingRef | None = None
     unit: str | None = None
@@ -1485,9 +1489,11 @@ class ModelElimination(_Strict):
     value: Scalar | None = None
     #: How a computed value was reached, with the numbers. Added in 1.3.
     formula: str | None = None
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
-class OfferingElimination(_Strict):
+class OfferingElimination(_ExcludeIf):
     """Why one offering of an eliminated model left the lineup. Added in 1.6."""
 
     values: list[Scalar] = Field(default_factory=list)
@@ -1497,6 +1503,8 @@ class OfferingElimination(_Strict):
     condition: str
     value: Scalar | None = None
     formula: str | None = None
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class ModelEliminationGroup(_Strict):
@@ -1592,7 +1600,7 @@ class DimensionEstimate(_Strict):
         return self
 
 
-class BandEntry(_Strict):
+class BandEntry(_ExcludeIf):
     """One model in a band, through its best offering. Added in 2.7 (MODEL-206)."""
 
     model: ModelId
@@ -1607,6 +1615,8 @@ class BandEntry(_Strict):
     cost_per_task: float | None = None
     #: One per weighted capability, in objective order.
     estimates: list[DimensionEstimate] = Field(default_factory=list)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class Bands(_Strict):
@@ -1725,7 +1735,20 @@ class FactInterval(_Strict):
         return self
 
 
-class ShownFact(_Strict):
+class CitationSource(_ExcludeIf):
+    source_id: str
+    url: Url
+    snapshot_ref: SpecHash
+    retrieved_at: str | None = None
+    resolved_urls: list[Url] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
+class FactCitation(_Strict):
+    status: Literal["cited"]
+    sources: list[CitationSource] = Field(min_length=1)
+
+
+class ShownFact(_ExcludeIf):
     facet: str
     value: Scalar | list[Scalar] | None = None
     unit: str | None = None
@@ -1737,6 +1760,7 @@ class ShownFact(_Strict):
     #: The registered sources behind ``record_id`` or ``records``, as IDs into
     #: ``Decision.sources``. Added in 1.4.
     source_ids: list[str] = Field(default_factory=list)
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class HardwareEstimate(_ExcludeIf):
@@ -1921,7 +1945,7 @@ class WithEstate(_ExcludeIf):
         default_factory=list, exclude_if=lambda value: not value)
 
 
-class ModelOffering(_Strict):
+class ModelOffering(_ExcludeIf):
     """One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.5."""
 
     offering: OfferingRef
@@ -1936,6 +1960,8 @@ class ModelOffering(_Strict):
     #: (``explain: full``). For a may-qualify offering whose region name
     #: guarantees no country, that sentence.
     reason: str | None = None
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class ModelRow(_Strict):
@@ -2245,13 +2271,14 @@ class ModelComparisonRequest(_Strict):
         return models
 
 
-class ComparisonFact(_Strict):
+class ComparisonFact(_ExcludeIf):
     facet: FacetId
     state: Literal["known", "unknown", "not_disclosed", "requires_contract"]
     value: Any
     unit: str | None
     record_id: str | None = None
     source_ids: list[str] = Field(default_factory=list)
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ComparisonOffering(_Strict):

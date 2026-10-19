@@ -1642,6 +1642,30 @@ contract version. Version 1.1 retains them.
   `date`, the latest date a record in this decision citing it was verified.
   Source URLs and winning verification records resolve through
   `snapshot.source_url()` and `snapshot.record()`.
+
+MODEL-411 admits facts from cite-only sources without claiming machine
+verification. Such facts keep their existing knowledge state, and complete
+and bounded answers carry `cite_only_not_machine_verified` in `warnings`
+when a recommended model relies on a cited fact: a shown fact, a ranking or
+objective input, or a Must that admitted it. This applies at every explanation
+level. The recommendation includes every top or tied answer member, including
+members beyond the result limit; when there is no named answer, it includes
+the returned ranked results. The summary notice uses the same scope.
+
+Other cited rows, including rest, eliminated and may-qualify rows, carry the
+row warning only. Result and estate rows retain their warnings. Band entries,
+eliminations, may-qualify rows and grouped offerings may add `warnings`; this
+field is omitted when empty. Plan routes state the limitation in `basis`.
+
+A shown fact may add `citation` (`FactCitation`). Its `status` is `cited`,
+and its nonempty `sources` list contains `CitationSource` objects with
+`source_id`, `url`, `snapshot_ref` as a SHA-256 content hash, and `retrieved_at`
+as a retrieval timestamp or null when none was recorded. An optional
+`resolved_urls` list records redirect destinations. No page copy is retained.
+The ordinary `sources[].date` stays a verification date and is null when only
+cited facts reference that source. Benchmark evidence still requires machine
+verification. The additive citation field and open warning code keep the
+contract at 2.18 and the bounded representation at 1.5.
 - An offering answers its model's evidence; an evidence row the offering and
   its model both return is listed once (1.4; before, it was listed twice).
 - `constraint_costs[].records` are the records behind the two values each gain
@@ -1818,6 +1842,12 @@ Unknown values remain null. A known value can be a boolean, number, string,
 date, or list of strings. `source_ids` resolve through the response's
 `sources` list.
 
+A `ComparisonFact` may add the same `citation` (`FactCitation`) metadata as a
+shown decision fact. `state` still describes whether the value is known;
+`citation.status: cited` means it is not machine-verified. Cited facts also carry
+`record_id` and `source_ids` when their state is `not_disclosed` or
+`requires_contract`. This optional field keeps `comparison_version` at 1.0.
+
 An offering has `offering`, the existing `OfferingRef`, and its `facts`.
 Evidence has `benchmark`, `value`, `unit`, `record_id`, and `source_ids`.
 Available measurement qualifiers are `version`, `effort`, `harness`,
@@ -1949,6 +1979,9 @@ it instead of carrying its own list of facets or benchmarks. Built by
   descriptors, including `offering.subscription.availability`, with `id`,
   `name`, `definition`, `value_type`, `allowed_values` and `addressable: false`.
   Retrieve this descriptor with `section=estate` and its facet ID.
+  A plan using cite-only facts adds `warnings: [cite_only_not_machine_verified]`
+  and `citations`, a map from each affected facet ID to its `FactCitation`.
+  These additive fields keep `vocabulary_version` at 1.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one

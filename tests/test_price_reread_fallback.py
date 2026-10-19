@@ -34,7 +34,7 @@ MONTH = "2026-10"
 KEY = "fc-fixture-secret-never-networked"
 PLAN = "https://chatgpt.com/pricing/"
 HELP = "https://help.openai.com/en/articles/20001275-chatgpt-work-and-codex"
-API = "https://x.ai/pricing"
+API = "https://learn.chatgpt.com/api-pricing"
 
 
 @pytest.fixture(autouse=True)

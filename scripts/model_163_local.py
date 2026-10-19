@@ -346,14 +346,18 @@ def parse_memory_configuration(
 
 
 def _fetch_json(url: str) -> object:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with open_retained_source(request, timeout=30) as response:
         return json.load(response)
 
 
 def _fetch_text(url: str) -> str:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(url, headers={"User-Agent": "ModelSpec/1.0"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with open_retained_source(request, timeout=30) as response:
         return response.read().decode("utf-8", errors="replace")
 
 
@@ -451,7 +455,7 @@ def main() -> None:
             }
             ref = SourceRef(
                 source_id=source_id,
-                snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode()),
+                snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode(), source_url=url),
                 cited_regions=["row"],
             )
             file_verified(
@@ -516,7 +520,7 @@ def main() -> None:
         }
         ref = SourceRef(
             source_id=source_id,
-            snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode()),
+            snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode(), source_url=row["memory_source_url"]),
             cited_regions=["row"],
         )
         for target_id, field, value in (

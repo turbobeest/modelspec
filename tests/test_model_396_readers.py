@@ -22,7 +22,7 @@ def read(tmp_path, text, *, field="model.output_modalities", value=None,
     if normaliser == "text-default":
         text += "\nFeatures\n"
     store = CopyStore(tmp_path / "copies")
-    ref = store.put(text.encode())
+    ref = store.put(text.encode(), source_url="https://fixture.example/")
     source = Source(
         id="primary", url=url, kind=kind, normaliser=normaliser,
         cited_regions=[CitedRegion(id="page", locator={"kind": "page"})],

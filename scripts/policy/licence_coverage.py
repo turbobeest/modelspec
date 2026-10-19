@@ -108,6 +108,10 @@ def _readme_texts(facts: dict[str, dict], sources: dict, store: CopyStore) -> li
             if not isinstance(snap, str) or snap in seen:
                 continue
             source = sources.get(ref.get("source_id"))
+            from decision.retention import cite_only_origin
+
+            if source is not None and cite_only_origin(source.url, ref.get("resolved_urls", ())):
+                continue
             if source is not None and source.kind == "licence_text":
                 continue
             seen.add(snap)

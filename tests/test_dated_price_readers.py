@@ -73,7 +73,7 @@ def setup_claim(
     url=URL,
 ):
     store = CopyStore(tmp_path / "copies")
-    ref = store.put(html.encode())
+    ref = store.put(html.encode(), source_url="https://fixture.example/")
     source = Source.model_validate(
         {
             "id": "pricing",

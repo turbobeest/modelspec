@@ -210,7 +210,7 @@ def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
         copy_ref = snapshot.copy_ref
         if model_id == "deepseek/deepseek-flash":
             fetched = normalise_document(
-                store.get(snapshot.copy_ref), NORMALISERS["html-default"]
+                store.get(snapshot.copy_ref, source_url=str(registered[row["source"]].url)), NORMALISERS["html-default"]
             ).text
             for expected in ("DeepSeek-V4.1-Flash", "$0.006", "$0.3", "$1.2"):
                 if expected not in fetched:
@@ -220,7 +220,7 @@ def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
                 b"price per 1m cache read\n"
                 b"DeepSeek-V4.1-Flash | $0.3 | $1.2 | $0.006\n"
             )
-            copy_ref = store.put(projection)
+            copy_ref = store.put(projection, source_url=str(registered[row["source"]].url))
         ref = SourceRef(
             source_id=row["source"],
             snapshot_ref=copy_ref,
@@ -308,7 +308,7 @@ def main(*, base_ref: str | None) -> None:
         )
         source = registered[ref.source_id]
         document = normalise_document(
-            store.get(ref.snapshot_ref), NORMALISERS[source.normaliser]
+            store.get(ref.snapshot_ref, source_url=str(source.url)), NORMALISERS[source.normaliser]
         )
         names = tuple(
             dict.fromkeys(

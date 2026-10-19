@@ -180,7 +180,7 @@ def test_readme_license_link_is_a_linked_licence(tmp_path, monkeypatch) -> None:
         "license_link: https://example.test/LICENSE\n"
         "---\nOpen One\n"
     )
-    ref = CopyStore().put(readme.encode())
+    ref = CopyStore().put(readme.encode(), source_url="https://fixture.example/")
     _tree(tmp_path)
     rows = []
     for facet in FACETS:

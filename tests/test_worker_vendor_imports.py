@@ -32,6 +32,8 @@ BUILD_TIME = {
     # The v1 graph export and a type annotation; see the comment at the import.
     ("pipeline/ranking.py", "schema.graph"),
     ("pipeline/ranking.py", "schema.card"),
+    # The standalone report CLI reads cards; Worker requests use bundled candidates.
+    ("pipeline/ranking.py", "pipeline.load"),
     # Hardware arithmetic is used at runtime; graph is only a type annotation.
     ("pipeline/hardware.py", "schema.graph"),
 }

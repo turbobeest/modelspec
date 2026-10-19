@@ -211,7 +211,7 @@ def estate(tmp_path: Path) -> tuple[Path, CopyStore]:
     """A catalogue whose facts were collected, filed and verified from the fixture pages."""
     root = tmp_path / "repo"
     store = CopyStore(tmp_path / "copies")
-    refs = {"plans": store.put(page("plans.html")), "api": store.put(page("api-pricing.html"))}
+    refs = {"plans": store.put(page("plans.html"), source_url="https://fixture.example/"), "api": store.put(page("api-pricing.html"), source_url="https://fixture.example/")}
     (root / "registry").mkdir(parents=True)
     (root / "registry" / "sources.yaml").write_text(SOURCES)
     for rel, text in ((PLAN_FILE, PLANS), (API_FILE, API),
@@ -284,7 +284,7 @@ def test_a_changed_plan_price_is_rewritten_verified_and_reported(estate) -> None
     report, _ = reread(estate, [page("plans-price-change.html")], write=True)
 
     [change] = report.changes
-    new_ref = store.put(page("plans-price-change.html"))
+    new_ref = store.put(page("plans-price-change.html"), source_url="https://fixture.example/")
     assert (change.fact_id, change.old_value, change.new_value) == (PRO_PRICE, 20, 25)
     assert change.copies["example-plans"][1] == new_ref
     # The billing period on the same page still reads "monthly".
@@ -341,7 +341,7 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
         f'<p>Feature {i % 32}: included' + '<span></span>' * 20 + '</p>'
         for i in range(220)
     ) + '</main>').encode()
-    copy_ref = store.put(body)
+    copy_ref = store.put(body, source_url="https://fixture.example/")
     fact_id = "example/subscription/pro#offering.subscription.coverage_quote"
     claim = Claim(
         target=TargetRef(kind="fact", id=fact_id), subject="example/subscription/pro",
@@ -450,7 +450,7 @@ def test_free_text_changes_must_be_read_from_a_narrow_region(
         names=("Example Pro",), field="offering.subscription.usage_allowance",
         value=old_value, collector=COLLECTOR,
         sources=(SourceRef(source_id="example-plans",
-                           snapshot_ref=store.put(allowance_page(old_value)),
+                           snapshot_ref=store.put(allowance_page(old_value), source_url="https://fixture.example/"),
                            cited_regions=cited),),
     )
     path = root / "offerings/subscriptions/allowance.yaml"
@@ -543,7 +543,7 @@ def test_a_rendered_html_source_is_fetched_and_reconfirmed(estate, normaliser) -
 
     result = by_id(report)[RENDERED_PRICE]
     assert (result.status, result.reason) == ("unchanged", None)
-    assert result.copies["example-rendered"][1] == store.put(body)
+    assert result.copies["example-rendered"][1] == store.put(body, source_url="https://fixture.example/")
     assert result.verification is not None and result.verification.date == TODAY
     assert rendered.fetched == [RENDERED_URL]
     assert RENDERED_URL not in fetcher.fetched
@@ -688,7 +688,7 @@ def test_failed_preparation_retains_content_and_alerts_in_direct_and_replay_runs
     assert result.reason == f"aws-pricing: {error}"
     assert result in report.alerts
     assert result.verification is None
-    assert report.sources["aws-pricing"].copy_ref == store.put(page("plans.html"))
+    assert report.sources["aws-pricing"].copy_ref == store.put(page("plans.html"), source_url="https://fixture.example/")
     assert report.to_dict()["sources"]["aws-pricing"]["error"] == error
     assert f"aws-pricing: {error}" in render_report(report)
     assert all(p is RENDERED_PREPARATIONS["aws-pricing"] for p in renderer.preparations)
@@ -810,7 +810,7 @@ def test_rendered_from_reconfirms_without_importing_playwright(estate, tmp_path,
     report = json.loads(report_path.read_text())
     assert RENDERED_PRICE in report["reconfirmed"]
     assert report["alerts"] == []
-    assert report["sources"]["example-rendered"]["copy"] == store.put(body)
+    assert report["sources"]["example-rendered"]["copy"] == store.put(body, source_url="https://fixture.example/")
     assert fetcher.fetched == [API_URL, PLANS_URL]
     replay = price_reread.RenderedReplayFetcher(artifact)
     assert replay.fetch(RENDERED_URL) == replay.fetch(RENDERED_URL)
@@ -990,7 +990,7 @@ python() {
 
 def test_a_runner_store_keeps_only_cited_and_fetched_copies(estate) -> None:
     root, store = estate
-    stray = store.put(b"a page no fact cites")
+    stray = store.put(b"a page no fact cites", source_url="https://fixture.example/")
     report, _ = reread(estate, [page("plans-price-change.html")], write=True)
 
     [change] = report.changes

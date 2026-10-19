@@ -2662,6 +2662,14 @@ def build_spec() -> dict[str, Any]:
         _describe(_merge(_merge(_infer(ranked), _infer(constrained)),
                          _infer(empty_shortlist)), "RankResponse", used))
     row_schema = response_schema["properties"]["result"]["items"]
+    row_schema["properties"].update({
+        "warnings": {"type": "array", "items": {"type": "string"},
+                     "description": "Includes cite_only_not_machine_verified when cited inputs are present."},
+        "cited_facts": {"type": "array", "items": {"type": "object"},
+                        "description": "Fact records with citation provenance and no verification."},
+        "cited_benchmarks": {"type": "object", "additionalProperties": {"type": "object"},
+                             "description": "Benchmark IDs mapped to cite-only source URLs; excluded from verified counts."},
+    })
     response_schema["properties"]["result"]["items"] = _describe(row_schema, "RankedModel", used)
 
     no_match_schema = _apply_vocabularies(_describe(

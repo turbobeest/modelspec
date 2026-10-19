@@ -458,8 +458,8 @@ def _show(value: object) -> str:
     return "not_disclosed" if value is None else str(value)
 
 
-def _text(store: CopyStore, snapshot_ref: str, normaliser: str) -> str:
-    return normalise_document(store.get(snapshot_ref), NORMALISERS[normaliser]).text
+def _text(store: CopyStore, snapshot_ref: str, normaliser: str, *, source_url: str) -> str:
+    return normalise_document(store.get(snapshot_ref, source_url=source_url), NORMALISERS[normaliser]).text
 
 
 def _card_base_model(data: dict) -> str | None:
@@ -553,7 +553,7 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         licence_snap = fetched.states[licence["id"]].snapshot
         readme_snap = fetched.states[readme.id].snapshot
         assert licence_snap is not None and readme_snap is not None
-        licence_text = _text(store, licence_snap.copy_ref, licence["normaliser"])
+        licence_text = _text(store, licence_snap.copy_ref, licence["normaliser"], source_url=licence["url"])
         names = _published_names(data)
         base_model = _card_base_model(data)
         rule = readme_binds_licence(

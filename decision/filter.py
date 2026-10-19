@@ -373,10 +373,13 @@ def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str]
 
 
 class _Run:
-    def __init__(self, resolved: Resolved, index: Any, reach: Any = None) -> None:
+    def __init__(self, resolved: Resolved, index: Any, reach: Any = None,
+                 fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> None:
         self.resolved = resolved
         self.index = index
         self.reach = reach
+        self.fact_used = fact_used
+        self.soft_conditions: list[Any] = []
         self.facets = resolved.facets
         self.facet_cache: dict[str, Any] = {}
         self.ids = list(index.candidates())
@@ -756,6 +759,8 @@ class _Run:
         return bits
 
     def _record_penalty(self, cond: Any, raw: Bits) -> None:
+        if self.fact_used is not None:
+            self.soft_conditions.append(cond)
         lineup = self.lineup
         self.penalties.append(SoftPenalty(
             condition=render_condition(cond),
@@ -763,6 +768,47 @@ class _Run:
             failing=self._ids_of(raw.failing & lineup),
             unknown=self._ids_of(raw.unknown & lineup),
         ))
+
+    def _used(self, cond: Any, bits: int) -> None:
+        """Report operands used for live rows, respecting Boolean short circuits.
+
+        The bitset evaluator computes entire columns. Those reads alone do not
+        mean an excluded row, or an unnecessary Boolean branch, affected an answer.
+        """
+        if not bits or self.fact_used is None:
+            return
+        if isinstance(cond, NotOf):
+            if cond.not_.soft is None:
+                self._used(cond.not_, bits)
+            return
+        children = _children(cond)
+        if children:
+            for child in children:
+                if child.soft is not None:
+                    continue
+                self._used(child, bits)
+                shown = self._presented(child, self._eval(child))
+                bits &= ~(shown.passing if isinstance(cond, AnyOf) else shown.failing)
+                if not bits:
+                    break
+            return
+        facet = _facet_of(cond)
+        if facet is None or self._is_domain(facet) or self._is_evidence(cond):
+            return
+        owners = tuple(self._ids_of(bits))
+        for cid in owners:
+            self.fact_used(cid, facet, (cid,))
+        if isinstance(cond, Compare):
+            if isinstance(cond.value, ModelRef):
+                self.fact_used(cond.value.model, facet, owners)
+            elif isinstance(cond.value, BestRef):
+                values = {cid: self._known_value(cid, facet)
+                          for cid in self._ids_of(self.anchor or 0)}
+                highest = max((value for value in values.values() if _numeric(value)),
+                              default=None)
+                for cid, value in values.items():
+                    if _numeric(value) and value == highest:
+                        self.fact_used(cid, facet, owners)
 
     def _decisive(self, cond: Any, bit: int, leg: Leg) -> Any:
         if isinstance(cond, NotOf):
@@ -899,6 +945,9 @@ class _Run:
             if (self.index.kind(cid) == "model" and not outside & bit
                     and (cid not in sold or self_host)):
                 weights = self.index.fact(cid, "model.weights_openness")
+                if (self.fact_used is not None
+                        and (self.resolved.include_retired or not retired & bit)):
+                    self.fact_used(cid, "model.weights_openness", (cid,))
                 if weights.state != "known" or weights.value != "open_weights":
                     no_route |= bit
         eliminations: list[Elimination] = []
@@ -953,6 +1002,8 @@ class _Run:
                 ))
                 continue
             raw = self._eval(cond)
+            if self.fact_used is not None:
+                self._used(cond, feasible | maybe)
             fe_pass, fe_fail, fe_unk = _split(raw, feasible)
             _mb_pass, mb_fail, mb_unk = _split(raw, maybe)
             fe_as_pass, fe_as_list, fe_as_fail = self._unknown_disposition(cond, fe_unk)
@@ -992,6 +1043,8 @@ class _Run:
             ))
             self._cover(feasible, maybe, eliminated)
 
+        for cond in self.soft_conditions:
+            self._used(cond, feasible)
         may_qualify = tuple(
             MayQualify(cid, tuple(unknown_facets.get(cid, ())))
             for cid in self._ids_of(maybe)
@@ -1015,10 +1068,15 @@ def _split(raw: Bits, mask: int) -> tuple[int, int, int]:
     return passing, failing, unknown
 
 
-def apply(resolved: Resolved, index: Any, reach: Any = None) -> FilterResult:
+def apply(resolved: Resolved, index: Any, reach: Any = None, *,
+          fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> FilterResult:
     """Filter ``index`` by the resolved conditions. The same inputs give the same result.
 
     ``reach`` (``decision.estate.Reach``) restricts the lineup to the rows a
     caller's estate can use, and starts its ``unknown`` rows as may-qualify.
+
+    ``fact_used`` optionally observes the fact operands affecting filtering or
+    a surviving candidate's soft penalty, without observing whole-column reads.
+    It receives the source candidate, facet and candidates relying on that operand.
     """
-    return _Run(resolved, index, reach).run()
+    return _Run(resolved, index, reach, fact_used).run()

@@ -47,10 +47,12 @@ ROW = re.compile(
 
 
 def fetch_rows(store: CopyStore) -> tuple[list[dict], str]:
+    from decision.retention import open_retained_source
+
     request = urllib.request.Request(URL, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
+    with open_retained_source(request, timeout=60) as response:
         raw = response.read()
-    fetched_copy = store.put(raw)
+    fetched_copy = store.put(raw, source_url=URL)
     html = raw.decode("utf-8")
     rows = []
     for match in ROW.finditer(html):
@@ -84,7 +86,7 @@ def fetch_rows(store: CopyStore) -> tuple[list[dict], str]:
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    return rows, store.put(projected)
+    return rows, store.put(projected, source_url=URL)
 
 
 def cards(root: Path) -> dict[str, Path]:

@@ -183,6 +183,7 @@ const modelOfferingSchema = z
     cost_per_task: z.number().nullable(),
     unknown: z.array(facetId),
     reason: z.string().nullable(),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
   .strict();
 
@@ -237,6 +238,7 @@ const bandEntrySchema = z
     p_best: z.number().min(0).max(1).nullable(),
     p_beats_leader: z.number().min(0).max(1).nullable(),
     cost_per_task: z.number().nullable(),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
     estimates: z.array(
       z
         .object({
@@ -293,6 +295,7 @@ const mayQualifySchema = z
     model: modelId,
     offering: offeringRefSchema.nullable(),
     unknown: z.array(facetId),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
   .strict();
 
@@ -415,6 +418,16 @@ export const decisionSchema = z
                   formula: nullableString.optional(),
                   // 1.4: the fact's sources, as IDs into the decision's `sources`.
                   source_ids: z.array(z.string()).optional().default([]),
+                  citation: z.object({
+                    status: z.literal("cited"),
+                    sources: z.array(z.object({
+                      source_id: z.string(),
+                      url: z.string().url(),
+                      snapshot_ref: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+                      retrieved_at: z.string().nullable(),
+                      resolved_urls: z.array(z.string().url()).optional(),
+                    }).strict()).min(1),
+                  }).strict().optional(),
                 })
                 .strict(),
             ),
@@ -577,6 +590,7 @@ export const decisionSchema = z
               condition: z.string(),
               value: scalar.nullable(),
               formula: nullableString.optional(),
+              warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
             })
             .strict(),
         ),
@@ -595,6 +609,7 @@ export const decisionSchema = z
                     condition: z.string(),
                     value: scalar.nullable(),
                     formula: nullableString.optional(),
+                    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                   })
                   .strict()
                   .nullable(),
@@ -608,6 +623,7 @@ export const decisionSchema = z
                       condition: z.string(),
                       value: scalar.nullable(),
                       formula: nullableString.optional(),
+                      warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                     })
                     .strict(),
                 ),

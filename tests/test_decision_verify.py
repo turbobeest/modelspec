@@ -44,7 +44,7 @@ COLLECTOR = VerificationActor(**SPEC["collector"])
 def _claim(entry: dict, store: CopyStore) -> verify.Claim:
     src = entry["source"]
     copy = src["copy"]
-    ref = store.put((FIXTURES / copy).read_bytes()) if copy else "sha256:" + "0" * 64
+    ref = store.put((FIXTURES / copy).read_bytes(), source_url="https://fixture.example/") if copy else "sha256:" + "0" * 64
     return verify.Claim(
         target=TargetRef(kind=entry.get("kind", "evidence"), id=entry["id"]),
         subject=entry["subject"],
@@ -72,8 +72,8 @@ def regions(store) -> verify.StoredRegions:
 def test_cached_documents_keep_normaliser_rules_and_verifier_dates(store, monkeypatch) -> None:
     ref = store.put(
         b'<main><p>Last updated: October 6, 2026 07:41 UTC</p>'
-        b'<p>Plan <svg role="img" aria-label="Yes"></svg></p></main>'
-    )
+        b'<p>Plan <svg role="img" aria-label="Yes"></svg></p></main>',
+        source_url="https://fixture.example/")
     sources = {name: Source(
         id=name, url=f"https://{name}.example/pricing", normaliser=normaliser,
         cited_regions=[CitedRegion(id="page", locator={"kind": "page", "value": ""})],
@@ -101,8 +101,8 @@ def test_cached_document_reuses_regions_after_a_missing_locator(store, monkeypat
     ref = store.put(
         b'<main><h2 id="coverage">Coverage</h2><p id="limits">Usage limit</p>'
         b'<table><tr><th>Plan</th><th>Quota</th></tr>'
-        b'<tr><td>Pro</td><td>20</td></tr></table></main>'
-    )
+        b'<tr><td>Pro</td><td>20</td></tr></table></main>',
+        source_url="https://fixture.example/")
     expected = {
         "missing": None,
         "limits": "Usage limit",
@@ -136,7 +136,7 @@ def test_cached_document_reuses_regions_after_a_missing_locator(store, monkeypat
 
 @pytest.mark.parametrize("damage", ["delete", "corrupt"])
 def test_cached_document_rechecks_retained_copy_integrity(store, damage) -> None:
-    ref = store.put(b"<p>Example Pro $20/month</p>")
+    ref = store.put(b"<p>Example Pro $20/month</p>", source_url="https://fixture.example/")
     source = Source(id="plans", url="https://plans.example/pricing", normaliser="html-default",
                     cited_regions=[CitedRegion(id="page", locator={"kind": "page", "value": ""})])
     cached = verify.StoredRegions(store, {source.id: source}, cache_documents=True)
@@ -443,7 +443,7 @@ def test_anthropic_price_fixtures_verify(
             "kind": locator, "value": "0" if locator == "table" else "",
         })],
     )
-    ref = store.put((FIXTURES / filename).read_bytes())
+    ref = store.put((FIXTURES / filename).read_bytes(), source_url="https://fixture.example/")
     claim = replace(_price_claim("cached_input", value, name=name), sources=(
         SourceRef(source_id="pricing", snapshot_ref=ref, cited_regions=["prices"]),
     ))
@@ -1856,7 +1856,7 @@ def test_a_scoped_key_value_region_can_verify_not_disclosed(store) -> None:
     from decision.model import Fact
 
     body = b"Model: Nimbus 3\nContext Window: 128K tokens\n"
-    ref = store.put(body)
+    ref = store.put(body, source_url="https://fixture.example/")
     fact = Fact(
         id="lab/nimbus-3#model.max_output_tokens",
         subject={"kind": "model", "id": "lab/nimbus-3"},
@@ -2194,7 +2194,7 @@ def test_changed_regions_are_reverified_against_the_new_copy(store, regions, log
     # The leaderboard changed: Sol's default score is now 65.0.
     page = (FIXTURES / "leaderboard.html").read_text().replace(
         "<td>64.0</td>", "<td>65.0</td>")
-    new_ref = store.put(page.encode())
+    new_ref = store.put(page.encode(), source_url="https://fixture.example/")
     state = SourceState("seeded-leaderboard", SourceSnapshot(
         source_id="seeded-leaderboard",
         retrieved_at=NOW,
@@ -2392,7 +2392,7 @@ def test_claude_reader_stops_before_call_401(monkeypatch) -> None:
 def test_claims_build_from_model_evidence(store, regions) -> None:
     from decision.model import Evidence
 
-    ref = store.put((FIXTURES / "leaderboard.html").read_bytes())
+    ref = store.put((FIXTURES / "leaderboard.html").read_bytes(), source_url="https://fixture.example/")
     evidence = Evidence(
         id="sol-default-from-model", subject={"kind": "model", "id": "openai/gpt-6-sol"},
         benchmark_id="seeded-coding", model_id_as_evaluated="GPT-6 Sol", score=64.0,
@@ -3884,7 +3884,7 @@ def test_a_normalised_readme_still_declares_its_base_model(tmp_path) -> None:
                 CitedRegion(id="model-spec", locator={"kind": "page", "value": ""}),
             ],
         )
-        ref = store.put(raw)
+        ref = store.put(raw, source_url="https://fixture.example/")
         text = verify.StoredRegions(store, {source.id: source}).text(
             source.id, ref, "model-spec",
         )

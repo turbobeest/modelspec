@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "benchmarks" / "_curation" / "reports" / "pr_bodies.md"
@@ -49,7 +50,8 @@ def pr_body(item: dict) -> str:
 
 
 def plan(manifest: list[dict]) -> tuple[list[dict], list[dict]]:
-    proposed = [m for m in manifest if m.get("accepted") and m.get("changed")]
+    proposed = [m for m in manifest if m.get("accepted") and m.get("changed")
+                and not cite_only_origin(m["url"], metadata_origins(m))]
     skipped = [m for m in manifest if m not in proposed]
     return proposed, skipped
 
@@ -62,7 +64,9 @@ def write_dry_run(manifest: list[dict], out: Path, today: str) -> Path:
                   pr_body(item)]
     if skipped:
         parts += ["## Skipped (no PR, page untouched)", ""]
-        parts += [f"- {m['page']}: " + ("no change" if m.get("accepted") else "; ".join(m.get("errors") or []))
+        parts += [f"- {m['page']}: " + ("cite-only source; retained draft refused"
+                  if cite_only_origin(m.get("url", ""), metadata_origins(m)) else
+                  "no change" if m.get("accepted") else "; ".join(m.get("errors") or []))
                   for m in skipped]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(parts) + "\n", encoding="utf-8")
