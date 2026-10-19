@@ -1,5 +1,10 @@
 # MODEL-408 execution evidence
 
+Historical report for the original retained-source implementation. The
+[MODEL-408-cite report](MODEL-408-cite-fix.md) supersedes its storage and
+machine-verification claims. Current xAI facts are cited, not machine-verified;
+the paired data PR removes its retained source artifacts.
+
 Engine base: `badf4be5fdff0a0803fd69387b165307f4190909`.
 Design-only first commit: `581833f1`.
 Final xAI production implementation and private engine pin:

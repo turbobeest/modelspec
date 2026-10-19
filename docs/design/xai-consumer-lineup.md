@@ -1,104 +1,91 @@
 # xAI current subscription lineup
 
-MODEL-408. Design-first commit against engine base
-`badf4be5fdff0a0803fd69387b165307f4190909`.
+MODEL-408, revised by MODEL-408-cite on 2026-10-19. This design supersedes
+the retained-source verification design at `581833f1`. Code PR #822 depends
+on cite-only mechanism PR #840 merging first. Both it and private data PR #96
+remain drafts for review.
 
-## Evidence and identities
+## Citation policy
 
-A fresh full headed Chromium capture of https://x.ai/pricing returned HTTP
-200 on 2026-10-18. The private retained document is
-`research/model-408/capture/pricing.html.gz`. Its decompressed SHA-256 is
-`bdf1848f0fe27294ccc7497f2016650cb32406e7252ccf191ab5d3b21d16ab21`.
-The ordered comparison headers are Free, Plus, Premium, Super, Ultra, Teams
-and Enterprise. Register these as seven distinct SubscriptionOfferings:
+The current xAI lineup is cited, not machine-verified. The registered policy
+covers `x.ai` and `docs.x.ai`, including subdomains and observed redirects.
+Use the shared [retention guard](cite-only-sources.md) for every persisted
+source artifact. Retain only the source URL, original fetch timestamp and
+SHA-256 hash. Do not keep raw pages, normalized text, quotations, screenshots,
+DOM dumps or rendered HTML.
 
-| Header | Canonical ID | Price observation |
+The historical `MODEL-367/capture.mjs` command used by the original curation
+is retired. It refuses before importing a browser or creating output; its
+old instructions must not be reused.
+
+The pricing citation refers to `https://x.ai/pricing`, fetched on 2026-10-18,
+with SHA-256 `bdf1848f0fe27294ccc7497f2016650cb32406e7252ccf191ab5d3b21d16ab21`.
+The exact fetch timestamp is preserved in private citation metadata and fact
+source references. It is not a verification date. No new live retrieval is
+needed for this migration.
+
+## Identities and values
+
+Preserve the seven distinct subscription offerings and every curated value.
+
+| Plan | Canonical ID | Exact monthly USD price |
 | --- | --- | --- |
-| Free | `xai/subscription/free` | $0/month |
-| Plus | `xai/subscription/plus` | $8/month |
-| Premium | `xai/subscription/premium` | $30/month |
-| Super | `xai/subscription/super` | $100/month |
-| Ultra | `xai/subscription/ultra` | $200/month |
-| Teams | `xai/subscription/teams` | $30+/user/month |
-| Enterprise | `xai/subscription/enterprise` | Custom |
+| Free | `xai/subscription/free` | 0 |
+| Plus | `xai/subscription/plus` | 8 |
+| Premium | `xai/subscription/premium` | 30 |
+| Super | `xai/subscription/super` | 100 |
+| Ultra | `xai/subscription/ultra` | 200 |
+| Teams | `xai/subscription/teams` | Unknown |
+| Enterprise | `xai/subscription/enterprise` | Unknown |
 
-Teams and Enterprise are organizational subscriptions in the Business
-product family. The schema has no offering-family property, so this is a
-documented classification, not a new field. Neither is an alias for the
-existing `xai/subscription/business` record. Preserve that record and its
-separately verified Grok 4.7 coverage. Do not transfer coverage between
-Business, Teams and Enterprise.
+The first five billing periods remain monthly. Teams' starting per-seat amount
+and Enterprise's custom price do not establish exact scalar prices. Their
+price and billing-period facts stay unknown. All seven model-coverage and
+usage-allowance facts stay unknown. Product names cannot establish canonical
+model IDs or a token quota.
 
-The matrix names products, not versioned Grok models. It supplies no exact
-model-label-to-catalogue-ID mapping. All seven new `models_covered` facts
-therefore remain unknown with the attempted source recorded. Product labels
-and generic references to Grok models cannot become catalogue IDs. A later
-template may map literal versioned labels, subject to catalogue membership.
+The seven existing Build/Bot inclusion values stay unchanged. Free's limited
+Build access remains distinct from inclusion. These values do not establish
+raw API entitlement or change subscription surfaces or own-software routing.
+Teams, Enterprise and the older Business offering remain separate identities.
+Lite and Heavy retain their IDs and unknown or quarantined facts. No missing
+column establishes retirement, a successor, availability or an alias.
 
-## Historical plans and contract impact
+## Reading and assurance
 
-Keep Lite and Heavy under their existing IDs. Their current unsupported facts
-remain unknown or quarantined, with a dated note explaining that the current
-matrix does not name them. Historical values and verification events remain
-available in history. Never infer retirement, a successor, or an alias from
-the missing columns.
+`read_matrix()` remains a pure in-memory parser. Its hashes, exact DOM paths,
+header labels and glyph checks preserve the original value extraction and
+reject unapproved or changed templates. Synthetic tests cover the five
+prices, five billing periods, seven product values and all six mutation
+cases. No provider page fixture is committed.
 
-The spec predates an existing optional
-`offering.subscription.availability` fact. At this base, the model and
-decision contract already permit `open`, `existing_subscribers_only` and
-`retired`, but only an explicit sourced statement establishes those values.
-No such statement was observed for Lite or Heavy. Leave availability unknown.
-Do not borrow model lifecycle. This change adds no schema field and widens
-no contract range, so no major contract bump is needed.
+Production `verify()` applies #840's host policy before reading retained
+regions or dispatching the exact reader. It returns `cited`, with no
+`Verification`. A parser's ability to extract a value does not establish
+machine verification. Parser controls isolate that logic with synthetic
+fixtures; separate integration tests keep the production policy enabled.
 
-## Exact reading
+Snapshots derive citation assurance from registered sources and valid source
+references. The 17 known new facts remain admitted with `verification: null`
+and `citation.status: cited`. Unknown facts remain absent from admitted values.
+The existing mismatch/unreachable quarantine rules still apply. Public
+consumers display "Cited, not machine-verified" through #840. No contract range,
+ranking floor or production switch changes.
 
-Extend `xai-exact-template@1` with a new reviewed current-pricing template.
-It binds the new raw copy hash, complete normalized document hash, DOM
-region hash, ordered literal headers, row labels, explicit cell paths and
-approved SVG hashes. Keep the existing Business template. Public tests use
-synthetic documents; provider HTML and screenshots stay private.
+## Migration and validation
 
-Read the first five exact USD monthly amounts from their own header cells.
-Also verify their billing period through the exact reader. Teams' starting
-per-seat price is not an exact subscription price under the existing scalar
-contract, so leave its amount unknown and record the literal limitation.
-Enterprise's custom price and billing period stay unknown. Do not coerce a
-starting price to an exact amount or infer an annual option.
+Private data PR #96 removes its retained xAI artifacts and obsolete capture,
+replay and filing helpers. It preserves URL/hash/fetch-time metadata and the
+35 new facts' values and states. Its old machine-verification records are
+removed; completed queue events record citation assurance. Older history
+outside this PR remains the separate MODEL-409 migration.
 
-Read Grok Build and Grok Bot from their exact product cells. Preserve a
-literal `Limited` cell as limited access, not a checkmark. Check and minus
-glyphs mean included and not included for those named products. This follows
-MODEL-367's product-inclusion decision for
-`programmatic_or_agent_use`. It does not establish raw API entitlement or
-change subscription surfaces or own-software routing. The required usage
-allowance fact can remain unknown; this task does not turn relative usage
-text into a token quota.
+Do not advance `.engine-pin` during this work. The orchestrator must update it
+to a merged engine SHA containing both #840 and #822 after both merge.
 
-The new canonical IDs and their requested facets must use exclusive exact
-dispatch. Changed bytes, reordered or extra columns, renamed plans, changed
-rows, swapped glyphs and moved cells must fail with `template drifted` even
-if a fallback reader could accept the claim. Unsupported model coverage,
-prices and null claims must not become verified non-disclosure through
-fallback. Preserve existing source-kind, whole-document and raw-byte checks.
-
-## Filing and validation
-
-Read the retained current terms and robots directives and record their
-hashes privately. Robots directives do not establish redistribution rights.
-Publish only code, hashes, short required labels and synthetic fixtures.
-Use no paid-provider calls or Firecrawl credits.
-
-Write red-first tests at `verify.verify` with retained CopyStore documents,
-including all six specified mutations against the same approved synthetic
-template. Replay the actual private capture separately before filing known
-facts, and append verification history. Prove the seven new offerings load,
-their known facts are admitted, unsupported coverage stays absent, and the
-legacy records remain unsupported.
-
-Run the focused suites, `web/npm ci`, the full engine suite under the shared
-flock with four workers, and private data tests. Keep source bytes out of the
-Worker bundle and measure the private snapshot and Worker memory gate with
-the normal runtime probe. The private engine pin must descend from its
-current pin. Both PRs remain draft for human review; the data pin cannot pass
-its main-ancestry CI gate until the engine commit reaches main.
+Validation covers offline HTTP retention, production verifier interception,
+in-memory extraction and snapshot citation round-trip, private export signing
+and premier completeness, generator checks, the site build and zero-finding
+surface lint, web build/tests, and the full engine suite under the shared lock.
+Commands and results are recorded in
+[MODEL-408-cite evidence](../evidence/g2-ios/MODEL-408-cite-fix.md).

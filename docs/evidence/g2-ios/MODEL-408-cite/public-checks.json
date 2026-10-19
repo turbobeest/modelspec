@@ -1,0 +1,206 @@
+{
+  "head_at_completion": "ffd4e74a017b96c60f7450fd2cffcad3e63bc3d8",
+  "checks": {
+    "agent-copy": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "pipeline.agent_copy",
+        "check"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T16:34:30.254550+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 133.37
+    },
+    "openapi": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "api.worker.openapi",
+        "--check"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T16:34:30.254189+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.01
+    },
+    "qa-contracts": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "qa.contracts"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T16:36:47.090888+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.33
+    },
+    "site-build": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "pipeline.build",
+        "--out",
+        "dist"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T16:36:53.840519+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 418.28
+    },
+    "surface-lint": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "pipeline.surface_lint",
+        "--tree",
+        "dist/modelspec"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T16:43:55.659819+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 26.33
+    },
+    "web-ci": {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+        "ci"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/web",
+      "started_at": "2026-10-19T16:35:28.278033+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.44
+    },
+    "web-build": {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/web",
+      "started_at": "2026-10-19T16:44:25.000396+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 6.23
+    },
+    "web-test": {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+        "test"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/web",
+      "started_at": "2026-10-19T16:44:39.399091+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/modelspec/.venv/bin"
+        ]
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 31.03
+    }
+  },
+  "versions": [
+    {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "--version"
+      ],
+      "exit_code": 0,
+      "output": "Python 3.14.4"
+    },
+    {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "-m",
+        "pytest",
+        "--version"
+      ],
+      "exit_code": 0,
+      "output": "pytest 9.1.1"
+    },
+    {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--version"
+      ],
+      "exit_code": 0,
+      "output": "v22.22.3"
+    },
+    {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+        "--version"
+      ],
+      "exit_code": 0,
+      "output": "10.9.8"
+    },
+    {
+      "command": [
+        "git",
+        "--version"
+      ],
+      "exit_code": 0,
+      "output": "git version 2.50.1"
+    }
+  ],
+  "qa_fixture_tracked_diff_exit": 0,
+  "surface_lint": "0 findings; 5366 files checked",
+  "web_test": "902 passed; 57 files passed; 1 file skipped",
+  "tracked_files_written_by_this_worker": [],
+  "observations": [
+    "Site build emitted existing frozen hardware source-registration warnings.",
+    "Web build emitted unresolved runtime font URL notices.",
+    "No live provider calls or background servers were started."
+  ]
+}
