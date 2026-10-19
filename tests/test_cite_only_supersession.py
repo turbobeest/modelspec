@@ -9,12 +9,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import subprocess
+import sys
 from dataclasses import replace
 from datetime import UTC, date, datetime
 
 import pytest
 
-from decision import supersession
 from decision.bounded import project
 from decision.contract import ResponseOptions, parse_spec
 from decision.engine import decide
@@ -312,6 +313,8 @@ def test_collect_repo_without_a_store_has_no_supersessions(tmp_path):
 
 
 def test_append_only_violation_names_edited_or_removed_lines():
+    from decision import supersession
+
     base = "a\nb\n"
     assert supersession.append_only_violation(base, "a\nb\nc\n") is None
     assert supersession.append_only_violation(base, base) is None
@@ -320,6 +323,8 @@ def test_append_only_violation_names_edited_or_removed_lines():
 
 
 def test_record_cannot_predate_its_read_or_target_evidence():
+    from decision import supersession
+
     early = record()
     early["recorded_at"] = "2026-10-19T00:00:00+00:00"
     with pytest.raises(ValueError):
@@ -328,3 +333,22 @@ def test_record_cannot_predate_its_read_or_target_evidence():
     evidence_target["target"]["kind"] = "evidence"
     with pytest.raises(ValueError):
         supersession.MismatchSupersession.model_validate(evidence_target)
+
+
+def test_snapshot_import_does_not_load_the_supersession_module():
+    """The Worker imports decision.snapshot but never compiles; keep its heap flat."""
+    probe = ("import sys, decision.snapshot, decision.explain, decision.engine; "
+             "print('decision.supersession' in sys.modules)")
+    out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                         check=True)
+    assert out.stdout.strip() == "False"
+
+
+def test_compile_without_records_never_loads_the_supersession_module():
+    probe = (
+        "import sys; from tests.test_cite_only_supersession import inputs, loaded; "
+        "loaded(inputs()); print('decision.supersession' in sys.modules)"
+    )
+    out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                         check=True)
+    assert out.stdout.strip() == "False"

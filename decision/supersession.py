@@ -22,9 +22,6 @@ from pydantic import AwareDatetime, ValidationError, field_validator, model_vali
 from decision.model import ContentRef, Record, Text, VerificationTarget
 from decision.retention import is_cite_only, require_source_url
 
-STORE = ("verification", "supersessions.jsonl")
-
-
 class _Located(Record):
     source_id: Text
     url: Text

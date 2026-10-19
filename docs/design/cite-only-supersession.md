@@ -118,8 +118,12 @@ The change is in `decision/snapshot.py`. The rule today:
 
 New behaviour:
 
-1. `_Compiler.__init__` groups `inputs.supersessions` by
-   `(target.id, target.value_hash)`. Rows are parsed one at a time. A row
+1. On the first cited mismatch, and only when `inputs.supersessions` is
+   non-empty, the compiler imports `decision.supersession` and groups the
+   records by `(target.id, target.value_hash)`. `decision/snapshot.py` never
+   imports that module at load. The Worker loads built snapshots and never
+   compiles, so it never imports the module either. An eager import grew
+   Pyodide's wasm heap by one 12 MiB step (`Worker memory headroom`). Rows are parsed one at a time. A row
    that fails the schema is kept as invalid and never supersedes. It is
    logged and named in the gate reason, so it is not lost silently.
 2. In `_add_facts`, for a cited fact whose winning verification is a

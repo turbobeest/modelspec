@@ -61,7 +61,6 @@ from decision.excluded import (
 )
 from decision.json_stream import JSONStreamReader
 from decision.citation import fact_citation
-from decision import supersession
 from decision.model import (
     Fact,
     Measurement,
@@ -735,7 +734,9 @@ class _Compiler:
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
         self.log = self._verification_log(inputs.verifications)
-        self.supersessions = supersession.index(inputs.supersessions)
+        #: Supersession records by (fact id, value hash), indexed on first need.
+        #: The Worker never compiles, so ``decision.supersession`` stays unimported there.
+        self._supersessions: dict | None = None
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -858,8 +859,14 @@ class _Compiler:
         fact now cites, and a newer cite-only read of it supersedes. See
         ``docs/design/cite-only-supersession.md``.
         """
+        if not self.inputs.supersessions:
+            return "quarantined (mismatch)"
+        from decision import supersession
+
+        if self._supersessions is None:
+            self._supersessions = supersession.index(self.inputs.supersessions)
         expected = value_hash(value)
-        candidates = self.supersessions.get((str(rid), expected), ())
+        candidates = self._supersessions.get((str(rid), expected), ())
         entry, refused = supersession.supersede(
             candidates, self._verification("fact", rid, inline, value), expected,
             [_as_dict(ref) for ref in refs], self.sources)
@@ -1814,9 +1821,12 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for line in verification_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 verifications.append(json.loads(line))
-    supersession_store = root.joinpath(*supersession.STORE)
-    supersessions = (supersession.read_store(supersession_store)
-                     if supersession_store.is_file() else [])
+    supersessions = []
+    supersession_store = root / "verification" / "supersessions.jsonl"
+    if supersession_store.is_file():
+        from decision.supersession import read_store
+
+        supersessions = read_store(supersession_store)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
