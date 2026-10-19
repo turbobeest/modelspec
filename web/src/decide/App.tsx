@@ -335,6 +335,7 @@ export function DesignedApp({
     e = decision?.explanation,
     boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
     selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
+    highlightedId = decision?.answer?.kind === "tied" ? selected : selectedId,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
     simulatedError = sim === "error" && !retried,
@@ -1072,7 +1073,7 @@ export function DesignedApp({
                   }}
                   onMust={setCanvasMust}
                   selections={boardSelections}
-                  selected={decision.answer?.kind === "tied" ? selected : selectedId}
+                  selected={highlightedId}
                   onSelect={setSelected}
                 />
               ) : (
@@ -1083,7 +1084,7 @@ export function DesignedApp({
                   onAxis={setAxis}
                   onSpec={changeSpec}
                   onAdd={add}
-                  selected={decision.answer?.kind === "tied" ? selected : selectedId}
+                  selected={highlightedId}
                   onSelect={setSelected}
                   onRelax={relax}
                   boardRanked={boardRanked}
@@ -1115,7 +1116,7 @@ export function DesignedApp({
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
-                selected={selectedId}
+                selected={highlightedId}
                 onSelect={setSelected}
               />
               <Why

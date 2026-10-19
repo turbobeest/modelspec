@@ -40,6 +40,7 @@ test("MODEL-405: a tied answer has no winner styling and keeps probabilities in 
   await expect(page.getByLabel("Narrowing")).not.toContainText("★");
   await expect(answer).not.toContainText("chance of being best");
   await expect(page.locator(".point.selected")).toHaveCount(0);
+  await expect(page.locator(".decision-table tr.selected")).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Decision table" }).getByRole("columnheader", { name: /^#/ })).toHaveCount(0);
   const detail = page.getByRole("region", { name: "Why this model", exact: true });
   await expect(detail).not.toContainText(/#\d+ of/);
