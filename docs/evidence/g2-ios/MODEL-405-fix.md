@@ -61,8 +61,8 @@ export MODELSPEC_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
 | `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_landing.py -k behaviour_in_browser` | Exit 0, **12 passed, 21 deselected**. |
 | `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist` | Exit 0. |
 | `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec` | Exit 0, **0 findings; 5,366 files checked**. |
-| `/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile` | Pending completion. |
-| `git diff --check` | Exit 0. |
+| `/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile` | Final run: exit 0, **12,102 passed, 9 skipped, 11 warnings**, **1,503.78 seconds**. Ran after acquiring the shared lock with Node 22.22.3 on PATH. |
+| `git diff --check` and `git diff --check bbfa93be..HEAD` | Exit 0. |
 
 Versions observed: Node **22.22.3**, npm **10.9.8**, Python **3.14.4**, pytest **9.1.1**, Vitest **5.0.1**, Vite **8.0.3**, Playwright **1.63.0**, TypeScript **5.9.3**, Git **2.50.1**, GitHub CLI **2.102.0**.
 
