@@ -212,3 +212,23 @@ stopped before tests at the engine-main ancestry check, exit 1, because
 `a22355bf9c3d9511ff563494791dd99282411898` is not on main. The read-only command
 `gh run view 39116623991 --repo turbobeest/modelspec-data --log-failed`
 confirmed that cause. No gate was bypassed and no merge was attempted.
+
+## Main sync after #840
+
+#840 (MODEL-411) was squash-merged to main as `2bdc4eb3`. This branch had
+merged #840's branch at `58482dc3`, so `git merge origin/main` conflicted on
+ten files. In each one this branch had no change of its own relative to
+main `6568b0eb` plus `58482dc3`, so main's version (#840 as merged) was
+taken whole: `api/worker/openapi.yaml`, `cli/modelspec/agent-bundle.json`,
+`decision/engine.py`, `decision/filter.py`, `docs/decision-contract.md`,
+`docs/design/cite-only-sources.md`, `docs/evidence/g2-ios/MODEL-411-fix.md`,
+`qa/fixtures/mcp-tools.json`, `tests/test_cite_only_surfaces.py` and
+`tests/test_cite_only_warning_scope.py`. The only own hunks in
+`agent-bundle.json` were the pins for `wrangler.jsonc` and `pyproject.toml`.
+Those two files came from commits cherry-picked into #840 and now match main
+byte for byte. Every other file's diff against main is the same as this
+branch's own diff before the merge. `pipeline.agent_copy write`/`check`,
+`api.worker.openapi`/`--check` and `qa.contracts` regenerated no change, and
+`openapi.yaml` is 232,783 bytes, the same as main. The focused tests gave
+969 passed. The full suite under the shared lock gave exit 0, with 12,589
+passed and 9 skipped in 1,822.22s.

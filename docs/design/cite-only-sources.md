@@ -107,11 +107,13 @@ not permit adding to closed enums without a major bump.
 Keep all existing closed states and verification outcomes. Add citation
 metadata to exports and shown facts as needed, and use
 `cite_only_not_machine_verified` in decision and result warnings. Full,
-bounded, and explain-none decisions retain the decision warning when this
-answer uses a cited fact: a displayed fact, a ranking input, or a filter
-operand that admits or eliminates a candidate. Citations in unrelated rows or
-unused Boolean branches do not trigger it. Result warnings retain their
-existing row scope. The summary says that this answer uses cited facts.
+bounded, and explain-none decisions retain the decision warning only when a
+recommended model uses a cited fact: a displayed fact, a ranking or objective
+input, or a Must that admitted it. The recommendation includes all top or tied
+answer members, or the returned ranked results when there is no named answer.
+Rest, eliminated, screened-out and may-qualify rows carry their own warnings;
+their citations do not trigger the decision warning. Unused Boolean branches
+do not trigger it. The summary notice follows the same recommendation scope.
 Source dates
 continue to mean verification dates (`decision/contract.py:1775` and
 `docs/decision-contract.md:1640`); a cite-only source's verification date is

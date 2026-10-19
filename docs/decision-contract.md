@@ -1645,9 +1645,17 @@ contract version. Version 1.1 retains them.
 
 MODEL-411 admits facts from cite-only sources without claiming machine
 verification. Such facts keep their existing knowledge state, and complete
-and bounded answers carry `cite_only_not_machine_verified` in `warnings`,
-including at `explain: none`. Affected result and estate rows carry the same
-warning. Plan routes state the limitation in `basis`.
+and bounded answers carry `cite_only_not_machine_verified` in `warnings`
+when a recommended model relies on a cited fact: a shown fact, a ranking or
+objective input, or a Must that admitted it. This applies at every explanation
+level. The recommendation includes every top or tied answer member, including
+members beyond the result limit; when there is no named answer, it includes
+the returned ranked results. The summary notice uses the same scope.
+
+Other cited rows, including rest, eliminated and may-qualify rows, carry the
+row warning only. Result and estate rows retain their warnings. Band entries,
+eliminations, may-qualify rows and grouped offerings may add `warnings`; this
+field is omitted when empty. Plan routes state the limitation in `basis`.
 
 A shown fact may add `citation` (`FactCitation`). Its `status` is `cited`,
 and its nonempty `sources` list contains `CitationSource` objects with

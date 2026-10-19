@@ -489,7 +489,7 @@ class _CitationUse:
     def __init__(self, snapshot, reach=None):
         self.snapshot = snapshot
         self.reach = reach
-        self.used = False
+        self.used: set[str] = set()
         self._cited = getattr(snapshot, "cited_facts", None)
         self._records: dict[str, frozenset[str]] = {}
 
@@ -503,41 +503,53 @@ class _CitationUse:
 
     def fact(self, cid, facet):
         found = self.snapshot.fact(cid, facet)
-        self.observe(cid, facet, found)
+        self.observe(cid, facet, found=found)
         return found
 
-    def observe(self, cid, facet, found=None):
-        if self.used or self._cited is None:
+    def observe(self, cid, facet, used_by=(), *, found=None):
+        owners = set(used_by or (cid,))
+        if owners <= self.used or self._cited is None:
             return
         cited = self.records(cid)
         if cited:
             found = self.snapshot.fact(cid, facet) if found is None else found
             if found.record_id in cited:
-                self.used = True
+                self.used.update(owners)
                 return
             computed = self.snapshot.computed(cid, facet)
             if computed is not None and cited.intersection(computed.records):
-                self.used = True
+                self.used.update(owners)
                 return
             if facet == "offering.cost_per_task" and computed is None:
                 # A missing cited price can also remove a candidate from ranking.
                 for price in ("offering.price.input", "offering.price.output"):
-                    self.observe(cid, price)
+                    self.observe(cid, price, used_by)
         if facet == plans_module.PRICE_MONTHLY and self.reach is not None:
             for plan, _surface, _coverage in self.reach.routes.get(cid, ()):
                 for record in self.records(plan):
                     if self.snapshot.record(record).get("facet") in {
                         "offering.subscription.price", "offering.subscription.billing_period",
                     }:
-                        self.used = True
+                        self.used.update(owners)
                         return
 
     def shown(self, decision, ordered):
-        if self.used:
+        recommended = {
+            row.candidate_id for row in ordered.results
+            if self.snapshot.model_of(row.candidate_id) in decision.answer.members
+        } if decision.answer is not None else {
+            row.candidate_id for row in ordered.results[:len(decision.results)]
+        }
+        models = {self.snapshot.model_of(cid) for cid in recommended}
+        if self.used.intersection(recommended | models):
             return True
-        if any(CITE_ONLY_NOTICE in plan.basis for row in decision.results for plan in row.plans):
+        if any(CITE_ONLY_NOTICE in plan.basis
+               for result, row in zip(decision.results, ordered.results)
+               if row.candidate_id in recommended for plan in result.plans):
             return True
         for shown, row in zip(decision.top, ordered.results):
+            if row.candidate_id not in recommended:
+                continue
             cited = self.records(row.candidate_id)
             if any(fact.citation is not None or cited.intersection(fact.records)
                    for fact in shown.facts):
@@ -624,9 +636,6 @@ def decide(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
         spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
-    if (CITE_ONLY_WARNING in decision.with_estate.warnings
-            and CITE_ONLY_WARNING not in decision.warnings):
-        decision.warnings.append(CITE_ONLY_WARNING)
     reading_inputs = capture["reading_inputs"]
     if spec.estate.devices and (spec.access is None or spec.access.kind == "own_hardware"):
         reading_inputs["hardware_fit"] = True
@@ -907,6 +916,7 @@ def _decide(
                 model=snapshot.model_of(cid),
                 offering=offering_ref(snapshot, cid),
                 unknown=unknown,
+                warnings=[CITE_ONLY_WARNING] if _has_cited_facts(snapshot, cid, _reach) else [],
             )
             for cid, unknown in sorted(
                 [(m.candidate, list(m.unknown)) for m in filtered.may_qualify]
@@ -967,7 +977,10 @@ def _decide(
             model=model_id, status="ranked" if ranked else "may_qualify" if unknown else "eliminated",
             offering=offering_ref(snapshot, cid), rank=position, evidence=groups,
             contributions=[] if row is None else contributions(snapshot, cid, row.contributions, groups),
-            unknown=unknown, warnings=[] if row is None else row_warnings(row, model_id),
+            unknown=unknown, warnings=(
+                row_warnings(row, model_id) if row is not None else
+                [CITE_ONLY_WARNING] if _has_cited_facts(snapshot, cid, _reach) else []
+            ),
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),
         ))

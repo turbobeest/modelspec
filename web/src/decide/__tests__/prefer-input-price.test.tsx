@@ -62,6 +62,9 @@ it("keeps the page and the Why panel up after Prefer on Input price", async () =
     expect(sentSpecs(fetch).some((body) => "-offering.price.input" in body.optimize.weights)).toBe(true),
   );
   const why = await screen.findByRole("region", { name: "Why this model" });
+  expect(why).toHaveTextContent("Select a model to inspect its evidence and conditions.");
+  const table = screen.getByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getByRole("button", { name: "Claude Fable 5.1" }));
   expect(within(why).getByRole("heading", { level: 2 })).toHaveTextContent("Claude Fable 5.1");
   expect(screen.getByRole("region", { name: "Facets" })).toBeInTheDocument();
   expect(screen.queryByRole("alert", { name: "The answer could not be shown" })).not.toBeInTheDocument();

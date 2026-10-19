@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from decision.contract import Decision, ModelOffering, ModelRow, OfferingRef
+from decision.contract import CITE_ONLY_WARNING, Decision, ModelOffering, ModelRow, OfferingRef
 from decision.regions import guarantees_countries, no_guarantee_reason
 
 _ORDER = {"ranked": 0, "may_qualify": 1, "eliminated": 2}
@@ -38,6 +38,7 @@ def build_by_model(
             status="ranked",
             rank=result.rank,
             cost_per_task=result.cost_per_task,
+            warnings=[CITE_ONLY_WARNING] if CITE_ONLY_WARNING in result.warnings else [],
         ))
     for candidate in decision.may_qualify:
         ref = candidate.offering or OfferingRef(model=candidate.model)
@@ -51,6 +52,7 @@ def build_by_model(
             cost_per_task=cost_of(ref),
             unknown=list(candidate.unknown),
             reason=reason,
+            warnings=[CITE_ONLY_WARNING] if CITE_ONLY_WARNING in candidate.warnings else [],
         ))
     for group in decision.eliminated.model_groups:
         rows = group.offerings or (
@@ -63,6 +65,7 @@ def build_by_model(
                 status="eliminated",
                 cost_per_task=cost_of(ref),
                 reason=row.condition,
+                warnings=[CITE_ONLY_WARNING] if CITE_ONLY_WARNING in row.warnings else [],
             ))
 
     ranks = {r.model: r.model_rank for r in decision.results}

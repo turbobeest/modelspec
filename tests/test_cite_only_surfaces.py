@@ -117,7 +117,7 @@ def test_named_comparison_preserves_citation_metadata(state):
         assert shown["value"] is None
 
 
-def test_cited_estate_gain_warns_without_current_cited_hold():
+def test_cited_estate_gain_does_not_warn_for_current_answer():
     from tests.snapshot_records import subscription
 
     plan = subscription(facts=[
@@ -138,7 +138,7 @@ def test_cited_estate_gain_warns_without_current_cited_hold():
     answer = decide(spec, index, facets=facet)
     assert any(gain.add.id == "sambanova/subscription/pro" for gain in answer.with_estate.gain)
     assert WARNING in answer.with_estate.warnings
-    assert WARNING in answer.warnings
+    assert WARNING not in answer.warnings
 
 
 def test_cited_plan_warns_in_vocabulary_routes_and_estate():
