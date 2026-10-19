@@ -37,7 +37,7 @@ At most 16384 bytes.
 
 ## Response
 
-`result` is the shortlist, best first, never empty on a `200`. Read:
+`result`: shortlist, best first; nonempty on `200`.
 
 * `applied.unbound` — fields accepted and recorded that **filtered nothing**,
   with the reason (e.g. `environment.runtime: "together_ai"`).
@@ -48,22 +48,8 @@ At most 16384 bytes.
 * `evidence_basis` per row — `none`, `unverified-legacy`, `mixed`,
   `partial-verified`, `verified`: input provenance, not a quality verdict.
 
-Rows with cite-only inputs add `warnings: ["cite_only_not_machine_verified"]`,
-`cited_facts`, and `cited_benchmarks`. Each cited fact keeps its value and source
-URL, content hash, and available fetch date under `citation`, with
-`verification: null`. Cited benchmarks are excluded from verified counts;
-their ordinary score can still contribute under the existing ranking policy.
-The existing `unverified-legacy` bucket includes these unverified inputs, and
-the citation fields distinguish their assurance. The closed `evidence_basis`
-values and response version are unchanged.
-
-Benchmark file exports keep cite-only catalogue results in the additive
-`disposition.cited_results` array, with `citation: {status: "cited", url: ...}`.
-Those rows are excluded from `disposition.verified_results`. Model fact exports
-preserve each fact's ID and add citation metadata to the affected record.
-Flat benchmark scores with a cite-only shared source add `benchmarks.scores_citation`
-to the model export. Their ranking and coverage rows carry citation metadata;
-structured evidence for the same benchmark retains its existing precedence.
+Cite-only inputs add `cite_only_not_machine_verified` warnings and
+[citation metadata](rank-api.md#citation-assurance), excluded from verified counts.
 
 ## Worked example
 
@@ -243,7 +229,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
 }
 ```
 
-Captured 2026-09-17; `unranked_candidates` 2026-09-23. Scores move; the shape does not.
+Captured 2026-09-17; `unranked_candidates` 2026-09-23.
 
 ## Every error, and the fix
 
@@ -333,7 +319,7 @@ the catalogue. Widening a field's range bumps that contract's major
 ([`cli-contract.md`](cli-contract.md)). Fields may be added within a major:
 ignore what you do not know.
 
-A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
+Requests carry profiles, never prompts. [Details](rank-api.md).
 
 ## MCP
 

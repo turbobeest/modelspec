@@ -112,7 +112,8 @@ def export_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr(graph, "derive_graph", lambda *_: {})
     monkeypatch.setattr(hardware, "compute", lambda *_: None)
 
-    def write_rank(out, *_):
+    def write_rank(out, *_, cited_facts):
+        assert cited_facts == {}, "this fixture has no loaded model citations"
         out.mkdir(parents=True, exist_ok=True)
         for filename in ("candidates.json", "hardware.json"):
             (out / filename).write_text(json.dumps({"build": identity}), encoding="utf-8")

@@ -188,15 +188,6 @@ The endpoint is not removed; existing callers keep working.
 inputs. It is **not** a quality verdict on the composite, and `verified` is not a
 certificate.
 
-MODEL-411 adds `warnings`, `cited_facts`, and `cited_benchmarks` to rows with
-cite-only inputs. The warning is `cite_only_not_machine_verified`. Cited fact
-records carry `verification: null` and a `citation` object with `status: cited`
-and source URL/hash/fetch metadata. Cited benchmark scores retain their ranking
-contribution but never enter `verified_contributions` or
-`verified_benchmark_coverage`. The existing unverified basis bucket covers
-them; the additional fields distinguish citations from older flat scores.
-These fields are additive under MODEL-59, so `schema_version` remains `1.0`.
-
 `authoring_guide` is the **recommended** model's card guide (`result[0]`),
 always present on a 200 and a 422. It is not on each row, so the CLI
 byte-identity of `result` holds. The Worker copies what
@@ -259,6 +250,26 @@ envelope stays `"1.0"`, `result` rows are unchanged, and the new
 `MIN_BENCHMARK_COVERAGE = 0.50`, `MIN_BENCHMARK_COUNT = 2` — are not written
 down anywhere in `api/worker/`; `tests/test_rank_worker.py` fails the build if
 they ever are. Changing one is Jamie's call.
+
+### Citation assurance
+
+MODEL-411 adds `warnings`, `cited_facts`, and `cited_benchmarks` to rows with
+cite-only inputs. The warning is `cite_only_not_machine_verified`. Cited fact
+records retain their values with `verification: null` and a `citation` object
+containing `status: cited`, source URLs, content hashes, and available fetch dates.
+Cited benchmark scores retain their ranking contribution but never enter
+`verified_contributions` or `verified_benchmark_coverage`. The existing
+`unverified-legacy` basis bucket covers them; citation fields distinguish their
+assurance from older flat scores. Closed `evidence_basis` values are unchanged.
+These fields are additive under MODEL-59, so `schema_version` remains `1.0`.
+
+Benchmark file exports keep cite-only catalogue results in the additive
+`disposition.cited_results` array, with `citation: {status: "cited", url: ...}`.
+Those rows are excluded from `disposition.verified_results`. Model fact exports
+preserve fact IDs where present and add citation metadata to the affected record.
+Flat benchmark scores with a cite-only shared source add `benchmarks.scores_citation`
+to the model export. Their ranking and coverage rows carry citation metadata;
+structured evidence for the same benchmark retains its existing precedence.
 
 ### Status codes
 

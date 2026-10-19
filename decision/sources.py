@@ -31,11 +31,13 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlsplit
 
-import httpx
 import yaml
+
+if TYPE_CHECKING:
+    import httpx
 
 from decision.model import CitedRegion as CitedRegion
 from decision.model import Source, SourceSnapshot
@@ -232,6 +234,8 @@ class Fetcher:
         clock: Callable[[], float] = time.monotonic,
         user_agent: str = USER_AGENT,
     ) -> None:
+        import httpx
+
         self.client = client or httpx.Client()
         self.timeout = timeout
         self.retries = retries
@@ -254,6 +258,8 @@ class Fetcher:
     def fetch(
         self, url: str, *, etag: str | None = None, last_modified: str | None = None
     ) -> FetchResult:
+        import httpx
+
         headers = {"user-agent": self.user_agent}
         if etag:
             headers["if-none-match"] = etag

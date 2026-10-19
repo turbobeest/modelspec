@@ -290,6 +290,9 @@ def test_finance_projection_links_to_its_retained_source_snapshot(
         def read(self) -> bytes:
             return raw
 
+        def geturl(self) -> str:
+            return model_192_evidence.URL
+
     monkeypatch.setattr(
         model_192_evidence.urllib.request,
         "urlopen",
