@@ -841,3 +841,83 @@ No live publisher fetch, paid provider call, private-data edit, retention-policy
 edit, deployment, production switch, merge or additional writer change was made
 in round 3. No new claim is made about historical source cleanup. The round-2
 writer audit remains applicable; this round changes warning scope and disclosure.
+
+## Round 4 — CI (2026-10-19)
+
+Round 4 fixes CI only. It does not change cite-only behaviour, warning scope,
+contract versions, ranking floors, legal text or production switches. #840's CI
+at `58482dc3` was red on Rank Worker bundle, pytest shard 1/4, pytest perf and
+collection, and Run pytest. Both causes were already fixed on the MODEL-408
+branch (`model-408-xai-consumer`). They were cherry-picked here with `-x`, and no
+other MODEL-408 change was brought in:
+
+- `95944ce7` → `68262db4`: adds `pypdf>=6.19` to the `dev` extra in
+  `pyproject.toml`. The retention collector tests import it, and a clean CI
+  environment did not have it.
+- `a0a13e70` → `e39ba21a`: adds `registry/source-retention.json` to the
+  Worker's Data rule in `api/worker/wrangler.jsonc`. Without it the bundle
+  ships without the retention policy, and `bundle_check.py` fails.
+
+### Generated pins
+
+The generators were run after both picks. Each exited **0** and left no diff
+beyond the picks, so `cli/modelspec/agent-bundle.json` matches generator
+output. Only the `pyproject.toml` and `api/worker/wrangler.jsonc` fingerprints
+changed.
+
+```sh
+python -m pipeline.agent_copy write   # rc 0
+python -m pipeline.agent_copy check   # rc 0
+python -m api.worker.openapi          # rc 0
+python -m api.worker.openapi --check  # rc 0, "matches the implementation"
+python -m qa.contracts                # rc 0
+```
+
+### Rank Worker bundle (local reproduction of `rank-api.yml`)
+
+This used `DATA_SPLIT_ENABLED=true` (the repository variable), uv `0.12.19`,
+Node 22 and wrangler `4.139.0`, as CI pins them.
+
+```sh
+python api/worker/vendor.py --check                       # rc 0, imports cleanly
+uv sync --project api/worker --frozen                     # rc 0
+(cd api/worker && uv run --project . pywrangler deploy --dry-run --outdir ../../dist/rank-worker)  # rc 0
+(cd api/worker && python bundle_check.py ../../dist/rank-worker)  # rc 0
+```
+
+`bundle_check.py` printed "bundle import graph complete: 78 local modules
+reachable from entry.py", and `dist/rank-worker/registry/source-retention.json`
+is present. Negative control: with round 3's `wrangler.jsonc` the dry-run still
+exits 0, but `bundle_check.py` exits **1** with "missing vendored file
+registry/source-retention.json", the same error CI reported.
+
+### Clean environment (local reproduction of `test.yml`)
+
+A fresh Python 3.11 venv at `/tmp/m411r4-venv` was built only from
+`pyproject.toml`, using the workflow's pinned install line (`-e ".[dev]"` and
+the same pins). It installed pypdf 6.21.1.
+
+- Negative control: with pypdf uninstalled, `pytest --collect-only` on the
+  three retention files exits **2** with `ModuleNotFoundError: No module named
+  'pypdf'` in `tests/test_cite_only_collector_writers.py`.
+- With pypdf reinstalled, `tests/test_cite_only_collector_writers.py`,
+  `tests/test_cite_only_retention.py` and `tests/test_curation_cite_only.py`
+  exit **0**: 100 passed.
+- Perf and collection job: `pytest -q -p no:xdist -m perf` exits **0** (3
+  passed). `pytest --collect-only -q -m "not perf"` exits **0** (12393/12396
+  collected, 3 deselected, no collection errors).
+- Shard 1/4 (`scripts/pytest_shards.py --shard-count 4 --shard-index 0`, 79
+  files, `-n 4 --dist loadfile -m "not perf"`) exits **0**: 3080 passed.
+
+### Full suite
+
+```sh
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+This exited **0**: `12387 passed, 9 skipped, 11 warnings in 1544.74s
+(0:25:44)`. The warnings are the same unsigned-vocabulary fixture warnings as in
+round 3.
+
+The scratch venv and the uv tool venv were removed afterwards. No vendor API
+call, deployment, production switch or merge was made, and the PR stays a draft.
