@@ -1459,7 +1459,8 @@ class MayQualify(_ExcludeIf):
     model: ModelId
     offering: OfferingRef | None = None
     unknown: list[FacetId]
-    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class FunnelStep(_Strict):
@@ -1488,7 +1489,8 @@ class ModelElimination(_ExcludeIf):
     value: Scalar | None = None
     #: How a computed value was reached, with the numbers. Added in 1.3.
     formula: str | None = None
-    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class OfferingElimination(_ExcludeIf):
@@ -1501,7 +1503,8 @@ class OfferingElimination(_ExcludeIf):
     condition: str
     value: Scalar | None = None
     formula: str | None = None
-    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class ModelEliminationGroup(_Strict):
@@ -1612,7 +1615,8 @@ class BandEntry(_ExcludeIf):
     cost_per_task: float | None = None
     #: One per weighted capability, in objective order.
     estimates: list[DimensionEstimate] = Field(default_factory=list)
-    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class Bands(_Strict):
@@ -1956,7 +1960,8 @@ class ModelOffering(_ExcludeIf):
     #: (``explain: full``). For a may-qualify offering whose region name
     #: guarantees no country, that sentence.
     reason: str | None = None
-    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value,
+                                 description="Assurance warnings for this row.")
 
 
 class ModelRow(_Strict):

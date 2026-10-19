@@ -252,6 +252,7 @@
           "type": "array"
         },
         "warnings": {
+          "description": "Assurance warnings for this row.",
           "items": {
             "pattern": "^[a-z0-9_]+$",
             "type": "string"
@@ -3706,6 +3707,7 @@
           "type": "array"
         },
         "warnings": {
+          "description": "Assurance warnings for this row.",
           "items": {
             "pattern": "^[a-z0-9_]+$",
             "type": "string"
@@ -3924,6 +3926,7 @@
           "type": "array"
         },
         "warnings": {
+          "description": "Assurance warnings for this row.",
           "items": {
             "pattern": "^[a-z0-9_]+$",
             "type": "string"
@@ -4112,6 +4115,7 @@
           "type": "array"
         },
         "warnings": {
+          "description": "Assurance warnings for this row.",
           "items": {
             "pattern": "^[a-z0-9_]+$",
             "type": "string"
@@ -4678,6 +4682,7 @@
           "type": "array"
         },
         "warnings": {
+          "description": "Assurance warnings for this row.",
           "items": {
             "pattern": "^[a-z0-9_]+$",
             "type": "string"
