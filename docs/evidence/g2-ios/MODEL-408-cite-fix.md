@@ -12,7 +12,8 @@ private `.engine-pin` only after #840 and #822 have merged.
 - Integration HEAD: `ffd4e74a017b96c60f7450fd2cffcad3e63bc3d8`.
 - Initial private data: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`.
 - Final private data: `c11e335c0f9d5a36a990920963ccdf748aadae77`.
-- Final tested code revision and full-suite result: pending below. The final
+- Final tested code revision: `95944ce7248e07aebaf5b93a2b4d9a27fe0f1191`.
+  Full-suite result is pending below. The final
   evidence-only commit is discoverable with `git log -1 --format=%H --
   docs/evidence/g2-ios/MODEL-408-cite-fix.md`.
 
@@ -42,6 +43,7 @@ file writes. The old MODEL-408 evidence is explicitly marked superseded.
 | `test_current_plan_verification_is_cited_without_a_retained_copy`, seven plans and both hosts | 14 failures: outcome was not `cited` | All six facets return `cited`, no verification, no store writes |
 | Private `audit_cite_only.py` | 38 assertion failures in 6 tests: missing citation metadata, retained artifacts and machine-verification records | 6 tests pass; every existing value/state unchanged |
 | `test_xai_capture_helper_is_retired_before_browser_or_output` | Offline browser stub reached: `launch attempted` | Helper exits 1 with cite-only retirement message; no browser import or output directory |
+| Collect `test_cite_only_collector_writers.py` with only `.[dev]` installed | CI and isolated Python 3.11 collection exit 2: `ModuleNotFoundError: No module named 'pypdf'` | 35 collector tests pass; full isolated collection finds 12,528 tests with no errors |
 
 The first 16 citation failures ran against the initial code before the #840
 merge. See [red output](MODEL-408-cite/citations-red.log.gz). The expanded
@@ -61,6 +63,21 @@ offline synthetic stub and rejects unexpected imports. Its exact red/green
 commands and exit codes are in
 [capture evidence](MODEL-408-cite/capture-retired-evidence.json).
 
+After the first push, CI [pytest shard 1](https://github.com/turbobeest/modelspec/actions/runs/39289751948/job/118186999108)
+and [performance/collection](https://github.com/turbobeest/modelspec/actions/runs/39289751948/job/118186999699)
+failed before test execution. The merged #840 collector test imports a PDF
+collector whose `pypdf` dependency was absent from `.[dev]`. The shared local
+environment already had pypdf 6.19.0 and had concealed this packaging gap.
+
+An isolated Python 3.11.15 environment installed from `.[dev]` reproduced the
+missing import. Adding `pypdf>=6.19` to the development extra and regenerating
+the CLI bundle's input fingerprint fixed it. The first reinstall correctly
+rejected that stale fingerprint; the reinstall after regeneration passed.
+The clean environment resolved pypdf 6.21.1, passed all 35 synthetic collector
+tests, and collected all 12,528 tests without import errors. The runtime CLI
+dependency set is unchanged. Commands, direct exits, versions and timings are
+in [isolated environment evidence](MODEL-408-cite/py311-ci.json).
+
 ## Private migration and export proof
 
 Private data PR #96 removes 45 retained-copy and obsolete helper files from
@@ -74,8 +91,9 @@ remain unchanged. The pin stays `a22355bf9c3d9511ff563494791dd99282411898`.
 
 The private audit compares the final tree to the original PR head without
 copying source bodies. The final PR diff against private `origin/main` has no
-retained-copy files. Its audit script, red/green logs and migration report are
-in private `docs/evidence/g2-ios/MODEL-408/` and `MODEL-408-fix.md`.
+retained-copy files. Its audit script and migration report are in private
+`docs/evidence/g2-ios/MODEL-408/` and `MODEL-408-fix.md`; original red/green logs
+remain in the private worktree's `tmp/model-408-cite/data-agent/` scratch.
 
 The updated engine built the private Worker exports with a test signing key.
 The premier gate reported **known 26, explicit null 18, gap 0** for both
@@ -86,6 +104,17 @@ called production `verify()` for all 17 known facts with page reads forbidden,
 and checked both signed snapshots: 17 known values cited with null
 verification, 18 unknown values absent. URL, original timestamps and hashes
 survive in both formats. Outputs contain counts, not private page content.
+See the [vendor output](MODEL-408-cite/private-vendor.log.gz),
+[private proof output](MODEL-408-cite/private-proof-final.json), and
+[final audit output](MODEL-408-cite/private-audit.log.gz).
+
+Private CI [Approved answers on private data](https://github.com/turbobeest/modelspec-data/actions/runs/39289298641/job/118185436862)
+stops in `Verify the engine pin is on modelspec main`, before data validation:
+`.engine-pin a22355bf9c3d9511ff563494791dd99282411898 is not a commit on modelspec main`.
+The pre-existing pin was deliberately preserved as required by the spec.
+The local updated-engine checks above pass, but they do not satisfy this
+separate ancestry check. The orchestrator must update the pin to merged main
+after #840 and #822 merge before the data PR can pass that check.
 
 ## Commands and results
 
@@ -135,8 +164,10 @@ git diff --exit-code -- qa/fixtures
 Direct subprocess/tool exit codes were checked; no test status was inferred
 from a pipe. Focused engine tests: **804 passed**. Consumer parser/matrix/
 citation tests: **263 passed**. Site surface lint: **0 findings, 5,366 files**.
-Web: **902 tests passed, 57 files passed, 1 file skipped**. Generator checks
-required no tracked artifact changes. The release-chart guard had no evidence
+Web: **902 tests passed, 57 files passed, 1 file skipped**. Initial generator
+checks needed no artifact changes. After the CI dependency correction,
+`pipeline.agent_copy write` refreshed only the CLI bundle's pyproject hash;
+`pipeline.agent_copy check` then passed again (exit 0). The release-chart guard had no evidence
 changes to check. The data-freeze guard passed.
 
 Exact public-check arguments, working directories, timings, versions and exit
