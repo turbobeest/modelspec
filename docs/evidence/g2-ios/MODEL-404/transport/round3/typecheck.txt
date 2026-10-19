@@ -1,0 +1,4 @@
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npx tsc -b
+Working directory: /Users/terbeest/dev/worktrees/model-404/web
+Direct exit code: 0
+No diagnostics.

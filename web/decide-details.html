@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // The theme before first paint: initialTheme() in src/decide/theme.ts,
+      // which __tests__/theme.test.tsx holds this script to.
+      (function () {
+        var theme = new URLSearchParams(location.search).get("theme");
+        if (theme !== "light" && theme !== "dark") {
+          try {
+            theme = localStorage.getItem("modelspec-theme");
+          } catch (e) {
+            theme = null;
+          }
+        }
+        document.documentElement.dataset.decideTheme = theme === "light" ? "light" : "dark";
+      })();
+    </script>
+    <meta
+      name="description"
+      content="Set what matters, watch the field narrow, and choose an AI model from visible evidence."
+    />
+    <link rel="canonical" href="https://modelspec.dev/decide/details/" />
+    <title>ModelSpec Facet Board · Decide</title>
+    <link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0B1426" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ModelSpec" />
+    <meta
+      property="og:description"
+      content="Set what matters, watch the field narrow, and choose an AI model from visible evidence."
+    />
+    <!-- social-card-meta:start -->
+    <meta property="og:title" content="ModelSpec Facet Board · Decide">
+    <meta property="og:url" content="https://modelspec.dev/decide/details/">
+    <meta property="og:image" content="https://modelspec.dev/og-card-decide-details.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="ModelSpec detailed decision board: requirements, costs and evidence.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://modelspec.dev/og-card-decide-details.png">
+    <!-- social-card-meta:end -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/decide/main.tsx"></script>
+  </body>
+</html>

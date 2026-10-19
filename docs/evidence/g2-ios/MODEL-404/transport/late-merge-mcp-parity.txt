@@ -1,0 +1,6 @@
+32 MCP/registry files match integrated main b4a7074f byte for byte.
+This includes runtime authorization, origin handling, server-card discovery, tests, snapshots and configuration.
+Only MODEL-404 guide/version/instructions differ from main; tool descriptions are unchanged.
+The MCP full-board link remains /decide/details/.
+General human lookup remains /decide/; explicit board lookup remains /decide/details/.
+Registry metadata and new discovery documentation introduce no decide-page link requiring relocation.

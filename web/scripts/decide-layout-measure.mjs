@@ -42,7 +42,7 @@ export async function routeNarrowedDecision(page) {
 
 /** Open a clean first visit and wait until the answer, its chart and the table have drawn. */
 export async function openDecide(page, base = "") {
-  await page.goto(`${base}/decide.html`);
+  await page.goto(`${base}/decide/details/`);
   await page.locator(".board-ranked-answer > ol > li").first().waitFor();
   await page.locator(".canvas-panel").waitFor();
   await page.locator(".decision-table").waitFor();

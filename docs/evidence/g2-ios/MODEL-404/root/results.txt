@@ -1,0 +1,258 @@
+MODEL-404 root verification excerpts. These are selected log excerpts with labelled assertion summaries; omitted DOM dumps and progress lines remain in local ignored logs.
+
+--- unit-red.log ---
+ FAIL  src/decide/__tests__/simple-decide.test.tsx [ src/decide/__tests__/simple-decide.test.tsx ]
+Error: Failed to resolve import "../simple/model" from "src/decide/__tests__/simple-decide.test.tsx". Does the file exist?
+ Test Files  1 failed (1)
+      Tests  no tests
+   Duration  382ms (environment 81%, setup 14%, transform 5%, worker 1%)
+
+--- normalization-red.log ---
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/decide/__tests__/simple-decide.test.tsx > loads the labelled example and renders a picked job after request normalization
+TestingLibraryElementError: Unable to find role="heading" and name "These 6 are too close to call."
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Duration  6.23s (tests 84%, transform 7%, environment 5%, import 3%, setup 1%)
+
+--- limits-red.log ---
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/decide/__tests__/simple-decide.test.tsx > simple decision question > refuses unsupported selected limits and a self-host question without its required gates
+AssertionError: expected { …(7) } to be null
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Duration  1.79s (tests 50%, transform 23%, environment 16%, import 8%, setup 3%)
+Expected: null; Received: a question without the selected unsupported EU condition.
+
+--- blend-red.log ---
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/decide/__tests__/simple-decide.test.tsx > simple engine answer > describes a changed blend without inventing a winner or workload mix
+Error: expect(element).toHaveTextContent()
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Duration  1.83s (tests 48%, transform 23%, environment 17%, import 8%, setup 3%)
+Expected: More weight goes to ratings of conversational responses.
+Received: This choice compares ratings of conversational responses and estimated running cost.
+
+--- review-red.log ---
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/decide/__tests__/simple-decide.test.tsx > simple engine answer > uses retained best-band routes and objective evidence when result rows are truncated
+Error: expect(element).toHaveTextContent()
+ FAIL  src/decide/__tests__/simple-decide.test.tsx > loads the labelled example and renders a picked job after request normalization
+Error: expect(element).toHaveFocus()
+ Test Files  1 failed (1)
+      Tests  2 failed | 10 passed (12)
+   Duration  1.60s (tests 39%, transform 29%, environment 18%, import 11%, setup 3%)
+Expected route: via Anthropic; received: Run on your own hardware / Task cost unknown.
+Expected focus: verdict h2; received: body.
+
+--- unit-green.log ---
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Duration  1.71s (tests 51%, transform 23%, environment 15%, import 8%, setup 3%)
+
+--- web-unit-final.log ---
+ Test Files  55 passed | 1 skipped (56)
+      Tests  872 passed (872)
+   Duration  21.27s (tests 65%, environment 22%, import 5%, setup 4%, transform 3%)
+
+--- web-build.log ---
+✓ built in 170ms
+
+--- pipeline-build.log ---
+Process exit code: 0 (read directly).
+ "models": 1372,
+ "benchmarks": 1153,
+ "modelspec_urls": 2622,
+  "markdown_pages": 2605,
+The build reported existing unregistered frozen-data hardware-source warnings.
+
+--- corpus-generation.log ---
+wrote 319 decisions and 5 vocabularies to docs/evidence/g2-ios/MODEL-404/root/.corpus
+
+--- corpus-browser.log ---
+  10 skipped
+  112 passed (24.1s)
+
+--- surface-lint.log ---
+docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 2 findings; 70 files checked
+
+--- composition-final.log ---
+modelspec: 2670 files; discovery links resolve
+
+--- surface-final.log ---
+docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
+
+--- Final built corpus rerun (separate artifact directory), exit 0 ---
+  10 skipped
+  112 passed (24.0s)
+
+An earlier concurrent run had only trace-artifact teardown ENOENT errors after another Playwright run cleaned the shared web/test-results directory. The final invocation uses MODELSPEC_BROWSER_OUTPUT=root/.corpus-playwright; no assertions were changed.
+
+--- Final site build and composition after generated OpenAPI fix ---
+Pipeline build exit code: 0.
+ "commit": "36a1dda13c6c",
+ "modelspec_urls": 2622,
+  "markdown_pages": 2605,
+modelspec: 2670 files; discovery links resolve
+docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
+thin_pages: []
+Composed agents.md and openapi.yaml exactly match final source bytes.
+
+--- First full Python suite under shared lock; direct exit code 1 ---
+=================================== FAILURES ===================================
+_____________ test_flag_off_agent_copy_matches_reviewed_catalogue ______________
+[gw2] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+    def test_flag_off_agent_copy_matches_reviewed_catalogue():
+        copy = agent_copy.copy()
+        # MODEL-287 adds a ninth tool and compacts descriptions within the existing token budget.
+>       assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7"
+E       AssertionError: assert '36064102d8fc...2067189d0803e' == 'faa19be299fb...faa2f6f3841b7'
+E
+E         - faa19be299fb233c78d366f2fed67897f45b87d89d2bad40f96faa2f6f3841b7
+E         + 36064102d8fcdc9b1ea6e62a68066d452ec525fe4b5366552812067189d0803e
+
+tests/test_decision_link.py:88: AssertionError
+______ test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget ______
+[gw0] darwin -- Python 3.14.4 /Users/terbeest/dev/modelspec/.venv/bin/python
+
+capsys = <_pytest.capture.CaptureFixture object at 0x11d72aed0>
+
+    def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+        """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+        from qa.agent_harness import main
+        assert main(["--first-turn-breakdown"]) == 0
+        report = json.loads(capsys.readouterr().out)
+        assert set(report) == {"claude", "openai", "gemini"}
+>       assert all(row["total"] <= 9_500 for row in report.values()), report
+E       AssertionError: {'claude': {'method': 'ceil(characters / 4)', 'components': {'system_prompt': 10, 'harness_scaffolding': 11, 'guide': ...ystem_prompt': 10, 'harness_scaffolding': 11, 'guide': 2128, 'full_spec': 0, ...}, 'total': 9540, 'wire_bytes': 38168}}
+E       assert False
+E        +  where False = all(<generator object test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget.<locals>.<genexpr> at 0x120c6ee90>)
+
+tests/test_agent_guide.py:78: AssertionError
+FAILED tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+2 failed, 11492 passed, 9 skipped, 11 warnings in 1292.15s (0:21:32)
+The catalogue expected digest was corrected during the run after its worker had loaded the old test. The second failure requires shorter generated guide text; the 9,500-token budget remains unchanged.
+
+--- Final site build after startup-budget correction (5fb92b25) ---
+Pipeline build exit code: 0. Composition exit code: 0. Surface lint exit code: 0. Thin-page/published-byte inspection exit code: 0.
+ "commit": "5fb92b253863",
+ "modelspec_urls": 2622,
+  "markdown_pages": 2605,
+modelspec: 2670 files; discovery links resolve
+docs/evidence/g2-ios/MODEL-404/root/.live/modelspec: 0 findings; 70 files checked
+thin_pages: []. Both decide routes exist. Published agents.md and openapi.yaml equal final source bytes.
+Data freeze: exit 0, data freeze: ok. Protected ranking/contract/legal/Worker-config paths have no diff from base.
+
+--- Final merged-source build and corpus (e0053beaa0515892667dfcbb3225422560ea43d5) ---
+Integrated main: 0cf4080a72d354295c434206257d089d26b50ed6.
+Pipeline build direct exit: 0. Build metadata commit: e0053beaa051.
+models: 1372; benchmarks: 1153; modelspec_urls: 2641; markdown_pages: 2605.
+The build retained existing frozen-data hardware-source warnings.
+Corpus generation direct exit: 0. Wrote 319 decisions and 5 vocabularies.
+Built-page corpus browser direct exit: 0. 112 passed, 10 skipped in 24.4 seconds.
+Live composition direct exit: 0. modelspec: 2711 files; discovery links resolve.
+Surface lint direct exit: 0. 0 findings, 0 notices; 111 files checked.
+Fresh web commands and gate matrix are recorded in gates/results.txt.
+Merged generator, pin, link and MCP checks are recorded in routing/verification.md and transport/merge-mcp-results.txt.
+The final full Python process remains queued under the shared lock; no result is claimed yet.
+
+--- Integrated use-case detailed-board action, red then green ---
+Red command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py::test_use_case_neutrality_and_access
+Direct exit code: 1.
+>       assert "/decide/details/?template=coding-best" in page.links
+E       AssertionError: assert '/decide/details/?template=coding-best' in ['https://modelspec.dev/use-cases/coding/coding-best/', '/favicon.ico', '/icon.svg', '/apple-touch-icon.png', '/site.webmanifest', '/fonts/archivo-latin.woff2', ...]
+E        +  where ['https://modelspec.dev/use-cases/coding/coding-best/', '/favicon.ico', '/icon.svg', '/apple-touch-icon.png', '/site.webmanifest', '/fonts/archivo-latin.woff2', ...] = <pipeline.surface_lint.Page object at 0x10a381be0>.links
+FAILED tests/test_pipeline.py::test_use_case_neutrality_and_access - Assertio...
+1 failed in 0.44s
+Green command: PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_pipeline.py -k use_case
+Direct exit code: 0.
+15 passed, 47 deselected in 46.08s.
+The primary template action uses /decide/details/; the generic first-visit link remains /decide/.
+
+--- Final composed artifact audit ---
+Source SHA e0053beaa0515892667dfcbb3225422560ea43d5; published api/build.json matches.
+Both decide entries have their expected canonical/OG URL and resolving JS entry.
+Both decide sitemap lastmod values: 2026-10-17, from source history.
+About: 2 board links to details. Homepage: 3 explicitly board-labelled links to details.
+40 use-case template actions target /decide/details/?template=<id>.
+41 use-case pages retain 82 introductory /decide/ links.
+Composed sitemap: 33 entries; 19 use-case entries preserve source date 2026-09-23.
+Published agents.md and openapi.yaml equal source bytes.
+thin_pages: [] across 14 core pages.
+Audit proof: routing/final-artifact-audit.json.
+
+--- CI test-order correction (dcf398d6f27f8a84e72c5aef0492ec1f73aee1af) ---
+The merge CI shard2 failed test_schema_compaction_preserves_every_original_rule with KeyError: pydantic.root_model.
+Local red sequence: billing_launch then schema-compaction test, 21 passed and 1 failed.
+New cold-process regression reproduced the same error before the fix.
+Restore only replay runtime stubs, preserving legitimately imported dependencies.
+Direct green exit0: 56 billing-launch, billing-smoke and guide tests.
+Direct green exit0: 149 merged focused tests, 2 expected skips.
+Cold-process real decision, hardware-fit2.0 and OpenAPI follow-up probe exit0.
+Post-fix billing browser combinations all exit0: 2 passed/2 skipped, 2 passed/2 skipped, 4 passed, 4 passed.
+No product code or generated artifact changed after e0053be. Full Python remains queued; it will include dcf398d6.
+Full commands and output: transport/import-isolation-results.txt and gates/results.txt.
+
+--- Final full Python suite; direct exit code 0 ---
+Source: dcf398d6f27f8a84e72c5aef0492ec1f73aee1af.
+Command from /Users/terbeest/dev/worktrees/model-404:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+The process waited for the shared lock and returned exit 0 in this executor session.
+11536 passed, 9 skipped, 11 warnings in 1356.88s (0:22:36)
+No source changes occurred during this run. The preceding queued-status notes are historical.
+
+--- Final tested-source CI ---
+Source: dcf398d6f27f8a84e72c5aef0492ec1f73aee1af
+All checks pass or are intentionally skipped. Run pytest, Build both sites, evidence, Data freeze, both Worker checks and all four browser gate combinations pass.
+The PR remains draft. Complete check names, states, links and observation time: root/ci-source-results.json.
+
+--- Second main integration; source 1b3d8e3a66b3ddf572702ab11e3d40fdbc580226 ---
+Integrated main b4a7074f37a3ba940bd86db9d1e2459a25fd40af, including MODEL-402 #813 and MODEL-403 #816.
+The sole merge conflict, qa/fixtures/mcp-tools.json, was resolved through the repository capture path after agent-copy and OpenAPI generation/checks. No artifact was hand-merged.
+Latest generator hashes and unchanged literal catalogue pins: routing/late-merge-pins.json.
+Agent-copy write/check, OpenAPI generation/check and QA capture all returned exit 0.
+Focused Python: 149 passed, 2 opt-in live probes skipped. Snapshot integration checks: 48 passed.
+MCP typecheck exit 0; all 233 tests pass. All 32 upstream MCP/registry files match integrated main.
+Fresh web npm ci/build/unit/browser commands all exit 0: 872 unit tests; 37 browser tests, 16 expected skips.
+Human/visit gate matrix all exit 0: 35/10, 37/8, 44/1, 44/1 passed/skipped.
+All 11 screenshots were regenerated and inspected; their bytes and engine response IDs are unchanged.
+Site build direct exit 0; build source 1b3d8e3a66b3. Existing frozen-data hardware-source warnings remain.
+Live composition direct exit 0: 2711 files; discovery links resolve.
+Surface lint direct exit 0: zero findings and notices, 111 files checked.
+Composed site inspection: no thin pages across 14 core pages; exact generated agent/OpenAPI bytes; both decide routes have resolving assets and deterministic lastmod dates.
+About 2/home 3 board links and all 40 use-case template actions use details; all 82 use-case introductory links retain /decide/.
+Corpus generation direct exit 0: 319 decisions, 5 vocabularies.
+Built-page corpus browser direct exit 0: 112 passed, 10 skipped in 23.5 seconds.
+Data freeze against b4a7074f direct exit 0: data freeze: ok.
+Protected ranking, decision contract, legal and Worker configuration paths have no diff against b4a7074f.
+The full Python suite for this source is queued under the shared lock. The earlier 11536-pass result and green CI above apply to dcf398d6 only.
+
+--- Asynchronous focus assertion correction; source f4b13af3e11618304a73d07bcec685fe372e46cc ---
+CI at 1b3d8e3a failed one unit assertion after Coding: the verdict heading existed but document.activeElement was still body.
+The other three CI gate combinations passed. No separate site-build failure occurred; its aggregate status followed the failed unit job.
+Twelve local pre-fix narrow runs and the 1271-test corpus-enabled suite passed; the intermittent failure was observed only in CI.
+The Coding test now waits for actual focus rather than only heading presence. The immediate Everyday-help focus assertion remains unchanged.
+Application and browser-test code, generated artifacts and built-site bytes are unchanged from 1b3d8e3a.
+Twelve post-fix focused runs passed. Corpus-enabled unit suite direct exit 0: 1271 passed, 56 files, 21.55 seconds.
+A temporary test-only control suppressed focus and correctly failed the updated assertion; the control was removed.
+The keyboard-focus browser case passed in all four gate combinations, each direct exit 0.
+Reproducible commands and honest CI/local distinction: gates/focus-race-results.txt.
+Current source f4b13af3 was committed and pushed before the queued full Python process acquired the lock. Full-suite and new-source CI results remain pending.
+
+--- Final second-integration full Python suite; direct exit code 0 ---
+Source: f4b13af3e11618304a73d07bcec685fe372e46cc.
+Command from /Users/terbeest/dev/worktrees/model-404:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+The process waited for the shared lock and returned exit 0 in this executor session.
+11584 passed, 9 skipped, 11 warnings in 1213.18s (0:20:13)
+No source changes occurred during the actual test run. The preceding pending-status notes are historical.
+
+--- Final tested-source CI after the focus assertion correction ---
+Source: f4b13af3e11618304a73d07bcec685fe372e46cc.
+17 successful checks, 6 intentionally skipped, zero failures or pending checks.
+All four Python shards and aggregate Run pytest pass; Build both sites, all four browser gate combinations, release-chart evidence, Data freeze, MCP Worker and Rank Worker also pass.
+PR 814 remains draft and mergeable. Complete names, links, source SHA and observation time are recorded in root/ci-late-source-results.json.
+The final publication adds evidence only; product/build source remains 1b3d8e3a and final tested source remains f4b13af3.

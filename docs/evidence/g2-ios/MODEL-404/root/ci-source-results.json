@@ -1,0 +1,169 @@
+{
+  "source_sha": "dcf398d6f27f8a84e72c5aef0492ec1f73aee1af",
+  "pr": "https://github.com/turbobeest/modelspec/pull/814",
+  "draft": true,
+  "checked_at": "2026-10-18T04:14:41.626167+00:00",
+  "checks": [
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T04:13:55Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117583529206",
+      "name": "Run pytest",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:59:26Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117581052867",
+      "name": "Smoke-test the deployed decide surfaces",
+      "state": "SKIPPED"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:59:26Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117581052712",
+      "name": "Deploy to Cloudflare Pages",
+      "state": "SKIPPED"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:41:37Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540202/job/117578056928",
+      "name": "Deploy the staging rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:41:37Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540202/job/117578057002",
+      "name": "Deploy the rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:59:26Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117577513213",
+      "name": "Build both sites",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:38:28Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117576494334",
+      "name": "Test decide page (human gate true, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:38:18Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117576494361",
+      "name": "Test decide page (human gate false, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:38:19Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117576494145",
+      "name": "Test decide page (human gate false, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:37:13Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540038/job/117576494851",
+      "name": "Test decide page (human gate true, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:25:37Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540102/job/117575231773",
+      "name": "Deploy the MCP Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:28:05Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198508",
+      "name": "pytest perf and collection",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:42:25Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198503",
+      "name": "pytest shard 2/4",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:55:10Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198439",
+      "name": "pytest shard 3/4",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T04:13:39Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198334",
+      "name": "pytest shard 4/4",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T04:04:56Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198510",
+      "name": "pytest shard 1/4",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:25:49Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540136/job/117575198526",
+      "name": "Package smoke test",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:41:37Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540202/job/117575124050",
+      "name": "Rank Worker bundle",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:25:37Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540102/job/117575123506",
+      "name": "MCP Worker tests",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:25:11Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540041/job/117575122986",
+      "name": "Data freeze",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:25:05Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540123/job/117575123389",
+      "name": "Check sign-off",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "pass",
+      "completedAt": "2026-10-18T03:25:24Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540066/job/117575122905",
+      "name": "Check evidence against release charts",
+      "state": "SUCCESS"
+    },
+    {
+      "bucket": "skipping",
+      "completedAt": "2026-10-18T03:25:00Z",
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39093540040/job/117575123783",
+      "name": "Queue squash auto-merge",
+      "state": "SKIPPED"
+    }
+  ]
+}

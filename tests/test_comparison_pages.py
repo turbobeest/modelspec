@@ -191,7 +191,7 @@ def test_page_uses_registry_copy_keyed_access_and_consistent_jsonld(example):
         assert value in page.visible
     assert "CLI, API, and MCP access requires a key" in page.visible
     assert 'href="/legal/neutrality/"' in raw
-    assert 'href="/decide/?template=coding-best"' in raw
+    assert 'href="/decide/details/?template=coding-best"' in raw
     assert not REMOVED_TEXT.search(raw)
     assert excluded_in(publisher_subject("compare/index.html", raw)) is False
     nodes = json.loads(page.ld[0])["@graph"]

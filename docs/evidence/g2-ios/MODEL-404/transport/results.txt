@@ -1,0 +1,143 @@
+MODEL-404 transport results, 2026-10-17
+Node v22.22.3; npm 10.9.8; Vitest v5.0.1.
+Commands and limitations are in notes.md. Excerpts below omit stack frames
+and timing breakdowns. Exit codes were read directly from each command.
+
+1. Missing implementation, red, 20:59:12, exit 1
+Suite: src/decide/__tests__/simple-transport.test.tsx
+Error: Failed to resolve import "../simple/useSimpleDecision" from
+"src/decide/__tests__/simple-transport.test.tsx". Does the file exist?
+Test Files  1 failed (1)
+Tests       no tests
+This was a collection failure before the new hook existed, not a behavioral
+assertion failure.
+
+2. Stale watchdog, red, 21:00:45, exit 1
+Test: aborts a changed question and cannot display its delayed answer
+AssertionError: expected { kind: 'error', …(4) } to deeply equal { kind: 'success', details: 'ready' }
+Received:
+  code: "timeout"
+  kind: "error"
+  message: "The decision service did not answer within 20 seconds."
+Test Files  1 failed (1)
+Tests       1 failed | 8 passed (9)
+The aborted request's watchdog replaced the newer successful result.
+
+3. Snapshot workload change, initial red, 21:04:29, exit 1
+Test at that point: finishes one verified action when a snapshot reload
+changes the template workload
+AssertionError: expected { kind: 'idle' } to deeply equal { kind: 'success', details: 'ready' }
+Test Files  1 failed (1)
+Tests       1 failed | 9 passed (10)
+The vocabulary reload changed the request key, aborted its verified action,
+and cleared the answer. The final test below requires an explicit new lookup,
+because transparently retrying changed task tokens spends another admission.
+
+4. Meter replay, exit 0
+Command: /Users/terbeest/dev/modelspec/.venv/bin/python tests/replay_human_gate.py
+The command received this JSON on standard input:
+[
+  {"intent":"abcdefghijklmnopqrstuA","token":"verified","now":1800000000,"spec":{"spec_version":1,"optimize":{"weights":{"chat_preference":0.6,"-offering.cost_per_task":0.4}},"task_tokens":{"input":40000,"output":4000},"explain":"summary"}},
+  {"intent":"abcdefghijklmnopqrstuA","token":"verified","now":1800000000.15,"spec":{"spec_version":1,"optimize":{"weights":{"chat_preference":0.6,"-offering.cost_per_task":0.4}},"task_tokens":{"input":12345,"output":321},"explain":"summary"}},
+  {"intent":"abcdefghijklmnopqrstuA","token":"verified","now":1800000000.30,"spec":{"spec_version":1,"optimize":{"weights":{"chat_preference":0.6,"-offering.cost_per_task":0.4}},"task_tokens":{"input":12345,"output":321},"explain":"full"}}
+]
+Output:
+[[200, "", "", {"x-modelspec-decisions-remaining": "19"}], [200, "", "", {"x-modelspec-decisions-remaining": "18"}], [200, "", "", {"x-modelspec-decisions-remaining": "18"}]]
+The replay uses the real SQLite gate and mocked external Turnstile validation.
+Changing task tokens under the same valid intent spends a second admission.
+
+5. Explicit new lookup requirement, red, 21:07:38, exit 1
+Test: requires a new verified lookup when a snapshot changes the question
+instead of spending another admission
+AssertionError: expected [ [ …(2) ], [ …(2) ], [ …(2) ] ] to have a length of 1 but got 3
+Test Files  1 failed (1)
+Tests       1 failed | 9 passed (10)
+The intermediate implementation sent the changed-task retry automatically.
+
+6. Explicit new lookup requirement, green, 21:07:55, exit 0
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-transport.test.tsx
+Test Files  1 passed (1)
+Tests       10 passed (10)
+The test in section 5 now passes. It requires one POST before a new lookup,
+question_changed with no stale decision, no tokenless manual retry, and a new
+intent for the explicitly verified request using the refreshed task size.
+
+7. Final focused regression, green, 21:08:58, exit 0
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python npm --prefix web test -- src/decide/__tests__/simple-transport.test.tsx src/decide/__tests__/human-gate.test.tsx src/decide/__tests__/visit-gate.test.tsx src/decide/__tests__/adapter.test.ts src/decide/__tests__/vocabulary-fetch.test.ts
+Test Files  5 passed (5)
+Tests       68 passed (68)
+The transport suite now has 12 cases, including these additional checks:
+- clears a summary after a material full-response reload and lets automatic
+  Retry ask the updated question
+- keeps a verified action when refreshed UI metadata changes but its request
+  stays identical
+
+8. Component recovery and transport, green, 21:14:04, exit 0
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-recovery.test.tsx src/decide/__tests__/simple-transport.test.tsx
+Test Files  2 passed (2)
+Tests       14 passed (14)
+Additional component test names:
+- keeps an unsupported residency limit until the visitor removes it,
+  preserving the other choices
+- renders mutated snapshot date, available-template count and each
+  template's task size
+The first checks that an EU condition becoming unavailable sends no
+unrestricted retry; Remove EU residency retains no-training, own-software
+access, and 40,000/4,000 task tokens. The second checks date, template count,
+and token-size mutations against visible text and outgoing requests.
+These two tests were added after the reviewed UI fixes; no production red
+is claimed for them.
+
+9. Final static checks, exit 0 each
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH web/node_modules/.bin/tsc -p web/tsconfig.app.json --noEmit
+git diff --check -- web/src/decide/__tests__/simple-recovery.test.tsx docs/evidence/g2-ios/MODEL-404/transport/notes.md
+Both commands produced no output.
+
+10. Self-hosting reselection, red, 21:23:57, exit 1
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-recovery.test.tsx
+Test: can choose Self-hosting again after removing its open-weights limit and preserves explicit limits
+Error: expect(element).toBeEnabled()
+Received element is not enabled:
+  <button aria-pressed="false" disabled="" />
+Test Files  1 failed (1)
+Tests       1 failed | 2 passed (3)
+Removing the defining open-weights limit deliberately switches to Everyday
+help. The disabled calculation retained removedFacets when checking whether
+Self-hosting could be selected again, although its click handler clears them.
+The candidate used for availability therefore differed from the next choice.
+
+11. Self-hosting reselection, green, 21:24:19, exit 0
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-recovery.test.tsx src/decide/__tests__/simple-transport.test.tsx src/decide/__tests__/simple-decide.test.tsx
+Test Files  3 passed (3)
+Tests       27 passed (27)
+The two availability candidates now clear removedFacets exactly as the job
+and priority click handlers do. The test reselects Self-hosting, verifies its
+open-weights and commercial-use conditions, retains the explicitly selected
+no-training condition, and repeats the checks at all three priorities.
+
+12. Explicit-route recovery, red, 21:29:34, exit 1
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-recovery.test.tsx
+Tests:
+- offers an explicit all-routes recovery for chat_app without changing the question
+- offers an explicit all-routes recovery for own_hardware without changing the question
+Both failed:
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Try all routes"
+Test Files  1 failed (1)
+Tests       2 failed | 3 passed (5)
+The no-feasible response contains answer:null and relax_single:null, with:
+  no model that meets the requirements has a value for chat_preference, offering.cost_per_task
+These fields reproduce the local engine results recorded in
+../routing/route-probe.txt. The test overlays them on the existing full
+fixture. The old UI exposed the raw diagnostic and offered no route recovery.
+
+13. Explicit-route recovery, green, 21:29:54, exit 0
+Command: PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix web test -- src/decide/__tests__/simple-recovery.test.tsx src/decide/__tests__/simple-transport.test.tsx src/decide/__tests__/simple-decide.test.tsx
+Test Files  3 passed (3)
+Tests       29 passed (29)
+The explicit-route no-feasible branch now says no comparison is available
+for the selected route with these choices, without claiming a known cause.
+Try all routes changes only route to any. Both tests require no request
+before clicking, then compare the entire request against the previous one
+except access and explanation level. High volume, Spend less, the explicit
+no-training limit, and 2,000/500 task tokens remain selected. Raw diagnostic
+facet names are absent from this branch; the full-evidence link remains.

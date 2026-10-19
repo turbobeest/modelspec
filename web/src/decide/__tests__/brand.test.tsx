@@ -2,7 +2,7 @@ import { render } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 import App from "../App";
 
-beforeEach(() => history.replaceState(null, "", "/decide/?demo=1"));
+beforeEach(() => history.replaceState(null, "", "/decide/details/?demo=1"));
 
 function headerMark(container: HTMLElement) {
   const mark = container.querySelector(".global-header .lockup svg.mark");
@@ -11,7 +11,7 @@ function headerMark(container: HTMLElement) {
 }
 
 it("renders the 2a mark in the header, with the package's ids and colours", () => {
-  history.replaceState(null, "", "/decide/?demo=1&theme=light");
+  history.replaceState(null, "", "/decide/details/?demo=1&theme=light");
   const { container } = render(<App />);
   const mark = headerMark(container);
   expect(mark.getAttribute("viewBox")).toBe("0 0 40 40");

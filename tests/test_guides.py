@@ -211,7 +211,7 @@ def test_example_has_exact_public_image_label_tie_rules_and_template_link(render
     assert label in page.visible
     assert label in surface_lint.Page(build.use_case_page(template, decision, DAY)).visible
     assert "delayed" in page.visible.lower()
-    assert "/decide/?template=budget-coding" in page.links
+    assert "/decide/details/?template=budget-coding" in page.links
     assert "/use-cases/coding/budget-coding/" in page.links
     assert "Tie-breakers describe members of the tie" in page.visible
     assert "They do not establish a winner" in page.visible

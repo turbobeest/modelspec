@@ -90,7 +90,7 @@ async function builtPage(page: Page, baseURL: string | undefined, gate: boolean,
 test("billing launch keeps browser lookup free through the real visit gate", async ({ page, baseURL, replayWorker }) => {
   test.skip(!visitPage, "requires the visit-enabled page build");
   const { calls, responses } = await builtPage(page, baseURL, true, replayWorker);
-  await page.goto("https://modelspec.dev/decide.html");
+  await page.goto("https://modelspec.dev/decide/details/");
   await expect(page.getByLabel("Facet board answer")).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => calls.filter((call) => call.path === "/v1/decide").length).toBe(3);
   await expect.poll(() => responses.at(-1)?.produced).toBe(3);
@@ -151,7 +151,7 @@ test("billing launch keeps browser lookup free through the real visit gate", asy
 
 test("billing launch shows the key pointer when the Worker visit gate is off", async ({ page, baseURL, replayWorker }) => {
   const { calls, responses } = await builtPage(page, baseURL, false, replayWorker);
-  await page.goto("https://modelspec.dev/decide.html");
+  await page.goto("https://modelspec.dev/decide/details/");
   const error = page.getByRole("alert");
   await expect(error).toContainText("requires an API key", { timeout: 20_000 });
   await expect(error).toContainText("https://modelspec.dev/pricing");
@@ -166,7 +166,7 @@ test("billing launch shows the key pointer when the Worker visit gate is off", a
 
 test("billing launch shows the vocabulary key pointer when the Worker visit gate is off", async ({ page, baseURL, replayWorker }) => {
   const { calls, responses } = await builtPage(page, baseURL, false, replayWorker, true);
-  await page.goto("https://modelspec.dev/decide.html");
+  await page.goto("https://modelspec.dev/decide/details/");
   const error = page.getByRole("alert");
   await expect(error).toContainText("requires an API key", { timeout: 20_000 });
   await expect(error).toContainText("https://modelspec.dev/pricing");
@@ -174,4 +174,22 @@ test("billing launch shows the vocabulary key pointer when the Worker visit gate
   expect(index).toBeGreaterThanOrEqual(0);
   expect(responses[index].status).toBe(401);
   expect(responses[index].produced).toBe(0);
+});
+
+test("simple lookup uses the real visit admission and direct machine access stays keyed", async ({ page, baseURL, replayWorker }) => {
+  test.skip(!visitPage, "requires the visit-enabled page build");
+  const { calls, responses } = await builtPage(page, baseURL, true, replayWorker);
+  await page.goto("https://modelspec.dev/decide/");
+  await expect(page.getByRole("region", { name: "Decision answer", exact: true }).getByRole("heading", { level: 2 })).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => calls.filter((call) => call.path === "/v1/decide").length).toBeGreaterThan(0);
+  const decisions = calls.filter((call) => call.path === "/v1/decide");
+  expect(new Set(decisions.map((call) => call.headers["x-modelspec-intent"])).size).toBe(1);
+  expect(decisions.every((call) => Boolean(call.headers["x-modelspec-visit-token"]))).toBe(true);
+  expect(responses.every((response) => response.status === 200 || response.status === 204)).toBe(true);
+  const direct = await page.evaluate(async (api) => {
+    const response = await fetch(`${api}/v1/decide`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spec_version: 1, optimize: { min: "offering.cost_per_task" } }) });
+    return { status: response.status, body: await response.text() };
+  }, api);
+  expect(direct.status).toBe(401);
+  expect(z.object({ error: z.object({ code: z.string() }) }).parse(JSON.parse(direct.body)).error.code).toBe("missing_api_key");
 });

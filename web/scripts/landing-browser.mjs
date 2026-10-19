@@ -17,8 +17,8 @@ const results = {};
 const browser = await chromium.launch({ headless: true });
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
-  const relative = pathname === "/decide/"
-    ? "decide/index.html"
+  const relative = pathname === "/decide/" || pathname === "/decide/details/"
+    ? pathname.slice(1) + "index.html"
     : pathname.replace(/^\//, "");
   const staticFile = path.resolve(assembledPath, relative);
   if (relative && staticFile.startsWith(assembledRoot + path.sep) && fs.existsSync(staticFile)) {
@@ -232,8 +232,8 @@ try {
   const forwarding = await browser.newContext();
   const forwardingPage = await forwarding.newPage();
   await forwardingPage.goto(`${origin}/?estate=saved&utm_source=old#s=shared`);
-  await forwardingPage.waitForURL(`${origin}/decide/?estate=saved&utm_source=old#s=shared`);
-  assert.equal(new URL(forwardingPage.url()).pathname, "/decide/");
+  await forwardingPage.waitForURL(`${origin}/decide/details/?estate=saved&utm_source=old#s=shared`);
+  assert.equal(new URL(forwardingPage.url()).pathname, "/decide/details/");
   const campaignPage = await forwarding.newPage();
   await campaignPage.goto(`${origin}/?utm_source=launch`);
   assert.equal(new URL(campaignPage.url()).pathname, "/");
@@ -245,7 +245,7 @@ try {
     await context.route("https://api.modelspec.dev/**", (route) => route.abort());
     await context.route("https://modelspec.dev/**", (route) => {
       const pathname = new URL(route.request().url()).pathname;
-      const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
+      const relative = pathname === "/decide/" || pathname === "/decide/details/" ? pathname.slice(1) + "index.html" : pathname.replace(/^\//, "");
       const staticFile = path.resolve(assembledPath, relative);
       if (!scripts && relative.endsWith(".js")) return route.abort();
       if (!staticFile.startsWith(assembledRoot + path.sep) || !fs.existsSync(staticFile))
@@ -266,7 +266,7 @@ try {
   const unhydrated = await browser.newContext({ colorScheme: "light" });
   await serveAssembled(unhydrated, { scripts: false });
   const firstPaint = await unhydrated.newPage();
-  await firstPaint.goto("https://modelspec.dev/decide/?demo=1");
+  await firstPaint.goto("https://modelspec.dev/decide/details/?demo=1");
   assert.deepEqual(await firstPaint.evaluate(() => ({
     theme: document.documentElement.dataset.decideTheme,
     background: getComputedStyle(document.documentElement).backgroundColor,
@@ -278,7 +278,7 @@ try {
   await serveAssembled(assembled);
   const decidePage = await assembled.newPage();
   const decideFailures = recordBrowserFailures(decidePage);
-  await decidePage.goto("https://modelspec.dev/decide/?demo=1");
+  await decidePage.goto("https://modelspec.dev/decide/details/?demo=1");
   await assertRankedBoard(decidePage);
   assert.match(await decidePage.locator(".template-active").textContent(), /Starting from: General assistant, balanced/);
   assert.equal(await decidePage.locator(".template-shortcuts button").count(), 6);
@@ -335,7 +335,7 @@ try {
   const oldRootPage = await assembled.newPage();
   const forwardedFailures = recordBrowserFailures(oldRootPage);
   await oldRootPage.goto(`${origin}/?demo=1#s=${state}`);
-  await oldRootPage.waitForURL(`${origin}/decide/?demo=1#s=${state}`);
+  await oldRootPage.waitForURL(`${origin}/decide/details/?demo=1#s=${state}`);
   assert.equal(new URL(oldRootPage.url()).hash, `#s=${state}`);
   await assertRankedBoard(oldRootPage);
   assert.deepEqual(forwardedFailures, []);

@@ -23,6 +23,7 @@ WIDTH = 1200
 HEIGHT = 630
 LANDING_IMAGE = "og-card-landing.png"
 DECIDE_IMAGE = "og-card-decide.png"
+DETAILS_IMAGE = "og-card-decide-details.png"
 PRICING_IMAGE = "og-card-pricing.png"
 RENDER_ENV = "MODELSPEC_RENDER_SOCIAL_CARDS"
 
@@ -165,7 +166,7 @@ a{{color:#5AA9EC}}h1{{font-size:clamp(32px,5vw,52px);line-height:1.2}}.answer{{f
 <p>{esc(preview.tradeoff)}</p><p class="answer">{esc(preview.answer)}</p>
 <p class="snapshot">Frozen public snapshot · {preview.as_of}. This preview uses the public starting template.
 The board uses the latest catalogue; its answer can change as evidence changes.</p>
-<a class="adjust" href="/decide/?template={preview.id}">Adjust this template</a>
+<a class="adjust" href="/decide/details/?template={preview.id}">Adjust this template</a>
 </main></body></html>\n'''
 
 
@@ -297,14 +298,24 @@ def landing_card(data: LandingData) -> SocialCard:
 
 
 def decide_card() -> SocialCard:
+    """The first visit's job choices, without model or price claims."""
+    return SocialCard(
+        filename=DECIDE_IMAGE,
+        alt="ModelSpec Decide: Which AI model fits your job?",
+        headline="Which AI model<br>fits your job?",
+        content='<p class="tie-line">Pick a job. See your options and what each task costs.</p>',
+    )
+
+
+def details_card() -> SocialCard:
     """Create the decision-board card; its facet art makes no data claims."""
     facets = "".join(
         f'<li><i aria-hidden="true"></i>{label}</li>'
         for label in ("Doesn't matter", "Must", "Prefer")
     )
     return SocialCard(
-        filename=DECIDE_IMAGE,
-        alt="ModelSpec Decide: Which AI model fits your job?",
+        filename=DETAILS_IMAGE,
+        alt="ModelSpec detailed decision board: requirements, costs and evidence.",
         headline="Which AI model<br>fits your job?",
         content=f'<ul class="facets">{facets}</ul>',
     )
@@ -344,6 +355,10 @@ def _decide_factory(data: LandingData | None) -> SocialCard:
     return decide_card()
 
 
+def _details_factory(data: LandingData | None) -> SocialCard:
+    return details_card()
+
+
 def _pricing_factory(data: LandingData | None) -> SocialCard:
     return pricing_card()
 
@@ -354,10 +369,17 @@ CARD_REGISTRY = (
                      factory=_landing_factory),
     CardRegistration(
         page="/decide/",
-        title="ModelSpec Facet Board · Decide",
+        title="Which AI model fits your job? · ModelSpec",
         filename=DECIDE_IMAGE,
         factory=_decide_factory,
         source_page=ROOT / "web" / "decide.html",
+    ),
+    CardRegistration(
+        page="/decide/details/",
+        title="ModelSpec Facet Board · Decide",
+        filename=DETAILS_IMAGE,
+        factory=_details_factory,
+        source_page=ROOT / "web" / "decide-details.html",
     ),
     CardRegistration(page="/pricing/", title="ModelSpec pricing",
                      filename=PRICING_IMAGE, factory=_pricing_factory),

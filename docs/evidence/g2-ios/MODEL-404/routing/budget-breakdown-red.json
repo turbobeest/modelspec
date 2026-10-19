@@ -1,0 +1,50 @@
+{
+  "claude": {
+    "method": "ceil(characters / 4)",
+    "components": {
+      "system_prompt": 10,
+      "harness_scaffolding": 11,
+      "guide": 2128,
+      "full_spec": 0,
+      "mcp_instructions": 389,
+      "user_request": 189,
+      "tool_descriptions": 1607,
+      "tool_schemas": 4898,
+      "protocol": 136
+    },
+    "total": 9368,
+    "wire_bytes": 37482
+  },
+  "openai": {
+    "method": "ceil(characters / 4)",
+    "components": {
+      "system_prompt": 10,
+      "harness_scaffolding": 11,
+      "guide": 2128,
+      "full_spec": 0,
+      "mcp_instructions": 389,
+      "user_request": 189,
+      "tool_descriptions": 1607,
+      "tool_schemas": 4898,
+      "protocol": 229
+    },
+    "total": 9461,
+    "wire_bytes": 37852
+  },
+  "gemini": {
+    "method": "ceil(characters / 4)",
+    "components": {
+      "system_prompt": 10,
+      "harness_scaffolding": 11,
+      "guide": 2128,
+      "full_spec": 0,
+      "mcp_instructions": 389,
+      "user_request": 189,
+      "tool_descriptions": 1607,
+      "tool_schemas": 5035,
+      "protocol": 171
+    },
+    "total": 9540,
+    "wire_bytes": 38168
+  }
+}

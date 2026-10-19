@@ -156,10 +156,14 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: land
         encoding="utf-8",
     )
     assembled = directory / "assembled"
-    (assembled / "decide").mkdir(parents=True)
+    (assembled / "decide/details").mkdir(parents=True)
     shutil.copyfile(
         ROOT / "web" / "dist" / "decide.html",
         assembled / "decide" / "index.html",
+    )
+    shutil.copyfile(
+        ROOT / "web" / "dist" / "decide-details.html",
+        assembled / "decide" / "details" / "index.html",
     )
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
     # The decide page loads the site's faces from /fonts/, as deployed.
@@ -242,8 +246,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number has a source." in holding
     assert "When the board opens, each one is a click away." in holding
     assert "Every number is one click from its source." not in holding
-    assert 'href="/decide/">Open the board</a>' in live
-    assert 'href="/decide/">Open the board</a>' not in holding
+    assert 'href="/decide/details/">Open the board</a>' in live
+    assert 'href="/decide/details/">Open the board</a>' not in holding
     for page in (live, holding):
         assert 'href="/graph/"' not in page
     for page in (live, holding):

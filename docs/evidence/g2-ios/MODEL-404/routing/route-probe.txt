@@ -1,0 +1,25 @@
+{"template": "assistant-balanced", "access": null, "status": "partial", "members": ["anthropic/claude-opus-5-5", "google/gemini-3-8-flash", "google/gemini-3-7-flash", "qwen/qwen3-8-max-0902", "openai/gpt-6-sol", "xai/grok-4-7"], "relax": [], "relax_single": null}
+{"template": "assistant-balanced", "access": "chat_app", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"], "relax_single": null}
+{"template": "assistant-balanced", "access": "coding_tool", "status": "partial", "members": ["anthropic/claude-opus-5-5", "qwen/qwen3-8-max-0902", "openai/gpt-6-sol"], "relax": [], "relax_single": null}
+{"template": "assistant-balanced", "access": "own_software", "status": "partial", "members": ["anthropic/claude-opus-5-5", "qwen/qwen3-8-max-0902", "openai/gpt-6-sol"], "relax": [], "relax_single": null}
+{"template": "assistant-balanced", "access": "own_hardware", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"], "relax_single": null}
+{"template": "coding-balanced", "access": null, "status": "partial", "members": ["anthropic/claude-opus-5-5", "anthropic/claude-sonnet-5-5"], "relax": [], "relax_single": null}
+{"template": "coding-balanced", "access": "chat_app", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for software_engineering, offering.cost_per_task"], "relax_single": null}
+{"template": "coding-balanced", "access": "coding_tool", "status": "partial", "members": ["anthropic/claude-opus-5-5", "anthropic/claude-sonnet-5-5"], "relax": [], "relax_single": null}
+{"template": "coding-balanced", "access": "own_software", "status": "partial", "members": ["anthropic/claude-opus-5-5", "anthropic/claude-sonnet-5-5"], "relax": [], "relax_single": null}
+{"template": "coding-balanced", "access": "own_hardware", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for software_engineering, offering.cost_per_task"], "relax_single": null}
+{"template": "writing-balanced", "access": null, "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "writing-balanced", "access": "chat_app", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for writing, offering.cost_per_task"], "relax_single": null}
+{"template": "writing-balanced", "access": "coding_tool", "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "writing-balanced", "access": "own_software", "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "writing-balanced", "access": "own_hardware", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for writing, offering.cost_per_task"], "relax_single": null}
+{"template": "long-documents", "access": null, "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "long-documents", "access": "chat_app", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for writing, reasoning, offering.cost_per_task"], "relax_single": null}
+{"template": "long-documents", "access": "coding_tool", "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "long-documents", "access": "own_software", "status": "partial", "members": null, "relax": [], "relax_single": null}
+{"template": "long-documents", "access": "own_hardware", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for writing, reasoning, offering.cost_per_task"], "relax_single": null}
+{"template": "high-volume-balanced", "access": null, "status": "partial", "members": ["google/gemini-3-8-flash", "google/gemini-3-7-flash", "qwen/qwen3-8-max-0902", "anthropic/claude-opus-5-5", "openai/gpt-6-sol"], "relax": [], "relax_single": null}
+{"template": "high-volume-balanced", "access": "chat_app", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"], "relax_single": null}
+{"template": "high-volume-balanced", "access": "coding_tool", "status": "partial", "members": ["anthropic/claude-opus-5-5", "google/gemini-3-8-flash", "google/gemini-3-7-flash", "qwen/qwen3-8-max-0902", "openai/gpt-6-sol"], "relax": [], "relax_single": null}
+{"template": "high-volume-balanced", "access": "own_software", "status": "partial", "members": ["anthropic/claude-opus-5-5", "google/gemini-3-8-flash", "google/gemini-3-7-flash", "qwen/qwen3-8-max-0902", "openai/gpt-6-sol"], "relax": [], "relax_single": null}
+{"template": "high-volume-balanced", "access": "own_hardware", "status": "no_feasible", "members": null, "relax": ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"], "relax_single": null}

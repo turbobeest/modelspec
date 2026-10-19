@@ -1,0 +1,118 @@
+MODEL-404-sync verification
+Approved head: 7b833056a4cb8aa10c0f56cf6001b13224634ada
+Merged main: 8971608aab849862b4a4870f1bc06e46fc9e7dd2
+Merge source: 61e8dbfa2e69077f6ed72940eaf0789d558188df
+Python 3.14.4; Node 22.22.3; npm 10.9.8.
+
+Merge audit:
+Both parent SHAs retained in a merge commit. No rebase or reset.
+Approved web/ and display_vocabulary.py byte-identical to pre-sync head.
+Main surface_lint.py, release_blog/ and replay helper byte-identical to main.
+Existing both-Decide-pages surface-lint regression retained alongside main tests.
+Main navigation continues to /decide/. Only new guide/comparison template actions
+use /decide/details/?template=, matching the existing use-case template action.
+Four conflict resolutions are listed in merge-inputs.txt and the parent evidence.
+git diff --check origin/main...HEAD: direct exit 0.
+
+Required verification resumed by MODEL-404-sync2:
+Site build, surface lint and fresh web chain passed in the prior session.
+The prior full-suite log has no completion summary; no pass is claimed for it.
+A fresh locked full suite started at 2026-10-18T21:53:06.602777+00:00.
+
+Exact module command: env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi
+Direct exit 0; output byte-identical to the committed generator output.
+
+Site build:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+Direct exit 0.
+
+Built-link audit:
+python3 docs/evidence/g2-ios/MODEL-404/root/sync/audit-built-links.py
+Direct exit 0. See built-links.txt.
+
+Surface lint:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree dist/modelspec
+Direct exit 0. See surface-lint.txt.
+
+Independent read-only merge audit:
+Compared final file blobs to both parents and reviewed git remerge diff.
+All branch-only paths preserved. All main-only paths match main except the
+explicit guide/comparison template CTA hrefs and their two existing assertions.
+Build/live/structured-data merge retains both route families and main's guides,
+comparisons, registry context, sitemap dates, JSON-LD and discovery checks.
+No additional source changes found.
+
+Full suite command:
+/opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+The run that preceded MODEL-404-sync2 acquired the shared lock and did not record
+a direct exit. MODEL-404-sync2 started the same command; full-pytest-sync2.txt
+stops during progress output and has no summary line. That run is not a pass.
+MODEL-404-sync3 completed the command. See the sync3 section below and
+full-pytest-sync3.txt.
+
+MODEL-404-sync2 resumed verification, 2026-10-18:
+Executor base and tested source: 61e8dbfa2e69077f6ed72940eaf0789d558188df.
+Tool versions: Python 3.14.4; pytest 9.1.1; Node v22.22.3; npm 10.9.8;
+flock 0.4.0; git 2.50.1; gh 2.102.0.
+
+Commands completed before the full suite:
+- git fetch origin
+  Direct exit 0. origin/main remains 8971608aab849862b4a4870f1bc06e46fc9e7dd2.
+  No new merge was needed; the recorded site and web runs remain applicable.
+- git rev-parse HEAD origin/main origin/model-404-simple-decide
+  Direct exit 0. HEAD 61e8dbfa2e69077f6ed72940eaf0789d558188df; main as above;
+  remote branch 7b833056a4cb8aa10c0f56cf6001b13224634ada before push.
+- gh pr view 814 --json number,url,state,isDraft,headRefName,headRefOid,baseRefName
+  Direct exit 0. OPEN, isDraft=true, model-404-simple-decide -> main.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+  Direct exit 0. Existing hardware-source registration warnings only.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi --check
+  Direct exit 0. api/worker/openapi.yaml matches the implementation.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+  Direct exit 0. No output and no generated-byte changes.
+- git diff --exit-code -- cli/modelspec/agent-bundle.json qa/fixtures/mcp-tools.json api/worker/openapi.yaml api/worker/src/agent_guide.py docs/agents.md mcp/src/agent-copy.json cli/modelspec/feedback.schema.json cli/modelspec/spec.schema.json site/holding/index.html
+  Direct exit 0. All nine generated artifacts remain unchanged.
+- git diff --exit-code 7b833056 61e8dbfa -- web/ api/worker/src/display_vocabulary.py
+  Independent audit exit 0. Approved Decide source remains unchanged.
+
+Scope: this continuation adds verification evidence only. It introduces no
+behavioral fix and therefore no new red-first test. The earlier merge failures
+and their green reruns remain recorded in the linked transport/routing evidence.
+No production deployment, live decision, paid-provider call, screenshot or browser
+matrix run, Linear write, PR readiness change, PR merge, or wsl gate was performed.
+
+MODEL-404-sync3 completed the locked suite, 2026-10-18:
+Executor base and tested source, before and after the suite:
+61e8dbfa2e69077f6ed72940eaf0789d558188df.
+origin/main: 8971608aab849862b4a4870f1bc06e46fc9e7dd2.
+Tool versions observed in this run: Python 3.14.4; pytest 9.1.1; git 2.50.1;
+flock 0.4.0; gh 2.102.0.
+
+Commands and direct exits:
+- git fetch origin
+  Direct exit 0. origin/main remained 8971608aab849862b4a4870f1bc06e46fc9e7dd2.
+  No merge, site rebuild, or web-chain rerun.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+  Direct exit 0. Empty output.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m api.worker.openapi --check
+  Direct exit 0. Output: api/worker/openapi.yaml matches the implementation.
+- env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+  Direct exit 0. Empty output.
+- git diff --exit-code -- cli/modelspec/agent-bundle.json qa/fixtures/mcp-tools.json api/worker/openapi.yaml api/worker/src/agent_guide.py docs/agents.md mcp/src/agent-copy.json cli/modelspec/feedback.schema.json cli/modelspec/spec.schema.json site/holding/index.html
+  Direct exit 0. All nine generated artifacts remained unchanged.
+- git diff --exit-code 7b833056 61e8dbfa -- web/ api/worker/src/display_vocabulary.py
+  Direct exit 0. Approved Decide source remains byte-identical to the approved head.
+- /opt/homebrew/bin/flock /tmp/modelspec-fullsuite.lock env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+  Direct exit 0. Started 2026-10-18T21:58:33Z, ended 2026-10-18T22:22:02Z.
+  12102 passed, 9 skipped, 11 warnings in 1408.89s (0:23:28).
+  The eleven warnings are RuntimeWarning lines from unsigned decision-vocabulary
+  fetches in the CLI snapshot tests. The progress log is gitignored under
+  .generated and is not committed. The summary is full-pytest-sync3.txt.
+- gh pr view 814 --json number,url,state,isDraft,headRefName,headRefOid,baseRefName
+  Direct exit 0 before push. OPEN, isDraft=true, model-404-simple-decide -> main,
+  remote head still 7b833056a4cb8aa10c0f56cf6001b13224634ada.
+
+No source file changed during the suite. This continuation adds verification
+evidence only and introduces no new red-first test. No production deployment,
+live decision, paid-provider call, screenshot, browser matrix, Linear write,
+PR readiness change, PR merge, or wsl gate was performed.

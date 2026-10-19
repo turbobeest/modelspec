@@ -1,0 +1,4 @@
+Runtime module stubs restored; keyless request refused with 401.
+Real decision after replay: answered ['lab/hardware-model']
+Real hardware assessment after replay: 200 2.0 likely 18795200000
+Real OpenAPI generation after replay: hardware-fit 2.0.

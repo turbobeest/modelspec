@@ -653,7 +653,7 @@ def use_case_page(template: dict, decision: dict, as_of: date, *,
              f'<code>{r.esc(decision["snapshot"])}</code>.</p>'
              f'<h2>What this template teaches</h2><p>{r.esc(template["teaches"])}</p>'
              '<p>The live board uses current data. Its answer can change as evidence changes.</p>'
-             f'<p><a class="button primary" href="/decide/?template={r.esc(template["id"])}">'
+             f'<p><a class="button primary" href="/decide/details/?template={r.esc(template["id"])}">'
              'Apply this template on Decide</a></p>')
     return _use_case_shell(template["name"], template["purpose"], _use_case_path(template),
                            body, as_of, indexable=_use_case_indexable(decision), article=True)
@@ -978,15 +978,15 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)
         social_cards.render_template_cards(ms, template_previews)
-    (ms / "decide").mkdir(exist_ok=True)
-    from pipeline.live import decide_capsule
-    (ms / "decide/index.html").write_text(
-        '<!doctype html><html><head><meta name="robots" content="noindex">'
-        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
-        f'<body>{decide_capsule()}</body></html>\n',
-        encoding="utf-8",
-    )
-    ms_paths.append("/decide/")
+    from pipeline.live import decide_capsule, details_capsule
+    for path, capsule in (("/decide/", decide_capsule()), ("/decide/details/", details_capsule())):
+        page = ms / path.lstrip("/") / "index.html"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(
+            '<!doctype html><html><head><meta name="robots" content="noindex">'
+            f'<link rel="canonical" href="https://modelspec.dev{path}"></head>'
+            f'<body>{capsule}</body></html>\n', encoding="utf-8")
+        ms_paths.append(path)
     # MODEL-221. /feedback/, its assets and the published request schema.
     from pipeline import feedback_page
     feedback_counts = feedback_page.write(ms, root)

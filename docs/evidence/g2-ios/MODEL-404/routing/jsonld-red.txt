@@ -1,0 +1,20 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_decide_jsonld_names_and_descriptions_are_visible[/decide/details/-details_capsule] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-902/test_decide_jsonld_names_and_d1')
+path = '/decide/details/', capsule = <function details_capsule at 0x10ab50e00>
+
+    @pytest.mark.parametrize("path,capsule", (("/decide/", live.decide_capsule), ("/decide/details/", live.details_capsule)))
+    def test_decide_jsonld_names_and_descriptions_are_visible(tmp_path, path, capsule):
+        page = capsule() + structured_data.script(structured_data.graph(path, tmp_path))
+>       assert surface_lint.structured_data({f"{path.lstrip('/')}index.html": page}) == []
+E       assert [Finding(surf...isible body")] == []
+E
+E         Left contains 2 more items, first extra item: Finding(surface='decide/details/index.html', check='jsonld.visible', excerpt='ModelSpec detailed decision board', expected="same text in this page's visible body")
+E         Use -v to get more diff
+
+tests/test_simple_decide_routes.py:59: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_simple_decide_routes.py::test_decide_jsonld_names_and_descriptions_are_visible[/decide/details/-details_capsule]
+1 failed, 1 passed, 6 deselected in 0.50s

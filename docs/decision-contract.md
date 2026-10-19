@@ -1962,6 +1962,13 @@ The field set is additive: a client ignores fields it does not know.
 Templates do not add a spec field. A client expands one before parsing the
 spec, so the decision contract and its hash rules are unchanged.
 
+The Worker display vocabulary (`GET /v1/vocabulary` without lookup parameters)
+omits `coverage` and its catalogue counts. It may include top-level `as_of`, an
+ISO date copied from this same vocabulary's `coverage.as_of`. The field is
+absent when the snapshot date is unavailable; it is never a build or capture
+timestamp. This optional metadata is additive: `vocabulary_version` stays `1`
+and the decision contract version is unchanged under MODEL-59.
+
 ## Versioning (MODEL-59)
 
 Any change that **widens** a field's range bumps the major version of this

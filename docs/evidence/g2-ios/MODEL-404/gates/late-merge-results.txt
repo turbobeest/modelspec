@@ -1,0 +1,100 @@
+MODEL-404 second main integration verification, 2026-10-18
+Worktree: /Users/terbeest/dev/worktrees/model-404
+Branch: model-404-simple-decide
+Merged source: 1b3d8e3a66b3ddf572702ab11e3d40fdbc580226
+Verification began while b4a7074f37a3ba940bd86db9d1e2459a25fd40af was being
+merged into 95da0c92fb8238ce7c5e821fe7af9507673393a8. The working tree already
+included MODEL-402 Worker snapshot handover and MODEL-403 MCP header/discovery.
+The web source remained unchanged. No source fix was required in this run.
+Tools: Node v22.22.3, npm 10.9.8, Playwright 1.63.0, Python 3.14.4.
+
+Every exit below was observed directly from the process. Logs are local ignored
+artifacts; these are compact excerpts. Web and browser commands ran sequentially.
+Shared environment, from web/:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH
+
+Command: npm ci
+Direct exit: 0
+
+Command: npm run build
+Direct exit: 0
+TypeScript and Vite completed; built in 166ms.
+
+Command: npm test
+Direct exit: 0
+  Test Files  55 passed | 1 skipped (56)
+       Tests  872 passed (872)
+    Duration  18.39s
+The skipped file is the opt-in generated corpus suite.
+
+Command: npm run test:browser -- --workers=2 --reporter=line
+Environment:
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/late-merge-broad
+Direct exit: 0
+  16 skipped
+  37 passed (16.3s)
+Skips are gate-specific cases, opt-in capture, absent generated corpus and
+deployed-site/pricing checks without explicit URLs.
+
+Matrix command, from web/:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts browser-tests/decide.spec.ts browser-tests/visit-gate.spec.ts browser-tests/billing-launch.spec.ts --workers=2 --reporter=line
+Shared additional environment:
+VITE_TURNSTILE_SITE_KEY=public-browser-test-key
+MODELSPEC_TEST_PYTHON=/Users/terbeest/dev/modelspec/.venv/bin/python
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/late-merge-matrix-HUMAN-VISIT
+Replace HUMAN and VISIT with each combination's values below.
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+Direct exit: 0
+  10 skipped
+  35 passed (14.7s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=false
+Direct exit: 0
+  8 skipped
+  37 passed (15.4s)
+
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=true
+Direct exit: 0
+  1 skipped
+  44 passed (21.1s)
+
+VITE_HUMAN_GATE_ENABLED=true VITE_VISIT_GATE_ENABLED=true
+Direct exit: 0
+  1 skipped
+  44 passed (21.1s)
+
+All counts match the prior full matrices. Matrix skips are gate-specific tests
+and opt-in capture. These runs include the real local Worker admission helper,
+its cleanup fix and the newly merged Worker entry. Both pages preserve free
+human admission; direct keyless machine requests still receive HTTP 401.
+Machine-readable exits and isolated artifact paths: late-merge-matrix.json.
+
+Generation command, from the repository root:
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-404/gates/generate-screenshot-decisions.py
+Direct exit: 0
+coding: snapshot=snap_e9c30eaacfa8f2f2, status=partial, answer=tied
+no-fit: snapshot=snap_e9c30eaacfa8f2f2, status=no_feasible, answer=None
+Saved snapshot and decision identities are unchanged.
+
+Capture command, from web/:
+npm exec playwright -- test browser-tests/simple-decide.spec.ts --grep 'capture simple' --workers=1 --reporter=line
+Environment:
+VITE_HUMAN_GATE_ENABLED=false VITE_VISIT_GATE_ENABLED=false
+MODELSPEC_CAPTURE_SIMPLE=1
+MODELSPEC_BROWSER_OUTPUT=/Users/terbeest/dev/worktrees/model-404/docs/evidence/g2-ios/MODEL-404/gates/.generated/late-merge-capture
+Direct exit: 0
+  1 passed (8.6s)
+All 11 PNGs were regenerated, reopened and visually inspected. They are
+byte-identical to the previous captures. Actual coding and no-fit requests
+matched the regenerated questions before their responses were served.
+The 390-by-844 example retains all six tied names/prices and the evidence
+action. The fixture lacks coverage.as_of and displays Data date unavailable;
+no current recommendation or freshness claim is made.
+
+No deployed-site decisions or provider calls occurred. Every Playwright server
+started by this run stopped. Final lsof on TCP port 5173 returned no listener
+(exit 1, empty output). Full Python, composed-site and built-corpus verification
+belong to the main executor's separate evidence.

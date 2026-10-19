@@ -1,0 +1,224 @@
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import full from "../__fixtures__/live-assistant-balanced-full.json";
+import vocabularyJson from "../__fixtures__/live-vocabulary.json";
+import { decisionSpecSchema } from "../adapter/contract";
+import { vocabularySchema, type Vocabulary } from "../vocabulary";
+
+const vocabulary = vocabularySchema.parse(vocabularyJson);
+const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
+const requestBody = (init?: RequestInit) => decisionSpecSchema.parse(JSON.parse(String(init?.body)));
+const advance = async () => {
+  await act(async () => {});
+  await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+};
+function network(load: () => unknown, decide: (init?: RequestInit) => Response = () => json(full)) {
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/vocabulary.json")) return json(load());
+    if (String(input).endsWith("/v1/decide")) return decide(init);
+    throw new Error(`Unexpected request: ${input}`);
+  });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+}
+const decisions = (fetch: ReturnType<typeof network>) => fetch.mock.calls
+  .filter(([url]) => String(url).endsWith("/v1/decide"))
+  .map(([, init]) => requestBody(init));
+
+beforeEach(() => { vi.resetModules(); vi.useFakeTimers(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+it("renders the trimmed vocabulary snapshot date without catalogue coverage", async () => {
+  network(() => ({ ...vocabulary, as_of: "2026-10-04", coverage: undefined }));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByText("Data as of 2026-10-04")).toBeVisible();
+  expect(screen.queryByText("Data date unavailable")).toBeNull();
+});
+
+it("keeps a missing snapshot date explicit", async () => {
+  network(() => ({ ...vocabulary, as_of: undefined, coverage: undefined }));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByText("Data date unavailable")).toBeVisible();
+  expect(screen.queryByText(/^Data as of/)).toBeNull();
+});
+
+it("keeps an unsupported residency limit until the visitor removes it, preserving the other choices", async () => {
+  let loads = 0;
+  const fetch = network(() => loads++ === 0 ? vocabulary : {
+    ...vocabulary,
+    snapshot: "snap_region_removed",
+    facets: vocabulary.facets.filter((facet) => facet.id !== "offering.region"),
+  }, (init) => requestBody(init).where?.some((condition) => typeof condition === "string" && condition.startsWith("offering.region "))
+    ? json({ error: { code: "snapshot_changed", message: "Reload vocabulary" } }, 409)
+    : json(full));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toBeVisible();
+  expect(decisions(fetch)).toHaveLength(2);
+
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "No customer-data training" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "How will you use the model?" }), { target: { value: "own_software" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "EU residency" }));
+  await advance();
+
+  expect(decisions(fetch)).toHaveLength(3);
+  const refused = decisions(fetch)[2];
+  expect(refused.where).toContain("offering.data.trains_on_customer_data = false");
+  expect(refused.where?.some((condition) => typeof condition === "string" && condition.startsWith("offering.region in "))).toBe(true);
+  expect(refused.access).toBe("own_software");
+  expect(screen.queryByRole("region", { name: "Decision answer" })).toBeNull();
+  expect(screen.getByRole("alert")).toHaveTextContent("The data changed these choices.");
+  const remove = screen.getByRole("button", { name: "Remove EU residency" });
+  expect(remove).toBeVisible();
+  await advance();
+  expect(decisions(fetch)).toHaveLength(3);
+
+  fireEvent.click(remove);
+  await advance();
+  expect(decisions(fetch)).toHaveLength(5);
+  for (const request of decisions(fetch).slice(3)) {
+    expect(request.where?.some((condition) => typeof condition === "string" && condition.startsWith("offering.region "))).toBe(false);
+    expect(request.where).toContain("offering.data.trains_on_customer_data = false");
+    expect(request.access).toBe("own_software");
+    expect(request.task_tokens).toEqual({ input: 40000, output: 4000 });
+  }
+  expect(screen.getByRole("checkbox", { name: "No customer-data training" })).toBeChecked();
+  expect(screen.getByRole("combobox", { name: "How will you use the model?" })).toHaveValue("own_software");
+  expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Remove EU residency" })).toBeNull();
+});
+
+it("renders mutated snapshot date, available-template count and each template's task size", async () => {
+  network(() => vocabulary);
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  const baseline = render(<SimpleApp />);
+  await advance();
+  expect(screen.getByRole("link", { name: "All 28 templates" })).toBeVisible();
+  expect(screen.getByText("Data as of 2026-10-04")).toBeVisible();
+  expect(screen.getByText(/Task size used for these prices: 40,000 input and 4,000 output tokens/)).toBeVisible();
+  baseline.unmount();
+
+  const changed: Vocabulary = {
+    ...vocabulary,
+    as_of: "2026-10-16",
+    templates: vocabulary.templates?.filter((template) => [
+      "assistant-balanced", "assistant-best", "high-volume-balanced", "coding-balanced",
+    ].includes(template.id)).map((template) => ({
+      ...template,
+      available: template.id !== "assistant-best",
+      task_tokens: template.id === "high-volume-balanced"
+        ? { input: 6789, output: 456 }
+        : { input: 12345, output: 321 },
+    })),
+  };
+  const fetch = network(() => changed);
+  render(<SimpleApp />);
+  await advance();
+  expect(screen.getByText("Data as of 2026-10-16")).toBeVisible();
+  expect(screen.getByRole("link", { name: "All 3 templates" })).toHaveAttribute("href", "/decide/details/");
+  expect(screen.queryByRole("link", { name: "All 28 templates" })).toBeNull();
+  expect(screen.getByText(/Task size used for these prices: 12,345 input and 321 output tokens/)).toBeVisible();
+  expect(decisions(fetch).map((request) => request.task_tokens)).toEqual([
+    { input: 12345, output: 321 }, { input: 12345, output: 321 },
+  ]);
+  fireEvent.click(within(screen.getByRole("group", { name: "Choose your job" })).getByRole("button", { name: /High volume/ }));
+  await advance();
+  expect(screen.getByText(/Task size used for these prices: 6,789 input and 456 output tokens/)).toBeVisible();
+  expect(decisions(fetch).slice(2).map((request) => request.task_tokens)).toEqual([
+    { input: 6789, output: 456 }, { input: 6789, output: 456 },
+  ]);
+});
+
+it("can choose Self-hosting again after removing its open-weights limit and preserves explicit limits", async () => {
+  const fetch = network(() => vocabulary);
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "No customer-data training" }));
+  fireEvent.click(screen.getByRole("button", { name: /Self-hosting/ }));
+  await advance();
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).toBeChecked();
+
+  fireEvent.click(screen.getByRole("checkbox", { name: "Open weights" }));
+  await advance();
+  expect(screen.getByRole("button", { name: /Everyday help/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).not.toBeChecked();
+  const selfHost = screen.getByRole("button", { name: /Self-hosting/ });
+  expect(selfHost).toBeEnabled();
+
+  fireEvent.click(selfHost);
+  await advance();
+  expect(selfHost).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "Open weights" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "No customer-data training" })).toBeChecked();
+  for (const priority of ["Spend less", "Balanced", "Quality counts most"]) {
+    const button = screen.getByRole("button", { name: priority });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await advance();
+    const latest = decisions(fetch).at(-1);
+    expect(latest?.where).toContain("model.weights_openness = open_weights");
+    expect(latest?.where).toContain("licence.commercial_use in {permitted, permitted_with_conditions}");
+    expect(latest?.where).toContain("offering.data.trains_on_customer_data = false");
+  }
+});
+
+it.each(["chat_app", "own_hardware"])("offers an explicit all-routes recovery for %s without changing the question", async (route) => {
+  const noComparison = {
+    ...full,
+    status: "no_feasible",
+    answer: null,
+    bands: null,
+    results: [],
+    top: [],
+    by_model: [],
+    relax: ["no model that meets the requirements has a value for chat_preference, offering.cost_per_task"],
+    relax_single: null,
+  };
+  const fetch = network(() => vocabulary, (init) => json(requestBody(init).access ? noComparison : full));
+  const { default: SimpleApp } = await import("../simple/SimpleApp");
+  render(<SimpleApp />);
+  await advance();
+  fireEvent.click(screen.getByRole("button", { name: /High volume/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Spend less" }));
+  fireEvent.click(screen.getByRole("button", { name: "Change" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "No customer-data training" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "How will you use the model?" }), { target: { value: route } });
+  await advance();
+
+  const answer = screen.getByRole("region", { name: "Decision answer" });
+  expect(within(answer).getByRole("heading", { name: "No confirmed match." })).toBeVisible();
+  const recover = within(answer).getByRole("button", { name: "Try all routes" });
+  expect(answer).toHaveTextContent("No comparison is available for the selected route with these choices.");
+  expect(answer).not.toHaveTextContent(/chat_preference|offering\.cost_per_task|Blocking limit/);
+  expect(within(answer).getByRole("link", { name: "See the full evidence" })).toHaveAttribute("href", expect.stringContaining("/decide/details/#s="));
+  const before = decisions(fetch).at(-1);
+  if (!before) throw new Error("Expected the selected-route request");
+  expect(before.access).toBe(route);
+  expect(before.where).toContain("offering.data.trains_on_customer_data = false");
+  expect(before.task_tokens).toEqual({ input: 2000, output: 500 });
+  const count = decisions(fetch).length;
+  await advance();
+  expect(decisions(fetch)).toHaveLength(count);
+  expect(screen.getByRole("combobox", { name: "How will you use the model?" })).toHaveValue(route);
+
+  fireEvent.click(recover);
+  await advance();
+  expect(decisions(fetch)).toHaveLength(count + 2);
+  for (const request of decisions(fetch).slice(count)) {
+    expect(request).toEqual({ ...before, access: undefined, explain: request.explain });
+  }
+  expect(screen.getByRole("combobox", { name: "How will you use the model?" })).toHaveValue("any");
+  expect(screen.getByRole("button", { name: /High volume/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Spend less" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("checkbox", { name: "No customer-data training" })).toBeChecked();
+  expect(screen.getByRole("heading", { name: "These 6 are too close to call." })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Try all routes" })).toBeNull();
+});

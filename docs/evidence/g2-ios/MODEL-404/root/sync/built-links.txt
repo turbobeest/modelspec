@@ -1,0 +1,4 @@
+guides: 3 pages retain simple Decide links; 1 detailed template actions
+compare: 41 pages retain simple Decide links; 40 detailed template actions
+use-cases: 41 pages retain simple Decide links; 40 detailed template actions
+Both Decide routes are present.

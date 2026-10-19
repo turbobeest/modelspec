@@ -1,0 +1,38 @@
+[
+  {
+    "human_gate": "false",
+    "visit_gate": "false",
+    "exit": 0,
+    "summary": [
+      "10 skipped",
+      "36 passed (15.3s)"
+    ]
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "false",
+    "exit": 0,
+    "summary": [
+      "8 skipped",
+      "38 passed (16.9s)"
+    ]
+  },
+  {
+    "human_gate": "false",
+    "visit_gate": "true",
+    "exit": 0,
+    "summary": [
+      "1 skipped",
+      "45 passed (23.6s)"
+    ]
+  },
+  {
+    "human_gate": "true",
+    "visit_gate": "true",
+    "exit": 0,
+    "summary": [
+      "1 skipped",
+      "45 passed (24.2s)"
+    ]
+  }
+]

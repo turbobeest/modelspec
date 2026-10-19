@@ -483,6 +483,9 @@ restore refinement drill-down without promoting thin evidence to live, and
 set benchmark floors when ranges are available. Numeric Must bounds with no
 range stay blank until entered and are omitted from requests while unset. Numeric facet ranges,
 individual model scores, counts and per-model facts remain excluded.
+Optional top-level `as_of` preserves the snapshot date from the full
+vocabulary's `coverage.as_of`. Missing dates remain absent; the display
+projection still omits `coverage` and all its counts.
 The page hides statistics absent from this response and requests current facts
 through the existing decision API. No fresh vocabulary file is published on
 modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object

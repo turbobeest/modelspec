@@ -122,7 +122,7 @@ def _example(template: dict, decision: dict, tokens, exclusions: list[dict]) -> 
         body += ('<p>Some candidates may qualify but lack a required fact or objective value: '
                  + ", ".join(f'<code>{r.esc(facet)}</code>' for facet in unknown) + '.</p>')
     body += ('<p>The live board uses current data. Its answer can change as evidence changes.</p>'
-             f'<p><a class="button primary" href="/decide/?template={r.esc(template["id"])}">'
+             f'<p><a class="button primary" href="/decide/details/?template={r.esc(template["id"])}">'
              'Apply this template on Decide</a></p>')
     return body
 

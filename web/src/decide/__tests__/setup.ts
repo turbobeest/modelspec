@@ -17,7 +17,7 @@ beforeEach(gatesOff);
 
 afterEach(() => {
   cleanup();
-  history.replaceState(null, "", "/decide/");
+  history.replaceState(null, "", "/decide/details/");
   localStorage.clear();
 });
 

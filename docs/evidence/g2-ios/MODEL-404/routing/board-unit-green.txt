@@ -1,0 +1,8 @@
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-404/web
+
+
+ Test Files  2 passed (2)
+      Tests  56 passed (56)
+   Start at  21:05:57
+   Duration  19.05s (tests 90%, transform 5%, environment 3%, import 1%, setup 1%)

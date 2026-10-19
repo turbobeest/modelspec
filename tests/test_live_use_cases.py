@@ -69,7 +69,7 @@ def composed(tmp_path: Path) -> tuple[Path, Path]:
     ))
     _write(source, "benchgraph/_redirects", "/   https://modelspec.dev/             301\n")
     (web / "assets").mkdir(parents=True)
-    for name in ("decide.html", "decision.html"):
+    for name in ("decide.html", "decide-details.html", "decision.html"):
         _write(web, name, '<html><head></head><body><div id="root"></div></body></html>')
     live.build(source, web, out)
     return source, out / "modelspec"

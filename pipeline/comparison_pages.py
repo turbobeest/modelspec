@@ -183,7 +183,7 @@ def comparison_page(template: dict, decision: dict, comparison: dict, as_of: dat
              f'<code>{r.esc(decision["snapshot"])}</code>.</p>'
              f'<p><a href="{build._use_case_path(template)}">Read the full dated job answer</a>.</p>'
              '<p>The live board uses current data. This link applies the template to its full lineup.</p>'
-             f'<p><a class="button primary" href="/decide/?template={r.esc(template["id"])}">'
+             f'<p><a class="button primary" href="/decide/details/?template={r.esc(template["id"])}">'
              'Apply this template on Decide</a></p>')
     url = "https://modelspec.dev" + pair_path(template, pair)
     dataset = {

@@ -1,13 +1,13 @@
 {
   "source_hashes": {
     "api/worker/openapi.yaml":
-      "4fc7fa15317b923490b64823ac278e2d55482d0aa1665620056fa2b85ac58c3a",
+      "7e30bfcd60cef8ba9b273650e05186a35581eb7fddf82be3614c45ed4036aa3b",
     "docs/agents.md":
-      "86de29269ad5e113368df72fb19d5c40f0537cfa95a5f4f6b5eb2c5cd30de394",
+      "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37",
     "docs/decision-contract.schema.json":
       "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
     "mcp/src/agent-copy.json":
-      "0618ceb1e4cc7e951378ce188f2b061327c61c02da5bf53d9f099be7a5befc6a",
+      "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8",
     "mcp/src/server.ts":
       "895b289930b7e66a1d15db84c32fdfcd1fd8eaa33ac3beb2010c0cb132ae761b",
     "mcp/src/vocabulary.ts":
