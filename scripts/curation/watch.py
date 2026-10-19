@@ -13,8 +13,9 @@ scripts/benchmarks/fetch.py's CreditGuard, and only when --firecrawl-credit-cap
 is above 0. The default cap is 0.
 
 Per-source state (hash, fetched_at, status, etag, last-modified and the last
-good normalised text) lives under --state-dir. A failed fetch never overwrites
-the last good state. The run writes change_report.json and change_report.md.
+good normalised text) lives under --state-dir. Cite-only sources retain only
+URL, redirect URLs, hash and fetch date, without text or classified snippets.
+A failed fetch never overwrites the last good hash. The run writes change_report.json and change_report.md.
 This script never edits a page, never runs git and never prints an API key.
 """
 from __future__ import annotations
@@ -40,6 +41,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
 from scripts.curation.classify import classify  # noqa: E402
 
 BENCH_DIR = ROOT / "benchmarks"
@@ -117,18 +119,30 @@ class FetchResult:
     error: str = ""
     truncated: bool = False
     fetcher: str = "http"
+    resolved_urls: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
         return self.status is not None and 200 <= self.status < 300 and not self.error and not self.truncated
 
 
+class _RedirectHistory(urllib.request.HTTPRedirectHandler):
+    def __init__(self, url: str):
+        self.urls = [url]
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self.urls.append(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def http_fetch(url: str, timeout: int = 30, retries: int = 3) -> FetchResult:
     """Plain GET with backoff on 429/5xx. Zero Firecrawl credits."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    history = _RedirectHistory(url)
+    opener = urllib.request.build_opener(history)
     for attempt in range(retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with opener.open(req, timeout=timeout) as resp:
                 raw = resp.read(MAX_BYTES + 1)
                 return FetchResult(
                     url=url, status=resp.status,
@@ -136,17 +150,20 @@ def http_fetch(url: str, timeout: int = 30, retries: int = 3) -> FetchResult:
                     etag=resp.headers.get("ETag", "") or "",
                     last_modified=resp.headers.get("Last-Modified", "") or "",
                     truncated=len(raw) > MAX_BYTES,
+                    resolved_urls=tuple(dict.fromkeys((*history.urls, resp.geturl()))),
                 )
         except urllib.error.HTTPError as exc:
             if exc.code in RETRY_CODES and attempt < retries:
                 time.sleep(2 ** attempt)
                 continue
-            return FetchResult(url=url, status=exc.code, error=f"HTTP {exc.code}")
+            return FetchResult(url=url, status=exc.code, error=f"HTTP {exc.code}",
+                               resolved_urls=tuple(dict.fromkeys((*history.urls, exc.geturl()))))
         except Exception as exc:  # network error, timeout, TLS
             if attempt < retries:
                 time.sleep(2 ** attempt)
                 continue
-            return FetchResult(url=url, status=None, error=type(exc).__name__)
+            return FetchResult(url=url, status=None, error=type(exc).__name__,
+                               resolved_urls=tuple(dict.fromkeys(history.urls)))
     return FetchResult(url=url, status=None, error="unreachable")
 
 
@@ -195,7 +212,8 @@ class FirecrawlBudget:
             return None
         except (Exception, SystemExit) as exc:
             return FetchResult(url=url, status=None, error=f"firecrawl {type(exc).__name__}", fetcher="firecrawl")
-        return FetchResult(url=url, status=200, text=str(data.get("markdown") or ""), fetcher="firecrawl")
+        return FetchResult(url=url, status=200, text=str(data.get("markdown") or ""), fetcher="firecrawl",
+                           resolved_urls=metadata_origins(data.get("metadata") or {}))
 
 
 # ---------- normalisation and state ----------
@@ -228,16 +246,24 @@ def state_key(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()[:24]
 
 
-def load_state(state_dir: Path, url: str) -> tuple[dict | None, str]:
+def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple[dict | None, str]:
     meta = state_dir / f"{state_key(url)}.json"
     if not meta.exists():
         return None, ""
+    data = json.loads(meta.read_text())
+    if not include_text or cite_only_origin(url, metadata_origins(data)):
+        return data, ""
     txt = state_dir / f"{state_key(url)}.txt"
-    return json.loads(meta.read_text()), (txt.read_text(encoding="utf-8") if txt.exists() else "")
+    return data, (txt.read_text(encoding="utf-8") if txt.exists() else "")
 
 
 def save_state(state_dir: Path, url: str, meta: dict, text: str | None) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
+    if cite_only_origin(url, metadata_origins(meta)):
+        meta = {"url": url, "hash": meta.get("hash"), "fetched_at": meta.get("fetched_at"),
+                "resolved_urls": list(meta.get("resolved_urls", ()))}
+        text = None
+        (state_dir / f"{state_key(url)}.txt").unlink(missing_ok=True)
     (state_dir / f"{state_key(url)}.json").write_text(json.dumps(meta, indent=1, sort_keys=True))
     if text is not None:
         (state_dir / f"{state_key(url)}.txt").write_text(text, encoding="utf-8")
@@ -277,11 +303,35 @@ def watch(
         if host_of(url) in js_hosts:
             fc = firecrawl.fetch(url)  # None when the cap is 0, spent, or host not allowlisted
             if fc is not None:
+                fc.resolved_urls = tuple(dict.fromkeys((*res.resolved_urls, *fc.resolved_urls)))
                 res = fc
             else:
                 needs_js.append(url)
-        prev, prev_text = load_state(state_dir, url)
+        prev, prev_text = load_state(state_dir, url,
+                                     include_text=not cite_only_origin(url, res.resolved_urls))
         pages = [{"page": pid, "role": role} for pid, role, _ in work[url]]
+        resolved = tuple(dict.fromkeys((*res.resolved_urls, *(prev or {}).get("resolved_urls", ()))))
+        if cite_only_origin(url, resolved):
+            meta = {"url": url, "resolved_urls": resolved,
+                    "hash": (prev or {}).get("hash"), "fetched_at": (prev or {}).get("fetched_at")}
+            if res.ok:
+                digest = hashlib.sha256(res.text.encode()).hexdigest()
+                meta.update(hash=digest, fetched_at=now)
+                if not prev or not prev.get("hash"):
+                    baselines.append(url)
+                elif prev["hash"] == digest:
+                    unchanged += 1
+                else:
+                    changes.append({"url": url, "pages": pages, "kinds": [],
+                                    "resolved_urls": list(resolved),
+                                    "previous_fetched_at": prev.get("fetched_at"), "fetched_at": now,
+                                    "old_hash": prev["hash"], "new_hash": digest})
+            else:
+                failures.append({"url": url, "pages": pages, "status": res.status,
+                                 "resolved_urls": list(resolved), "error": "cite-only fetch failed",
+                                 "kinds": [], "had_good_state": bool(prev and prev.get("hash"))})
+            save_state(state_dir, url, meta, None)
+            continue
         if not res.ok:
             # Keep the last good hash and text; record only the failure.
             meta = dict(prev or {})
@@ -337,8 +387,55 @@ def effective_firecrawl_cap(requested: int, key_from_env: bool, env: dict | None
 def export_source_texts(report: dict, state_dir: Path, report_dir: Path) -> None:
     """Copy each changed source's new normalised text next to the report, for the drafter job."""
     out = report_dir / "sources"
+    cited_urls = set()
+    for path in state_dir.glob("*.json"):
+        if not re.fullmatch(r"[0-9a-f]{24}\.json", path.name):
+            continue
+        meta = json.loads(path.read_text())
+        url = meta.get("url")
+        if url and cite_only_origin(url, metadata_origins(meta)):
+            cited_urls.add(url)
+            save_state(state_dir, url, meta, None)
+
+    def redact_citations(value: dict) -> bool:
+        redacted = False
+        for item in value.get("changes", []) + value.get("failures", []):
+            url = item["url"]
+            origins = metadata_origins(item)
+            meta, _ = load_state(state_dir, url, include_text=False)
+            origins = tuple(dict.fromkeys((*origins, *metadata_origins(meta or {}))))
+            if url in cited_urls or cite_only_origin(url, origins):
+                cited_urls.add(url)
+                item.pop("source_text", None)
+                item["kinds"] = []
+                if "error" in item:
+                    item["error"] = "cite-only fetch failed"
+                if meta:
+                    save_state(state_dir, url, {**meta, "resolved_urls": origins}, None)
+                redacted = True
+        return redacted
+
+    redact_citations(report)
+    previous_path = report_dir / "change_report.json"
+    if previous_path.exists():
+        previous = json.loads(previous_path.read_text())
+        if redact_citations(previous):
+            previous_path.write_text(json.dumps(previous, indent=1))
+            (report_dir / "change_report.md").write_text(render_md(previous))
+    for url in cited_urls:
+        (state_dir / f"{state_key(url)}.txt").unlink(missing_ok=True)
+        (out / f"{state_key(url)}.txt").unlink(missing_ok=True)
+
     for c in report["changes"]:
-        _, text = load_state(state_dir, c["url"])
+        if c["url"] in cited_urls:
+            continue
+        meta, text = load_state(state_dir, c["url"],
+                                include_text=not cite_only_origin(c["url"], metadata_origins(c)))
+        if cite_only_origin(c["url"], (*metadata_origins(c), *metadata_origins(meta or {}))):
+            (out / f"{state_key(c['url'])}.txt").unlink(missing_ok=True)
+            c.pop("source_text", None)
+            c["kinds"] = []
+            continue
         out.mkdir(parents=True, exist_ok=True)
         (out / f"{state_key(c['url'])}.txt").write_text(text or "", encoding="utf-8")
         c["source_text"] = f"sources/{state_key(c['url'])}.txt"
@@ -424,7 +521,7 @@ def main(argv: list[str] | None = None) -> int:
         page_ids = resolve_pages(args.pages)
     cap, note = effective_firecrawl_cap(args.firecrawl_credit_cap, args.firecrawl_key_from_env)
     fc = FirecrawlBudget(cap=cap, allow=load_scrape_allow())
-    report = watch(page_ids, args.state_dir, firecrawl=fc, max_workers=args.max_workers)
+    report = watch(page_ids, args.state_dir, fetcher=http_fetch, firecrawl=fc, max_workers=args.max_workers)
     report["firecrawl"]["requested_cap"] = args.firecrawl_credit_cap
     report["firecrawl"]["note"] = note
     report["census_leads"] = leads

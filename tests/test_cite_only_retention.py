@@ -103,13 +103,18 @@ def test_benchmark_named_cache_retains_metadata_not_text(tmp_path):
     assert benchmark_fetch.load_named_cache("https://x.ai/pricing", tmp_path) is None
 
 
-def test_disk_scraper_refuses_cite_only_before_subprocess(tmp_path, monkeypatch):
-    calls = []
-    monkeypatch.setattr(fetch_pricing.subprocess, "run", lambda *a, **kw: calls.append(a))
+@pytest.mark.parametrize("url", [
+    "https://x.ai/pricing", "https://sub.docs.x.ai/models", "https://WWW.PERPLEXITY.AI.:8443/pro",
+])
+def test_disk_scraper_refuses_cite_only_before_subprocess(tmp_path, monkeypatch, url):
+    def forbidden(*args, **kwargs):
+        pytest.fail("a direct cite-only URL must be refused before any scraper call")
+
+    monkeypatch.setattr(fetch_pricing.subprocess, "run", forbidden)
+    monkeypatch.setattr(benchmark_fetch, "scrape", forbidden)
     with pytest.raises(ValueError, match="cite-only"):
-        fetch_pricing.scrape_url("https://x.ai/pricing", tmp_path / "page.md")
-    assert not calls
-    assert not (tmp_path / "page.md").exists()
+        fetch_pricing.scrape_url(url, tmp_path / "page.md")
+    assert not list(tmp_path.iterdir())
 
 
 def test_rendered_replay_carries_only_hash_and_fetch_date(estate, tmp_path):

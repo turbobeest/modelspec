@@ -455,7 +455,7 @@ def scrape(
             if payload.get("success"):
                 data = payload.get("data") or {}
                 break
-            raise RuntimeError("Firecrawl scrape returned an unsuccessful response")
+            raise RuntimeError(str(payload)[:300])
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503) and attempt < 3:
                 time.sleep(2 ** attempt * 2)

@@ -37,7 +37,7 @@ At most 16384 bytes.
 
 ## Response
 
-`result`: shortlist, best first; nonempty on `200`.
+`result` is the shortlist, best first, never empty on a `200`. Read:
 
 * `applied.unbound` — fields accepted and recorded that **filtered nothing**,
   with the reason (e.g. `environment.runtime: "together_ai"`).
@@ -47,9 +47,6 @@ At most 16384 bytes.
   `unranked_candidates` names ten, newest first.
 * `evidence_basis` per row — `none`, `unverified-legacy`, `mixed`,
   `partial-verified`, `verified`: input provenance, not a quality verdict.
-
-Cite-only inputs add `cite_only_not_machine_verified` warnings and
-[citation metadata](rank-api.md#citation-assurance), excluded from verified counts.
 
 ## Worked example
 
@@ -229,7 +226,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
 }
 ```
 
-Captured 2026-09-17; `unranked_candidates` 2026-09-23.
+Captured 2026-09-17; `unranked_candidates` 2026-09-23. Scores move; the shape does not.
 
 ## Every error, and the fix
 
@@ -319,7 +316,7 @@ the catalogue. Widening a field's range bumps that contract's major
 ([`cli-contract.md`](cli-contract.md)). Fields may be added within a major:
 ignore what you do not know.
 
-Requests carry profiles, never prompts. [Details](rank-api.md).
+A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 
 ## MCP
 

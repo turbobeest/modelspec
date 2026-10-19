@@ -593,10 +593,23 @@ def credit_remaining() -> int | None:
 
 def scrape_url(url: str, dest: Path) -> None:
     from decision.retention import metadata_origins, refuse_disk_scrape
-    from scripts.benchmarks.fetch import scrape
 
     refuse_disk_scrape(url)
-    data = scrape(url, formats=["markdown"])
+    result = subprocess.run(
+        [
+            "firecrawl",
+            "scrape",
+            url,
+            "--wait-for",
+            "4000",
+            "--only-main-content",
+            "--json",
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    data = json.loads(result.stdout)
     metadata = data.get("metadata") or {}
     for origin in metadata_origins(metadata):
         refuse_disk_scrape(origin)

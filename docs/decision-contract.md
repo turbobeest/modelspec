@@ -1828,7 +1828,7 @@ The success response is a `ModelComparison` with these fields:
 A model row has `model`, `lifecycle`, `facts`, `offerings`, and `evidence`.
 `lifecycle` is the snapshot's `active`, `deprecated`, or `retired` state. A fact has
 `facet`, `state`, `value`, and `unit`, plus `record_id` and `source_ids` when
-stored provenance exists. `state` is `known`, `unknown`, `not_disclosed`, or
+known provenance exists. `state` is `known`, `unknown`, `not_disclosed`, or
 `requires_contract`.
 Unknown values remain null. A known value can be a boolean, number, string,
 date, or list of strings. `source_ids` resolve through the response's
@@ -1836,8 +1836,9 @@ date, or list of strings. `source_ids` resolve through the response's
 
 A `ComparisonFact` may add the same `citation` (`FactCitation`) metadata as a
 shown decision fact. `state` still describes whether the value is known;
-`citation.status: cited` means it is not machine-verified. This optional field
-keeps `comparison_version` at 1.0.
+`citation.status: cited` means it is not machine-verified. Cited facts also carry
+`record_id` and `source_ids` when their state is `not_disclosed` or
+`requires_contract`. This optional field keeps `comparison_version` at 1.0.
 
 An offering has `offering`, the existing `OfferingRef`, and its `facts`.
 Evidence has `benchmark`, `value`, `unit`, `record_id`, and `source_ids`.

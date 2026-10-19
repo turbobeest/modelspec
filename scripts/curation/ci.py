@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
 from scripts.curation import draft as drafting  # noqa: E402
 
 CENSUS_DIR = ROOT / "benchmarks" / "_census"
@@ -58,7 +59,8 @@ def kinds_of(item: dict) -> set[str]:
 
 
 def draftable(report: dict) -> list[dict]:
-    return [c for c in report.get("changes", []) if kinds_of(c) and DEAD not in kinds_of(c)]
+    return [c for c in report.get("changes", []) if kinds_of(c) and DEAD not in kinds_of(c)
+            and not cite_only_origin(c["url"], metadata_origins(c))]
 
 
 def dead_items(report: dict) -> list[dict]:

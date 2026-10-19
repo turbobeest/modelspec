@@ -483,6 +483,70 @@ def _has_cited_facts(snapshot, cid: str, reach=None) -> bool:
     return kind == "plan" and bool(cited(hold_id))
 
 
+class _CitationUse:
+    """Observe the facts used by filtering and ranking, without scanning the catalogue."""
+
+    def __init__(self, snapshot, reach=None):
+        self.snapshot = snapshot
+        self.reach = reach
+        self.used = False
+        self._cited = getattr(snapshot, "cited_facts", None)
+        self._records: dict[str, frozenset[str]] = {}
+
+    def __getattr__(self, name):
+        return getattr(self.snapshot, name)
+
+    def records(self, cid):
+        if cid not in self._records:
+            self._records[cid] = frozenset(() if self._cited is None else self._cited(cid))
+        return self._records[cid]
+
+    def fact(self, cid, facet):
+        found = self.snapshot.fact(cid, facet)
+        self.observe(cid, facet, found)
+        return found
+
+    def observe(self, cid, facet, found=None):
+        if self.used or self._cited is None:
+            return
+        cited = self.records(cid)
+        if cited:
+            found = self.snapshot.fact(cid, facet) if found is None else found
+            if found.record_id in cited:
+                self.used = True
+                return
+            computed = self.snapshot.computed(cid, facet)
+            if computed is not None and cited.intersection(computed.records):
+                self.used = True
+                return
+            if facet == "offering.cost_per_task" and computed is None:
+                # A missing cited price can also remove a candidate from ranking.
+                for price in ("offering.price.input", "offering.price.output"):
+                    self.observe(cid, price)
+        if facet == plans_module.PRICE_MONTHLY and self.reach is not None:
+            for plan, _surface, _coverage in self.reach.routes.get(cid, ()):
+                for record in self.records(plan):
+                    if self.snapshot.record(record).get("facet") in {
+                        "offering.subscription.price", "offering.subscription.billing_period",
+                    }:
+                        self.used = True
+                        return
+
+    def shown(self, decision, ordered):
+        if self.used:
+            return True
+        if any(CITE_ONLY_NOTICE in plan.basis for row in decision.results for plan in row.plans):
+            return True
+        for shown, row in zip(decision.top, ordered.results):
+            cited = self.records(row.candidate_id)
+            if any(fact.citation is not None or cited.intersection(fact.records)
+                   for fact in shown.facts):
+                return True
+            if any(cited.intersection(estimate.records) for estimate in shown.hardware_estimates):
+                return True
+        return False
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -627,11 +691,12 @@ def _decide(
                     name, resolved.objective_qualifiers.get(name), domains=requested
                 ),
             )
-    filtered = apply(resolved, snapshot, _reach)
+    citation_use = _CitationUse(snapshot, _reach)
+    filtered = apply(resolved, snapshot, _reach, fact_used=citation_use.observe)
     if _filter_trace is not None:
         _filter_trace(filtered)
     ordered, objective_unknown = split_missing(
-        run_optimise(snapshot, filtered, spec, selectors, domains)
+        run_optimise(citation_use, filtered, spec, selectors, domains)
     )
     digest = spec_hash(spec)
     identity = digest if _identity is None else spec_hash(_identity)
@@ -659,7 +724,7 @@ def _decide(
     )
     probabilities = {}
     model_estimates = {}
-    representative_rows = _representative_rows(ordered.results, snapshot, tie_cost)
+    representative_rows = _representative_rows(ordered.results, citation_use, tie_cost)
     banded = None
     blend = []
     scalar = spec.optimize.lexicographic is None and spec.optimize.pareto is None
@@ -698,7 +763,7 @@ def _decide(
             return {model_id: pair[0] for model_id, pair in drawn.items()}
 
         blend = bands_module.blend(ordered.results, snapshot.model_of, dimension_p_best)
-    answer = _answer(representative_rows, banded, snapshot, tie_cost)
+    answer = _answer(representative_rows, banded, citation_use, tie_cost)
 
     returned_rows = ordered.results[: spec.limit]
     if _capture is not None:
@@ -779,9 +844,9 @@ def _decide(
         )
         results.append(Result(
             rank=i + 1,
-            offering=offering_ref(snapshot, row.candidate_id),
+            offering=offering_ref(citation_use, row.candidate_id),
             model_rank=model_ranks[model_id],
-            cost_per_task=_candidate_cost(snapshot, row.candidate_id),
+            cost_per_task=_candidate_cost(citation_use, row.candidate_id),
             estimates=estimates or None,
             refinement_estimates=nested or None,
             p_best=p_best,
@@ -855,8 +920,6 @@ def _decide(
     decision._feasible_models = tuple(sorted({
         snapshot.model_of(cid) for cid in filtered.feasible
     }))
-    if any(_has_cited_facts(snapshot, cid, _reach) for cid in snapshot.candidates()):
-        decision.warnings.append(CITE_ONLY_WARNING)
     from decision.explain import named_facets
 
     quality_dimensions = domains | set(snapshot.benchmark_ids()) | {"any"}
@@ -885,6 +948,8 @@ def _decide(
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)
+    if citation_use.shown(decision, ordered):
+        decision.warnings.append(CITE_ONLY_WARNING)
     if _capture_evidence is not None:
         from decision.explain import contributions, domain_evidence
 
