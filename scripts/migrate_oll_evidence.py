@@ -163,14 +163,23 @@ class Plan:
 
 
 def _get(url: str, cache: Path) -> bytes:
+    from decision.retention import cite_only_origin, is_cite_only, refuse_disk_scrape
+
+    refuse_disk_scrape(url)
+
     cache.mkdir(parents=True, exist_ok=True)
     path = cache / (hashlib.sha256(url.encode()).hexdigest() + ".json")
-    if path.is_file():
+    if path.is_file() and not is_cite_only(url):
         return path.read_bytes()
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
         body = response.read()
-    path.write_bytes(body)
+        resolved = response.geturl()
+    from decision.retention import refuse_disk_scrape
+
+    refuse_disk_scrape(resolved)
+    if not cite_only_origin(url, (resolved,)):
+        path.write_bytes(body)
     return body
 
 
@@ -214,7 +223,7 @@ def _published(version: str, path: str, repository: str, revision: str,
                cache: Path, store: CopyStore) -> PublishedResult:
     source_url = f"https://huggingface.co/datasets/{repository}/resolve/{revision}/{path}"
     raw = _get(source_url, cache)
-    raw_ref = store.put(raw)
+    raw_ref = store.put(raw, source_url=source_url)
     data = json.loads(raw)
     identity, evaluated, scores = (
         extract_v1_scores(data, path) if version == "v1" else extract_v2_scores(data, path)
@@ -222,7 +231,7 @@ def _published(version: str, path: str, repository: str, revision: str,
     projection = project_result(identity, evaluated, scores, source_url=source_url, raw_ref=raw_ref)
     source_id = f"oll-{version}-{hashlib.sha256(path.encode()).hexdigest()[:12]}"
     return PublishedResult(version, path, source_url, source_id, identity, evaluated, scores,
-                           store.put(projection))
+                           store.put(projection, source_url=source_url))
 
 
 def _result_paths(version: str, identity: str, siblings: list[str]) -> list[str]:

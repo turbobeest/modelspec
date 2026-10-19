@@ -23,6 +23,12 @@ MATRIX = f'<section id="matrix"><table>{HEADER}{MODEL_ROW}{BUILD_ROW}{BOT_ROW}</
 PAGE = f'<html><body><h1>Synthetic test page</h1>{MATRIX}</body></html>'
 
 
+@pytest.fixture(autouse=True)
+def synthetic_matrix_parser_policy(monkeypatch):
+    """Exercise historical exact-template parsing with synthetic pages only."""
+    monkeypatch.setattr("decision.retention.cite_only_hosts", lambda: ())
+
+
 class Fallback:
     """A reader that would admit the claim if exact-template dispatch leaked."""
 
@@ -41,7 +47,7 @@ def check(tmp_path, page=PAGE, *, plan=LITE, field="models_covered", value=("xai
           normaliser="text-default", region_id="page", damage=None, names=None,
           locator_value="", subject=None):
     store = CopyStore(tmp_path / "copies")
-    ref = store.put(page.encode())
+    ref = store.put(page.encode(), source_url="https://fixture.example/")
     source = Source(
         id="pricing", url=url, kind=kind, normaliser=normaliser,
         cited_regions=[CitedRegion(id=region_id, locator={"kind": "page", "value": locator_value})],

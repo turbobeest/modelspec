@@ -85,6 +85,7 @@ from decision.sources import (
     FetchMode,
     FetchResult,
     RenderedFetcher,
+    fingerprint_bytes,
     load_sources,
 )
 from decision.verify import (
@@ -103,6 +104,8 @@ from decision.verify import (
     split_model_cell,
     verify,
 )
+
+from decision.retention import citation_metadata, cite_only_origin, is_cite_only
 
 ROOT = Path(__file__).resolve().parents[1]
 #: ``automerge.yml`` must never queue this branch (tests/test_price_reread.py).
@@ -124,6 +127,7 @@ MAX_RENDERED_MANIFEST_BYTES = 1024 * 1024
 
 
 class Status(StrEnum):
+    CITED = "cited"
     UNCHANGED = "unchanged"
     CHANGED = "changed"
     NEEDS_REVIEW = "needs_review"
@@ -152,6 +156,7 @@ class FactResult:
     claim: Claim | None = field(default=None, compare=False, repr=False)
     #: For an unchanged fact, the record that re-verified it against the new copy.
     verification: Verification | None = field(default=None, compare=False, repr=False)
+    cited: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -161,8 +166,8 @@ class FactResult:
             "sources": list(self.source_ids),
             "status": self.status.value,
             "old_state": self.old_state,
-            "old_value": self.old_value,
-            "new_value": self.new_value,
+            "old_value": None if self.cited or self.status is Status.CITED else self.old_value,
+            "new_value": None if self.cited or self.status is Status.CITED else self.new_value,
             "reason": self.reason,
             "copies": {sid: {"old": old, "new": new} for sid, (old, new) in self.copies.items()},
         }
@@ -175,6 +180,8 @@ class SourceFetch:
     outcome: str  # "ok", "rendered", "text_projection", "excluded", or the fetch error
     copy_ref: str | None = None
     error: str | None = None
+    retrieved_at: datetime | None = None
+    resolved_urls: tuple[str, ...] = ()
 
 
 @dataclass
@@ -194,11 +201,13 @@ class Report:
     @property
     def alerts(self) -> list[FactResult]:
         return [f for f in self.facts if f.status in ALERTS
+                or f.status is Status.CITED and any(old != new for old, new in f.copies.values())
                 or f.status is Status.NOT_REREAD and f.fact_id in self.overdue]
 
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
-        return {s.value: counts.get(s.value, 0) for s in Status}
+        return {s.value: counts.get(s.value, 0) for s in Status
+                if s is not Status.CITED or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -208,6 +217,7 @@ class Report:
             "counts": self.counts(),
             "changes": [f.to_dict() for f in self.changes],
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
+            "cited": [f.to_dict() for f in self.facts if f.status is Status.CITED],
             "alerts": [f.to_dict() for f in self.alerts],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
@@ -238,13 +248,21 @@ def tracked_facts(root: Path) -> list[Tracked]:
     return found
 
 
-def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping) -> str | None:
+def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping,
+              sources: Mapping | None = None) -> str | None:
     """Why this fact is out of the re-read's reach, or ``None``."""
     if claim is None:
         return "no filed claim"
     if value_hash(claim_verification_value(claim)) != value_hash(fact_verification_value(fact)):
         return "the fact differs from its filed claim"
     latest = log_latest.get(("fact", fact["id"]))
+    if sources is not None and any(
+            ref.source_id in sources and cite_only_origin(sources[ref.source_id].url,
+                                                         getattr(ref, "resolved_urls", ()))
+            for ref in claim.sources):
+        if latest is not None and latest.outcome in {"mismatch", "unreachable"}:
+            return "quarantined: latest source check failed"
+        return None
     if latest is None or latest.outcome != "verified":
         return "quarantined: its value was never verified"
     if latest.target.value_hash != value_hash(fact_verification_value(fact)):
@@ -254,7 +272,10 @@ def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping)
 
 def _llm_baseline(fact: Mapping[str, Any], log_latest: Mapping) -> str | None:
     """The model family of the LLM reader that last verified this fact, if one did."""
-    family = log_latest[("fact", fact["id"])].verifier.model_family
+    latest = log_latest.get(("fact", fact["id"]))
+    if latest is None:
+        return None
+    family = latest.verifier.model_family
     return None if family == DETERMINISTIC else family
 
 
@@ -269,7 +290,7 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))
-        if _in_scope(tracked.fact, claim, latest) is None:
+        if _in_scope(tracked.fact, claim, latest, sources) is None:
             assert claim is not None
             source_ids.update(s.source_id for s in claim.sources)
     excluded = excluded_sources()
@@ -285,10 +306,18 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     for url, ids in sorted(urls.items()):
         result = _fetch_rendered(rendered, url, ids)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
-        if result.outcome == "ok":
+        restricted = cite_only_origin(url, result.resolved_urls)
+        if restricted:
+            (directory / name).unlink(missing_ok=True)
+        if result.outcome == "ok" and not restricted:
             (directory / name).write_bytes(result.body)
         manifest[url] = {"file": name, "outcome": result.outcome,
                          "status": result.status, "error": result.error}
+        if result.outcome == "ok" and restricted:
+            manifest[url]["error"] = None
+            manifest[url]["citation"] = citation_metadata(
+                url, fingerprint_bytes(result.body), retrieved_at=result.retrieved_at or datetime.now(UTC),
+                resolved_urls=result.resolved_urls)
     (directory / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -336,7 +365,9 @@ class RenderedReplayFetcher:
         for url, entry in manifest.items():
             if not url.startswith(("http://", "https://")) or canonical_url(url) != url:
                 raise ValueError("rendered manifest keys must be canonical HTTP URLs")
-            if not isinstance(entry, dict) or set(entry) != {"file", "outcome", "status", "error"}:
+            if not isinstance(entry, dict) or set(entry) not in (
+                    {"file", "outcome", "status", "error"},
+                    {"file", "outcome", "status", "error", "citation"}):
                 raise ValueError(f"invalid rendered manifest entry for {url}")
             name = entry["file"]
             if (not isinstance(name, str) or not name or name == "." or ".." in name
@@ -349,7 +380,19 @@ class RenderedReplayFetcher:
             if entry["error"] is not None and not isinstance(entry["error"], str):
                 raise ValueError(f"invalid rendered error for {url}")
             path = directory / name
-            if entry["outcome"] == "ok" or path.exists() or path.is_symlink():
+            citation = entry.get("citation")
+            if citation is not None:
+                if (not isinstance(citation, dict) or citation.get("url") != url
+                        or not isinstance(citation.get("snapshot_ref"), str)
+                        or not re.fullmatch(r"sha256:[0-9a-f]{64}", citation["snapshot_ref"])
+                        or not cite_only_origin(url, citation.get("resolved_urls", ()))):
+                    raise ValueError("invalid cite-only rendered citation")
+                datetime.fromisoformat(citation["retrieved_at"])
+                if path.exists() or path.is_symlink():
+                    raise ValueError("cite-only rendered artifact must not contain page bytes")
+            elif is_cite_only(url) and entry["outcome"] == "ok":
+                raise ValueError("cite-only rendered artifact requires hash-only citation")
+            elif entry["outcome"] == "ok" or path.exists() or path.is_symlink():
                 _rendered_file(path, MAX_RENDERED_BODY_BYTES)
         self.manifest = manifest
 
@@ -360,6 +403,10 @@ class RenderedReplayFetcher:
         if entry["outcome"] != "ok":
             return FetchResult("unreachable", entry["status"],
                                error=f"not rendered: {entry['error'] or entry['outcome']}")
+        if citation := entry.get("citation"):
+            return FetchResult("ok", entry["status"], snapshot_ref=citation["snapshot_ref"],
+                               retrieved_at=datetime.fromisoformat(citation["retrieved_at"]),
+                               resolved_urls=tuple(citation["resolved_urls"]))
         return FetchResult("ok", entry["status"],
                            body=_read_rendered_file(self.directory / entry["file"],
                                                     MAX_RENDERED_BODY_BYTES),
@@ -402,7 +449,20 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
         else:
             result = fetcher.fetch(url)
         if result.outcome == "ok":
-            fetched[sid] = SourceFetch(sid, url, "ok", store.put(result.body), error=result.error)
+            retrieved_at = result.retrieved_at or datetime.now(UTC)
+            if result.snapshot_ref is not None:
+                if not cite_only_origin(url, result.resolved_urls):
+                    raise ValueError("a byte-free replay requires a cite-only origin")
+                ref = result.snapshot_ref
+                store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
+                                      resolved_urls=result.resolved_urls)
+            else:
+                ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
+                                resolved_urls=result.resolved_urls)
+            outcome = "cited" if store.citation(ref) is not None else "ok"
+            fetched[sid] = SourceFetch(sid, url, outcome, ref,
+                                       error=None if outcome == "cited" else result.error,
+                                       retrieved_at=retrieved_at, resolved_urls=result.resolved_urls)
         else:
             fetched[sid] = SourceFetch(sid, url, result.error or result.outcome)
     return fetched
@@ -501,9 +561,11 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         file=str(tracked.path.relative_to(root)),
         source_ids=tuple(s.source_id for s in old_sources),
         status=Status.NOT_REREAD, old_state=fact["state"], old_value=fact.get("value"),
+        cited=any(ref.source_id in regions.sources and cite_only_origin(
+            regions.sources[ref.source_id].url, ref.resolved_urls) for ref in old_sources),
     )
     ok = {s.source_id: fetched[s.source_id] for s in old_sources
-          if fetched[s.source_id].outcome == "ok"}
+          if fetched[s.source_id].outcome in {"ok", "cited"}}
     if not ok:
         outcomes = sorted({fetched[s.source_id].outcome for s in old_sources})
         if "fallback was a fake run" in outcomes:
@@ -518,10 +580,18 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
 
     copies = {sid: (next(s.snapshot_ref for s in old_sources if s.source_id == sid),
                     f.copy_ref) for sid, f in ok.items()}
-    pinned = tuple(s.model_copy(update={"snapshot_ref": ok[s.source_id].copy_ref})
+    pinned = tuple(s.model_copy(update={"snapshot_ref": ok[s.source_id].copy_ref,
+                                       "retrieved_at": ok[s.source_id].retrieved_at,
+                                       "resolved_urls": list(ok[s.source_id].resolved_urls)})
                    if s.source_id in ok else s for s in old_sources)
     claim = replace(claim, sources=pinned)
     base = replace(base, copies=copies)
+    if any(item.outcome == "cited" for item in ok.values()):
+        changed = any(old != new for old, new in copies.values())
+        return replace(base, status=Status.CITED, claim=claim,
+                       reason="Cited, not machine-verified; " + (
+                           "source hash changed and needs a citation assessment" if changed else
+                           "source hash unchanged"))
 
     preparation_errors = [f"{sid}: {source.error}" for sid, source in ok.items() if source.error]
     if preparation_errors:
@@ -593,7 +663,7 @@ def _page_size(regions: StoredRegions, claim: Claim) -> str:
     sizes = []
     for source in claim.sources:
         found = regions.sources.get(source.source_id)
-        if found is None or not regions.store.has(source.snapshot_ref):
+        if found is None or is_cite_only(found.url) or not regions.store.has(source.snapshot_ref):
             continue
         rules = NORMALISERS[found.normaliser]
         try:
@@ -634,7 +704,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                 or (today - baseline.date).days > MAX_READ_AGE_DAYS):
             report.overdue.append(tracked.fact["id"])
         claim = filed.get(("fact", tracked.fact["id"]))
-        reason = _in_scope(tracked.fact, claim, latest)
+        reason = _in_scope(tracked.fact, claim, latest, sources)
         if reason is None:
             assert claim is not None
             scoped.append((tracked, claim, _llm_baseline(tracked.fact, latest)))
@@ -642,7 +712,10 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
             report.facts.append(FactResult(
                 tracked.fact["id"], tracked.fact["facet"], str(tracked.path.relative_to(root)),
                 tuple(s["source_id"] for s in tracked.fact["sources"]), Status.NOT_REREAD,
-                tracked.fact["state"], tracked.fact.get("value"), reason=reason))
+                tracked.fact["state"], tracked.fact.get("value"), reason=reason,
+                cited=any(ref["source_id"] in sources and cite_only_origin(
+                    sources[ref["source_id"]].url, ref.get("resolved_urls", ()))
+                    for ref in tracked.fact["sources"])))
 
     report.sources = fetch_sources(
         (s.source_id for _, claim, _ in scoped for s in claim.sources), sources, fetcher, store,
@@ -669,6 +742,15 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
 
     report.diffs = source_diffs(report, sources, store)
     if write:
+        for fact in report.facts:
+            if fact.status is Status.CITED and fact.claim is not None:
+                path = root / fact.file
+                before = path.read_text(encoding="utf-8")
+                after = rewrite_fact(before, fact)
+                check_value_only(before, after, [fact])
+                path.write_text(after, encoding="utf-8")
+                queue.file(fact.claim, at=at)
+                queue.checked(Result(fact.claim.target, "cited", reason=fact.reason), at=at)
         # A value that still reads the same is verified again today, so its age
         # restarts (the 7-day price interval, decision.sources.DEFAULT_INTERVALS).
         for fact in report.facts:
@@ -696,6 +778,9 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
             wanted.setdefault(sid, set()).add(pair)
     diffs: dict[str, list[str]] = {}
     for sid, pairs in sorted(wanted.items()):
+        if is_cite_only(sources[sid].url) or any(
+                store.citation(ref) is not None for pair in pairs for ref in pair):
+            continue
         lines: list[str] = []
         for old, new in sorted(pairs):
             if old == new:
@@ -791,10 +876,12 @@ def rewrite_fact(text: str, change: FactResult) -> str:
     block = lines[start:end]
     out: list[str] = []
     current_source: str | None = None
+    cited = change.status is Status.CITED
+    refs = {ref.source_id: ref for ref in change.claim.sources} if cited and change.claim else {}
     i = 0
     while i < len(block):
         line = block[i]
-        if line.startswith(key + "value:"):
+        if not cited and line.startswith(key + "value:"):
             out.append(key + _dump_value(change.new_value) + "\n")
             i += 1
             # The old value's continuation lines are indented deeper; a quoted
@@ -805,7 +892,7 @@ def rewrite_fact(text: str, change: FactResult) -> str:
             while not block[i - 1].strip():
                 i -= 1
             continue
-        if line.startswith(key + "state:"):
+        if not cited and line.startswith(key + "state:"):
             out.append(f"{key}state: known\n")
         elif m := re.match(r"^\s*- source_id: (\S+)\s*$", line):
             current_source = m.group(1)
@@ -813,6 +900,18 @@ def rewrite_fact(text: str, change: FactResult) -> str:
         elif (m := re.match(r"^(\s*)snapshot_ref: sha256:[0-9a-f]{64}\s*$", line)) \
                 and current_source in change.copies:
             out.append(f"{m.group(1)}snapshot_ref: {change.copies[current_source][1]}\n")
+            if cited:
+                ref = refs[current_source]
+                out.append(f"{m.group(1)}retrieved_at: '{ref.retrieved_at.isoformat()}'\n")
+                out.append(f"{m.group(1)}resolved_urls: {json.dumps([str(url) for url in ref.resolved_urls])}\n")
+        elif cited and current_source in change.copies and re.match(
+                r"^\s*(retrieved_at|resolved_urls):", line):
+            depth = len(line) - len(line.lstrip())
+            i += 1
+            while i < len(block) and (len(block[i]) - len(block[i].lstrip()) > depth
+                                      or re.match(r"^\s*- https?://", block[i])):
+                i += 1
+            continue
         else:
             out.append(line)
         i += 1
@@ -841,12 +940,21 @@ def check_value_only(before: str, after: str, changes: Sequence[FactResult]) -> 
             if old != new:
                 raise ValueError(f"{fid}: changed without a re-read change")
             continue
-        if new.get("value") != change.new_value or type(new.get("value")) is not type(
-                change.new_value) or new["state"] != "known":
+        cited = change.status is Status.CITED
+        expected_value = old.get("value") if cited else change.new_value
+        if new.get("value") != expected_value or type(new.get("value")) is not type(
+                expected_value) or new["state"] != (old["state"] if cited else "known"):
             raise ValueError(f"{fid}: the rewrite did not land {change.new_value!r}")
         expected_sources = [
             {**s, "snapshot_ref": change.copies[s["source_id"]][1]}
             if s["source_id"] in change.copies else s for s in old["sources"]]
+        if cited and change.claim is not None:
+            refs = {ref.source_id: ref for ref in change.claim.sources}
+            for source in expected_sources:
+                if source["source_id"] in change.copies:
+                    ref = refs[source["source_id"]]
+                    source.update(retrieved_at=ref.retrieved_at.isoformat(),
+                                  resolved_urls=[str(url) for url in ref.resolved_urls])
         if new["sources"] != expected_sources:
             raise ValueError(f"{fid}: the rewrite changed its sources")
         rest = {"value", "state", "sources"}

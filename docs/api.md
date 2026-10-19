@@ -48,6 +48,20 @@ At most 16384 bytes.
 * `evidence_basis` per row — `none`, `unverified-legacy`, `mixed`,
   `partial-verified`, `verified`: input provenance, not a quality verdict.
 
+Rows with cite-only inputs add `warnings: ["cite_only_not_machine_verified"]`,
+`cited_facts`, and `cited_benchmarks`. Each cited fact keeps its value and source
+URL, content hash, and available fetch date under `citation`, with
+`verification: null`. Cited benchmarks are excluded from verified counts;
+their ordinary score can still contribute under the existing ranking policy.
+The existing `unverified-legacy` bucket includes these unverified inputs, and
+the citation fields distinguish their assurance. The closed `evidence_basis`
+values and response version are unchanged.
+
+Benchmark file exports keep cite-only catalogue results in the additive
+`disposition.cited_results` array, with `citation: {status: "cited", url: ...}`.
+Those rows are excluded from `disposition.verified_results`. Model fact exports
+preserve each fact's ID and add citation metadata to the affected record.
+
 ## Worked example
 
 ```bash

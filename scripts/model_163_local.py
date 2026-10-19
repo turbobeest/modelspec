@@ -451,7 +451,7 @@ def main() -> None:
             }
             ref = SourceRef(
                 source_id=source_id,
-                snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode()),
+                snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode(), source_url=url),
                 cited_regions=["row"],
             )
             file_verified(
@@ -516,7 +516,7 @@ def main() -> None:
         }
         ref = SourceRef(
             source_id=source_id,
-            snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode()),
+            snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode(), source_url=row["memory_source_url"]),
             cited_regions=["row"],
         )
         for target_id, field, value in (

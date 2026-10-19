@@ -264,10 +264,14 @@ def _pdf_copy(source: Source, body: bytes, resolved: str) -> bytes:
 
 def retain(source: Source, store: CopyStore) -> tuple[str, str]:
     """The copy ref and the cited region's normalised text."""
+    from decision.retention import refuse_disk_scrape
+
+    refuse_disk_scrape(source.url)
     body, resolved = _fetch(source.url)
+    refuse_disk_scrape(resolved)
     if source.pdf_pages:
         body = _pdf_copy(source, body, resolved)
-    ref = store.put(body)
+    ref = store.put(body, source_url=source.url, resolved_urls=(resolved,))
     doc = normalise_document(body, NORMALISERS[source.normaliser])
     region = select_region(doc, Locator(kind=source.locator[0], value=source.locator[1]))
     if region is None:

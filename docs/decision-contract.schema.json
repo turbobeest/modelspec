@@ -918,6 +918,52 @@
       "title": "CandidateValues",
       "type": "object"
     },
+    "CitationSource": {
+      "additionalProperties": false,
+      "properties": {
+        "resolved_urls": {
+          "items": {
+            "pattern": "^https?://\\S+$",
+            "type": "string"
+          },
+          "title": "Resolved Urls",
+          "type": "array"
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieved At"
+        },
+        "snapshot_ref": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Snapshot Ref",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "url": {
+          "pattern": "^https?://\\S+$",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "url",
+        "snapshot_ref"
+      ],
+      "title": "CitationSource",
+      "type": "object"
+    },
     "CitedSource": {
       "additionalProperties": false,
       "description": "One registered source, listed once per decision. Added in 1.4.",
@@ -1213,6 +1259,17 @@
     "ComparisonFact": {
       "additionalProperties": false,
       "properties": {
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactCitation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "facet": {
           "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
           "title": "Facet",
@@ -2951,6 +3008,30 @@
         }
       },
       "title": "EvidenceQualifiers",
+      "type": "object"
+    },
+    "FactCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/CitationSource"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "status": {
+          "const": "cited",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "sources"
+      ],
+      "title": "FactCitation",
       "type": "object"
     },
     "FactInterval": {
@@ -5613,6 +5694,17 @@
     "ShownFact": {
       "additionalProperties": false,
       "properties": {
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactCitation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "facet": {
           "title": "Facet",
           "type": "string"

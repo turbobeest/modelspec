@@ -56,6 +56,10 @@ def system_card_copy(store: CopyStore) -> str:
     request = urllib.request.Request(CARD_URL, headers={"User-Agent": "ModelSpec/1.0"})
     with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310 - fixed URL
         body, resolved = response.read(), response.geturl()
+    from decision.retention import refuse_disk_scrape
+
+    refuse_disk_scrape(CARD_URL)
+    refuse_disk_scrape(resolved)
     reader = pypdf.PdfReader(BytesIO(body))
     pages = (171, 172)
     text = re.sub(r"\s+", " ", " ".join(reader.pages[n - 1].extract_text() for n in pages))
@@ -68,7 +72,7 @@ def system_card_copy(store: CopyStore) -> str:
         f"resolved to {resolved}, SHA-256 {hashlib.sha256(body).hexdigest()}. "
         "Read 2026-09-25.\n\n"
     )
-    return store.put((header + section.group(0).strip() + "\n").encode())
+    return store.put((header + section.group(0).strip() + "\n").encode(), source_url=CARD_URL, resolved_urls=(resolved,))
 
 
 def register_card_source() -> None:

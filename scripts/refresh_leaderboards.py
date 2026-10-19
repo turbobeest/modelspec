@@ -1025,6 +1025,10 @@ def _fetch(url: str) -> bytes:
     require_allowed_source(url)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310 - fixed registry URLs
+        from decision.retention import refuse_disk_scrape
+
+        refuse_disk_scrape(url)
+        refuse_disk_scrape(response.geturl())
         return response.read()
 
 
@@ -1038,7 +1042,7 @@ def _reading_from_projection(
     rows = tuple({**row, "observed_at": observed_at} for row in payload["rows"])
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
-        value_field, fraction, store.put(projected), frozenset(card_urls), row_template,
+        value_field, fraction, store.put(projected, source_url=source_url), frozenset(card_urls), row_template,
     )
 
 
@@ -1223,7 +1227,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         try:
             require_allowed_source(fetch_url, benchmarks)
             raw = _fetch(fetch_url)
-            raw_ref = store.put(raw)
+            raw_ref = store.put(raw, source_url=fetch_url)
             projected = projector(raw, url=source_url, page_ref=f"{raw_ref} {fetch_url}",
                                   observed_at=observed_at)
             readings.append(_reading_from_projection(
@@ -1240,7 +1244,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         fetch_url = readers.ARENA_URL.format(config=config)
         try:
             raw = _fetch(fetch_url)
-            raw_ref = store.put(raw)
+            raw_ref = store.put(raw, source_url=fetch_url)
             for benchmark, (cfg, category) in ARENA_BOARDS.items():
                 if cfg != config:
                     continue
@@ -1267,7 +1271,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     try:
         archive_url = readers.EPOCH_ZIP
         raw = _fetch(archive_url)
-        raw_ref = store.put(raw)
+        raw_ref = store.put(raw, source_url=archive_url)
         epoch = {
             "frontiermath_tiers_1_3_v2": (
                 "frontiermath_tiers_1_3_v2.csv",
@@ -1316,7 +1320,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     }
     try:
         index = _fetch(readers.MATHARENA_INDEX)
-        index_ref = store.put(index)
+        index_ref = store.put(index, source_url=readers.MATHARENA_INDEX)
     except Exception as exc:
         failures.append(RowFailure("*", "matharena", readers.MATHARENA_INDEX,
                                    f"{type(exc).__name__}: {exc}"))
@@ -1331,7 +1335,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             collect(key, source_id, (benchmark,), url, url, project, "accuracy")
     try:
         raw = _fetch(readers.METR_URL)
-        raw_ref = store.put(raw)
+        raw_ref = store.put(raw, source_url=readers.METR_URL)
         projected = readers.project_metr(raw, url=readers.METR_URL, page_ref=raw_ref,
                                          read_date=observed_at)
         for benchmark, label in (("metr_time_horizon_50", "p50_horizon_length"),
@@ -1349,7 +1353,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     for key, url, source_id, columns, unit in MTEB_BOARDS:
         try:
             raw = _fetch(url)
-            raw_ref = store.put(raw)
+            raw_ref = store.put(raw, source_url=url)
             projected = readers.project_mteb(raw, url=url, page_ref=raw_ref,
                                              read_date=observed_at)
             for benchmark, label in columns.items():
@@ -1406,7 +1410,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     # SWE-bench carries two named boards in one embedded JSON document.
     try:
         raw = _fetch(readers.SWEBENCH_URL)
-        raw_ref = store.put(raw)
+        raw_ref = store.put(raw, source_url=readers.SWEBENCH_URL)
         for board_name, benchmark in (("Verified", "swe_bench_verified"),
                                       ("Multilingual", "swe_bench_multilingual")):
             projected = readers.project_swebench(raw.decode(), board_name,
@@ -1430,7 +1434,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             raw = _fetch(chunk_url)
             if b"{vb2:{" not in raw:
                 continue
-            raw_ref = store.put(raw)
+            raw_ref = store.put(raw, source_url=chunk_url)
             projected = readers.project_vending(raw.decode(), url=readers.VENDING_URL,
                                                 page_ref=f"{raw_ref} {chunk_url}",
                                                 read_date=observed_at)

@@ -53,6 +53,7 @@ export function SimpleAnswer({ decision, vocabulary, selection, onRemoveLimit, o
       : answer?.kind === "separated" ? `${name(answer.leader)} is ahead for these choices.`
       : decision.status === "no_feasible" ? "No confirmed match." : "No clear pick yet."}</h2>
     <p className="simple-neutrality"><a href="/legal/neutrality/">ModelSpec is neutral: no referral fees, no paid placement.</a></p>
+    {decision.warnings.includes("cite_only_not_machine_verified") && <p className="simple-proof">Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy.</p>}
     {answer?.kind === "tied" && <p className="simple-tie">The evidence can't separate them for these choices. <span>Listed alphabetically, not ranked.</span></p>}
     {answer && <ul className="simple-shortlist" aria-label="Best matches">{rows(members)}</ul>}
     {!answer && <div className="simple-empty">

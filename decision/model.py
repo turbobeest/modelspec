@@ -50,6 +50,8 @@ class SourceRef(Record):
     source_id: Text
     snapshot_ref: ContentRef
     cited_regions: list[Text] = Field(min_length=1)
+    retrieved_at: AwareDatetime | None = Field(default=None, exclude_if=lambda value: value is None)
+    resolved_urls: list[HttpUrl] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
 class TargetRef(Record):

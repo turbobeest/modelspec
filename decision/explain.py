@@ -9,6 +9,9 @@ from decision.contract import (
     DomainEvidence,
     Estimate,
     EvidenceItem,
+    FactCitation,
+    CITE_ONLY_NOTICE,
+    CITE_ONLY_WARNING,
 )
 from decision.refinements import is_refinement_key, split_dimension
 from decision.regions import guarantees_countries, no_guarantee_reason
@@ -137,10 +140,23 @@ def checked_record(snapshot, rid):
         # a collector/verifier pair for an estimate's bandwidth input.
         if record.get("figures_are") != "vendor-specification" or not record.get("verified_at"):
             raise ExplanationError(f"{rid}: hardware lacks dated vendor specifications")
+    elif record.get("facet") and record.get("citation") is not None:
+        from pydantic import ValidationError
+
+        try:
+            citation = FactCitation.model_validate(record["citation"])
+        except ValidationError as exc:
+            raise ExplanationError(f"{rid}: invalid citation metadata") from exc
+        if record.get("verification") is not None or {
+            (source.source_id, source.snapshot_ref) for source in citation.sources
+        } != {
+            (source["source_id"], source["snapshot_ref"]) for source in record.get("sources", ())
+        } or any(snapshot.source_url(source.source_id) != source.url for source in citation.sources):
+            raise ExplanationError(f"{rid}: citation differs from retained sources")
     else:
-        if record["verification"]["outcome"] != "verified":
+        verification = record.get("verification")
+        if not verification or verification["outcome"] != "verified":
             raise ExplanationError(f"{rid}: not verified")
-        verification = record["verification"]
         collector, verifier = verification.get("collector", {}), verification.get("verifier", {})
         if (
             not collector.get("agent")
@@ -836,6 +852,8 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
             facts.append(ShownFact(
                 facet=facet, value=fact.value,
                 unit=unit, record_id=fact.record_id,
+                citation=(checked_record(snapshot, fact.record_id).get("citation")
+                          if fact.record_id else None),
                 source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
         for facet in COMPUTED_FACETS:
             if facet in HARDWARE_FACETS:
@@ -1063,7 +1081,7 @@ def cited_sources(decision, snapshot):
     for rid in records:
         record = snapshot.record(rid)
         day = (record.get("verified_at") if record.get("kind") == "hardware"
-               else record["verification"].get("date"))
+               else (record.get("verification") or {}).get("date"))
         for source in record["sources"]:
             sid = source["source_id"]
             verified.setdefault(sid, None)
@@ -1158,6 +1176,8 @@ def render_html(decision, snapshot):
             else "<p>Evidence is unblended. Capability estimates and probabilities are not available.</p>"
         ),
     ]
+    if CITE_ONLY_WARNING in decision.warnings:
+        out.append(f"<p>{esc(CITE_ONLY_NOTICE)}</p>")
     if decision.benchmark_exclusions is not None:
         exclusions = decision.benchmark_exclusions
         out.append(

@@ -84,6 +84,8 @@ class Candidate:
     #: `unranked_candidates` disclosure (MODEL-110); never scored. Additive to
     #: candidates.json: an export without it reads as None everywhere.
     release_date: str | None = None
+    cited_facts: list[dict[str, Any]] = field(default_factory=list)
+    cited_benchmarks: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -99,6 +101,8 @@ class Candidate:
             "total_parameters": self.total_parameters,
             "active_parameters": self.active_parameters,
             "release_date": self.release_date,
+            **({"cited_facts": self.cited_facts} if self.cited_facts else {}),
+            **({"cited_benchmarks": self.cited_benchmarks} if self.cited_benchmarks else {}),
         }
 
 
@@ -116,8 +120,11 @@ def rehost_of(card: Any) -> str | None:
     return None
 
 
-def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
+def build_candidates(cards: list[Any], sink: CollectingSink, *,
+                     cited_facts: dict[str, list[dict[str, Any]]] | None = None) -> list[Candidate]:
     """One ranking record per card, with capability tiers and hardware fit attached."""
+    from decision.retention import is_cite_only
+
     tiers: dict[str, dict[str, str]] = {}
     fits: dict[str, dict[str, float]] = {}
     for edge in sink.edges:
@@ -144,9 +151,15 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
         scores = {k: float(v) for k, v in card.benchmarks.scores.items()
                   if isinstance(v, (int, float))}
         verified: set[str] = set()
+        cited_benchmarks = {}
         for record in card.benchmarks.evidence:
             scores[record.benchmark_id] = float(record.score)
-            verified.add(record.benchmark_id)
+            if is_cite_only(record.source_url):
+                verified.discard(record.benchmark_id)
+                cited_benchmarks[record.benchmark_id] = {"status": "cited", "url": record.source_url}
+            else:
+                verified.add(record.benchmark_id)
+                cited_benchmarks.pop(record.benchmark_id, None)
         out.append(Candidate(
             model_id=ident.model_id,
             display_name=ident.display_name or ident.model_id,
@@ -165,6 +178,8 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             total_parameters=card.architecture.total_parameters,
             active_parameters=card.architecture.active_parameters,
             release_date=str(ident.release_date or "").strip() or None,
+            cited_facts=(cited_facts or {}).get(ident.model_id, []),
+            cited_benchmarks=cited_benchmarks,
         ))
     return out
 
@@ -262,6 +277,10 @@ def score(candidate: Candidate, profile: dict[str, Any],
         "verified_contributions": contributing_verified,
         "verified_benchmark_coverage": verified_weight / total_weight if total_weight else 0.0,
         "scores_as_of": candidate.scores_as_of,
+        **({"warnings": ["cite_only_not_machine_verified"],
+            "cited_facts": candidate.cited_facts,
+            "cited_benchmarks": candidate.cited_benchmarks}
+           if candidate.cited_facts or candidate.cited_benchmarks else {}),
     }
 
 
@@ -426,7 +445,8 @@ def authoring_guides_from_cards(cards: list[Any]) -> dict[str, dict[str, Any]]:
 
 
 def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
-                 build_json: dict[str, Any]) -> dict[str, Any]:
+                 build_json: dict[str, Any], *,
+                 cited_facts: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
     """Emit the tables the browser needs, plus precomputed rankings."""
     import json
     from pathlib import Path
@@ -439,7 +459,7 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, sort_keys=True, default=str), encoding="utf-8")
 
-    candidates = build_candidates(cards, sink)
+    candidates = build_candidates(cards, sink, cited_facts=cited_facts)
     dump("profiles.json", {
         "build": build_json,
         "featured": list(FEATURED_PROFILES),
@@ -510,6 +530,8 @@ def format_report(report: dict[str, Any]) -> str:
             f"bounds [{row['score_lower_bound']:.2f}, {row['score_upper_bound']:.2f}], "
             f"benchmark basis: {row['evidence_basis']}"
         )
+        if "cite_only_not_machine_verified" in row.get("warnings", ()):
+            lines.append("     Cited, not machine-verified.")
     if report["unranked"]:
         lines.append("Unranked for insufficient benchmark evidence (alphabetical; not ranked low):")
         for row in report["unranked"]:
@@ -519,6 +541,8 @@ def format_report(report: dict[str, Any]) -> str:
                 f"  UNRANKED  {row['display_name']}  coverage {row['benchmark_coverage']:.0%}, "
                 f"observed benchmark average {observed}, benchmark basis: {row['evidence_basis']}"
             )
+            if "cite_only_not_machine_verified" in row.get("warnings", ()):
+                lines.append("     Cited, not machine-verified.")
     return "\n".join(lines)
 
 
@@ -529,6 +553,7 @@ def main() -> None:
     from pathlib import Path
     from schema.card import ModelCard
     from schema.graph import derive_graph
+    from pipeline.load import load_models
 
     parser = argparse.ArgumentParser(description="Rank models with explicit incomplete evidence.")
     parser.add_argument("profile", choices=sorted(USE_CASE_PROFILES))
@@ -538,9 +563,13 @@ def main() -> None:
     if args.limit < 0:
         parser.error("--limit must be nonnegative")
     root = Path(__file__).resolve().parents[1]
-    cards = [ModelCard.from_yaml_file(p) for p in sorted((root / "models").rglob("*.md"))
-             if p.name != "LICENSE.md"]
-    report = rank_report(build_candidates(cards, derive_graph(cards)), args.profile, args.limit)
+    models = load_models(root)
+    cards = [ModelCard.from_yaml_file(model.path) for model in models]
+    candidates = build_candidates(
+        cards, derive_graph(cards),
+        cited_facts={model.model_id: model.cited_facts for model in models if model.cited_facts},
+    )
+    report = rank_report(candidates, args.profile, args.limit)
     if args.json:
         print(json.dumps({"schema_version": "2.0", **report}, indent=2))
     else:

@@ -104,6 +104,8 @@ DecisionId = _matching(DECISION_ID_PATTERN, "a decision ID is dec_<id>")
 SpecHash = _matching(SPEC_HASH_PATTERN, "a spec hash is sha256:<64 hex>")
 Code = _matching(CODE_PATTERN, "a warning is a lowercase code")
 Url = _matching(URL_PATTERN, "a source is an http(s) URL")
+CITE_ONLY_WARNING = "cite_only_not_machine_verified"
+CITE_ONLY_NOTICE = "Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy."
 
 
 def _snapshot_ref(value: str) -> str:
@@ -1725,7 +1727,20 @@ class FactInterval(_Strict):
         return self
 
 
-class ShownFact(_Strict):
+class CitationSource(_ExcludeIf):
+    source_id: str
+    url: Url
+    snapshot_ref: SpecHash
+    retrieved_at: str | None = None
+    resolved_urls: list[Url] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
+class FactCitation(_Strict):
+    status: Literal["cited"]
+    sources: list[CitationSource] = Field(min_length=1)
+
+
+class ShownFact(_ExcludeIf):
     facet: str
     value: Scalar | list[Scalar] | None = None
     unit: str | None = None
@@ -1737,6 +1752,7 @@ class ShownFact(_Strict):
     #: The registered sources behind ``record_id`` or ``records``, as IDs into
     #: ``Decision.sources``. Added in 1.4.
     source_ids: list[str] = Field(default_factory=list)
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class HardwareEstimate(_ExcludeIf):
@@ -2245,13 +2261,14 @@ class ModelComparisonRequest(_Strict):
         return models
 
 
-class ComparisonFact(_Strict):
+class ComparisonFact(_ExcludeIf):
     facet: FacetId
     state: Literal["known", "unknown", "not_disclosed", "requires_contract"]
     value: Any
     unit: str | None
     record_id: str | None = None
     source_ids: list[str] = Field(default_factory=list)
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ComparisonOffering(_Strict):

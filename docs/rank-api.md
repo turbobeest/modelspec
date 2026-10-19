@@ -188,6 +188,15 @@ The endpoint is not removed; existing callers keep working.
 inputs. It is **not** a quality verdict on the composite, and `verified` is not a
 certificate.
 
+MODEL-411 adds `warnings`, `cited_facts`, and `cited_benchmarks` to rows with
+cite-only inputs. The warning is `cite_only_not_machine_verified`. Cited fact
+records carry `verification: null` and a `citation` object with `status: cited`
+and source URL/hash/fetch metadata. Cited benchmark scores retain their ranking
+contribution but never enter `verified_contributions` or
+`verified_benchmark_coverage`. The existing unverified basis bucket covers
+them; the additional fields distinguish citations from older flat scores.
+These fields are additive under MODEL-59, so `schema_version` remains `1.0`.
+
 `authoring_guide` is the **recommended** model's card guide (`result[0]`),
 always present on a 200 and a 422. It is not on each row, so the CLI
 byte-identity of `result` holds. The Worker copies what

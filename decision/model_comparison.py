@@ -7,7 +7,7 @@ from typing import Any
 
 from decision.contract import MODEL_COMPARISON_VERSION, FacetLookup
 from decision.engine import offering_ref
-from decision.explain import DISPLAY_FACETS, source_ids
+from decision.explain import DISPLAY_FACETS, checked_record, source_ids
 from decision.registry import facet as registry_facet
 from decision.snapshot import ExplanationIndex
 
@@ -41,9 +41,12 @@ def collect_models(
                 "value": found.value,
                 "unit": definition.unit,
             }
-            if found.state == "known":
+            if found.record_id is not None:
                 row["record_id"] = found.record_id
                 row["source_ids"] = source_ids(snapshot, [found.record_id])
+                citation = checked_record(snapshot, found.record_id).get("citation")
+                if citation is not None:
+                    row["citation"] = citation
             rows.append(row)
         return rows
 

@@ -295,7 +295,7 @@ def main() -> None:
         ))))
         source = registered[source_id(mid)]
         document = normalise_document(
-            store.get(snapshot.copy_ref), NORMALISERS[source.normaliser]
+            store.get(snapshot.copy_ref, source_url=str(source.url)), NORMALISERS[source.normaliser]
         )
         facts = make_facts(data, ref, document.text, names)
         insert_facts(path, card_text, facts)

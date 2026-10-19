@@ -419,14 +419,18 @@ class Registry:
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
                 body = response.read()
-            self.fetched[url] = (body, self.store.put(body))
+                resolved = response.geturl()
+            self.fetched[url] = (body, self.store.put(body, source_url=url, resolved_urls=(resolved,)))
         return self.fetched[url]
 
     def fetch_rendered(self, url: str) -> tuple[str, str]:
         """The page as Firecrawl renders it to markdown (``FIRECRAWL_API_KEY``), retained."""
+        from decision.retention import cite_only_origin, is_cite_only, metadata_origins
+
         cache = self.rendered_cache and self.rendered_cache / (
             hashlib.sha256(url.encode()).hexdigest() + ".md")
-        if cache and cache.is_file():
+        origins = ()
+        if cache and cache.is_file() and not is_cite_only(url):
             markdown = cache.read_text(encoding="utf-8")
         else:
             request = urllib.request.Request(
@@ -437,11 +441,13 @@ class Registry:
                          "Content-Type": "application/json"},
             )
             with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
-                markdown = json.load(response)["data"]["markdown"]
-            if cache:
+                data = json.load(response)["data"]
+                markdown = data["markdown"]
+                origins = metadata_origins(data.get("metadata") or {})
+            if cache and not cite_only_origin(url, origins):
                 cache.parent.mkdir(parents=True, exist_ok=True)
                 cache.write_text(markdown, encoding="utf-8")
-        return markdown, self.store.put(markdown.encode())
+        return markdown, self.store.put(markdown.encode(), source_url=url, resolved_urls=origins)
 
     def add(self, key: str, source_id: str, url: str, body: bytes, label: str,
             *, fraction: bool = False, fetch: str = "http") -> None:
@@ -450,7 +456,7 @@ class Registry:
             "cited_regions": [{"id": "rows", "locator": {"kind": "page", "value": ""}}],
         })
         rows = json.loads(body)["rows"]
-        self.copies[key] = Copy(source_id, url, self.store.put(body), label, rows, fraction)
+        self.copies[key] = Copy(source_id, url, self.store.put(body, source_url=url), label, rows, fraction)
 
 
 SCALE_URL = "https://labs.scale.com/leaderboard/swe_bench_pro_public"

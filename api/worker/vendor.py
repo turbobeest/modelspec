@@ -66,6 +66,7 @@ SOURCES = {
     Path("decision/computed.py"): Path("decision/computed.py"),
     Path("decision/compare.py"): Path("decision/compare.py"),
     Path("decision/contract.py"): Path("decision/contract.py"),
+    Path("decision/citation.py"): Path("decision/citation.py"),
     Path("decision/coverage.py"): Path("decision/coverage.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
     Path("decision/estate.py"): Path("decision/estate.py"),
@@ -83,6 +84,7 @@ SOURCES = {
     Path("decision/plans.py"): Path("decision/plans.py"),
     Path("decision/relax.py"): Path("decision/relax.py"),
     Path("decision/reading.py"): Path("decision/reading.py"),
+    Path("decision/retention.py"): Path("decision/retention.py"),
     Path("decision/bounded.py"): Path("decision/bounded.py"),
     Path("decision/summary.py"): Path("decision/summary.py"),
     Path("decision/refinements.py"): Path("decision/refinements.py"),
@@ -113,6 +115,7 @@ SOURCES = {
     Path("registry/providers.yaml"): Path("registry/providers.yaml"),
     Path("registry/refinements.yaml"): Path("registry/refinements.yaml"),
     Path("registry/sources.yaml"): Path("registry/sources.yaml"),
+    Path("registry/source-retention.json"): Path("registry/source-retention.json"),
     Path("registry/templates.yaml"): Path("registry/templates.yaml"),
     # The device IDs `estate.devices` is checked against are these files' stems
     # (registry `values_from: hardware`). Without them the isolate knew no device
@@ -291,7 +294,10 @@ def export_data(out: Path, data_dir: Path) -> None:
         devices = hardware.load_devices(root)
         graph = derive_graph(cards, hardware.device_classes(devices))
         hardware.compute(graph, cards, devices)
-        ranking.write_export(out / "rank", cards, graph, build)
+        ranking.write_export(
+            out / "rank", cards, graph, build,
+            cited_facts={model.model_id: model.cited_facts for model in models if model.cited_facts},
+        )
         policy_export.write_export(out, cards, build)
         require_cited_policy(out / "policy/catalogue.json")
         successor = out / "decision/snapshot-successor.json.gz"

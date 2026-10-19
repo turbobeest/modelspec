@@ -723,9 +723,9 @@ def test_first_check_has_no_baseline_so_everything_is_changed(store: CopyStore) 
 
 def test_copy_store_is_content_addressed(tmp_path: Path) -> None:
     store = CopyStore(tmp_path)
-    ref = store.put(b"hello")
+    ref = store.put(b"hello", source_url="https://fixture.example/")
     assert ref == "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-    assert store.put(b"hello") == ref
+    assert store.put(b"hello", source_url="https://fixture.example/") == ref
     assert store.get(ref) == b"hello"
     assert store.path(ref).is_relative_to(tmp_path)
     assert store.has(ref) and not store.has("sha256:" + "0" * 64)
@@ -889,12 +889,12 @@ def test_hidden_data_cell_buttons_are_dropped(attributes: str) -> None:
 
 def test_a_retained_copy_whose_bytes_do_not_match_its_name_is_not_trusted(tmp_path) -> None:
     store = CopyStore(tmp_path)
-    ref = store.put(b"the real page")
+    ref = store.put(b"the real page", source_url="https://fixture.example/")
     store.path(ref).write_bytes(b"a planted page")
     assert store.has(ref) is False
     with pytest.raises(ValueError, match="does not match its hash"):
         store.get(ref)
-    assert store.put(b"the real page") == ref
+    assert store.put(b"the real page", source_url="https://fixture.example/") == ref
     assert store.get(ref) == b"the real page"
 
 

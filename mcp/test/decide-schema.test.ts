@@ -58,7 +58,7 @@ it("decodes hardware estimates separately from facts using the published contrac
     unknown_reason: "verified positive parameters_active is missing; no fallback to parameters_total",
   });
   expect(estimate.safeParse({ ...known, interval: { low: -1, high: 30.5 } }).success).toBe(false);
-  const fact = z.fromJSONSchema(decisionContract.$defs.ShownFact);
+  const fact = z.fromJSONSchema({ ...decisionContract.$defs.ShownFact, $defs: decisionContract.$defs });
   expect(fact.safeParse({ facet: "model.parameters_total", value: 25_800_000_000,
                          record_id: "lab/gemma#model.parameters_total", device: "nvidia_dgx_spark" }).success).toBe(false);
 });

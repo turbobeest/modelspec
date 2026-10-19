@@ -160,6 +160,8 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
             fits=c.get("fits") or {},
             verified_benchmarks=set(c.get("verified_benchmarks") or []),
             rehost_of=c.get("rehost_of"), release_date=c.get("release_date"),
+            cited_facts=c.get("cited_facts") or [],
+            cited_benchmarks=c.get("cited_benchmarks") or {},
         )
         for c in snapshot.data["candidates"]["candidates"]
     ]

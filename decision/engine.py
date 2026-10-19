@@ -15,6 +15,8 @@ from decision.coverage import for_spec as coverage_for_spec
 from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
+    CITE_ONLY_NOTICE,
+    CITE_ONLY_WARNING,
     DEFAULT_TASK_TOKENS,
     Decision,
     Estimate,
@@ -458,8 +460,27 @@ def _plan_routes(cid: str, snapshot, access, reach) -> list:
                            bare=ref.provider is None)
         for plan_id, surface, coverage in reach.routes.get(cid, ())
     ]
+    cited = getattr(snapshot, "cited_facts", None)
+    if cited is not None:
+        for route in routes:
+            if cited(route.plan):
+                route.basis += " " + CITE_ONLY_NOTICE
     return sorted(routes, key=lambda r: (r.price_monthly_usd is None,
                                          r.price_monthly_usd or 0, r.plan))
+
+
+def _has_cited_facts(snapshot, cid: str, reach=None) -> bool:
+    cited = getattr(snapshot, "cited_facts", None)
+    if cited is None:
+        return False
+    if cited(cid):
+        return True
+    if reach is None:
+        return False
+    if any(cited(plan_id) for plan_id, _surface, _coverage in reach.routes.get(cid, ())):
+        return True
+    kind, hold_id = reach.via.get(cid, (None, None))
+    return kind == "plan" and bool(cited(hold_id))
 
 
 def decide(
@@ -539,6 +560,9 @@ def decide(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
         spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
+    if (CITE_ONLY_WARNING in decision.with_estate.warnings
+            and CITE_ONLY_WARNING not in decision.warnings):
+        decision.warnings.append(CITE_ONLY_WARNING)
     reading_inputs = capture["reading_inputs"]
     if spec.estate.devices and (spec.access is None or spec.access.kind == "own_hardware"):
         reading_inputs["hardware_fit"] = True
@@ -696,6 +720,8 @@ def _decide(
 
     def row_warnings(row, model_id):
         warnings = list(row.warnings)
+        if _has_cited_facts(snapshot, row.candidate_id, _reach):
+            warnings.append(CITE_ONLY_WARNING)
         if row.candidate_id in filtered.deprecated:
             warnings.append("deprecated")
         if any(domain in proxy_only_domains and snapshot.capability_estimate(row.candidate_id, domain)
@@ -829,6 +855,8 @@ def _decide(
     decision._feasible_models = tuple(sorted({
         snapshot.model_of(cid) for cid in filtered.feasible
     }))
+    if any(_has_cited_facts(snapshot, cid, _reach) for cid in snapshot.candidates()):
+        decision.warnings.append(CITE_ONLY_WARNING)
     from decision.explain import named_facets
 
     quality_dimensions = domains | set(snapshot.benchmark_ids()) | {"any"}
