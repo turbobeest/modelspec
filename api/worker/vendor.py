@@ -94,6 +94,7 @@ SOURCES = {
     Path("decision/router_config.py"): Path("decision/router_config.py"),
     Path("decision/resolve.py"): Path("decision/resolve.py"),
     Path("decision/snapshot.py"): Path("decision/snapshot.py"),
+    Path("decision/supersession.py"): Path("decision/supersession.py"),
     Path("decision/templates.py"): Path("decision/templates.py"),
     Path("decision/units.py"): Path("decision/units.py"),
     Path("decision/vocabulary.py"): Path("decision/vocabulary.py"),

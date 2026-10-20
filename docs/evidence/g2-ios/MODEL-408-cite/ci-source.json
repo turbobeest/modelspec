@@ -1,0 +1,131 @@
+{
+  "observed_utc": "2026-10-19T18:17:08.075861+00:00",
+  "source_head": "a0a13e70eb1193e8a42365762baba364b6e0b4f2",
+  "checks": [
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118225723759",
+      "name": "Run pytest",
+      "state": "IN_PROGRESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118216413570",
+      "name": "Smoke-test the deployed decide surfaces",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118216412613",
+      "name": "Deploy to Cloudflare Pages",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158011/job/118207137174",
+      "name": "Deploy the rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158011/job/118207136967",
+      "name": "Deploy the staging rank Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118205516532",
+      "name": "Build both sites",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202446027",
+      "name": "pytest perf and collection",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202445615",
+      "name": "Package smoke test",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202446032",
+      "name": "pytest shard 1/4",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202445787",
+      "name": "pytest shard 3/4",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202446056",
+      "name": "pytest shard 4/4",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157896/job/118202445820",
+      "name": "pytest shard 2/4",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118202432390",
+      "name": "Test decide page (human gate false, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118202432162",
+      "name": "Test decide page (human gate true, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118202432739",
+      "name": "Test decide page (human gate true, visit gate true)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158064/job/118202431955",
+      "name": "Test decide page (human gate false, visit gate false)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158140/job/118202432866",
+      "name": "Deploy the MCP Worker",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158011/job/118202210922",
+      "name": "Rank Worker bundle",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157882/job/118202208186",
+      "name": "Decision accuracy",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157948/job/118202209313",
+      "name": "Data freeze",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158140/job/118202210692",
+      "name": "MCP Worker tests",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157898/job/118202209613",
+      "name": "Check sign-off",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157902/job/118202209123",
+      "name": "Check evidence against release charts",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294158011/job/118202211284",
+      "name": "Worker memory headroom",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/turbobeest/modelspec/actions/runs/39294157961/job/118202210380",
+      "name": "Queue squash auto-merge",
+      "state": "SKIPPED"
+    }
+  ]
+}

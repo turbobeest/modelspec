@@ -211,7 +211,8 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subsc
     from tests.subscription_sources import admitted_subscription_facts, source_subscriptions
 
     source = source_subscriptions(subscription_repository, REGISTRY)
-    expected = admitted_subscription_facts(subscription_repository, source, date(2026, 9, 28))
+    expected = admitted_subscription_facts(
+        subscription_repository, source, date(2026, 9, 28), registry=REGISTRY)
     collected = snap.collect_repo(subscription_repository)
     path = tmp_path / "production.json.gz"
     build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
