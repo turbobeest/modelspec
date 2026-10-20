@@ -75,7 +75,10 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
         for fact in subscription["facts"]:
             if fact["state"] == "unknown":
                 continue
-            fid = fact.get("id", f"{sid}#{fact['facet']}")
+            # collect_repo adds the subject and id before the snapshot validates a fact.
+            fact = {"subject": {"kind": "offering", "id": sid},
+                    "id": f"{sid}#{fact.get('facet')}", **fact}
+            fid = fact["id"]
             candidates = [
                 (str(record["date"]), order, record)
                 for order, record in enumerate([fact.get("verification"), *log])

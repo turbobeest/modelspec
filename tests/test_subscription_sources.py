@@ -7,7 +7,13 @@ import pytest
 import yaml
 
 from decision.registry import default as default_registry
-from decision.snapshot import FactValue, SnapshotInputs, build_snapshot, load_built_snapshot
+from decision.snapshot import (
+    FactValue,
+    SnapshotInputs,
+    build_snapshot,
+    collect_repo,
+    load_built_snapshot,
+)
 from tests.snapshot_records import fact, subscription, verification
 from tests.subscription_sources import admitted_subscription_facts
 
@@ -169,3 +175,21 @@ def test_parity_cases_cover_admission_and_exclusion(tmp_path):
                         _case(name)[1])[0]["sambanova/subscription/plus"]}
     assert admitted == {"cited", "verified", "open_verified", "redirected", "mixed_sources",
                         "latest_verified"}
+
+
+def test_a_raw_cited_fact_without_id_or_subject_is_admitted_as_the_snapshot_admits_it(tmp_path):
+    """Raw YAML rows may omit id and subject; collect_repo adds them before validating."""
+    price = plan_fact("plus", PRICE, 8)
+    del price["id"], price["subject"]
+    row = subscription("sambanova", "plus", facts=[price])
+    root = repository(tmp_path)
+    (root / "offerings/subscriptions").mkdir(parents=True)
+    (root / "offerings/subscriptions/sambanova.yaml").write_text(yaml.safe_dump([row]))
+
+    helper = admitted_subscription_facts(root, {"sambanova/subscription/plus": row}, DAY,
+                                         registry=REGISTRY)
+    index = load_built_snapshot(build_snapshot(collect_repo(root), registry=REGISTRY, as_of=DAY))
+    snapshot = {sub["id"]: sub["facts"] for sub in index.subscription_offerings()}
+
+    assert helper == {"sambanova/subscription/plus": {PRICE: FactValue("known", 8, ("cited",))}}
+    assert snapshot == helper
