@@ -66,7 +66,10 @@ from decision.model import (
     Fact,
     Measurement,
     evidence_verification_value,
+    exceeds_legacy_orderings,
     fact_verification_value,
+    matching_value_hashes,
+    unordered_facet,
     validate_price_schedules,
     value_hash,
     verification_counts,
@@ -767,6 +770,10 @@ class _Compiler:
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
         self.log = self._verification_log(inputs.verifications)
+        #: (kind, id) -> the value hashes the log holds a counting row for.
+        self.logged_hashes: dict[tuple[str, str], list[str]] = {}
+        for log_kind, log_id, log_hash in self.log:
+            self.logged_hashes.setdefault((log_kind, log_id), []).append(log_hash)
         #: Supersession records by (fact id, value hash). Every row is validated
         #: here, so a malformed store fails the build even when no fact needs it.
         #: Only a compile with records imports ``decision.supersession``; the
@@ -809,24 +816,75 @@ class _Compiler:
                 latest[key] = entry
         return latest
 
-    def _verification(self, kind: str, rid: Any, inline: Any, value: Any) -> dict | None:
-        """The winning verification record, or ``None``."""
-        expected = value_hash(value)
-        inline_record = None if inline is None else _as_dict(inline)
-        best = (
-            None
-            if inline_record is None
-            or not _counts(inline_record)
-            or inline_record.get("target", {}).get("value_hash") != expected
-            else (str(inline_record["date"]), 0, inline_record)
-        )
-        logged = self.log.get((kind, str(rid), expected)) if rid is not None else None
-        if logged is not None and (best is None or logged[:2] >= best[:2]):
-            best = logged
-        return None if best is None else best[2]
+    def _unordered(self, kind: str, facet_id: Any) -> bool:
+        """An unordered set facet's verifications bind its members, not their order.
 
-    def _outcome(self, kind: str, rid: Any, inline: Any, value: Any) -> str:
-        record = self._verification(kind, rid, inline, value)
+        Without a registry, the repository's own decides, as ``Fact`` validation does.
+        """
+        if kind != "fact" or facet_id is None:
+            return False
+        registry = self.registry if self.registry is not None else default_registry()
+        try:
+            return unordered_facet(registry.facet(str(facet_id)))
+        except KeyError:
+            return False
+
+    def _repeats_a_member(self, facet_id: str, value: Any) -> bool:
+        """A set value names each member once, on every path, cited or not (MODEL-416)."""
+        if not isinstance(value, list):
+            return False
+        registry = self.registry if self.registry is not None else default_registry()
+        try:
+            value_type = registry.facet(facet_id).value_type
+        except KeyError:
+            return False
+        if getattr(value_type, "kind", value_type) != "set":
+            return False
+        members = [json.dumps(member, sort_keys=True) for member in value]
+        return len(set(members)) != len(members)
+
+    def _verdicts(self, kind: str, rid: Any, inline: Any, value: Any,
+                  facet: Any = None) -> tuple[dict | None, bool]:
+        """The winning verification record (or ``None``), and whether it is unsure.
+
+        A record counts when its ``value_hash`` binds ``value``; for an
+        unordered facet, any order of the same members (MODEL-416). Past
+        ``LEGACY_ORDERINGS_MAX_MEMBERS`` a legacy hash of another order cannot
+        be found, so a newer failed outcome on a hash that does not bind might
+        still be this set's: the verdict is then unsure, and the value is held.
+        """
+        inline_record = None if inline is None else _as_dict(inline)
+        if inline_record is not None and not _counts(inline_record):
+            inline_record = None
+        inline_hash = (None if inline_record is None
+                       else inline_record.get("target", {}).get("value_hash"))
+        logged = (self.logged_hashes.get((kind, str(rid)), [])
+                  if rid is not None else [])
+        unordered = self._unordered(kind, facet)
+        bound = matching_value_hashes(
+            value, [*logged, *([inline_hash] if inline_hash else [])], unordered=unordered)
+        entries = [] if inline_record is None else [
+            (str(inline_record["date"]), 0, inline_record, inline_hash in bound)]
+        entries += [(*self.log[(kind, str(rid), h)], h in bound) for h in logged]
+        best = None
+        for entry in entries:
+            if entry[3] and (best is None or entry[:2] >= best[:2]):
+                best = entry
+        unsure = exceeds_legacy_orderings(value, unordered=unordered) and any(
+            not entry[3] and entry[2]["outcome"] != "verified"
+            and (best is None or entry[:2] > best[:2])
+            for entry in entries)
+        return (None if best is None else best[2]), unsure
+
+    def _verification(self, kind: str, rid: Any, inline: Any, value: Any,
+                      facet: Any = None) -> dict | None:
+        """The winning verification record, or ``None``. See ``_verdicts``."""
+        return self._verdicts(kind, rid, inline, value, facet)[0]
+
+    def _outcome(self, kind: str, rid: Any, inline: Any, value: Any, facet: Any = None) -> str:
+        record, unsure = self._verdicts(kind, rid, inline, value, facet)
+        if unsure:
+            return "unbound"
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
@@ -839,7 +897,7 @@ class _Compiler:
         retained = dict(record)
         retained.pop("citation", None)
         retained["verification"] = self._verification(
-            kind, record.get("id"), record.get("verification"), value)
+            kind, record.get("id"), record.get("verification"), value, record.get("facet"))
         if citation is not None:
             retained.update(verification=None, citation=citation)
             if rid in self.superseded:
@@ -856,7 +914,8 @@ class _Compiler:
 
     def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
                extra_urls: Iterable[Any] = (), benchmark: Any = None,
-               citation: dict | None = None, refs: Sequence[Any] = ()) -> str | None:
+               citation: dict | None = None, facet: Any = None,
+               refs: Sequence[Any] = ()) -> str | None:
         """Why a record stays out, or ``None`` when it enters.
 
         A cited fact's mismatch can be superseded (MODEL-415): see
@@ -867,9 +926,11 @@ class _Compiler:
                                        or (benchmark is not None
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
-        outcome = self._outcome(kind, rid, inline, value)
+        outcome = self._outcome(kind, rid, inline, value, facet)
+        if outcome == "unbound":
+            return "quarantined (unbound set verification)"
         if kind == "fact" and citation is not None and outcome == "mismatch":
-            refused = self._supersede(rid, inline, value, refs)
+            refused = self._supersede(rid, inline, value, refs, facet)
             if refused is not None:
                 return refused
         elif citation is not None and outcome in {"mismatch", "unreachable"}:
@@ -898,7 +959,8 @@ class _Compiler:
         except supersession.StoreError as exc:
             raise SnapshotBuildError(str(exc)) from None
 
-    def _supersede(self, rid: Any, inline: Any, value: Any, refs: Sequence[Any]) -> str | None:
+    def _supersede(self, rid: Any, inline: Any, value: Any, refs: Sequence[Any],
+                   facet: Any = None) -> str | None:
         """Why a cited fact's winning mismatch still holds, or ``None`` once superseded.
 
         Only an append-only record naming this mismatch, a different region the
@@ -909,10 +971,15 @@ class _Compiler:
             return "quarantined (mismatch)"
         from decision import supersession
 
-        expected = value_hash(value)
+        # A record names the winning mismatch row by that row's own value hash.
+        # For an unordered facet the row may bind another order of the same
+        # members (MODEL-416); _verification has already matched it to value.
+        winner = self._verification("fact", rid, inline, value, facet)
+        expected = str(((winner or {}).get("target") or {}).get("value_hash")
+                       or value_hash(value))
         candidates = self._supersessions.get((str(rid), expected), ())
         entry, refused = supersession.supersede(
-            candidates, self._verification("fact", rid, inline, value), expected,
+            candidates, winner, expected,
             [_as_dict(ref) for ref in refs], self.sources)
         if entry is None:
             if refused:
@@ -966,6 +1033,9 @@ class _Compiler:
                 self.rejected[(sid, facet_id)] = ("unknown", tuple(
                     self.sources.get(s, s) for s in source_ids))
                 continue
+            if state == "known" and self._repeats_a_member(facet_id, f.get("value")):
+                self._reject((sid, facet_id), "quarantined (repeated member)", source_ids)
+                continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
                 citation = fact_citation(f, self.sources)
@@ -984,7 +1054,7 @@ class _Compiler:
                 and measurement.stale(self.as_of)
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
-                    fact_verification_value(f), source_ids, citation=citation,
+                    fact_verification_value(f), source_ids, citation=citation, facet=facet_id,
                     refs=f.get("sources") or (),
                     extra_urls=[url for ref in f.get("sources") or ()
                                 for url in ref.get("resolved_urls") or ()])
@@ -1086,6 +1156,7 @@ class _Compiler:
         source_ids = self._source_ids(shared.get("sources"))
         reason = self._admit(
             "fact", shared.get("id"), shared.get("verification"), shared.get("value"), source_ids,
+            facet=shared.get("facet", FACET),
         )
         if reason is not None:
             return facts

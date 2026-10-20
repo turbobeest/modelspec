@@ -97,7 +97,8 @@ from decision.model import (
     VerificationTarget,
     evidence_verification_value,
     fact_verification_value,
-    value_hash,
+    unordered_facet,
+    verification_value_hash,
 )
 from decision.normalise import (
     NORMALISERS,
@@ -5889,7 +5890,11 @@ def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: d
         target=VerificationTarget(
             kind=claim.target.kind,
             id=claim.target.id,
-            value_hash=value_hash(claim_verification_value(claim)),
+            value_hash=verification_value_hash(
+                claim_verification_value(claim),
+                unordered=claim.target.kind == "fact"
+                and unordered_facet(_facet_or_none(claim.field)),
+            ),
         ),
         collector=claim.collector,
         verifier=actor,

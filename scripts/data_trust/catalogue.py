@@ -14,7 +14,8 @@ from decision.labs import Lab
 from decision.model import (
     evidence_verification_value,
     fact_verification_value,
-    value_hash,
+    matching_value_hashes,
+    unordered_facet,
     verification_counts,
 )
 
@@ -145,6 +146,16 @@ def load(root: Path) -> Catalogue:
     return c
 
 
+def _unordered(facet: Any) -> bool:
+    """MODEL-416: an unordered set facet's verification binds its members, not their order."""
+    from decision import registry
+
+    try:
+        return unordered_facet(registry.facet(str(facet)))
+    except KeyError:
+        return False
+
+
 def cited(f: dict) -> bool:
     """A cite-only record (MODEL-411): provenance without machine verification."""
     return isinstance(f.get("citation"), dict) and f["citation"].get("status") == "cited"
@@ -220,7 +231,10 @@ def _records(c, rows, subject, kind, parent):
             checked_value = (
                 fact_verification_value(raw) if kind == "fact" else evidence_verification_value(raw)
             )
-            if v and (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
+            recorded = (v.get("target") or {}).get("value_hash") if v else None
+            if recorded and matching_value_hashes(
+                    checked_value, [recorded],
+                    unordered=kind == "fact" and _unordered(facet)):
                 read_date = v.get("date") or read_date
             else:
                 v = {}
