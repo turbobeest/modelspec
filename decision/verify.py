@@ -2170,8 +2170,16 @@ class ModelPageExtractor:
                         subject=row_name, value=row[value_col], unit=claim.unit
                     ))
 
+        metric_rows = _metric_price_rows(lines)
         for i, line in enumerate(lines):
             normal = normalise_name(line)
+            if i in metric_rows and claim.field.startswith("offering.price."):
+                metric, price = metric_rows[i]
+                kind = normalise_name(claim.field.removeprefix("offering.price.").replace("_", " "))
+                if (metric in aliases or metric == kind) \
+                        and parse_quantity(price, claim.unit) is not None:
+                    readings.append(Reading(subject=subject, value=price, unit=claim.unit))
+                continue
             if normal in aliases:
                 value = lines[i + 1] if i + 1 < len(lines) else None
                 unit = claim.unit if claim.field.startswith("offering.price.") else None
@@ -2195,9 +2203,13 @@ class ModelPageExtractor:
                 and re.search(r"(?i)batch(?: and flex)? (?:are )?priced at 50%", text):
             base_label = "input" if claim.field.endswith("batch_input") else "output"
             for i, line in enumerate(lines[:-1]):
-                if normalise_name(line) != base_label:
+                if i in metric_rows:
+                    metric, price = metric_rows[i]
+                elif normalise_name(line) == base_label:
+                    metric, price = base_label, lines[i + 1]
+                else:
                     continue
-                quantity = parse_quantity(lines[i + 1], claim.unit)
+                quantity = parse_quantity(price, claim.unit) if metric == base_label else None
                 if quantity is not None:
                     readings.append(Reading(subject, str(quantity.number / 2), claim.unit))
         if claim.field in {"offering.price.batch_input", "offering.price.batch_output"} \
@@ -2250,6 +2262,28 @@ class ModelPageExtractor:
             if any(phrase in corpus for phrase in phrases):
                 readings.append(Reading(subject=subject, value="supported"))
         return readings or [Reading(subject=subject, value=None)]
+
+
+def _metric_price_rows(lines: list[str]) -> dict[int, tuple[str, str]]:
+    """Line index -> (normalised metric, price cell) for a ``Metric | Price`` table.
+
+    A model page's Markdown copy writes its token prices as one table per page,
+    headed ``| Metric | Price | Unit |`` (MODEL-423: OpenAI's ``.md`` model pages),
+    where the HTML page puts each label and amount on lines of their own. The rows
+    belong to the page's one model, as the label-and-value lines do.
+    """
+    rows: dict[int, tuple[str, str]] = {}
+    metric_table: bool | None = None  # None outside a table; else whether it is one
+    for i, line in enumerate(lines):
+        if "|" not in line:
+            metric_table = None
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if metric_table is None:
+            metric_table = [normalise_name(cell) for cell in cells[:2]] == ["metric", "price"]
+        elif metric_table and len(cells) >= 2:
+            rows[i] = (normalise_name(cells[0]), cells[1])
+    return rows
 
 
 def _model_spec_subject(claim: Claim, text: str) -> str | None:

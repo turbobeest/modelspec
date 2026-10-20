@@ -358,6 +358,63 @@ RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {
     "model-368-perplexity-pro-faq": prepare_pro_faq,
 }
 
+_REGION_HAS_TEXT = """selector => {
+    const node = document.querySelector(selector);
+    return node !== null && node.textContent.trim().length > 0;
+}"""
+
+
+@dataclass(frozen=True)
+class CitedRegionWait:
+    """Wait, best effort, until each cited CSS region holds text (MODEL-423).
+
+    A client-side app can mount its content after the load event and after the
+    network goes idle. z.ai's subscribe page was captured as an empty shell, so
+    every plan fact citing its plan cards read "cited region not found". A region
+    still empty at the deadline is left to the readers, which report it as not
+    found. The selectors come from the registry, but only as data: the page runs
+    one fixed query function with the selector as its argument.
+    """
+
+    selectors: tuple[str, ...]
+
+    def __call__(self, page: Any, timeout: float) -> None:
+        try:
+            from playwright.sync_api import TimeoutError as WaitTimeout
+        except ImportError:  # a fake page in tests raises the builtin
+            WaitTimeout = TimeoutError  # noqa: N806
+        deadline = time.monotonic() + timeout
+        for selector in self.selectors:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            try:
+                page.wait_for_function(_REGION_HAS_TEXT, arg=selector,
+                                       timeout=remaining * 1000)
+            except WaitTimeout:
+                return
+
+
+def rendered_preparation(source_ids: Iterable[str],
+                         sources: Mapping[str, Source]) -> RenderedPreparation | None:
+    """The preparation a live render of these sources' shared URL runs before capture.
+
+    A source's own preparation wins: it already waits for what it opens. Otherwise
+    the render waits for every cited CSS region of every source at the URL.
+    """
+    ids = sorted(set(source_ids))
+    named = next((RENDERED_PREPARATIONS[sid] for sid in ids if sid in RENDERED_PREPARATIONS),
+                 None)
+    if named is not None:
+        return named
+    from decision.normalise import _split_citation
+
+    selectors = tuple(dict.fromkeys(
+        _split_citation(region.locator.value)[0]
+        for sid in ids if sid in sources
+        for region in sources[sid].cited_regions if region.locator.kind == "css"))
+    return CitedRegionWait(selectors) if selectors else None
+
 
 class RenderedFetcher:
     """Opt-in local Chromium fetches, sharing one browser for a context-managed run.

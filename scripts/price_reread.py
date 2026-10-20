@@ -87,6 +87,7 @@ from decision.sources import (
     RenderedFetcher,
     fingerprint_bytes,
     load_sources,
+    rendered_preparation,
 )
 from decision.verify import (
     Claim,
@@ -124,6 +125,8 @@ REREAD = VerificationActor(
 DIFF_LINES = 80
 MAX_RENDERED_BODY_BYTES = 20 * 1024 * 1024
 MAX_RENDERED_MANIFEST_BYTES = 1024 * 1024
+#: Candidate replacement values checked per fact; see ``_propose``.
+MAX_PROPOSAL_CHECKS = 32
 
 
 class Status(StrEnum):
@@ -304,7 +307,7 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {}
     for url, ids in sorted(urls.items()):
-        result = _fetch_rendered(rendered, url, ids)
+        result = _fetch_rendered(rendered, url, ids, sources)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
         restricted = cite_only_origin(url, result.resolved_urls)
         if restricted:
@@ -414,13 +417,18 @@ class RenderedReplayFetcher:
 
 
 def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
-                    source_ids: Iterable[str]) -> FetchResult:
+                    source_ids: Iterable[str], sources: Mapping[str, Any] | None = None
+                    ) -> FetchResult:
     # A replay, or a fallback wrapped around one, serves captured bytes: only a live
     # browser takes a preparation.
     if isinstance(getattr(rendered, "primary", rendered), RenderedReplayFetcher):
         return rendered.fetch(url)
-    preparation = next((RENDERED_PREPARATIONS[sid] for sid in sorted(source_ids)
+    source_ids = sorted(set(source_ids))
+    preparation = next((RENDERED_PREPARATIONS[sid] for sid in source_ids
                         if sid in RENDERED_PREPARATIONS), None)
+    if preparation is None and sources is not None:
+        # Wait for the cited CSS regions a client-side app mounts late (MODEL-423).
+        preparation = rendered_preparation(source_ids, sources)
     return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
 
 
@@ -445,7 +453,7 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             if NORMALISERS[source.normaliser].content != "html":
                 fetched[sid] = SourceFetch(sid, url, "text_projection")
                 continue
-            result = _fetch_rendered(rendered, url, (sid,))
+            result = _fetch_rendered(rendered, url, (sid,), sources)
         else:
             result = fetcher.fetch(url)
         if result.outcome == "ok":
@@ -525,24 +533,52 @@ def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False
     return found
 
 
+@dataclass(frozen=True)
+class Proposal:
+    """What the readers propose in place of a value that no longer verifies."""
+
+    #: Values that verify for the claim's subject: none, one, or the first two found.
+    values: list[Any]
+    #: Whether the readers found any value at all for that subject.
+    read_any: bool
+    #: How many distinct candidate values the readers offered.
+    candidates: int
+
+    @property
+    def unique(self) -> bool:
+        """One verified value, and every other candidate was checked and failed."""
+        return len(self.values) == 1 and self.candidates <= MAX_PROPOSAL_CHECKS
+
+
 def _propose(claim: Claim, regions: StoredRegions, today: date, *,
-             narrow_only: bool = False) -> tuple[list[Any], bool]:
-    """New values that verify for the claim's subject, and whether the readers found
-    any value at all for that subject."""
+             narrow_only: bool = False) -> Proposal:
+    """New values that verify for the claim's subject.
+
+    Each check is a full verification that reads the cited regions again. A coverage
+    quote offers every line, sentence and run of lines of its region as a candidate,
+    so checking all of them was quadratic in the page: on a long page one fact ran
+    past the job's 15-minute cap (MODEL-423). The callers only tell none, one and
+    several apart, so the search stops at the second value that verifies, and it
+    checks at most ``MAX_PROPOSAL_CHECKS`` candidates.
+    """
     own = _own_names(claim)
     readings = [r for r in _readings(claim, regions, narrow_only=narrow_only)
                 if r.subject and split_model_cell(r.subject)[0] in own and r.value is not None]
     candidates: list[Any] = []
+    seen: set[str] = set()
     for reading in readings:
         value = _candidate(claim.value, reading.value, reading.unit)
-        if value is not None and value_hash(value) not in {value_hash(c) for c in candidates}:
+        if value is not None and (digest := value_hash(value)) not in seen:
+            seen.add(digest)
             candidates.append(value)
-    confirmed = [
-        value for value in candidates
+    confirmed: list[Any] = []
+    for value in candidates[:MAX_PROPOSAL_CHECKS]:
         if verify(replace(claim, value=value, collector=REREAD), regions,
-                  deterministic_extractors(), today=today).outcome == "verified"
-    ]
-    return confirmed, bool(readings)
+                  deterministic_extractors(), today=today).outcome == "verified":
+            confirmed.append(value)
+            if len(confirmed) == 2:
+                break
+    return Proposal(confirmed, bool(readings), len(candidates))
 
 
 def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetch],
@@ -608,7 +644,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # a reader that cannot parse the page says nothing about it.
         # A verbatim string "verifies" as whatever a reader returns, so only a number
         # counts here.
-        confirmed = [v for v in (_propose(claim, regions, today)[0]
+        confirmed = [v for v in (_propose(claim, regions, today).values
                                  if result.outcome == "mismatch" else [])
                      if isinstance(v, (int, float)) and not isinstance(v, bool)]
         if confirmed:
@@ -626,14 +662,14 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
 
-    confirmed, read_any = _propose(claim, regions, today)
+    proposal = _propose(claim, regions, today)
+    confirmed = proposal.values
     diff = _diff_text(result)
-    if not read_any:
+    if not proposal.read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
     if any(isinstance(value, str) for value in confirmed):
-        narrow, _ = _propose(claim, regions, today, narrow_only=True)
-        if not narrow:
+        if not _propose(claim, regions, today, narrow_only=True).values:
             page_regions = [
                 f"{source.source_id}#{region.id}"
                 for source in claim.sources
@@ -644,16 +680,21 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                            reason="a free-text value read from a whole-page region "
                            f"({', '.join(page_regions)}) is not proposed as a change; "
                            "cite a narrower region")
-    if len(confirmed) == 1 and fact["state"] == "known":
+    if proposal.unique and fact["state"] == "known":
         return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
-    if len(confirmed) == 1:
+    if proposal.unique:
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
         return replace(base, status=Status.NEEDS_REVIEW,
                        reason=f"was {fact['state']}; a reader now reads "
                        f"{json.dumps(confirmed[0])}: {diff}")
-    why = ("several new values verify: " + ", ".join(map(json.dumps, confirmed))
-           if confirmed else "no single new value verifies")
+    if len(confirmed) > 1:
+        why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
+    elif proposal.candidates > MAX_PROPOSAL_CHECKS:
+        why = (f"the readers offer {proposal.candidates} candidate values and the first "
+               f"{MAX_PROPOSAL_CHECKS} name no single replacement")
+    else:
+        why = "no single new value verifies"
     return replace(base, status=Status.NEEDS_REVIEW, reason=f"{why}; {diff}")
 
 

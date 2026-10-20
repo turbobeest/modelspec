@@ -25,7 +25,7 @@ from decision.model import (
     VerificationTarget,
     value_hash,
 )
-from decision.sources import RENDERED_PREPARATIONS, CopyStore, FetchResult
+from decision.sources import RENDERED_PREPARATIONS, CitedRegionWait, CopyStore, FetchResult
 from decision.verify import (
     Claim,
     Queue,
@@ -383,7 +383,9 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
         "a free-text value read from a whole-page region (example-plans#page) "
         "is not proposed as a change; cite a narrower region"
     )
-    assert before_calls > 200
+    # MODEL-423 stops checking candidates at the second verified value, so the
+    # unmemoised path no longer parses once per reading, but still more than once.
+    assert before_calls > 1
     calls.clear()
 
     start = perf_counter()
@@ -399,6 +401,79 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
     again = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
     assert json.dumps(again.to_dict()) == json.dumps(after.to_dict())
     assert len(calls) == 1
+
+
+def test_a_coverage_quote_on_a_long_page_checks_a_bounded_number_of_candidates(
+    tmp_path, monkeypatch,
+) -> None:
+    """MODEL-423: run 38365879430 hit the 15-minute cap re-reading coverage quotes.
+
+    Every line, sentence and run of up to eight lines is a candidate, and each check
+    was a full verification that offered every candidate again: quadratic in the page.
+    """
+    store = CopyStore(tmp_path / "copies")
+    registry = tmp_path / "sources.yaml"
+    registry.write_text(SOURCES)
+    sources = load_sources(registry)
+    body = ('<main><p>Example Pro $20/month</p>' + ''.join(
+        f'<p>Plan feature number {i} is included.</p>' for i in range(600)
+    ) + '</main>').encode()
+    copy_ref = store.put(body, source_url="https://fixture.example/")
+    fact_id = "example/subscription/pro#offering.subscription.coverage_quote"
+    claim = Claim(
+        target=TargetRef(kind="fact", id=fact_id), subject="example/subscription/pro",
+        names=("Example Pro",), field="offering.subscription.coverage_quote",
+        value="The previous coverage wording.", collector=COLLECTOR,
+        sources=(SourceRef(source_id="example-plans", snapshot_ref=copy_ref,
+                           cited_regions=["page"]),),
+    )
+    tracked = price_reread.Tracked(tmp_path / PLAN_FILE, {
+        "id": fact_id, "facet": claim.field, "state": "known", "value": claim.value,
+    })
+    fetched = {"example-plans": price_reread.SourceFetch(
+        "example-plans", PLANS_URL, "ok", copy_ref)}
+    regions = StoredRegions(store, sources)
+    assert len(price_reread._readings(claim, regions)) > 4000
+
+    checked = []
+    original_verify = price_reread.verify
+
+    def counting_verify(claim, *args, **kwargs):
+        checked.append(claim.value)
+        return original_verify(claim, *args, **kwargs)
+
+    monkeypatch.setattr(price_reread, "verify", counting_verify)
+    result = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
+
+    assert result.status is Status.NEEDS_REVIEW
+    assert result.reason == (
+        "a free-text value read from a whole-page region (example-plans#page) "
+        "is not proposed as a change; cite a narrower region"
+    )
+    # The old value, then candidates until the second one verifies.
+    assert checked == ["The previous coverage wording.", "Example Pro $20/month",
+                       "Plan feature number 0 is included."]
+
+
+def test_one_verified_value_among_too_many_candidates_is_not_a_change(
+    estate, monkeypatch,
+) -> None:
+    """A capped search cannot say a value is the only one, so it never writes it."""
+    others = [verify_module.Reading("Example Pro", f"${n}/month") for n in range(40, 80)]
+    monkeypatch.setattr(
+        price_reread, "_readings",
+        lambda claim, regions, **kwargs: [
+            verify_module.Reading("Example Pro", "$25/month"), *others])
+
+    report, _ = reread(estate, [page("plans-price-change.html")], write=True)
+
+    result = by_id(report)[PRO_PRICE]
+    assert result.status is Status.NEEDS_REVIEW
+    assert result.reason.startswith(
+        f"the readers offer 41 candidate values and the first "
+        f"{price_reread.MAX_PROPOSAL_CHECKS} name no single replacement; ")
+    assert report.changes == []
+    assert Queue(estate[0] / "verification").filed()[("fact", PRO_PRICE)].value == 20
 
 
 @pytest.mark.parametrize("cited, registered, new_value, status, reason", [
@@ -654,6 +729,22 @@ def test_render_to_prepares_aws_even_when_an_alias_shares_its_url(estate, tmp_pa
     assert renderer.fetched == [RENDERED_URL]
     assert renderer.preparations == [RENDERED_PREPARATIONS["aws-pricing"]]
     assert price_reread.RenderedReplayFetcher(artifact).fetch(RENDERED_URL).body == page("plans.html")
+
+
+def test_render_to_and_a_live_reread_wait_for_cited_css_regions(estate, tmp_path):
+    """MODEL-423: z.ai's plan cards mount after network idle; the capture was a shell."""
+    root, _ = estate
+    path = root / "registry" / "sources.yaml"
+    document = yaml.safe_load(path.read_text())
+    document["sources"][-1]["cited_regions"].append(
+        {"id": "plans", "locator": {"kind": "css", "value": "#plans::own"}})
+    path.write_text(yaml.safe_dump(document))
+    renderer = PreparingRenderer([None])
+    price_reread.render_to(root=root, directory=tmp_path / "rendered", rendered=renderer)
+    reread(estate, [page("plans.html")], rendered=renderer)
+
+    assert renderer.fetched == [RENDERED_URL, RENDERED_URL]
+    assert renderer.preparations == [CitedRegionWait(("#plans",))] * 2
 
 
 @pytest.mark.parametrize("replay", [False, True])
