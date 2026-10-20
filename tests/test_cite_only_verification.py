@@ -88,8 +88,12 @@ def test_cite_run_checks_queue_without_verification_or_recrawl(tmp_path):
 
 
 @pytest.mark.parametrize("outcome", [None, "verified"])
-def test_cite_facts_satisfy_premier_completeness_without_verification(outcome):
-    index = loaded(snapshot_input(outcome=outcome), premier=["lab/alpha"],
+@pytest.mark.parametrize("url", [
+    CITE_URL, "https://www.anthropic.com/models", "https://developers.openai.com/models",
+    "https://help.openai.com/models", "https://chatgpt.com/models", "https://cursor.com/models",
+])
+def test_cite_facts_satisfy_premier_completeness_without_verification(outcome, url):
+    index = loaded(snapshot_input(outcome=outcome, url=url), premier=["lab/alpha"],
                    registry=COMPLETENESS_REGISTRY)
     row = index.fact("lab/alpha", "model.context_window")
     assert row.state == "known" and row.value == 128000
@@ -97,7 +101,7 @@ def test_cite_facts_satisfy_premier_completeness_without_verification(outcome):
     assert record["verification"] is None
     assert record["citation"] == {
         "status": "cited", "sources": [{
-            "source_id": "src-lab-docs", "url": CITE_URL,
+            "source_id": "src-lab-docs", "url": url,
             "snapshot_ref": "sha256:" + "0" * 64,
             "retrieved_at": "2026-10-18T16:00:00+00:00",
         }],

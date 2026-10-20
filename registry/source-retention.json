@@ -1,4 +1,13 @@
 {
   "schema_version": 1,
-  "cite_only_hosts": ["x.ai", "docs.x.ai", "perplexity.ai"]
+  "cite_only_hosts": [
+    "x.ai",
+    "docs.x.ai",
+    "perplexity.ai",
+    "www.anthropic.com",
+    "developers.openai.com",
+    "help.openai.com",
+    "chatgpt.com",
+    "cursor.com"
+  ]
 }

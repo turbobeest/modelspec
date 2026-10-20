@@ -54,7 +54,7 @@ def collector(request, tmp_path, monkeypatch):
     url = URL
     timeout = 180
     if name == "pdf":
-        url = model_158_fable_terminal_bench.CARD_URL
+        monkeypatch.setattr(model_158_fable_terminal_bench, "CARD_URL", url)
         timeout = 120
 
         def pdf_reader(stream):

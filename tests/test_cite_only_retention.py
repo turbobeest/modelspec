@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from decision.model import CitedRegion, Source
+from decision.retention import cite_only_hosts, is_cite_only
 from decision.sources import Citation, CopyStore, FactKind, Fetcher, FetchResult, fingerprint_bytes, recheck
 from scripts import fetch_pricing, price_reread
 from scripts.benchmarks import fetch as benchmark_fetch
@@ -17,8 +18,20 @@ PAGE = b"<html><p>Synthetic page text never retained for restricted hosts.</p></
 AT = datetime(2026, 10, 19, 12, tzinfo=UTC)
 
 
+def test_cite_only_policy_contains_exactly_the_approved_hosts():
+    assert set(cite_only_hosts()) == {
+        "x.ai", "docs.x.ai", "perplexity.ai", "www.anthropic.com",
+        "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
+    }
+
+
 @pytest.mark.parametrize("url", [
     "https://x.ai/pricing", "https://DOCS.X.AI.:443/models", "https://www.perplexity.ai/pro",
+    "https://www.anthropic.com/models", "https://sub.WWW.ANTHROPIC.COM.:443/models",
+    "https://developers.openai.com/models", "https://sub.DEVELOPERS.OPENAI.COM.:443/models",
+    "https://help.openai.com/models", "https://sub.HELP.OPENAI.COM.:443/models",
+    "https://chatgpt.com/models", "https://sub.CHATGPT.COM.:443/models",
+    "https://cursor.com/models", "https://sub.CURSOR.COM.:443/models",
 ])
 def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
     store = CopyStore(tmp_path)
@@ -31,6 +44,19 @@ def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
     assert metadata["url"] == url
     assert metadata["retrieved_at"] == AT.isoformat()
     assert all(PAGE not in path.read_bytes() for path in tmp_path.rglob("*") if path.is_file())
+
+
+@pytest.mark.parametrize("host", [
+    "www.anthropic.com", "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
+])
+def test_new_cite_only_hosts_require_a_label_boundary(host):
+    assert not is_cite_only(f"https://not{host}/models")
+    assert not is_cite_only(f"https://{host}.example/models")
+
+
+@pytest.mark.parametrize("host", ["anthropic.com", "docs.anthropic.com", "openai.com", "api.openai.com"])
+def test_new_cite_only_hosts_do_not_include_parents_or_siblings(host):
+    assert not is_cite_only(f"https://{host}/models")
 
 
 def test_copy_store_requires_origin_and_preserves_unrestricted_hosts(tmp_path):

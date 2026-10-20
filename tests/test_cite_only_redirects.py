@@ -7,6 +7,7 @@ from types import ModuleType, SimpleNamespace
 import httpx
 import pytest
 
+from decision import firecrawl
 from decision.firecrawl import FirecrawlFetcher
 from decision.sources import CopyStore, RenderedFetcher, fingerprint_bytes
 from scripts.benchmarks import fetch
@@ -53,21 +54,23 @@ def test_named_cache_checks_all_redirect_origins_before_writing(tmp_path):
 
 def test_firecrawl_preserves_both_reported_origin_fields(tmp_path, monkeypatch):
     monkeypatch.setenv("FIRECRAWL_API_KEY", "synthetic-test-key")
+    monkeypatch.setattr(firecrawl, "FIRECRAWL_HOSTS", firecrawl.FIRECRAWL_HOSTS | {"example.test"})
 
     def respond(request):
         if request.method == "GET":
             return httpx.Response(200, json={"success": True, "data": {"remainingCredits": 200}})
         return httpx.Response(200, json={"success": True, "data": {
             "rawHtml": PAGE.decode(), "metadata": {
-                "statusCode": 200, "sourceURL": "https://chatgpt.com/api-pricing/", "url": RESTRICTED,
+                "statusCode": 200, "sourceURL": START, "url": RESTRICTED,
             },
         }})
 
     renderer = FirecrawlFetcher(allowance=3, transport=httpx.MockTransport(respond))
-    result = renderer.fetch("https://chatgpt.com/api-pricing/")
+    result = renderer.fetch(START)
     assert result.outcome == "ok"
+    assert RESTRICTED in result.resolved_urls
     store = CopyStore(tmp_path)
-    ref = store.put(result.body, source_url="https://chatgpt.com/api-pricing/",
+    ref = store.put(result.body, source_url=START,
                     resolved_urls=result.resolved_urls)
     assert not store.path(ref).exists()
 
