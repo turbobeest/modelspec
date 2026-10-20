@@ -767,9 +767,11 @@ class _Compiler:
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
         self.log = self._verification_log(inputs.verifications)
-        #: Supersession records by (fact id, value hash), indexed on first need.
-        #: The Worker never compiles, so ``decision.supersession`` stays unimported there.
-        self._supersessions: dict | None = None
+        #: Supersession records by (fact id, value hash). Every row is validated
+        #: here, so a malformed store fails the build even when no fact needs it.
+        #: Only a compile with records imports ``decision.supersession``; the
+        #: Worker never compiles, so the module stays unimported there.
+        self._supersessions = self._supersession_index(inputs.supersessions)
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -885,6 +887,17 @@ class _Compiler:
                 return "quarantined (cited)"
         return None
 
+    @staticmethod
+    def _supersession_index(rows: Sequence[Any]) -> dict:
+        if not rows:
+            return {}
+        from decision import supersession
+
+        try:
+            return supersession.index(rows)
+        except supersession.StoreError as exc:
+            raise SnapshotBuildError(str(exc)) from None
+
     def _supersede(self, rid: Any, inline: Any, value: Any, refs: Sequence[Any]) -> str | None:
         """Why a cited fact's winning mismatch still holds, or ``None`` once superseded.
 
@@ -892,12 +905,10 @@ class _Compiler:
         fact now cites, and a newer cite-only read of it supersedes. See
         ``docs/design/cite-only-supersession.md``.
         """
-        if not self.inputs.supersessions:
+        if not self._supersessions:
             return "quarantined (mismatch)"
         from decision import supersession
 
-        if self._supersessions is None:
-            self._supersessions = supersession.index(self.inputs.supersessions)
         expected = value_hash(value)
         candidates = self._supersessions.get((str(rid), expected), ())
         entry, refused = supersession.supersede(

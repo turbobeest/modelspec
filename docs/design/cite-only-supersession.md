@@ -49,11 +49,20 @@ never superseded by a cited read. A non-cite-only fact is unaffected, and an
 The private data repository is the store of record:
 `verification/supersessions.jsonl`, beside `verification/log.jsonl`. It is
 append-only, one record per line, under the same rule as the log: never edit
-or delete a line; a correction is a new line. The engine reads it the way it
-reads the log. `collect_repo` (`decision/snapshot.py:1684`, log read at
+or delete a line; a correction is a new line. `VerificationLog` reads only
+`log.jsonl`, as `collect_repo` does, so the store is never parsed as
+verifications. `collect_repo` (`decision/snapshot.py:1684`, log read at
 `:1772-1777`) loads it into a new `SnapshotInputs.supersessions` field
 (`:349-373`), which defaults to empty. A checkout without the file builds
 exactly as before.
+
+`decision.supersession.read_store` validates every line when it reads the
+file, whether or not any fact needs it. A line that is not JSON, is not an
+object, names no target fact ID, or fails the schema raises an error with the
+file and line number. The message names fields and error types, never values.
+A valid record for a fact that no longer exists is allowed and stays inert.
+Lines are split on `\n` only, so U+2028 or U+0085 inside a JSON string is not
+a line break.
 
 `decision.supersession.append_only_violation(base, head)` reports a line that
 changed or disappeared between two versions of the file. The private repo's
@@ -102,6 +111,14 @@ region. The engine binds the record to the mismatch through the log's own
 coordinates: target ID, value hash, date and method. A reviewer checks the
 region claim in the data PR, as for any curated provenance.
 
+The engine has no region locators, so some same-region claims rest on that
+review alone. The data PR checklist must check each of these:
+
+- two registered region IDs that share a locator;
+- region IDs that differ only in case or whitespace;
+- URL variants of one page, such as a trailing slash, that no citation
+  records as a redirect.
+
 ## Admission
 
 The change is in `decision/snapshot.py`. The rule today:
@@ -123,9 +140,10 @@ New behaviour:
    records by `(target.id, target.value_hash)`. `decision/snapshot.py` never
    imports that module at load. The Worker loads built snapshots and never
    compiles, so it never imports the module either. An eager import grew
-   Pyodide's wasm heap by one 12 MiB step (`Worker memory headroom`). Rows are parsed one at a time. A row
-   that fails the schema is kept as invalid and never supersedes. It is
-   logged and named in the gate reason, so it is not lost silently.
+   Pyodide's wasm heap by one 12 MiB step (`Worker memory headroom`). The
+   compiler validates every row when it starts, as `read_store` does. A
+   malformed row fails the build with `SnapshotBuildError` naming its row
+   number.
 2. In `_add_facts`, for a cited fact whose winning verification is a
    `mismatch`, `decision.supersession.supersede(...)` checks the candidate
    records for the fact's ID and current value hash. Candidates are checked in
@@ -139,6 +157,12 @@ New behaviour:
    - Region identity is `(registered URL, region)`, so an alias source ID with
      the same URL is the same region. The fact's current refs must not cite
      the mismatch region (a). They must cite the read region (a).
+   - A redirect alias is the same page. For "must not cite the mismatch
+     region", a ref names its registered URL and each of its `resolved_urls`
+     (`decision.retention.metadata_origins`). Malformed redirect metadata
+     refuses. The redirect URLs only ever add refusals: cite-only status and
+     "cites the read region" use the registered URL alone, so a card's
+     `resolved_urls` never proves a read cite-only.
    - The fact's ref for the read's source and region has the same
      `snapshot_ref`. If that ref records `retrieved_at`, it is the same
      instant. The citation is the read (b).
@@ -215,7 +239,12 @@ and records at runtime. It contains no real perplexity.ai text.
 - A same-region mismatch stays quarantined.
 - A read older than the mismatch, or on the same day, does not supersede.
 - A newer mismatch after the supersession's mismatch quarantines again.
-- A missing or malformed page hash does not supersede.
+- A missing or malformed page hash, a missing fetch time or URL, or a naive
+  fetch time fails the build.
+- A malformed store row fails at load with its line number: no target, a
+  non-object row, or a schema-invalid row for a fact that no longer exists.
+- A mismatch on a URL the citation was redirected through is the same region.
+- `VerificationLog` and `modelspec verify` run with the store beside the log.
 - A read whose hash differs from the fact's citation does not supersede.
 - A non-cite-only fact with a mismatch and a record stays quarantined.
 - The superseded mismatch appears in the retained record.

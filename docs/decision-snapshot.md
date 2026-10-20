@@ -18,8 +18,8 @@ Inputs, read by `collect_repo`:
 | Subscription offerings | `offerings/subscriptions/<provider>.yaml`, each a list |
 | Sources | `registry/sources.yaml`: `sources: [{id, url}]` (provisional, until MODEL-137 fixes the file) |
 | Domains | each benchmark page's `domains` tags (MODEL-133) |
-| Verification log | `verification/*.jsonl`, one MODEL-134 `Verification` per line; the latest per target wins |
-| Mismatch supersessions | `verification/supersessions.jsonl`, optional and append-only, one `decision.supersession.MismatchSupersession` per line (MODEL-415) |
+| Verification log | `verification/log.jsonl`, one MODEL-134 `Verification` per line; the latest per target wins |
+| Mismatch supersessions | `verification/supersessions.jsonl`, optional and append-only, one `decision.supersession.MismatchSupersession` per line; a malformed line fails the read with its line number (MODEL-415) |
 
 What never enters:
 

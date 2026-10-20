@@ -6440,7 +6440,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
 
 
 class VerificationLog:
-    """``verification/*.jsonl``: append-only; the latest outcome per target wins."""
+    """``verification/log.jsonl``: append-only; the latest outcome per target wins.
+
+    Only ``log.jsonl`` is read, as ``decision.snapshot.collect_repo`` reads it. Other
+    streams in the directory, such as ``supersessions.jsonl`` (MODEL-415), are not
+    verifications.
+    """
 
     def __init__(self, directory: str | Path = DEFAULT_DIRECTORY) -> None:
         self.directory = Path(directory)
@@ -6453,11 +6458,12 @@ class VerificationLog:
 
     def records(self) -> list[Verification]:
         records = []
-        for path in sorted(self.directory.glob("*.jsonl")):
-            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                if line.strip():
-                    with private_errors(path, line=number):
-                        records.append(Verification.model_validate_json(line))
+        if not self.path.is_file():
+            return records
+        for number, line in enumerate(self.path.read_text(encoding="utf-8").splitlines(), 1):
+            if line.strip():
+                with private_errors(self.path, line=number):
+                    records.append(Verification.model_validate_json(line))
         return records
 
     def latest(self) -> dict[tuple[str, str], Verification]:

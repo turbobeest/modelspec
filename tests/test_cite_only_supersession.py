@@ -23,16 +23,20 @@ from decision.explain import checked_record
 from decision.model import value_hash
 from decision.registry import facet
 from decision.snapshot import (
+    SnapshotBuildError,
     SnapshotInputs,
     build_snapshot,
     collect_repo,
     load_built_snapshot,
 )
+from decision.verify import Verification, VerificationLog
 from tests.snapshot_records import SOURCES, fact, model, subscription, verification
 
 TODAY = date(2026, 10, 19)
 CITE_URL = "https://www.perplexity.ai/pro"
 PLAIN_URL = "https://lab.example.com/plans"
+#: Where the cited page's fetch was redirected from: the same page under another URL.
+ALIAS_URL = "https://lab.example.com/pro-plan"
 SOURCE = "src-plan-page"
 SID = "sambanova/subscription/pro"
 FACET = "offering.subscription.models_covered"
@@ -82,10 +86,13 @@ def record(fact_id=FACT_ID, value=VALUE, *, mismatch_region="pricing", read_regi
     return row
 
 
-def cited_fact(*, region="faq", snapshot_ref=NEW_PAGE, read_at=READ_AT, source=SOURCE):
+def cited_fact(*, region="faq", snapshot_ref=NEW_PAGE, read_at=READ_AT, source=SOURCE,
+               resolved_urls=None):
     row = fact("offering", SID, FACET, VALUE, source=source, outcome=None)
     row["sources"][0].update(snapshot_ref=snapshot_ref, cited_regions=[region],
                              retrieved_at=read_at.isoformat())
+    if resolved_urls is not None:
+        row["sources"][0]["resolved_urls"] = resolved_urls
     return row
 
 
@@ -209,24 +216,25 @@ def test_newer_mismatch_after_the_read_is_not_superseded():
 
 
 @pytest.mark.parametrize("snapshot_ref", [None, "sha256:" + "z" * 64, "sha256:abc", "md5:00"])
-def test_missing_or_invalid_page_hash_does_not_supersede(snapshot_ref, caplog):
-    with caplog.at_level(logging.WARNING, logger="decision.snapshot"):
-        index = loaded(inputs(records=[record(snapshot_ref=snapshot_ref)]))
-    assert plan_fact(index) is None
-    assert "invalid record" in caplog.text
+def test_missing_or_invalid_page_hash_fails_the_build(snapshot_ref):
+    with pytest.raises(SnapshotBuildError,
+                       match=r"supersession row 1: invalid supersession record \(read\.snapshot_ref"):
+        loaded(inputs(records=[record(snapshot_ref=snapshot_ref)]))
 
 
 @pytest.mark.parametrize("field", ["retrieved_at", "url"])
-def test_read_without_fetch_time_or_url_does_not_supersede(field):
+def test_read_without_fetch_time_or_url_fails_the_build(field):
     row = record()
     del row["read"][field]
-    assert plan_fact(loaded(inputs(records=[row]))) is None
+    with pytest.raises(SnapshotBuildError, match=rf"read\.{field}: missing"):
+        loaded(inputs(records=[row]))
 
 
-def test_naive_fetch_time_does_not_supersede():
+def test_naive_fetch_time_fails_the_build():
     row = record()
     row["read"]["retrieved_at"] = "2026-10-19T17:51:11"
-    assert plan_fact(loaded(inputs(records=[row]))) is None
+    with pytest.raises(SnapshotBuildError, match=r"read\.retrieved_at: timezone_aware"):
+        loaded(inputs(records=[row]))
 
 
 def test_read_hash_differing_from_the_citation_does_not_supersede():
@@ -251,6 +259,31 @@ def test_non_cite_only_fact_with_a_mismatch_is_unaffected():
 def test_unreachable_is_never_superseded():
     unreachable = verification("fact", FACT_ID, "unreachable", day=MISMATCH_DAY, value=VALUE)
     assert plan_fact(loaded(inputs(records=[record()], log=[unreachable]))) is None
+
+
+def test_redirect_alias_of_the_cited_page_is_the_same_region(caplog):
+    """The reviewer's probe: the mismatch read ``faq`` on a URL the citation redirected through."""
+    row = record(mismatch_region="faq")
+    row["mismatch"].update(source_id="src-old", url=ALIAS_URL)
+    built = replace(inputs(records=[row], resolved_urls=[ALIAS_URL]),
+                    sources={**SOURCES, SOURCE: CITE_URL, "src-old": ALIAS_URL})
+    with caplog.at_level(logging.WARNING, logger="decision.snapshot"):
+        assert plan_fact(loaded(built)) is None
+    assert "same region" in caplog.text
+
+
+def test_redirect_alias_of_another_region_still_supersedes():
+    row = record()
+    row["mismatch"].update(source_id="src-old", url=ALIAS_URL)
+    built = replace(inputs(records=[row], resolved_urls=[ALIAS_URL]),
+                    sources={**SOURCES, SOURCE: CITE_URL, "src-old": ALIAS_URL})
+    assert plan_fact(loaded(built)) is not None
+
+
+def test_a_card_redirect_to_a_cite_only_host_is_not_cite_only_proof():
+    """Only the registered URL makes a read cite-only, never a card's ``resolved_urls``."""
+    built = inputs(records=[record(url=PLAIN_URL)], url=PLAIN_URL, resolved_urls=[CITE_URL])
+    assert plan_fact(loaded(built)) is None
 
 
 def test_one_valid_record_applies_beside_a_refused_one():
@@ -352,3 +385,127 @@ def test_compile_without_records_never_loads_the_supersession_module():
     out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
                          check=True)
     assert out.stdout.strip() == "False"
+
+
+# ── a malformed store fails loudly ─────────────────────────────────────────
+
+
+def store(tmp_path, *lines):
+    (tmp_path / "verification").mkdir(exist_ok=True)
+    path = tmp_path / "verification" / "supersessions.jsonl"
+    path.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+    return path
+
+
+def orphan_with_bad_schema():
+    row = record(fact_id="gone/subscription/plan#offering.subscription.price")
+    row["schema_version"] = 9
+    return row
+
+
+@pytest.mark.parametrize(("bad", "why"), [
+    (json.dumps({"hello": 1}), "must name its target fact id"),
+    (json.dumps({**record(), "target": "x"}), "must name its target fact id"),
+    (json.dumps({**record(), "target": {"kind": "fact", "id": " "}}),
+     "must name its target fact id"),
+    (json.dumps([record()]), "must be a JSON object"),
+    (json.dumps("a record"), "must be a JSON object"),
+    (json.dumps(orphan_with_bad_schema()), r"invalid supersession record \(schema_version"),
+], ids=["no-target", "string-target", "blank-id", "array-row", "string-row",
+        "orphan-bad-schema"])
+def test_malformed_store_row_fails_at_load_with_its_line(tmp_path, bad, why):
+    store(tmp_path, json.dumps(record()), bad)
+    with pytest.raises(ValueError, match=rf"supersessions\.jsonl: line 2: .*{why}"):
+        collect_repo(tmp_path)
+
+
+def test_malformed_row_message_names_fields_never_values(tmp_path):
+    row = orphan_with_bad_schema()
+    row["reason"] = "private page text"
+    row["recorded_by"] = 7
+    store(tmp_path, json.dumps(row))
+    with pytest.raises(ValueError) as caught:
+        collect_repo(tmp_path)
+    assert str(caught.value).endswith(
+        "supersessions.jsonl: line 1: invalid supersession record "
+        "(schema_version: literal_error; recorded_by: string_type)")
+
+
+def test_invalid_json_line_fails_at_load_with_its_line(tmp_path):
+    store(tmp_path, json.dumps(record()), "{not json")
+    with pytest.raises(ValueError, match=r"supersessions\.jsonl: line 2"):
+        collect_repo(tmp_path)
+
+
+@pytest.mark.parametrize("bad", [{"hello": 1}, ["row"], "row", orphan_with_bad_schema()],
+                         ids=["no-target", "array-row", "string-row", "orphan-bad-schema"])
+def test_malformed_input_row_fails_the_build_even_when_no_fact_needs_it(bad):
+    with pytest.raises(SnapshotBuildError, match="supersession row 2"):
+        build_snapshot(inputs(records=[record(), bad]), as_of=TODAY)
+
+
+def test_orphan_record_for_a_missing_fact_is_allowed(tmp_path):
+    orphan = record(fact_id="gone/subscription/plan#offering.subscription.price")
+    store(tmp_path, json.dumps(orphan))
+    assert collect_repo(tmp_path).supersessions == [orphan]
+    assert plan_fact(loaded(inputs(records=[orphan]))) is None
+
+
+def test_line_separators_inside_a_json_string_are_not_line_breaks(tmp_path):
+    row = record()
+    row["reason"] = "the plan card\u2028moved\u0085to the questions"
+    path = store(tmp_path, json.dumps(row, ensure_ascii=False))
+    assert collect_repo(tmp_path).supersessions == [row]
+    from decision import supersession
+
+    text = path.read_text(encoding="utf-8")
+    assert supersession.append_only_violation(text, text + "{}\n") is None
+
+
+# ── the store beside the verification log ──────────────────────────────────
+
+
+def logged(tmp_path):
+    row = mismatch()
+    (tmp_path / "verification").mkdir(exist_ok=True)
+    (tmp_path / "verification" / "log.jsonl").write_text(json.dumps(row) + "\n",
+                                                         encoding="utf-8")
+    return Verification.model_validate(row)
+
+
+def test_verification_log_reads_only_the_log_beside_a_store(tmp_path):
+    expected = logged(tmp_path)
+    store(tmp_path, json.dumps(record()), json.dumps(record(read_region="pricing")))
+    log = VerificationLog(tmp_path / "verification")
+    assert log.records() == [expected]
+    assert list(log.latest().values()) == [expected]
+    assert log.requarantined() == []
+    assert log.is_quarantined(f"fact:{FACT_ID}")
+
+
+def test_verification_log_without_a_log_file_is_empty_beside_a_store(tmp_path):
+    store(tmp_path, json.dumps(record()))
+    assert VerificationLog(tmp_path / "verification").records() == []
+
+
+def test_verify_cli_runs_with_a_store_beside_the_log(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from cli.modelspec.verify_cmd import app
+    from decision.verify import Queue
+    from tests.test_cite_only_verification import CITE_URL as QUEUED_URL
+    from tests.test_cite_only_verification import claim
+
+    expected = logged(tmp_path)
+    path = store(tmp_path, json.dumps(record()))
+    before = path.read_text(encoding="utf-8")
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources:\n- id: src-lab-docs\n  url: " + QUEUED_URL + "\n")
+    Queue(tmp_path / "verification").file(claim(), at=datetime(2026, 10, 19, tzinfo=UTC))
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(tmp_path / "copies"))
+    result = CliRunner().invoke(app, ["--root", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert "cited: 1" in result.output
+    assert VerificationLog(tmp_path / "verification").records() == [expected]
+    assert path.read_text(encoding="utf-8") == before

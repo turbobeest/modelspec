@@ -20,7 +20,7 @@ from typing import Any, Literal, Self
 from pydantic import AwareDatetime, ValidationError, field_validator, model_validator
 
 from decision.model import ContentRef, Record, Text, VerificationTarget
-from decision.retention import is_cite_only, require_source_url
+from decision.retention import is_cite_only, metadata_origins, require_source_url
 
 class _Located(Record):
     source_id: Text
@@ -75,36 +75,64 @@ def _sha256(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
+class StoreError(ValueError):
+    """A malformed supersession row. The message names fields and lines, never values."""
+
+    #: ``schema.private_errors`` passes a value-free message through unredacted.
+    _modelspec_redacted = True
+
+
 @dataclass(frozen=True)
 class Candidate:
-    """One stored row for a target: parsed, or why it failed the schema."""
+    """One stored row for a target, as stored and as parsed."""
 
     raw: Mapping[str, Any]
-    record: MismatchSupersession | None
-    error: str | None
+    record: MismatchSupersession
 
     @property
     def hash(self) -> str:
         return _sha256(_canonical(self.raw))
 
 
-def index(rows: Iterable[Any]) -> dict[tuple[str, str], list[Candidate]]:
-    """Group stored rows by ``(fact id, value hash)``; invalid rows are kept, flagged.
+def _fields(exc: ValidationError) -> str:
+    """Where each schema error is, without the input value."""
+    parts = []
+    for error in exc.errors(include_input=False, include_context=False, include_url=False):
+        where = ".".join(str(part) for part in error["loc"])
+        # A whole-record check is one of this module's own value-free messages.
+        parts.append(f"{where}: {error['type']}" if where else str(error["msg"]))
+    return "; ".join(parts)
 
-    A row without a readable target cannot name a fact, so it cannot keep one
-    in or out; it is skipped.
+
+def parse(row: Any, where: str) -> Candidate:
+    """One stored row, validated, or a ``StoreError`` naming ``where`` and why."""
+    if isinstance(row, MismatchSupersession):
+        row = row.model_dump(mode="json")
+    if not isinstance(row, Mapping):
+        raise StoreError(f"{where}: a supersession record must be a JSON object")
+    raw = dict(row)
+    target = raw.get("target")
+    if (not isinstance(target, Mapping) or not isinstance(target.get("id"), str)
+            or not target["id"].strip()):
+        raise StoreError(f"{where}: a supersession record must name its target fact id")
+    try:
+        record = MismatchSupersession.model_validate(raw)
+    except ValidationError as exc:
+        raise StoreError(f"{where}: invalid supersession record ({_fields(exc)})") from None
+    return Candidate(raw, record)
+
+
+def index(rows: Iterable[Any]) -> dict[tuple[str, str], list[Candidate]]:
+    """Every row validated, grouped by ``(fact id, value hash)``.
+
+    A malformed row raises ``StoreError`` naming its row number, whether or not
+    any fact needs it. A valid record for a fact that no longer exists is kept
+    and stays inert.
     """
     grouped: dict[tuple[str, str], list[Candidate]] = {}
-    for raw in rows:
-        raw = dict(raw) if isinstance(raw, Mapping) else raw.model_dump(mode="json")
-        target = raw.get("target")
-        if not isinstance(target, Mapping) or not target.get("id"):
-            continue
-        try:
-            candidate = Candidate(raw, MismatchSupersession.model_validate(raw), None)
-        except ValidationError as exc:
-            candidate = Candidate(raw, None, f"invalid record ({exc.error_count()} errors)")
-        key = (str(target["id"]), str(target.get("value_hash") or ""))
+    for number, row in enumerate(rows, 1):
+        candidate = parse(row, f"supersession row {number}")
+        key = (candidate.record.target.id, candidate.record.target.value_hash)
         grouped.setdefault(key, []).append(candidate)
     for candidates in grouped.values():
         candidates.sort(key=lambda c: c.hash)
@@ -132,11 +160,20 @@ def _refusal(record: MismatchSupersession, winner: Mapping[str, Any], value_hash
         return "mismatch source unresolved"
     if sources.get(read.source_id) != read.url:
         return "read source unresolved"
+    # Cite-only status comes from the registered URL alone, never a card's redirects.
     if not is_cite_only(read.url):
         return "read is not cite-only"
     cited = {(sources.get(str(ref.get("source_id"))), str(region))
              for ref in refs for region in ref.get("cited_regions") or ()}
-    if (m.url, m.region) in cited:
+    # A redirect alias is the same page: the mismatch region must not be cited
+    # under the registered URL or any URL the citation was resolved through.
+    try:
+        aliases = {(origin, str(region)) for ref in refs
+                   for origin in _origins(ref, sources)
+                   for region in ref.get("cited_regions") or ()}
+    except ValueError:
+        return "citation redirect metadata invalid"
+    if (m.url, m.region) in aliases:
         return "same region"
     if (read.url, read.region) not in cited:
         return "read region not cited"
@@ -154,6 +191,16 @@ def _refusal(record: MismatchSupersession, winner: Mapping[str, Any], value_hash
     return None
 
 
+def _origins(ref: Mapping[str, Any], sources: Mapping[str, str]) -> tuple[str, ...]:
+    """The URLs that name the page a ref cites: registered, then each redirect hop."""
+    resolved = ref.get("resolved_urls") or ()
+    if isinstance(resolved, (list, tuple)):
+        resolved = [str(url) for url in resolved]
+    registered = sources.get(str(ref.get("source_id")))
+    return tuple(url for url in (registered, *metadata_origins({"resolved_urls": resolved}))
+                 if url)
+
+
 def supersede(candidates: Sequence[Candidate], winner: Mapping[str, Any] | None,
               value_hash: str, refs: Sequence[Mapping[str, Any]],
               sources: Mapping[str, str]) -> tuple[dict[str, Any] | None, str | None]:
@@ -167,9 +214,6 @@ def supersede(candidates: Sequence[Candidate], winner: Mapping[str, Any] | None,
         return None, None
     reasons = []
     for candidate in candidates:
-        if candidate.record is None:
-            reasons.append(str(candidate.error))
-            continue
         why = _refusal(candidate.record, winner, value_hash, refs, sources)
         if why is None:
             return provenance(winner, candidate), None
@@ -185,8 +229,6 @@ def provenance(winner: Mapping[str, Any], candidate: Candidate) -> dict[str, Any
     mismatch["date"] = str(mismatch.get("date"))
     if winner.get("diff") is not None:
         mismatch["diff_sha256"] = _sha256(str(winner["diff"]).encode("utf-8"))
-    if candidate.record is None:
-        raise ValueError("an invalid supersession record has no provenance")
     return {
         "verification": mismatch,
         "supersession": json.loads(_canonical(candidate.raw)),
@@ -194,12 +236,25 @@ def provenance(winner: Mapping[str, Any], candidate: Candidate) -> dict[str, Any
     }
 
 
+def _lines(text: str) -> list[str]:
+    """Lines split on ``\\n`` only: U+2028 or U+0085 inside a JSON string is not a break."""
+    lines = text.split("\n")
+    return lines[:-1] if lines and lines[-1] == "" else lines
+
+
 def read_store(path) -> list[dict[str, Any]]:
-    """The stored records, one JSON object per non-blank line."""
+    """The stored records, one JSON object per non-blank line, each validated.
+
+    A line that is not JSON, not an object, names no target or fails the schema
+    raises with the file and line number.
+    """
+    from schema import private_errors
+
     rows = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for number, line in enumerate(_lines(path.read_text(encoding="utf-8")), 1):
         if line.strip():
-            rows.append(json.loads(line))
+            with private_errors(path, line=number):
+                rows.append(dict(parse(json.loads(line), f"{path}: line {number}").raw))
     return rows
 
 
@@ -208,7 +263,7 @@ def append_only_violation(base: str, head: str) -> str | None:
 
     The store is append-only: ``head`` keeps every line of ``base`` in place.
     """
-    old, new = base.splitlines(), head.splitlines()
+    old, new = _lines(base), _lines(head)
     for number, line in enumerate(old, 1):
         if number > len(new):
             return f"line {number} was removed"
