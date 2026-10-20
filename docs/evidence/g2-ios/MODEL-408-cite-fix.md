@@ -275,3 +275,28 @@ conflicts. Then:
   (`-n 4 --dist loadfile`) exits 0 with 12,590 passed and 9 skipped.
 
 No fact value, verification log, x.ai page bytes or production switch changed.
+
+## Review fixes, round two (REV-822-r2)
+
+The cite-only branch of `admitted_subscription_facts` now validates the fact
+the same way the snapshot does: `Fact.model_validate` with `verification`
+set to null and the given registry. The production snapshot test passes
+`REGISTRY`. Without this check, the helper admitted blank (`""`) or
+whitespace (`"   "`) region names and an invalid price value (`"cheap"`),
+all of which the snapshot excludes.
+
+`tests/test_subscription_sources.py` now uses complete fixtures with
+subjects. It rejects the three cases above. It also compares the helper with
+a real `build_snapshot` / `load_built_snapshot` result across 21 admission
+and exclusion cases. Red check: the old helper logic, with only the
+`registry` keyword added, fails 7 tests, all of them the three new cases.
+The new file passes 26 tests.
+
+Verification (exit codes checked directly):
+
+- Private-CI composition with this engine: linked-data guard exit 0. The
+  broader data tests, plus the new file, exit 0 with 1,009 passed and 18
+  skipped.
+- Focused tests exit 0 with 1,013 passed.
+- The full suite under the shared lock exits 0 with 12,615 passed and
+  9 skipped.
