@@ -1109,7 +1109,7 @@ class SubscriptionPageExtractor:
             r"sign[- ]ups?|signups)\b|"
             r"\bexisting subscribers\b|\b(?:no longer|not) offered to new\b|"
             r"\bplan\b.{0,80}\bretired\b|"
-            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b",
+            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b|\bare legacy plans\b",
             text,
         ))
 
@@ -1159,7 +1159,8 @@ class SubscriptionPageExtractor:
                        r"tokens?|quota|uses|queries|tasks?|completions?|consumption|"
                        r"windows?|unlimited|more)\b"
                        if claim.field.endswith("usage_allowance") else
-                       r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
+                       r"\b(?:codex|claude code|kimi code|kimi claw|goal mode|"
+                       r"grok build|ai studio|antigravity|"
                        r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
             readings = [r for r in readings if r.value and not re.fullmatch(
                 r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
@@ -1451,6 +1452,14 @@ def _availability_predicate(sentence: str, subjects: set[str]) -> str | None:
     if "?" in sentence:
         return None
     text = sentence.strip()
+    legacy = re.fullmatch(r"(.+?) are legacy plans\.?", text, re.IGNORECASE)
+    if legacy:
+        plans = re.split(r",\s*(?:and\s+)?|\s+and\s+", legacy.group(1), flags=re.IGNORECASE)
+        # This layout lists bare tier names, with no introductory proposition
+        # such as "It is false that Andante and Moderato are legacy plans".
+        if (all(re.fullmatch(r"[A-Za-z][\w-]*", plan.strip()) for plan in plans)
+                and any(normalise_name(plan) in subjects for plan in plans)):
+            return "existing subscribers only"
     for subject in sorted(subjects, key=len, reverse=True):
         tokens = subject.split()
         if not tokens:
@@ -1597,9 +1606,15 @@ def _price_readings(subject: str, field: str, text: str) -> list[Reading]:
     if symbol is None:
         return []
     priced = _priced(text, symbol)
+    if symbol == "¥" and len({a for a, _ in priced}) > 1 and any(p is None for _, p in priced):
+        return []
     monthly = [a for a, p in priced if p == "monthly"]
-    return [Reading(subject=subject, value=a)
-            for a in (monthly or [a for a, _ in priced])]
+    amounts = monthly or [a for a, _ in priced]
+    # A yuan monthly equivalent can also say "/month". Without billing labels,
+    # distinct amounts cannot identify the plan's monthly subscription price.
+    if symbol == "¥" and len(set(amounts)) > 1:
+        return []
+    return [Reading(subject=subject, value=a) for a in amounts]
 
 
 def _model_list(cell: str) -> str:
@@ -1703,7 +1718,10 @@ def _plan_cards(claim: Claim, text: str) -> list[Reading]:
                     and field == "offering.subscription.usage_allowance":
                 readings += [Reading(subject=subject, value=c) for c in cells]
             if label in aliases:
-                readings += _price_readings(subject, field, " | ".join(row[1:]))
+                prices = " | ".join(
+                    f"{cell} {table[0][j] if j < len(table[0]) else ''}"
+                    for j, cell in enumerate(row[1:], start=1))
+                readings += _price_readings(subject, field, prices)
                 if field in {"offering.subscription.programmatic_or_agent_use",
                              "offering.subscription.usage_allowance"}:
                     readings += [Reading(subject=subject, value=c) for c in row[1:] if c]
@@ -2055,6 +2073,10 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:
         readings += [Reading(subject=subject, value=line) for line in _card_lines(lines, aliases)]
+        for line in lines:
+            label, sep, statement = line.partition(":")
+            if sep and statement.strip() and normalise_name(label) in aliases:
+                readings.append(Reading(subject=subject, value=line))
 
     tables: list[list[list[str]]] = []
     current: list[list[str]] = []
