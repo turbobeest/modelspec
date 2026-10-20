@@ -238,3 +238,40 @@ not erase historical Git objects or perform the separate MODEL-409 cleanup
 of older retained material. Both PRs require review and stay drafts. No merge
 was attempted. Site hardware source-registration warnings and web runtime
 font URL notices remain; the corresponding build commands passed.
+
+## Review fixes (REV-822)
+
+The review found three blockers. All three are fixed. Exit codes were checked directly.
+
+1. `tests/subscription_sources.py`: `admitted_subscription_facts` now follows
+   cite-only admission (`docs/design/cite-only-sources.md`). A fact whose
+   registered source or redirect is on a cite-only host enters without a
+   verification record. It stays out when its citation is invalid, when it
+   names an identifier facet, or when its latest counting outcome is mismatch
+   or unreachable. Every other fact still needs an independent `verified`
+   outcome. `tests/test_subscription_sources.py` covers cited, mismatched,
+   invalid-hash and redirected cases. It fails against the old helper and
+   passes now.
+2. data#96 `offerings/subscriptions/xai.yaml`: the 35 `retrieved_at` values
+   are rewritten in the form `SourceRef.model_dump(mode="json")` emits
+   (`2026-10-18T09:33:48.466000Z`). The instant and every fact value are
+   unchanged.
+3. data#96 `.engine-pin`: restored to data main's value `badf4be5…`.
+
+Data main (data#104, data#105) was merged into the data branch with no
+conflicts. Then:
+
+- Private CI composed locally: the engine came from this branch, the data was a
+  scratch clone, and the setup followed `prepare_data_writer.py`. The
+  linked-data guard exits 0. The "broader data tests" step exits 0 with 983
+  passed and 18 skipped. Private recall plus the baseline check exit 0, with
+  16 pass, 4 partial, 0 fail and no regressions.
+- `vendor.py --data-dir … --check` exits 0: premier models known 26, explicit
+  null 18, gap 0. The bundle imports cleanly. `MODEL-408-cite/verify_private.py`
+  exits 0: in both signed snapshots, 17 known facts are cited and 18 unknown
+  facts are not admitted. All 7 plans (free, plus, premium, super, ultra,
+  teams, enterprise) are present.
+- Focused tests exit 0 (988 passed). The full suite under the shared lock
+  (`-n 4 --dist loadfile`) exits 0 with 12,590 passed and 9 skipped.
+
+No fact value, verification log, x.ai page bytes or production switch changed.
