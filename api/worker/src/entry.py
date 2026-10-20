@@ -246,7 +246,7 @@ def _decide_service():
     return decide_service
 
 
-def _bundled_read(url: str):
+def _bundled_read(url: str, *, stream: bool = False):
     try:
         import bundled_data
     except ModuleNotFoundError as exc:
@@ -254,15 +254,30 @@ def _bundled_read(url: str):
             raise
         return False, None
     # A bundled deployment never falls back to public data, including history.
-    return True, bundled_data.read(urlparse(url).path)
+    path = urlparse(url).path
+    return True, _bundled_stream(bundled_data, path) if stream else bundled_data.read(path)
+
+
+def _bundled_stream(bundle, path: str):
+    """A bundled export as a binary stream, or None when the bundle lacks it.
+
+    The generated bundle decompresses its blob as the stream is read, so a
+    large export is never held as one bytes object beside its decoded form
+    (MODEL-417). A bundle without `stream` is read whole.
+    """
+    stream = getattr(bundle, "stream", None)
+    if stream is not None:
+        return stream(path)
+    raw = bundle.read(path)
+    return None if raw is None else BytesIO(raw)
 
 
 async def _get_json(url: str):
-    bundled, raw = _bundled_read(url)
+    bundled, raw = _bundled_read(url, stream=True)
     if bundled:
         if raw is None:
             raise RuntimeError("private bundle is missing a required export")
-        with TextIOWrapper(BytesIO(raw), encoding="utf-8") as stream:
+        with TextIOWrapper(raw, encoding="utf-8") as stream:
             return load_json(stream)
     response = await fetch(url)
     if not response.ok:
@@ -273,10 +288,10 @@ async def _get_json(url: str):
 # Bundled exports cannot change within this deployment. Prepare them in the
 # deployment memory snapshot, as we already do for the decision snapshot.
 if globals().get("bundled_data") is not None:
-    _rank_bytes = bundled_data.read(CANDIDATES_PATH)
-    if _rank_bytes is not None:
+    _rank_source = _bundled_stream(bundled_data, CANDIDATES_PATH)
+    if _rank_source is not None:
         # Malformed required candidates must fail deployment snapshot creation.
-        with TextIOWrapper(BytesIO(_rank_bytes), encoding="utf-8") as _rank_stream:
+        with TextIOWrapper(_rank_source, encoding="utf-8") as _rank_stream:
             _rank_export = load_json(_rank_stream)
         _hardware_bytes = None
         try:
@@ -288,7 +303,7 @@ if globals().get("bundled_data") is not None:
                       hardware=_hardware,
                       prepared=service.candidates_from_export(_rank_export))
         del _rank_export, _hardware_bytes, _hardware
-    del _rank_bytes
+    del _rank_source
 
 
 class _Fetched:

@@ -8,5 +8,6 @@
   "source_count": 267,
   "sources_per_record": 54,
   "source_url_characters": 91,
-  "extra_cited_regions": 6
+  "extra_cited_regions": 6,
+  "register_hardware_sources": true
 }
