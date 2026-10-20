@@ -470,8 +470,8 @@ def test_one_verified_value_among_too_many_candidates_is_not_a_change(
     result = by_id(report)[PRO_PRICE]
     assert result.status is Status.NEEDS_REVIEW
     assert result.reason.startswith(
-        f"the readers offer 41 candidate values and the first "
-        f"{price_reread.MAX_PROPOSAL_CHECKS} name no single replacement; ")
+        "a reader reads 25, but it may not be the only value (the search checked only "
+        f"the first {price_reread.MAX_PROPOSAL_CHECKS} of 41 candidate values); ")
     assert report.changes == []
     assert Queue(estate[0] / "verification").filed()[("fact", PRO_PRICE)].value == 20
 
@@ -1219,6 +1219,33 @@ def test_an_llm_verified_value_the_readers_cannot_read_is_not_an_alert(estate) -
                              "the deterministic readers cannot read it")
     # The deterministically verified output price on the same page does alert.
     assert by_id(report)[LARGE_OUTPUT].status is Status.UNREADABLE
+
+
+@pytest.mark.parametrize("first", [False, True])
+def test_an_llm_verified_value_fails_closed_when_the_search_stops_at_the_cap(
+        estate, monkeypatch, first) -> None:
+    """MODEL-423 review: the new price as candidate 41 must reach a person."""
+    root, _ = estate
+    _llm_verified(root, LARGE_INPUT, 3.0)
+    others = [verify_module.Reading("Example Large", f"${n}", "usd_per_1m_tokens")
+              for n in range(40, 80)]
+    new = verify_module.Reading("Example Large", "$2.50", "usd_per_1m_tokens")
+    monkeypatch.setattr(price_reread, "_readings", lambda claim, regions, **kwargs:
+                        [new, *others] if first else [*others, new])
+    before = (root / API_FILE).read_text()
+    report, _ = reread(estate, [page("plans.html")], [page("api-pricing-change.html")],
+                       write=True)
+
+    result = by_id(report)[LARGE_INPUT]
+    assert result.status is Status.NEEDS_REVIEW
+    assert result in report.alerts
+    cap = (f" (the search checked only the first {price_reread.MAX_PROPOSAL_CHECKS} "
+           "of 41 candidate values)")
+    assert result.reason == "last verified by an LLM reader (mistral); " + (
+        "a deterministic reader now reads 2.5" if first
+        else "no deterministic reading confirms a value") + cap
+    assert report.changes == []
+    assert (root / API_FILE).read_text() == before
 
 
 def test_a_value_the_page_did_not_state_is_reviewed_not_written(estate) -> None:

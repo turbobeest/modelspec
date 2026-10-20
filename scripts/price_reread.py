@@ -545,9 +545,20 @@ class Proposal:
     candidates: int
 
     @property
+    def stopped_early(self) -> bool:
+        """Whether the search hit ``MAX_PROPOSAL_CHECKS`` and left candidates unchecked."""
+        return self.candidates > MAX_PROPOSAL_CHECKS
+
+    @property
     def unique(self) -> bool:
         """One verified value, and every other candidate was checked and failed."""
-        return len(self.values) == 1 and self.candidates <= MAX_PROPOSAL_CHECKS
+        return len(self.values) == 1 and not self.stopped_early
+
+    @property
+    def cap_note(self) -> str:
+        """Says so in a review reason when the search stopped at the cap."""
+        return (f" (the search checked only the first {MAX_PROPOSAL_CHECKS} of "
+                f"{self.candidates} candidate values)" if self.stopped_early else "")
 
 
 def _propose(claim: Claim, regions: StoredRegions, today: date, *,
@@ -644,13 +655,20 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # a reader that cannot parse the page says nothing about it.
         # A verbatim string "verifies" as whatever a reader returns, so only a number
         # counts here.
-        confirmed = [v for v in (_propose(claim, regions, today).values
-                                 if result.outcome == "mismatch" else [])
+        llm_proposal = _propose(claim, regions, today) if result.outcome == "mismatch" else None
+        confirmed = [v for v in (llm_proposal.values if llm_proposal else [])
                      if isinstance(v, (int, float)) and not isinstance(v, bool)]
         if confirmed:
             return replace(base, status=Status.NEEDS_REVIEW,
                            reason=f"last verified by an LLM reader ({llm}); a deterministic "
-                           "reader now reads " + ", ".join(map(json.dumps, confirmed)))
+                           "reader now reads " + ", ".join(map(json.dumps, confirmed))
+                           + llm_proposal.cap_note)
+        if llm_proposal is not None and llm_proposal.stopped_early:
+            # Unchecked candidates may hold the new value: fail closed to review
+            # rather than report that the readers cannot read the page (MODEL-423).
+            return replace(base, status=Status.NEEDS_REVIEW,
+                           reason=f"last verified by an LLM reader ({llm}); no deterministic "
+                           "reading confirms a value" + llm_proposal.cap_note)
         return replace(base, reason=f"last verified by an LLM reader ({llm}); "
                        "the deterministic readers cannot read it")
     if result.outcome == "unreachable":
@@ -690,12 +708,12 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        f"{json.dumps(confirmed[0])}: {diff}")
     if len(confirmed) > 1:
         why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
-    elif proposal.candidates > MAX_PROPOSAL_CHECKS:
-        why = (f"the readers offer {proposal.candidates} candidate values and the first "
-               f"{MAX_PROPOSAL_CHECKS} name no single replacement")
+    elif confirmed:
+        why = f"a reader reads {json.dumps(confirmed[0])}, but it may not be the only value"
     else:
         why = "no single new value verifies"
-    return replace(base, status=Status.NEEDS_REVIEW, reason=f"{why}; {diff}")
+    return replace(base, status=Status.NEEDS_REVIEW,
+                   reason=f"{why}{proposal.cap_note}; {diff}")
 
 
 def _page_size(regions: StoredRegions, claim: Claim) -> str:

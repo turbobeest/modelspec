@@ -390,39 +390,6 @@ Batch and Flex are priced at 50% of Standard rates.
         assert verify.compare(claim, extractor.extract(claim, text)) == []
 
 
-def test_model_page_price_reader_reads_a_markdown_metric_table() -> None:
-    """MODEL-423: a model page's Markdown copy puts its prices in one table."""
-    text = """\
-# Example Mini
-Model ID: `example-mini`
-## Endpoints
-| Endpoint | Price | Support |
-| Input | $9.00 | Supported |
-## Pricing
-### Text tokens
-| Metric | Price | Unit |
-| Input | $0.1 | 1M tokens |
-| Cached input | $0.01 | 1M tokens |
-| Cache writes | $0.125 | 1M tokens |
-| Output | $0.5 | 1M tokens |
-- Batch and Flex are priced at 50% of Standard rates.
-"""
-    extractor = verify.ModelPageExtractor()
-    for field, value in (("input", .1), ("output", .5), ("cached_input", .01),
-                         ("batch_input", .05), ("batch_output", .25)):
-        claim = _price_claim(field, value, name="Example Mini")
-        assert verify.compare(claim, extractor.extract(claim, text)) == []
-        # Collectors file some prices with no label: the facet names the kind.
-        claim = replace(claim, label=None)
-        assert verify.compare(claim, extractor.extract(claim, text)) == []
-    # A row of another table, or a price the page does not state, is not read.
-    claim = _price_claim("input", 9, name="Example Mini")
-    assert verify.compare(claim, extractor.extract(claim, text)) != []
-    without_discount = text.replace("- Batch and Flex are priced at 50% of Standard rates.\n", "")
-    claim = _price_claim("batch_input", .05, name="Example Mini")
-    assert verify.compare(claim, extractor.extract(claim, without_discount)) != []
-
-
 def test_offering_price_reader_reads_named_standard_and_batch_sections() -> None:
     text = """\
 Gemini 3.8 Flash

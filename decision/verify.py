@@ -69,6 +69,7 @@ import os
 import re
 import subprocess
 import urllib.request
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
@@ -2133,6 +2134,10 @@ class ModelPageExtractor:
         return len(lines) >= 3
 
     def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field.startswith("offering.price.") \
+                and (table := MetricPriceTable.read(text)) is not None:
+            # A page with a Metric | Price table is read from that table alone.
+            return [table.reading(claim)]
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         names = {normalise_name(name): name for name in claim.names}
 
@@ -2170,16 +2175,8 @@ class ModelPageExtractor:
                         subject=row_name, value=row[value_col], unit=claim.unit
                     ))
 
-        metric_rows = _metric_price_rows(lines)
         for i, line in enumerate(lines):
             normal = normalise_name(line)
-            if i in metric_rows and claim.field.startswith("offering.price."):
-                metric, price = metric_rows[i]
-                kind = normalise_name(claim.field.removeprefix("offering.price.").replace("_", " "))
-                if (metric in aliases or metric == kind) \
-                        and parse_quantity(price, claim.unit) is not None:
-                    readings.append(Reading(subject=subject, value=price, unit=claim.unit))
-                continue
             if normal in aliases:
                 value = lines[i + 1] if i + 1 < len(lines) else None
                 unit = claim.unit if claim.field.startswith("offering.price.") else None
@@ -2203,13 +2200,9 @@ class ModelPageExtractor:
                 and re.search(r"(?i)batch(?: and flex)? (?:are )?priced at 50%", text):
             base_label = "input" if claim.field.endswith("batch_input") else "output"
             for i, line in enumerate(lines[:-1]):
-                if i in metric_rows:
-                    metric, price = metric_rows[i]
-                elif normalise_name(line) == base_label:
-                    metric, price = base_label, lines[i + 1]
-                else:
+                if normalise_name(line) != base_label:
                     continue
-                quantity = parse_quantity(price, claim.unit) if metric == base_label else None
+                quantity = parse_quantity(lines[i + 1], claim.unit)
                 if quantity is not None:
                     readings.append(Reading(subject, str(quantity.number / 2), claim.unit))
         if claim.field in {"offering.price.batch_input", "offering.price.batch_output"} \
@@ -2264,26 +2257,128 @@ class ModelPageExtractor:
         return readings or [Reading(subject=subject, value=None)]
 
 
-def _metric_price_rows(lines: list[str]) -> dict[int, tuple[str, str]]:
-    """Line index -> (normalised metric, price cell) for a ``Metric | Price`` table.
+#: A Metric | Price row label, as normalised, and the price kind it states.
+_METRIC_KINDS = {
+    "input": "input", "cached input": "cached_input", "output": "output",
+    "batch input": "batch_input", "batch output": "batch_output",
+}
+#: Words in a section heading that make its tables something other than the
+#: standard, cached or batch token prices of the page's model.
+_OTHER_TIER = re.compile(
+    r"(?i)fine[- ]?tun|training|flex|priority|fast|long[- ]context|regional|audio|image|"
+    r"realtime|video|embedding|search|tool")
+_MODEL_DECLARATION = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?(?:model id|default snapshot)\s*:\s*`?([A-Za-z0-9._:/-]+)`?\s*$")
+_HALF_BATCH = re.compile(r"(?i)\bbatch(?: and flex)? (?:are |is )?priced at 50%")
 
-    A model page's Markdown copy writes its token prices as one table per page,
-    headed ``| Metric | Price | Unit |`` (MODEL-423: OpenAI's ``.md`` model pages),
-    where the HTML page puts each label and amount on lines of their own. The rows
-    belong to the page's one model, as the label-and-value lines do.
+
+def _cell(text: str) -> str:
+    return normalise_name(text.replace("*", "").replace("`", ""))
+
+
+@dataclass(frozen=True)
+class MetricPriceTable:
+    """The token prices a single-model page states in ``Metric | Price`` tables.
+
+    OpenAI's Markdown model pages state them as ``| Metric | Price | Unit |`` rows
+    (MODEL-423). A reading here can become a written change, so the parse is
+    strict. A table is bound to its section: only a standard section's table
+    states the standard prices, a batch section's table states batch prices, and
+    cached, fine-tuning and other sections are not read. The page must declare
+    exactly one model, which must be the claim's. A price kind stated twice with
+    different amounts, or by two standard tables, is not read at all.
     """
-    rows: dict[int, tuple[str, str]] = {}
-    metric_table: bool | None = None  # None outside a table; else whether it is one
-    for i, line in enumerate(lines):
-        if "|" not in line:
-            metric_table = None
-            continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if metric_table is None:
-            metric_table = [normalise_name(cell) for cell in cells[:2]] == ["metric", "price"]
-        elif metric_table and len(cells) >= 2:
-            rows[i] = (normalise_name(cells[0]), cells[1])
-    return rows
+
+    #: The one model ID the page declares, or None when it declares none or several.
+    model: str | None
+    #: Price kind -> the one amount the page states for it.
+    prices: Mapping[str, str]
+
+    @classmethod
+    def read(cls, text: str) -> MetricPriceTable | None:
+        """The page's prices, or None when the page has no Metric | Price table."""
+        found: dict[str, set[str]] = defaultdict(set)
+        standard_tables = 0
+        headings: list[tuple[int, str]] = []
+        table: list[list[str]] = []
+        any_table = False
+
+        def close() -> None:
+            nonlocal standard_tables, any_table
+            if not table:
+                return
+            header = [_cell(cell) for cell in table[0]]
+            rows, tier_heading = table[1:], " ".join(h for _, h in headings)
+            table.clear()
+            if "metric" not in header or "price" not in header:
+                return
+            any_table = True
+            if _OTHER_TIER.search(tier_heading) or re.search(r"(?i)cach", tier_heading):
+                return
+            batch_section = bool(re.search(r"(?i)batch", tier_heading))
+            standard_tables += not batch_section
+            metric_col, price_col = header.index("metric"), header.index("price")
+            batch_col = next((i for i, h in enumerate(header) if "batch" in h.split()), None)
+            for row in rows:
+                cells = [cell.strip() for cell in row]
+                if len(cells) != len(header):
+                    continue
+                kind = _METRIC_KINDS.get(_cell(cells[metric_col]))
+                if kind is None:
+                    continue
+                price = cells[price_col].replace("*", "").strip()
+                if batch_section:
+                    kind = {"input": "batch_input", "output": "batch_output"}.get(kind, kind)
+                    if kind == "cached_input":
+                        continue
+                found[kind].add(price)
+                if batch_col is not None and kind in {"input", "output"} \
+                        and cells[batch_col].replace("*", "").strip():
+                    found[f"batch_{kind}"].add(cells[batch_col].replace("*", "").strip())
+
+        for line in text.splitlines():
+            stripped = line.strip()
+            if "|" in stripped:
+                if len(table) > 1 and not re.search(r"\d", stripped):
+                    close()  # a row with no amount is the next table's header
+                table.append(stripped.strip("|").split("|"))
+                continue
+            close()
+            if heading := re.match(r"^(#{1,6})\s+(.*)$", stripped):
+                level = len(heading.group(1))
+                headings = [(lvl, h) for lvl, h in headings if lvl < level]
+                headings.append((level, heading.group(2)))
+        close()
+        if not any_table:
+            return None
+        if standard_tables > 1:
+            return cls(None, {})
+        for kind in ("input", "output"):
+            if _HALF_BATCH.search(text) and len(found[kind]) == 1:
+                base = parse_quantity(next(iter(found[kind])), "usd_per_1m_tokens")
+                if base is not None:
+                    found[f"batch_{kind}"].add(f"${_decimal_text(base.number / 2)}")
+        prices = {kind: next(iter(values)) for kind, values in found.items()
+                  if len({_price_key(v) for v in values}) == 1}
+        models = {m.lower() for m in _MODEL_DECLARATION.findall(text)}
+        return cls(next(iter(models)) if len(models) == 1 else None, prices)
+
+    def reading(self, claim: Claim) -> Reading:
+        """The page's price for the claim, or an empty reading when it states none."""
+        kind = claim.field.removeprefix("offering.price.")
+        model = normalise_name(self.model) if self.model is not None else None
+        name = next((name for name in claim.names if normalise_name(name) == model), None)
+        value = self.prices.get(kind) if name is not None else None
+        return Reading(subject=name or claim.names[0], value=value, unit=claim.unit)
+
+
+def _price_key(text: str) -> str:
+    quantity = parse_quantity(text, "usd_per_1m_tokens")
+    return text if quantity is None else repr(quantity.number)
+
+
+def _decimal_text(number: float) -> str:
+    return f"{number:.10f}".rstrip("0").rstrip(".")
 
 
 def _model_spec_subject(claim: Claim, text: str) -> str | None:
