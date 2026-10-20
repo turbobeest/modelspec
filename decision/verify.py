@@ -620,6 +620,12 @@ class OfferingPriceExtractor:
         if scoped_subject and simple_label:
             markdown = False
             table_subject = None
+            # The Markdown headings open above each table. A table counts only under
+            # the claim model's own heading path, by MetricPriceTable's rule: the line
+            # above it names the model, and no heading above it may name another
+            # (MODEL-426). A page without Markdown headings has an empty path.
+            path: tuple[tuple[int, str], ...] = ()
+            claim_names = {normalise_name(name): name for name in claim.names}
             for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
@@ -627,8 +633,10 @@ class OfferingPriceExtractor:
                     declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
                     names = {normalise_name(n.rstrip("."))
                              for n in declared.split(",")}
-                    table_subject = scoped_subject if normalise_name(scoped_subject) in names \
-                        else None
+                    own = normalise_name(scoped_subject) in names and (
+                        not path or MetricPriceTable._under([h for _, h in path], claim_names))
+                    table_subject = scoped_subject if own else None
+                path = _heading_path(path, line) or path
                 if table_subject is None:
                     continue
                 # In an HTML table a leading pipe is an empty first cell: the row
@@ -1109,7 +1117,7 @@ class SubscriptionPageExtractor:
             r"sign[- ]ups?|signups)\b|"
             r"\bexisting subscribers\b|\b(?:no longer|not) offered to new\b|"
             r"\bplan\b.{0,80}\bretired\b|"
-            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b",
+            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b|\bare legacy plans\b",
             text,
         ))
 
@@ -1159,7 +1167,8 @@ class SubscriptionPageExtractor:
                        r"tokens?|quota|uses|queries|tasks?|completions?|consumption|"
                        r"windows?|unlimited|more)\b"
                        if claim.field.endswith("usage_allowance") else
-                       r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
+                       r"\b(?:codex|claude code|kimi code|kimi claw|goal mode|"
+                       r"grok build|ai studio|antigravity|"
                        r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
             readings = [r for r in readings if r.value and not re.fullmatch(
                 r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
@@ -1451,6 +1460,14 @@ def _availability_predicate(sentence: str, subjects: set[str]) -> str | None:
     if "?" in sentence:
         return None
     text = sentence.strip()
+    legacy = re.fullmatch(r"(.+?) are legacy plans\.?", text, re.IGNORECASE)
+    if legacy:
+        plans = re.split(r",\s*(?:and\s+)?|\s+and\s+", legacy.group(1), flags=re.IGNORECASE)
+        # This layout lists bare tier names, with no introductory proposition
+        # such as "It is false that Andante and Moderato are legacy plans".
+        if (all(re.fullmatch(r"[A-Za-z][\w-]*", plan.strip()) for plan in plans)
+                and any(normalise_name(plan) in subjects for plan in plans)):
+            return "existing subscribers only"
     for subject in sorted(subjects, key=len, reverse=True):
         tokens = subject.split()
         if not tokens:
@@ -1597,9 +1614,15 @@ def _price_readings(subject: str, field: str, text: str) -> list[Reading]:
     if symbol is None:
         return []
     priced = _priced(text, symbol)
+    if symbol == "¥" and len({a for a, _ in priced}) > 1 and any(p is None for _, p in priced):
+        return []
     monthly = [a for a, p in priced if p == "monthly"]
-    return [Reading(subject=subject, value=a)
-            for a in (monthly or [a for a, _ in priced])]
+    amounts = monthly or [a for a, _ in priced]
+    # A yuan monthly equivalent can also say "/month". Without billing labels,
+    # distinct amounts cannot identify the plan's monthly subscription price.
+    if symbol == "¥" and len(set(amounts)) > 1:
+        return []
+    return [Reading(subject=subject, value=a) for a in amounts]
 
 
 def _model_list(cell: str) -> str:
@@ -1703,7 +1726,10 @@ def _plan_cards(claim: Claim, text: str) -> list[Reading]:
                     and field == "offering.subscription.usage_allowance":
                 readings += [Reading(subject=subject, value=c) for c in cells]
             if label in aliases:
-                readings += _price_readings(subject, field, " | ".join(row[1:]))
+                prices = " | ".join(
+                    f"{cell} {table[0][j] if j < len(table[0]) else ''}"
+                    for j, cell in enumerate(row[1:], start=1))
+                readings += _price_readings(subject, field, prices)
                 if field in {"offering.subscription.programmatic_or_agent_use",
                              "offering.subscription.usage_allowance"}:
                     readings += [Reading(subject=subject, value=c) for c in row[1:] if c]
@@ -2055,6 +2081,10 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:
         readings += [Reading(subject=subject, value=line) for line in _card_lines(lines, aliases)]
+        for line in lines:
+            label, sep, statement = line.partition(":")
+            if sep and statement.strip() and normalise_name(label) in aliases:
+                readings.append(Reading(subject=subject, value=line))
 
     tables: list[list[list[str]]] = []
     current: list[list[str]] = []
@@ -2282,7 +2312,8 @@ _SECTION_WORDS = frozenset(
     "rate rates cost costs fee fees billing usage per 1m 1k api the and of model details "
     "fine tuning training flex priority fast long context regional audio image images "
     "realtime video embedding embeddings search tool tools processing mode modes tier tiers "
-    "limits".split())
+    "limits models overview available all list summary table tables plan plans paid on demand "
+    "charges".split())
 #: A parenthetical after "Price" that names the unit of a standard price.
 _PRICE_UNIT = re.compile(r"(?i)\b(?:per|tokens?|mtok|ktok|million|thousand|units?|1m|1k)\b")
 
@@ -2312,6 +2343,20 @@ def _cell(text: str) -> str:
     return normalise_name(text.replace("*", "").replace("`", ""))
 
 
+def _heading_path(headings: tuple[tuple[int, str], ...], line: str
+                  ) -> tuple[tuple[int, str], ...] | None:
+    """The Markdown headings open after ``line``, or None when it is not a heading.
+
+    Each entry is ``(level, text)``. A heading closes every open heading at its
+    level or below. A line with a pipe is a table row, never a heading.
+    """
+    stripped = line.strip()
+    if "|" in stripped or not (heading := re.match(r"^(#{1,6})\s+(.*)$", stripped)):
+        return None
+    level = len(heading.group(1))
+    return (*((lvl, h) for lvl, h in headings if lvl < level), (level, heading.group(2)))
+
+
 @dataclass(frozen=True)
 class _PriceSection:
     """One ``Metric | Price`` table: its heading path, tier and stated amounts."""
@@ -2319,6 +2364,8 @@ class _PriceSection:
     headings: tuple[str, ...]
     tier: str  # "standard", "batch", "other" or "ambiguous"
     found: Mapping[str, tuple[str, ...]]
+    #: The table's line numbers in the text, its header and rules included.
+    lines: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2355,8 +2402,9 @@ class MetricPriceTable:
     def read(cls, text: str) -> MetricPriceTable | None:
         """The page's price tables, or None when it has no Metric | Price table."""
         sections: list[_PriceSection] = []
-        headings: list[tuple[int, str]] = []
+        headings: tuple[tuple[int, str], ...] = ()
         table: list[list[str]] = []
+        table_lines: list[int] = []
 
         def close() -> None:
             if not table:
@@ -2364,7 +2412,9 @@ class MetricPriceTable:
             table_header = list(table[0])
             header = [_cell(cell) for cell in table_header]
             rows = list(table[1:])
+            lines = tuple(table_lines)
             table.clear()
+            table_lines.clear()
             columns: dict[str, list[int]] = defaultdict(list)
             for i, cell in enumerate(table_header):
                 if (column_tier := _price_column_tier(cell)) is not None:
@@ -2409,30 +2459,53 @@ class MetricPriceTable:
                     found["cached_input"].append(cells[cached_col])
             sections.append(_PriceSection(
                 tuple(h for _, h in headings), tier,
-                {kind: tuple(values) for kind, values in found.items()}))
+                {kind: tuple(values) for kind, values in found.items()}, lines))
 
-        for line in text.splitlines():
+        for number, line in enumerate(text.splitlines()):
             stripped = line.strip()
             if "|" not in stripped:
                 close()
-                if heading := re.match(r"^(#{1,6})\s+(.*)$", stripped):
-                    level = len(heading.group(1))
-                    headings = [(lvl, h) for lvl, h in headings if lvl < level]
-                    headings.append((level, heading.group(2)))
+                headings = _heading_path(headings, stripped) or headings
                 continue
             if _SEPARATOR.match(stripped):
                 if len(table) != 1:  # a rule under a header belongs to it
                     close()
+                else:
+                    table_lines.append(number)
                 continue
             cells = stripped.strip("|").split("|")
             if table and (len(cells) != len(table[0]) or not _AMOUNT.search(stripped)):
                 close()  # a new column count or a header-shaped row starts a table
             table.append(cells)
+            table_lines.append(number)
         close()
         if not sections:
             return None
         return cls(tuple(sections), frozenset(m.lower() for m in _MODEL_DECLARATION.findall(text)),
                     bool(_HALF_BATCH.search(text)))
+
+    @classmethod
+    def outside(cls, text: str) -> str:
+        """``text`` without the tables this reader owns, for the looser price readers.
+
+        Only this reader reads a ``Metric | Price`` table, so its refusal of one
+        stands (MODEL-426). Prices stated elsewhere on the page stay readable.
+
+        One exception keeps the looser readers' reading of HTML and plain-text
+        pages, which have no Markdown headings: when the page's only table has no
+        heading above it and clear price columns, the looser readers read it by the
+        line directly above it, as before MODEL-426. With two or more tables and
+        no headings, which table is whose is not clear, so none is left to them.
+        """
+        table = cls.read(text)
+        if table is None:
+            return text
+        [only, *more] = table.sections
+        if not more and not only.headings and only.tier != "ambiguous":
+            return text
+        owned = {number for section in table.sections for number in section.lines}
+        return "\n".join(line for number, line in enumerate(text.splitlines())
+                         if number not in owned)
 
     def reading(self, claim: Claim) -> Reading:
         """The page's price for the claim, or an empty reading when it states none."""
@@ -2440,21 +2513,28 @@ class MetricPriceTable:
         declared = {normalise_name(model) for model in self.models}
         name = names.get(next(iter(declared))) if len(declared) == 1 else None
         own = [section for section in self.sections
-               if name is not None and self._under(section, names)]
+               if name is not None and self._under(section.headings, names)]
         prices = self._prices(own)
         value = prices.get(claim.field.removeprefix("offering.price."))
         return Reading(subject=name or claim.names[0], value=value, unit=claim.unit)
 
     @staticmethod
-    def _under(section: _PriceSection, names: Mapping[str, str]) -> bool:
-        """Whether the table sits under the claim model's own heading.
+    def _under(headings: Sequence[str], names: Mapping[str, str]) -> bool:
+        """Whether a table under ``headings`` sits under the claim model's own heading.
 
-        Every heading above it must either name the claim's model or be a section
-        heading (``Pricing``, ``Text tokens``). Any other heading, above or below
-        the model's own, may name another model, so the table is not read.
+        ``names`` maps each normalised claim name to the name. Every heading above
+        the table must either name the claim's model or be a section heading
+        (``Pricing``, ``Text tokens``), and one must name the model. Any other
+        heading, above or below the model's own, may name another model, so the
+        table is not read. ``OfferingPriceExtractor`` uses the same rule (MODEL-426).
+
+        Headings are compared whole, and section words word by word. A heading that
+        names two models (``Example Mini, Example Maxi``) or labels one
+        (``Models: Example Mini``) is not the model's own heading, so a table under
+        it reads nothing. That misses a price rather than risk another model's.
         """
         named = False
-        for heading in section.headings:
+        for heading in headings:
             normal = normalise_name(heading.replace("*", "").replace("`", ""))
             if normal in names:
                 named = True
@@ -6600,6 +6680,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``ExtractorError``, is skipped.
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
+    A stricter reader's refusal is not overridden by a looser one. For an
+    ``offering.price.*`` claim, a ``Metric | Price`` table that ``MetricPriceTable``
+    owns is read by ``ModelPageExtractor`` alone: every other reader, an LLM reader
+    included, reads the region without that table (``MetricPriceTable.outside``).
+    When the strict reader finds the table ambiguous or another model's, the
+    table verifies nothing, and prices stated elsewhere in the region stay
+    readable (MODEL-426).
     """
     url_of = getattr(regions, "source_url", None)
     protected_copy = getattr(regions, "cite_only", None)
@@ -6655,7 +6742,11 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         continue
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
+            # Only the strict reader reads the Metric | Price tables it owns (MODEL-426).
+            loose = MetricPriceTable.outside(text) \
+                if claim.field.startswith("offering.price.") else text
             for extractor in independent:
+                read = text if isinstance(extractor, ModelPageExtractor) else loose
                 try:
                     if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor,
                                               LicenceTermsExtractor)):
@@ -6673,7 +6764,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                     elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
                             claim,
-                            text,
+                            read,
                             cache_key=(source.snapshot_ref, region_id, claim.field,
                                        *claim.names),
                         )
@@ -6685,7 +6776,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             raise ExtractorError("template drifted")
                         readings = extractor.extract(claim, html)
                     else:
-                        readings = extractor.extract(claim, text)
+                        readings = extractor.extract(claim, read)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue

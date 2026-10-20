@@ -98,6 +98,17 @@ jobs:
             exit "$status"
           fi
 
+      - name: Retain normalized discoveries for replay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-watch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/watch.json
+            ${{ runner.temp }}/watch.md
+          retention-days: 45
+          if-no-files-found: warn
+
   dispatch:
     name: Dispatch private processing for discovered releases
     needs: watch
