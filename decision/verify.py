@@ -107,6 +107,7 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
+from decision.perplexity_faq import PerplexityFaqExtractor
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.retention import cite_only_origin, is_cite_only
@@ -5420,7 +5421,8 @@ def deterministic_extractors() -> list[Extractor]:
             HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
             StructuredDataExtractor(),
             OfferingPriceExtractor(),
-            SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
+            SubscriptionPageExtractor(), PerplexityFaqExtractor(),
+            TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
             MistralOutputModalitiesExtractor(),
             LabJurisdictionExtractor()]
@@ -5501,6 +5503,23 @@ class StoredRegions:
     def source_url(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
         return None if source is None else str(source.url)
+
+    def page_html(self, source_id: str, copy_ref: str) -> str | None:
+        """Raw retained HTML for sources whose retention policy permits it."""
+        if self.cite_only(source_id, copy_ref):
+            return None
+        if source_id not in self.sources or not self.store.has(copy_ref):
+            return None
+        try:
+            body = self.store.get(copy_ref)
+        except (OSError, ValueError):
+            return None
+        if body.startswith(b"\xef\xbb\xbf"):
+            body = body[3:]
+        try:
+            return body.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
 
     def is_whole_document(self, source_id: str, region_id: str, normaliser: str) -> bool:
         source = self.sources.get(source_id)
@@ -6043,6 +6062,12 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)
                 or isinstance(extractor, LicenceTermsExtractor)
                 and len(extractor.values(claim.field, text, licence_url=source_url)) == 1]
+    faq = [
+        extractor for extractor in extractors
+        if isinstance(extractor, PerplexityFaqExtractor) and extractor.bound_to(claim, source_url)
+    ]
+    if faq:
+        return faq
     specialized = [extractor for extractor in extractors if (
         isinstance(extractor, MistralOutputModalitiesExtractor)
         and extractor.bound_to(claim, kind, source_url)
@@ -6054,7 +6079,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
-            MistralOutputModalitiesExtractor, XaiMatrixExtractor,
+            MistralOutputModalitiesExtractor, PerplexityFaqExtractor, XaiMatrixExtractor,
         )):
             continue
         accepts = extractor.accepts
@@ -6404,6 +6429,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             cache_key=(source.snapshot_ref, region_id, claim.field,
                                        *claim.names),
                         )
+                    elif isinstance(extractor, PerplexityFaqExtractor):
+                        reader = getattr(regions, "page_html", None)
+                        html = (reader(source.source_id, source.snapshot_ref)
+                                if callable(reader) else None)
+                        if not html:
+                            raise ExtractorError("template drifted")
+                        readings = extractor.extract(claim, html)
                     else:
                         readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
@@ -6440,7 +6472,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
 
 
 class VerificationLog:
-    """``verification/*.jsonl``: append-only; the latest outcome per target wins."""
+    """``verification/log.jsonl``: append-only; the latest outcome per target wins.
+
+    Only ``log.jsonl`` is read, as ``decision.snapshot.collect_repo`` reads it. Other
+    streams in the directory, such as ``supersessions.jsonl`` (MODEL-415), are not
+    verifications.
+    """
 
     def __init__(self, directory: str | Path = DEFAULT_DIRECTORY) -> None:
         self.directory = Path(directory)
@@ -6453,11 +6490,12 @@ class VerificationLog:
 
     def records(self) -> list[Verification]:
         records = []
-        for path in sorted(self.directory.glob("*.jsonl")):
-            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                if line.strip():
-                    with private_errors(path, line=number):
-                        records.append(Verification.model_validate_json(line))
+        if not self.path.is_file():
+            return records
+        for number, line in enumerate(self.path.read_text(encoding="utf-8").splitlines(), 1):
+            if line.strip():
+                with private_errors(self.path, line=number):
+                    records.append(Verification.model_validate_json(line))
         return records
 
     def latest(self) -> dict[tuple[str, str], Verification]:
