@@ -337,7 +337,7 @@ def test_vertex_canonical_model_cannot_borrow_another_catalogue_name(tmp_path, m
     )
 
 
-def test_weekly_reread_checks_future_row_and_preserves_schedule_on_rewrite(tmp_path):
+def test_weekly_reread_checks_future_row_and_proposes_a_change_without_writing(tmp_path):
     claim, regions = setup_claim(tmp_path)
     root = tmp_path / "repo"
     (root / "registry").mkdir(parents=True)
@@ -399,12 +399,14 @@ def test_weekly_reread_checks_future_row_and_preserves_schedule_on_rewrite(tmp_p
     assert reread(ARGON).facts[0].status == price_reread.Status.UNCHANGED
     missing = ARGON.replace(" starting December 1, 2026.", "")
     assert reread(missing).facts[0].status != price_reread.Status.UNCHANGED
+    before = path.read_text()
     report = reread(ARGON.replace("$4.00", "$5.00"), write=True)
-    assert report.facts[0].status == price_reread.Status.CHANGED
+    # MODEL-423: a changed price is proposed for review, never written.
+    assert report.facts[0].status == price_reread.Status.NEEDS_REVIEW
+    assert report.facts[0].new_value == 5
+    assert path.read_text() == before
     updated = yaml.safe_load(path.read_text())[0]["facts"][0]
-    assert updated["value"] == 5
-    assert updated["effective_from"] == "2026-12-01"
-    assert reread(ARGON.replace("$4.00", "$5.00")).facts[0].status == price_reread.Status.UNCHANGED
+    assert (updated["value"], updated["effective_from"]) == (4, "2026-12-01")
     updated["effective_from"] = "2026-12-02"
     rows = yaml.safe_load(path.read_text())
     rows[0]["facts"][0] = updated

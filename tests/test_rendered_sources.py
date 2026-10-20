@@ -7,7 +7,12 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from decision.sources import RENDERED_PREPARATIONS, RenderedFetcher
+from decision.sources import (
+    RENDERED_PREPARATIONS,
+    CitedRegionWait,
+    RenderedFetcher,
+    rendered_preparation,
+)
 
 
 class PageError(Exception):
@@ -149,3 +154,84 @@ def test_unsuccessful_navigation_does_not_prepare_or_capture():
     assert (result.outcome, result.status, result.error) == ("unreachable", 503, "HTTP 503")
     assert page.events == ["navigate"]
     assert page.closed
+
+
+# --- MODEL-423: wait for cited regions a client-side app mounts late ------------------------
+
+
+class MountingPage(FakePage):
+    """A client-side app: each region mounts after the network idles, or never."""
+
+    def __init__(self, mounts):
+        super().__init__()
+        self.body = "<main></main>"
+        self.mounts = mounts
+        self.waited = []
+
+    def wait_for_function(self, expression, *, arg, timeout):
+        assert "document.querySelector(selector)" in expression
+        self.events.append(f"wait for {arg}")
+        self.waited.append((arg, timeout))
+        if self.mounts.get(arg) is None:
+            raise PageTimeout(f"{arg} stayed empty")
+        self.body = self.body.replace("</main>", self.mounts[arg] + "</main>")
+
+
+def source(source_id, *locators):
+    from decision.model import Source
+
+    return Source.model_validate({
+        "id": source_id, "url": "https://app.example/plans", "fetch": "rendered",
+        "cited_regions": [{"id": f"r{i}", "locator": {"kind": kind, "value": value}}
+                          for i, (kind, value) in enumerate(locators)],
+    })
+
+
+def render(page, preparation):
+    renderer = RenderedFetcher(timeout=20)
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+    return renderer.fetch("https://app.example/plans", prepare=preparation)
+
+
+def test_every_cited_css_region_of_a_shared_url_is_waited_for():
+    sources = {
+        "plans-html": source("plans-html", ("page", ""), ("css", "#plans"),
+                             ("css", "#faq li::own")),
+        "plans-alias": source("plans-alias", ("css", "#plans"),
+                              ("css", "#terms::excerpt=Billed monthly.")),
+    }
+    preparation = rendered_preparation(["plans-alias", "plans-html"], sources)
+    assert preparation == CitedRegionWait(("#plans", "#terms", "#faq li"))
+
+    page = MountingPage({"#plans": "<p>Pro $20/month</p>", "#terms": "<p>Billed monthly.</p>",
+                         "#faq li": "<li>Cancel any time.</li>"})
+    result = render(page, preparation)
+    assert (result.outcome, result.error) == ("ok", None)
+    assert result.body == (b"<main><p>Pro $20/month</p><p>Billed monthly.</p>"
+                           b"<li>Cancel any time.</li></main>")
+    assert page.events == ["navigate", "idle", "wait for #plans", "wait for #terms",
+                           "wait for #faq li", "capture"]
+
+
+def test_a_region_that_never_mounts_is_captured_as_is_for_the_readers_to_report():
+    page = MountingPage({"#terms": "<p>Billed monthly.</p>"})
+    result = render(page, CitedRegionWait(("#plans", "#terms")))
+    assert (result.outcome, result.error, result.body) == ("ok", None, b"<main></main>")
+    assert [selector for selector, _ in page.waited] == ["#plans"]
+
+
+def test_region_waits_share_one_timeout_budget(monkeypatch):
+    ticks = iter([0.0, 0.5, 19.0, 20.5])
+    monkeypatch.setattr("decision.sources.time.monotonic", lambda: next(ticks))
+    page = MountingPage({"#a": "<p>a</p>", "#b": "<p>b</p>", "#c": "<p>c</p>"})
+    render(page, CitedRegionWait(("#a", "#b", "#c")))
+    assert page.waited == [("#a", 19500.0), ("#b", 1000.0)]
+
+
+def test_a_named_preparation_wins_and_page_regions_need_no_wait():
+    sources = {"aws-pricing": source("aws-pricing", ("css", "table")),
+               "plain": source("plain", ("page", ""), ("heading", "pricing"))}
+    assert rendered_preparation(["aws-pricing", "plain"], sources) \
+        is RENDERED_PREPARATIONS["aws-pricing"]
+    assert rendered_preparation(["plain"], sources) is None
+    assert rendered_preparation(["unregistered"], sources) is None
