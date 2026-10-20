@@ -6,7 +6,7 @@ import subprocess
 import yaml
 
 from decision.citation import fact_citation
-from decision.model import Measurement, value_hash, verification_counts
+from decision.model import Fact, Measurement, value_hash, verification_counts
 from decision.retention import cite_only_origin
 from decision.snapshot import FactValue
 from decision.sources import load_sources
@@ -48,7 +48,7 @@ def json_record(record):
     return json.loads(json.dumps(record, default=lambda value: value.isoformat()))
 
 
-def admitted_subscription_facts(root, subscriptions, as_of):
+def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
     """Project raw facts using the documented second-key and source rules.
 
     Do not call the snapshot compiler or collector to form its expected output.
@@ -57,9 +57,10 @@ def admitted_subscription_facts(root, subscriptions, as_of):
 
     A fact whose registered source or observed redirect is on a cite-only host
     enters without a verification record (docs/design/cite-only-sources.md),
-    unless its citation is invalid, it names an identifier facet, or its latest
-    counting outcome is a mismatch or unreachable. Every other fact still needs
-    a latest counting outcome of verified.
+    unless its citation or record is invalid (the fact must validate against
+    ``registry`` as the snapshot validates it), it names an identifier facet,
+    or its latest counting outcome is a mismatch or unreachable. Every other
+    fact still needs a latest counting outcome of verified.
     """
     log = [
         json.loads(line)
@@ -100,6 +101,8 @@ def admitted_subscription_facts(root, subscriptions, as_of):
                     continue
                 try:
                     fact_citation(fact, urls)
+                    Fact.model_validate({**fact, "verification": None},
+                                        context={"registry": registry})
                 except ValueError:
                     continue
                 if latest in {"mismatch", "unreachable"}:
