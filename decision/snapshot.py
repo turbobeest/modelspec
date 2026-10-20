@@ -66,10 +66,12 @@ from decision.model import (
     Fact,
     Measurement,
     evidence_verification_value,
+    exceeds_legacy_orderings,
     fact_verification_value,
     matching_value_hashes,
     unordered_facet,
     validate_price_schedules,
+    value_hash,
     verification_counts,
 )
 
@@ -827,12 +829,29 @@ class _Compiler:
         except KeyError:
             return False
 
-    def _verification(self, kind: str, rid: Any, inline: Any, value: Any,
-                      facet: Any = None) -> dict | None:
-        """The winning verification record, or ``None``.
+    def _repeats_a_member(self, facet_id: str, value: Any) -> bool:
+        """A set value names each member once, on every path, cited or not (MODEL-416)."""
+        if not isinstance(value, list):
+            return False
+        registry = self.registry if self.registry is not None else default_registry()
+        try:
+            value_type = registry.facet(facet_id).value_type
+        except KeyError:
+            return False
+        if getattr(value_type, "kind", value_type) != "set":
+            return False
+        members = [json.dumps(member, sort_keys=True) for member in value]
+        return len(set(members)) != len(members)
+
+    def _verdicts(self, kind: str, rid: Any, inline: Any, value: Any,
+                  facet: Any = None) -> tuple[dict | None, bool]:
+        """The winning verification record (or ``None``), and whether it is unsure.
 
         A record counts when its ``value_hash`` binds ``value``; for an
-        unordered facet, any order of the same members (MODEL-416).
+        unordered facet, any order of the same members (MODEL-416). Past
+        ``LEGACY_ORDERINGS_MAX_MEMBERS`` a legacy hash of another order cannot
+        be found, so a newer failed outcome on a hash that does not bind might
+        still be this set's: the verdict is then unsure, and the value is held.
         """
         inline_record = None if inline is None else _as_dict(inline)
         if inline_record is not None and not _counts(inline_record):
@@ -841,21 +860,31 @@ class _Compiler:
                        else inline_record.get("target", {}).get("value_hash"))
         logged = (self.logged_hashes.get((kind, str(rid)), [])
                   if rid is not None else [])
+        unordered = self._unordered(kind, facet)
         bound = matching_value_hashes(
-            value, [*logged, *([inline_hash] if inline_hash else [])],
-            unordered=self._unordered(kind, facet))
-        best = (None if inline_hash not in bound
-                else (str(inline_record["date"]), 0, inline_record))
-        for logged_hash in logged:
-            if logged_hash not in bound:
-                continue
-            entry = self.log[(kind, str(rid), logged_hash)]
-            if best is None or entry[:2] >= best[:2]:
+            value, [*logged, *([inline_hash] if inline_hash else [])], unordered=unordered)
+        entries = [] if inline_record is None else [
+            (str(inline_record["date"]), 0, inline_record, inline_hash in bound)]
+        entries += [(*self.log[(kind, str(rid), h)], h in bound) for h in logged]
+        best = None
+        for entry in entries:
+            if entry[3] and (best is None or entry[:2] >= best[:2]):
                 best = entry
-        return None if best is None else best[2]
+        unsure = exceeds_legacy_orderings(value, unordered=unordered) and any(
+            not entry[3] and entry[2]["outcome"] != "verified"
+            and (best is None or entry[:2] > best[:2])
+            for entry in entries)
+        return (None if best is None else best[2]), unsure
+
+    def _verification(self, kind: str, rid: Any, inline: Any, value: Any,
+                      facet: Any = None) -> dict | None:
+        """The winning verification record, or ``None``. See ``_verdicts``."""
+        return self._verdicts(kind, rid, inline, value, facet)[0]
 
     def _outcome(self, kind: str, rid: Any, inline: Any, value: Any, facet: Any = None) -> str:
-        record = self._verification(kind, rid, inline, value, facet)
+        record, unsure = self._verdicts(kind, rid, inline, value, facet)
+        if unsure:
+            return "unbound"
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
@@ -898,6 +927,8 @@ class _Compiler:
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
         outcome = self._outcome(kind, rid, inline, value, facet)
+        if outcome == "unbound":
+            return "quarantined (unbound set verification)"
         if kind == "fact" and citation is not None and outcome == "mismatch":
             refused = self._supersede(rid, inline, value, refs, facet)
             if refused is not None:
@@ -1001,6 +1032,9 @@ class _Compiler:
             if state == "unknown":
                 self.rejected[(sid, facet_id)] = ("unknown", tuple(
                     self.sources.get(s, s) for s in source_ids))
+                continue
+            if state == "known" and self._repeats_a_member(facet_id, f.get("value")):
+                self._reject((sid, facet_id), "quarantined (repeated member)", source_ids)
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:

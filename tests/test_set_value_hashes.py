@@ -26,9 +26,12 @@ from decision.model import (
     value_hash,
     verification_value_hash,
 )
+from decision import snapshot as snap
 from decision.registry import RegistryError
-from tests.snapshot_records import fact, verification
-from tests.test_cite_only_verification import loaded, snapshot_input
+from decision.snapshot import audit_build, collect_repo, excluded_sources, load_premier
+from tests import test_cite_only_supersession as supersession_case
+from tests.snapshot_records import fact, model, verification
+from tests.test_cite_only_verification import CITE_URL, loaded, snapshot_input
 from tests.test_decision_registry import _copy, _edit, _load
 
 FACET = "model.input_modalities"
@@ -110,7 +113,14 @@ def test_a_reorder_does_not_change_the_canonical_hash():
     hashes = {verification_value_hash(order, unordered=True)
               for order in (models, sorted(models), list(reversed(models)))}
     assert hashes == {value_hash(sorted(models))}
-    assert verification_value_hash(["b", "a", "b"], unordered=True) == value_hash(["a", "b"])
+
+
+
+def test_a_repeated_member_is_kept_so_it_never_hashes_as_the_unique_set():
+    repeated = verification_value_hash(["b", "a", "b"], unordered=True)
+    assert repeated == value_hash(["a", "b", "b"]) != value_hash(["a", "b"])
+    assert matching_value_hashes(
+        ["en", "fr", "de", "de"], [value_hash(["de", "en", "fr"])], unordered=True) == set()
 
 
 @pytest.mark.parametrize("value", [
@@ -248,3 +258,128 @@ def test_a_later_mismatch_in_any_order_outranks_an_earlier_verified(filed):
     log = [verification("fact", FACT_ID, day="2026-10-01", value=ORDER_A),
            _mismatch(ORDER_B, day="2026-10-05")]
     assert loaded(_verified_card(filed, log)).fact("lab/alpha", FACET).state == "unknown"
+
+
+# --- past the ordering bound the snapshot fails closed --------------------------------------
+
+LANGUAGES = "model.languages"
+LANGUAGES_ID = f"lab/alpha#{LANGUAGES}"
+TEN = ["en", "fr", "de", "es", "it", "pt", "nl", "sv", "ja", "ko"]
+FILED_TEN = list(reversed(TEN))
+ROTATED_TEN = TEN[3:] + TEN[:3]
+PLAIN_URL = "https://example.org/models"
+assert len(TEN) > LEGACY_ORDERINGS_MAX_MEMBERS
+
+
+def _languages(value, log=(), *, cited=True):
+    rows = [*model("lab/alpha")["facts"], fact("model", "lab/alpha", LANGUAGES, value)]
+    inputs = snapshot_input(outcome=None if cited else "verified",
+                            url=CITE_URL if cited else PLAIN_URL, facets=rows)
+    for row in inputs.models[0]["facts"]:
+        if row["facet"] == LANGUAGES:
+            row.pop("verification", None)
+    return replace(inputs, verifications=list(log))
+
+
+def _row(value, outcome, day="2026-10-10"):
+    return verification("fact", LANGUAGES_ID, outcome, day=day, value=value)
+
+
+def _state(inputs):
+    return loaded(inputs).fact("lab/alpha", LANGUAGES).state
+
+
+def _reason(inputs):
+    return snap._compile(inputs, reg.default(), None, date(2026, 10, 19), False).rejected.get(
+        ("lab/alpha", LANGUAGES), (None,))[0]
+
+
+@pytest.mark.parametrize("logged", [ROTATED_TEN, sorted(TEN), FILED_TEN])
+def test_a_cited_long_set_with_a_mismatch_in_any_order_stays_out(logged):
+    assert _state(_languages(FILED_TEN, [_row(logged, "mismatch")])) == "unknown"
+
+
+def test_an_unbindable_mismatch_past_the_bound_is_held_with_its_own_reason():
+    inputs = _languages(FILED_TEN, [_row(ROTATED_TEN, "mismatch")])
+    assert _reason(inputs) == "quarantined (unbound set verification)"
+
+
+def test_a_newer_bound_verified_outranks_an_older_unbindable_mismatch():
+    log = [_row(ROTATED_TEN, "mismatch", "2026-10-01"), _row(sorted(TEN), "verified")]
+    assert _state(_languages(FILED_TEN, log, cited=False)) == "known"
+
+
+def test_a_newer_unbindable_mismatch_holds_a_verified_long_set():
+    log = [_row(sorted(TEN), "verified", "2026-10-01"), _row(ROTATED_TEN, "mismatch")]
+    inputs = _languages(FILED_TEN, log, cited=False)
+    assert _reason(inputs) == "quarantined (unbound set verification)"
+
+
+@pytest.mark.parametrize("logged,state", [(ROTATED_TEN, "unknown"), (sorted(TEN), "known")])
+def test_a_long_set_is_verified_only_by_a_row_that_binds_it(logged, state):
+    assert _state(_languages(FILED_TEN, [_row(logged, "verified")], cited=False)) == state
+
+
+def test_a_cited_long_set_is_not_held_by_a_verified_row_it_cannot_bind():
+    assert _state(_languages(FILED_TEN, [_row(ROTATED_TEN, "verified")])) == "known"
+
+
+# --- a set names each member once, on every path --------------------------------------------
+
+REPEATED = ["en", "fr", "de", "de"]
+
+
+@pytest.mark.parametrize("cited", [False, True])
+@pytest.mark.parametrize("logged,outcome", [
+    (["de", "en", "fr"], "verified"),
+    (sorted(REPEATED), "verified"),
+    (sorted(REPEATED), "mismatch"),
+    (["fr", "de", "en"], "mismatch"),
+])
+def test_a_set_with_a_repeated_member_never_enters(cited, logged, outcome):
+    inputs = _languages(REPEATED, [_row(logged, outcome)], cited=cited)
+    assert _state(inputs) == "unknown"
+
+
+def test_a_repeated_member_is_refused_with_its_own_reason():
+    inputs = _languages(REPEATED, [_row(sorted(REPEATED), "verified")], cited=False)
+    assert _reason(inputs) == "quarantined (repeated member)"
+
+
+# --- a supersession needs the winning row's own hash ----------------------------------------
+
+
+def test_a_winning_mismatch_without_a_value_hash_refuses_supersession(monkeypatch):
+    real = snap._Compiler._verification
+
+    def without_hash(self, *args, **kwargs):
+        winner = real(self, *args, **kwargs)
+        if winner is None:
+            return None
+        return {**winner, "target": {k: v for k, v in winner["target"].items()
+                                     if k != "value_hash"}}
+
+    monkeypatch.setattr(snap._Compiler, "_verification", without_hash)
+    inputs = supersession_case.inputs(records=[supersession_case.record()])
+    c = snap._compile(inputs, reg.default(), None, supersession_case.TODAY, False)
+    reason = c.rejected[(supersession_case.SID, supersession_case.FACET)][0]
+    assert reason == "quarantined (mismatch; supersession refused: names another mismatch)"
+
+
+# --- census: the ordering bound covers every fact in the data -------------------------------
+
+
+def test_no_fact_in_the_data_is_held_because_the_ordering_bound_is_too_small():
+    """Fails when a set past the bound has a newer failed row it cannot bind.
+
+    Such a row may be a pre-MODEL-416 hash of another order of the same set.
+    Re-verify the fact (a new row binds the sorted members) or raise
+    ``LEGACY_ORDERINGS_MAX_MEMBERS``.
+    """
+    root = reg.REPO_ROOT
+    audit = audit_build(collect_repo(root), registry=reg.default(),
+                        premier=load_premier(root / "premier" / "slice-1.yaml"),
+                        as_of=date(2026, 10, 19), guard=excluded_sources())
+    held = sorted(key for key, reason in audit.rejected.items()
+                  if reason == "quarantined (unbound set verification)")
+    assert held == []

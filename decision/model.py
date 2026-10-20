@@ -233,8 +233,9 @@ def value_hash(value: JsonValue) -> str:
 #: stepped out from under a mismatch. Those rows are fixed: every verification
 #: written since binds the canonical form. Matching tries every ordering of the
 #: members, 9! = 362,880 hashes at most (about 0.2 s), and only for a fact that
-#: has a row on a hash nothing else explains. On 2026-10-19 the largest value
-#: any mismatch or unreachable row on a set facet binds has nine members.
+#: has a row on a hash nothing else explains. Past the bound the snapshot fails
+#: closed (``exceeds_legacy_orderings``), and a census test over the data
+#: (``tests/test_set_value_hashes.py``) fails if any fact would be held so.
 LEGACY_ORDERINGS_MAX_MEMBERS = 9
 
 
@@ -254,9 +255,23 @@ def _members(value: JsonValue) -> list[str] | None:
 
 
 def canonical_value(value: JsonValue, *, unordered: bool) -> JsonValue:
-    """The form a verification binds: an unordered value's members sorted, each once."""
+    """The form a verification binds: an unordered value's members, sorted.
+
+    A repeated member is kept, never folded: a set's members are unique, so a
+    list with a repeat is a different, invalid value, not the same set.
+    """
     members = _members(value) if unordered else None
-    return value if members is None else sorted(set(members))
+    return value if members is None else sorted(members)
+
+
+def exceeds_legacy_orderings(value: JsonValue, *, unordered: bool) -> bool:
+    """Whether a legacy hash of another order of ``value`` can no longer be found.
+
+    Such a row cannot be told apart from a row on other members, so a caller
+    that meets one it cannot bind must hold the value back (fail closed).
+    """
+    members = _members(value) if unordered else None
+    return members is not None and len(members) > LEGACY_ORDERINGS_MAX_MEMBERS
 
 
 def verification_value_hash(value: JsonValue, *, unordered: bool) -> str:
@@ -272,8 +287,10 @@ def matching_value_hashes(
     For an ordered facet, only ``value_hash(value)``. For an unordered facet, a
     hash binds the member set, not an order: the canonical hash, the legacy hash
     of the order filed, and the legacy hash of any other order of the same
-    members (up to ``LEGACY_ORDERINGS_MAX_MEMBERS``). So a reorder never changes
-    which verifications apply: it cannot clear a mismatch, nor drop a verified.
+    members (up to ``LEGACY_ORDERINGS_MAX_MEMBERS``). So, up to that bound, a
+    reorder never changes which verifications apply: it cannot clear a mismatch,
+    nor drop a verified. Past it a legacy hash of another order stays unbound;
+    see ``exceeds_legacy_orderings``.
     """
     recorded = set(recorded)
     found = recorded & {value_hash(value)}
