@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -143,6 +143,27 @@ def load(root: Path) -> Catalogue:
     return c
 
 
+def cited(f: dict) -> bool:
+    """A cite-only record (MODEL-411): provenance without machine verification."""
+    return isinstance(f.get("citation"), dict) and f["citation"].get("status") == "cited"
+
+
+def retrieved_on(citation: dict) -> str | None:
+    """The latest UTC retrieval day among a citation's sources, or None when undated."""
+    days = []
+    for source in citation.get("sources") or []:
+        when = source.get("retrieved_at") if isinstance(source, dict) else None
+        if when is None:
+            continue
+        try:
+            parsed = when if isinstance(when, datetime) else datetime.fromisoformat(str(when))
+        except ValueError:
+            continue
+        if parsed.tzinfo is not None:
+            days.append(parsed.astimezone(timezone.utc).date())
+    return max(days).isoformat() if days else None
+
+
 def _records(c, rows, subject, kind, parent):
     for index, raw in enumerate(rows):
         if not isinstance(raw, dict):
@@ -157,13 +178,17 @@ def _records(c, rows, subject, kind, parent):
         v = c.verifications.get((kind, rid), raw.get("verification") or {})
         value = raw.get("value") if kind == "fact" else raw.get("score")
         read_date = raw.get("read_date") or raw.get("verified_at")
+        if cited(raw):
+            # MODEL-411: a cite-only fact is dated by its retrieval, never by an
+            # old verification left in frozen data; without one it stays undated.
+            v, read_date = {}, retrieved_on(raw["citation"])
         # A verification for another value must not reset the current value's age.
         # Hash what the verifier hashed: a dated price binds its period (MODEL-394).
         try:
             checked_value = (
                 fact_verification_value(raw) if kind == "fact" else evidence_verification_value(raw)
             )
-            if (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
+            if v and (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
                 read_date = v.get("date") or read_date
             else:
                 v = {}

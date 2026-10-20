@@ -898,3 +898,57 @@ def test_sampled_dated_price_keeps_its_period(catalogue, registry, monkeypatch, 
     assert sample.claim_for(served[0], catalogue, registry).conditions == {
         "effective_until": "2026-12-31"
     }
+
+
+def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
+    """A MODEL-411 cite-only fact with an old verification left in frozen data."""
+    from decision.snapshot import SnapshotInputs
+
+    catalogue.sources["src-xai"] = {
+        "id": "src-xai",
+        "url": "https://docs.x.ai/docs/models",
+        "normaliser": "text-default",
+        "cited_regions": [{"id": "r1", "locator": {"kind": "page"}}],
+    }
+    row = fact("model", MID, "model.context_window", 128000, source="src-xai")
+    if retrieved_at is not None:
+        row["sources"][0]["retrieved_at"] = retrieved_at
+    inputs = SnapshotInputs(
+        models=[{
+            "id": MID, "lifecycle": "active",
+            "facts": [fact("model", MID, "model.weights_openness", "open_weights"), row],
+        }],
+        sources={sid: source["url"] for sid, source in catalogue.sources.items()},
+    )
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    calibrate(catalogue, tmp_path, registry, TODAY)
+    [served] = [f for f in catalogue.facts if f["field"] == "model.context_window"]
+    assert served["citation"]["status"] == "cited"
+    return served
+
+
+def test_cited_fact_is_dated_by_its_retrieval_not_an_old_verification(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """MODEL-422: engine main serves x.ai and Perplexity facts cite-only (MODEL-411)."""
+    served = calibrate_cited(
+        catalogue, registry, monkeypatch, tmp_path, "2026-09-19T23:30:00-04:00"
+    )
+    assert (served["read_date"], served["verification"]) == ("2026-09-20", {})
+    assert invariants.run(catalogue, registry, TODAY)["findings"] == []
+
+
+def test_undated_cited_fact_warns_instead_of_failing_the_audit(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    served = calibrate_cited(catalogue, registry, monkeypatch, tmp_path, None)
+    assert (served["read_date"], served["verification"]) == (None, {})
+    result = invariants.run(catalogue, registry, TODAY)
+    assert result["errors"] == 0
+    assert result["findings"] == [{
+        "id": f"{MID}#model.context_window",
+        "field": "model.context_window",
+        "rule": "citation_undated",
+        "severity": "warning",
+    }]
+

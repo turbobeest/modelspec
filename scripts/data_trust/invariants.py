@@ -16,7 +16,7 @@ from decision.model import Fact, Model, Offering, Source, verification_counts
 from decision.registry import Registry, UnknownIdError
 from decision.verify import unit_id
 from schema.benchmark import Metric
-from scripts.data_trust.catalogue import Catalogue, Finding, day
+from scripts.data_trust.catalogue import Catalogue, Finding, cited, day
 from scripts.slo.report import load_config
 
 
@@ -147,7 +147,10 @@ def run(c: Catalogue, registry: Registry, as_of: date, snapshot: dict | None = N
             if any(excluded_sources().url(url) for url in urls):
                 add(f, "excluded_source")
             read = day(f.get("read_date"))
-            if read is None:
+            if read is None and cited(f):
+                # MODEL-411 keeps references without a retrieval time explicitly undated.
+                add(f, "citation_undated", "warning")
+            elif read is None:
                 add(f, "read_date_required")
             elif read > as_of:
                 add(f, "read_date_future")
