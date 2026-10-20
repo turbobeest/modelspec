@@ -1,5 +1,125 @@
 # MODEL-432 executor evidence
 
+## Round 2, October 20, 2026
+
+The changes requested by `MODEL-432-r2.spec.md` and `REV-860.verdict.md`
+are implemented. This section supersedes the implementation status below;
+the original execution record remains as history. The future live recall
+measurement has not occurred.
+
+- Starting SHA: `3b560b28666f18d38e13ab1ce02f5285e55d64a2`.
+- Final implementation SHA: `3a33d9a3c140de70a6140d3eb71ef7d63916b5ac`.
+- Delivery adds only this evidence update after the implementation commit.
+  Resolve its final SHA with `git rev-parse model-432-release-watch-filter`;
+  the executor receipt records the exact delivery SHA. This file cannot
+  contain the hash of its own commit.
+- Worktree and branch remain `/Users/terbeest/dev/worktrees/model-432` and
+  `model-432-release-watch-filter`.
+- `git fetch origin main` followed by `git merge --no-edit origin/main`
+  returned `Already up to date.`, exit 0, before implementation.
+  `git merge-base --is-ancestor origin/main HEAD` also returned 0.
+- Python 3.14.4, pytest 9.1.1, httpx 0.28.1, PyYAML 6.0.3, Ruff 0.16.6,
+  Git 2.50.1. No Node tooling was used.
+
+### Corrections and red-first evidence
+
+| Defect | Test | Red output against unchanged production code | Green output |
+| --- | --- | --- | --- |
+| Artifact tokens inside model names are dropped | `test_huggingface_model_names_with_artifact_tokens_stay_discoveries`, seven cases | Each name was absent from discoveries, for example `assert 'ERNIE-5-Docs' in {'lfm-2'}` | All seven pass |
+| Rejected observations are absent from summaries | `test_summary_lists_every_rejected_item_with_reason_and_source` | `AssertionError: assert '### Rejected (not filed)' in text` | Pass; all four observations include name, reason, source ID and URL |
+| No scripted comparison of retained inputs with card-added dates | `test_recall_compares_30_days_of_retained_inputs_with_card_additions` and `test_recall_reports_artifact_gaps_and_outages_instead_of_claiming_full_coverage` | `SystemExit: 2`, `unrecognized arguments: --recall-end 2026-11-20 --catalogue-root ...` | Both pass |
+
+The filter red run produced **8 failed, 16 deselected**, exit 1. It covered
+`ERNIE-5-Docs`, `Pixtral-Docs`, `ocr-doc`, `client-embed-1`, `guide-7b`,
+`Example-LM` and `agent-sdk-model-7b`. An earlier attempt accidentally gave
+OpenRouter an empty feed and failed the existing outage guard. The fixture
+was corrected and the eight intended assertions failed before production
+code changed.
+
+The rule now rejects only whole artifact tokens, tokens paired with the
+provider name, and the existing exact IBM example rule. The 222 ambiguous
+synthetic negatives remain in the per-source fixture as positive candidates.
+Another 222 whole-token negatives preserve rejection coverage across all
+74 sources. All 542 observations have explicit expected identities or
+rejection labels. No assertions were deleted to hide the old behavior.
+The triage regression likewise retains `acme-sdk-2` as a possible model
+and checks that `acme-sdk` is noise. Its dry-run-only implementation did
+not change.
+
+The recall red run produced **2 failed, 24 deselected**, exit 1. Its Git
+fixture and retained JSON reports verify:
+
+- The UTC window includes October 21 and excludes November 20.
+- Reports outside the window do not rescue an otherwise missing card.
+- Repeating an artifact does not inflate counts.
+- Two of four in-window card additions match accepted signals, recall 0.5.
+  One missing card has a rejected observation; the other has no observation.
+- A packaging alias matches its card. A feature-branch card is counted at
+  its first-parent merge date, even with an older author-branch commit.
+- Later card edits do not alter the addition's identity.
+- Sparse inputs expose 29 missing days and retain a source outage.
+- The standalone CLI reports null recall when no cards were added.
+- Shallow catalogue history and output paths inside the catalogue are refused.
+- Private card bodies do not appear in JSON or Markdown output.
+
+The command is documented in [release-watch.md](../../release-watch.md).
+It runs on local retained artifacts and local catalogue Git history, has
+no filing mode, and is not scheduled. Run it on or after November 20 with
+`--recall-end 2026-11-20`, or choose a later 30-day window. Backfills and
+seed imports remain in the denominator for explicit review.
+
+### Verification commands and results
+
+All pytest invocations were serial. Exit codes came directly from the
+process, with no output pipe.
+
+```bash
+git fetch origin main
+git merge --no-edit origin/main
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_release_watch_filter.py -k 'artifact_tokens or every_rejected'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_release_watch_filter.py tests/test_release_watch_precision.py tests/test_release_watch_triage.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_release_watch_filter.py -k 'recall_compares or recall_reports'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_release_watch.py tests/test_release_watch_filter.py tests/test_release_watch_precision.py tests/test_release_watch_triage.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_release_watch.py tests/test_release_watch_filter.py tests/test_release_watch_precision.py tests/test_release_watch_triage.py tests/test_release_signals.py tests/test_release_pipeline.py tests/test_cite_only_retention.py
+/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check scripts/release_watch.py scripts/release_watch_filter.py tests/test_release_watch_filter.py tests/test_release_watch_precision.py tests/test_release_watch_triage.py
+git diff --check
+git merge-base --is-ancestor origin/main HEAD
+git --version
+/Users/terbeest/dev/modelspec/.venv/bin/python -c 'import sys, pytest, httpx, yaml; from importlib.metadata import version; print(sys.version); print("pytest", pytest.__version__, "httpx", httpx.__version__, "PyYAML", yaml.__version__, "Ruff", version("ruff"))'
+gh pr view 860 --repo turbobeest/modelspec --json number,url,isDraft,headRefName,headRefOid,baseRefName
+```
+
+After the filter correction, the filter/precision/triage run passed
+**120 tests in 2.01s**, exit 0. The four focused suites passed **155 tests
+in 9.27s**, exit 0. The final broader run passed **256 tests in 18.02s**,
+exit 0, including the MODEL-421 outage and dry-run triage regressions.
+Ruff and `git diff --check` passed, exit 0.
+
+Intermediate validation also caught an incorrect bulk fixture replacement
+and a test assertion that compared equivalent `Z` and `+00:00` timestamp
+spellings as strings. Both were corrected; the final run above includes
+the corrected fixture and a comparison of parsed timestamps.
+
+PR inspection confirmed #860 is DRAFT on the assigned branch, based on
+main. Delivery uses `CI_LOCAL_SKIP=1 git push -u origin
+model-432-release-watch-filter` after the checks above. There is no new
+PR, ready action, merge, force-push or Linear write.
+
+### Not observed in round 2
+
+- A real 30-day future artifact corpus, live precision or live recall.
+- Private catalogue contents or live publisher requests. The new comparison
+  was verified against synthetic retained artifacts and a local Git fixture.
+- The full repository suite, both site builds, or final remote CI results.
+- Live issue filing, deployment, production switch changes or provider spend.
+
+The retained JSON contains normalized post-baseline observations, not raw
+source responses. A complete set of daily artifacts cannot establish that
+all scheduled runs or every source extraction were captured. The command
+reports these limits rather than claiming complete release recall.
+
+## Original execution record
+
 The filter, grouping, offline replay and dry-run triage are implemented.
 Acceptance remains blocked on the complete historical replay: the watcher
 did not retain its original inputs, and it did not exist for the first nine
