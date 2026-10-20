@@ -26,7 +26,10 @@ def cite_only_hosts() -> tuple[str, ...]:
 
 
 def is_cite_only(url: object) -> bool:
-    host = (urlsplit(str(url)).hostname or "").rstrip(".").lower().encode("idna").decode("ascii")
+    parsed = urlsplit(str(url))
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return False
+    host = parsed.hostname.rstrip(".").lower().encode("idna").decode("ascii")
     return any(host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
 
 

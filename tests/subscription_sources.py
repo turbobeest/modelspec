@@ -5,7 +5,8 @@ import subprocess
 
 import yaml
 
-from decision.model import Measurement, value_hash, verification_counts
+from decision.citation import fact_citation
+from decision.model import Fact, Measurement, value_hash, verification_counts
 from decision.snapshot import FactValue
 from decision.sources import load_sources
 
@@ -46,12 +47,14 @@ def json_record(record):
     return json.loads(json.dumps(record, default=lambda value: value.isoformat()))
 
 
-def admitted_subscription_facts(root, subscriptions, as_of):
+def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store=None):
     """Project raw facts using the documented second-key and source rules.
 
     Do not call the snapshot compiler or collector to form its expected output.
     Log entries win same-day ties over inline verification, and later log rows
     win ties with earlier rows. Same-family verified entries do not count.
+    A fact whose every ref is cite-only is admitted without a verified outcome.
+    ``store`` supplies fetcher redirect records; card redirect URLs do not.
     """
     log = [
         json.loads(line)
@@ -59,6 +62,7 @@ def admitted_subscription_facts(root, subscriptions, as_of):
         if line.strip()
     ]
     sources = load_sources(root / "registry/sources.yaml")
+    urls = {sid: str(source.url) for sid, source in sources.items()}
     expected = {}
     for sid, subscription in subscriptions.items():
         expected[sid] = {}
@@ -79,10 +83,23 @@ def admitted_subscription_facts(root, subscriptions, as_of):
                     record["verifier"]["model_family"],
                 )
             ]
-            if (
-                not candidates
-                or max(candidates, key=lambda row: row[:2])[2]["outcome"] != "verified"
-            ):
+            latest = max(candidates, key=lambda row: row[:2])[2]["outcome"] if candidates else None
+            try:
+                citation = fact_citation(fact, urls, store)
+            except ValueError:
+                continue
+            if citation is not None:
+                if fact["facet"] in {"offering.api_model_id", "offering.router_slug"}:
+                    continue
+                try:
+                    Fact.model_validate(
+                        {**fact, "verification": None}, context={"registry": registry},
+                    )
+                except ValueError:
+                    continue
+                if latest in {"mismatch", "unreachable"}:
+                    continue
+            elif latest != "verified":
                 continue
             source_ids = tuple(sorted({ref["source_id"] for ref in fact.get("sources", [])}))
             if not source_ids or not all(source in sources for source in source_ids):

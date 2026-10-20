@@ -61,7 +61,7 @@ from decision.excluded import (
     removed_text_hit,
 )
 from decision.json_stream import JSONStreamReader
-from decision.citation import fact_citation
+from decision.citation import fact_citation, ref_is_cite_only
 from decision.model import (
     Fact,
     Measurement,
@@ -752,10 +752,12 @@ class Snapshot:
 
 class _Compiler:
     def __init__(self, inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
-                 as_of: date | None = None, allow_fixture_measurements: bool = False):
+                 as_of: date | None = None, allow_fixture_measurements: bool = False,
+                 source_cache: Any = None):
         self.inputs = inputs
         self.as_of = as_of
         self.allow_fixture_measurements = allow_fixture_measurements
+        self.source_cache = source_cache
         self.registry = registry
         self.guard = guard
         self.sources = {str(k): str(v) for k, v in inputs.sources.items()}
@@ -913,7 +915,7 @@ class _Compiler:
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
-                citation = fact_citation(f, self.sources)
+                citation = fact_citation(f, self.sources, self.source_cache)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})
@@ -1101,11 +1103,14 @@ class _Compiler:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
         try:
-            citation = fact_citation(e, self.sources)
+            citation = fact_citation(e, self.sources, self.source_cache)
         except ValueError:
             self._exclude(sid, "invalid_citation")
             return
-        if citation is not None:
+        if citation is not None or any(
+            ref_is_cite_only(ref, self.sources, self.source_cache)
+            for ref in e.get("sources") or ()
+        ):
             self._exclude(sid, "quarantined (cited)")
             return
         reason = self._admit(
@@ -1587,7 +1592,8 @@ def default_registry() -> Any:
 def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
                    premier: Iterable[str] | None = None, as_of: date | None = None,
                    guard: ExcludedSources | None = None, gate: bool = True,
-                   allow_fixture_measurements: bool = False) -> Snapshot:
+                   allow_fixture_measurements: bool = False,
+                   source_cache: Any = None) -> Snapshot:
     """Compile ``inputs``. With ``premier``, the lineup is the premier set.
 
     With ``premier`` and ``gate`` (the default), the completeness gate runs
@@ -1598,8 +1604,10 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     ``build_from_repo`` always passes it. ``allow_fixture_measurements`` lets a
     test compile fixture speed numbers; ``build_from_repo`` never passes it.
     A measurement older than its staleness limit at ``as_of`` stays out.
+    ``source_cache``, when passed, supplies fetcher citation records. The build
+    does not open a default copy store.
     """
-    c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements)
+    c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements, source_cache)
     premier = None if premier is None else tuple(premier)
     if premier is not None and gate:
         coverage = c.jurisdiction_coverage(premier)
@@ -1640,8 +1648,9 @@ def audit_build(inputs: SnapshotInputs, *, registry: Any, premier: Iterable[str]
 
 
 def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
-             as_of: date | None, allow_fixture_measurements: bool) -> _Compiler:
-    c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements)
+             as_of: date | None, allow_fixture_measurements: bool,
+             source_cache: Any = None) -> _Compiler:
+    c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements, source_cache)
     for m in inputs.models:
         c.add_model(m)
     for o in inputs.offerings:

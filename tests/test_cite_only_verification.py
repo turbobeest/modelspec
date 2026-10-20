@@ -4,12 +4,16 @@ from datetime import UTC, date, datetime
 from dataclasses import replace
 
 import pytest
+import yaml
 
 from decision import verify
 from decision.model import Source, SourceRef, TargetRef, VerificationActor
+from decision.retention import cite_only_origin, is_cite_only
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from decision.sources import CopyStore
-from tests.snapshot_records import SOURCES, evidence, fact, model, offering, subscription, verification
+from tests.snapshot_records import (
+    SOURCES, evidence, fact, model, offering, source_ref, subscription, verification,
+)
 from tests.test_decision_snapshot import COMPLETENESS_REGISTRY
 
 TODAY = date(2026, 10, 19)
@@ -50,9 +54,10 @@ def snapshot_input(*, outcome=None, url=CITE_URL, facets=None):
     )
 
 
-def loaded(inputs, *, premier=None, registry=None):
+def loaded(inputs, *, premier=None, registry=None, source_cache=None):
+    kwargs = {} if source_cache is None else {"source_cache": source_cache}
     return load_built_snapshot(build_snapshot(
-        inputs, as_of=TODAY, premier=premier, registry=registry,
+        inputs, as_of=TODAY, premier=premier, registry=registry, **kwargs,
     ))
 
 
@@ -168,20 +173,35 @@ def test_cite_lookup_does_not_load_full_provenance(url, monkeypatch):
     assert bool(index.cited_facts("lab/alpha")) is (url == CITE_URL)
 
 
-def test_cite_redirect_policy_survives_snapshot_build_without_local_copy_store():
+def test_cite_redirect_policy_survives_snapshot_build_without_local_copy_store(tmp_path):
     inputs = snapshot_input(url="https://example.org/redirect")
     for row in inputs.models[0]["facts"]:
         row["sources"][0]["resolved_urls"] = [CITE_URL]
-    index = loaded(inputs)
+    assert loaded(inputs).fact("lab/alpha", "model.context_window").state == "unknown"
+    store = CopyStore(tmp_path / "copies")
+    ref = inputs.models[0]["facts"][0]["sources"][0]["snapshot_ref"]
+    store.record_citation(
+        ref, source_url="https://example.org/redirect", retrieved_at=FETCHED,
+        resolved_urls=[CITE_URL],
+    )
+    index = loaded(inputs, source_cache=store)
     record = index.record(index.fact("lab/alpha", "model.context_window").record_id)
     assert record["verification"] is None
     assert record["citation"]["status"] == "cited"
+    assert CITE_URL in record["citation"]["sources"][0]["resolved_urls"]
 
 
-def test_cite_redirect_evidence_cannot_enter_as_verified():
+def test_cite_redirect_evidence_cannot_enter_as_verified(tmp_path):
+    store = CopyStore(tmp_path / "copies")
+    ref = "sha256:" + "d" * 64
+    store.record_citation(
+        ref, source_url="https://board.example.org/results", retrieved_at=FETCHED,
+        resolved_urls=[CITE_URL],
+    )
     row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["snapshot_ref"] = ref
     row["sources"][0]["resolved_urls"] = [CITE_URL]
-    index = loaded(replace(snapshot_input(), evidence=[row]))
+    index = loaded(replace(snapshot_input(), evidence=[row]), source_cache=store)
     assert index.evidence("lab/alpha", "swe_bench_pro") == ()
 
 
@@ -228,3 +248,174 @@ def test_cite_stored_regions_refuses_historical_copy(tmp_path):
     regions = verify.StoredRegions(store, {source.id: source}, cache_documents=True)
     assert regions.text(source.id, ref, "page") is None
     assert regions._documents == {}
+
+
+ORDINARY = "https://example.org/models"
+PERPLEXITY = "https://www.perplexity.ai/pro"
+
+
+@pytest.mark.parametrize("url,cited", [
+    ("javascript://x.ai/", False),
+    ("javascript://x.ai/%0aalert(1)", False),
+    ("ftp://x.ai/", False),
+    ("https://X.AI./", True),
+    ("https://x.ai/pricing", True),
+    (PERPLEXITY, True),
+])
+def test_cite_only_requires_an_http_scheme(url, cited):
+    assert is_cite_only(url) is cited
+    assert cite_only_origin("https://example.org/start", [url]) is cited
+
+
+@pytest.mark.parametrize("url", ["https://x.ai/pricing", PERPLEXITY])
+def test_registered_cite_only_fact_is_still_cited(url):
+    index = loaded(snapshot_input(url=url, outcome=None))
+    row = index.fact("lab/alpha", "model.context_window")
+    assert row.state == "known" and row.value == 128000
+    record = index.record(row.record_id)
+    assert record["verification"] is None
+    assert record["citation"]["status"] == "cited"
+    assert record["citation"]["sources"][0]["url"] == url
+
+
+@pytest.mark.parametrize("outcome", ["mismatch", "unreachable", None])
+def test_forged_resolved_urls_stay_quarantined(outcome):
+    inputs = snapshot_input(outcome=outcome, url=ORDINARY)
+    for row in inputs.models[0]["facts"]:
+        row["sources"][0]["resolved_urls"] = [CITE_URL]
+    assert loaded(inputs).fact("lab/alpha", "model.context_window").state == "unknown"
+
+
+def test_mixed_ref_fact_requires_the_ordinary_ref_to_verify():
+    unverified = _mixed_fact(outcome=None)
+    verified = _mixed_fact(outcome="verified")
+    inputs = SnapshotInputs(
+        models=[model("lab/alpha", facts=[unverified, verified])],
+        sources={"src-cite": CITE_URL, "src-ordinary": ORDINARY, **SOURCES},
+    )
+    index = loaded(inputs)
+    assert index.fact("lab/alpha", "model.context_window").state == "unknown"
+    kept = index.fact("lab/alpha", "model.weights_openness")
+    assert kept.state == "known"
+    record = index.record(kept.record_id)
+    assert record["verification"]["outcome"] == "verified"
+    assert "citation" not in record
+
+
+def test_fetcher_recorded_redirect_is_still_cited(tmp_path):
+    store = CopyStore(tmp_path / "copies")
+    ref = "sha256:" + "a" * 64
+    store.record_citation(ref, source_url=ORDINARY, retrieved_at=FETCHED, resolved_urls=[CITE_URL])
+    inputs = snapshot_input(url=ORDINARY, outcome=None)
+    for row in inputs.models[0]["facts"]:
+        row["sources"][0]["snapshot_ref"] = ref
+        row["sources"][0]["resolved_urls"] = ["https://example.org/forged-card-url"]
+    index = loaded(inputs, source_cache=store)
+    row = index.fact("lab/alpha", "model.context_window")
+    assert row.state == "known"
+    record = index.record(row.record_id)
+    assert record["verification"] is None
+    assert record["citation"]["status"] == "cited"
+    assert CITE_URL in record["citation"]["sources"][0]["resolved_urls"]
+
+
+def test_forged_resolved_urls_do_not_cite_verified_evidence():
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["resolved_urls"] = [CITE_URL]
+    index = loaded(replace(snapshot_input(url=ORDINARY), evidence=[row]))
+    assert index.evidence("lab/alpha", "swe_bench_pro")
+
+
+def test_fetcher_recorded_redirect_keeps_evidence_out(tmp_path):
+    store = CopyStore(tmp_path / "copies")
+    ref = "sha256:" + "b" * 64
+    store.record_citation(
+        ref, source_url="https://board.example.org/results", retrieved_at=FETCHED,
+        resolved_urls=[CITE_URL],
+    )
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["snapshot_ref"] = ref
+    index = loaded(replace(snapshot_input(url=ORDINARY), evidence=[row]), source_cache=store)
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+
+
+def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path):
+    from tests.subscription_sources import admitted_subscription_facts
+
+    root = tmp_path / "repo"
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "verification" / "log.jsonl").write_text("")
+    (root / "registry" / "sources.yaml").write_text(yaml.safe_dump({
+        "schema_version": 1,
+        "sources": [
+            {"id": "src-cite", "url": CITE_URL},
+            {"id": "src-ordinary", "url": ORDINARY},
+            {"id": "src-redirect", "url": "https://example.org/redirect"},
+        ],
+    }))
+    store = CopyStore(tmp_path / "copies")
+    redirect_ref = "sha256:" + "c" * 64
+    store.record_citation(
+        redirect_ref, source_url="https://example.org/redirect", retrieved_at=FETCHED,
+        resolved_urls=[PERPLEXITY],
+    )
+    cite = source_ref("src-cite")
+    ordinary = source_ref("src-ordinary")
+    forged = {**source_ref("src-ordinary"), "resolved_urls": [CITE_URL]}
+    redirect = source_ref("src-redirect")
+    redirect["snapshot_ref"] = redirect_ref
+    pro_id = "sambanova/subscription/pro"
+    max_id = "sambanova/subscription/max"
+
+    def row(plan, facet, value, sources, outcome="verified"):
+        record = fact(
+            "offering", f"sambanova/subscription/{plan}", facet, value,
+            source=sources[0]["source_id"], outcome=outcome,
+        )
+        record["sources"] = sources
+        return record
+
+    pro_facts = [
+        row("pro", "offering.subscription.price", 20, [cite], outcome=None),
+        row("pro", "offering.subscription.billing_period", "monthly", [forged], outcome="mismatch"),
+        row("pro", "offering.subscription.models_covered", ["lab/alpha"], [cite, ordinary], outcome=None),
+    ]
+    max_facts = [
+        row("max", "offering.subscription.price", 20, [cite, ordinary], outcome="verified"),
+        row("max", "offering.subscription.billing_period", "monthly", [redirect], outcome=None),
+        row("max", "offering.subscription.models_covered", ["lab/alpha"], [forged], outcome="unreachable"),
+    ]
+    subscriptions = [
+        subscription(plan="pro", facts=pro_facts),
+        subscription(plan="max", facts=max_facts),
+    ]
+    index = loaded(SnapshotInputs(
+        subscriptions=subscriptions,
+        sources={
+            "src-cite": CITE_URL,
+            "src-ordinary": ORDINARY,
+            "src-redirect": "https://example.org/redirect",
+        },
+    ), source_cache=store)
+    admitted = {item["id"]: item["facts"] for item in index.subscription_offerings()}
+    expected = admitted_subscription_facts(root, {
+        pro_id: subscriptions[0],
+        max_id: subscriptions[1],
+    }, TODAY, store=store)
+    assert admitted == expected
+    assert set(expected[pro_id]) == {"offering.subscription.price"}
+    assert set(expected[max_id]) == {
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+    }
+
+
+def _mixed_fact(*, outcome):
+    facet = "model.context_window" if outcome is None else "model.weights_openness"
+    value = 128000 if facet == "model.context_window" else "open_weights"
+    record = fact("model", "lab/alpha", facet, value, source="src-cite", outcome=outcome)
+    record["sources"] = [source_ref("src-cite"), source_ref("src-ordinary")]
+    for ref in record["sources"]:
+        ref["retrieved_at"] = FETCHED.isoformat()
+    return record
