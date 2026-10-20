@@ -25,6 +25,13 @@ sources:
   cited_regions:
   - id: page
     locator: {kind: page, value: ''}
+- id: html-page
+  url: https://docs.example/models/example-mini
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
 """
 COLLECTOR = VerificationActor(agent="fixture-collector", model_family="anthropic",
                               method="fixture@1")
@@ -43,14 +50,20 @@ Model ID: `example-mini`
 
 
 @pytest.fixture
-def reads(tmp_path):
+def reads(verify_on):
     """Whether the verifier confirms ``field == value`` for a model on ``page``."""
+    return lambda *args, **kwargs: verify_on(*args, **kwargs).outcome == "verified"
+
+
+@pytest.fixture
+def verify_on(tmp_path):
+    """The full deterministic verifier's result for ``field == value`` on ``page``."""
     (tmp_path / "sources.yaml").write_text(SOURCES)
     sources = load_sources(tmp_path / "sources.yaml")
     store = CopyStore(tmp_path / "copies")
 
     def check(page: str, field: str, value: float, *, name: str = "Example Mini",
-              label: str | None = "default") -> bool:
+              label: str | None = "default", source: str = "model-page") -> verify.Result:
         ref = store.put(page.encode(), source_url="https://fixture.example/")
         claim = verify.Claim(
             target=TargetRef(kind="fact", id=f"offering#{field}"),
@@ -59,12 +72,11 @@ def reads(tmp_path):
             field=f"offering.price.{field}",
             label=field.replace("_", " ").title() if label == "default" else label,
             value=value, unit="usd_per_1m_tokens", collector=COLLECTOR,
-            sources=(SourceRef(source_id="model-page", snapshot_ref=ref,
+            sources=(SourceRef(source_id=source, snapshot_ref=ref,
                                cited_regions=["page"]),),
         )
-        result = verify.verify(claim, verify.StoredRegions(store, sources),
-                               verify.deterministic_extractors(), today=date(2026, 10, 20))
-        return result.outcome == "verified"
+        return verify.verify(claim, verify.StoredRegions(store, sources),
+                             verify.deterministic_extractors(), today=date(2026, 10, 20))
 
     return check
 
@@ -469,3 +481,229 @@ def test_a_two_column_batch_section_never_reconfirms_a_stale_batch_price(
     assert result.status in {price_reread.Status.NEEDS_REVIEW, price_reread.Status.UNREADABLE}, \
         json.dumps(result.to_dict())
     assert {p: p.read_text() for p in before} == before
+
+
+# --- MODEL-426: the looser offering-price reader keeps to the same heading rule -------------
+
+MINI_UNDER_DECLARED_MAXI = """\
+# Example Maxi
+Model ID: `example-maxi`
+## Example Mini
+| Metric | Price | Unit |
+| Input | $8.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+"""
+
+#: Round 4's stale-table page: the pricing section states $10, and a later table
+#: under ``## Example Mini`` inside ``# Example Maxi`` still states the filed $8.
+STALE_TABLE_UNDER_MAXI = """\
+# Example Mini
+Model ID: `example-mini`
+## Pricing
+### Text tokens
+| Metric | Price | Unit |
+| Input | $10.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+
+# Example Maxi
+## Example Mini
+| Metric | Price | Unit |
+| Input | $8.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+"""
+
+
+@pytest.mark.parametrize("page", [MAXI_UNDER_DECLARED_MINI, MINI_UNDER_DECLARED_MAXI,
+                                  MINI_HEADING_UNDER_MAXI],
+                         ids=["maxi-under-mini", "mini-under-maxi", "two-h1s-and-an-h2"])
+@pytest.mark.parametrize("name", ["Example Mini", "Example Maxi"])
+@pytest.mark.parametrize(("field", "value"), [("input", 8), ("output", 16)])
+def test_a_table_under_another_models_heading_verifies_for_no_model(
+        reads, page, name, field, value):
+    """The reviewers' pages: neither reader takes the table for either model."""
+    assert not reads(page, field, value, name=name)
+
+
+@pytest.mark.parametrize("page", [MAXI_UNDER_DECLARED_MINI, MINI_UNDER_DECLARED_MAXI,
+                                  MINI_HEADING_UNDER_MAXI],
+                         ids=["maxi-under-mini", "mini-under-maxi", "two-h1s-and-an-h2"])
+@pytest.mark.parametrize("name", ["Example Mini", "Example Maxi"])
+def test_the_offering_reader_binds_a_table_to_its_heading_path(page, name):
+    """OfferingPriceExtractor alone, without the strict reader in front of it."""
+    claim = replace(_claim("input"), names=(name,), value=8)
+    assert verify.OfferingPriceExtractor().extract(claim, page) == []
+
+
+def test_a_stale_table_under_another_models_heading_never_reconfirms_the_filed_price(verify_on):
+    stale = verify_on(STALE_TABLE_UNDER_MAXI, "input", 8)
+    assert stale.outcome == "mismatch"
+    assert all(diff.found != "8.00 usd_per_1m_tokens" for diff in stale.diffs)
+    current = verify_on(STALE_TABLE_UNDER_MAXI, "input", 10)
+    assert current.outcome == "verified"
+    assert current.verification.method == "model-page-label-match@1"
+
+
+@pytest.mark.parametrize("heading", ["# Example Mini", "# Pricing\n## Example Mini",
+                                     "# Example Mini\n## Example Mini"])
+def test_the_offering_reader_still_reads_a_table_under_the_models_own_heading(heading):
+    page = f"{heading}\n| Usage | Price per 1M tokens |\n| Input | $8.00 |\n"
+    claim = replace(_claim("input"), names=("Example Mini",), value=8)
+    readings = verify.OfferingPriceExtractor().extract(claim, page)
+    assert [(reading.subject, reading.value) for reading in readings] == [("Example Mini", "$8.00")]
+
+
+@pytest.mark.parametrize("heading", ["# Example Maxi\n## Example Mini",
+                                     "# Example Mini\n## Example Maxi\n### Example Mini"])
+def test_the_offering_reader_refuses_a_non_metric_table_under_another_models_heading(heading):
+    page = f"{heading}\n| Usage | Price per 1M tokens |\n| Input | $8.00 |\n"
+    claim = replace(_claim("input"), names=("Example Mini",), value=8)
+    assert verify.OfferingPriceExtractor().extract(claim, page) == []
+
+
+#: Each table sits directly under the model's own heading, so the offering reader
+#: alone would read its first price cell. The strict reader refuses each one.
+REFUSED_BY_THE_STRICT_READER = {
+    # Which column is the standard price is not clear.
+    "flex-column": """\
+# Example Mini
+Model ID: `example-mini`
+## Example Mini
+| Metric | Price (flex) | Price |
+| Input | $0.04 | $0.10 |
+| Output | $0.20 | $0.50 |
+""",
+    # The page declares two model IDs.
+    "two-model-ids": """\
+Model ID: `example-mini`
+Default snapshot: `example-mini-2026`
+# Example Mini
+| Metric | Price | Unit |
+| Input | $0.04 | 1M tokens |
+| Output | $0.20 | 1M tokens |
+""",
+}
+
+
+@pytest.mark.parametrize("page", REFUSED_BY_THE_STRICT_READER.values(),
+                         ids=REFUSED_BY_THE_STRICT_READER.keys())
+def test_a_looser_reader_never_overrides_the_strict_readers_refusal(verify_on, page):
+    claim = replace(_claim("input"), names=("Example Mini",), value=.04)
+    loose = verify.OfferingPriceExtractor().extract(claim, page)
+    assert verify.compare(claim, loose) == []  # the looser reader alone would verify it
+    for field, value in (("input", .04), ("output", .2)):
+        result = verify_on(page, field, value)
+        assert result.outcome != "verified", result
+
+
+# --- Review of #856: the strict reader owns its own tables, not the whole page --------------
+
+#: Each page, a claim on it, and whether the full verifier confirms it.
+REVIEW_856 = {
+    # The standard prices stated above a fine-tuning Metric | Price table.
+    "fine-tuning-below-standard": ("""\
+# Example Mini
+Model ID: `example-mini`
+Standard
+Input price | $0.10
+Output price | $0.50
+## Fine-tuning
+| Metric | Price | Unit |
+| Input | $25.00 | 1M tokens |
+| Output | $30.00 | 1M tokens |
+""", [("input", .1, True), ("output", .5, True), ("input", 25, False), ("output", 30, False)]),
+    # "Models" is a section heading, not a model name.
+    "models-usage-table": ("""\
+# Models
+## Example Mini
+| Usage | Price per 1M tokens |
+| Input | $0.10 |
+| Output | $0.50 |
+""", [("input", .1, True), ("output", .5, True)]),
+    "models-metric-table": ("""\
+# Models
+## Example Mini
+| Metric | Price | Unit |
+| Input | $0.10 | 1M tokens |
+| Output | $0.50 | 1M tokens |
+Model ID: `example-mini`
+""", [("input", .1, True), ("output", .5, True)]),
+    "pricing-metric-table": ("""\
+# Pricing
+## Example Mini
+Model ID: `example-mini`
+| Metric | Price | Unit |
+| Input | $0.10 | 1M tokens |
+| Output | $0.50 | 1M tokens |
+""", [("input", .1, True), ("output", .5, True)]),
+    # A plain-text page with no Markdown headings: the line above names the model.
+    "plain-text-no-headings": ("""\
+Example Mini
+| Metric | Price | Unit |
+| Input | $0.10 | 1M tokens |
+| Output | $0.50 | 1M tokens |
+""", [("input", .1, True), ("output", .5, True), ("input", .5, False)]),
+    # A heading that names two models, or labels one, is not the model's own.
+    "two-models-in-one-heading": ("""\
+# Example Mini, Example Maxi
+| Usage | Price per 1M tokens |
+| Input | $8.00 |
+| Output | $16.00 |
+""", [("input", 8, False), ("output", 16, False)]),
+    "models-label-heading": ("""\
+# Models: Example Mini
+| Usage | Price per 1M tokens |
+| Input | $8.00 |
+""", [("input", 8, False)]),
+}
+
+
+@pytest.mark.parametrize(("page", "cases"), REVIEW_856.values(), ids=REVIEW_856.keys())
+def test_review_856_pages(verify_on, page, cases):
+    for field, value, verified in cases:
+        result = verify_on(page, field, value)
+        assert (result.outcome == "verified") is verified, (field, value, result)
+
+
+def test_two_model_heading_reads_nothing_for_the_other_model_either(reads):
+    page = REVIEW_856["two-models-in-one-heading"][0]
+    assert not reads(page, "input", 8, name="Example Maxi")
+
+
+HTML_ONE_TABLE = """<html><body>
+<h2>Example Mini</h2>
+<table><tr><th>Metric</th><th>Price</th><th>Unit</th></tr>
+<tr><td>Input</td><td>$0.10</td><td>1M tokens</td></tr>
+<tr><td>Output</td><td>$0.50</td><td>1M tokens</td></tr></table>
+</body></html>"""
+
+#: The round-4 stale page as HTML: headings are plain lines, so nothing says the
+#: second "Example Mini" sits inside "Example Maxi".
+HTML_STALE = """<html><body>
+<h1>Example Mini</h1><p>Model ID: example-mini</p>
+<h2>Pricing</h2><h3>Text tokens</h3>
+<table><tr><th>Metric</th><th>Price</th><th>Unit</th></tr>
+<tr><td>Input</td><td>$10.00</td><td>1M tokens</td></tr>
+<tr><td>Output</td><td>$16.00</td><td>1M tokens</td></tr></table>
+<h1>Example Maxi</h1><h2>Example Mini</h2>
+<table><tr><th>Metric</th><th>Price</th><th>Unit</th></tr>
+<tr><td>Input</td><td>$8.00</td><td>1M tokens</td></tr>
+<tr><td>Output</td><td>$16.00</td><td>1M tokens</td></tr></table>
+</body></html>"""
+
+
+@pytest.mark.parametrize(("page", "field", "value", "verified"), [
+    (HTML_ONE_TABLE, "input", .1, True),
+    (HTML_ONE_TABLE, "output", .5, True),
+    (HTML_ONE_TABLE, "input", .5, False),
+    # Two heading-less tables: neither is left to the looser reader.
+    (HTML_STALE, "input", 8, False),
+    (HTML_STALE, "output", 16, False),
+], ids=["one-input", "one-output", "one-wrong-row", "stale-input", "stale-output"])
+def test_an_html_page_without_markdown_headings(verify_on, page, field, value, verified):
+    result = verify_on(page, field, value, source="html-page")
+    assert (result.outcome == "verified") is verified, result
+
+
+def test_an_html_stale_page_does_not_verify_for_the_other_model_either(verify_on):
+    assert verify_on(HTML_STALE, "input", 8, name="Example Maxi",
+                     source="html-page").outcome != "verified"
