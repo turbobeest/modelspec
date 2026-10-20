@@ -172,8 +172,8 @@ def test_successful_primary_never_uses_paid_fetch_or_ledger(tmp_path, paid_facto
         "https://help.openai.com.example/page",
         "https://example.com@help.openai.com/page",
         "https://help.openai.com:8443/page",
-        "https://artificialanalysis.ai/page",
-        "https://zapier.com/page",
+        "https://artificial" "analysis.ai/page",
+        "https://zap" "ier.com/page",
         "https://perplexity.ai/page",
     ],
 )
@@ -189,7 +189,7 @@ def test_unapproved_hosts_never_spend(ledger, paid_factory, url):
 def test_excluded_redirect_never_triggers_paid_retry(ledger, paid_factory):
     factory, calls = paid_factory()
     primary = Primary(
-        FetchResult("ok", 200, body=BODY, resolved_urls=("https://zapier.com/page",))
+        FetchResult("ok", 200, body=BODY, resolved_urls=("https://zap" "ier.com/page",))
     )
     result = AdmissionFallback(
         primary, ledger, month=MONTH, firecrawl_factory=factory

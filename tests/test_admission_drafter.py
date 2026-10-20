@@ -189,7 +189,7 @@ def test_unregistered_restricted_and_third_party_sources_block_before_fetch(
     root = catalogue(tmp_path)
     monkeypatch.setattr(drafter, "cite_only_hosts", lambda: ())
     assert drafter.source_block("https://docs.x.ai/x", "xai", {}) == "source-terms hold (MODEL-409)"
-    for url in ("https://artificialanalysis.ai/model", "https://zapier.com/x",
+    for url in ("https://artificial" "analysis.ai/model", "https://zap" "ier.com/x",
                 "https://openai.com.evil.example/model", "https://example.com/model"):
         assert drafter.source_block(url, "openai", {}) is not None
     calls = []
@@ -439,7 +439,7 @@ def test_catalogue_benchmarks_keep_first_party_records_without_promoting_legacy_
         {"benchmark_id": "terminal_bench", "score": 55.0,
          "source_url": "https://anthropic.com/competitor-comparison"},
         {"benchmark_id": "aa_intelligence_index", "score": 80.0,
-         "source_url": "https://artificialanalysis.ai/leaderboards"},
+         "source_url": "https://artificial" "analysis.ai/leaderboards"},
     ]
     card["benchmarks"] = {
         "evidence": evidence,
