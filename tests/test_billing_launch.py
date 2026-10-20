@@ -65,6 +65,21 @@ def run(calls, **flags):
     return asyncio.run(replay({"calls": calls, **flags}))
 
 
+def test_openapi_can_build_after_billing_replay():
+    result = subprocess.run(
+        [sys.executable, "-c", (
+            "import asyncio\n"
+            "from api.worker import openapi\n"
+            "from decision import model\n"
+            "from tests.replay_billing_launch import replay\n"
+            "asyncio.run(replay({'calls': []}))\n"
+            "assert 'openapi' in openapi.build_spec()\n"
+        )],
+        cwd=ROOT, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def exchange():
     request = call("/v1/visit-token", turnstile="browser-test-token-1")
     response, = run([request])

@@ -15,6 +15,11 @@
 #                           example a provider with no batch interface).
 #     enum, set             need `values` or `values_from` (a named list the
 #                           loader knows, such as `registry:providers`).
+#     set                   also needs `unordered`: true when the value is a set
+#                           whose member order means nothing. A verification of
+#                           such a value binds its sorted members, so filing the
+#                           same members in another order is the same value
+#                           (MODEL-416). The kind alone never implies it.
 #   parameter               optional: the facet is a family, one per value of a
 #                           named list (for example one estimate per domain).
 #   definition              exact. Says what a value means and what it does not.
@@ -38,7 +43,7 @@
 # A fact's state (known, unknown, not_disclosed, requires_contract) is separate
 # from its value and is not declared here.
 
-schema_version: 2
+schema_version: 3
 
 units:
   - id: gigabytes
@@ -206,7 +211,7 @@ facets:
   - id: model.input_modalities
     label: Input modalities
     subject: model
-    value_type: {kind: set, values: [text, image, audio, video, document, structured]}
+    value_type: {kind: set, values: [text, image, audio, video, document, structured], unordered: true}
     value_labels:
       audio: Audio
       document: Documents
@@ -224,7 +229,7 @@ facets:
   - id: model.output_modalities
     label: Output modalities
     subject: model
-    value_type: {kind: set, values: [text, image, audio, video, embedding, score, label, action]}
+    value_type: {kind: set, values: [text, image, audio, video, embedding, score, label, action], unordered: true}
     value_labels:
       action: Actions
       audio: Audio
@@ -443,7 +448,7 @@ facets:
   - id: origin.lab_jurisdiction
     label: Lab jurisdiction
     subject: model
-    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2, unordered: true}
     definition: >-
       The country or countries where the lab that trained this model is
       incorporated, as ISO 3166-1 alpha-2 codes. Where the lab has a parent
@@ -455,7 +460,7 @@ facets:
   - id: origin.base_lineage
     label: Base model lineage
     subject: model
-    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2, unordered: true}
     definition: >-
       The countries of incorporation of the labs that trained every model this
       model's weights were derived from (fine-tuned, distilled into, merged or
@@ -468,7 +473,7 @@ facets:
   - id: origin.weights_hosting
     label: Weights hosted in
     subject: model
-    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2, unordered: true}
     definition: >-
       The countries in which the lab itself stores and serves the weights for
       the hosted inference it sells first-party, as ISO 3166-1 alpha-2 codes.
@@ -480,7 +485,7 @@ facets:
   - id: origin.base_models
     label: Base models
     subject: model
-    value_type: {kind: set, values_from: model_ids}
+    value_type: {kind: set, values_from: model_ids, unordered: true}
     definition: >-
       The `lab/model-id` of every model this model's weights were directly
       derived from. The empty set when trained from random initialisation.
@@ -595,7 +600,7 @@ facets:
   - id: model.languages
     label: Languages
     subject: model
-    value_type: {kind: set, values_from: bcp_47}
+    value_type: {kind: set, values_from: bcp_47, unordered: true}
     definition: >-
       The natural languages the lab documents the model as supporting, as BCP 47
       tags. Absence from the set means undocumented, not unsupported.
@@ -605,7 +610,7 @@ facets:
   - id: model.fits_hardware
     label: Fits hardware
     subject: model
-    value_type: {kind: set, values_from: hardware}
+    value_type: {kind: set, values_from: hardware, unordered: true}
     definition: >-
       The hardware SKUs in `hardware/` on which some published quantisation of
       the model's weights is estimated to load and run. An estimate, always
@@ -616,7 +621,7 @@ facets:
   - id: model.hardware_fit_indeterminate
     label: Hardware fit indeterminate
     subject: model
-    value_type: {kind: set, values_from: hardware}
+    value_type: {kind: set, values_from: hardware, unordered: true}
     definition: >-
       The hardware SKUs in `hardware/` for which ModelSpec's single-memory-pool
       weight-fit formula does not apply. Membership conditions on
@@ -696,7 +701,7 @@ facets:
   - id: offering.region
     label: Inference region
     subject: offering
-    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2, unordered: true}
     value_labels:
       global: Global
       "global-cross-region": Global, cross-region routing
@@ -995,7 +1000,7 @@ facets:
   - id: offering.harness_compatibility
     label: Harness compatibility
     subject: offering
-    value_type: {kind: set, values_from: "registry:harnesses"}
+    value_type: {kind: set, values_from: "registry:harnesses", unordered: true}
     definition: >-
       The registered harnesses whose own documentation names this provider as a
       supported backend for this model. Absence means undocumented.
@@ -1053,7 +1058,7 @@ facets:
     label: Models covered
     subject: offering
     addressable: false
-    value_type: {kind: set, values_from: model_ids}
+    value_type: {kind: set, values_from: model_ids, unordered: true}
     definition: >-
       Canonical ModelSpec model IDs the provider explicitly documents as
       available under this subscription plan; silence is not inferred as access.
@@ -1089,7 +1094,7 @@ facets:
     label: Surfaces
     subject: offering
     addressable: false
-    value_type: {kind: set, values_from: plan_surfaces}
+    value_type: {kind: set, values_from: plan_surfaces, unordered: true}
     definition: >-
       Where the provider documents the plan as usable: chat_app (the web chat),
       desktop_app, mobile_app, coding_tool:<harness> for a harness registered
@@ -1119,7 +1124,7 @@ facets:
     label: Families covered
     subject: offering
     addressable: false
-    value_type: {kind: set, values_from: "registry:families"}
+    value_type: {kind: set, values_from: "registry:families", unordered: true}
     definition: >-
       The model families, from registry/families.yaml, that the plan page names
       as included. The page's own words are offering.subscription.coverage_quote;

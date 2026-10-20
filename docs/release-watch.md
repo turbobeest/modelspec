@@ -82,11 +82,13 @@ A source is never skipped quietly. The run reports each source as one of:
 | `burst` | More new IDs than `max_new` (10, or 15 for OpenRouter). The source probably changed shape. Nothing from it is filed. |
 
 A refused POST to the Worker, or a refused issue listing or create, is
-reported too. On any of these, and on any failed step (a crash before the
-report included), the workflow comments on the one open issue labelled
-`release-watch`, or opens it, and the run fails. Sources that did answer still
-file their discoveries on the same run. A transport error or 5xx is retried
-once before it counts.
+reported too. On any of these, `scripts/release_watch.py` exits 1 and the
+watch step fails the run after writing its summary and outputs (MODEL-421). A
+crash fails it the same way. The red run is the alert: GitHub's failed-run
+notification fires, and the coverage report's `workflow-health` target names
+the run until a later one passes. Sources that did answer still file their
+discoveries on the same run, and the dispatch job still runs for them. A
+transport error or 5xx is retried once before it counts.
 
 ## Contracts
 

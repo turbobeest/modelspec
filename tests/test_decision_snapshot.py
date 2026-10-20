@@ -208,10 +208,14 @@ def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
 
 
 def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subscription_repository):
+    from decision.model import verification_counts
+    from decision.retention import cite_only_origin
+    from decision.sources import load_sources
     from tests.subscription_sources import admitted_subscription_facts, source_subscriptions
 
     source = source_subscriptions(subscription_repository, REGISTRY)
-    expected = admitted_subscription_facts(subscription_repository, source, date(2026, 9, 28))
+    expected = admitted_subscription_facts(
+        subscription_repository, source, date(2026, 9, 28), registry=REGISTRY)
     collected = snap.collect_repo(subscription_repository)
     path = tmp_path / "production.json.gz"
     build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
@@ -222,25 +226,52 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subsc
                      if row["provider"] not in vendors}
     assert set(subscriptions) == set(source)
     assert {sid: row["facts"] for sid, row in subscriptions.items()} == expected
-    assert subscriptions["anthropic/subscription/max-20x"]["facts"][
-        "offering.subscription.price"
-    ] == FactValue("known", 200, ("model-201-anthropic-max-plan",))
-    assert subscriptions["google-gemini-api/subscription/ai-ultra-20x"]["facts"][
-        "offering.subscription.price"
-    ] == FactValue("known", 199.99, ("model-201-gemini-subscriptions",))
-    assert subscriptions["openai/subscription/plus"]["facts"][
-        "offering.subscription.models_covered"
-    ].value == ["openai/gpt-6-astra", "openai/gpt-6-sol", "openai/gpt-6-luna",
-                "openai/gpt-5-6-sol", "openai/gpt-5-6-terra", "openai/gpt-5-6-luna"]
-    assert subscriptions["anthropic/subscription/pro"]["facts"][
-        "offering.subscription.price"
-    ] == FactValue("known", 20, ("model-173-anthropic-consumer-pricing",))
-    assert subscriptions["openai/subscription/pro-5x"]["facts"][
-        "offering.subscription.usage_allowance"
-    ] == FactValue("known", "5x higher usage than Plus", ("model-173-openai-pro",))
-    assert subscriptions["xai/subscription/supergrok"]["facts"][
-        "offering.subscription.models_covered"
-    ] == FactValue("known", ["xai/grok-4-6"], ("model-173-xai-consumer-pricing",))
+
+    # Checks against the raw YAML and log, not the helper, so a fault shared by
+    # the helper and the snapshot still fails. They are derived from the linked
+    # data because curation legitimately changes plan values (MODEL-425).
+    log = {}
+    for line in (subscription_repository / "verification/log.jsonl").read_text().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            log.setdefault(record["target"]["id"], []).append(record)
+    urls = {source_id: str(s.url) for source_id, s in
+            load_sources(subscription_repository / "registry/sources.yaml").items()}
+    shapes, routes = set(), set()
+    for sid, row in source.items():
+        raw = {fact["facet"]: fact for fact in row["facts"]}
+        for facet, admitted in subscriptions[sid]["facts"].items():
+            fact = raw[facet]
+            assert fact["state"] != "unknown", (sid, facet)
+            # Value, value type and sources reach the snapshot unchanged.
+            assert admitted == FactValue(
+                fact["state"], fact.get("value"),
+                tuple(sorted({ref["source_id"] for ref in fact["sources"]}))), (sid, facet)
+            assert type(admitted.value) is type(fact.get("value")), (sid, facet)
+            if any(cite_only_origin(urls[ref["source_id"]], ref.get("resolved_urls") or ())
+                   for ref in fact["sources"]):
+                routes.add("cite-only")
+            else:
+                # Without a cite-only source, a fact enters only on an independent
+                # verified record for its current value; a re-curated value waits.
+                fid = f"{sid}#{facet}"
+                assert any(
+                    record["target"]["kind"] == "fact"
+                    and record["target"]["id"] == fid
+                    and record["target"].get("value_hash") == value_hash(fact.get("value"))
+                    and record["outcome"] == "verified"
+                    and verification_counts("verified", record["collector"]["model_family"],
+                                            record["verifier"]["model_family"])
+                    for record in (fact.get("verification"), *log.get(fid, ())) if record
+                ), (sid, facet)
+                routes.add("verified")
+            if fact["state"] == "known":
+                shapes.add((facet, type(fact["value"])))
+    # Not vacuous: both admission routes and each value shape reach the snapshot.
+    assert routes == {"verified", "cite-only"}
+    assert {("offering.subscription.price", int), ("offering.subscription.price", float),
+            ("offering.subscription.models_covered", list),
+            ("offering.subscription.usage_allowance", str)} <= shapes
     known_facets = {
         facet_id
         for subscription in subscriptions.values()

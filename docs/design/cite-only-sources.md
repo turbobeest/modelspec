@@ -80,7 +80,9 @@ retrieval timestamps. It cannot masquerade as verified even when an old
 verification record remains in frozen data. Missing dates remain null.
 Source references must resolve and carry valid hashes. Existing latest
 mismatch or unreachable results still quarantine the associated value;
-excluded publishers remain excluded. Non-cite-only facts keep the existing
+excluded publishers remain excluded. MODEL-415 adds one narrow exception: a
+recorded supersession can retire a mismatch read from a region the fact no
+longer cites ([design](cite-only-supersession.md)). Non-cite-only facts keep the existing
 value-hash-bound, independent verification gate (`decision/snapshot.py:750,804`).
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based

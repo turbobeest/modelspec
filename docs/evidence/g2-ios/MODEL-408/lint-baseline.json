@@ -1,0 +1,145 @@
+{
+  "unchanged_preexisting_issues": 8,
+  "results": [
+    {
+      "version": "base",
+      "exit_code": 1,
+      "issues": [
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1311
+          },
+          "message": "Line too long (102 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1831
+          },
+          "message": "Line too long (102 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1917
+          },
+          "message": "Line too long (101 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 3633
+          },
+          "message": "Line too long (147 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5243
+          },
+          "message": "Line too long (128 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5246
+          },
+          "message": "Line too long (121 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5270
+          },
+          "message": "Line too long (108 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5284
+          },
+          "message": "Line too long (109 > 100)"
+        }
+      ]
+    },
+    {
+      "version": "current",
+      "exit_code": 1,
+      "issues": [
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1311
+          },
+          "message": "Line too long (102 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1831
+          },
+          "message": "Line too long (102 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 1917
+          },
+          "message": "Line too long (101 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 3633
+          },
+          "message": "Line too long (147 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5243
+          },
+          "message": "Line too long (128 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5246
+          },
+          "message": "Line too long (121 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5270
+          },
+          "message": "Line too long (108 > 100)"
+        },
+        {
+          "code": "E501",
+          "location": {
+            "column": 101,
+            "row": 5284
+          },
+          "message": "Line too long (109 > 100)"
+        }
+      ]
+    }
+  ]
+}

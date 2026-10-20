@@ -1,0 +1,317 @@
+{
+  "steps": {
+    "uv-sync": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "sync",
+        "--project",
+        "stage",
+        "--frozen",
+        "--python",
+        "/Users/terbeest/.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/bin/python3.13"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package",
+      "started_at": "2026-10-19T17:23:40.978341+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.06
+    },
+    "npm-install": {
+      "command": [
+        "npm",
+        "install",
+        "--prefix",
+        "stage",
+        "--no-save",
+        "wrangler@4.139.0"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package",
+      "started_at": "2026-10-19T17:23:46.041469+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.84
+    },
+    "uv-cli-venv": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "venv",
+        "--python",
+        "/Users/terbeest/.local/share/uv/python/cpython-3.13.15-macos-aarch64-none/bin/python3.13",
+        "cli-venv"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package",
+      "started_at": "2026-10-19T17:24:24.366296+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.01
+    },
+    "uv-cli-install": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "pip",
+        "install",
+        "--python",
+        "cli-venv/bin/python",
+        "uv==0.12.19"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package",
+      "started_at": "2026-10-19T17:24:27.719601+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.08
+    },
+    "uv-sync-ci-tools": {
+      "command": [
+        "uv",
+        "sync",
+        "--project",
+        "stage",
+        "--frozen"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package",
+      "started_at": "2026-10-19T17:24:35.902548+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.63
+    },
+    "dryrun-red": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "run",
+        "--project",
+        ".",
+        "pywrangler",
+        "deploy",
+        "--dry-run",
+        "--outdir",
+        "../red-bundle"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/stage",
+      "started_at": "2026-10-19T17:24:06.929961+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 1,
+      "elapsed_seconds": 0.32
+    },
+    "dryrun-red-ci-tools": {
+      "command": [
+        "uv",
+        "run",
+        "--project",
+        ".",
+        "pywrangler",
+        "deploy",
+        "--dry-run",
+        "--outdir",
+        "../red-bundle"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/stage",
+      "started_at": "2026-10-19T17:24:40.043084+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 5.43
+    },
+    "bundle-check-red": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "api/worker/bundle_check.py",
+        "tmp/model-408-cite/public-checks/worker-package/red-bundle"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:24:48.780726+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 1,
+      "elapsed_seconds": 0.41
+    },
+    "dryrun-green": {
+      "command": [
+        "uv",
+        "run",
+        "--project",
+        ".",
+        "pywrangler",
+        "deploy",
+        "--dry-run",
+        "--outdir",
+        "../green-bundle"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/stage",
+      "started_at": "2026-10-19T17:25:02.743778+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.29
+    },
+    "bundle-check-green": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "api/worker/bundle_check.py",
+        "tmp/model-408-cite/public-checks/worker-package/green-bundle",
+        "--require-data"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:25:16.337036+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.38
+    },
+    "byte-proof": {
+      "red_policy_absent": true,
+      "green_policy_path": "tmp/model-408-cite/public-checks/worker-package/green-bundle/registry/source-retention.json",
+      "policy_size_bytes": 87,
+      "policy_sha256": "16743d1bd9b2e5adb6bfb8236438ba2010434fd3595388d0839f26bec24126d0",
+      "policy_bytes_identical": true,
+      "bundled_private_data_bytes_identical": true,
+      "lockfiles_unchanged": {
+        "uv.lock": true,
+        "pylock.toml": true,
+        "pyproject.toml": true
+      },
+      "handwritten_files_match_current": 32,
+      "vendored_python_matches_current": true
+    },
+    "byte-proof-final": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "tmp/model-408-cite/public-checks/worker-package/verify.py"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:25:37.447705+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.09
+    },
+    "final-versions": {
+      "command": [
+        ".venv/bin/python",
+        "-c",
+        "import json,subprocess,importlib.metadata as m,pathlib; v={\"python\":subprocess.check_output([\".venv/bin/python\",\"--version\"],text=True).strip(),\"node\":subprocess.check_output([\"node\",\"--version\"],text=True).strip(),\"npm\":subprocess.check_output([\"npm\",\"--version\"],text=True).strip(),\"uv\":subprocess.check_output([\"uv\",\"--version\"],text=True).strip(),\"workers-py\":m.version(\"workers-py\"),\"wrangler\":json.loads(pathlib.Path(\"node_modules/wrangler/package.json\").read_text())[\"version\"]}; print(json.dumps(v,indent=2))"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/stage",
+      "started_at": "2026-10-19T17:25:16.337036+00:00",
+      "environment": {
+        "PATH_prefix": [
+          "/Users/terbeest/.nvm/versions/node/v22.22.3/bin",
+          "/Users/terbeest/dev/worktrees/model-408/tmp/model-408-cite/public-checks/worker-package/cli-venv/bin",
+          "/Users/terbeest/.local/bin"
+        ],
+        "WRANGLER_SEND_METRICS": "false",
+        "CI": "true"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.16
+    }
+  },
+  "versions": {
+    "python": "Python 3.13.15",
+    "node": "v22.22.3",
+    "npm": "10.9.8",
+    "uv": "uv 0.12.19 (bea138450 2026-09-24 aarch64-apple-darwin)",
+    "workers-py": "1.17.4",
+    "wrangler": "4.139.0"
+  },
+  "byte_proof": {
+    "red_policy_absent": true,
+    "green_policy_path": "tmp/model-408-cite/public-checks/worker-package/green-bundle/registry/source-retention.json",
+    "policy_size_bytes": 87,
+    "policy_sha256": "16743d1bd9b2e5adb6bfb8236438ba2010434fd3595388d0839f26bec24126d0",
+    "policy_bytes_identical": true,
+    "bundled_private_data_bytes_identical": true,
+    "lockfiles_unchanged": {
+      "uv.lock": true,
+      "pylock.toml": true,
+      "pyproject.toml": true
+    },
+    "handwritten_files_match_current": 32,
+    "vendored_python_matches_current": true
+  },
+  "config_delta": "Only added registry/source-retention.json to existing Data globs.",
+  "staging": "Private exported data plus current vendored Python and 32 tracked handwritten Worker modules.",
+  "notes": [
+    "Initial dryrun stopped before packaging because machine uv 0.7.13 was too old. Isolated uv 0.12.19 matches CI and both actual dryruns passed.",
+    "First supplemental byte-proof script had a local dict iteration typo; corrected script passes.",
+    "Python 3.13.15 locally; CI uses Python 3.13.16. Wrangler 4.139.0, workers-py 1.17.4, uv 0.12.19, Node 22.22.3 and project locks match CI.",
+    "No tracked source edits, shared source/dist mutations, provider calls, uploads, or deploys performed."
+  ]
+}

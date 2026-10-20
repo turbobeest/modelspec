@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import itertools
 import json
 import math
 import re
@@ -226,6 +227,93 @@ def value_hash(value: JsonValue) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+#: The most members a set value may have for a verification of it written in
+#: another order to be found (MODEL-416). Before MODEL-416 a verification bound
+#: the order the card filed, so reordering the same members gave a new hash and
+#: stepped out from under a mismatch. Those rows are fixed: every verification
+#: written since binds the canonical form. Matching tries every ordering of the
+#: members, 9! = 362,880 hashes at most (about 0.2 s), and only for a fact that
+#: has a row on a hash nothing else explains. Past the bound the snapshot fails
+#: closed (``exceeds_legacy_orderings``), and a census test over the data
+#: (``tests/test_set_value_hashes.py``) fails if any fact would be held so.
+LEGACY_ORDERINGS_MAX_MEMBERS = 9
+
+
+def unordered_facet(facet: Any) -> bool:
+    """Whether a registered facet's value is a set whose order means nothing.
+
+    Read from the registry's explicit ``value_type.unordered``, never inferred
+    from the value's shape: a range is a list whose order does mean something.
+    """
+    return getattr(getattr(facet, "value_type", None), "unordered", False) is True
+
+
+def _members(value: JsonValue) -> list[str] | None:
+    if isinstance(value, list) and all(isinstance(member, str) for member in value):
+        return value
+    return None
+
+
+def canonical_value(value: JsonValue, *, unordered: bool) -> JsonValue:
+    """The form a verification binds: an unordered value's members, sorted.
+
+    A repeated member is kept, never folded: a set's members are unique, so a
+    list with a repeat is a different, invalid value, not the same set.
+    """
+    members = _members(value) if unordered else None
+    return value if members is None else sorted(members)
+
+
+def exceeds_legacy_orderings(value: JsonValue, *, unordered: bool) -> bool:
+    """Whether a legacy hash of another order of ``value`` can no longer be found.
+
+    Such a row cannot be told apart from a row on other members, so a caller
+    that meets one it cannot bind must hold the value back (fail closed).
+    """
+    members = _members(value) if unordered else None
+    return members is not None and len(members) > LEGACY_ORDERINGS_MAX_MEMBERS
+
+
+def verification_value_hash(value: JsonValue, *, unordered: bool) -> str:
+    """The ``value_hash`` a new verification records: the same for any member order."""
+    return value_hash(canonical_value(value, unordered=unordered))
+
+
+def matching_value_hashes(
+    value: JsonValue, recorded: Iterable[str], *, unordered: bool
+) -> set[str]:
+    """Which of the ``recorded`` hashes bind ``value``.
+
+    For an ordered facet, only ``value_hash(value)``. For an unordered facet, a
+    hash binds the member set, not an order: the canonical hash, the legacy hash
+    of the order filed, and the legacy hash of any other order of the same
+    members (up to ``LEGACY_ORDERINGS_MAX_MEMBERS``). So, up to that bound, a
+    reorder never changes which verifications apply: it cannot clear a mismatch,
+    nor drop a verified. Past it a legacy hash of another order stays unbound;
+    see ``exceeds_legacy_orderings``.
+    """
+    recorded = set(recorded)
+    found = recorded & {value_hash(value)}
+    members = _members(value) if unordered else None
+    if members is None:
+        return found
+    found |= recorded & {verification_value_hash(value, unordered=True)}
+    rest = recorded - found
+    if not rest or len(members) > LEGACY_ORDERINGS_MAX_MEMBERS:
+        return found
+    # ``value_hash`` of a list of strings, without re-encoding each member per order.
+    encoded = [json.dumps(member, ensure_ascii=False) for member in members]
+    for ordering in itertools.permutations(encoded):
+        candidate = "sha256:" + hashlib.sha256(
+            ("[" + ",".join(ordering) + "]").encode("utf-8")).hexdigest()
+        if candidate in rest:
+            found.add(candidate)
+            rest.discard(candidate)
+            if not rest:
+                break
+    return found
+
+
 def _fact_field(fact: Any, key: str, default: Any = None) -> Any:
     return fact.get(key, default) if isinstance(fact, Mapping) else getattr(fact, key, default)
 
@@ -324,11 +412,13 @@ def evidence_verification_value(evidence: object) -> JsonValue:
     }
 
 
-def _check_target(verification: Verification | None, kind: str, id: str, value: JsonValue) -> None:
+def _check_target(verification: Verification | None, kind: str, id: str, value: JsonValue,
+                  *, unordered: bool = False) -> None:
     if verification is not None and (
         verification.target.kind != kind
         or verification.target.id != id
-        or verification.target.value_hash != value_hash(value)
+        or not matching_value_hashes(
+            value, [verification.target.value_hash], unordered=unordered)
     ):
         raise ValueError("verification target or value_hash does not match this record")
 
@@ -431,7 +521,8 @@ class Fact(Record):
                 raise ValueError("a measured fact is known and its value is the median")
             if "modelspec_measurement" not in facet.permitted_source_kinds:
                 raise ValueError(f"facet {self.facet} does not admit a ModelSpec measurement")
-        _check_target(self.verification, "fact", self.id, fact_verification_value(self))
+        _check_target(self.verification, "fact", self.id, fact_verification_value(self),
+                      unordered=unordered_facet(facet))
         return self
 
     @property
