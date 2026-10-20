@@ -445,27 +445,37 @@ def _read_only_interactions(page: Any, prepare: RenderedInteractions):
 _SAFE_CONTROL = r"""(node, action) => {
     const tag = node.tagName.toLowerCase();
     const role = node.getAttribute('role');
-    const label = (node.getAttribute('aria-label') || node.textContent || node.value || '').trim();
+    const labels = [node.getAttribute('aria-label'), node.textContent, node.value]
+        .map(value => (value || '').trim()).filter(Boolean);
     if (node.closest('form') || node.hasAttribute('form')) return false;
     if (node.closest('a[href]') && !node.closest('a[href]').getAttribute('href').startsWith('#'))
         return false;
     const context = node.closest('[id*="cookie"],[id*="consent"],[class*="cookie"],[class*="consent"]');
     if (action !== 'reject_consent' &&
-        (context || /\b(cookie|consent|accept|agree|allow all)\b/i.test(label))) return false;
-    if (/\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b/i.test(label))
+        (context || labels.some(label =>
+            /\b(cookie|consent|accept|agree|allow all)\b/i.test(label)))) return false;
+    if (labels.some(label =>
+        /\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b/i.test(label)))
         return false;
     if (action === 'select_option') return tag === 'select';
     const control = tag === 'button' || ['tab', 'button', 'combobox', 'option'].includes(role);
     if (!control) return false;
-    if (action === 'reject_consent')
-        return /^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$/i.test(label);
+    if (action === 'reject_consent') {
+        const reject = /^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$/i;
+        return labels.length > 0 && labels.every(label => reject.test(label));
+    }
     if (/^(submit|reset)$/i.test(node.getAttribute('type') || '')) return false;
     return true;
 }"""
 
-_REGION_CONTAINS_TEXT = """({selector, text}) => {
+_REGION_CONTAINS_TEXT = r"""({selector, text}) => {
     const nodes = document.querySelectorAll(selector);
-    return nodes.length === 1 && nodes[0].innerText.includes(text);
+    if (nodes.length !== 1) return false;
+    const node = nodes[0];
+    const shown = node.tagName === 'SELECT'
+        ? Array.from(node.selectedOptions, option => option.label).join('\n')
+        : node.innerText;
+    return shown.includes(text);
 }"""
 
 

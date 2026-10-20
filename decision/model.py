@@ -26,12 +26,15 @@ from pydantic import (
     Field,
     HttpUrl,
     JsonValue,
+    SerializerFunctionWrapHandler,
     TypeAdapter,
     ValidationInfo,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
+from decision.contract import NATIVE_EXCLUDE_IF, apply_exclude_if
 from schema.evidence import BenchmarkEvidence
 
 Text = Annotated[str, Field(min_length=1, pattern=r"\S", strict=True)]
@@ -599,7 +602,15 @@ class Source(Record):
     kind: str | None = None
     cited_regions: list[CitedRegion] = Field(default_factory=list)
     rendered_interactions: list[RenderedInteraction] = Field(
-        default_factory=list, max_length=16, exclude_if=lambda value: not value)
+        default_factory=list, max_length=16,
+        **({"exclude_if": lambda value: not value} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: not value},
+        }))
+
+    if not NATIVE_EXCLUDE_IF:
+        @model_serializer(mode="wrap")
+        def _exclude_if(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+            return apply_exclude_if(self, handler(self))
 
     @model_validator(mode="after")
     def unique_regions(self) -> Self:

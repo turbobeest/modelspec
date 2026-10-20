@@ -35,6 +35,39 @@ def test_registry_loads_a_bounded_data_only_recipe(tmp_path):
     assert sources["fixture-pricing"].model_dump()["rendered_interactions"] == RECIPE
 
 
+def test_empty_recipe_is_omitted_from_python_json_and_nested_serialization(tmp_path):
+    from pydantic import TypeAdapter
+
+    from decision.model import Source
+
+    source = registry(tmp_path, interactions=[])["fixture-pricing"]
+    assert "rendered_interactions" not in source.model_dump()
+    assert "rendered_interactions" not in json.loads(source.model_dump_json())
+    assert "rendered_interactions" not in TypeAdapter(list[Source]).dump_python([source])[0]
+
+
+@pytest.mark.parametrize("attributes,text", [
+    ('aria-label="Region"', "Accept all cookies"),
+    ('aria-label="Region"', "Log in"),
+    ('aria-label="Region"', "Submit"),
+    ('aria-label="Region" value="Accept all cookies"', "Region"),
+    ('aria-label="Region" value="Log in"', "Region"),
+    ('aria-label="Region" value="Submit"', "Region"),
+    ('aria-label="Accept all cookies"', "Region"),
+])
+def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+    recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+    result = render_fixture(
+        browser, registry(tmp_path, recipe),
+        f'<button id="unsafe" type="button" {attributes} '
+        f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+        '<div id="prices">$4.00</div>')
+    assert browser._context.cookies() == []
+    assert result.outcome == "unreachable"
+    assert result.body == b""
+    assert "unsafe" in result.error
+
+
 @pytest.mark.parametrize("recipe, overrides", [
     ([{"action": "evaluate", "selector": "body", "code": "alert(1)"}], {}),
     ([{"action": "fill", "selector": "input", "value": "password"}], {}),
@@ -121,6 +154,18 @@ def test_recipe_can_reject_optional_cookies(tmp_path, browser):
         '<div id="prices">$4.00</div>')
     assert result.outcome == "ok", result.error
     assert b'id="reject"' not in result.body
+
+
+@pytest.mark.parametrize("selected", [False, True])
+def test_wait_text_on_select_requires_the_selected_option(tmp_path, browser, selected):
+    recipe = [{"action": "wait_text", "selector": "#region", "text": "East US"}]
+    result = render_fixture(
+        browser, registry(tmp_path, recipe),
+        '<select id="region"><option value="west">West US</option>'
+        f'<option value="east" {"selected" if selected else ""}>East US</option></select>')
+    assert result.outcome == ("ok" if selected else "unreachable")
+    if not selected:
+        assert result.body == b""
 
 
 def test_recipe_cannot_accept_cookies_with_a_native_select(tmp_path, browser):
