@@ -11,7 +11,12 @@ from typing import Any
 import yaml
 
 from decision.labs import Lab
-from decision.model import value_hash, verification_counts
+from decision.model import (
+    evidence_verification_value,
+    fact_verification_value,
+    value_hash,
+    verification_counts,
+)
 
 
 def day(value: Any) -> date | None:
@@ -153,12 +158,11 @@ def _records(c, rows, subject, kind, parent):
         value = raw.get("value") if kind == "fact" else raw.get("score")
         read_date = raw.get("read_date") or raw.get("verified_at")
         # A verification for another value must not reset the current value's age.
-        checked_value = value
-        if kind == "evidence":
-            from decision.model import evidence_verification_value
-
-            checked_value = evidence_verification_value(raw)
+        # Hash what the verifier hashed: a dated price binds its period (MODEL-394).
         try:
+            checked_value = (
+                fact_verification_value(raw) if kind == "fact" else evidence_verification_value(raw)
+            )
             if (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
                 read_date = v.get("date") or read_date
             else:

@@ -813,3 +813,88 @@ def test_live_observation_date_is_not_a_value_error(
     assert report["counts"][outcome] == 1
     if outcome == "matched":
         assert report["results"][0]["reason"] == "observation_date_advanced"
+
+
+DATED_OFFERING = "sambanova/test/model/global/standard"
+DATED_FACET = "offering.price.input"
+
+
+def dated_price(value, *, start=None, until=None, hash_period=True):
+    """A MODEL-394 scheduled price whose verification binds its period, as the verifier does."""
+    from tests.snapshot_records import verification
+
+    row = fact("offering", DATED_OFFERING, DATED_FACET, value)
+    row["id"] += f"@through-{until}" if until else f"@{start}"
+    if start:
+        row["effective_from"] = start
+    if until:
+        row["effective_until"] = until
+    hashed = {"value": value, "effective_from": start, "effective_until": until}
+    row["verification"] = verification(
+        "fact", row["id"], day="2026-09-18", value=hashed if hash_period else value
+    )
+    return row
+
+
+def calibrate_dated(catalogue, registry, monkeypatch, tmp_path, rows):
+    from decision.snapshot import SnapshotInputs
+    from tests.snapshot_records import offering
+
+    inputs = SnapshotInputs(
+        models=[{
+            "id": MID, "lifecycle": "active",
+            "facts": [
+                fact("model", MID, "model.weights_openness", "open_weights"),
+                fact("model", MID, "model.context_window", 128000),
+            ],
+        }],
+        offerings=[offering(MID, facts=rows)],
+        sources={sid: row["url"] for sid, row in catalogue.sources.items()},
+    )
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    calibrate(catalogue, tmp_path, registry, TODAY)
+    return [f for f in catalogue.facts if f["field"] == DATED_FACET]
+
+
+def test_dated_price_verification_dates_the_served_period(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """MODEL-422: the 2026-10-19 audit flagged verified Vertex price periods as undated."""
+    served = calibrate_dated(catalogue, registry, monkeypatch, tmp_path, [
+        dated_price(0.75, until="2026-12-31"),
+        dated_price(1.5, start="2027-01-01"),
+    ])
+    assert [(f["id"], f["value"], f["read_date"]) for f in served] == [
+        (f"{DATED_OFFERING}#{DATED_FACET}@through-2026-12-31", 0.75, "2026-09-18"),
+    ]
+    assert served[0]["verification"]["outcome"] == "verified"
+    assert invariants.run(catalogue, registry, TODAY)["findings"] == []
+
+
+def test_dated_price_verification_of_the_bare_value_does_not_count(catalogue, registry):
+    catalogue.facts = []
+    row = dated_price(0.75, until="2026-12-31", hash_period=False)
+    _records(catalogue, [row], DATED_OFFERING, "fact", {})
+    assert [(f["read_date"], f["verification"]) for f in catalogue.facts] == [(None, {})]
+
+
+def test_sampled_dated_price_keeps_its_period(catalogue, registry, monkeypatch, tmp_path):
+    from dataclasses import replace
+
+    served = calibrate_dated(catalogue, registry, monkeypatch, tmp_path, [
+        dated_price(0.75, until="2026-12-31"),
+        dated_price(1.5, start="2027-01-01"),
+    ])
+    claim = sample.claim_for(served[0], catalogue, registry)
+    assert claim.value == 0.75
+    assert claim.conditions == {"effective_until": "2026-12-31"}
+
+    collected = replace(claim, label="Input price")
+    catalogue.claims[("fact", served[0]["id"])] = collected
+    assert sample.claim_for(served[0], catalogue, registry) is collected
+    catalogue.claims[("fact", served[0]["id"])] = replace(
+        collected, conditions={"effective_from": "2027-01-01"}
+    )
+    assert sample.claim_for(served[0], catalogue, registry).conditions == {
+        "effective_until": "2026-12-31"
+    }
