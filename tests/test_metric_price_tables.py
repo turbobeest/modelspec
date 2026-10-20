@@ -361,3 +361,111 @@ def test_a_cached_price_column_states_the_cached_input_price(reads):
         .replace("| Cached input | $0.01 | 1M tokens |\n", "")
     assert reads(page, "input", .1) and reads(page, "cached_input", .01)
     assert not reads(page, "input", .01)
+
+
+# --- Round 4 of the cross-review: columns inside a batch section ----------------------------
+
+
+def _batch_section(header, input_row, output_row):
+    return STANDARD + f"## Batch\n{header}\n{input_row}\n{output_row}\n"
+
+
+BOTH_BATCH_COLUMNS = [
+    _batch_section("| Metric | Price (batch) | Price |", "| Input | $0.04 | $0.10 |",
+                   "| Output | $0.20 | $0.50 |"),
+    _batch_section("| Metric | Price | Price (batch) |", "| Input | $0.10 | $0.04 |",
+                   "| Output | $0.50 | $0.20 |"),
+]
+
+
+@pytest.mark.parametrize("page", BOTH_BATCH_COLUMNS, ids=["batch-first", "price-first"])
+def test_a_batch_section_with_a_batch_and_a_plain_price_column_that_differ_reads_nothing(
+        reads, page):
+    for value in (.04, .1):
+        assert not reads(page, "batch_input", value)
+    for value in (.2, .5):
+        assert not reads(page, "batch_output", value)
+    assert reads(page, "input", .1)  # the standard section above is unaffected
+
+
+@pytest.mark.parametrize(("header", "row"), [
+    ("| Metric | Price | Unit |", "| Input | $0.04 | 1M tokens |"),
+    ("| Metric | Price (batch) | Unit |", "| Input | $0.04 | 1M tokens |"),
+    ("| Metric | Price (batch) | Price |", "| Input | $0.04 | $0.04 |"),
+])
+def test_a_batch_section_states_its_one_batch_price(reads, header, row):
+    page = STANDARD + f"## Batch\n{header}\n{row}\n"
+    assert reads(page, "batch_input", .04)
+    assert not reads(page, "batch_input", .1)
+
+
+def test_a_cached_column_in_a_batch_section_reads_nothing(reads):
+    page = STANDARD + ("## Batch\n| Metric | Price | Price (cached) |\n"
+                       "| Input | $0.04 | $0.01 |\n")
+    assert not reads(page, "batch_input", .04)
+    assert not reads(page, "cached_input", .01)
+
+
+BATCH_FACT = "example/example/model/global/standard#offering.price.batch_input"
+
+
+@pytest.mark.parametrize(("filed_page", "filed"), [
+    # Filed from a batch section whose only price column was Price.
+    (STANDARD + "## Batch\n| Metric | Price | Unit |\n| Input | $0.10 | 1M tokens |\n", .1),
+    # Filed from a batch section whose only price column was Price (batch).
+    (STANDARD + "## Batch\n| Metric | Price (batch) | Unit |\n| Input | $0.04 | 1M tokens |\n",
+     .04),
+], ids=["filed-from-price", "filed-from-price-batch"])
+def test_a_two_column_batch_section_never_reconfirms_a_stale_batch_price(
+        tmp_path, filed_page, filed):
+    """The reviewer's --write case: the Price (batch) cell changed to $0.01."""
+    import json
+    from datetime import UTC, datetime
+
+    import yaml
+    from scripts import price_reread
+
+    root = tmp_path / "repo"
+    (root / "registry").mkdir(parents=True)
+    (root / "registry/sources.yaml").write_text(SOURCES)
+    store = CopyStore(tmp_path / "copies")
+    ref = store.put(filed_page.encode(), source_url="https://fixture.example/")
+    path = root / "offerings/example/example/model.yaml"
+    path.parent.mkdir(parents=True)
+    subject = "example/example/model/global/standard"
+    fact = {"id": BATCH_FACT, "subject": {"kind": "offering", "id": subject},
+            "facet": "offering.price.batch_input", "state": "known", "value": filed,
+            "sources": [{"source_id": "model-page", "snapshot_ref": ref,
+                         "cited_regions": ["page"]}]}
+    path.write_text(yaml.safe_dump([{"model": "example/model", "provider": "example",
+                                     "region": "global", "tier": "standard", "facts": [fact]}],
+                                   sort_keys=False))
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id=BATCH_FACT), subject=subject,
+        names=("Example Mini", "example-mini"), field="offering.price.batch_input",
+        label="Batch Input", value=filed, unit="usd_per_1m_tokens", collector=COLLECTOR,
+        sources=(SourceRef(source_id="model-page", snapshot_ref=ref, cited_regions=["page"]),))
+    queue, log = verify.Queue(root / "verification"), verify.VerificationLog(root / "verification")
+    queue.file(claim, at=datetime(2026, 10, 17, tzinfo=UTC))
+    regions = verify.StoredRegions(store, load_sources(root / "registry/sources.yaml"))
+    result = verify.verify(claim, regions, verify.deterministic_extractors(),
+                           today=date(2026, 10, 17))
+    assert result.outcome == "verified", result
+    log.append(result.verification)
+    before = {p: p.read_text() for p in (path, queue.path, log.path)}
+    new_page = _batch_section("| Metric | Price (batch) | Price |", "| Input | $0.01 | $0.10 |",
+                              "| Output | $0.20 | $0.50 |")
+
+    class Fetcher:
+        def fetch(self, url, **kwargs):
+            from decision.sources import FetchResult
+
+            return FetchResult("ok", 200, body=new_page.encode(), content_type="text/plain",
+                               charset="utf-8")
+
+    report = price_reread.run(root=root, fetcher=Fetcher(), store=store,
+                              today=date(2026, 10, 20), write=True)
+    [result] = report.facts
+    assert result.status in {price_reread.Status.NEEDS_REVIEW, price_reread.Status.UNREADABLE}, \
+        json.dumps(result.to_dict())
+    assert {p: p.read_text() for p in before} == before

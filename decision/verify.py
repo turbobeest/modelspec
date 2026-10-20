@@ -2341,7 +2341,9 @@ class MetricPriceTable:
       column. Any other price column, or two of a kind, reads nothing.
     - A standard section's table states standard prices, a batch section's table
       states batch prices, and cached, fine-tuning and other sections are not
-      read. A kind stated with two amounts, or two standard tables, reads nothing.
+      read. In a batch section a ``Price (batch)`` column is the batch price, and
+      a plain ``Price`` column is one only when it is the only price column. A kind
+      stated with two amounts, or two standard tables, reads nothing.
     """
 
     sections: tuple[_PriceSection, ...]
@@ -2372,9 +2374,14 @@ class MetricPriceTable:
             path = " ".join(h for _, h in headings)
             tier = ("other" if _OTHER_TIER.search(path) or re.search(r"(?i)cach", path)
                     else "batch" if _BATCH_TIER.search(path) else "standard")
-            if columns["ambiguous"] or len(columns["standard"]) != 1 \
-                    or len(columns["batch"]) > 1 or len(columns["cached"]) > 1:
-                tier = "ambiguous"  # which column is the standard price is not clear
+            if columns["ambiguous"] or any(len(columns[kind]) > 1
+                                           for kind in ("standard", "batch", "cached")):
+                tier = "ambiguous"  # which column states which price is not clear
+            elif tier == "standard" and not columns["standard"]:
+                tier = "ambiguous"
+            elif tier == "batch" and (columns["cached"]
+                                      or not (columns["standard"] or columns["batch"])):
+                tier = "ambiguous"
             metric_col = header.index("metric")
             price_col = columns["standard"][0] if columns["standard"] else None
             batch_col = columns["batch"][0] if columns["batch"] else None
@@ -2386,9 +2393,14 @@ class MetricPriceTable:
                 if kind is None or tier in {"other", "ambiguous"}:
                     continue
                 if tier == "batch":
+                    # In a batch section a "Price (batch)" column is the batch price,
+                    # and a plain Price column is one only when it is the only price
+                    # column. Both, stating different amounts, read nothing (MODEL-423).
                     kind = {"input": "batch_input", "output": "batch_output"}.get(kind, kind)
-                    if kind == "cached_input":
-                        continue
+                    if kind in {"batch_input", "batch_output"}:
+                        found[kind] += [cells[col] for col in (batch_col, price_col)
+                                        if col is not None and cells[col]]
+                    continue
                 found[kind].append(cells[price_col])
                 if batch_col is not None and kind in {"input", "output"} and cells[batch_col]:
                     found[f"batch_{kind}"].append(cells[batch_col])
