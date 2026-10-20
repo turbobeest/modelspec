@@ -697,7 +697,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
             return replace(base, status=Status.NEEDS_REVIEW,
                            reason="a free-text value read from a whole-page region "
                            f"({', '.join(page_regions)}) is not proposed as a change; "
-                           "cite a narrower region")
+                           "cite a narrower region" + proposal.cap_note)
     if proposal.unique and fact["state"] == "known":
         return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
     if proposal.unique:

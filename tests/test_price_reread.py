@@ -381,8 +381,11 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
     assert before.status == Status.NEEDS_REVIEW
     assert before.reason == (
         "a free-text value read from a whole-page region (example-plans#page) "
-        "is not proposed as a change; cite a narrower region"
+        "is not proposed as a change; cite a narrower region (the search checked only the "
+        f"first {price_reread.MAX_PROPOSAL_CHECKS} of "
+        f"{price_reread._propose(claim, regions, TODAY).candidates} candidate values)"
     )
+    assert price_reread._propose(claim, regions, TODAY).candidates > 200
     # MODEL-423 stops checking candidates at the second verified value, so the
     # unmemoised path no longer parses once per reading, but still more than once.
     assert before_calls > 1
@@ -433,7 +436,9 @@ def test_a_coverage_quote_on_a_long_page_checks_a_bounded_number_of_candidates(
     fetched = {"example-plans": price_reread.SourceFetch(
         "example-plans", PLANS_URL, "ok", copy_ref)}
     regions = StoredRegions(store, sources)
-    assert len(price_reread._readings(claim, regions)) > 4000
+    readings = price_reread._readings(claim, regions)
+    assert len(readings) > 4000
+    candidates = price_reread._propose(claim, regions, TODAY).candidates
 
     checked = []
     original_verify = price_reread.verify
@@ -448,7 +453,9 @@ def test_a_coverage_quote_on_a_long_page_checks_a_bounded_number_of_candidates(
     assert result.status is Status.NEEDS_REVIEW
     assert result.reason == (
         "a free-text value read from a whole-page region (example-plans#page) "
-        "is not proposed as a change; cite a narrower region"
+        "is not proposed as a change; cite a narrower region (the search checked only the "
+        f"first {price_reread.MAX_PROPOSAL_CHECKS} of "
+        f"{candidates} candidate values)"
     )
     # The old value, then candidates until the second one verifies.
     assert checked == ["The previous coverage wording.", "Example Pro $20/month",
