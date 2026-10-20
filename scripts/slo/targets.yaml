@@ -69,7 +69,7 @@ targets:
     max_age_days: 14
 
   - id: workflow-health
-    title: Every coverage workflow's latest run on main succeeded, on time
+    title: Every scheduled workflow's latest run on main succeeded, on time
     in_force: true
 
   # MODEL-232. A refresh resets reading ages only when its PR merges. Three
@@ -91,25 +91,23 @@ domain_map:
   retrieval-and-embedding: [retrieval]
   vision: [vision_documents]
 
-# The workflows that keep the catalogue current. `max_age_hours` is how old
-# the latest completed run may be; omit it for push-triggered workflows.
-# `skipped_ok: false` counts a run whose every job was skipped (a disabled
-# pipeline) as a breach.
-workflows:
-  - file: daily-research.yml
-    max_age_hours: 30
-  - file: release-signals.yml
-    max_age_hours: 3
-    skipped_ok: false
-  - file: leaderboard-refresh.yml
-    max_age_hours: 192
-  - file: curation-benchmarks.yml
-    max_age_hours: 30
-  - file: accuracy-nightly.yml
-    max_age_hours: 30
-  - file: card-stats.yml
-    max_age_hours: 192
-  - file: coverage-slo.yml
-    max_age_hours: 30
-  - file: deploy-sites.yml
-  - file: rank-api.yml
+# MODEL-421. `workflow-health` watches every workflow with a `schedule:`
+# trigger in these repositories. The list and each cadence come from the cron
+# lines in the workflow files, never from a list kept here. A scheduled
+# workflow is red when its newest completed run on main failed, was cancelled
+# or timed out, or when it has not run for `stale_factor` times its cadence.
+workflow_health:
+  stale_factor: 1.5
+  repos:
+    - repo: turbobeest/modelspec
+      dir: .
+    # coverage-slo.yml checks out only its .github/workflows here, and reads
+    # its runs with this token, which needs Actions: read on modelspec-data.
+    - repo: turbobeest/modelspec-data
+      dir: modelspec-data
+      token_env: MODELSPEC_DATA_TOKEN
+  # Push-triggered workflows with no cron to derive a cadence from. Only a red
+  # newest run counts for these.
+  unscheduled:
+    - repo: turbobeest/modelspec
+      file: deploy-sites.yml
