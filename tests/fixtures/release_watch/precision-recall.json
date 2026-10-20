@@ -11,9 +11,12 @@
       "provider": "anthropic",
       "cases": [
         {"key": "model", "name": "claude-fixture-7", "expected_signal_id": "watch:anthropic:claude-fixture-7"},
-        {"key": "sdk", "name": "claude-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "claude-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "claude-fixture-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "claude-fixture-7-sdk-1", "expected_signal_id": "watch:anthropic:claude-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "claude-fixture-7-blog-1", "expected_signal_id": "watch:anthropic:claude-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "claude-fixture-7-docs-1", "expected_signal_id": "watch:anthropic:claude-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "minor-a", "name": "claude-fixture-7.1", "expected_signal_id": "watch:anthropic:claude-fixture-7-1"},
         {"key": "minor-b", "name": "claude-fixture-7.2", "expected_signal_id": "watch:anthropic:claude-fixture-7-2"},
         {"key": "known-alias", "name": "claude-sonnet-4-5-20250929", "expected_signal_id": "watch:anthropic:claude-sonnet-4-5"},
@@ -26,9 +29,12 @@
       "provider": "google",
       "cases": [
         {"key": "model", "name": "gemini-fixture-7", "expected_signal_id": "watch:google:gemini-fixture-7"},
-        {"key": "sdk", "name": "gemini-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "gemini-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "gemini-fixture-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "gemini-fixture-7-sdk-1", "expected_signal_id": "watch:google:gemini-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "gemini-fixture-7-blog-1", "expected_signal_id": "watch:google:gemini-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "gemini-fixture-7-docs-1", "expected_signal_id": "watch:google:gemini-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "video-model", "name": "veo-fixture-7", "expected_signal_id": "watch:google:veo-fixture-7"}
       ]
     },
@@ -38,9 +44,12 @@
       "provider": "openai",
       "cases": [
         {"key": "model", "name": "gpt-fixture-7", "expected_signal_id": "watch:openai:gpt-fixture-7"},
-        {"key": "sdk", "name": "gpt-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "gpt-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "gpt-fixture-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "gpt-fixture-7-sdk-1", "expected_signal_id": "watch:openai:gpt-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "gpt-fixture-7-blog-1", "expected_signal_id": "watch:openai:gpt-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "gpt-fixture-7-docs-1", "expected_signal_id": "watch:openai:gpt-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "date-is-not-automatically-an-alias", "name": "gpt-fixture-7-20261020", "expected_signal_id": "watch:openai:gpt-fixture-7-20261020"}
       ]
     },
@@ -50,9 +59,12 @@
       "provider": "mistral",
       "cases": [
         {"key": "model", "name": "mistral-fixture-7", "expected_signal_id": "watch:mistral:mistral-fixture-7"},
-        {"key": "sdk", "name": "mistral-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "mistral-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "mistral-fixture-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "mistral-fixture-7-sdk-1", "expected_signal_id": "watch:mistral:mistral-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "mistral-fixture-7-blog-1", "expected_signal_id": "watch:mistral:mistral-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "mistral-fixture-7-docs-1", "expected_signal_id": "watch:mistral:mistral-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "large-4-alias", "name": "mistral-large-4-0", "expected_signal_id": "watch:mistral:mistral-large-4", "issue_url": "https://github.com/turbobeest/modelspec/issues/616", "url": "https://docs.mistral.ai/models"}
       ]
     },
@@ -62,9 +74,12 @@
       "provider": "xai",
       "cases": [
         {"key": "model", "name": "grok-fixture-7", "expected_signal_id": "watch:xai:grok-fixture-7"},
-        {"key": "sdk", "name": "grok-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "grok-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "grok-fixture-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "grok-fixture-7-sdk-1", "expected_signal_id": "watch:xai:grok-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "grok-fixture-7-blog-1", "expected_signal_id": "watch:xai:grok-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "grok-fixture-7-docs-1", "expected_signal_id": "watch:xai:grok-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -73,9 +88,12 @@
       "provider": "deepseek",
       "cases": [
         {"key": "model", "name": "deepseek-fixture-7", "expected_signal_id": "watch:deepseek:deepseek-fixture-7"},
-        {"key": "sdk", "name": "deepseek-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "deepseek-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "deepseek-fixture-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "deepseek-fixture-7-sdk-1", "expected_signal_id": "watch:deepseek:deepseek-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "deepseek-fixture-7-blog-1", "expected_signal_id": "watch:deepseek:deepseek-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "deepseek-fixture-7-docs-1", "expected_signal_id": "watch:deepseek:deepseek-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -84,9 +102,12 @@
       "provider": "cohere",
       "cases": [
         {"key": "model", "name": "embed-fixture-7", "expected_signal_id": "watch:cohere:embed-fixture-7"},
-        {"key": "sdk", "name": "embed-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "embed-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "embed-fixture-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "embed-fixture-7-sdk-1", "expected_signal_id": "watch:cohere:embed-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "embed-fixture-7-blog-1", "expected_signal_id": "watch:cohere:embed-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "embed-fixture-7-docs-1", "expected_signal_id": "watch:cohere:embed-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -95,9 +116,12 @@
       "provider": "voyage",
       "cases": [
         {"key": "model", "name": "voyage-fixture-7", "expected_signal_id": "watch:voyage:voyage-fixture-7"},
-        {"key": "sdk", "name": "voyage-fixture-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "voyage-fixture-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "voyage-fixture-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "voyage-fixture-7-sdk-1", "expected_signal_id": "watch:voyage:voyage-fixture-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "voyage-fixture-7-blog-1", "expected_signal_id": "watch:voyage:voyage-fixture-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "voyage-fixture-7-docs-1", "expected_signal_id": "watch:voyage:voyage-fixture-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -106,9 +130,12 @@
       "provider": "Alibaba / Qwen Team",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:alibaba-qwen-team:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:alibaba-qwen-team:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:alibaba-qwen-team:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:alibaba-qwen-team:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -117,9 +144,12 @@
       "provider": "meta",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:meta:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:meta:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:meta:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:meta:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -128,9 +158,12 @@
       "provider": "mistral",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:mistral:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:mistral:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:mistral:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:mistral:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "audio-language-model", "name": "LIDstral-Arabic", "expected_signal_id": "watch:mistral:lidstral-arabic", "issue_url": "https://github.com/turbobeest/modelspec/issues/656", "url": "https://huggingface.co/mistralai/LIDstral-Arabic"},
         {"key": "timestral-small", "name": "Timestral-5M", "expected_signal_id": "watch:mistral:timestral-5m", "issue_url": "https://github.com/turbobeest/modelspec/issues/773", "url": "https://huggingface.co/mistralai/Timestral-5M"},
         {"key": "timestral-large", "name": "Timestral-209M", "expected_signal_id": "watch:mistral:timestral-209m", "issue_url": "https://github.com/turbobeest/modelspec/issues/771", "url": "https://huggingface.co/mistralai/Timestral-209M"}
@@ -142,9 +175,12 @@
       "provider": "deepseek",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:deepseek:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:deepseek:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:deepseek:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:deepseek:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -153,9 +189,12 @@
       "provider": "google",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:google:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:google:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:google:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:google:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "embedding-original", "name": "embeddinggemma-2", "expected_signal_id": "watch:google:embeddinggemma-2", "issue_url": "https://github.com/turbobeest/modelspec/issues/617", "url": "https://huggingface.co/google/embeddinggemma-2"}
       ]
     },
@@ -165,9 +204,12 @@
       "provider": "microsoft",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:microsoft:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:microsoft:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:microsoft:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:microsoft:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -176,9 +218,12 @@
       "provider": "nvidia",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:nvidia:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:nvidia:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:nvidia:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:nvidia:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "dory-bf16", "name": "NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16", "expected_signal_id": "watch:nvidia:nemotron-labs-dory1-0-4b", "issue_url": "https://github.com/turbobeest/modelspec/issues/802", "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16"},
         {"key": "dory-mxfp8", "name": "NVIDIA-Nemotron-Labs-Dory1.0-4B-MXFP8", "expected_signal_id": "watch:nvidia:nemotron-labs-dory1-0-4b", "issue_url": "https://github.com/turbobeest/modelspec/issues/803", "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-MXFP8"},
         {"key": "reranker", "name": "Nemotron-3.5-Rerank-8B-BF16", "expected_signal_id": "watch:nvidia:nemotron-3-5-rerank-8b", "issue_url": "https://github.com/turbobeest/modelspec/issues/779", "url": "https://huggingface.co/nvidia/Nemotron-3.5-Rerank-8B-BF16"}
@@ -190,9 +235,12 @@
       "provider": "allen-ai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:allen-ai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "model-base", "name": "Fixture-Orbit-7-8B-Base", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-8b-base"},
         {"key": "model-instruct", "name": "Fixture-Orbit-7-8B-Instruct", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-8b-instruct"},
         {"key": "model-size", "name": "Fixture-Orbit-7-32B-Instruct", "expected_signal_id": "watch:allen-ai:fixture-orbit-7-32b-instruct"}
@@ -204,9 +252,12 @@
       "provider": "ibm",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:ibm:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:ibm:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:ibm:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:ibm:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -215,9 +266,12 @@
       "provider": "cohere",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:cohere:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:cohere:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:cohere:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:cohere:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -226,9 +280,12 @@
       "provider": "zhipu",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:zhipu:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:zhipu:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:zhipu:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:zhipu:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -237,9 +294,12 @@
       "provider": "moonshot",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:moonshot:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:moonshot:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:moonshot:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:moonshot:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -248,9 +308,12 @@
       "provider": "minimax",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:minimax:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:minimax:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:minimax:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:minimax:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -259,9 +322,12 @@
       "provider": "openai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:openai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:openai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:openai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:openai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -270,9 +336,12 @@
       "provider": "stepfun",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:stepfun:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:stepfun:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:stepfun:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:stepfun:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -281,9 +350,12 @@
       "provider": "tencent",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:tencent:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:tencent:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:tencent:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:tencent:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -292,9 +364,12 @@
       "provider": "bytedance",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:bytedance:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:bytedance:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:bytedance:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:bytedance:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -303,9 +378,12 @@
       "provider": "liquid",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:liquid:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:liquid:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:liquid:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:liquid:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "lfm-original", "name": "LFM2.5-24B-A2B", "expected_signal_id": "watch:liquid:lfm-2-5-24b-a2b", "issue_url": "https://github.com/turbobeest/modelspec/issues/724", "url": "https://huggingface.co/LiquidAI/LFM2.5-24B-A2B"},
         {"key": "lfm-base", "name": "LFM2.5-24B-A2B-Base", "expected_signal_id": "watch:liquid:lfm-2-5-24b-a2b-base", "issue_url": "https://github.com/turbobeest/modelspec/issues/725", "url": "https://huggingface.co/LiquidAI/LFM2.5-24B-A2B-Base"}
       ]
@@ -316,9 +394,12 @@
       "provider": "xiaomi",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:xiaomi:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:xiaomi:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:xiaomi:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:xiaomi:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -327,9 +408,12 @@
       "provider": "black-forest-labs",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:black-forest-labs:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:black-forest-labs:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:black-forest-labs:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:black-forest-labs:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -338,9 +422,12 @@
       "provider": "stability",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:stability:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:stability:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:stability:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:stability:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -349,9 +436,12 @@
       "provider": "01-ai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:01-ai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:01-ai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:01-ai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:01-ai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -360,9 +450,12 @@
       "provider": "agnes-ai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:agnes-ai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:agnes-ai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:agnes-ai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:agnes-ai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -371,9 +464,12 @@
       "provider": "ai21",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:ai21:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:ai21:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:ai21:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:ai21:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -382,9 +478,12 @@
       "provider": "ai9stars",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:ai9stars:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:ai9stars:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:ai9stars:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:ai9stars:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -393,9 +492,12 @@
       "provider": "annamodels",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:annamodels:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:annamodels:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:annamodels:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:annamodels:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -404,9 +506,12 @@
       "provider": "baai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:baai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:baai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:baai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:baai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -415,9 +520,12 @@
       "provider": "baichuan",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:baichuan:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:baichuan:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:baichuan:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:baichuan:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -426,9 +534,12 @@
       "provider": "codefuse",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:codefuse:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:codefuse:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:codefuse:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:codefuse:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -437,9 +548,12 @@
       "provider": "deepcogito",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:deepcogito:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:deepcogito:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:deepcogito:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:deepcogito:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -448,9 +562,12 @@
       "provider": "essentialai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:essentialai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:essentialai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:essentialai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:essentialai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -459,9 +576,12 @@
       "provider": "ifm",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:ifm:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:ifm:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:ifm:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:ifm:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "audio-model-without-digits", "name": "Jais-ASR", "expected_signal_id": "watch:ifm:jais-asr", "issue_url": "https://github.com/turbobeest/modelspec/issues/769", "url": "https://huggingface.co/IFM/Jais-ASR"}
       ]
     },
@@ -471,9 +591,12 @@
       "provider": "infgrad",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:infgrad:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:infgrad:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:infgrad:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:infgrad:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -482,9 +605,12 @@
       "provider": "intfloat",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:intfloat:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -493,9 +619,12 @@
       "provider": "jcorners",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:jcorners:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:jcorners:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:jcorners:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:jcorners:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -504,9 +633,12 @@
       "provider": "jina",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:jina:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:jina:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:jina:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:jina:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -515,9 +647,12 @@
       "provider": "kakao",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:kakao:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:kakao:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:kakao:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:kakao:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -526,9 +661,12 @@
       "provider": "kingsoft",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:kingsoft:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:kingsoft:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:kingsoft:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:kingsoft:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -537,9 +675,12 @@
       "provider": "lgai-exaone",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:lgai-exaone:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:lgai-exaone:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:lgai-exaone:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:lgai-exaone:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -548,9 +689,12 @@
       "provider": "moondream",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:moondream:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:moondream:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:moondream:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:moondream:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -559,9 +703,12 @@
       "provider": "motif",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:motif:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:motif:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:motif:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:motif:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -570,9 +717,12 @@
       "provider": "nanbeige",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:nanbeige:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:nanbeige:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:nanbeige:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:nanbeige:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -581,9 +731,12 @@
       "provider": "naver",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:naver:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:naver:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:naver:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:naver:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -592,9 +745,12 @@
       "provider": "nex-agi",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:nex-agi:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:nex-agi:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:nex-agi:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:nex-agi:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -603,9 +759,12 @@
       "provider": "nomic",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:nomic:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:nomic:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:nomic:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:nomic:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -614,9 +773,12 @@
       "provider": "openbmb",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:openbmb:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:openbmb:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:openbmb:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:openbmb:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "minicpm-small", "name": "MiniCPM-V-4.7-1B", "expected_signal_id": "watch:openbmb:minicpm-v-4-7-1b", "issue_url": "https://github.com/turbobeest/modelspec/issues/711", "url": "https://huggingface.co/openbmb/MiniCPM-V-4.7-1B"},
         {"key": "minicpm-large", "name": "MiniCPM-V-4.7-35B-A3B", "expected_signal_id": "watch:openbmb:minicpm-v-4-7-35b-a3b", "issue_url": "https://github.com/turbobeest/modelspec/issues/618", "url": "https://huggingface.co/openbmb/MiniCPM-V-4.7-35B-A3B"}
       ]
@@ -627,9 +789,12 @@
       "provider": "openchat",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:openchat:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:openchat:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:openchat:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:openchat:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -638,9 +803,12 @@
       "provider": "primeintellect",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:primeintellect:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:primeintellect:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:primeintellect:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:primeintellect:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -649,9 +817,12 @@
       "provider": "prism-ml",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:prism-ml:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:prism-ml:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:prism-ml:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:prism-ml:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -660,9 +831,12 @@
       "provider": "querit",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:querit:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:querit:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:querit:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:querit:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -671,9 +845,12 @@
       "provider": "rwkv",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:rwkv:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:rwkv:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:rwkv:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:rwkv:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -682,9 +859,12 @@
       "provider": "salesforce",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:salesforce:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:salesforce:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:salesforce:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:salesforce:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -693,9 +873,12 @@
       "provider": "samsung",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:samsung:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:samsung:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:samsung:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:samsung:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -704,9 +887,12 @@
       "provider": "sarvam",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:sarvam:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:sarvam:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:sarvam:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:sarvam:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -715,9 +901,12 @@
       "provider": "sentence-transformers",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -726,9 +915,12 @@
       "provider": "servicenow",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:servicenow:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:servicenow:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:servicenow:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:servicenow:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -737,9 +929,12 @@
       "provider": "skt",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:skt:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:skt:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:skt:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:skt:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -748,9 +943,12 @@
       "provider": "skywork",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:skywork:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:skywork:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:skywork:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:skywork:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -759,9 +957,12 @@
       "provider": "snowflake",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:snowflake:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:snowflake:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:snowflake:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:snowflake:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -770,9 +971,12 @@
       "provider": "swiss-ai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:swiss-ai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:swiss-ai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:swiss-ai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:swiss-ai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -781,9 +985,12 @@
       "provider": "teknium",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:teknium:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:teknium:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:teknium:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:teknium:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -792,9 +999,12 @@
       "provider": "tii",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:tii:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:tii:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:tii:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:tii:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -803,9 +1013,12 @@
       "provider": "together",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:together:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:together:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:together:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:together:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -814,9 +1027,12 @@
       "provider": "trillionlabs",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:trillionlabs:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:trillionlabs:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:trillionlabs:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:trillionlabs:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
     {
@@ -825,9 +1041,12 @@
       "provider": "unsloth",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:unsloth:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "lfm-mirror", "name": "LFM2.5-24B-A2B", "expected_signal_id": "watch:liquid:lfm-2-5-24b-a2b", "issue_url": "https://github.com/turbobeest/modelspec/issues/736", "url": "https://huggingface.co/unsloth/LFM2.5-24B-A2B"},
         {"key": "embedding-mirror", "name": "embeddinggemma-2", "expected_signal_id": "watch:google:embeddinggemma-2", "issue_url": "https://github.com/turbobeest/modelspec/issues/619", "url": "https://huggingface.co/unsloth/embeddinggemma-2"}
       ]
@@ -838,9 +1057,12 @@
       "provider": "openai",
       "cases": [
         {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:openai:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null}
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:openai:fixture-orbit-7-sdk-1"},
+        {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:openai:fixture-orbit-7-blog-1"},
+        {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:openai:fixture-orbit-7-docs-1"},
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     }
   ]

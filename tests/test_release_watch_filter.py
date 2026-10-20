@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+import os
+import subprocess
+import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -82,17 +85,50 @@ def test_cli_drops_non_model_items_but_keeps_distinct_releases(tmp_path, monkeyp
     result = run_watch(tmp_path, monkeypatch, {
         "page": "<td>lfm-2.5-24b-a2b</td><td>lfm-sdk-2.0</td>",
         "hf": ["LFM2.5-24B-A2B-Base", "LFM2.6-24B-A2B", "LFM-blog-2",
-               "LFM-docs-2", "LFM-client-2", "LFM2.5-8B"],
+               "LFM-docs-2", "LFM-client-2", "LFM2.5-8B", "sdk", "liquid-docs"],
         "openrouter": ["lfm-2.5-24b-a2b"],
     })
     assert {row["signal_id"] for row in result["discoveries"]} == {
         "watch:liquid:lfm-2-5-24b-a2b", "watch:liquid:lfm-2-5-24b-a2b-base",
         "watch:liquid:lfm-2-6-24b-a2b", "watch:liquid:lfm-2-5-8b",
+        "watch:liquid:lfm-sdk-2-0", "watch:liquid:lfm-blog-2",
+        "watch:liquid:lfm-docs-2", "watch:liquid:lfm-client-2",
     }
     assert {row["model_name"] for row in result["rejected"]} == {
-        "lfm-sdk-2.0", "LFM-blog-2", "LFM-docs-2", "LFM-client-2",
+        "sdk", "liquid-docs",
     }
     assert all(row["reason"] for row in result["rejected"])
+
+
+@pytest.mark.parametrize("name", [
+    "ERNIE-5-Docs", "Pixtral-Docs", "ocr-doc", "client-embed-1", "guide-7b",
+    "Example-LM", "agent-sdk-model-7b",
+])
+def test_huggingface_model_names_with_artifact_tokens_stay_discoveries(
+    tmp_path, monkeypatch, name,
+):
+    result = run_watch(tmp_path, monkeypatch, {
+        "page": "<td>lfm-2</td>", "hf": [name], "openrouter": ["lfm-2"],
+    })
+    assert name in {row["model_name"] for row in result["discoveries"]}
+    assert name in release_watch.summary(result)
+    assert not result["rejected"]
+
+
+def test_summary_lists_every_rejected_item_with_reason_and_source(tmp_path, monkeypatch):
+    result = run_watch(tmp_path, monkeypatch, {
+        "page": "<td>lfm-2</td>",
+        "hf": ["docs", "liquid-sdk", "guide-liquid"],
+        "openrouter": ["client"],
+    })
+    assert len(result["rejected"]) == 4
+    text = release_watch.summary(result)
+    assert "### Rejected (not filed)" in text
+    for row in result["rejected"]:
+        assert row["model_name"] in text
+        assert row["reason"] in text
+        assert row["source_id"] in text
+        assert row["url"] in text
 
 
 def test_existing_legacy_alias_issue_prevents_a_second_issue():
@@ -276,3 +312,169 @@ def test_public_issue_replay_keeps_each_newly_carded_release_once(tmp_path, monk
     assert len(retained) == 176
     assert rejected == {"watch:ibm:ensemble-forecasting-with-ibm-granite-time-series"}
     assert retained | rejected == {row["source_key"] for row in original["observations"]}
+
+
+def recall_fixture(tmp_path):
+    catalogue = tmp_path / "catalogue"
+    catalogue.mkdir()
+
+    def git(*args, stamp=None):
+        env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1",
+               "GIT_CONFIG_GLOBAL": os.devnull}
+        if stamp:
+            env.update(GIT_AUTHOR_DATE=stamp, GIT_COMMITTER_DATE=stamp)
+        return subprocess.run(
+            ["git", "-C", str(catalogue), *args], check=True, capture_output=True,
+            text=True, env=env,
+        ).stdout.strip()
+
+    git("init", "-b", "main")
+    git("config", "user.name", "Recall fixture")
+    git("config", "user.email", "fixture@example.invalid")
+    git("config", "commit.gpgsign", "false")
+
+    def card(name, stamp, version=None):
+        path = catalogue / "models" / "liquid" / f"{name}.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            f"---\nmodel_id: liquid/{name}\nprovider: liquid\n"
+            f"display_name: {name}\nversion: {version or name}\n"
+            "release_date: 2020-01-01\n---\nPRIVATE BODY MUST NOT LEAK\n",
+        )
+        git("add", ".")
+        git("commit", "-m", name, stamp=stamp)
+
+    card("old", "2026-10-20T23:59:59Z")
+    card("Pixtral-Docs", "2026-10-21T00:00:00Z")
+    card("docs", "2026-11-01T00:00:00Z")
+    card("missing-2", "2026-11-02T00:00:00Z")
+    git("switch", "-c", "card-branch")
+    card("alias-card", "2026-10-20T00:00:00Z", "LFM2.5-24B-A2B")
+    git("switch", "main")
+    git("merge", "--no-ff", "-m", "Add reviewed card", "card-branch",
+        stamp="2026-11-19T23:59:59Z")
+    card("outside", "2026-11-20T00:00:00Z")
+    # The comparison must read the added revision, not this later edit.
+    card("Pixtral-Docs", "2026-11-21T00:00:00Z", "renamed-99")
+    reports = []
+    for day in range(-1, 31):
+        stamp = datetime(2026, 10, 21, tzinfo=UTC) + timedelta(days=day)
+        names = ["missing-2"] if day in (-1, 30) else []
+        if day == 0:
+            names = ["Pixtral-Docs", "docs", "LFM2.5-24B-A2B-BF16"]
+        observations = [{
+            "source_id": "hf-liquidai", "source_key": f"LiquidAI/{name}",
+            "model_name": name, "provider": "liquid",
+            "url": f"https://huggingface.co/LiquidAI/{name}", "created": None,
+            "confidence": 0.7,
+        } for name in names]
+        path = tmp_path / f"watch-{day}.json"
+        path.write_text(json.dumps({
+            "observed_at": stamp.isoformat(),
+            "sources": [{"id": "hf-liquidai", "status": "ok", "detail": "",
+                         "url": "https://huggingface.co/api/models"}],
+            "observations": observations,
+        }))
+        reports.append(path)
+    return catalogue, reports, git("rev-parse", "HEAD")
+
+
+def test_recall_compares_30_days_of_retained_inputs_with_card_additions(
+    tmp_path, monkeypatch,
+):
+    catalogue, reports, revision = recall_fixture(tmp_path)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("recall attempted network access")
+
+    monkeypatch.setattr(release_watch, "http_fetch", forbidden)
+    monkeypatch.setattr(httpx.Client, "request", forbidden)
+    output = tmp_path / "recall.json"
+    summary = tmp_path / "recall.md"
+    args = [arg for path in [*reports, reports[1]] for arg in ("--replay", str(path))]
+    assert release_watch.main([
+        *args, "--recall-end", "2026-11-20", "--catalogue-root", str(catalogue),
+        "--report", str(output), "--summary", str(summary),
+    ]) == 1  # Two card additions have no accepted discovery.
+    result = json.loads(output.read_text())["recall"]
+    assert result["window_start"] == "2026-10-21"
+    assert result["window_end_exclusive"] == "2026-11-20"
+    assert result["catalogue_revision"] == revision
+    assert result["cards_added"] == 4
+    assert result["matched_cards"] == 2
+    assert result["recall"] == 0.5
+    assert result["missing_artifact_days"] == []
+    rows = {row["path"]: row for row in result["cards"]}
+    assert rows["models/liquid/Pixtral-Docs.md"]["matched_signal_ids"] == [
+        "watch:liquid:pixtral-docs",
+    ]
+    assert rows["models/liquid/alias-card.md"]["matched_signal_ids"] == [
+        "watch:liquid:lfm-2-5-24b-a2b",
+    ]
+    assert datetime.fromisoformat(rows["models/liquid/alias-card.md"]["added_at"]) == datetime(
+        2026, 11, 19, 23, 59, 59, tzinfo=UTC,
+    )
+    assert rows["models/liquid/docs.md"]["rejected"][0]["source_id"] == "hf-liquidai"
+    assert rows["models/liquid/missing-2.md"]["matched_signal_ids"] == []
+    assert rows["models/liquid/missing-2.md"]["rejected"] == []
+    assert "missing-2.md" in summary.read_text()
+    assert "PRIVATE BODY" not in output.read_text() + summary.read_text()
+
+
+def test_recall_reports_artifact_gaps_and_outages_instead_of_claiming_full_coverage(tmp_path):
+    catalogue, reports, _ = recall_fixture(tmp_path)
+    failed = json.loads(reports[2].read_text())
+    failed["sources"][0].update(status="unreachable", detail="fixture outage")
+    reports[2].write_text(json.dumps(failed))
+    output = tmp_path / "recall.json"
+    assert release_watch.main([
+        "--replay", str(reports[2]), "--recall-end", "2026-11-20",
+        "--catalogue-root", str(catalogue), "--report", str(output),
+    ]) == 1
+    result = json.loads(output.read_text())["recall"]
+    assert len(result["missing_artifact_days"]) == 29
+    assert "2026-10-21" in result["missing_artifact_days"]
+    assert "2026-10-22" not in result["missing_artifact_days"]
+    assert result["source_failures"][0]["detail"] == "fixture outage"
+    assert result["matched_cards"] == 0
+
+
+def test_recall_cli_has_no_recall_denominator_when_no_cards_were_added(tmp_path):
+    catalogue, reports, _ = recall_fixture(tmp_path)
+    args = []
+    for day, path in enumerate(reports[:30]):
+        stamp = datetime(2026, 11, 22, tzinfo=UTC) + timedelta(days=day)
+        report = json.loads(path.read_text())
+        report.update(observed_at=stamp.isoformat(), observations=[])
+        path.write_text(json.dumps(report))
+        args.extend(["--replay", str(path)])
+    output = tmp_path / "recall.json"
+    done = subprocess.run([
+        sys.executable, str(Path(release_watch.__file__).resolve()), *args,
+        "--recall-end", "2026-12-22", "--catalogue-root", str(catalogue),
+        "--report", str(output),
+    ], capture_output=True, text=True, timeout=30)
+    assert done.returncode == 0, done.stderr
+    result = json.loads(output.read_text())["recall"]
+    assert result["cards_added"] == result["matched_cards"] == 0
+    assert result["recall"] is None
+    assert result["missing_artifact_days"] == []
+
+
+def test_recall_refuses_shallow_catalogue_and_writing_into_catalogue(tmp_path):
+    catalogue, reports, _ = recall_fixture(tmp_path)
+    shallow = tmp_path / "shallow"
+    subprocess.run([
+        "git", "clone", "--depth=1", catalogue.as_uri(), str(shallow),
+    ], check=True, capture_output=True, text=True)
+    args = ["--replay", str(reports[1]), "--recall-end", "2026-11-20"]
+    with pytest.raises(SystemExit) as error:
+        release_watch.main([*args, "--catalogue-root", str(shallow)])
+    assert error.value.code == 2
+    card = catalogue / "models/liquid/Pixtral-Docs.md"
+    original = card.read_bytes()
+    with pytest.raises(SystemExit) as error:
+        release_watch.main([*args, "--catalogue-root", str(catalogue),
+                            "--report", str(card)])
+    assert error.value.code == 2
+    assert card.read_bytes() == original

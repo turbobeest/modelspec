@@ -22,7 +22,7 @@ import re
 import sys
 import time
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import httpx
@@ -48,8 +48,10 @@ from release_signals.watch import (  # noqa: E402
 )
 from scripts.release_watch_filter import (  # noqa: E402
     canonical_signal_id,
+    compare_card_additions,
     draft_card,
     filter_releases,
+    recall_reports,
     replay_reports,
 )
 
@@ -245,6 +247,43 @@ def summary(result: dict) -> str:
             f"{row['first_seen_url']} |"
             for row in result["discoveries"]
         ]
+    if result.get("rejected"):
+        lines += [
+            "", "### Rejected (not filed)", "",
+            "| Model | Lab | Reason | Source | Seen at |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+        lines += [
+            f"| {row['model_name']} | {row['provider']} | {row['reason']} | "
+            f"`{row['source_id']}` | {row['url']} |"
+            for row in result["rejected"]
+        ]
+    if recall := result.get("recall"):
+        lines += [
+            "", "### 30-day replay versus card additions", "",
+            f"UTC window: {recall['window_start']} through "
+            f"{recall['window_end_exclusive']} (exclusive).",
+            f"Catalogue revision: `{recall['catalogue_revision']}`.",
+            f"{recall['matched_cards']} of {recall['cards_added']} added cards matched "
+            "an accepted discovery. Backfilled cards are included.",
+            f"Retained artifacts in window: {recall['artifact_count']}.",
+            "Missing artifact days: "
+            + (", ".join(recall["missing_artifact_days"]) or "none") + ".",
+            "Artifact coverage does not prove extraction completeness or live recall.",
+            "", "| Card | Added at | Accepted signals | Rejected observations |",
+            "| --- | --- | --- | --- |",
+        ]
+        lines += [
+            f"| {row['path']} | {row['added_at']} | "
+            f"{', '.join(row['matched_signal_ids']) or 'MISSING'} | {len(row['rejected'])} |"
+            for row in recall["cards"]
+        ]
+        if recall["source_failures"]:
+            lines += ["", "#### Retained source failures", ""]
+            lines += [
+                f"- {row['observed_at']} `{row['id']}` {row['status']}: {row['detail']}"
+                for row in recall["source_failures"]
+            ]
     broken = failures(result)
     if broken:
         lines += ["", "### Outages", "", *broken]
@@ -288,6 +327,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--summary", type=Path, help="write a Markdown summary here")
     parser.add_argument("--replay", type=Path, action="append", default=[],
                         help="offline replay of normalized JSON reports (repeatable; no filing)")
+    parser.add_argument("--recall-end", type=date.fromisoformat,
+                        help="compare the preceding 30 UTC days, excluding this YYYY-MM-DD")
+    parser.add_argument("--catalogue-root", type=Path,
+                        help="local catalogue Git repository with complete history, for recall")
     parser.add_argument(
         "--post", action="store_true",
         help="file discoveries; needs SIGNALS_ORIGIN and MODELSPEC_SIGNALS_READ_KEY",
@@ -306,17 +349,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--post and --issues are two sinks for one run; pick one")
     if args.replay and (args.post or args.issues or args.rebaseline):
         parser.error("--replay is offline and cannot file or rebaseline")
+    if (args.recall_end or args.catalogue_root) and not (
+        args.replay and args.recall_end and args.catalogue_root
+    ):
+        parser.error("recall needs --replay, --recall-end and --catalogue-root together")
     outputs = [path.resolve() for path in (args.report, args.summary) if path]
     inputs = {path.resolve() for path in [args.registry, args.baseline, *args.replay]}
     if len(outputs) != len(set(outputs)) or inputs.intersection(outputs):
         parser.error("output paths must be distinct from inputs and each other")
+    if args.catalogue_root and any(
+        path.is_relative_to(args.catalogue_root.resolve()) for path in outputs
+    ):
+        parser.error("recall output paths must be outside the catalogue")
     if args.rebaseline:
         return rebaseline(args.registry, args.baseline, args.source, now)
 
     registry = load_registry(args.registry)
+    recall = None
     if args.replay:
         try:
-            runs, now = replay_reports(args.replay, registry)
+            if args.recall_end:
+                runs, now, recall = recall_reports(args.replay, registry, args.recall_end)
+            else:
+                runs, now = replay_reports(args.replay, registry)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             parser.error(f"cannot replay normalized reports: {exc}")
     else:
@@ -342,12 +397,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                              groups=filtered["groups"])
     result = report(runs, signals, posted, now, filtered=filtered)
     result["replay"] = bool(args.replay)
+    if recall is not None:
+        try:
+            result["recall"] = compare_card_additions(args.catalogue_root, recall, filtered)
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            parser.error(f"cannot compare card additions: {exc}")
     if args.report:
         args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     text = summary(result)
     if args.summary:
         args.summary.write_text(text, encoding="utf-8")
     print(text)
+    if recall is not None:
+        comparison = result["recall"]
+        if (comparison["matched_cards"] != comparison["cards_added"]
+                or comparison["missing_artifact_days"] or comparison["source_failures"]):
+            return 1
     return 1 if failures(result) else 0
 
 

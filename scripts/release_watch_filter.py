@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from collections.abc import Iterable, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+
+import yaml
 
 from release_signals.contract import ReleaseSignal
 from release_signals.watch import Registry, Seen, SourceRun, signal_id
@@ -35,10 +38,10 @@ ALIASES = {
     ("mistral", "mistral-large-4-0"): "mistral-large-4",
     ("mistral", "mistral-ocr-4-0"): "mistral-ocr-4",
 }
-NON_MODEL = re.compile(
-    r"(?:^|-)(?:sdk|client|blog|blogpost|docs?|documentation|guide|readme|"
-    r"changelog|release-notes|tutorial|example|examples)(?:-|$)"
-)
+NON_MODEL = {
+    "sdk", "client", "blog", "blogpost", "doc", "docs", "documentation",
+    "guide", "readme", "changelog", "release-notes", "tutorial", "example", "examples",
+}
 
 
 def _slug(value: str) -> str:
@@ -48,7 +51,8 @@ def _slug(value: str) -> str:
 def rejection_reason(provider: str, model_name: str) -> str | None:
     """Reject explicit non-model names; unknown names stay visible for review."""
     name = _slug(model_name)
-    if NON_MODEL.search(name):
+    lab = _slug(provider)
+    if any(name in {token, f"{lab}-{token}", f"{token}-{lab}"} for token in NON_MODEL):
         return "non-model documentation, blog or software item"
     if _slug(provider) == "ibm" and name == "ensemble-forecasting-with-ibm-granite-time-series":
         return "forecasting example repository"
@@ -178,3 +182,111 @@ def replay_reports(paths: Sequence[Path], registry: Registry) -> tuple[list[Sour
             if seen:
                 runs.append(SourceRun(source, "ok", new=tuple(seen), listed=len(seen)))
     return runs, max(stamps)
+
+
+def recall_reports(
+    paths: Sequence[Path], registry: Registry, end: date,
+) -> tuple[list[SourceRun], datetime, dict]:
+    """Select a half-open 30-day UTC window and preserve archive coverage gaps."""
+    start = end - timedelta(days=30)
+    selected = []
+    days = set()
+    source_failures = []
+    for path in dict.fromkeys(path.resolve() for path in paths):
+        report = json.loads(path.read_text(encoding="utf-8"))
+        stamp = datetime.fromisoformat(report["observed_at"].replace("Z", "+00:00"))
+        if stamp.tzinfo is None:
+            raise ValueError("recall observed_at must include a UTC offset")
+        day = stamp.astimezone(UTC).date()
+        if not start <= day < end:
+            continue
+        if report.get("replay"):
+            raise ValueError("recall requires original run artifacts, not replay outputs")
+        selected.append(path)
+        days.add(day)
+        source_failures.extend(
+            {"observed_at": report["observed_at"], **row}
+            for row in report["sources"] if row["status"] != "ok"
+        )
+    runs, now = replay_reports(selected, registry) if selected else (
+        [], datetime.combine(end, datetime.min.time(), UTC),
+    )
+    return runs, now, {
+        "window_start": start.isoformat(), "window_end_exclusive": end.isoformat(),
+        "artifact_count": len(selected),
+        "missing_artifact_days": [
+            day.isoformat() for offset in range(30)
+            if (day := start + timedelta(days=offset)) not in days
+        ],
+        "source_failures": source_failures,
+    }
+
+
+def compare_card_additions(root: Path, window: dict, filtered: dict) -> dict:
+    """Compare accepted replay identities with first additions on catalogue HEAD.
+
+    Committer dates on first-parent history define card-added dates. Read each
+    card at its addition commit so later edits cannot change this denominator.
+    """
+    def git(*args: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(root), *args], capture_output=True, text=True, check=False,
+        )
+        if result.returncode:
+            raise ValueError(f"cannot read catalogue history: {result.stderr.strip()}")
+        return result.stdout.strip()
+
+    if git("rev-parse", "--is-shallow-repository") != "false":
+        raise ValueError("recall requires complete catalogue history, not a shallow clone")
+    revision = git("rev-parse", "HEAD")
+    if git("cat-file", "-t", f"{revision}:models") != "tree":
+        raise ValueError("catalogue revision must contain a models directory")
+    history = git(
+        "log", "--first-parent", "--diff-merges=first-parent", "--reverse",
+        "--find-renames", "--diff-filter=A", "--format=%H%x09%cI", "--name-only",
+        revision, "--", "models",
+    )
+    accepted = {signal.signal_id for signal in filtered["signals"]}
+    rejected: dict[str, list[dict]] = {}
+    for row in filtered["rejected"]:
+        identifier = signal_id(*canonical_release(row["provider"], row["model_name"]))
+        rejected.setdefault(identifier, []).append(row)
+    cards = []
+    seen = set()
+    commit = added_at = ""
+    for line in history.splitlines():
+        if "\t" in line:
+            commit, added_at = line.split("\t")
+            continue
+        path = Path(line)
+        if len(path.parts) != 3 or path.suffix != ".md" or line in seen:
+            continue
+        seen.add(line)
+        added_day = datetime.fromisoformat(added_at).astimezone(UTC).date().isoformat()
+        if not window["window_start"] <= added_day < window["window_end_exclusive"]:
+            continue
+        parts = git("show", f"{commit}:{line}").split("---", 2)
+        front = yaml.safe_load(parts[1]) if len(parts) == 3 else None
+        if not isinstance(front, dict) or not front.get("model_id"):
+            raise ValueError(f"card addition has no model_id frontmatter: {line}")
+        provider = str(front.get("provider") or path.parent.name)
+        identities = {
+            signal_id(*canonical_release(provider, str(value)))
+            for value in (
+                front.get("display_name"), front.get("version"),
+                str(front["model_id"]).rsplit("/", 1)[-1], path.stem,
+            ) if value
+        }
+        cards.append({
+            "path": line, "added_at": added_at, "addition_commit": commit,
+            "matched_signal_ids": sorted(identities & accepted),
+            "rejected": [
+                row for identifier in sorted(identities) for row in rejected.get(identifier, [])
+            ],
+        })
+    matched = sum(bool(row["matched_signal_ids"]) for row in cards)
+    return {
+        **window, "catalogue_revision": revision, "cards_added": len(cards),
+        "matched_cards": matched, "recall": matched / len(cards) if cards else None,
+        "cards": cards,
+    }

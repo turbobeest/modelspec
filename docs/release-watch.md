@@ -44,9 +44,13 @@ two-key rules.
    [`registry/release-watch-baseline.json`](../registry/release-watch-baseline.json),
    it was created in the last 30 days (Hugging Face and OpenRouter only;
    pages carry no date), and it matches no exact catalogue alias.
-5. `scripts/release_watch_filter.py` rejects explicit SDK, blog and
-   documentation items, then groups release aliases before either sink sees
-   them. Its `watch:<lab>:<model>` ID uses a canonical identity. Explicit
+5. `scripts/release_watch_filter.py` rejects whole artifact names such as
+   `docs`, `sdk`, or `<provider>-sdk`, plus the exact IBM forecasting example
+   repository. A token inside a model name, such as `Pixtral-Docs` or
+   `client-embed-1`, is retained. Every rejection appears in the run summary
+   under "Rejected (not filed)", with its reason, source and URL.
+   The filter then groups release aliases before either sink sees them.
+   Its `watch:<lab>:<model>` ID uses a canonical identity. Explicit
    aliases cover differing spellings, known mirrors, packaging suffixes and
    training endpoints of the same recipe. Sizes, base/tuned variants, named
    minor versions and unknown dated revisions remain distinct. The first
@@ -119,10 +123,64 @@ with a manual-review reason. Omit `--catalogue-root` to skip private catalogue
 comparison.
 
 The per-source fixture in `tests/fixtures/release_watch/precision-recall.json`
-covers all 74 registered sources with 320 labelled normalized observations.
+covers all 74 registered sources with 542 labelled normalized observations.
 Most cases are synthetic. These measure regression precision and recall,
 not live-source accuracy. The MODEL-432 evidence records the incomplete
 historical replay and the independent card-addition comparison.
+
+### Compare a retained 30-day window with card additions
+
+On or after November 20, 2026, run this comparison with downloaded original
+`watch.json` artifacts and a local checkout of the catalogue with complete
+Git history. Nothing is scheduled. For `--recall-end 2026-11-20`, the window
+is October 21 at 00:00 UTC through November 20 at 00:00 UTC, excluding the
+end. Choose a later end date to measure another 30-day window.
+
+```python
+from pathlib import Path
+import subprocess
+import sys
+
+reports = sorted(Path("/path/to/downloaded-artifacts").rglob("watch.json"))
+if not reports:
+    raise SystemExit("No retained watch.json artifacts found")
+args = [arg for path in reports for arg in ("--replay", str(path))]
+raise SystemExit(subprocess.run([
+    sys.executable, "scripts/release_watch.py", *args,
+    "--recall-end", "2026-11-20",
+    "--catalogue-root", "/path/to/private/modelspec-data",
+    "--report", "/path/to/local-results/recall.json",
+    "--summary", "/path/to/local-results/recall.md",
+]).returncode)
+```
+
+Run the snippet from this repository using its Python environment. The
+output directory must already exist and be outside the catalogue checkout.
+The command is offline and refuses filing modes. It reads only original
+artifacts whose `observed_at` falls in the window, including their rejected
+observations, and applies the current registry and filter.
+
+Card-added dates are UTC committer dates of first additions on the
+catalogue's first-parent history at HEAD. Merge additions use the merge
+commit date. Renames and later edits do not count as additions. The report
+records the catalogue revision and each card's addition commit, and matches
+the card's name, version, model ID and filename at that commit against
+accepted canonical release IDs. Shallow history is refused.
+
+The denominator includes every card added in the window, including backfills
+and seed imports. It is a card-addition recall check, not a verified measure
+of new releases. Missing cards need review for backfills, baseline exclusions,
+unwatched sources, extraction misses or filtering. A missing card with a
+rejected observation includes that observation and its reason in the JSON.
+The summary lists every card and marks unmatched ones `MISSING`. Card bodies
+are not emitted; keep reports containing private catalogue identities local.
+
+Exit 1 means there are unmatched cards, days without retained artifacts, or
+source failures recorded in the selected artifacts. Exit 2 means invalid
+inputs. Exit 0 means none of those conditions were found. With no added
+cards, recall is null. One artifact per day does not prove all scheduled
+runs were retained, and retained observations cannot reconstruct raw
+extraction misses or observations suppressed during an outage or burst.
 
 ## Outages raise an alert
 

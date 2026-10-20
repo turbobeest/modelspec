@@ -73,20 +73,22 @@ def test_triage_classifies_duplicates_carded_releases_real_and_noise(tmp_path):
     report, summary = _run(tmp_path, [
         _issue(12, "Acme New 2"),
         _issue(40, "acme-one-1"),
-        _issue(31, "acme-sdk-2"),
+        _issue(31, "acme-sdk"),
+        _issue(32, "acme-sdk-2"),
         _issue(11, createdAt="2026-10-18T00:00:00Z"),
         _issue(50, "acme-one-2"),
     ], "--catalogue-root", str(catalogue))
 
     assert report["dry_run"] is True
     assert report["catalogue_checked"] is True
-    assert report["counts"] == {"duplicate": 1, "superseded": 1, "real": 2, "noise": 1}
+    assert report["counts"] == {"duplicate": 1, "superseded": 1, "real": 3, "noise": 1}
     rows = {row["number"]: row for row in report["issues"]}
     assert rows[12]["classification"] == "duplicate"
     assert rows[12]["duplicate_of"] == 11
     assert rows[11]["classification"] == "real"
     assert rows[40]["classification"] == "superseded"
     assert rows[31]["classification"] == "noise"
+    assert rows[32]["classification"] == "real"
     assert rows[50]["classification"] == "real", "a later version is a distinct release"
     assert all(row["reason"] for row in rows.values())
     assert "DRY RUN" in summary
