@@ -468,14 +468,13 @@ _SAFE_CONTROL = r"""(node, action) => {
     return true;
 }"""
 
-_REGION_CONTAINS_TEXT = r"""({selector, text}) => {
+_REGION_CONTAINS_TEXT = """({selector, text}) => {
     const nodes = document.querySelectorAll(selector);
     if (nodes.length !== 1) return false;
     const node = nodes[0];
-    const shown = node.tagName === 'SELECT'
-        ? Array.from(node.selectedOptions, option => option.label).join('\n')
-        : node.innerText;
-    return shown.includes(text);
+    if (node.tagName === 'SELECT')
+        return Array.from(node.selectedOptions).some(option => option.label === text);
+    return node.innerText.includes(text);
 }"""
 
 

@@ -471,7 +471,12 @@ def test_failed_recipe_never_calls_firecrawl(allowed_estate, tmp_path, alias):
     else:
         source["rendered_interactions"] = recipe
     path.write_text(yaml.safe_dump(registry))
-    rendered = price_reread.RenderedReplayFetcher(artifact(tmp_path / "render"))
+    directory = artifact(tmp_path / "render")
+    manifest_path = directory / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest[HELP].update(status=200, error="interaction failed: selection did not complete")
+    manifest_path.write_text(json.dumps(manifest))
+    rendered = price_reread.RenderedReplayFetcher(directory)
     balance_calls = []
 
     def balance(request):

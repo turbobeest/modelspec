@@ -161,7 +161,7 @@ def test_wait_text_on_select_requires_the_selected_option(tmp_path, browser, sel
     recipe = [{"action": "wait_text", "selector": "#region", "text": "East US"}]
     result = render_fixture(
         browser, registry(tmp_path, recipe),
-        '<select id="region"><option value="west">West US</option>'
+        '<select id="region"><option value="east2">East US 2</option>'
         f'<option value="east" {"selected" if selected else ""}>East US</option></select>')
     assert result.outcome == ("ok" if selected else "unreachable")
     if not selected:
