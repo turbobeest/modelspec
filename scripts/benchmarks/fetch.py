@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from decision.retention import citation_metadata, cite_only_origin, is_cite_only, metadata_origins
+from decision.retention import citation_metadata, cite_only_origin_restrictive, is_cite_only_restrictive, metadata_origins
 
 ROOT = Path(__file__).resolve().parents[2]
 HASH_CACHE = ROOT / "benchmarks" / "_census" / "cache"
@@ -330,7 +330,7 @@ def write_named_cache(
     if extra_meta:
         meta.update(extra_meta)
     origins = metadata_origins(extra_meta or {})
-    if cite_only_origin(url, origins):
+    if cite_only_origin_restrictive(url, origins):
         meta = citation_metadata(url, "sha256:" + hashlib.sha256(text.encode()).hexdigest(),
                                  retrieved_at=fetched_at, resolved_urls=origins)
     else:
@@ -340,7 +340,7 @@ def write_named_cache(
 
 
 def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPage | None:
-    if is_cite_only(url):
+    if is_cite_only_restrictive(url):
         return None
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
     if not path.is_file():
@@ -348,7 +348,7 @@ def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPa
     meta: dict[str, Any] = {}
     if meta_path.is_file():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    if cite_only_origin(url, metadata_origins(meta)):
+    if cite_only_origin_restrictive(url, metadata_origins(meta)):
         return None
     text = path.read_text(encoding="utf-8")
     fetched_at = str(meta.get("fetched_at") or "")
@@ -396,9 +396,9 @@ def scrape(
     # the time, and a later call may have room for the whole document.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
     key_path = hash_cache_path(url, formats, max_pages=max_pages)
-    if key_path.exists() and not is_cite_only(url) and not key_path.with_suffix(".citation.json").exists():
+    if key_path.exists() and not is_cite_only_restrictive(url) and not key_path.with_suffix(".citation.json").exists():
         cached_raw = json.loads(key_path.read_text(encoding="utf-8"))
-        if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False) and not cite_only_origin(
+        if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False) and not cite_only_origin_restrictive(
                 url, metadata_origins(cached_raw.get("metadata") or {})):
             return cached_raw
 
@@ -501,7 +501,7 @@ def scrape(
     # doesn't re-spend), but flagged so it is never handed back as if it
     # were the complete document (see the cache-read checks above).
     origins = metadata_origins(metadata)
-    restricted = cite_only_origin(url, origins)
+    restricted = cite_only_origin_restrictive(url, origins)
     if restricted:
         ref = "sha256:" + hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
         key_path.with_suffix(".citation.json").write_text(json.dumps(citation_metadata(
@@ -672,7 +672,7 @@ def main(argv: list[str] | None = None) -> int:
     spent = guard.spent()
     print(f"credits remaining={remaining} spent={spent} closing={remaining}", file=sys.stderr)
     origins = metadata_origins(data.get("metadata") or {})
-    if cite_only_origin(args.url, origins):
+    if cite_only_origin_restrictive(args.url, origins):
         ref = "sha256:" + hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
         print(json.dumps(citation_metadata(args.url, ref, retrieved_at=datetime.now(UTC),
                                            resolved_urls=origins)))

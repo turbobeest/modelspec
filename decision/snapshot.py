@@ -944,9 +944,9 @@ class _Compiler:
         if len(urls) != len(source_ids):
             return "unresolved_source"
         if kind == "evidence":
-            from decision.retention import is_cite_only
+            from decision.retention import is_cite_only_restrictive
 
-            if any(is_cite_only(url) for url in [*urls, *extra_urls]):
+            if any(is_cite_only_restrictive(url) for url in [*urls, *extra_urls]):
                 return "quarantined (cited)"
         return None
 

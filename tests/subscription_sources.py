@@ -10,7 +10,7 @@ import yaml
 from decision.citation import fact_citation
 from decision.model import Fact, Measurement, value_hash, verification_counts
 from decision.retention import (
-    canonical_host, cite_only_status, is_cite_only, metadata_origins, redirect_urls,
+    canonical_host, cite_only_status, is_cite_only_restrictive, metadata_origins, redirect_urls,
 )
 from decision.snapshot import FactValue
 from decision.sources import load_sources
@@ -81,7 +81,7 @@ def _cited_ref(ref, urls, store):
             origins = metadata_origins(record)
             if any(canonical_host(origin) is None for origin in origins):
                 raise ValueError("invalid citation redirect record")
-    return is_cite_only(registered) or any(is_cite_only(origin) for origin in origins)
+    return is_cite_only_restrictive(registered) or any(is_cite_only_restrictive(origin) for origin in origins)
 
 
 def bound_hashes(value, unordered):

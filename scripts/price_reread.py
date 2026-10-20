@@ -102,7 +102,9 @@ from decision.verify import (
     verify,
 )
 
-from decision.retention import citation_metadata, cite_only_origin, is_cite_only
+from decision.retention import (
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, is_cite_only_restrictive,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 #: ``automerge.yml`` must never queue this branch (tests/test_price_reread.py).
@@ -255,10 +257,14 @@ def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping,
     if value_hash(claim_verification_value(claim)) != value_hash(fact_verification_value(fact)):
         return "the fact differs from its filed claim"
     latest = log_latest.get(("fact", fact["id"]))
-    if sources is not None and any(
-            ref.source_id in sources and cite_only_origin(sources[ref.source_id].url,
-                                                         getattr(ref, "resolved_urls", ()))
-            for ref in claim.sources):
+    # Granting: a cite-only source puts the fact in scope without a verified
+    # result, so a malformed URL refuses (MODEL-420).
+    statuses = [] if sources is None else [
+        cite_only_origin_status(sources[ref.source_id].url, getattr(ref, "resolved_urls", ()))
+        for ref in claim.sources if ref.source_id in sources]
+    if None in statuses:
+        return "a source URL is malformed"
+    if any(statuses):
         if latest is not None and latest.outcome in {"mismatch", "unreachable"}:
             return "quarantined: latest source check failed"
         return None
@@ -305,7 +311,7 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     for url, ids in sorted(urls.items()):
         result = _fetch_rendered(rendered, url, ids, sources)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
-        restricted = cite_only_origin(url, result.resolved_urls)
+        restricted = cite_only_origin_restrictive(url, result.resolved_urls)
         if restricted:
             (directory / name).unlink(missing_ok=True)
         if result.outcome == "ok" and not restricted:
@@ -384,12 +390,13 @@ class RenderedReplayFetcher:
                 if (not isinstance(citation, dict) or citation.get("url") != url
                         or not isinstance(citation.get("snapshot_ref"), str)
                         or not re.fullmatch(r"sha256:[0-9a-f]{64}", citation["snapshot_ref"])
-                        or not cite_only_origin(url, citation.get("resolved_urls", ()))):
+                        or cite_only_origin_status(url, citation.get("resolved_urls", ()))
+                        is not True):
                     raise ValueError("invalid cite-only rendered citation")
                 datetime.fromisoformat(citation["retrieved_at"])
                 if path.exists() or path.is_symlink():
                     raise ValueError("cite-only rendered artifact must not contain page bytes")
-            elif is_cite_only(url) and entry["outcome"] == "ok":
+            elif is_cite_only_restrictive(url) and entry["outcome"] == "ok":
                 raise ValueError("cite-only rendered artifact requires hash-only citation")
             elif entry["outcome"] == "ok" or path.exists() or path.is_symlink():
                 _rendered_file(path, MAX_RENDERED_BODY_BYTES)
@@ -455,7 +462,7 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
         if result.outcome == "ok":
             retrieved_at = result.retrieved_at or datetime.now(UTC)
             if result.snapshot_ref is not None:
-                if not cite_only_origin(url, result.resolved_urls):
+                if cite_only_origin_status(url, result.resolved_urls) is not True:
                     raise ValueError("a byte-free replay requires a cite-only origin")
                 ref = result.snapshot_ref
                 store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
@@ -604,7 +611,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         file=str(tracked.path.relative_to(root)),
         source_ids=tuple(s.source_id for s in old_sources),
         status=Status.NOT_REREAD, old_state=fact["state"], old_value=fact.get("value"),
-        cited=any(ref.source_id in regions.sources and cite_only_origin(
+        cited=any(ref.source_id in regions.sources and cite_only_origin_restrictive(
             regions.sources[ref.source_id].url, ref.resolved_urls) for ref in old_sources),
     )
     ok = {s.source_id: fetched[s.source_id] for s in old_sources
@@ -723,7 +730,7 @@ def _page_size(regions: StoredRegions, claim: Claim) -> str:
     sizes = []
     for source in claim.sources:
         found = regions.sources.get(source.source_id)
-        if found is None or is_cite_only(found.url) or not regions.store.has(source.snapshot_ref):
+        if found is None or is_cite_only_restrictive(found.url) or not regions.store.has(source.snapshot_ref):
             continue
         rules = NORMALISERS[found.normaliser]
         try:
@@ -773,7 +780,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                 tracked.fact["id"], tracked.fact["facet"], str(tracked.path.relative_to(root)),
                 tuple(s["source_id"] for s in tracked.fact["sources"]), Status.NOT_REREAD,
                 tracked.fact["state"], tracked.fact.get("value"), reason=reason,
-                cited=any(ref["source_id"] in sources and cite_only_origin(
+                cited=any(ref["source_id"] in sources and cite_only_origin_restrictive(
                     sources[ref["source_id"]].url, ref.get("resolved_urls", ()))
                     for ref in tracked.fact["sources"])))
 
@@ -829,7 +836,7 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
             wanted.setdefault(sid, set()).add(pair)
     diffs: dict[str, list[str]] = {}
     for sid, pairs in sorted(wanted.items()):
-        if is_cite_only(sources[sid].url) or any(
+        if is_cite_only_restrictive(sources[sid].url) or any(
                 store.citation(ref) is not None for pair in pairs for ref in pair):
             continue
         lines: list[str] = []

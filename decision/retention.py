@@ -59,11 +59,23 @@ def canonical_host(url: object) -> str | None:
     return host
 
 
+# Two readings of one policy (MODEL-420). Pick by what cite-only status does
+# at the call site:
+# - GRANTING: it admits a fact as cited, skips verification, supersedes a
+#   mismatch, dates a record by retrieval, or puts a fact in re-read scope.
+#   Use ``cite_only_status`` / ``cite_only_origin_status`` and REFUSE on None.
+# - RESTRICTIVE: it withholds bytes, keeps evidence out, refuses a fetch or a
+#   draft, or discloses "not machine-verified". Use ``is_cite_only_restrictive``
+#   / ``cite_only_origin_restrictive``, which count a malformed URL as
+#   cite-only so one bad URL fails closed for its own record and never aborts
+#   a build or job.
+
+
 def cite_only_status(url: object) -> bool | None:
     """Whether a URL is cite-only, or None for an HTTP(S) URL that does not parse.
 
-    Use this where cite-only status GRANTS something (admission without
-    verification, a supersession, a retrieval date): None must then refuse.
+    For GRANTING call sites: None must refuse (exclude, invalid_citation, out
+    of scope), never grant.
     """
     try:
         host = canonical_host(url)
@@ -73,13 +85,12 @@ def cite_only_status(url: object) -> bool | None:
         host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
 
 
-def is_cite_only(url: object) -> bool:
+def is_cite_only_restrictive(url: object) -> bool:
     """Whether a URL is cite-only, counting a malformed HTTP(S) URL as cite-only.
 
-    This is the restrictive reading for retention and display: no bytes are
-    kept, evidence stays out and nothing reads as machine-verified, and one
-    bad URL never aborts a build or job (MODEL-420). Never use it where
-    cite-only status grants admission; use ``cite_only_status`` there.
+    For RESTRICTIVE call sites only (retention, storage, display): no bytes
+    are kept, evidence stays out and nothing reads as machine-verified. Never
+    use it where cite-only status grants anything; use ``cite_only_status``.
     """
     status = cite_only_status(url)
     if status is None:
@@ -103,8 +114,22 @@ def redirect_urls(value: object) -> tuple[str, ...]:
     return tuple(value)
 
 
-def cite_only_origin(url: object, resolved_urls=()) -> bool:
-    return any(is_cite_only(origin) for origin in (url, *resolved_urls))
+def cite_only_origin_status(url: object, resolved_urls=()) -> bool | None:
+    """Whether any origin is cite-only, or None when any origin is malformed.
+
+    For GRANTING call sites: None must refuse, even if another origin is
+    cite-only.
+    """
+    statuses = [cite_only_status(origin) for origin in (url, *resolved_urls)]
+    return None if None in statuses else any(statuses)
+
+
+def cite_only_origin_restrictive(url: object, resolved_urls=()) -> bool:
+    """Whether any origin is cite-only, counting a malformed one as cite-only.
+
+    For RESTRICTIVE call sites only (retention, storage, display).
+    """
+    return any(is_cite_only_restrictive(origin) for origin in (url, *resolved_urls))
 
 
 def metadata_origins(metadata: dict) -> tuple[str, ...]:
@@ -136,7 +161,7 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
 
 
 def refuse_disk_scrape(url: object) -> None:
-    if is_cite_only(url):
+    if is_cite_only_restrictive(url):
         raise ValueError("cite-only source requires a transient fetch; disk-writing scraper refused")
 
 
@@ -146,18 +171,18 @@ def open_retained_source(request, *, timeout):
 
     url = request if isinstance(request, str) else request.full_url
     refusal = "cite-only source cannot supply retained content"
-    if is_cite_only(url):
+    if is_cite_only_restrictive(url):
         raise ValueError(refusal)
 
     class RetainedRedirect(HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
-            if is_cite_only(newurl):
+            if is_cite_only_restrictive(newurl):
                 fp.close()
                 raise ValueError(refusal)
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
     response = build_opener(RetainedRedirect()).open(request, timeout=timeout)
-    if is_cite_only(response.geturl()):
+    if is_cite_only_restrictive(response.geturl()):
         response.close()
         raise ValueError(refusal)
     return response

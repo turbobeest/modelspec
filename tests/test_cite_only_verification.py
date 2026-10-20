@@ -8,7 +8,7 @@ import yaml
 
 from decision import verify
 from decision.model import Source, SourceRef, TargetRef, VerificationActor
-from decision.retention import cite_only_origin, is_cite_only
+from decision.retention import cite_only_origin_restrictive, is_cite_only_restrictive
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from decision.sources import CopyStore
 from tests.snapshot_records import (
@@ -289,8 +289,8 @@ def card_redirect(inputs, ref=None):
     (PERPLEXITY, True),
 ])
 def test_cite_only_requires_an_http_scheme(url, cited):
-    assert is_cite_only(url) is cited
-    assert cite_only_origin("https://example.org/start", [url]) is cited
+    assert is_cite_only_restrictive(url) is cited
+    assert cite_only_origin_restrictive("https://example.org/start", [url]) is cited
 
 
 @pytest.mark.parametrize("url", ["https://x.ai/pricing", PERPLEXITY])
@@ -640,7 +640,7 @@ def test_invalid_http_urls_are_refused_not_guessed(url):
     with pytest.raises(ValueError):
         canonical_host(url)
     assert cite_only_status(url) is None
-    assert is_cite_only(url) is True  # restrictive for retention, never a grant
+    assert is_cite_only_restrictive(url) is True  # restrictive for retention, never a grant
 
 
 def test_card_parse_error_matches_subscription_helper(tmp_path):

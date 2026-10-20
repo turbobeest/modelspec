@@ -42,7 +42,8 @@ if TYPE_CHECKING:
 from decision.model import CitedRegion as CitedRegion
 from decision.model import Source, SourceSnapshot
 from decision.retention import (
-    citation_metadata, cite_only_origin, cite_only_status, require_source_url,
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, cite_only_status,
+    require_source_url,
 )
 from decision.normalise import (
     NORMALISERS,
@@ -524,11 +525,12 @@ class CopyStore:
     def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
             resolved_urls: Iterable[str] = ()) -> str:
         source_url = require_source_url(source_url)
-        if cite_only_status(source_url) is None:
-            raise ValueError("retaining source bytes requires a well-formed HTTP source URL")
         resolved_urls = tuple(resolved_urls)
+        if cite_only_origin_status(source_url, resolved_urls) is None:
+            # Neither bytes nor a citation record for a malformed origin (MODEL-420).
+            raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only_origin(source_url, resolved_urls):
+        if cite_only_origin_restrictive(source_url, resolved_urls):
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
@@ -577,7 +579,7 @@ class CopyStore:
         return metadata
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
-        if self.citation(ref) is not None or source_url is not None and cite_only_origin(source_url):
+        if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
             raise ValueError("cite-only source has no readable retained copy")
         body = self.path(ref).read_bytes()
         if fingerprint_bytes(body) != ref:
@@ -770,7 +772,7 @@ def _check_one(
         # snapshot, and go on to the next source.
         report.skipped.append(Skipped(source.id, "invalid_citation_metadata"))
         return replace(state, last_attempt_at=now)
-    if (cite_only_origin(source.url, resolved_urls) or previous_citation is not None) \
+    if (cite_only_origin_restrictive(source.url, resolved_urls) or previous_citation is not None) \
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)

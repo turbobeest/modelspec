@@ -269,10 +269,10 @@ def fallback_to(
         }
         checkpoint(firecrawl.credits_spent + firecrawl.credits_per_call)
         result = firecrawl.fetch(url)
-        from decision.retention import citation_metadata, cite_only_origin
+        from decision.retention import citation_metadata, cite_only_origin_restrictive
         from decision.sources import fingerprint_bytes
 
-        restricted = cite_only_origin(url, result.resolved_urls)
+        restricted = cite_only_origin_restrictive(url, result.resolved_urls)
         if restricted:
             (directory / name).unlink(missing_ok=True)
         if result.outcome == "ok" and not restricted:

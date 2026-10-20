@@ -153,7 +153,8 @@ New behaviour:
      A newer mismatch therefore cancels an older supersession.
    - `mismatch.url` and `read.url` equal the registered URLs of their source
      IDs.
-   - `read.url` is cite-only (`decision.retention.is_cite_only`).
+   - `read.url` is cite-only (`decision.retention.cite_only_status` is True; a
+     malformed URL refuses).
    - Region identity is `(registered URL, region)`, so an alias source ID with
      the same URL is the same region. The fact's current refs must not cite
      the mismatch region (a). They must cite the read region (a).

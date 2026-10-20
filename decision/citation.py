@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple
 
 from decision.retention import (
-    canonical_host, citation_metadata, cite_only_status, is_cite_only, metadata_origins,
-    redirect_urls,
+    canonical_host, citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    cite_only_status, metadata_origins, redirect_urls,
     require_source_url,
 )
 
@@ -82,8 +82,13 @@ def ref_state(ref: Mapping[str, Any], sources: Mapping[str, str], store: Any = N
     if registered_status:
         return "cited"
     if fetched is not None:
-        return "cited" if any(map(is_cite_only, fetched.origins)) else "restricted"
-    return "restricted" if any(map(is_cite_only, card)) else "open"
+        # Granting: a fetched redirect can make the ref cited, so None refuses.
+        fetched_status = cite_only_origin_status(registered, fetched.origins)
+        if fetched_status is None:
+            raise ValueError("invalid citation redirect record")
+        return "cited" if fetched_status else "restricted"
+    # Restrictive: a card's redirect can only withhold, never grant.
+    return "restricted" if cite_only_origin_restrictive("", card) else "open"
 
 
 def ref_states(record: Mapping[str, Any], sources: Mapping[str, str],

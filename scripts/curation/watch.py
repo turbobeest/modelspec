@@ -41,7 +41,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
+from decision.retention import cite_only_origin_restrictive, metadata_origins  # noqa: E402
 from scripts.curation.classify import classify  # noqa: E402
 
 BENCH_DIR = ROOT / "benchmarks"
@@ -251,7 +251,7 @@ def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple
     if not meta.exists():
         return None, ""
     data = json.loads(meta.read_text())
-    if not include_text or cite_only_origin(url, metadata_origins(data)):
+    if not include_text or cite_only_origin_restrictive(url, metadata_origins(data)):
         return data, ""
     txt = state_dir / f"{state_key(url)}.txt"
     return data, (txt.read_text(encoding="utf-8") if txt.exists() else "")
@@ -260,7 +260,7 @@ def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple
 def save_state(state_dir: Path, url: str, meta: dict, text: str | None) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     origins = metadata_origins(meta)
-    if cite_only_origin(url, origins):
+    if cite_only_origin_restrictive(url, origins):
         meta = {"url": url, "hash": meta.get("hash"), "fetched_at": meta.get("fetched_at"),
                 "resolved_urls": list(origins)}
         text = None
@@ -309,10 +309,10 @@ def watch(
             else:
                 needs_js.append(url)
         prev, prev_text = load_state(state_dir, url,
-                                     include_text=not cite_only_origin(url, res.resolved_urls))
+                                     include_text=not cite_only_origin_restrictive(url, res.resolved_urls))
         pages = [{"page": pid, "role": role} for pid, role, _ in work[url]]
         resolved = tuple(dict.fromkeys((*res.resolved_urls, *(prev or {}).get("resolved_urls", ()))))
-        if cite_only_origin(url, resolved):
+        if cite_only_origin_restrictive(url, resolved):
             meta = {"url": url, "resolved_urls": resolved,
                     "hash": (prev or {}).get("hash"), "fetched_at": (prev or {}).get("fetched_at")}
             if res.ok:
@@ -394,7 +394,7 @@ def export_source_texts(report: dict, state_dir: Path, report_dir: Path) -> None
             continue
         meta = json.loads(path.read_text())
         url = meta.get("url")
-        if url and cite_only_origin(url, metadata_origins(meta)):
+        if url and cite_only_origin_restrictive(url, metadata_origins(meta)):
             cited_urls.add(url)
             save_state(state_dir, url, meta, None)
 
@@ -405,7 +405,7 @@ def export_source_texts(report: dict, state_dir: Path, report_dir: Path) -> None
             origins = metadata_origins(item)
             meta, _ = load_state(state_dir, url, include_text=False)
             origins = tuple(dict.fromkeys((*origins, *metadata_origins(meta or {}))))
-            if url in cited_urls or cite_only_origin(url, origins):
+            if url in cited_urls or cite_only_origin_restrictive(url, origins):
                 cited_urls.add(url)
                 item.pop("source_text", None)
                 item["kinds"] = []
@@ -431,8 +431,8 @@ def export_source_texts(report: dict, state_dir: Path, report_dir: Path) -> None
         if c["url"] in cited_urls:
             continue
         meta, text = load_state(state_dir, c["url"],
-                                include_text=not cite_only_origin(c["url"], metadata_origins(c)))
-        if cite_only_origin(c["url"], (*metadata_origins(c), *metadata_origins(meta or {}))):
+                                include_text=not cite_only_origin_restrictive(c["url"], metadata_origins(c)))
+        if cite_only_origin_restrictive(c["url"], (*metadata_origins(c), *metadata_origins(meta or {}))):
             (out / f"{state_key(c['url'])}.txt").unlink(missing_ok=True)
             c.pop("source_text", None)
             c["kinds"] = []

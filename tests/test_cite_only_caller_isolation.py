@@ -1,6 +1,6 @@
 """One malformed URL fails closed for its own record and never aborts a build or job.
 
-REV-857 round-2 probes (MODEL-420). ``is_cite_only`` reads a malformed HTTP(S)
+REV-857 round-2 probes (MODEL-420). ``is_cite_only_restrictive`` reads a malformed HTTP(S)
 URL as cite-only, the restrictive choice for retention and display; callers
 where cite-only status grants something use ``cite_only_status`` and refuse.
 """
@@ -13,7 +13,9 @@ import pytest
 import yaml
 
 from decision.model import Source, SourceRef
-from decision.retention import canonical_host, cite_only_status, is_cite_only
+from decision.retention import (
+    canonical_host, cite_only_origin_status, cite_only_status, is_cite_only_restrictive,
+)
 from decision.sources import CopyStore, FetchResult, recheck
 from decision.verify import StoredRegions, verify
 from tests.snapshot_records import SOURCES, evidence, fact
@@ -39,14 +41,14 @@ BAD_URL = "https://example.com:bad/pricing"
 ])
 def test_canonical_ordinary_and_restricted_hosts(url, host, cited):
     assert canonical_host(url) == host
-    assert is_cite_only(url) is cited
+    assert is_cite_only_restrictive(url) is cited
     assert cite_only_status(url) is cited
 
 
 @pytest.mark.parametrize("url", [BAD_URL, "https://x.ai:99999/", "https://reader@example.org/",
                                  "http://["])
 def test_malformed_url_is_restricted_but_never_granted(url):
-    assert is_cite_only(url) is True
+    assert is_cite_only_restrictive(url) is True
     assert cite_only_status(url) is None
 
 
@@ -75,8 +77,80 @@ def test_bad_claim_redirect_is_excluded_without_aborting_verifier(tmp_path):
     regions = StoredRegions(CopyStore(tmp_path / "cache"),
                             {"src-lab-docs": Source(id="src-lab-docs", url=SOURCES["src-lab-docs"])})
     result = verify(claim, regions, [], today=TODAY)
-    assert result.outcome in {"skipped", "unreachable", "cited"}
-    assert result.verification is None
+    # Granting: "cited" would skip verification, so a malformed URL is refused.
+    assert (result.outcome, result.verification) == ("skipped", None)
+
+
+def test_malformed_store_record_never_marks_a_claim_cited(tmp_path):
+    import json
+
+    claim = make_claim()
+    store = CopyStore(tmp_path / "cache")
+    ref = claim.sources[0].snapshot_ref
+    path = store.path(ref).with_suffix(".citation.json")
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"snapshot_ref": ref, "url": SOURCES["src-lab-docs"],
+                                "resolved_urls": ["https://reader@x.ai/"]}))
+    source = Source(id="src-lab-docs", url=SOURCES["src-lab-docs"],
+                    cited_regions=[{"id": "r1", "locator": {"kind": "page", "value": ""}}])
+    regions = StoredRegions(store, {"src-lab-docs": source})
+    assert regions.cite_only_status("src-lab-docs", ref) is None
+    assert regions.cite_only("src-lab-docs", ref) is True  # restrictive: copy withheld
+    assert regions.text("src-lab-docs", ref, "r1") is None
+    assert verify(claim, regions, [], today=TODAY).outcome == "skipped"
+
+
+def test_malformed_registered_url_is_not_reread_exempt():
+    """Granting: a cite-only source puts a fact in re-read scope without a verified result."""
+    from scripts.price_reread import _in_scope
+
+    claim = make_claim()
+    row = fact("model", "lab/alpha", "model.context_window", 128000, outcome=None)
+
+    def sources(url):
+        return {"src-lab-docs": Source(id="src-lab-docs", url=url)}
+
+    assert _in_scope(row, claim, {}, sources("https://x.ai/pricing")) is None
+    assert _in_scope(row, claim, {}, sources("https://reader@x.ai/pricing")) == (
+        "a source URL is malformed")
+
+
+@pytest.mark.parametrize("redirect,accepted", [
+    ("https://docs.x.ai/pricing", True),
+    ("https://reader@x.ai/pricing", False),
+])
+def test_rendered_replay_needs_well_formed_cite_only_origins(tmp_path, redirect, accepted):
+    """Granting: a byte-free replay artifact is accepted only for a cite-only origin."""
+    from scripts.price_reread import RenderedReplayFetcher
+
+    url = "https://plans.example/pricing"
+    entry = {"file": "a.html", "outcome": "ok", "status": 200, "error": None, "citation": {
+        "url": url, "snapshot_ref": "sha256:" + "4" * 64, "resolved_urls": [redirect],
+        "retrieved_at": "2026-10-19T12:00:00+00:00"}}
+    if accepted:
+        RenderedReplayFetcher(tmp_path, manifest={url: entry})
+    else:
+        with pytest.raises(ValueError, match="invalid cite-only rendered citation"):
+            RenderedReplayFetcher(tmp_path, manifest={url: entry})
+
+
+@pytest.mark.parametrize("redirect", ["https://reader@x.ai/", "https://x.ai:99999/"])
+def test_byte_free_fetch_with_malformed_origin_is_refused(tmp_path, redirect):
+    """Granting: a hash-only fetch result is recorded as cited only for a cite-only origin."""
+    from decision.model import CitedRegion
+    from scripts import price_reread
+
+    class HashOnly:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=b"", snapshot_ref="sha256:" + "5" * 64,
+                               resolved_urls=(redirect,))
+
+    source = Source(id="s", url="https://plans.example/pricing", cited_regions=[
+        CitedRegion(id="page", locator={"kind": "page", "value": ""})])
+    store = CopyStore(tmp_path / "cache")
+    with pytest.raises(ValueError, match="byte-free replay requires a cite-only origin"):
+        price_reread.fetch_sources(["s"], {"s": source}, HashOnly(), store)
+    assert not list(tmp_path.rglob("*.citation.json"))
 
 
 def test_one_bad_fetch_redirect_does_not_abort_recheck(tmp_path):
@@ -110,12 +184,14 @@ def test_store_put_bad_url_refuses_bytes(tmp_path):
     assert not list(tmp_path.rglob("*"))
 
 
-def test_store_put_bad_redirect_keeps_no_bytes(tmp_path):
+@pytest.mark.parametrize("redirect", ["https://example.org:bad/", "https://reader@x.ai/"])
+def test_store_put_bad_redirect_keeps_nothing(tmp_path, redirect):
+    """Granting: a citation record could later admit a fact, so a bad origin writes none."""
     store = CopyStore(tmp_path / "cache")
-    ref = store.put(b"private content", source_url="https://example.org/",
-                    resolved_urls=["https://example.org:bad/"])
-    assert not store.path(ref).exists()
-    assert store.has(ref) is False
+    with pytest.raises(ValueError):
+        store.put(b"private content", source_url="https://example.org/",
+                  resolved_urls=[redirect])
+    assert not list(tmp_path.rglob("*"))
 
 
 @pytest.mark.parametrize("read_url,expected", [
@@ -280,3 +356,13 @@ def test_proposal_plan_skips_malformed_manifest_entry():
 
     proposed, skipped = plan([{"accepted": True, "changed": True, "url": BAD_URL}])
     assert proposed == [] and len(skipped) == 1
+
+
+@pytest.mark.parametrize("origins,expected", [
+    (("https://example.org/", ()), False),
+    (("https://example.org/", ("https://x.ai/",)), True),
+    (("https://x.ai/", ("https://reader@example.org/",)), None),
+    (("https://example.org:bad/", ("https://x.ai/",)), None),
+])
+def test_origin_status_refuses_any_malformed_origin(origins, expected):
+    assert cite_only_origin_status(*origins) is expected

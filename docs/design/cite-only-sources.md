@@ -118,15 +118,20 @@ stricter:
   an invalid port or userinfo, or that does not parse, never yields a guessed
   host. It fails closed for its own record only, and never aborts a build or
   job:
-  - `is_cite_only` reads it as cite-only, the restrictive choice for
-    retention and display: no bytes are kept, evidence stays out, scores and
-    facts are never counted as verified, and the score-source notice shows
-    plain text.
-  - Where cite-only status grants something (a cited fact, a supersession,
-    the audit's retrieval dating), `cite_only_status` returns None and the
-    caller refuses: the fact is excluded as `invalid_citation`.
-  - `CopyStore.put` refuses a malformed source URL, and the weekly re-check
-    skips that one source as `invalid_citation_metadata`.
+  - Restrictive call sites (retention, storage, display) use
+    `is_cite_only_restrictive` / `cite_only_origin_restrictive`, which read
+    it as cite-only: no bytes are kept, evidence stays out, scores and facts
+    are never counted as verified, and the score-source notice shows plain
+    text.
+  - Granting call sites use `cite_only_status` / `cite_only_origin_status`,
+    which return None for a malformed URL, and refuse. Granting means
+    cite-only status admits a fact as cited, skips verification (the
+    verifier's `cited` outcome; a malformed URL or unreadable record gives
+    `skipped`), supersedes a mismatch, dates an audit record by retrieval,
+    puts a fact in re-read scope, accepts a byte-free replay, or writes a
+    citation record (`CopyStore.put` refuses a malformed origin).
+  - The weekly re-check skips one source with malformed redirect metadata
+    as `invalid_citation_metadata` and goes on.
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate

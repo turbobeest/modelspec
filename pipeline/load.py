@@ -65,10 +65,10 @@ class Model:
 
     @property
     def cited_evidence(self) -> list[dict[str, Any]]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return [record for record in self.evidence
-                if is_cite_only(str(record.get("source_url") or ""))]
+                if is_cite_only_restrictive(str(record.get("source_url") or ""))]
 
     @property
     def slug(self) -> str:
@@ -118,10 +118,10 @@ class Model:
 
     @property
     def scores_citation(self) -> dict[str, str] | None:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         source = self.scores_source
-        if self.scores and source and is_cite_only(source):
+        if self.scores and source and is_cite_only_restrictive(source):
             return {"status": "cited", "url": source}
         return None
 
@@ -177,17 +177,17 @@ class Disposition:
 
     @property
     def cited_results(self) -> tuple[dict[str, Any], ...]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return tuple({**record, "citation": {"status": "cited", "url": record["source_url"]}}
-                     for record in self.results if is_cite_only(record.get("source_url") or ""))
+                     for record in self.results if is_cite_only_restrictive(record.get("source_url") or ""))
 
     @property
     def verified_results(self) -> tuple[dict[str, Any], ...]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return tuple(record for record in self.results
-                     if not is_cite_only(record.get("source_url") or ""))
+                     if not is_cite_only_restrictive(record.get("source_url") or ""))
 
 
 @dataclass
