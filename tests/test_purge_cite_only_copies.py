@@ -212,6 +212,11 @@ def restore_modes():
         os.chmod(path, 0o755)
 
 
+def root_id(store):
+    info = os.lstat(store.root)
+    return info.st_dev, info.st_ino
+
+
 def cite_only_store(path, body):
     store = CopyStore(path)
     ref = old_copy(store, body)
@@ -233,7 +238,7 @@ def test_unreadable_git_entry_skips_the_store(capsys, tmp_path, restore_modes):
     assert code == 1
     assert inside.path(kept).is_file()
     assert not plain.path(gone).exists()
-    assert ".git exists but git cannot read it" in captured.err
+    assert f"{checkout / '.git'} exists but cannot be read" in captured.err
     assert "skipped_for_error=1" in captured.out
 
 
@@ -323,7 +328,7 @@ def test_delete_refuses_dot_dot_and_symlinks(capsys, tmp_path):
     link.parent.mkdir(parents=True)
     link.symlink_to(target)
     with pytest.raises(ValueError, match="non-regular"):
-        purge.delete(purge.Entry(store.root, other, link, ("x",), "data"))
+        purge.delete(purge.Entry(store.root, other, link, ("x",), "data", root_id(store)))
     store.record_citation(other, source_url="https://x.ai/y", retrieved_at=AT)
 
     code = purge.main(["--root", str(store.root), "--apply"])
@@ -332,3 +337,92 @@ def test_delete_refuses_dot_dot_and_symlinks(capsys, tmp_path):
     assert link.is_symlink() and target.read_bytes() == b"symlink target"
     assert not store.path(ref).exists()
     assert "not a regular file; skipped" in captured.err
+
+
+def git_repo(path, remote):
+    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    subprocess.run(["git", "-C", str(path), "remote", "add", "origin", remote], check=True)
+
+
+@needs_permissions
+def test_unreadable_nested_git_dir_inside_a_parent_repository_skips(
+        capsys, tmp_path, restore_modes):
+    parent = tmp_path / "parent"
+    git_repo(parent, "https://example.test/public.git")
+    nested = parent / "nested"
+    git_repo(nested, "https://github.com/turbobeest/modelspec-data.git")
+    store, ref = cite_only_store(nested / "cache", b"page in a private checkout")
+
+    code = purge.main(["--root", str(store.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "inside a private-repository checkout" in captured.err
+    assert store.path(ref).is_file()
+
+    os.chmod(nested / ".git", 0)
+    restore_modes.append(nested / ".git")
+    code = purge.main(["--root", str(store.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert f"{nested / '.git'} exists but cannot be read" in captured.err
+    os.chmod(nested / ".git", 0o755)
+    assert store.path(ref).is_file()
+
+
+def swap_prefix_for_link(store, ref, outside):
+    """Move the page's prefix aside and put a symlink to ``outside`` in its place."""
+    prefix = store.path(ref).parent
+    aside = prefix.with_name(prefix.name + "-aside")
+    prefix.rename(aside)
+    prefix.symlink_to(outside, target_is_directory=True)
+    return aside
+
+
+@pytest.fixture
+def victim(tmp_path):
+    def make(ref):
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / ref[7:]).write_bytes(b"outside victim")
+        return outside
+    return make
+
+
+def test_delete_refuses_a_prefix_swapped_for_a_symlink_after_the_scan(tmp_path, victim):
+    store, ref = cite_only_store(tmp_path / "cache", b"page to purge")
+    [entry] = purge.find_entries([store.root], purge.Provenance(), []).entries
+    outside = victim(ref)
+    swap_prefix_for_link(store, ref, outside)
+    with pytest.raises(OSError):
+        purge.delete(entry)
+    assert (outside / ref[7:]).read_bytes() == b"outside victim"
+
+
+def test_delete_is_pinned_to_the_prefix_it_opened(tmp_path, victim, monkeypatch):
+    store, ref = cite_only_store(tmp_path / "cache", b"page to purge")
+    [entry] = purge.find_entries([store.root], purge.Provenance(), []).entries
+    outside = victim(ref)
+    real_stat, moved = os.stat, []
+
+    def swap_then_stat(path, *args, **kwargs):
+        if kwargs.get("dir_fd") is not None and path == ref[7:] and not moved:
+            moved.append(swap_prefix_for_link(store, ref, outside))
+        return real_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "stat", swap_then_stat)
+    purge.delete(entry)
+    monkeypatch.undo()
+    assert moved
+    assert (outside / ref[7:]).read_bytes() == b"outside victim"
+    assert not (moved[0] / ref[7:]).exists()
+
+
+def test_delete_refuses_a_replaced_store_root(tmp_path):
+    store, ref = cite_only_store(tmp_path / "cache", b"page to purge")
+    [entry] = purge.find_entries([store.root], purge.Provenance(), []).entries
+    store.root.rename(tmp_path / "cache-aside")
+    replacement = CopyStore(tmp_path / "cache")
+    old_copy(replacement, b"page to purge")
+    with pytest.raises(ValueError, match="store root changed"):
+        purge.delete(entry)
+    assert replacement.path(ref).is_file()

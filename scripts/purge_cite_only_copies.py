@@ -220,6 +220,8 @@ class Entry:
     matched: tuple[str, ...]
     #: ``sidecar`` when the store's own citation names the URL, else ``data``.
     evidence: str
+    #: The store root's ``(st_dev, st_ino)`` when it was scanned.
+    root_id: tuple[int, int] = (-1, -1)
 
 
 def _reason(exc: OSError) -> str:
@@ -316,39 +318,70 @@ def discover_roots(base: Path, errors: list[str], notes: list[str]) -> list[Path
 
 
 def _git_checkouts(path: Path) -> Iterator[Path]:
-    """Each directory at or above ``path`` that has a ``.git`` entry (raises if unknowable)."""
+    """Each ``.git`` entry at or above ``path`` (raises if a parent cannot be checked)."""
     for parent in (path, *path.parents):
+        entry = parent / ".git"
         try:
-            os.lstat(parent / ".git")
-        except FileNotFoundError:
+            os.lstat(entry)
+        except (FileNotFoundError, NotADirectoryError):
             continue
-        except NotADirectoryError:
-            continue
-        yield parent
+        yield entry
+
+
+def _git_dir(entry: Path) -> Path:
+    """The git directory a ``.git`` entry names, after proving it readable.
+
+    Raises ``OSError`` or ``ValueError`` when the entry, or the directory a
+    ``.git`` file points at, cannot be read and listed.
+    """
+    mode = os.lstat(entry).st_mode
+    if stat.S_ISREG(mode):
+        if not os.access(entry, os.R_OK):
+            raise PermissionError(f"{entry} is not readable")
+        line = entry.read_text(encoding="utf-8").strip()
+        if not line.startswith("gitdir:"):
+            raise ValueError(f"{entry} names no gitdir")
+        target = Path(line.removeprefix("gitdir:").strip())
+        entry = target if target.is_absolute() else entry.parent / target
+        mode = os.stat(entry).st_mode
+    if not stat.S_ISDIR(mode):
+        raise ValueError(f"{entry} is not a git directory")
+    if not os.access(entry, os.R_OK | os.X_OK):
+        raise PermissionError(f"{entry} is not readable")
+    os.listdir(entry)
+    return entry
+
+
+def _remotes(git_dir: Path) -> subprocess.CompletedProcess:
+    """``git remote -v`` for exactly ``git_dir``: no discovery, no walk to a parent."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env["GIT_CEILING_DIRECTORIES"] = str(git_dir.parent)
+    return subprocess.run(["git", f"--git-dir={git_dir}", "remote", "-v"],
+                          capture_output=True, text=True, env=env)
 
 
 def protected(root: Path, data: Iterable[Path]) -> tuple[str, bool] | None:
     """Why ``root`` must be skipped, as ``(reason, is_error)``, or ``None`` to process it.
 
     A store inside a data directory or a private-repository checkout is never
-    purged here. A ``.git`` entry at or above the store that git cannot read
-    leaves the checkout unknown, so the store is skipped as an error.
+    purged here. Every ``.git`` entry at or above the store is read directly and
+    then asked for its remotes with git pinned to it; any entry that cannot be
+    read leaves the checkout unknown, so the store is skipped as an error.
     """
     resolved = root.resolve()
     if any(resolved == d.resolve() or d.resolve() in resolved.parents for d in data):
         return "inside a data directory", False
     try:
-        checkouts = list(_git_checkouts(resolved))
+        entries = list(_git_checkouts(resolved))
     except OSError as exc:
         return f"cannot check for a .git entry ({_reason(exc)})", True
-    for checkout in checkouts:
+    for entry in entries:
         try:
-            result = subprocess.run(["git", "-C", str(checkout), "remote", "-v"],
-                                    capture_output=True, text=True)
-        except OSError as exc:
-            return f"cannot run git for {checkout} ({_reason(exc)})", True
+            result = _remotes(_git_dir(entry))
+        except (OSError, ValueError, UnicodeDecodeError) as exc:
+            return f"{entry} exists but cannot be read ({exc})", True
         if result.returncode != 0:
-            return f"{checkout}/.git exists but git cannot read it", True
+            return f"{entry} exists but git cannot read it", True
         if "turbobeest/modelspec-data" in result.stdout:
             return "inside a private-repository checkout", False
     return None
@@ -366,6 +399,11 @@ def find_entries(roots: Iterable[Path], provenance: Provenance, errors: list[str
     scan = Scan()
     for root in roots:
         store = CopyStore(root)
+        try:
+            info = os.lstat(root)
+            root_id = (info.st_dev, info.st_ino)
+        except OSError:
+            root_id = (-1, -1)
         for ref, path, regular in store_entries(root, errors):
             scan.scanned += 1
             try:
@@ -386,23 +424,41 @@ def find_entries(roots: Iterable[Path], provenance: Provenance, errors: list[str
                 errors.append(f"{path}: cite-only name but not a regular file; skipped")
                 continue
             scan.entries.append(Entry(root, ref, path,
-                                      tuple(u for u in matched if is_cite_only(u)), evidence))
+                                      tuple(u for u in matched if is_cite_only(u)), evidence,
+                                      root_id))
     return scan
 
 
+_DIRECTORY = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
 def delete(entry: Entry) -> None:
-    """Unlink one matched page, only a regular file strictly inside its resolved store."""
-    root = entry.root.resolve(strict=True)
+    """Unlink one matched page through directory descriptors, so no path can be swapped.
+
+    The store root is opened without following a final symlink and must still be
+    the directory the scan saw; the prefix is opened relative to it without
+    following symlinks; the page must be a regular file in that directory.
+    """
     name = entry.path.name
-    if not DIGEST.match(name) or entry.ref != f"sha256:{name}":
-        raise ValueError(f"refusing to delete a file not named by its ref: {entry.path}")
-    parent = entry.path.parent.resolve(strict=True)
-    target = parent / name
-    if parent.parent != root or parent.name != name[:2] or root not in target.parents:
+    prefix = name[:2]
+    if not DIGEST.match(name) or entry.ref != f"sha256:{name}" \
+            or entry.path != entry.root / prefix / name:
         raise ValueError(f"refusing to delete outside its copy store: {entry.path}")
-    if not stat.S_ISREG(os.lstat(target).st_mode):
-        raise ValueError(f"refusing to delete a non-regular file: {entry.path}")
-    os.unlink(target)
+    root_fd = os.open(entry.root, _DIRECTORY)
+    try:
+        info = os.fstat(root_fd)
+        if (info.st_dev, info.st_ino) != entry.root_id:
+            raise ValueError(f"store root changed since the scan: {entry.root}")
+        prefix_fd = os.open(prefix, _DIRECTORY, dir_fd=root_fd)
+        try:
+            page = os.stat(name, dir_fd=prefix_fd, follow_symlinks=False)
+            if not stat.S_ISREG(page.st_mode):
+                raise ValueError(f"refusing to delete a non-regular file: {entry.path}")
+            os.unlink(name, dir_fd=prefix_fd)
+        finally:
+            os.close(prefix_fd)
+    finally:
+        os.close(root_fd)
 
 
 # --- command line --------------------------------------------------------------------------------
