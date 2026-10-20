@@ -159,3 +159,123 @@ def test_a_kind_stated_twice_with_different_amounts_is_not_read(reads):
     page = STANDARD.replace("| Output |", "| Input | $0.20 | 1M tokens |\n| Output |")
     assert not reads(page, "input", .1) and not reads(page, "input", .2)
     assert reads(page, "output", .5)
+
+
+# --- Round 2 of the cross-review: binding to the model heading, table ends ------------------
+
+
+def test_the_verifier_sees_the_page_without_blank_lines():
+    """The probes above and below run on this text, not on the raw Markdown."""
+    from decision.normalise import NORMALISERS, normalise_document
+
+    text = normalise_document((STANDARD + "\n| Endpoint | Price |\n").encode(),
+                              NORMALISERS["text-default"]).text
+    assert "\n\n" not in text and "| Output | $0.50 | 1M tokens |\n| Endpoint | Price |" in text
+
+
+DECLARED_MINI_TABLE_UNDER_MAXI = """\
+# Example Mini
+Model ID: `example-mini`
+Input
+$0.10
+
+# Example Maxi
+## Pricing
+| Metric | Price | Unit |
+| Input | $8.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+"""
+
+TABLE_UNDER_MINI_MAXI_AFTER = STANDARD + """\
+
+# Example Maxi
+Input
+$8.00
+"""
+
+
+def test_a_table_under_another_models_heading_is_never_the_declared_models(reads):
+    page = DECLARED_MINI_TABLE_UNDER_MAXI
+    for name, value in (("Example Mini", 8), ("Example Mini", .1), ("Example Maxi", 8)):
+        assert not reads(page, "input", value, name=name)
+    assert not reads(page, "output", 16, name="Example Mini")
+
+
+def test_the_reverse_layout_reads_only_the_declared_models_own_table(reads):
+    page = TABLE_UNDER_MINI_MAXI_AFTER
+    assert reads(page, "input", .1)
+    assert not reads(page, "input", 8)
+    assert not reads(page, "input", 8, name="Example Maxi")
+    assert not reads(page, "input", .1, name="Example Maxi")
+
+
+def test_a_table_with_no_model_heading_above_it_is_not_read(reads):
+    page = STANDARD.replace("# Example Mini\n", "")
+    assert not reads(page, "input", .1)
+
+
+@pytest.mark.parametrize("header", [
+    "| Metric | Price (per 1M tokens) | Unit |", "| Metric | Price | Unit |",
+])
+def test_a_second_header_row_ends_the_table_even_with_a_digit_in_it(reads, header):
+    page = ("# Example Mini\nModel ID: `example-mini`\n### Text tokens\n"
+            "| Metric | Price | Unit |\n| Input | $0.10 | 1M tokens |\n"
+            f"{header}\n| Output | $30.00 | 1M tokens |\n")
+    # Two standard tables for one model: nothing is read, so nothing is written.
+    assert not reads(page, "output", 30)
+    assert not reads(page, "input", .1)
+
+
+def test_a_price_header_with_a_unit_in_parentheses_is_read(reads):
+    page = STANDARD.replace("| Metric | Price | Unit |",
+                            "| Metric | Price (per 1M tokens) | Unit |")
+    assert reads(page, "input", .1)
+
+
+def test_a_markdown_rule_under_the_header_is_part_of_it(reads):
+    page = STANDARD.replace("| Metric | Price | Unit |\n",
+                            "| Metric | Price | Unit |\n|---|:---:|---|\n")
+    assert reads(page, "input", .1) and reads(page, "output", .5)
+    # text-default drops rule lines; on text that keeps them, a rule after the
+    # first row ends the table, so the rows under it are not this table's.
+    ruled = page.replace("| Output |", "|---|---|---|\n| Output |")
+    table = verify.MetricPriceTable.read(ruled)
+    assert table.reading(_claim("output")).value is None
+    assert table.reading(_claim("input")).value == "$0.10"
+
+
+def _claim(field):
+    return verify.Claim(
+        target=TargetRef(kind="fact", id=f"offering#{field}"),
+        subject="example/example/model/global/standard", names=("Example Mini",),
+        field=f"offering.price.{field}", value=0, unit="usd_per_1m_tokens",
+        collector=COLLECTOR, sources=(SourceRef(source_id="model-page",
+                                                snapshot_ref="sha256:" + "0" * 64,
+                                                cited_regions=["page"]),))
+
+
+def test_a_change_in_column_count_ends_the_table(reads):
+    page = STANDARD.replace("| Output | $0.50 | 1M tokens |", "| Output | $30.00 |")
+    assert not reads(page, "output", 30)
+    assert reads(page, "input", .1)
+
+
+@pytest.mark.parametrize("heading", ["### Standard (non-batch)", "### Standard (non batch)"])
+def test_a_non_batch_heading_is_a_standard_section(reads, heading):
+    page = STANDARD.replace("### Text tokens", heading)
+    assert reads(page, "input", .1)
+    assert not reads(page, "batch_input", .1)
+    assert reads(page + HALF, "batch_input", .05)
+
+
+def test_an_input_cached_row_is_the_cached_input_price(reads):
+    page = STANDARD.replace("| Cached input |", "| Input (cached) |")
+    assert reads(page, "cached_input", .01)
+    assert not reads(page, "input", .01)
+    assert reads(page, "input", .1)
+
+
+def test_no_model_declaration_or_two_agreeing_standard_tables_read_nothing(reads):
+    assert not reads(STANDARD.replace("Model ID: `example-mini`\n", ""), "input", .1)
+    twice = STANDARD + "### Text tokens\n| Metric | Price | Unit |\n| Input | $0.10 | 1M tokens |\n"
+    assert not reads(twice, "input", .1)
