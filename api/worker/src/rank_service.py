@@ -29,8 +29,6 @@ not a feature.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from types import MappingProxyType
 from typing import Any
 
 from api.ranking.engine import (
@@ -335,11 +333,13 @@ def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
     ]
 
 
-# Almost no candidate is cited. Sharing one read-only empty value keeps two
-# empty containers per candidate out of the isolate (MODEL-417); `score` and
-# `to_json` only read them, and only emit them when they are non-empty.
-_NO_CITED_FACTS: tuple[dict[str, Any], ...] = ()
-_NO_CITED_BENCHMARKS: Mapping[str, dict[str, Any]] = MappingProxyType({})
+# Almost no candidate is cited. Sharing one empty list and one empty dict keeps
+# two empty containers per candidate out of the isolate (MODEL-417). They stay
+# a plain list and dict because `score` emits both fields when either is
+# non-empty, and the response encoder must see the types the CLI's rows hold.
+# Nothing mutates a candidate's citation fields.
+_NO_CITED_FACTS: list[dict[str, Any]] = []
+_NO_CITED_BENCHMARKS: dict[str, dict[str, Any]] = {}
 
 
 def hardware_ids(hardware_export: dict[str, Any] | None) -> set[str]:

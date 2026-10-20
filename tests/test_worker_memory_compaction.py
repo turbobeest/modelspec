@@ -131,3 +131,28 @@ def test_uncited_rank_candidates_share_one_empty_citation_value():
     assert not prepared[0].cited_facts and not prepared[0].cited_benchmarks
     assert prepared[2].cited_facts == [{"facet": "model.class"}]
     assert prepared[2].cited_benchmarks == {"b": {"status": "cited", "url": "https://x.ai/"}}
+
+
+@pytest.mark.parametrize("cited_facts, cited_benchmarks", [
+    ([{"facet": "model.class"}], None),
+    (None, {"humaneval": {"status": "cited", "url": "https://x.ai/"}}),
+])
+def test_one_sided_citation_serializes_the_shared_empty_as_json(cited_facts, cited_benchmarks):
+    """`score` emits both citation fields when either is non-empty (review of #843)."""
+    from api.worker.src import rank_service
+    from pipeline import ranking
+
+    row = {"model_id": "lab/c", "display_name": "C", "provider": "lab",
+           "benchmark_scores": {"humaneval": 80.0}}
+    if cited_facts is not None:
+        row["cited_facts"] = cited_facts
+    if cited_benchmarks is not None:
+        row["cited_benchmarks"] = cited_benchmarks
+    [candidate] = rank_service.candidates_from_export({"candidates": [row]})
+    scored = ranking.score(candidate, {"benchmark_weights": {"humaneval": 1}})
+    # The Worker's encoder (`entry._json_response`) and a plain encoder.
+    for text in (json.dumps(scored, indent=2, default=str), json.dumps(scored)):
+        body = json.loads(text)
+        assert body["cited_facts"] == (cited_facts or [])
+        assert body["cited_benchmarks"] == (cited_benchmarks or {})
+    assert type(scored["cited_facts"]) is list and type(scored["cited_benchmarks"]) is dict
