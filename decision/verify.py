@@ -620,6 +620,12 @@ class OfferingPriceExtractor:
         if scoped_subject and simple_label:
             markdown = False
             table_subject = None
+            # The Markdown headings open above each table. A table counts only under
+            # the claim model's own heading path, by MetricPriceTable's rule: the line
+            # above it names the model, and no heading above it may name another
+            # (MODEL-426). A page without Markdown headings has an empty path.
+            path: tuple[tuple[int, str], ...] = ()
+            claim_names = {normalise_name(name): name for name in claim.names}
             for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
@@ -627,8 +633,10 @@ class OfferingPriceExtractor:
                     declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
                     names = {normalise_name(n.rstrip("."))
                              for n in declared.split(",")}
-                    table_subject = scoped_subject if normalise_name(scoped_subject) in names \
-                        else None
+                    own = normalise_name(scoped_subject) in names and (
+                        not path or MetricPriceTable._under([h for _, h in path], claim_names))
+                    table_subject = scoped_subject if own else None
+                path = _heading_path(path, line) or path
                 if table_subject is None:
                     continue
                 # In an HTML table a leading pipe is an empty first cell: the row
@@ -2312,6 +2320,20 @@ def _cell(text: str) -> str:
     return normalise_name(text.replace("*", "").replace("`", ""))
 
 
+def _heading_path(headings: tuple[tuple[int, str], ...], line: str
+                  ) -> tuple[tuple[int, str], ...] | None:
+    """The Markdown headings open after ``line``, or None when it is not a heading.
+
+    Each entry is ``(level, text)``. A heading closes every open heading at its
+    level or below. A line with a pipe is a table row, never a heading.
+    """
+    stripped = line.strip()
+    if "|" in stripped or not (heading := re.match(r"^(#{1,6})\s+(.*)$", stripped)):
+        return None
+    level = len(heading.group(1))
+    return (*((lvl, h) for lvl, h in headings if lvl < level), (level, heading.group(2)))
+
+
 @dataclass(frozen=True)
 class _PriceSection:
     """One ``Metric | Price`` table: its heading path, tier and stated amounts."""
@@ -2355,7 +2377,7 @@ class MetricPriceTable:
     def read(cls, text: str) -> MetricPriceTable | None:
         """The page's price tables, or None when it has no Metric | Price table."""
         sections: list[_PriceSection] = []
-        headings: list[tuple[int, str]] = []
+        headings: tuple[tuple[int, str], ...] = ()
         table: list[list[str]] = []
 
         def close() -> None:
@@ -2415,10 +2437,7 @@ class MetricPriceTable:
             stripped = line.strip()
             if "|" not in stripped:
                 close()
-                if heading := re.match(r"^(#{1,6})\s+(.*)$", stripped):
-                    level = len(heading.group(1))
-                    headings = [(lvl, h) for lvl, h in headings if lvl < level]
-                    headings.append((level, heading.group(2)))
+                headings = _heading_path(headings, stripped) or headings
                 continue
             if _SEPARATOR.match(stripped):
                 if len(table) != 1:  # a rule under a header belongs to it
@@ -2440,21 +2459,23 @@ class MetricPriceTable:
         declared = {normalise_name(model) for model in self.models}
         name = names.get(next(iter(declared))) if len(declared) == 1 else None
         own = [section for section in self.sections
-               if name is not None and self._under(section, names)]
+               if name is not None and self._under(section.headings, names)]
         prices = self._prices(own)
         value = prices.get(claim.field.removeprefix("offering.price."))
         return Reading(subject=name or claim.names[0], value=value, unit=claim.unit)
 
     @staticmethod
-    def _under(section: _PriceSection, names: Mapping[str, str]) -> bool:
-        """Whether the table sits under the claim model's own heading.
+    def _under(headings: Sequence[str], names: Mapping[str, str]) -> bool:
+        """Whether a table under ``headings`` sits under the claim model's own heading.
 
-        Every heading above it must either name the claim's model or be a section
-        heading (``Pricing``, ``Text tokens``). Any other heading, above or below
-        the model's own, may name another model, so the table is not read.
+        ``names`` maps each normalised claim name to the name. Every heading above
+        the table must either name the claim's model or be a section heading
+        (``Pricing``, ``Text tokens``), and one must name the model. Any other
+        heading, above or below the model's own, may name another model, so the
+        table is not read. ``OfferingPriceExtractor`` uses the same rule (MODEL-426).
         """
         named = False
-        for heading in section.headings:
+        for heading in headings:
             normal = normalise_name(heading.replace("*", "").replace("`", ""))
             if normal in names:
                 named = True
@@ -6284,9 +6305,17 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     cited region is a binding page. It is not a reading, for a known value or
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
+
+    An ``offering.price.*`` region with a ``Metric | Price`` table is read by
+    ``ModelPageExtractor`` alone, which reads it with the strict
+    ``MetricPriceTable`` (MODEL-426). When that reader refuses the table as
+    ambiguous, or binds it to another model, no looser reader is asked.
     """
     if dated_price_claim(claim):
         return []  # Dated claims use StoredRegions.dated_prices exclusively.
+    if claim.field.startswith("offering.price.") and MetricPriceTable.read(text) is not None:
+        return [extractor for extractor in extractors
+                if isinstance(extractor, ModelPageExtractor)]
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
         permitted = set(facet.permitted_source_kinds) if facet is not None else set()
@@ -6600,6 +6629,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``ExtractorError``, is skipped.
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
+    A stricter reader's refusal is not overridden by a looser one: an
+    ``offering.price.*`` region in which ``MetricPriceTable`` finds a
+    ``Metric | Price`` table is read by ``ModelPageExtractor`` alone, so when that
+    reader finds the table ambiguous or another model's, the region verifies
+    nothing, and ``OfferingPriceExtractor`` or an LLM reader is not asked
+    (MODEL-426, ``_readers_for``).
     """
     url_of = getattr(regions, "source_url", None)
     protected_copy = getattr(regions, "cite_only", None)
