@@ -1,0 +1,18 @@
+{
+  "facts_validated": 35,
+  "verifier_cited_without_page_reads": 17,
+  "snapshots": [
+    {
+      "path": "/api/decision/snapshot.json.gz",
+      "signed": true,
+      "known_cited": 17,
+      "unknown_not_admitted": 18
+    },
+    {
+      "path": "/api/decision/snapshot-successor.json.gz",
+      "signed": true,
+      "known_cited": 17,
+      "unknown_not_admitted": 18
+    }
+  ]
+}

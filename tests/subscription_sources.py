@@ -6,7 +6,9 @@ import subprocess
 
 import yaml
 
-from decision.model import Measurement, value_hash, verification_counts
+from decision.citation import fact_citation
+from decision.model import Fact, Measurement, value_hash, verification_counts
+from decision.retention import cite_only_origin
 from decision.snapshot import FactValue
 from decision.sources import load_sources
 
@@ -55,7 +57,7 @@ def bound_hashes(value, unordered):
     """
     hashes = {value_hash(value)}
     if unordered and isinstance(value, list):
-        hashes.add(value_hash(sorted(set(value))))
+        hashes.add(value_hash(sorted(value)))
         if len(value) <= 9:
             hashes.update(value_hash(list(order)) for order in itertools.permutations(value))
     return hashes
@@ -66,8 +68,19 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
 
     Do not call the snapshot compiler or collector to form its expected output.
     Log entries win same-day ties over inline verification, and later log rows
-    win ties with earlier rows. Same-family verified entries do not count. With
-    ``registry``, an unordered set facet's verification binds its members.
+    win ties with earlier rows. Same-family verified entries do not count.
+
+    A fact whose registered source or observed redirect is on a cite-only host
+    enters without a verification record (docs/design/cite-only-sources.md),
+    unless its citation or record is invalid (the fact must validate against
+    ``registry`` as the snapshot validates it), it names an identifier facet,
+    or its latest counting outcome is a mismatch or unreachable. Every other
+    fact still needs a latest counting outcome of verified.
+
+    With ``registry``, an unordered set facet's verification binds its members
+    (MODEL-416). A set with a repeated member never enters. Past nine members, a
+    failed outcome on another hash of the fact, newer than its bound verdict,
+    holds the fact: it may be a legacy row for another order of the same set.
     """
     log = [
         json.loads(line)
@@ -75,33 +88,66 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
         if line.strip()
     ]
     sources = load_sources(root / "registry/sources.yaml")
+    urls = {source_id: str(source.url) for source_id, source in sources.items()}
     expected = {}
     for sid, subscription in subscriptions.items():
         expected[sid] = {}
         for fact in subscription["facts"]:
             if fact["state"] == "unknown":
                 continue
-            fid = fact.get("id", f"{sid}#{fact['facet']}")
-            unordered = registry is not None and getattr(
-                registry.facet(fact["facet"]).value_type, "unordered", False)
-            bound = bound_hashes(fact.get("value"), unordered)
-            candidates = [
+            # collect_repo adds the subject and id before the snapshot validates a fact.
+            fact = {"subject": {"kind": "offering", "id": sid},
+                    "id": f"{sid}#{fact.get('facet')}", **fact}
+            fid = fact["id"]
+            value = fact.get("value")
+            value_type = registry.facet(fact["facet"]).value_type if registry else None
+            unordered = getattr(value_type, "unordered", False)
+            if (getattr(value_type, "kind", None) == "set" and isinstance(value, list)
+                    and len(set(value)) != len(value)):
+                continue
+            bound = bound_hashes(value, unordered)
+            rows = [
                 (str(record["date"]), order, record)
                 for order, record in enumerate([fact.get("verification"), *log])
                 if record
                 and record["target"]["kind"] == "fact"
                 and record["target"]["id"] == fid
-                and record["target"].get("value_hash") in bound
                 and verification_counts(
                     record["outcome"],
                     record["collector"]["model_family"],
                     record["verifier"]["model_family"],
                 )
             ]
-            if (
-                not candidates
-                or max(candidates, key=lambda row: row[:2])[2]["outcome"] != "verified"
-            ):
+            candidates = [row for row in rows if row[2]["target"].get("value_hash") in bound]
+            best = max(candidates, key=lambda row: row[:2]) if candidates else None
+            latest = best[2]["outcome"] if best else None
+            if unordered and isinstance(value, list) and len(value) > 9:
+                # Only the latest row per hash counts, as the snapshot reads the log.
+                per_hash = {}
+                for row in rows:
+                    key = row[2]["target"].get("value_hash")
+                    if key not in per_hash or row[:2] >= per_hash[key][:2]:
+                        per_hash[key] = row
+                if any(key not in bound and row[2]["outcome"] != "verified"
+                       and (best is None or row[:2] > best[:2])
+                       for key, row in per_hash.items()):
+                    continue
+            cited = any(
+                cite_only_origin(urls.get(ref["source_id"], ""), ref.get("resolved_urls") or ())
+                for ref in fact.get("sources", [])
+            )
+            if cited:
+                if fact["facet"] in {"offering.api_model_id", "offering.router_slug"}:
+                    continue
+                try:
+                    fact_citation(fact, urls)
+                    Fact.model_validate({**fact, "verification": None},
+                                        context={"registry": registry})
+                except ValueError:
+                    continue
+                if latest in {"mismatch", "unreachable"}:
+                    continue
+            elif latest != "verified":
                 continue
             source_ids = tuple(sorted({ref["source_id"] for ref in fact.get("sources", [])}))
             if not source_ids or not all(source in sources for source in source_ids):

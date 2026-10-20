@@ -1,0 +1,207 @@
+{
+  "head_at_completion": "95944ce7248e07aebaf5b93a2b4d9a27fe0f1191",
+  "python": "3.11.15",
+  "pytest": "9.1.1",
+  "uv": "0.7.13",
+  "pypdf_after_reinstall": "6.21.1",
+  "checks": {
+    "create-venv": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "venv",
+        "--python",
+        "/Users/terbeest/.local/bin/python3.11",
+        "tmp/model-408-cite/public-checks/py311-ci/venv"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:00:18.553641+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.04
+    },
+    "install-red": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "pip",
+        "install",
+        "--python",
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-e",
+        ".[dev]"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:00:23.200271+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.9
+    },
+    "absent-proof": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-c",
+        "import importlib.util,sys; from importlib.metadata import version; print(sys.version); print(\"pytest\", version(\"pytest\")); print(\"pypdf installed\", importlib.util.find_spec(\"pypdf\") is not None)"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:00:31.102694+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.05
+    },
+    "collect-red": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q",
+        "tests/test_cite_only_collector_writers.py"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:00:31.102892+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 2,
+      "elapsed_seconds": 0.98
+    },
+    "install-green": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "pip",
+        "install",
+        "--python",
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-e",
+        ".[dev]"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:01:27.226301+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 1,
+      "elapsed_seconds": 0.36
+    },
+    "install-green-final": {
+      "command": [
+        "/Users/terbeest/.local/bin/uv",
+        "pip",
+        "install",
+        "--python",
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-e",
+        ".[dev]"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:02:37.460581+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.24
+    },
+    "present-proof": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-c",
+        "import sys; from importlib.metadata import version; import pypdf; print(sys.version); print(\"pytest\", version(\"pytest\")); print(\"pypdf\", version(\"pypdf\")); print(\"pypdf module\", pypdf.__file__)"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:02:43.674736+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.44
+    },
+    "collect-green": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q",
+        "tests/test_cite_only_collector_writers.py"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:02:43.674101+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.91
+    },
+    "tests-green": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_cite_only_collector_writers.py"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:02:49.699176+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.95
+    },
+    "full-collect-green": {
+      "command": [
+        "tmp/model-408-cite/public-checks/py311-ci/venv/bin/python",
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q"
+      ],
+      "cwd": "/Users/terbeest/dev/worktrees/model-408",
+      "started_at": "2026-10-19T17:02:59.761298+00:00",
+      "environment": {
+        "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-408",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 42.11
+    }
+  },
+  "results": {
+    "red": "No pypdf installed; focused collection exited 2 with ModuleNotFoundError pypdf.",
+    "intermediate_install": "After dependency edit, editable build exited 1 because CLI guidance fingerprint was stale.",
+    "green": "After root regenerated agent-copy bundle, editable .[dev] install passed; 35 tests collected; 35 synthetic collector tests passed.",
+    "full_collection": "12,528 tests collected in 41.00s, exit 0.",
+    "ci_perf": "Job 118186999699 independently confirmed identical pypdf collection failure."
+  },
+  "limitations": [
+    "This is Python 3.11.15 on macOS; CI used Python 3.11.17 on Linux.",
+    "Installed only editable .[dev]; dependency versions follow its constraints and were not forced to CI pins.",
+    "Full suite was not executed by this worker."
+  ],
+  "tracked_source_edits": false,
+  "live_provider_calls": false
+}
