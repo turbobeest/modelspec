@@ -1,5 +1,6 @@
 """Admission packets use real source readers and the premier completeness gate."""
 
+import json
 from copy import deepcopy
 from datetime import UTC, date, datetime
 
@@ -8,12 +9,12 @@ import pytest
 import yaml
 
 from decision.registry import Registry, default
-from decision.sources import CopyStore, Fetcher
+from decision.sources import CopyStore
 
 TODAY = date(2026, 10, 20)
-MODEL = "openai/fixture-model"
-MODEL_URL = "https://developers.openai.com/api/docs/models/fixture-model"
-PRICE_URL = "https://developers.openai.com/api/docs/pricing"
+MODEL = "google/fixture-model"
+MODEL_URL = "https://ai.google.dev/gemini-api/docs/models/fixture-model"
+PRICE_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 
 
 def catalogue(tmp_path):
@@ -35,6 +36,14 @@ def catalogue(tmp_path):
     (root / "premier/slice-1.yaml").write_text(
         "schema_version: 1\nmodels:\n- model_id: openai/existing\n"
     )
+    (root / "registry").mkdir()
+    (root / "registry/source-terms.json").write_text(json.dumps({
+        "ai.google.dev": "restricts",
+        "developers.openai.com": "forbids",
+        "claude.com": "forbids",
+        "platform.claude.com": "unclear",
+        "docs.x.ai": "forbids",
+    }))
     return root
 
 
@@ -66,7 +75,7 @@ def pages(model="<h1>Fixture Model</h1><p>Context window</p><p>32K tokens</p>"):
 
 
 def draft(tmp_path, root, bodies, registry, model_id=MODEL):
-    from scripts.admission_drafter import draft_packet
+    from scripts.admission_drafter import AdmissionFetcher, draft_packet, load_source_terms
 
     def request(req):
         text = bodies.get(str(req.url))
@@ -76,7 +85,8 @@ def draft(tmp_path, root, bodies, registry, model_id=MODEL):
     with httpx.Client(transport=httpx.MockTransport(request)) as client:
         return draft_packet(
             root=root, model_id=model_id,
-            fetcher=Fetcher(client, retries=0, min_host_interval=0),
+            fetcher=AdmissionFetcher(client, lab=model_id.split("/")[0],
+                                     terms=load_source_terms(root), retries=0, min_host_interval=0),
             store=CopyStore(tmp_path / "copies"), today=TODAY, registry=registry,
         )
 
@@ -155,9 +165,9 @@ def test_cite_only_source_stores_metadata_and_never_admits_even_existing_fact(tm
                      "cited_regions": ["page"], "retrieved_at": "2026-10-20T00:00:00Z"}],
     }]
     path = root / "models/xai/fixture-model.md"
-    path.parent.mkdir()
+    path.parent.mkdir(exist_ok=True)
     path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
-    (root / "registry").mkdir()
+    (root / "registry").mkdir(exist_ok=True)
     (root / "registry/sources.yaml").write_text(yaml.safe_dump({
         "schema_version": 1, "sources": [source.model_dump(mode="json")],
     }))
@@ -177,11 +187,11 @@ def test_unregistered_restricted_and_third_party_sources_block_before_fetch(
     from scripts import admission_drafter as drafter
 
     root = catalogue(tmp_path)
-    monkeypatch.setattr(drafter, "is_cite_only", lambda url: False)
-    assert "absent from source-retention.json" in drafter.source_block("https://docs.x.ai/x", "xai")
+    monkeypatch.setattr(drafter, "cite_only_hosts", lambda: ())
+    assert drafter.source_block("https://docs.x.ai/x", "xai", {}) == "source-terms hold (MODEL-409)"
     for url in ("https://artificialanalysis.ai/model", "https://zapier.com/x",
                 "https://openai.com.evil.example/model", "https://example.com/model"):
-        assert drafter.source_block(url, "openai") is not None
+        assert drafter.source_block(url, "openai", {}) is not None
     calls = []
 
     class Fetch:
@@ -273,12 +283,12 @@ def test_existing_offering_without_id_and_sibling_offering_are_preserved(tmp_pat
     root = catalogue(tmp_path)
     first = draft(tmp_path, root, pages(), small_registry())
     first.write(root)
-    path = root / "offerings/openai/openai/fixture-model.yaml"
+    path = root / "offerings/google-gemini-api/google/fixture-model.yaml"
     [standard] = yaml.safe_load(path.read_text())
     standard.pop("id", None)
     enterprise = deepcopy(standard)
     enterprise["tier"] = "enterprise"
-    enterprise_id = f"openai/{MODEL}/global/enterprise"
+    enterprise_id = f"google-gemini-api/{MODEL}/global/enterprise"
     for fact in enterprise["facts"]:
         fact["id"] = f"{enterprise_id}#{fact['facet']}"
         fact["subject"]["id"] = enterprise_id
@@ -314,7 +324,7 @@ def test_google_release_uses_registered_lab_api_provider(tmp_path):
     card = yaml.safe_load(original.read_text().split("---")[1])
     card.update(model_id=model_id, sources={"provider_docs_url": model_url})
     path = root / "models" / f"{model_id}.md"
-    path.parent.mkdir()
+    path.parent.mkdir(exist_ok=True)
     path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
     packet = draft(
         tmp_path, root,
@@ -340,7 +350,7 @@ def test_cite_only_fallback_keeps_original_fingerprint(tmp_path):
     card = yaml.safe_load(original.read_text().split("---")[1])
     card.update(model_id=model_id, sources={"provider_docs_url": model_url})
     path = root / "models" / f"{model_id}.md"
-    path.parent.mkdir()
+    path.parent.mkdir(exist_ok=True)
     path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
     expected_ref = fingerprint_bytes(b"cite-only source bytes never retained")
     retrieved = datetime(2026, 10, 20, 12, tzinfo=UTC)
@@ -400,7 +410,7 @@ def test_untyped_historical_price_sources_do_not_hide_new_raw_page_reading(tmp_p
 
     root = catalogue(tmp_path)
     path = root / "registry/sources.yaml"
-    path.parent.mkdir()
+    path.parent.mkdir(exist_ok=True)
     sources = [
         Source(
             id=f"historical-{normaliser}", url=PRICE_URL, normaliser=normaliser,
@@ -425,7 +435,7 @@ def test_catalogue_benchmarks_keep_first_party_records_without_promoting_legacy_
     card = yaml.safe_load(path.read_text().split("---")[1])
     evidence = [
         {"benchmark_id": "gpqa_diamond", "score": 74.2,
-         "source_url": "https://openai.com/index/fixture-model/"},
+         "source_url": "https://ai.google.dev/gemini-api/docs/fixture-model/"},
         {"benchmark_id": "terminal_bench", "score": 55.0,
          "source_url": "https://anthropic.com/competitor-comparison"},
         {"benchmark_id": "aa_intelligence_index", "score": 80.0,
@@ -434,7 +444,7 @@ def test_catalogue_benchmarks_keep_first_party_records_without_promoting_legacy_
     card["benchmarks"] = {
         "evidence": evidence,
         "scores": {"mmlu_pro": 88.0},
-        "benchmark_source": "https://openai.com/index/fixture-model/",
+        "benchmark_source": "https://ai.google.dev/gemini-api/docs/fixture-model/",
     }
     path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
     packet = draft(tmp_path, root, pages(), small_registry())
@@ -443,7 +453,7 @@ def test_catalogue_benchmarks_keep_first_party_records_without_promoting_legacy_
         == evidence[0]
     legacy = next(row for row in packet.benchmarks if row["benchmark_id"] == "mmlu_pro")
     assert legacy["score"] == 88.0
-    assert legacy["source_url"] == "https://openai.com/index/fixture-model/"
+    assert legacy["source_url"] == "https://ai.google.dev/gemini-api/docs/fixture-model/"
     assert legacy["status"] == "catalogue_only" and legacy["verified"] is False
     packet.write(root)
     saved = yaml.safe_load(path.read_text().split("---")[1])
@@ -458,14 +468,14 @@ def test_write_does_not_persist_snapshot_generated_identifier_candidates(tmp_pat
     card_path = root / "models" / f"{MODEL}.md"
     card = yaml.safe_load(card_path.read_text().split("---")[1])
     card["availability"] = {"primary_provider": {
-        "name": "OpenAI", "model_id_on_platform": "fixture-model",
+        "name": "Google", "model_id_on_platform": "fixture-model",
     }}
     card_path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
     packet = draft(tmp_path, root, pages(), small_registry("offering.api_model_id"))
     assert packet.ready
     assert "offering.api_model_id" not in {f["facet"] for f in packet.offering["facts"]}
     packet.write(root)
-    assert len(load_offerings(root / "offerings/openai/openai/fixture-model.yaml")) == 1
+    assert len(load_offerings(root / "offerings/google-gemini-api/google/fixture-model.yaml")) == 1
 
 
 def test_existing_dated_price_schedule_is_preserved_by_an_undated_page(tmp_path):
@@ -475,7 +485,7 @@ def test_existing_dated_price_schedule_is_preserved_by_an_undated_page(tmp_path)
 
     root = catalogue(tmp_path)
     draft(tmp_path, root, pages(), small_registry()).write(root)
-    path = root / "offerings/openai/openai/fixture-model.yaml"
+    path = root / "offerings/google-gemini-api/google/fixture-model.yaml"
     rows = yaml.safe_load(path.read_text())
     price = next(f for f in rows[0]["facts"] if f["facet"] == "offering.price.input")
     price.update(effective_from="2026-10-01", effective_until="2026-10-31")
@@ -505,3 +515,133 @@ def test_lineup_entry_carries_verified_class_and_review_clause(tmp_path):
     assert entry["clauses"] == [{"clause": 4, "reason": "Admission packet for human review"}]
     packet.write(root)
     assert yaml.safe_load((root / "premier/slice-1.yaml").read_text())["models"][-1] == entry
+
+
+@pytest.mark.parametrize(('host', 'lab'), [
+    ('developers.openai.com', 'openai'),
+    ('claude.com', 'anthropic'),
+    ('platform.claude.com', 'anthropic'),
+    ('unlisted.openai.com', 'openai'),
+    ('sub.ai.google.dev', 'google'),
+])
+def test_source_terms_hold_never_fetches_or_stores(tmp_path, monkeypatch, host, lab):
+    from decision.sources import FetchResult
+    from scripts import admission_drafter as drafter
+
+    root = catalogue(tmp_path)
+    url = f'https://{host}/fixture-model'
+    monkeypatch.setattr(drafter, 'source_candidates', lambda *args: [
+        drafter.Source(id='held', url=url,
+                       cited_regions=[{'id': 'page', 'locator': {'kind': 'page'}}]),
+    ])
+    # Keep ownership independent from the terms decision.
+    monkeypatch.setitem(drafter.LAB_HOSTS, 'google', drafter.LAB_HOSTS[lab])
+    calls = []
+
+    class Fetch:
+        def fetch(self, url):
+            calls.append(url)
+            return FetchResult('ok', 200, body=pages()[MODEL_URL].encode())
+
+    packet = drafter.draft_packet(
+        root=root, model_id=MODEL, fetcher=Fetch(), store=CopyStore(tmp_path / 'copies'),
+        today=TODAY, registry=small_registry(),
+    )
+    assert calls == []
+    assert not list((tmp_path / 'copies').rglob('*'))
+    assert packet.model_facts == []
+    assert packet.sources == [{
+        'url': url, 'source_id': 'held', 'outcome': 'blocked',
+        'reason': 'source-terms hold (MODEL-409)',
+    }]
+    assert 'blocked; source-terms hold (MODEL-409)' in packet.markdown()
+
+
+@pytest.mark.parametrize('policy', [None, {}, {'ai.google.dev': 'permits-ish'}])
+def test_missing_or_unknown_terms_fail_closed(tmp_path, policy):
+    root = catalogue(tmp_path)
+    path = root / 'registry/source-terms.json'
+    if policy is None:
+        path.unlink()
+    else:
+        path.write_text(json.dumps(policy))
+    packet = draft(tmp_path, root, pages(), small_registry())
+    assert all(s['outcome'] == 'blocked' for s in packet.sources)
+    assert not list((tmp_path / 'copies').rglob('*'))
+
+
+def test_no_first_party_offering_is_an_explicit_gap(tmp_path, monkeypatch):
+    from scripts import admission_drafter as drafter
+
+    root = catalogue(tmp_path)
+    monkeypatch.delitem(drafter.PRICE_URLS, 'google')
+    packet = draft(tmp_path, root, pages(), small_registry())
+    assert packet.offering is None
+    assert not packet.ready
+    assert [(g.subject, g.facet, g.reason) for g in packet.gaps] == [
+        (MODEL, 'no_offering', 'no first-party offering in packet or data'),
+    ]
+    packet.write(root)
+    assert MODEL not in (root / 'premier/slice-1.yaml').read_text()
+
+
+@pytest.mark.parametrize('target', [
+    'https://developers.openai.com/api/docs/model',
+    'https://platform.claude.com/docs/model',
+    'https://unlisted.openai.com/model',
+])
+def test_cli_blocks_redirect_before_target_request(tmp_path, monkeypatch, capsys, target):
+    from scripts import admission_drafter as drafter
+
+    root = catalogue(tmp_path)
+    calls = []
+    client_type = httpx.Client
+
+    def request(req):
+        calls.append(str(req.url))
+        if str(req.url) in (MODEL_URL, PRICE_URL):
+            return httpx.Response(302, headers={'location': target})
+        return httpx.Response(200, text=pages()[MODEL_URL])
+
+    monkeypatch.setattr(drafter.httpx, 'Client', lambda: client_type(
+        transport=httpx.MockTransport(request)))
+    monkeypatch.setitem(drafter.LAB_HOSTS, 'google', ('ai.google.dev', 'openai.com', 'claude.com'))
+    report = tmp_path / 'packet.json'
+    assert drafter.main([
+        '--data-dir', str(root), '--model', MODEL, '--dry-run',
+        '--report', str(report), '--cache-dir', str(tmp_path / 'cache'),
+    ]) == 0
+    assert target not in calls
+    assert set(calls) == {MODEL_URL, PRICE_URL}
+    packet = json.loads(report.read_text())
+    assert all(s['outcome'] == 'blocked' and s['reason'] == 'source-terms hold (MODEL-409)'
+               for s in packet['sources'])
+    assert not list((tmp_path / 'cache').rglob('*'))
+
+
+def test_cli_manifest_contains_only_source_metadata(tmp_path, monkeypatch, capsys):
+    from scripts import admission_drafter as drafter
+
+    root = catalogue(tmp_path)
+    client_type = httpx.Client
+    monkeypatch.setattr(drafter.httpx, 'Client', lambda: client_type(
+        transport=httpx.MockTransport(lambda req: httpx.Response(
+            200, text=pages()[str(req.url)], headers={'content-type': 'text/html'}))))
+    manifest = tmp_path / 'manifest.json'
+    report = tmp_path / 'packet.json'
+    assert drafter.main([
+        '--data-dir', str(root), '--model', MODEL, '--dry-run',
+        '--report', str(report), '--manifest', str(manifest),
+    ]) == 0
+    sources = json.loads(manifest.read_text())['sources']
+    assert sources == json.loads(report.read_text())['sources']
+    assert len(sources) == 2
+    for source in sources:
+        assert set(source) == {
+            'url', 'source_id', 'outcome', 'snapshot_ref', 'retrieved_at', 'resolved_urls',
+        }
+        assert source['outcome'] == 'fetched'
+        assert source['snapshot_ref'].startswith('sha256:')
+        assert datetime.fromisoformat(source['retrieved_at']).tzinfo is not None
+    assert '32K tokens' not in manifest.read_text()
+    assert '32K tokens' not in report.read_text()

@@ -27,7 +27,7 @@ from decision.excluded import excluded_sources
 from decision.model import Fact, Source, SourceRef, TargetRef, VerificationActor
 from decision.normalise import NORMALISERS
 from decision.registry import default as default_registry
-from decision.retention import cite_only_origin, is_cite_only
+from decision.retention import cite_only_hosts, cite_only_origin
 from decision.snapshot import Gap, audit_build, collect_repo
 from decision.sources import CopyStore, Fetcher, load_sources
 from decision.units import UNITS, unit_id
@@ -62,8 +62,6 @@ LAB_HOSTS = {
     "deepseek": ("deepseek.com",),
     "meta": ("ai.meta.com", "ai.developer.meta.com"),
 }
-# MODEL-409 terms hold still applies if a policy entry is accidentally removed.
-COPY_FORBIDDEN = ("x.ai", "perplexity.ai")
 PRICE_URLS = {
     "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
     "openai": "https://developers.openai.com/api/docs/pricing",
@@ -90,7 +88,15 @@ def offering_identity(offering):
     return "/".join(str(offering[k]) for k in ("provider", "model", "region", "tier"))
 
 
-def source_block(url: str, lab: str) -> str | None:
+def load_source_terms(root: Path) -> dict:
+    try:
+        terms = json.loads((root / "registry/source-terms.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return terms if isinstance(terms, dict) else {}
+
+
+def source_block(url: str, lab: str, terms: dict) -> str | None:
     parsed = urlsplit(url)
     host = (parsed.hostname or "").lower().rstrip(".")
     if (parsed.scheme != "https" or parsed.username or parsed.password
@@ -98,12 +104,26 @@ def source_block(url: str, lab: str) -> str | None:
         return "source requires an HTTPS URL without credentials or a custom port"
     if excluded_sources().url(url):
         return "excluded source"
-    if any(host == h or host.endswith("." + h) for h in COPY_FORBIDDEN) \
-            and not is_cite_only(url):
-        return f"blocked host {host}: copying forbidden and absent from source-retention.json"
     if not any(host == h or host.endswith("." + h) for h in LAB_HOSTS.get(lab, ())):
         return f"blocked host {host}: first-party ownership is not registered for {lab}"
+    if host not in cite_only_hosts() and terms.get(host) not in ("permits", "restricts"):
+        return "source-terms hold (MODEL-409)"
     return None
+
+
+class SourceBlockedError(ValueError):
+    """Stop an HTTP redirect before the target receives a request."""
+
+
+class AdmissionFetcher(Fetcher):
+    def __init__(self, client, *, lab: str, terms: dict, **kwargs):
+        super().__init__(client, **kwargs)
+
+        def check_request(request):
+            if reason := source_block(str(request.url), lab, terms):
+                raise SourceBlockedError(reason)
+
+        client.event_hooks["request"].append(check_request)
 
 
 def source_candidates(card: dict, registered: dict) -> list[Source]:
@@ -276,7 +296,7 @@ class Packet:
                  f"{len(self.model_facts)} verified model facts; "
                  f"{len(self.benchmarks)} catalogue benchmark records.", "",
                  f"Full packet: `reports/admission/{self.model_id}.json`.",
-                 "Source copies are in the private workflow's admission-sources artifact.", "",
+                 "Workflow artifacts contain only the packet and source manifest.", "",
                  "## Guaranteed-fact gaps", ""]
         lines += [f"- {gap}" for gap in self.gaps] or ["None."]
         lines += ["", "## Sources", ""]
@@ -347,23 +367,28 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
     inputs = collect_repo(root)
     model = next(m for m in inputs.models if m["id"] == model_id)
     registered = load_sources(root / "registry/sources.yaml")
+    terms = load_source_terms(root)
     references, statuses, selected, fetched = [], [], {}, {}
     for source in source_candidates(card, registered):
         url = str(source.url)
         status = {"url": url, "source_id": source.id}
         statuses.append(status)
-        if reason := source_block(url, lab):
+        if reason := source_block(url, lab, terms):
             status.update(outcome="blocked", reason=reason)
             continue
         if url not in fetched:
-            fetched[url] = fetcher.fetch(url)
+            try:
+                fetched[url] = fetcher.fetch(url)
+            except SourceBlockedError as error:
+                status.update(outcome="blocked", reason=str(error))
+                continue
         result = fetched[url]
         if result.outcome != "ok":
             status.update(outcome="unreachable", reason=f"HTTP {result.status}"
                           if result.status else "source fetch failed")
             continue
         if reason := next((reason for hop in result.resolved_urls
-                           if (reason := source_block(str(hop), lab))), None):
+                           if (reason := source_block(str(hop), lab, terms))), None):
             status.update(outcome="blocked", reason=reason)
             continue
         cited = cite_only_origin(url, result.resolved_urls)
@@ -374,7 +399,9 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
         else:
             ref = store.put(result.body, source_url=url, resolved_urls=result.resolved_urls,
                             retrieved_at=result.retrieved_at)
-        status.update(outcome="cited" if cited else "fetched", snapshot_ref=ref)
+        status.update(outcome="cited" if cited else "fetched", snapshot_ref=ref,
+                      retrieved_at=(result.retrieved_at or datetime.now(UTC)).isoformat(),
+                      resolved_urls=list(result.resolved_urls))
         selected[source.id] = source
         references.append(SourceRef(
             source_id=source.id, snapshot_ref=ref,
@@ -437,7 +464,7 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
                 reason = ("cite-only provenance is not verified"
                           if cite_only_origin(url, ref.get("resolved_urls", []))
                           else next((reason for origin in origins
-                                     if (reason := source_block(origin, lab))), None))
+                                     if (reason := source_block(origin, lab, terms))), None))
                 if reason:
                     strict_gaps[(subject, facet.id)] = Gap(
                         model_id, subject, facet.id, reason, (url,))
@@ -450,10 +477,10 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
         registry=registry, premier=[model_id], as_of=today, guard=excluded_sources(),
     )
     benchmarks = [r for r in (card.get("benchmarks") or {}).get("evidence", [])
-                  if r.get("source_url") and not source_block(r["source_url"], lab)
+                  if r.get("source_url") and not source_block(r["source_url"], lab, terms)
                   and not excluded_sources().benchmark(r.get("benchmark_id"))]
     block = card.get("benchmarks") or {}
-    if block.get("benchmark_source") and not source_block(block["benchmark_source"], lab):
+    if block.get("benchmark_source") and not source_block(block["benchmark_source"], lab, terms):
         documented = {r["benchmark_id"] for r in benchmarks}
         benchmarks += [
             {"benchmark_id": bid, "score": score, "source_url": block["benchmark_source"],
@@ -464,6 +491,9 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
     gaps = {(g.subject, g.facet): g for g in audit.gaps}
     gaps.update({(g.subject, g.facet): g for g in [*conflicts, *offering_conflicts]})
     gaps.update(strict_gaps)
+    if not offering and not any(o["provider"] == provider for o in offerings):
+        gaps[(model_id, "no_offering")] = Gap(
+            model_id, model_id, "no_offering", "no first-party offering in packet or data")
     if model["lifecycle"] == "retired":
         gaps[(model_id, "model.lifecycle")] = Gap(
             model_id, model_id, "model.lifecycle", "retired models cannot be admitted")
@@ -486,6 +516,7 @@ def main(argv=None):
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--body", type=Path)
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--cache-dir", type=Path)
     parser.add_argument("--firecrawl-ledger", type=Path,
                         help="Opt in to paid fallback using a restored UTC-month ledger; cap 50")
@@ -496,7 +527,10 @@ def main(argv=None):
         parser.error("--write requires --cache-dir or MODELSPEC_SOURCE_CACHE to retain provenance")
     with tempfile.TemporaryDirectory(prefix="admission-") as temporary, httpx.Client() as client:
         today = datetime.now(UTC).date()
-        fetcher = Fetcher(client, retries=0, timeout=20)
+        fetcher = AdmissionFetcher(
+            client, lab=args.model.split("/")[0], terms=load_source_terms(args.data_dir),
+            retries=0, timeout=20,
+        )
         if args.firecrawl_ledger:
             from scripts.admission_fallback import AdmissionFallback
 
@@ -512,7 +546,9 @@ def main(argv=None):
         if args.write:
             packet.write(args.data_dir)
         text = json.dumps(packet.to_dict(), indent=2, ensure_ascii=False) + "\n"
-        for path, content in ((args.report, text), (args.body, packet.markdown())):
+        manifest = json.dumps({"sources": packet.sources}, indent=2) + "\n"
+        for path, content in ((args.report, text), (args.body, packet.markdown()),
+                              (args.manifest, manifest)):
             if path:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content)
