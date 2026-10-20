@@ -783,8 +783,14 @@ def _check_one(
         return SourceState(source.id, previous, failures, failures >= grace, now)
 
     rules = NORMALISERS[source.normaliser]
+    if rules.content == "pdf":
+        from decision.pdf_templates import retention_approved
+
+        if not retention_approved(str(source.url), fingerprint_bytes(result.body)):
+            report.skipped.append(Skipped(source.id, "pdf_retention_not_approved"))
+            return replace(state, last_attempt_at=now)
     try:
-        if "pdf" in result.content_type.lower():
+        if "pdf" in result.content_type.lower() and rules.content != "pdf":
             raise UnsupportedContentError("pdf")
         doc = normalise_document(result.body, rules, charset=result.charset)
     except UnsupportedContentError as exc:

@@ -5694,6 +5694,11 @@ class StoredRegions:
             if source else None
         if source is None or region is None or not self.store.has(copy_ref):
             return None
+        if NORMALISERS[source.normaliser].content == "pdf":
+            from decision.pdf_templates import retention_approved
+
+            if not retention_approved(str(source.url), copy_ref):
+                return None
         rules = replace(NORMALISERS[source.normaliser], strip_volatile=False)
         try:
             key = (copy_ref, rules)
@@ -5706,6 +5711,12 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def is_pdf(self, source_id: str, copy_ref: str) -> bool:
+        source = self.sources.get(source_id)
+        if source is not None and NORMALISERS[source.normaliser].content == "pdf":
+            return True
+        return self.store.has(copy_ref) and self.store.get(copy_ref).lstrip().startswith(b"%PDF")
 
     def cite_only(self, source_id: str, copy_ref: str) -> bool:
         source = self.sources.get(source_id)
@@ -6610,6 +6621,21 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         for source in claim.sources
     ):
         return Result(claim.target, "cited", reason="cite-only retention policy; not machine-verified")
+    if isinstance(regions, StoredRegions) and any(
+        regions.is_pdf(source.source_id, source.snapshot_ref) for source in claim.sources
+    ):
+        from decision.pdf_templates import verify_pdf
+
+        result = verify_pdf(claim, regions, today=today)
+        non_pdf = tuple(source for source in claim.sources if not regions.is_pdf(
+            source.source_id, source.snapshot_ref,
+        ))
+        # Jurisdiction is a union across all citations; dropping one loses members.
+        if result.outcome != "verified" and non_pdf and claim.field != "origin.lab_jurisdiction":
+            other = verify(replace(claim, sources=non_pdf), regions, extractors, today=today)
+            if other.outcome == "verified" or result.outcome == "skipped":
+                return other
+        return result
     if _xai_matrix_claim(claim.subject, claim.field) or _xai_matrix_claim(
         claim.target.id.rsplit("#", 1)[0], claim.target.id.rsplit("#", 1)[-1]
     ):

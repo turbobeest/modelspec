@@ -571,6 +571,10 @@ class Source(Record):
                 )
             kind = "heading" if locator.kind == "heading_anchor" else locator.kind
             Locator(kind, locator.value)
+            if NORMALISERS[self.normaliser].content == "pdf" and (
+                kind != "page" or locator.value
+            ):
+                raise ValueError("PDF sources require a whole-document page locator")
             if NORMALISERS[self.normaliser].content in {"text", "json"} and kind != "page":
                 raise ValueError("text sources support only page locators")
         if self.kind is not None:
