@@ -900,8 +900,8 @@ def test_sampled_dated_price_keeps_its_period(catalogue, registry, monkeypatch, 
     }
 
 
-def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
-    """A MODEL-411 cite-only fact with an old verification left in frozen data."""
+def calibrate_refs(catalogue, registry, monkeypatch, tmp_path, refs, *, verified=True):
+    """Calibrate one context-window fact citing ``refs``: (source_id, retrieved_at, resolved)."""
     from decision.snapshot import SnapshotInputs
 
     catalogue.sources["src-xai"] = {
@@ -910,9 +910,18 @@ def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
         "normaliser": "text-default",
         "cited_regions": [{"id": "r1", "locator": {"kind": "page"}}],
     }
-    row = fact("model", MID, "model.context_window", 128000, source="src-xai")
-    if retrieved_at is not None:
-        row["sources"][0]["retrieved_at"] = retrieved_at
+    row = fact("model", MID, "model.context_window", 128000, source=refs[0][0])
+    template = row["sources"][0]
+    row["sources"] = []
+    for source_id, retrieved_at, resolved in refs:
+        ref = {**template, "source_id": source_id}
+        if retrieved_at is not None:
+            ref["retrieved_at"] = retrieved_at
+        if resolved:
+            ref["resolved_urls"] = list(resolved)
+        row["sources"].append(ref)
+    if not verified:
+        row.pop("verification")
     inputs = SnapshotInputs(
         models=[{
             "id": MID, "lifecycle": "active",
@@ -925,6 +934,13 @@ def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
     [served] = [f for f in catalogue.facts if f["field"] == "model.context_window"]
     assert served["citation"]["status"] == "cited"
     return served
+
+
+def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
+    """A MODEL-411 cite-only fact with an old verification left in frozen data."""
+    return calibrate_refs(
+        catalogue, registry, monkeypatch, tmp_path, [("src-xai", retrieved_at, ())]
+    )
 
 
 def test_cited_fact_is_dated_by_its_retrieval_not_an_old_verification(
@@ -952,3 +968,66 @@ def test_undated_cited_fact_warns_instead_of_failing_the_audit(
         "severity": "warning",
     }]
 
+
+XAI_REDIRECT = ("https://docs.x.ai/docs/models",)
+
+
+def test_authored_resolved_url_dates_a_retainable_source_and_drops_its_verification(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """Review probe: a card's resolved_urls cannot make a retainable source cite-only."""
+    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+        ("src-lab-docs", "2026-09-19T12:00:00+00:00", XAI_REDIRECT),
+    ])
+    assert (served["read_date"], served["verification"]) == (None, {})
+    result = invariants.run(catalogue, registry, TODAY)
+    assert result["errors"] == 1
+    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
+        ("read_date_required", "error"),
+    }
+
+
+def test_authored_resolved_url_without_retrieval_reaches_the_warning(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """Review probe: citation_undated is only for registered cite-only sources."""
+    calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+        ("src-lab-docs", None, XAI_REDIRECT),
+    ], verified=False)
+    result = invariants.run(catalogue, registry, TODAY)
+    assert result["errors"] == 1
+    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
+        ("read_date_required", "error"),
+    }
+
+
+def test_latest_retrieval_can_come_from_the_retainable_source(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """Review probe: a retainable source on a mixed fact still needs its verification."""
+    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+        ("src-xai", "2026-01-01T00:00:00+00:00", ()),
+        ("src-lab-docs", "2026-09-19T12:00:00+00:00", ()),
+    ], verified=False)
+    assert (served["read_date"], served["verification"]) == (None, {})
+    result = invariants.run(catalogue, registry, TODAY)
+    assert result["errors"] == 1
+    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
+        ("read_date_required", "error"),
+    }
+
+
+def test_mixed_fact_is_dated_by_its_logged_verification(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    """A matching log verification still covers the retainable source on a mixed fact."""
+    from tests.snapshot_records import verification
+
+    fid = f"{MID}#model.context_window"
+    catalogue.verifications[("fact", fid)] = verification("fact", fid, day="2026-09-17")
+    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+        ("src-xai", "2026-09-19T12:00:00+00:00", ()),
+        ("src-lab-docs", None, ()),
+    ])
+    assert (served["read_date"], served["verification"]) == ("2026-09-17", {})
+    assert invariants.run(catalogue, registry, TODAY)["findings"] == []
