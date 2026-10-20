@@ -101,11 +101,16 @@ workflow_health:
   repos:
     - repo: turbobeest/modelspec
       dir: .
-    # coverage-slo.yml checks out only its .github/workflows here, and reads
-    # its runs with this token, which needs Actions: read on modelspec-data.
+      public: true
+    # No checkout: its workflow files and runs are read through the API with
+    # this token, which needs Contents: read and Actions: read there. Private:
+    # this public report shows only how many of its workflows are red.
+    # modelspec-data's own workflow-health.yml runs
+    # `python -m scripts.slo workflows --private-detail --issue` and keeps the
+    # names and run URLs in an issue there.
     - repo: turbobeest/modelspec-data
-      dir: modelspec-data
       token_env: MODELSPEC_DATA_TOKEN
+      public: false
   # Push-triggered workflows with no cron to derive a cadence from. Only a red
   # newest run counts for these.
   unscheduled:

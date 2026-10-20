@@ -10,7 +10,7 @@ its cron lines together: ``17 6 * * 1`` is 168 hours, ``41 */6 * * *`` is 6.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -136,14 +136,26 @@ class Scheduled:
     cadence_hours: float
 
 
+def scheduled_in(files: Mapping[str, str]) -> tuple[list[Scheduled], list[str]]:
+    """Every workflow file (name -> text) with a schedule, and what could not be read."""
+    found, errors = [], []
+    for name in sorted(files):
+        try:
+            crons = schedule_of(files[name])
+            if crons:
+                found.append(Scheduled(name, tuple(crons), cadence_hours(crons)))
+        except CronError as exc:
+            errors.append(f"{name}: schedule could not be read: {exc}")
+        except yaml.YAMLError:
+            errors.append(f"{name}: schedule could not be read")
+    return found, errors
+
+
+def workflow_files(workflow_dir: Path) -> dict[str, str]:
+    return {path.name: path.read_text(encoding="utf-8")
+            for path in [*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")]}
+
+
 def scheduled_workflows(workflow_dir: Path) -> tuple[list[Scheduled], list[str]]:
     """Every workflow in ``workflow_dir`` with a schedule, and what could not be read."""
-    found, errors = [], []
-    for path in sorted([*workflow_dir.glob("*.yml"), *workflow_dir.glob("*.yaml")]):
-        try:
-            crons = schedule_of(path.read_text(encoding="utf-8"))
-            if crons:
-                found.append(Scheduled(path.name, tuple(crons), cadence_hours(crons)))
-        except (yaml.YAMLError, CronError, OSError) as exc:
-            errors.append(f"{path.name}: schedule could not be read: {exc}")
-    return found, errors
+    return scheduled_in(workflow_files(workflow_dir))

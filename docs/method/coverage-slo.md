@@ -83,12 +83,25 @@ per breached target raises the alarm.
 
   A `skipped` run is a job switched off by its own `if:`, which is a
   production switch, not a failure. `deploy-sites.yml` has no schedule but is
-  watched under `unscheduled`, where only a red run counts. The private
-  repository's workflow files come from a sparse checkout of its
-  `.github/workflows`, and its runs are read with `MODELSPEC_DATA_TOKEN`
-  (Contents: read and Actions: read). A missing checkout or token is an
-  `error`, never a pass. `python -m scripts.slo workflows` measures only this
-  target and exits 1 when anything is red.
+  watched under `unscheduled`, where only a red run counts.
+
+  This report, its log, its page and its issues are public, so
+  `modelspec-data` appears in them **only as counts**: for example
+  "2 of 7 scheduled workflow(s) red", or "could not read run status of 1 of
+  7". Its workflow names, run URLs, dates and error text never appear, and no
+  raw `gh` stderr is kept for any repository. The private workflow files and
+  runs are read through the API with `MODELSPEC_DATA_TOKEN` (Contents: read
+  and Actions: read). Nothing is checked out, because a checkout prints the
+  private commit subject into the public log. A missing token or unreadable
+  repository is an `error`, never a pass.
+
+  The detail lives in the private repository. Its own `workflow-health.yml`
+  runs `python -m scripts.slo workflows --repo turbobeest/modelspec-data
+  --private-detail --issue`, which names each red workflow and its run, and
+  keeps one `workflow-health` issue there. That issue closes when everything is
+  green. `--private-detail` is refused in any other repository's run.
+  `python -m scripts.slo workflows` without it prints the public view and exits
+  1 when anything is red.
 - **`refresh-pr-merged`.** A refresh re-reads boards on a branch and resets
   `live-reading-age` only when its PR merges, because the report reads main.
   For each branch under `branches` in `targets.yaml` (today only

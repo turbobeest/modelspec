@@ -1,10 +1,10 @@
 {
-  "repos/turbobeest/modelspec-data/actions/workflows/data-trust-audit.yml/runs": {
+  "repos/turbobeest/modelspec-data/actions/workflows/private-audit.yml/runs": {
     "total_count": 3,
     "workflow_runs": [
       {
         "id": 1001,
-        "name": "Data trust audit",
+        "name": "Private audit",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",
@@ -14,7 +14,7 @@
       },
       {
         "id": 1002,
-        "name": "Data trust audit",
+        "name": "Private audit",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",
@@ -24,7 +24,7 @@
       },
       {
         "id": 1003,
-        "name": "Data trust audit",
+        "name": "Private audit",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",
@@ -34,12 +34,12 @@
       }
     ]
   },
-  "repos/turbobeest/modelspec-data/actions/workflows/price-reread.yml/runs": {
+  "repos/turbobeest/modelspec-data/actions/workflows/private-reread.yml/runs": {
     "total_count": 2,
     "workflow_runs": [
       {
         "id": 1004,
-        "name": "Price re-read",
+        "name": "Private re-read",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",
@@ -49,7 +49,7 @@
       },
       {
         "id": 1005,
-        "name": "Price re-read",
+        "name": "Private re-read",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",
@@ -109,12 +109,12 @@
       }
     ]
   },
-  "repos/turbobeest/modelspec-data/actions/workflows/daily-research.yml/runs": {
+  "repos/turbobeest/modelspec-data/actions/workflows/private-daily.yml/runs": {
     "total_count": 2,
     "workflow_runs": [
       {
         "id": 1010,
-        "name": "Daily research",
+        "name": "Private daily",
         "event": "schedule",
         "head_branch": "main",
         "status": "in_progress",
@@ -124,7 +124,7 @@
       },
       {
         "id": 1011,
-        "name": "Daily research",
+        "name": "Private daily",
         "event": "schedule",
         "head_branch": "main",
         "status": "completed",

@@ -11,10 +11,12 @@ name: Coverage report
 # listing, and one per issue change.
 #
 # workflow-health (MODEL-421) lists every scheduled workflow from its cron
-# lines, here and in modelspec-data. MODELSPEC_DATA_TOKEN checks out only the
-# private repository's .github/workflows and reads its runs, so it needs
-# Contents: read and Actions: read there. Without it the private workflows are
-# an error in the report, never a pass.
+# lines, here and in modelspec-data. MODELSPEC_DATA_TOKEN reads the private
+# repository's workflow files and runs through the API (no checkout, so no
+# private commit subject reaches this public log), so it needs Contents: read
+# and Actions: read there. Without it the private workflows are an error in the
+# report, never a pass. This log, the report and its issues are public: the
+# private repository appears in them only as counts.
 
 on:
   schedule:
@@ -49,31 +51,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check the private-data token is present
-        id: data
+      - name: Warn when the private-data token is missing
         env:
           MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
         run: |
           if [ -z "$MODELSPEC_DATA_TOKEN" ]; then
             echo "::warning::No MODELSPEC_DATA_TOKEN; modelspec-data's workflows will report as errors."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-
-      # Only the workflow files, to read their schedules. A failed checkout
-      # leaves the directory missing, which the report states as an error.
-      - name: Check out modelspec-data's workflow definitions
-        if: steps.data.outputs.ready == 'true'
-        continue-on-error: true
-        uses: actions/checkout@v4
-        with:
-          repository: turbobeest/modelspec-data
-          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
-          path: modelspec-data
-          sparse-checkout: .github/workflows
-          sparse-checkout-cone-mode: false
-          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
