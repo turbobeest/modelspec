@@ -12,14 +12,12 @@ Each fact ends in one status:
 - ``unchanged``: the recorded value verifies against the new copy. With
   ``--write`` that verification is logged with today's date, so the value's age
   restarts; the offering file is not touched.
-- ``changed``: it does not, and exactly one new value for the same subject
-  verifies against the new copy. With ``--write`` the fact takes that value and
-  the new copy, and the verification is logged. A price change is never merged
-  by a machine: the workflow opens a pull request for a person to review, on a
-  branch ``automerge.yml`` skips.
-- ``needs_review``: the value no longer verifies and the readers find no single
-  replacement (several candidates, a list or flag the job does not rewrite,
-  or free text read only from a whole-page region).
+- ``needs_review``: the value no longer verifies. The reason carries what the
+  readers propose instead, if anything: one new value, several, a list or flag,
+  or free text read only from a whole-page region. The job never writes a
+  changed value (MODEL-423): a reader can take a price from the wrong row, so a
+  person reviews every proposal and files it as a data change. ``changed`` is
+  kept in the report's counts and is always zero.
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
@@ -34,10 +32,8 @@ Each fact ends in one status:
 ``needs_review``, ``unreadable`` and ``unreachable`` are alerts. The job never
 guesses a value for them; a person re-collects.
 
-Two keys: the old value's collector is whoever filed it. A new value is filed
-by ``modelspec-price-reread`` and confirmed by the verifier's deterministic
-readers. Both keys are code from one repository, so the pull request's human
-reviewer is the check that the readers still read the page as intended.
+With ``--write`` the job records only reconfirmations of unchanged values, and
+the dated citations of cite-only sources; it never edits a value.
 
 The optional, read-only Firecrawl fallback has its own credit limits. Replays
 and ordinary re-reads never call a model or a paid scraper.
@@ -699,7 +695,12 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                            f"({', '.join(page_regions)}) is not proposed as a change; "
                            "cite a narrower region" + proposal.cap_note)
     if proposal.unique and fact["state"] == "known":
-        return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
+        # The job never writes a changed value: a person reviews the proposal and
+        # files it (MODEL-423). Only a value that still verifies is recorded.
+        return replace(base, status=Status.NEEDS_REVIEW, new_value=confirmed[0],
+                       reason=f"a reader now reads {json.dumps(confirmed[0])} in place of "
+                       f"{json.dumps(fact.get('value'))}; a person reviews and files every "
+                       f"change: {diff}")
     if proposal.unique:
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
@@ -815,15 +816,6 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
         for fact in report.facts:
             if fact.status is Status.UNCHANGED and fact.verification is not None:
                 log.append(fact.verification)
-    if write and report.changes:
-        refused = apply_changes(root, report.changes, at=at, today=today, regions=regions)
-        report.facts = [
-            replace(f, status=Status.NEEDS_REVIEW,
-                    reason=f"read {f.new_value!r}, but the rewrite guard refused it: "
-                    f"{refused[f.fact_id]}")
-            if f.fact_id in refused else f
-            for f in report.facts
-        ]
     return report
 
 
@@ -862,46 +854,6 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
 
 
 # --- writing ------------------------------------------------------------------------------------
-
-
-def apply_changes(root: Path, changes: Sequence[FactResult], *, at: datetime, today: date,
-                  regions: StoredRegions) -> dict[str, str]:
-    """Rewrite each changed fact in place, then file and verify its new value.
-
-    Returns the changes the guard refused, fact ID -> why; nothing is written for
-    those, and the caller reports them as alerts.
-    """
-    refused: dict[str, str] = {}
-    applied: list[FactResult] = []
-    by_file: dict[str, list[FactResult]] = {}
-    for change in changes:
-        by_file.setdefault(change.file, []).append(change)
-    for rel, file_changes in by_file.items():
-        path = root / rel
-        text = path.read_text(encoding="utf-8")
-        for change in file_changes:
-            try:
-                after = rewrite_fact(text, change)
-                check_value_only(text, after, [change])
-            except ValueError as exc:
-                refused[change.fact_id] = str(exc)
-                continue
-            text = after
-            applied.append(change)
-        path.write_text(text, encoding="utf-8")
-
-    queue = Queue(root / "verification")
-    log = VerificationLog(root / "verification")
-    for change in applied:
-        assert change.claim is not None
-        claim = replace(change.claim, value=change.new_value, collector=REREAD)
-        queue.file(claim, at=at)
-        result = verify(claim, regions, deterministic_extractors(), today=today)
-        if result.outcome != "verified" or result.verification is None:
-            raise RuntimeError(f"{change.fact_id}: the new value did not verify on write")
-        log.append(result.verification)
-        queue.checked(result, at=at)
-    return refused
 
 
 def _dump_value(value: Any) -> str:

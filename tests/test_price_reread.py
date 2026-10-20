@@ -32,7 +32,6 @@ from decision.verify import (
     StoredRegions,
     VerificationLog,
     deterministic_extractors,
-    is_quarantined,
     load_sources,
 )
 from decision.verify import run as verify_run
@@ -278,55 +277,50 @@ def test_an_unchanged_page_logs_a_dated_reconfirmation_and_edits_no_offering(est
     assert reconfirmed[PRO_PRICE].target.value_hash == value_hash(20)
 
 
-def test_a_changed_plan_price_is_rewritten_verified_and_reported(estate) -> None:
+def test_a_changed_plan_price_is_proposed_for_review_and_never_written(estate) -> None:
+    """MODEL-423: the re-read never writes a changed value; a person files it."""
     root, store = estate
-    before = (root / PLAN_FILE).read_text()
+    before = {path: path.read_text() for path in (root / "offerings").glob("**/*.yaml")}
+    queue_before = (root / "verification" / "queue" / "events.jsonl").read_text()
     report, _ = reread(estate, [page("plans-price-change.html")], write=True)
 
-    [change] = report.changes
+    assert report.changes == [] and report.counts()["changed"] == 0
+    result = by_id(report)[PRO_PRICE]
     new_ref = store.put(page("plans-price-change.html"), source_url="https://fixture.example/")
-    assert (change.fact_id, change.old_value, change.new_value) == (PRO_PRICE, 20, 25)
-    assert change.copies["example-plans"][1] == new_ref
-    # The billing period on the same page still reads "monthly".
+    assert (result.status, result.old_value, result.new_value) == (Status.NEEDS_REVIEW, 20, 25)
+    assert result in report.alerts
+    assert result.reason.startswith("a reader now reads 25 in place of 20; a person reviews "
+                                    "and files every change: ")
+    assert result.copies["example-plans"][1] == new_ref
+    assert result.to_dict()["new_value"] == 25
+    # The billing period on the same page still reads "monthly" and is reconfirmed.
     assert by_id(report)[f"{PRO_PRICE.split('#')[0]}#offering.subscription.billing_period"] \
         .status is Status.UNCHANGED
 
-    after = (root / PLAN_FILE).read_text()
-    changed = [(a, b) for a, b in zip(before.splitlines(), after.splitlines(), strict=True)
-               if a != b]
-    assert changed == [
-        ("    value: 20", "    value: 25"),
-        (f"      snapshot_ref: {change.copies['example-plans'][0]}",
-         f"      snapshot_ref: {new_ref}"),
-    ]
-    fact = next(f for o in yaml.safe_load(after) for f in o["facts"] if f["id"] == PRO_PRICE)
-    assert fact["value"] == 25 and fact["state"] == "known"
-
+    assert {path: path.read_text() for path in before} == before
+    assert (root / "verification" / "queue" / "events.jsonl").read_text() == queue_before
     latest = VerificationLog(root / "verification").latest()[("fact", PRO_PRICE)]
-    assert latest.outcome == "verified"
-    assert latest.target.value_hash == value_hash(25)
-    assert latest.collector.agent == "modelspec-price-reread"
-    assert latest.verifier.agent == "modelspec-verify"
-    assert latest.verifier.model_family == DETERMINISTIC
-    assert not is_quarantined(f"fact:{PRO_PRICE}", directory=root / "verification")
-    assert Queue(root / "verification").filed()[("fact", PRO_PRICE)].value == 25
+    assert latest.target.value_hash == value_hash(20) and latest.date != TODAY
+    assert Queue(root / "verification").filed()[("fact", PRO_PRICE)].value == 20
 
     body = render_report(report)
-    assert f"| `{PRO_PRICE}` | 20 | 25 |" in body
+    assert "### Changed values" not in body
+    assert f"| `{PRO_PRICE}` | needs_review | a reader now reads 25 in place of 20" in body
     assert "-$20/month" in body and "+$25/month" in body
 
 
-def test_a_changed_pay_per_use_price_keeps_its_type(estate) -> None:
+def test_a_changed_pay_per_use_price_is_proposed_with_its_type(estate) -> None:
     root, _ = estate
+    before = (root / API_FILE).read_text()
     report, _ = reread(estate, [page("plans.html")], [page("api-pricing-change.html")],
                        write=True)
 
-    [change] = report.changes
-    assert (change.fact_id, change.old_value, change.new_value) == (LARGE_INPUT, 3.0, 2.5)
-    text = (root / API_FILE).read_text()
-    assert "    value: 2.5\n" in text and "    value: 15.0\n" in text
+    result = by_id(report)[LARGE_INPUT]
+    assert (result.status, result.old_value, result.new_value) == (Status.NEEDS_REVIEW, 3.0, 2.5)
+    assert type(result.new_value) is float
+    assert (root / API_FILE).read_text() == before
     assert VerificationLog(root / "verification").latest()[("fact", LARGE_INPUT)] \
-        .target.value_hash == value_hash(2.5)
+        .target.value_hash == value_hash(3.0)
 
 
 def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) -> None:
@@ -496,14 +490,14 @@ def test_one_verified_value_among_too_many_candidates_is_not_a_change(
      "a free-text value read from a whole-page region (example-plans#page, "
      "example-plans#document) is not proposed as a change; cite a narrower region"),
     (["limits"], [("page", "page", ""), ("limits", "css", "#limits")],
-     "10-hour rolling windows", "changed", None),
+     "10-hour rolling windows", "proposed", None),
     (["page", "limits"], [("page", "page", ""), ("limits", "css", "#limits")],
-     "10-hour rolling windows", "changed", None),
+     "10-hour rolling windows", "proposed", None),
     (["page", "unrelated"], [("page", "page", ""), ("unrelated", "css", "#unrelated")],
      "Actual consumption varies with the model.", "needs_review",
      "a free-text value read from a whole-page region (example-plans#page) "
      "is not proposed as a change; cite a narrower region"),
-    (["page"], [("page", "css", "#limits")], "10-hour rolling windows", "changed", None),
+    (["page"], [("page", "css", "#limits")], "10-hour rolling windows", "proposed", None),
     (["page"], [("page", "page", "")], "5-hour rolling and weekly windows",
      "unchanged", None),
 ])
@@ -555,18 +549,22 @@ def test_free_text_changes_must_be_read_from_a_narrow_region(
     report, _ = reread(estate, [allowance_page(new_value)], write=True)
 
     result = by_id(report)[fact_id]
-    assert result.status == status, result.reason
-    assert result.reason == reason
-    if status == "changed":
+    if status == "proposed":
+        # A narrow region proposes the new wording; a person reviews it (MODEL-423).
+        assert result.status == "needs_review", result.reason
+        assert result.reason.startswith(
+            'a reader now reads "10-hour rolling windows" in place of '
+            '"5-hour rolling and weekly windows"; a person reviews and files every change: ')
         assert result.new_value == "10-hour rolling windows"
-        assert queue.filed()[("fact", fact_id)].value == "10-hour rolling windows"
     else:
+        assert result.status == status, result.reason
+        assert result.reason == reason
         assert result.new_value is None
-        assert result.claim is None
-        assert path.read_text() == before
-        assert queue.path.read_text() == queue_before
-        assert queue.filed()[("fact", fact_id)].value == "5-hour rolling and weekly windows"
-        assert log.latest()[("fact", fact_id)].target.value_hash == value_hash(old_value)
+    assert result.claim is None
+    assert path.read_text() == before
+    assert queue.path.read_text() == queue_before
+    assert queue.filed()[("fact", fact_id)].value == "5-hour rolling and weekly windows"
+    assert log.latest()[("fact", fact_id)].target.value_hash == value_hash(old_value)
 
 
 def test_an_unreadable_layout_raises_an_alert_and_never_guesses(estate) -> None:
@@ -1091,11 +1089,11 @@ def test_a_runner_store_keeps_only_cited_and_fetched_copies(estate) -> None:
     stray = store.put(b"a page no fact cites", source_url="https://fixture.example/")
     report, _ = reread(estate, [page("plans-price-change.html")], write=True)
 
-    [change] = report.changes
-    old_plans, new_plans = change.copies["example-plans"]
+    [proposal] = [f for f in report.alerts if f.fact_id == PRO_PRICE]
+    old_plans, new_plans = proposal.copies["example-plans"]
     assert price_reread.retain_only(store, root, report) == 1
     assert not store.has(stray)
-    # Example Max still cites the old copy; Example Pro now cites the new one.
+    # The facts still cite the old copy; this run fetched the new one.
     assert store.has(old_plans) and store.has(new_plans)
     assert store.has(report.sources["example-api-pricing"].copy_ref)
 
@@ -1149,22 +1147,19 @@ def test_a_multi_paragraph_quoted_value_is_replaced_whole(new: str) -> None:
     assert out[:9] == old[:9] and out[10:12] == old[12:14] and out[13:] == old[15:]
 
 
-def test_a_refused_rewrite_becomes_an_alert_and_writes_nothing(estate, monkeypatch) -> None:
+def test_a_value_change_never_reaches_the_rewriter(estate, monkeypatch) -> None:
+    """Only cite-only citations are rewritten; a value change has no write path."""
     root, _ = estate
-    before = (root / PLAN_FILE).read_text()
     log_before = (root / "verification" / "log.jsonl").read_text()
 
-    def tamper(text: str, change: price_reread.FactResult) -> str:
-        return text.replace("    value: 100", "    value: 90")
+    def forbidden(text: str, change: price_reread.FactResult) -> str:
+        pytest.fail(f"rewrote {change.fact_id}")
 
-    monkeypatch.setattr(price_reread, "rewrite_fact", tamper)
+    monkeypatch.setattr(price_reread, "rewrite_fact", forbidden)
     report, _ = reread(estate, [page("plans-price-change.html")], write=True)
 
     assert report.changes == []
-    [alert] = [f for f in report.alerts if f.fact_id == PRO_PRICE]
-    assert alert.status is Status.NEEDS_REVIEW
-    assert "the rewrite guard refused it" in alert.reason
-    assert (root / PLAN_FILE).read_text() == before
+    assert by_id(report)[PRO_PRICE].status is Status.NEEDS_REVIEW
     log_after = (root / "verification" / "log.jsonl").read_text()
     new_records = [json.loads(line) for line in log_after[len(log_before):].splitlines()]
     assert all(r["target"]["id"] != PRO_PRICE for r in new_records)

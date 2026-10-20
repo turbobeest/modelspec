@@ -7,6 +7,7 @@ the wrong-row cases below: each must fail to verify, never read another row.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -279,3 +280,84 @@ def test_no_model_declaration_or_two_agreeing_standard_tables_read_nothing(reads
     assert not reads(STANDARD.replace("Model ID: `example-mini`\n", ""), "input", .1)
     twice = STANDARD + "### Text tokens\n| Metric | Price | Unit |\n| Input | $0.10 | 1M tokens |\n"
     assert not reads(twice, "input", .1)
+
+
+# --- Round 3 of the cross-review: the nearest model heading, the price column ---------------
+
+
+def _table_reading(page, field, name):
+    from decision.normalise import NORMALISERS, normalise_document
+
+    text = normalise_document(page.encode(), NORMALISERS["text-default"]).text
+    claim = replace(_claim(field), names=(name,))
+    return verify.MetricPriceTable.read(text).reading(claim).value
+
+
+MAXI_UNDER_DECLARED_MINI = """\
+# Example Mini
+Model ID: `example-mini`
+## Example Maxi
+| Metric | Price | Unit |
+| Input | $8.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+"""
+
+MINI_HEADING_UNDER_MAXI = """\
+# Example Mini
+Model ID: `example-mini`
+
+# Example Maxi
+## Example Mini
+| Metric | Price | Unit |
+| Input | $8.00 | 1M tokens |
+| Output | $16.00 | 1M tokens |
+"""
+
+BATCH_COLUMN_FIRST = """\
+# Example Mini
+Model ID: `example-mini`
+## Pricing
+### Text tokens
+| Metric | Price (batch) | Price |
+| Input | $0.04 | $0.10 |
+| Output | $0.20 | $0.50 |
+"""
+
+
+@pytest.mark.parametrize("page", [MAXI_UNDER_DECLARED_MINI, MINI_HEADING_UNDER_MAXI])
+@pytest.mark.parametrize("name", ["Example Mini", "Example Maxi"])
+@pytest.mark.parametrize("field", ["input", "output"])
+def test_a_table_under_a_heading_naming_another_model_is_read_for_no_model(page, name, field):
+    assert _table_reading(page, field, name) is None
+
+
+def test_another_models_heading_never_donates_its_price_to_the_declared_model(reads):
+    assert not reads(MAXI_UNDER_DECLARED_MINI, "input", 8)
+    assert not reads(MAXI_UNDER_DECLARED_MINI, "output", 16)
+
+
+def test_a_price_batch_column_is_the_batch_price_not_the_standard_price(reads):
+    for field, value in (("input", .1), ("output", .5), ("batch_input", .04),
+                         ("batch_output", .2)):
+        assert reads(BATCH_COLUMN_FIRST, field, value)
+    assert not reads(BATCH_COLUMN_FIRST, "input", .04)
+    assert not reads(BATCH_COLUMN_FIRST, "output", .2)
+
+
+@pytest.mark.parametrize("header", [
+    "| Metric | Price (flex) | Unit |",
+    "| Metric | Price | Price |",
+    "| Metric | Price (batch) | Batch price |",
+    "| Metric | Pricing note | Unit |",
+])
+def test_an_unclear_price_column_reads_nothing(reads, header):
+    page = STANDARD.replace("| Metric | Price | Unit |", header)
+    assert not reads(page, "input", .1)
+
+
+def test_a_cached_price_column_states_the_cached_input_price(reads):
+    page = STANDARD.replace("| Metric | Price | Unit |", "| Metric | Price | Price (cached) |") \
+        .replace("| Input | $0.10 | 1M tokens |", "| Input | $0.10 | $0.01 |") \
+        .replace("| Cached input | $0.01 | 1M tokens |\n", "")
+    assert reads(page, "input", .1) and reads(page, "cached_input", .01)
+    assert not reads(page, "input", .01)
