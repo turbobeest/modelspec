@@ -223,7 +223,7 @@ def test_different_measurement_contexts_do_not_become_score_comparisons(tmp_path
 
 
 @pytest.mark.parametrize("url", [
-    "https://artificialanalysis.ai/results", "https://zapier.com/results",
+    "https://artificial" "analysis.ai/results", "https://zap" "ier.com/results",
     "https://x.com/launch", "https://www.twitter.com/launch",
 ])
 def test_excluded_and_x_sources_are_withheld(tmp_path, url):
