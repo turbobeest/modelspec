@@ -27,6 +27,7 @@ import re
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -399,6 +400,48 @@ class RenderedInteractionError(Exception):
     """A recipe could not safely reach its required page state."""
 
 
+@contextmanager
+def _read_only_interactions(page: Any, prepare: RenderedInteractions):
+    context = page.context
+    other_pages = set(context.pages) - {page}
+    blocked = False
+
+    def endpoint(url: str) -> tuple[str, str, str]:
+        parsed = urlsplit(url)
+        return parsed.scheme, parsed.netloc, parsed.path
+
+    telemetry = {
+        endpoint(str(step.url))
+        for recipe in prepare.recipes for step in recipe if step.action == "block_telemetry"
+    }
+
+    def read_only(route: Any) -> None:
+        nonlocal blocked
+        request = route.request
+        navigation = request.is_navigation_request()
+        known_telemetry = endpoint(request.url) in telemetry
+        if navigation or request.method not in {"GET", "HEAD"} or known_telemetry:
+            if navigation or not known_telemetry:
+                blocked = True
+            route.abort()
+        else:
+            route.fallback()
+
+    # Context routes also intercept the first request of a new popup.
+    context.route("**/*", read_only)
+    try:
+        yield
+    finally:
+        try:
+            for opened_page in context.pages:
+                if opened_page not in other_pages:
+                    opened_page.close()
+        finally:
+            context.unroute("**/*", read_only)
+    if blocked:
+        raise RenderedInteractionError("blocked interaction request")
+
+
 _SAFE_CONTROL = r"""(node, action) => {
     const tag = node.tagName.toLowerCase();
     const role = node.getAttribute('role');
@@ -445,18 +488,10 @@ class RenderedInteractions:
                 raise RenderedInteractionError("interaction time budget exhausted")
             return remaining * 1000
 
-        # Controls cannot submit a form or navigate to another document. Reading
-        # public pricing assets needs only GET/HEAD, including after a selection.
-        def read_only(route: Any) -> None:
-            request = route.request
-            if request.method not in {"GET", "HEAD"} or request.is_navigation_request():
-                route.abort()
-            else:
-                route.fallback()
-
-        page.route("**/*", read_only)
         try:
             for step in self.recipes[0]:
+                if step.action == "block_telemetry":
+                    continue
                 if step.action == "wait_text":
                     page.wait_for_function(
                         _REGION_CONTAINS_TEXT,
@@ -476,8 +511,6 @@ class RenderedInteractions:
             remaining_ms()
         except Error as exc:
             raise RenderedInteractionError(f"interaction failed: {exc}") from exc
-        finally:
-            page.unroute("**/*", read_only)
 
 
 def rendered_preparation(source_ids: Iterable[str],
@@ -510,8 +543,9 @@ class RenderedFetcher:
 
     Playwright is imported only when entering the context. Network idle is best
     effort: pages with persistent connections still yield their rendered HTML.
-    An optional preparation runs before capture, within one timeout budget. If
-    it fails, the HTML is still returned with an error for the caller to report.
+    An optional preparation runs before capture, within one timeout budget.
+    Registry recipe failures return no HTML. Legacy preparations retain their
+    partial HTML with an error for the caller to report.
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
@@ -530,6 +564,7 @@ class RenderedFetcher:
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
+                service_workers="block",
             )
         except Exception:
             self._playwright.stop()
@@ -558,25 +593,28 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            preparation_error = None
-            if prepare is not None:
-                try:
-                    prepare(page, self.timeout)
-                except RenderedInteractionError as exc:
-                    return FetchResult("unreachable", response.status, error=str(exc))
-                except Error as exc:
-                    preparation_error = f"rendered preparation failed: {exc}"
-            redirects = []
-            request = response.request
-            while request is not None:
-                redirects.append(str(request.url))
-                request = request.redirected_from
-            return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
-                               content_type="text/html", charset="utf-8",
-                               error=preparation_error,
-                               resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
-                                                    str(response.url), str(page.url)))),
-                               retrieved_at=datetime.now(UTC))
+            guard = (_read_only_interactions(page, prepare) if isinstance(prepare, RenderedInteractions)
+                     else nullcontext())
+            with guard:
+                preparation_error = None
+                if prepare is not None:
+                    try:
+                        prepare(page, self.timeout)
+                    except Error as exc:
+                        preparation_error = f"rendered preparation failed: {exc}"
+                redirects = []
+                request = response.request
+                while request is not None:
+                    redirects.append(str(request.url))
+                    request = request.redirected_from
+                return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
+                                   content_type="text/html", charset="utf-8",
+                                   error=preparation_error,
+                                   resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
+                                                        str(response.url), str(page.url)))),
+                                   retrieved_at=datetime.now(UTC))
+        except RenderedInteractionError as exc:
+            return FetchResult("unreachable", response.status, error=str(exc))
         except Error as exc:
             return FetchResult("unreachable", error=str(exc))
         finally:

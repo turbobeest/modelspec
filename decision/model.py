@@ -566,8 +566,23 @@ class RenderedWait(RenderedControl):
     text: Annotated[Text, Field(max_length=256)]
 
 
+class RenderedTelemetryBlock(Record):
+    action: Literal["block_telemetry"]
+    url: HttpUrl
+
+    @field_validator("url")
+    @classmethod
+    def exact_https_endpoint(cls, value: HttpUrl) -> HttpUrl:
+        if value.scheme != "https" or any(
+            part is not None for part in (value.username, value.password, value.query, value.fragment)
+        ):
+            raise ValueError("telemetry endpoint requires HTTPS without credentials, query or fragment")
+        return value
+
+
 RenderedInteraction = Annotated[
-    RenderedClick | RenderedSelect | RenderedWait, Field(discriminator="action")
+    RenderedClick | RenderedSelect | RenderedWait | RenderedTelemetryBlock,
+    Field(discriminator="action"),
 ]
 
 

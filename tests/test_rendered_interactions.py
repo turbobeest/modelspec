@@ -134,6 +134,97 @@ def test_recipe_cannot_accept_cookies_with_a_native_select(tmp_path, browser):
     assert result.body == b""
 
 
+@pytest.mark.parametrize("action", [
+    pytest.param("window.open('/action')", id="popup-navigation"),
+    pytest.param("document.querySelector('#other').submit()", id="popup-form-post"),
+    pytest.param("fetch('/action', {method:'POST'}).catch(() => {})", id="background-post"),
+])
+def test_recipe_blocks_requests_from_controls_and_discards_the_capture(
+        tmp_path, browser, action):
+    requests = []
+    html = f"""
+        <form id="other" action="/action" method="post" target="_blank"></form>
+        <button id="control" type="button" onclick="{action}">US East</button>
+        <div id="prices">Default region $4.00</div>"""
+
+    def respond(route):
+        requests.append((route.request.method, route.request.url))
+        route.fulfill(body=html, content_type="text/html")
+
+    browser._context.route("**/*", respond)
+    sources = registry(tmp_path, [{"action": "click", "selector": "#control"}, RECIPE[-1]])
+    result = browser.fetch("https://fixture.example/prices",
+                           prepare=rendered_preparation(sources, sources))
+
+    assert requests == [("GET", "https://fixture.example/prices")]
+    assert result.outcome == "unreachable"
+    assert result.body == b""
+    assert "blocked" in result.error
+    assert browser._context.pages == []
+
+
+@pytest.mark.parametrize("action, expected", [
+    pytest.param(
+        "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+        "ok", id="listed-telemetry"),
+    pytest.param(
+        "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+        "unreachable", id="unlisted-path"),
+    pytest.param(
+        "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+        "unreachable", id="unlisted-host"),
+    pytest.param("window.open('https://telemetry.example/events')",
+                 "unreachable", id="listed-navigation"),
+    pytest.param("document.querySelector('#other').submit()",
+                 "unreachable", id="listed-form-post"),
+])
+def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+        tmp_path, browser, action, expected):
+    requests = []
+    html = f"""
+        <form id="other" action="https://telemetry.example/events"
+              method="post" target="_blank"></form>
+        <button id="control" type="button" onclick="{action};
+            document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+        <div id="prices">Default region $4.00</div>"""
+
+    def respond(route):
+        requests.append((route.request.method, route.request.url))
+        route.fulfill(body=html, content_type="text/html")
+
+    browser._context.route("**/*", respond)
+    sources = registry(tmp_path, [
+        {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+        {"action": "click", "selector": "#control"},
+        {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+    ])
+    result = browser.fetch("https://fixture.example/prices",
+                           prepare=rendered_preparation(sources, sources))
+
+    assert requests == [("GET", "https://fixture.example/prices")]
+    assert result.outcome == expected, result.error
+    if expected == "ok":
+        assert b'<div id="prices">US East $8.00</div>' in result.body
+    else:
+        assert result.body == b""
+        assert "blocked" in result.error
+    assert browser._context.pages == []
+
+
+@pytest.mark.parametrize("url", [
+    "not-a-url",
+    "http://telemetry.example/events",
+    "https://telemetry.example/events?session=fixture",
+    "https://telemetry.example/events?",
+    "https://telemetry.example/events#section",
+    "https://telemetry.example/events#",
+    "https://user:password@telemetry.example/events",
+])
+def test_registry_rejects_ambiguous_telemetry_endpoints(tmp_path, url):
+    with pytest.raises(ValueError):
+        registry(tmp_path, [{"action": "block_telemetry", "url": url}, RECIPE[-1]])
+
+
 def test_conflicting_recipes_for_one_url_fail_closed(tmp_path, browser):
     sources = registry(tmp_path)
     sources.update(registry(tmp_path, [RECIPE[-1]], id="alias"))
