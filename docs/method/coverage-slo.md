@@ -86,14 +86,18 @@ per breached target raises the alarm.
   watched under `unscheduled`, where only a red run counts.
 
   This report, its log, its page and its issues are public, so
-  `modelspec-data` appears in them **only as counts**: for example
-  "2 of 7 scheduled workflow(s) red", or "could not read run status of 1 of
-  7". Its workflow names, run URLs, dates and error text never appear, and no
-  raw `gh` stderr is kept for any repository. The private workflow files and
-  runs are read through the API with `MODELSPEC_DATA_TOKEN` (Contents: read
-  and Actions: read). Nothing is checked out, because a checkout prints the
-  private commit subject into the public log. A missing token or unreadable
-  repository is an `error`, never a pass.
+  `modelspec-data` never appears in them by workflow name, run URL, date or
+  error text, and no raw `gh` stderr is kept for any repository. On GitHub the
+  private repository is checked in a separate job, `private-health`. It is the
+  only job holding `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
+  It reads the private workflow files and runs through the API with no
+  checkout, prints nothing, and uploads or caches nothing. It hands on only
+  pass or fail, as its job result. The report job has no private access. It
+  turns that word into one line: "scheduled workflow(s) red or unreadable", or
+  "could not read run status" when the check was skipped or cancelled. Run
+  locally with the token, the report reads the repository itself and shows
+  counts only, for example "3 of 6 scheduled workflow(s) red". A missing token
+  fails `private-health`, so it is never a pass.
 
   The detail lives in the private repository. Its own `workflow-health.yml`
   runs `python -m scripts.slo workflows --repo turbobeest/modelspec-data

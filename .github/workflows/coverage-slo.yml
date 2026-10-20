@@ -5,18 +5,22 @@ name: Coverage report
 # branch, and keep one GitHub issue per breached target. A breach does not
 # fail this job; a report that cannot be written does.
 #
-# Cost: one job, about four minutes (the snapshot build reads every card), and
-# about two dozen REST calls: one per scheduled workflow in this repository and
-# in modelspec-data (MODEL-421), one per refresh branch (MODEL-232), one issue
-# listing, and one per issue change.
+# Cost: two jobs. `report` takes about four minutes (the snapshot build reads
+# every card); `private-health` about one. About thirty REST calls: one per
+# scheduled workflow here and in modelspec-data plus one per private workflow
+# file (MODEL-421), one per refresh branch (MODEL-232), one issue listing, and
+# one per issue change.
 #
-# workflow-health (MODEL-421) lists every scheduled workflow from its cron
-# lines, here and in modelspec-data. MODELSPEC_DATA_TOKEN reads the private
-# repository's workflow files and runs through the API (no checkout, so no
-# private commit subject reaches this public log), so it needs Contents: read
-# and Actions: read there. Without it the private workflows are an error in the
-# report, never a pass. This log, the report and its issues are public: the
-# private repository appears in them only as counts.
+# workflow-health (MODEL-421) watches every scheduled workflow, from its cron
+# lines, here and in modelspec-data. This log, the report and its issues are
+# public, so the private repository is checked in its own job,
+# `private-health`. That job alone holds MODELSPEC_DATA_TOKEN (Contents: read
+# and Actions: read on modelspec-data), reads the private workflow files and
+# runs through the API (no checkout), prints nothing, uploads and caches
+# nothing, and hands on only pass or fail as its job result. `report` holds no
+# private access and turns that one word into the workflow-health result. The
+# names and runs of red private workflows are in modelspec-data's own
+# workflow-health issue.
 
 on:
   schedule:
@@ -41,23 +45,55 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The only job with private access. It passes when every scheduled workflow
+  # in the private repository is green and fails otherwise (red, unreadable,
+  # or no token). No output, summary, artifact or cache: the leak guard in
+  # tests/test_data_workflows.py holds it to that.
+  private-health:
+    name: Check the private repository's scheduled workflows (pass or fail only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # The same install as `report`, without its pip cache: a job with
+      # private access saves no cache.
+      - name: Install
+        run: python -m pip install -e . "pydantic==2.13.5"
+
+      - name: Fail when any private scheduled workflow is red or unreadable
+        env:
+          MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: |
+          if [ -z "$MODELSPEC_DATA_TOKEN" ]; then
+            echo "::warning::The private-data token is not set, so this check fails."
+            exit 1
+          fi
+          python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet
+
   report:
     name: Measure the coverage targets
+    needs: private-health
+    # Runs whatever the private check concluded; its result is an input.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
       STAGE_BREACH: ${{ inputs.stage_breach }}
+      # success, failure, cancelled or skipped; read through result_env in
+      # scripts/slo/targets.yaml.
+      PRIVATE_WORKFLOW_HEALTH: ${{ needs.private-health.result }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Warn when the private-data token is missing
-        env:
-          MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
-        run: |
-          if [ -z "$MODELSPEC_DATA_TOKEN" ]; then
-            echo "::warning::No MODELSPEC_DATA_TOKEN; modelspec-data's workflows will report as errors."
-          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -70,8 +106,6 @@ jobs:
         run: python -m pip install -e . "pydantic==2.13.5"
 
       - name: Measure every target
-        env:
-          MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
         run: |
           stage=()
           if [ -n "$STAGE_BREACH" ]; then stage=(--stage-breach "$STAGE_BREACH"); fi

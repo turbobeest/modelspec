@@ -350,12 +350,61 @@ def test_the_private_repo_is_read_with_its_own_token_and_no_checkout() -> None:
     from scripts.slo.report import repo_clients
 
     assert callable(repo_clients(CONFIG, environ={"MODELSPEC_DATA_TOKEN": "t"})[PRIVATE])
-    assert WorkflowRepo(PRIVATE, None, "MODELSPEC_DATA_TOKEN", False) in CONFIG.workflow_repos
+    assert WorkflowRepo(PRIVATE, None, "MODELSPEC_DATA_TOKEN", False,
+                        "PRIVATE_WORKFLOW_HEALTH") in CONFIG.workflow_repos
     assert CONFIG.private_repos == frozenset({PRIVATE})
+
+
+def test_only_the_pass_fail_job_holds_the_private_token() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "coverage-slo.yml").read_text())
+    jobs = workflow["jobs"]
+    private, report = jobs["private-health"], jobs["report"]
     # A checkout prints the private repository's commit subject into this public log.
-    workflow = (ROOT / ".github" / "workflows" / "coverage-slo.yml").read_text()
-    assert "repository: turbobeest/modelspec-data" not in workflow
-    assert "MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}" in workflow
+    assert "repository: turbobeest/modelspec-data" not in json.dumps(workflow)
+    assert "MODELSPEC_DATA" in json.dumps(private)
+    assert "MODELSPEC_DATA" not in json.dumps(report)
+    assert "outputs" not in private
+    assert private["steps"][-1]["run"].rstrip().endswith(
+        "python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet")
+    assert report["needs"] == "private-health" and report["if"] == "${{ !cancelled() }}"
+    assert report["env"]["PRIVATE_WORKFLOW_HEALTH"] == "${{ needs.private-health.result }}"
+
+
+@pytest.mark.parametrize(("result", "status", "text"), [
+    ("success", "met", ""),
+    ("failure", "breach", "modelspec-data: scheduled workflow(s) red or unreadable; the "
+                          "names and runs are in modelspec-data's own workflow-health issue"),
+    ("skipped", "error", "modelspec-data: could not read run status (its check: skipped)"),
+    ("<b>anything</b>", "error",
+     "modelspec-data: could not read run status (its check: no result)"),
+])
+def test_the_private_job_result_is_the_only_private_input(result, status, text) -> None:
+    check = check_workflows({DAILY.key: [_run("success", 1)]}, [DAILY], NOW, (),
+                            CONFIG.private_repos, {PRIVATE: result})
+    r = settle(CONFIG.target("workflow-health"), check)
+    assert r.status == status
+    said = [f"{f.subject}: {f.detail}" for f in r.findings] + list(r.errors)
+    assert said == ([text] if text else [])
+
+
+def test_quiet_mode_prints_nothing_and_answers_by_exit_status(monkeypatch, capsys) -> None:
+    from scripts.slo import __main__ as cli
+
+    real = cli.read_workflow_health
+    monkeypatch.setattr(cli, "read_workflow_health", lambda root, config, **kw: real(
+        root, config, gh=_leaky_gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: _leaky_gh, **kw))
+    assert cli.main(["workflows", "--repo", PRIVATE, "--quiet", "--now", NOW.isoformat()]) == 1
+
+    def crash(*args, **kw):
+        raise KeyError("private-audit.yml")
+
+    monkeypatch.setattr(cli, "read_workflow_health", crash)
+    assert cli.main(["workflows", "--repo", PRIVATE, "--quiet"]) == 2
+    out = capsys.readouterr()
+    assert (out.out, out.err) == ("", "")
 
 
 # ── MODEL-421: nothing private reaches the public report ───────────────────

@@ -102,15 +102,18 @@ workflow_health:
     - repo: turbobeest/modelspec
       dir: .
       public: true
-    # No checkout: its workflow files and runs are read through the API with
-    # this token, which needs Contents: read and Actions: read there. Private:
-    # this public report shows only how many of its workflows are red.
-    # modelspec-data's own workflow-health.yml runs
-    # `python -m scripts.slo workflows --private-detail --issue` and keeps the
-    # names and run URLs in an issue there.
+    # Private. Its workflow files and runs are read through the API with this
+    # token (Contents: read and Actions: read there), never checked out. On
+    # GitHub that happens only in coverage-slo.yml's `private-health` job,
+    # which prints nothing and hands on only pass or fail as its job result;
+    # the report job reads that word from `result_env`. Run locally without
+    # it, the report reads the repository and shows only counts. The names and
+    # run URLs live in modelspec-data's own workflow-health.yml issue
+    # (`python -m scripts.slo workflows --private-detail --issue`).
     - repo: turbobeest/modelspec-data
       token_env: MODELSPEC_DATA_TOKEN
       public: false
+      result_env: PRIVATE_WORKFLOW_HEALTH
   # Push-triggered workflows with no cron to derive a cadence from. Only a red
   # newest run counts for these.
   unscheduled:

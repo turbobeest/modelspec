@@ -10,7 +10,9 @@ both repositories, its newest run on main, and whether it is red. It exits 1
 when any is red or unreadable, so it doubles as a quick health check. Its
 output is public-safe: a private repository appears only as counts. Inside
 that repository's own run, ``--repo R --private-detail --issue`` names each
-red workflow and its run, and keeps one issue there (MODEL-421).
+red workflow and its run, and keeps one issue there (MODEL-421). ``--quiet``
+prints nothing and answers only by exit status: the public coverage workflow's
+``private-health`` job, which holds the private token, runs it that way.
 
 ``--stage-breach TARGET`` adds a labelled synthetic finding to a target, and
 ``alert --now`` moves the clock, so the whole alert path can be proven on
@@ -20,6 +22,8 @@ GitHub without waiting for a real breach.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import sys
@@ -80,6 +84,18 @@ def _self_key() -> str | None:
 
 
 def cmd_workflows(args: argparse.Namespace) -> int:
+    if not args.quiet:
+        return _workflows(args)
+    # The pass/fail check inside a public job that holds the private token:
+    # print nothing at all, not even a traceback, and answer by exit status.
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            return _workflows(args)
+    except Exception:  # noqa: BLE001 - a crash must not print private detail
+        return 2
+
+
+def _workflows(args: argparse.Namespace) -> int:
     config = load_config()
     if args.repo:
         unknown = set(args.repo) - {r.repo for r in config.workflow_repos}
@@ -183,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
     wf.add_argument("--private-detail", action="store_true",
                     help="name a private repository's workflows and runs; refused "
                          "outside that repository's own Actions run")
+    wf.add_argument("--quiet", action="store_true",
+                    help="print nothing; exit 0 when every watched workflow is green")
     wf.add_argument("--issue", action="store_true",
                     help="with --private-detail, keep one workflow-health issue in "
                          "that repository")

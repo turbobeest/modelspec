@@ -17,7 +17,7 @@ import os
 import subprocess
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -60,6 +60,11 @@ class WorkflowRepo:
     dir: str | None = None
     token_env: str | None = None
     public: bool = True
+    #: The environment variable carrying the pass/fail result of a separate job
+    #: that checked this repository with its token. When set, the report reads
+    #: that one word instead of the repository (MODEL-421): the job that holds
+    #: the private token writes nothing public, so pass or fail is all it hands on.
+    result_env: str | None = None
 
     @property
     def name(self) -> str:
@@ -119,7 +124,8 @@ def load_config(path: Path = TARGETS_PATH) -> Config:
         domain_map={k: tuple(v) for k, v in data["domain_map"].items()},
         workflow_repos=tuple(WorkflowRepo(repo=r["repo"], dir=r.get("dir"),
                                           token_env=r.get("token_env"),
-                                          public=bool(r["public"]))
+                                          public=bool(r["public"]),
+                                          result_env=r.get("result_env"))
                              for r in data["workflow_health"]["repos"]),
         stale_factor=float(data["workflow_health"]["stale_factor"]),
         unscheduled=tuple(WatchedWorkflow(repo=w["repo"], file=w["file"])
@@ -599,7 +605,8 @@ def _red(w: WatchedWorkflow, runs: Sequence[Mapping[str, Any]], now: datetime) -
 def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
                     watched: Sequence[WatchedWorkflow], now: datetime,
                     errors: Sequence[ListingError] = (),
-                    private: frozenset[str] = frozenset()) -> Check:
+                    private: frozenset[str] = frozenset(),
+                    results: Mapping[str, str] | None = None) -> Check:
     """Each watched workflow's newest run on main: red when it failed or is overdue.
 
     The newest completed run must have concluded green; a cancelled or
@@ -611,6 +618,10 @@ def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
     scheduled workflows are red and how many could not be read. The names,
     runs and reasons go to that repository's own workflow-health issue
     (``python -m scripts.slo workflows --private-detail``), never here.
+
+    ``results`` maps a private repository to the result of the separate job
+    that checked it (``success``, ``failure``, ``cancelled``, ``skipped``):
+    pass, red, or not measured.
     """
     findings: list[Finding] = []
     out: list[str] = [f"{repo}: {msg}" for repo, msg in errors if repo not in private]
@@ -644,6 +655,17 @@ def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
             findings.append(Finding(name, f"{red[repo]} of {n} scheduled workflow(s) red; "
                                           f"the names and runs are in {name}'s own "
                                           "workflow-health issue"))
+    for repo, result in sorted((results or {}).items()):
+        name = repo.split("/")[-1]
+        if result == "success":
+            measured += 1
+        elif result == "failure":
+            measured += 1
+            findings.append(Finding(name, "scheduled workflow(s) red or unreadable; the names "
+                                          f"and runs are in {name}'s own workflow-health issue"))
+        else:
+            word = result if result in ("cancelled", "skipped") else "no result"
+            out.append(f"{name}: {UNREADABLE} (its check: {word})")
     return Check(measured, tuple(findings), tuple(out))
 
 
@@ -784,6 +806,8 @@ class Inputs:
     #: The workflows ``runs`` is keyed by, and what stopped any being listed.
     watched: Sequence[WatchedWorkflow] = ()
     watch_errors: Sequence[ListingError] = ()
+    #: Private repository -> the result of the job that checked it.
+    private_results: Mapping[str, str] = field(default_factory=dict)
     extra_findings: Mapping[str, Sequence[Finding]] = field(default_factory=dict)
 
 
@@ -824,7 +848,12 @@ def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,
                         premier=load_premier(premier_path), as_of=as_of,
                         guard=excluded_sources())
     config = load_config()
-    watched, watch_errors, runs = read_workflow_health(root, config, gh=gh, dirs=workflow_dirs)
+    # A repository whose check ran in its own job is read from that job's result.
+    results = {r.repo: os.environ[r.result_env] for r in config.workflow_repos
+               if r.result_env and r.result_env in os.environ}
+    direct = replace(config, workflow_repos=tuple(r for r in config.workflow_repos
+                                                  if r.repo not in results))
+    watched, watch_errors, runs = read_workflow_health(root, direct, gh=gh, dirs=workflow_dirs)
     return Inputs(
         audit=audit,
         premier=yaml.safe_load(premier_path.read_text(encoding="utf-8")),
@@ -835,6 +864,7 @@ def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,
         refresh_prs=fetch_refresh_prs(config.target("refresh-pr-merged").params["branches"], gh),
         watched=watched,
         watch_errors=watch_errors,
+        private_results=results,
     )
 
 
@@ -888,7 +918,8 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
             int(t("premier-speed-age").params["max_age_days"])),
         # Public: a private repository's workflows appear only as counts.
         "workflow-health": check_workflows(inputs.runs, inputs.watched, now,
-                                           inputs.watch_errors, config.private_repos),
+                                           inputs.watch_errors, config.private_repos,
+                                           inputs.private_results),
         "refresh-pr-merged": check_refresh_prs(
             inputs.refresh_prs, t("refresh-pr-merged").params["branches"], now,
             float(t("refresh-pr-merged").params["max_open_days"])),
