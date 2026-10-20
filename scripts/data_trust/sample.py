@@ -22,10 +22,17 @@ from decision.model import (
     TargetRef,
     VerificationActor,
     evidence_verification_value,
+    fact_verification_value,
     value_hash,
 )
 from decision.sources import CopyStore, Fetcher
-from decision.verify import Claim, StoredRegions, deterministic_extractors, verify
+from decision.verify import (
+    Claim,
+    StoredRegions,
+    claim_verification_value,
+    deterministic_extractors,
+    verify,
+)
 from scripts.data_trust.catalogue import Catalogue, day
 from scripts.data_trust.invariants import field_type, safe_url, source_urls
 
@@ -253,7 +260,14 @@ def run(
 def claim_for(f, c, registry) -> Claim:
     value = evidence_verification_value(f) if f["kind"] == "evidence" else f["value"]
     original = c.claims.get((f["kind"], f["id"]))
-    if original is not None and value_hash(original.value) == value_hash(value):
+    if f["kind"] == "evidence":
+        same = original is not None and value_hash(original.value) == value_hash(value)
+    else:
+        # A dated price matches only the claim for the same period (MODEL-394).
+        same = original is not None and value_hash(
+            claim_verification_value(original)
+        ) == value_hash(fact_verification_value(f))
+    if same:
         # Labels, aliases and qualifiers came from the collector. Do not replace
         # them with registry facet IDs or an offering's structural ID.
         return original
@@ -290,7 +304,11 @@ def claim_for(f, c, registry) -> Claim:
             "date": f.get("evidence_date"),
         }
         if f["kind"] == "evidence"
-        else {},
+        else {
+            key: f[key]
+            for key in ("effective_from", "effective_until")
+            if f.get(key) is not None
+        },
     )
 
 
