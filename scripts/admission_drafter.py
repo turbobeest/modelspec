@@ -25,6 +25,7 @@ import yaml
 
 from decision.excluded import excluded_sources
 from decision.model import Fact, Source, SourceRef, TargetRef, VerificationActor
+from decision.normalise import NORMALISERS
 from decision.registry import default as default_registry
 from decision.retention import cite_only_origin, is_cite_only
 from decision.snapshot import Gap, audit_build, collect_repo
@@ -128,15 +129,15 @@ def source_candidates(card: dict, registered: dict) -> list[Source]:
     if lab in PRICE_URLS:
         urls[PRICE_URLS[lab]] = "provider_documentation"
     refs = {r["source_id"] for f in card.get("facts") or [] for r in f.get("sources", [])}
-    selected = {s.id: s for s in registered.values()
-                if s.id in refs or str(s.url) in urls}
-    existing_urls = {str(s.url) for s in selected.values()}
+    selected = {s.id: s for s in registered.values() if s.id in refs}
     for url, kind in sorted(urls.items()):
-        if url in existing_urls:
-            continue
+        # Historical entries may describe a text projection, not today's raw HTML.
         sid = "admission-" + hashlib.sha256(url.encode()).hexdigest()[:20]
+        normaliser = next((s.normaliser for s in registered.values()
+                           if str(s.url) == url
+                           and NORMALISERS[s.normaliser].content == "html"), "html-default")
         selected[sid] = Source(
-            id=sid, url=url, kind=kind,
+            id=sid, url=url, kind=kind, normaliser=normaliser,
             cited_regions=[{"id": "page", "locator": {"kind": "page"}}],
         )
     return list(selected.values())
@@ -215,7 +216,8 @@ def read_facts(subject, names, facets, references, regions, today, registry):
                     except ExtractorError:
                         continue
                     for reading in readings:
-                        if not reading.subject or split_model_cell(reading.subject)[0] not in own_names:
+                        if (not reading.subject
+                                or split_model_cell(reading.subject)[0] not in own_names):
                             continue
                         value = candidate_value(reading, facet)
                         if value is None:
@@ -232,7 +234,8 @@ def read_facts(subject, names, facets, references, regions, today, registry):
                         claim = replace(probe, value=value)
                         result = verify(claim, regions, extractors, today=today)
                         if result.outcome == "verified":
-                            candidates.setdefault(json.dumps(value, sort_keys=True), (fact, claim, result))
+                            candidates.setdefault(
+                                json.dumps(value, sort_keys=True), (fact, claim, result))
         if len(candidates) == 1:
             found[facet.id] = next(iter(candidates.values()))
         elif len(candidates) > 1:
@@ -251,6 +254,7 @@ class Packet:
     sources: list[dict]
     checks: list = field(repr=False)
     registrations: dict = field(repr=False)
+    lineup_entry: dict | None = None
 
     @property
     def ready(self):
@@ -262,7 +266,7 @@ class Packet:
             "ready": self.ready, "model_facts": self.model_facts,
             "offering": self.offering, "benchmarks": self.benchmarks,
             "gaps": [asdict(g) for g in self.gaps], "sources": self.sources,
-            "lineup_entry": {"model_id": self.model_id} if self.ready else None,
+            "lineup_entry": self.lineup_entry if self.ready else None,
         }
 
     def markdown(self):
@@ -271,6 +275,8 @@ class Packet:
                  f"Lineup entry: {'included' if self.ready else 'withheld'}.", "",
                  f"{len(self.model_facts)} verified model facts; "
                  f"{len(self.benchmarks)} catalogue benchmark records.", "",
+                 f"Full packet: `reports/admission/{self.model_id}.json`.",
+                 "Source copies are in the private workflow's admission-sources artifact.", "",
                  "## Guaranteed-fact gaps", ""]
         lines += [f"- {gap}" for gap in self.gaps] or ["None."]
         lines += ["", "## Sources", ""]
@@ -317,12 +323,13 @@ class Packet:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 existing = yaml.safe_load(path.read_text()) if path.exists() else []
                 existing = [o for o in existing if offering_identity(o) != self.offering["id"]]
-                path.write_text(yaml.safe_dump([*existing, self.offering], sort_keys=False))
+                row = {k: v for k, v in self.offering.items() if k != "id"}
+                path.write_text(yaml.safe_dump([*existing, row], sort_keys=False))
             path = root / "premier/slice-1.yaml"
             document = yaml.safe_load(path.read_text())
             if not any((r if isinstance(r, str) else r["model_id"]) == self.model_id
                        for r in document["models"]):
-                document["models"].append({"model_id": self.model_id})
+                document["models"].append(self.lineup_entry)
                 path.write_text(yaml.safe_dump(document, sort_keys=False, allow_unicode=True))
 
 
@@ -391,12 +398,21 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
                    for fact, _, _ in found.values()]
     offering_facts = [fact.model_dump(mode="json", exclude_none=True)
                      for fact, _, _ in prices.values()]
-    existing_offering = next((o for o in inputs.offerings
-                             if offering_identity(o) == offering_id), None)
-    merged_offering_facts = {f["facet"]: f for f in (existing_offering or {}).get("facts", [])}
-    merged_offering_facts.update({f["facet"]: f for f in offering_facts})
+    offering_path = root / "offerings" / provider / f"{model_id}.yaml"
+    authored = yaml.safe_load(offering_path.read_text()) if offering_path.exists() else []
+    existing_offering = next((o for o in authored if offering_identity(o) == offering_id), None)
+    existing_offering_facts = (existing_offering or {}).get("facts", [])
+    scheduled = {f["facet"] for f in existing_offering_facts
+                 if f.get("effective_from") or f.get("effective_until")}
+    # An undated reading cannot replace a schedule or inherit its date bounds.
+    prices = {facet: entry for facet, entry in prices.items() if facet not in scheduled}
+    offering_facts = [f for f in offering_facts if f["facet"] not in scheduled]
+    merged_offering_facts = [
+        f for f in existing_offering_facts if f["facet"] not in prices
+    ] + offering_facts
     offering = ({"id": offering_id, "model": model_id, "provider": provider,
-                 "region": "global", "tier": "standard", "facts": list(merged_offering_facts.values())}
+                 "region": "global", "tier": "standard",
+                 "facts": merged_offering_facts}
                 if lab in PRICE_URLS or offering_facts or existing_offering else None)
     existing_facts = {f["facet"]: f for f in model["facts"]}
     existing_facts.update({f["facet"]: f for f in model_facts})
@@ -417,13 +433,17 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
                 continue
             for ref in fact.get("sources", []):
                 url = source_urls.get(ref["source_id"], "")
+                origins = (url, *ref.get("resolved_urls", []))
                 reason = ("cite-only provenance is not verified"
                           if cite_only_origin(url, ref.get("resolved_urls", []))
-                          else source_block(url, lab))
+                          else next((reason for origin in origins
+                                     if (reason := source_block(origin, lab))), None))
                 if reason:
-                    strict_gaps[(subject, facet.id)] = Gap(model_id, subject, facet.id, reason, (url,))
+                    strict_gaps[(subject, facet.id)] = Gap(
+                        model_id, subject, facet.id, reason, (url,))
     audit = audit_build(
         replace(inputs, models=[model], offerings=offerings, subscriptions=[], evidence=[],
+                hardware=[], hardware_fit_records=[],
                 sources=source_urls,
                 verifications=[*inputs.verifications,
                                *(r.verification for _, r in checks)]),
@@ -432,14 +452,30 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
     benchmarks = [r for r in (card.get("benchmarks") or {}).get("evidence", [])
                   if r.get("source_url") and not source_block(r["source_url"], lab)
                   and not excluded_sources().benchmark(r.get("benchmark_id"))]
+    block = card.get("benchmarks") or {}
+    if block.get("benchmark_source") and not source_block(block["benchmark_source"], lab):
+        documented = {r["benchmark_id"] for r in benchmarks}
+        benchmarks += [
+            {"benchmark_id": bid, "score": score, "source_url": block["benchmark_source"],
+             "status": "catalogue_only", "verified": False}
+            for bid, score in (block.get("scores") or {}).items()
+            if bid not in documented and not excluded_sources().benchmark(bid)
+        ]
     gaps = {(g.subject, g.facet): g for g in audit.gaps}
     gaps.update({(g.subject, g.facet): g for g in [*conflicts, *offering_conflicts]})
     gaps.update(strict_gaps)
     if model["lifecycle"] == "retired":
         gaps[(model_id, "model.lifecycle")] = Gap(
             model_id, model_id, "model.lifecycle", "retired models cannot be admitted")
+    lineup = {"model_id": model_id}
+    if class_fact := existing_facts.get("model.class"):
+        lineup.update(
+            display_name=card.get("display_name", model_id),
+            **{"class": class_fact["value"]},
+            clauses=[{"clause": 4, "reason": "Admission packet for human review"}],
+        )
     return Packet(model_id, today, model_facts, offering, benchmarks,
-                  list(gaps.values()), statuses, checks, selected)
+                  list(gaps.values()), statuses, checks, selected, lineup)
 
 
 def main(argv=None):
@@ -464,11 +500,13 @@ def main(argv=None):
         if args.firecrawl_ledger:
             from scripts.admission_fallback import AdmissionFallback
 
-            fetcher = AdmissionFallback(fetcher, args.firecrawl_ledger, month=today.strftime("%Y-%m"))
+            fetcher = AdmissionFallback(
+                fetcher, args.firecrawl_ledger, month=today.strftime("%Y-%m"))
         packet = draft_packet(
             root=args.data_dir, model_id=args.model,
             fetcher=fetcher,
-            store=CopyStore(args.cache_dir or os.environ.get("MODELSPEC_SOURCE_CACHE") or temporary),
+            store=CopyStore(
+                args.cache_dir or os.environ.get("MODELSPEC_SOURCE_CACHE") or temporary),
             today=today,
         )
         if args.write:
