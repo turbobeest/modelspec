@@ -6,6 +6,7 @@
     python scripts/release_watch.py --issues      # queue off: one GitHub issue per discovery
     python scripts/release_watch.py --rebaseline  # re-take every source's baseline
     python scripts/release_watch.py --rebaseline --source hf-qwen
+    python scripts/release_watch.py --replay watch.json  # offline; never files
 
 Exit status 1 means at least one source or the signal endpoint failed. The
 report names each one; the workflow turns that into an issue. Sources that did
@@ -25,6 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -38,12 +40,17 @@ from release_signals.watch import (  # noqa: E402
     Response,
     SourceRun,
     allowed_by_robots,
-    discoveries,
     extract,
     load_baseline,
     load_registry,
     run_all,
     write_baseline,
+)
+from scripts.release_watch_filter import (  # noqa: E402
+    canonical_signal_id,
+    draft_card,
+    filter_releases,
+    replay_reports,
 )
 
 
@@ -107,6 +114,7 @@ ISSUE_ID = re.compile(r"`(watch:[A-Za-z0-9._:-]+)`")
 def file_issues(
     signals: Sequence[ReleaseSignal], *, repository: str, token: str,
     client: httpx.Client | None = None,
+    groups: Sequence[dict] = (),
 ) -> list[dict]:
     """While the signal queue is off, file each discovery as one GitHub issue.
 
@@ -124,7 +132,10 @@ def file_issues(
             response = client.get(url, headers=headers)
             response.raise_for_status()
             for issue in response.json():
-                filed.update(ISSUE_ID.findall(issue.get("title") or ""))
+                filed.update(
+                    canonical_signal_id(identifier)
+                    for identifier in ISSUE_ID.findall(issue.get("title") or "")
+                )
             url = response.links.get("next", {}).get("url")
     except httpx.HTTPError as exc:
         detail = f"listing {ISSUE_LABEL} issues: {type(exc).__name__}: {exc}"
@@ -134,8 +145,10 @@ def file_issues(
             for signal in signals
         ]
     outcomes = []
+    attachments = {group["signal_id"]: group for group in groups}
     for signal in signals:
-        if signal.signal_id in filed:
+        identifier = canonical_signal_id(signal.signal_id)
+        if identifier in filed:
             outcomes.append({"signal_id": signal.signal_id, "status": 200, "ok": True,
                              "filed": False, "detail": ""})
             continue
@@ -143,10 +156,12 @@ def file_issues(
             response = client.post(api, headers=headers, json={
                 "title": f"release discovery: {signal.model_name} ({signal.provider}) "
                          f"`{signal.signal_id}`",
-                "body": _issue_body(signal),
+                "body": _issue_body(signal, attachments.get(signal.signal_id)),
                 "labels": [ISSUE_LABEL, "new-model"],
             })
             status, detail = response.status_code, response.text[:300]
+            if status == 201:
+                filed.add(identifier)
         except httpx.HTTPError as exc:
             status, detail = 0, f"{type(exc).__name__}: {exc}"
         outcomes.append({"signal_id": signal.signal_id, "status": status,
@@ -155,7 +170,16 @@ def file_issues(
     return outcomes
 
 
-def _issue_body(signal: ReleaseSignal) -> str:
+def _issue_body(signal: ReleaseSignal, group: dict | None = None) -> str:
+    evidence = group["evidence"] if group else [{
+        "source_id": "discovery", "model_name": signal.model_name,
+        "url": signal.first_seen_url,
+    }]
+    draft = group["draft_card"] if group else draft_card(signal, evidence)
+    references = "\n".join(
+        f"- `{row['source_id']}`: `{row['model_name']}` at {row['url']}"
+        for row in evidence
+    )
     return (
         f"The release watcher (MODEL-216) saw **{signal.model_name}** listed at "
         f"{signal.first_seen_url}. Private processing decides whether it is catalogued.\n\n"
@@ -164,11 +188,15 @@ def _issue_body(signal: ReleaseSignal) -> str:
         "an issue instead. With the queue on, this would be a pending signal and "
         "`release-signals.yml` would draft the card.\n\n"
         f"```json\n{json.dumps(signal.to_dict(), indent=2)}\n```\n"
+        "\n### Discovery evidence\n\n"
+        "Source references only. Verify identity and facts before publishing a card.\n\n"
+        f"{references}\n\n### Draft card\n\n"
+        f"```yaml\n{yaml.safe_dump(draft, sort_keys=False)}```\n"
     )
 
 
 def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
-           posted: Sequence[dict] | None, now: datetime) -> dict:
+           posted: Sequence[dict] | None, now: datetime, *, filtered: dict | None = None) -> dict:
     return {
         "observed_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "sources": [
@@ -184,6 +212,8 @@ def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
         ],
         "discoveries": [signal.to_dict() for signal in signals],
         "posted": list(posted) if posted is not None else None,
+        **({key: filtered[key] for key in ("groups", "rejected", "observations")}
+           if filtered is not None else {}),
     }
 
 
@@ -204,8 +234,9 @@ def summary(result: dict) -> str:
     lines = [
         f"## Release watch {result['observed_at']}",
         "",
-        f"{ok} of {len(result['sources'])} sources answered. "
-        f"{len(result['discoveries'])} discoveries.",
+        (f"Replayed {len(result['sources'])} normalized source batches. "
+         if result.get("replay") else f"{ok} of {len(result['sources'])} sources answered. ")
+        + f"{len(result['discoveries'])} discoveries.",
     ]
     if result["discoveries"]:
         lines += ["", "| Signal | Model | Lab | Seen at |", "| --- | --- | --- | --- |"]
@@ -255,6 +286,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--baseline", type=Path, default=BASELINE)
     parser.add_argument("--report", type=Path, help="write the JSON report here")
     parser.add_argument("--summary", type=Path, help="write a Markdown summary here")
+    parser.add_argument("--replay", type=Path, action="append", default=[],
+                        help="offline replay of normalized JSON reports (repeatable; no filing)")
     parser.add_argument(
         "--post", action="store_true",
         help="file discoveries; needs SIGNALS_ORIGIN and MODELSPEC_SIGNALS_READ_KEY",
@@ -271,15 +304,28 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.post and args.issues:
         parser.error("--post and --issues are two sinks for one run; pick one")
+    if args.replay and (args.post or args.issues or args.rebaseline):
+        parser.error("--replay is offline and cannot file or rebaseline")
+    outputs = [path.resolve() for path in (args.report, args.summary) if path]
+    inputs = {path.resolve() for path in [args.registry, args.baseline, *args.replay]}
+    if len(outputs) != len(set(outputs)) or inputs.intersection(outputs):
+        parser.error("output paths must be distinct from inputs and each other")
     if args.rebaseline:
         return rebaseline(args.registry, args.baseline, args.source, now)
 
     registry = load_registry(args.registry)
-    runs = run_all(
-        registry, load_baseline(args.baseline),
-        fetch=http_fetch(registry.user_agent), now=now, catalogued=None,
-    )
-    signals = discoveries(runs, now)
+    if args.replay:
+        try:
+            runs, now = replay_reports(args.replay, registry)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            parser.error(f"cannot replay normalized reports: {exc}")
+    else:
+        runs = run_all(
+            registry, load_baseline(args.baseline),
+            fetch=http_fetch(registry.user_agent), now=now, catalogued=None,
+        )
+    filtered = filter_releases(runs, now)
+    signals = filtered["signals"]
     posted = None
     if args.post:
         origin = os.environ.get("SIGNALS_ORIGIN", "")
@@ -292,8 +338,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         token = os.environ.get("GH_TOKEN", "")
         if not repository or not token:
             parser.error("--issues needs GITHUB_REPOSITORY and GH_TOKEN")
-        posted = file_issues(signals, repository=repository, token=token)
-    result = report(runs, signals, posted, now)
+        posted = file_issues(signals, repository=repository, token=token,
+                             groups=filtered["groups"])
+    result = report(runs, signals, posted, now, filtered=filtered)
+    result["replay"] = bool(args.replay)
     if args.report:
         args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     text = summary(result)
