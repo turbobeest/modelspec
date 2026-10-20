@@ -471,3 +471,104 @@ def test_pdf_refuses_numeric_repairs_inside_text_arrays():
     data = b"BT /F1 12 Tf [(Example Model) --] TJ ET"
     with pytest.raises(UnsupportedContentError, match="pdf"):
         normalise_document(pdf(compressed=data), RULES)
+
+
+def test_pdf_missing_optional_dependency_explains_how_to_install(monkeypatch):
+    import sys
+
+    body = pdf()
+    monkeypatch.setitem(sys.modules, "pypdf", None)
+    with pytest.raises(UnsupportedContentError, match=r"install modelspec-dev\[verify\]"):
+        normalise_document(body, RULES)
+
+
+def test_pdf_dependency_is_only_in_operator_extra():
+    import tomllib
+    from pathlib import Path
+
+    project = tomllib.loads(
+        (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text()
+    )["project"]
+    assert not any(dep.startswith("pypdf") for dep in project["dependencies"])
+    assert project["optional-dependencies"]["verify"] == ["pypdf==6.19.0"]
+    assert not any(dep.startswith("pypdf") for dep in project["optional-dependencies"]["dev"])
+
+
+@pytest.mark.parametrize("revised", [
+    lambda: pdf(lines=["Example Model", "Maximum output: 8k tokens"]),
+    lambda: b"%PDF-1.7 invalid revision",
+])
+def test_pdf_unapproved_revision_reports_drift_without_retaining_bytes(
+    tmp_path, monkeypatch, revised,
+):
+    from decision.model import Source
+    from decision.sources import (
+        Citation,
+        CopyStore,
+        FactKind,
+        Fetcher,
+        RegionStatus,
+        fingerprint_bytes,
+        recheck,
+    )
+
+    original = pdf()
+    approve(monkeypatch, original)
+    source = Source(id="pdf", url=URL, normaliser=RECIPE, cited_regions=[
+        {"id": "page", "locator": {"kind": "page"}},
+        {"id": "second", "locator": {"kind": "page"}},
+    ])
+    store = CopyStore(tmp_path / "copies")
+    now = datetime(2026, 10, 20, tzinfo=UTC)
+    body = original
+    with httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(
+        200, content=body, headers={"content-type": "application/pdf"},
+    ))) as client:
+        fetcher = Fetcher(client=client)
+        baseline = recheck([source], {}, [], fetcher=fetcher, store=store, now=now)
+        body = revised()
+        citations = [Citation("fact:example/model#governance", "pdf", "page",
+                              FactKind.GOVERNANCE)]
+        report = recheck([source], baseline.states, citations, fetcher=fetcher,
+                         store=store, now=now)
+    assert len(report.regions) == 2
+    assert all(region.status is RegionStatus.CHANGED for region in report.regions)
+    assert all(region.current is None and region.detail == "pdf_unapproved_revision"
+               for region in report.regions)
+    assert report.requeue == ["fact:example/model#governance"]
+    assert report.reconfirmed == []
+    assert len(report.alerts) == 1
+    assert report.alerts[0].previous_copy_ref == fingerprint_bytes(original)
+    assert report.alerts[0].current_copy_ref == fingerprint_bytes(body)
+    assert report.states["pdf"].snapshot == baseline.states["pdf"].snapshot
+    assert report.skipped[0].reason == "pdf_retention_not_approved"
+    assert not store.path(fingerprint_bytes(body)).exists()
+    assert store.get(fingerprint_bytes(original)) == original
+
+
+@pytest.mark.parametrize("body,expected", [(b"plain text", False), (b"%PDF-1.7", True)])
+def test_pdf_detection_reads_each_copy_once_per_run(tmp_path, monkeypatch, body, expected):
+    from unittest.mock import Mock
+
+    from decision.model import Source
+    from decision.sources import CopyStore
+    from decision.verify import StoredRegions
+
+    store = CopyStore(tmp_path / "copies")
+    ref = store.put(body, source_url=URL)
+    sources = {
+        name: Source(id=name, url=URL, normaliser=recipe)
+        for name, recipe in (("text", "text-default"), ("html", "html-default"), ("pdf", RECIPE))
+    }
+    get = Mock(wraps=store.get)
+    has = Mock(wraps=store.has)
+    monkeypatch.setattr(store, "get", get)
+    monkeypatch.setattr(store, "has", has)
+    for run in range(1, 3):
+        regions = StoredRegions(store, sources)
+        assert regions.is_pdf("pdf", ref) is True
+        for _ in range(3):
+            assert regions.is_pdf("text", ref) is expected
+            assert regions.is_pdf("html", ref) is expected
+        assert get.call_count == run
+        assert has.call_count == run

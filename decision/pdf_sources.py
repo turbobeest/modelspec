@@ -413,7 +413,12 @@ class _Structure:
 def extract_text(body: bytes) -> str:
     """Return complete text or refuse. No partial result or format fallback."""
     try:
-        import pypdf
+        try:
+            import pypdf
+        except ImportError as exc:
+            raise UnsupportedContentError(
+                "pdf_dependency_missing; install modelspec-dev[verify]"
+            ) from exc
         from pypdf import PageObject
         from pypdf.generic import NameObject
 

@@ -53,7 +53,7 @@ jobs:
             "pytest-xdist==3.8.0" \
             "ruff==0.16.6" \
             "mypy==2.3.1" \
-            -e ".[dev]"
+            -e ".[dev,verify]"
       - name: Select test files and collect node ids
         run: |
           python scripts/pytest_shards.py --shard-count 4 \
@@ -122,7 +122,7 @@ jobs:
             "pytest-xdist==3.8.0" \
             "ruff==0.16.6" \
             "mypy==2.3.1" \
-            -e ".[dev]"
+            -e ".[dev,verify]"
       - name: Validate GitHub Actions workflows
         run: >-
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7

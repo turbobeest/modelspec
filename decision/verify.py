@@ -5683,6 +5683,7 @@ class StoredRegions:
                  cache_documents: bool = False) -> None:
         self.store = store
         self.sources = sources
+        self._pdf_copies: dict[str, bool] = {}
         self._documents: dict[tuple[str, RuleSet], Document] | None = \
             {} if cache_documents else None
 
@@ -5716,7 +5717,11 @@ class StoredRegions:
         source = self.sources.get(source_id)
         if source is not None and NORMALISERS[source.normaliser].content == "pdf":
             return True
-        return self.store.has(copy_ref) and self.store.get(copy_ref).lstrip().startswith(b"%PDF")
+        if copy_ref not in self._pdf_copies:
+            self._pdf_copies[copy_ref] = (
+                self.store.has(copy_ref) and self.store.get(copy_ref).lstrip().startswith(b"%PDF")
+            )
+        return self._pdf_copies[copy_ref]
 
     def cite_only(self, source_id: str, copy_ref: str) -> bool:
         source = self.sources.get(source_id)
