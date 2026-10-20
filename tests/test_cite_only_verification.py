@@ -635,8 +635,12 @@ def test_one_canonical_host_matches_http_url(url, host):
 @pytest.mark.parametrize("url", ["https://x.ai:bad/", "https://x.ai:99999/",
                                  "https://x.ai@evil.example/", "http://["])
 def test_invalid_http_urls_are_refused_not_guessed(url):
+    from decision.retention import canonical_host, cite_only_status
+
     with pytest.raises(ValueError):
-        is_cite_only(url)
+        canonical_host(url)
+    assert cite_only_status(url) is None
+    assert is_cite_only(url) is True  # restrictive for retention, never a grant
 
 
 def test_card_parse_error_matches_subscription_helper(tmp_path):

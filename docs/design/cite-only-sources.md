@@ -115,8 +115,18 @@ stricter:
   (`decision/retention.py` `canonical_host`): the URL is parsed as the
   repository's `HttpUrl` (WHATWG rules, IDNA), then a terminal dot is
   dropped. Only `http` and `https` URLs can be cite-only. An HTTP(S) URL with
-  an invalid port or userinfo, or that does not parse, raises instead of
-  yielding a guessed host.
+  an invalid port or userinfo, or that does not parse, never yields a guessed
+  host. It fails closed for its own record only, and never aborts a build or
+  job:
+  - `is_cite_only` reads it as cite-only, the restrictive choice for
+    retention and display: no bytes are kept, evidence stays out, scores and
+    facts are never counted as verified, and the score-source notice shows
+    plain text.
+  - Where cite-only status grants something (a cited fact, a supersession,
+    the audit's retrieval dating), `cite_only_status` returns None and the
+    caller refuses: the fact is excluded as `invalid_citation`.
+  - `CopyStore.put` refuses a malformed source URL, and the weekly re-check
+    skips that one source as `invalid_citation_metadata`.
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate

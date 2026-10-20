@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
+
+logger = logging.getLogger(__name__)
 
 POLICY_PATH = Path(__file__).resolve().parents[1] / "registry" / "source-retention.json"
 
@@ -56,10 +59,34 @@ def canonical_host(url: object) -> str | None:
     return host
 
 
-def is_cite_only(url: object) -> bool:
-    host = canonical_host(url)
+def cite_only_status(url: object) -> bool | None:
+    """Whether a URL is cite-only, or None for an HTTP(S) URL that does not parse.
+
+    Use this where cite-only status GRANTS something (admission without
+    verification, a supersession, a retrieval date): None must then refuse.
+    """
+    try:
+        host = canonical_host(url)
+    except ValueError:
+        return None
     return host is not None and any(
         host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
+
+
+def is_cite_only(url: object) -> bool:
+    """Whether a URL is cite-only, counting a malformed HTTP(S) URL as cite-only.
+
+    This is the restrictive reading for retention and display: no bytes are
+    kept, evidence stays out and nothing reads as machine-verified, and one
+    bad URL never aborts a build or job (MODEL-420). Never use it where
+    cite-only status grants admission; use ``cite_only_status`` there.
+    """
+    status = cite_only_status(url)
+    if status is None:
+        # The URL itself is not logged: it may come from private data.
+        logger.warning("a malformed HTTP(S) URL is treated as cite-only")
+        return True
+    return status
 
 
 def redirect_urls(value: object) -> tuple[str, ...]:

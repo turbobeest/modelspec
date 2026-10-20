@@ -10,7 +10,7 @@ import yaml
 from decision.citation import fact_citation
 from decision.model import Fact, Measurement, value_hash, verification_counts
 from decision.retention import (
-    canonical_host, is_cite_only, metadata_origins, redirect_urls,
+    canonical_host, cite_only_status, is_cite_only, metadata_origins, redirect_urls,
 )
 from decision.snapshot import FactValue
 from decision.sources import load_sources
@@ -59,6 +59,8 @@ def _cited_ref(ref, urls, store):
     anything malformed raises ValueError and the fact stays out.
     """
     registered = urls.get(ref["source_id"], "")
+    if cite_only_status(registered) is None:
+        raise ValueError("invalid registered source URL")
     if "resolved_urls" in ref:
         redirect_urls(ref["resolved_urls"])
     snapshot_ref = ref.get("snapshot_ref")

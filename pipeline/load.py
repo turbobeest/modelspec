@@ -16,6 +16,7 @@ worth surfacing.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -25,6 +26,8 @@ from typing import Any
 import yaml
 
 from schema import private_data, redacted_error
+
+logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FRONT_MATTER = re.compile(r"^---\n(.*?)\n---\n?(.*)\Z", re.S)
@@ -222,7 +225,13 @@ def load_models(root: Path | None = None) -> list[Model]:
             continue
         cited = []
         for fact in front.get("facts") or []:
-            citation = fact_citation(fact, sources)
+            try:
+                citation = fact_citation(fact, sources)
+            except ValueError:
+                # Fail closed for this fact only (MODEL-420): never shown as
+                # verified, and one bad citation does not stop the build.
+                logger.warning("%s: a fact's citation is invalid; shown as cited", model_id)
+                citation = {"status": "cited", "sources": []}
             if citation:
                 cited.append({**fact, "verification": None, "citation": citation})
         out.append(Model(str(model_id), path, front, body, cited))

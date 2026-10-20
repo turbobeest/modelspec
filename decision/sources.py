@@ -41,7 +41,9 @@ if TYPE_CHECKING:
 
 from decision.model import CitedRegion as CitedRegion
 from decision.model import Source, SourceSnapshot
-from decision.retention import citation_metadata, cite_only_origin, require_source_url
+from decision.retention import (
+    citation_metadata, cite_only_origin, cite_only_status, require_source_url,
+)
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -522,6 +524,8 @@ class CopyStore:
     def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
             resolved_urls: Iterable[str] = ()) -> str:
         source_url = require_source_url(source_url)
+        if cite_only_status(source_url) is None:
+            raise ValueError("retaining source bytes requires a well-formed HTTP source URL")
         resolved_urls = tuple(resolved_urls)
         ref = fingerprint_bytes(body)
         if cite_only_origin(source_url, resolved_urls):
@@ -754,9 +758,18 @@ def _check_one(
     report.fetches[source.id] = result
     old = previous.region_fingerprints if previous else {}
 
-    previous_citation = store.citation(previous.copy_ref) if previous else None
-    resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
-                          *((previous_citation or {}).get("resolved_urls", ())))))
+    try:
+        previous_citation = store.citation(previous.copy_ref) if previous else None
+        resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
+                              *((previous_citation or {}).get("resolved_urls", ())))))
+        if cite_only_status(source.url) is None \
+                or any(cite_only_status(url) is None for url in resolved_urls):
+            raise ValueError("invalid redirect URL")
+    except (TypeError, ValueError):
+        # Fail closed for this source only (MODEL-420): keep nothing, change no
+        # snapshot, and go on to the next source.
+        report.skipped.append(Skipped(source.id, "invalid_citation_metadata"))
+        return replace(state, last_attempt_at=now)
     if (cite_only_origin(source.url, resolved_urls) or previous_citation is not None) \
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:

@@ -20,7 +20,7 @@ from typing import Any, Literal, Self
 from pydantic import AwareDatetime, ValidationError, field_validator, model_validator
 
 from decision.model import ContentRef, Record, Text, VerificationTarget
-from decision.retention import is_cite_only, metadata_origins, require_source_url
+from decision.retention import cite_only_status, metadata_origins, require_source_url
 
 class _Located(Record):
     source_id: Text
@@ -161,7 +161,7 @@ def _refusal(record: MismatchSupersession, winner: Mapping[str, Any], value_hash
     if sources.get(read.source_id) != read.url:
         return "read source unresolved"
     # Cite-only status comes from the registered URL alone, never a card's redirects.
-    if not is_cite_only(read.url):
+    if cite_only_status(read.url) is not True:  # a malformed URL never supersedes
         return "read is not cite-only"
     cited = {(sources.get(str(ref.get("source_id"))), str(region))
              for ref in refs for region in ref.get("cited_regions") or ()}

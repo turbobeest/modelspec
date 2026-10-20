@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple
 
 from decision.retention import (
-    canonical_host, citation_metadata, is_cite_only, metadata_origins, redirect_urls,
+    canonical_host, citation_metadata, cite_only_status, is_cite_only, metadata_origins,
+    redirect_urls,
     require_source_url,
 )
 
@@ -75,7 +76,10 @@ def ref_state(ref: Mapping[str, Any], sources: Mapping[str, str], store: Any = N
     registered = sources.get(ref.get("source_id"), "")
     card = _card_redirects(ref)
     fetched = _fetcher_record(ref, sources, store)
-    if is_cite_only(registered):
+    registered_status = cite_only_status(registered)
+    if registered_status is None:
+        raise ValueError("invalid registered source URL")
+    if registered_status:
         return "cited"
     if fetched is not None:
         return "cited" if any(map(is_cite_only, fetched.origins)) else "restricted"
