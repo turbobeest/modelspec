@@ -1,5 +1,6 @@
 """Independent source expectations for subscription integration tests."""
 
+import itertools
 import json
 import subprocess
 
@@ -48,6 +49,20 @@ def json_record(record):
     return json.loads(json.dumps(record, default=lambda value: value.isoformat()))
 
 
+def bound_hashes(value, unordered):
+    """The value hashes a verification of ``value`` may carry (MODEL-416).
+
+    An unordered set facet binds its members: sorted, or in any order up to
+    nine members. Anything else binds the value as filed.
+    """
+    hashes = {value_hash(value)}
+    if unordered and isinstance(value, list):
+        hashes.add(value_hash(sorted(value)))
+        if len(value) <= 9:
+            hashes.update(value_hash(list(order)) for order in itertools.permutations(value))
+    return hashes
+
+
 def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
     """Project raw facts using the documented second-key and source rules.
 
@@ -61,6 +76,11 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
     ``registry`` as the snapshot validates it), it names an identifier facet,
     or its latest counting outcome is a mismatch or unreachable. Every other
     fact still needs a latest counting outcome of verified.
+
+    With ``registry``, an unordered set facet's verification binds its members
+    (MODEL-416). A set with a repeated member never enters. Past nine members, a
+    failed outcome on another hash of the fact, newer than its bound verdict,
+    holds the fact: it may be a legacy row for another order of the same set.
     """
     log = [
         json.loads(line)
@@ -79,22 +99,39 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
             fact = {"subject": {"kind": "offering", "id": sid},
                     "id": f"{sid}#{fact.get('facet')}", **fact}
             fid = fact["id"]
-            candidates = [
+            value = fact.get("value")
+            value_type = registry.facet(fact["facet"]).value_type if registry else None
+            unordered = getattr(value_type, "unordered", False)
+            if (getattr(value_type, "kind", None) == "set" and isinstance(value, list)
+                    and len(set(value)) != len(value)):
+                continue
+            bound = bound_hashes(value, unordered)
+            rows = [
                 (str(record["date"]), order, record)
                 for order, record in enumerate([fact.get("verification"), *log])
                 if record
                 and record["target"]["kind"] == "fact"
                 and record["target"]["id"] == fid
-                and record["target"].get("value_hash") == value_hash(fact.get("value"))
                 and verification_counts(
                     record["outcome"],
                     record["collector"]["model_family"],
                     record["verifier"]["model_family"],
                 )
             ]
-            latest = (
-                max(candidates, key=lambda row: row[:2])[2]["outcome"] if candidates else None
-            )
+            candidates = [row for row in rows if row[2]["target"].get("value_hash") in bound]
+            best = max(candidates, key=lambda row: row[:2]) if candidates else None
+            latest = best[2]["outcome"] if best else None
+            if unordered and isinstance(value, list) and len(value) > 9:
+                # Only the latest row per hash counts, as the snapshot reads the log.
+                per_hash = {}
+                for row in rows:
+                    key = row[2]["target"].get("value_hash")
+                    if key not in per_hash or row[:2] >= per_hash[key][:2]:
+                        per_hash[key] = row
+                if any(key not in bound and row[2]["outcome"] != "verified"
+                       and (best is None or row[:2] > best[:2])
+                       for key, row in per_hash.items()):
+                    continue
             cited = any(
                 cite_only_origin(urls.get(ref["source_id"], ""), ref.get("resolved_urls") or ())
                 for ref in fact.get("sources", [])
