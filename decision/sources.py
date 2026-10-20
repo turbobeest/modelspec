@@ -551,10 +551,23 @@ class CopyStore:
         os.replace(temporary, target)
 
     def citation(self, ref: str) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        """
         target = self.path(ref).with_suffix(".citation.json")
-        if not target.is_file():
+        if not os.path.lexists(target):
             return None
-        metadata = json.loads(target.read_text(encoding="utf-8"))
+        if not target.is_file():
+            raise ValueError("citation record is not a readable file")
+        try:
+            metadata = json.loads(target.read_text(encoding="utf-8"))
+        except OSError:
+            raise ValueError("citation record is not a readable file") from None
+        if not isinstance(metadata, dict):
+            raise ValueError("citation record is not a JSON object")
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
@@ -568,8 +581,11 @@ class CopyStore:
         return body
 
     def has(self, ref: str) -> bool:
-        if self.citation(ref) is not None:
-            return False
+        try:
+            if self.citation(ref) is not None:
+                return False
+        except ValueError:
+            return False  # an unreadable citation record still withholds the copy
         target = self.path(ref)
         if not target.is_file() or target.is_symlink():
             return False

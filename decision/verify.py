@@ -5709,8 +5709,11 @@ class StoredRegions:
 
     def cite_only(self, source_id: str, copy_ref: str) -> bool:
         source = self.sources.get(source_id)
-        return bool((source is not None and is_cite_only(source.url))
-                    or self.store.citation(copy_ref) is not None)
+        try:
+            return bool((source is not None and is_cite_only(source.url))
+                        or self.store.citation(copy_ref) is not None)
+        except ValueError:
+            return True  # an unreadable citation record or URL fails closed
 
     def source_kind(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)

@@ -9,7 +9,9 @@ import yaml
 
 from decision.citation import fact_citation
 from decision.model import Fact, Measurement, value_hash, verification_counts
-from decision.retention import cite_only_origin, metadata_origins
+from decision.retention import (
+    canonical_host, is_cite_only, metadata_origins, redirect_urls,
+)
 from decision.snapshot import FactValue
 from decision.sources import load_sources
 
@@ -51,21 +53,33 @@ def json_record(record):
 
 
 def _cited_ref(ref, urls, store):
-    """Cited by its registered URL or a fetcher record for its hash; never by the card."""
+    """Cited by its registered URL or a fetcher record for its hash; never by the card.
+
+    The card's redirects and any store record are validated first, in full;
+    anything malformed raises ValueError and the fact stays out.
+    """
     registered = urls.get(ref["source_id"], "")
-    if not isinstance(ref.get("resolved_urls") or (), (list, tuple)):
-        raise ValueError("invalid citation redirect URLs")
+    if "resolved_urls" in ref:
+        redirect_urls(ref["resolved_urls"])
     snapshot_ref = ref.get("snapshot_ref")
-    record = None
+    origins = ()
     if store is not None and isinstance(snapshot_ref, str) \
             and re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot_ref):
         try:
             record = store.citation(snapshot_ref)
-        except OSError:
+        except (OSError, AttributeError, TypeError):
             raise ValueError("unreadable citation record") from None
-    if record is not None and record.get("url") != registered:
-        raise ValueError("citation record names another source")
-    return cite_only_origin(registered, metadata_origins(record) if record else ())
+        if record is not None:
+            if not isinstance(record, dict) or record.get("snapshot_ref") != snapshot_ref:
+                raise ValueError("citation record does not match its hash")
+            if record.get("url") != registered:
+                raise ValueError("citation record names another source")
+            if "resolved_urls" in record:
+                redirect_urls(record["resolved_urls"])
+            origins = metadata_origins(record)
+            if any(canonical_host(origin) is None for origin in origins):
+                raise ValueError("invalid citation redirect record")
+    return is_cite_only(registered) or any(is_cite_only(origin) for origin in origins)
 
 
 def bound_hashes(value, unordered):

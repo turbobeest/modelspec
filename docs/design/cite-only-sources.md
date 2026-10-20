@@ -103,10 +103,20 @@ stricter:
   citation)`: an old verification record cannot show which source it read,
   and the verifier refuses a fact with any cite-only ref, so its other refs
   can never be verified apart from the cite-only one.
-- An unreadable store record, one whose hash or source URL differs from the
-  ref, or malformed redirect metadata fails closed: the record is excluded as
-  `invalid_citation`, never read as "no redirect".
-- Only `http` and `https` URLs can be cite-only.
+- The card's `resolved_urls` and any store record are validated in full
+  before anything is decided, including for a registered cite-only source.
+  An unreadable store entry (a directory, a dangling symlink, bad JSON, not a
+  JSON object), a record whose hash or source URL differs from the ref, or
+  malformed redirect metadata (`null`, `{}`, `false`, `""`, a non-HTTP or
+  unparseable URL) fails closed: the record is excluded as
+  `invalid_citation`, never read as "no redirect". Only a missing entry means
+  no record.
+- One canonical host decides both admission and restriction
+  (`decision/retention.py` `canonical_host`): the URL is parsed as the
+  repository's `HttpUrl` (WHATWG rules, IDNA), then a terminal dot is
+  dropped. Only `http` and `https` URLs can be cite-only. An HTTP(S) URL with
+  an invalid port or userinfo, or that does not parse, raises instead of
+  yielding a guessed host.
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate

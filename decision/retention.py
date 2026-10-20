@@ -25,12 +25,55 @@ def cite_only_hosts() -> tuple[str, ...]:
     return tuple(hosts)
 
 
+_C0_OR_SPACE = "".join(chr(code) for code in range(0x21))
+
+
+def canonical_host(url: object) -> str | None:
+    """The host an HTTP(S) URL names, as the repository's ``HttpUrl`` reads it.
+
+    One parser decides both admission and restriction (MODEL-420): the URL is
+    parsed as ``HttpUrl`` (WHATWG rules, IDNA), then a terminal dot is dropped.
+    Returns None for a URL whose scheme is not http or https. An HTTP(S) URL
+    that does not parse, has an invalid port or carries userinfo raises
+    ValueError, so callers fail closed instead of guessing a host.
+    """
+    text = str(url)
+    scheme, colon, _rest = text.lstrip(_C0_OR_SPACE).partition(":")
+    scheme = scheme.replace("\t", "").replace("\n", "").replace("\r", "").lower()
+    if not colon or scheme not in {"http", "https"}:
+        return None
+    from pydantic import HttpUrl, ValidationError
+
+    try:
+        parsed = HttpUrl(text)
+    except ValidationError:
+        raise ValueError("invalid HTTP URL") from None
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("HTTP URL carries userinfo")
+    host = (parsed.host or "").lower().rstrip(".")
+    if not host:
+        raise ValueError("HTTP URL has no host")
+    return host
+
+
 def is_cite_only(url: object) -> bool:
-    parsed = urlsplit(str(url))
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        return False
-    host = parsed.hostname.rstrip(".").lower().encode("idna").decode("ascii")
-    return any(host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
+    host = canonical_host(url)
+    return host is not None and any(
+        host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
+
+
+def redirect_urls(value: object) -> tuple[str, ...]:
+    """Validated redirect URLs: a list of HTTP(S) URL strings, or ValueError.
+
+    A malformed value is never read as "no redirects": ``None``, ``{}``,
+    ``False`` or ``""`` raise like any other non-list.
+    """
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("invalid redirect URL metadata")
+    for url in value:
+        if not isinstance(url, str) or canonical_host(url) is None:
+            raise ValueError("invalid redirect URL metadata")
+    return tuple(value)
 
 
 def cite_only_origin(url: object, resolved_urls=()) -> bool:

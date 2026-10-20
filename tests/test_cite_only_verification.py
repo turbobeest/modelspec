@@ -518,3 +518,173 @@ def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path, with
     assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance"}
     assert set(max_) == ({"offering.subscription.billing_period"} if with_store
                          else {"offering.subscription.usage_allowance"})
+
+
+# REV-857 review probes (MODEL-420 round 3): each failed open before this fix.
+
+
+def _write_marker(store, ref, body):
+    path = store.path(ref).with_suffix(".citation.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body if isinstance(body, str) else __import__("json").dumps(body))
+    return path
+
+
+def _subscription_repo(root, urls):
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "verification/log.jsonl").write_text("")
+    (root / "registry/sources.yaml").write_text(yaml.safe_dump({
+        "schema_version": 1, "sources": [{"id": key, "url": val} for key, val in urls.items()],
+    }))
+    return root
+
+
+def _subscription_admits(tmp_path, row, urls, store=None):
+    """(snapshot admits the price, helper admits the price) for one subscription fact."""
+    from tests.subscription_sources import admitted_subscription_facts
+
+    sid, facet = "sambanova/subscription/pro", "offering.subscription.price"
+    sub = subscription(facts=[row])
+    index = loaded(SnapshotInputs(subscriptions=[sub], sources=urls), source_cache=store)
+    helper = admitted_subscription_facts(_subscription_repo(tmp_path / "repo", urls),
+                                         {sid: sub}, TODAY, store=store)
+    served = {entry["id"]: entry["facts"] for entry in index.subscription_offerings()}
+    return facet in served[sid], facet in helper[sid]
+
+
+@pytest.mark.parametrize("damage", ["directory", "dangling_symlink", "top_level_list",
+                                    "top_level_null", "top_level_string"])
+def test_unreadable_marker_must_exclude_fact_and_evidence(tmp_path, damage):
+    inputs = snapshot_input(url=SOURCES["src-lab-docs"], outcome="verified")
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["snapshot_ref"] = "sha256:" + "b" * 64
+    inputs = replace(inputs, evidence=[row])
+    store = CopyStore(tmp_path / "cache")
+    for ref in [inputs.models[0]["facts"][0]["sources"][0]["snapshot_ref"],
+                row["sources"][0]["snapshot_ref"]]:
+        path = store.path(ref).with_suffix(".citation.json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if damage == "directory":
+            path.mkdir()
+        elif damage == "dangling_symlink":
+            path.symlink_to(tmp_path / "missing")
+        else:
+            path.write_text({"top_level_list": "[]", "top_level_null": "null",
+                             "top_level_string": '"x"'}[damage])
+    index = loaded(inputs, source_cache=store)
+    observed = (index.fact(*CONTEXT).state,
+                len(index.evidence("lab/alpha", "swe_bench_pro")),
+                rejected(inputs, store).get(CONTEXT))
+    assert observed == ("unknown", 0, "invalid_citation")
+    assert store.has(inputs.models[0]["facts"][0]["sources"][0]["snapshot_ref"]) is False
+
+
+@pytest.mark.parametrize("redirects", [None, {}, False, "", {"https://x.ai/": "bad"},
+                                       ["http://["], ["javascript:alert(1)"], [7]])
+def test_malformed_store_redirects_must_fail_closed_and_match_helper(tmp_path, redirects):
+    row = fact("offering", "sambanova/subscription/pro", "offering.subscription.price", 20,
+               source="src-cite", outcome=None)
+    store = CopyStore(tmp_path / "cache")
+    _write_marker(store, row["sources"][0]["snapshot_ref"], {
+        "snapshot_ref": row["sources"][0]["snapshot_ref"], "url": CITE_URL,
+        "resolved_urls": redirects,
+    })
+    assert _subscription_admits(tmp_path, row, {"src-cite": CITE_URL}, store) == (False, False)
+
+
+def test_well_formed_store_record_keeps_a_registered_cite_only_fact(tmp_path):
+    row = fact("offering", "sambanova/subscription/pro", "offering.subscription.price", 20,
+               source="src-cite", outcome=None)
+    store = CopyStore(tmp_path / "cache")
+    store.record_citation(row["sources"][0]["snapshot_ref"], source_url=CITE_URL,
+                          retrieved_at=FETCHED)
+    assert _subscription_admits(tmp_path, row, {"src-cite": CITE_URL}, store) == (True, True)
+
+
+@pytest.mark.parametrize("url", [
+    "https://evil.example\\@x.ai/", "https://x.ai:bad/", "https://x.ai:99999/",
+    "https://x.ai@evil.example/", "https://user:pw@x.ai/",
+])
+def test_non_cite_or_invalid_store_url_cannot_admit_unverified_fact(tmp_path, url):
+    inputs = snapshot_input(url=ORDINARY)
+    ref = inputs.models[0]["facts"][0]["sources"][0]["snapshot_ref"]
+    store = CopyStore(tmp_path / "cache")
+    _write_marker(store, ref, {"snapshot_ref": ref, "url": ORDINARY, "resolved_urls": [url],
+                               "retrieved_at": FETCHED.isoformat()})
+    assert loaded(inputs, source_cache=store).fact(*CONTEXT).state == "unknown"
+
+
+@pytest.mark.parametrize("url,host", [
+    ("https://evil.example\\@x.ai/", "evil.example"),
+    ("https://X.AI./", "x.ai"),
+    ("https://x.ai。/", "x.ai"),
+    ("https://ｘ.ai/", "x.ai"),
+    ("javascript://x.ai/", None),
+])
+def test_one_canonical_host_matches_http_url(url, host):
+    from pydantic import HttpUrl
+
+    from decision.retention import canonical_host
+
+    assert canonical_host(url) == host
+    if host is not None:
+        assert HttpUrl(url).host.rstrip(".") == host
+
+
+@pytest.mark.parametrize("url", ["https://x.ai:bad/", "https://x.ai:99999/",
+                                 "https://x.ai@evil.example/", "http://["])
+def test_invalid_http_urls_are_refused_not_guessed(url):
+    with pytest.raises(ValueError):
+        is_cite_only(url)
+
+
+def test_card_parse_error_matches_subscription_helper(tmp_path):
+    row = fact("offering", "sambanova/subscription/pro", "offering.subscription.price", 20,
+               source="src-pricing")
+    row["sources"][0]["resolved_urls"] = ["http://["]
+    assert _subscription_admits(tmp_path, row, {"src-pricing": SOURCES["src-pricing"]}) == (
+        False, False)
+
+
+@pytest.mark.parametrize("value", [None, {}, False, "", ["javascript:alert(1)"], [7]])
+def test_malformed_card_redirects_fail_closed_with_parity(tmp_path, value):
+    row = fact("offering", "sambanova/subscription/pro", "offering.subscription.price", 20,
+               source="src-pricing")
+    row["sources"][0]["resolved_urls"] = value
+    assert _subscription_admits(tmp_path, row, {"src-pricing": SOURCES["src-pricing"]}) == (
+        False, False)
+
+
+@pytest.mark.parametrize("url", [
+    "javascript://x.ai/%0aalert(1)", "JaVaScRiPt://x.ai/%0aalert(1)",
+    "data:text/html,<script>alert(1)</script>", " javascript:alert(1)",
+    "\tjavascript:alert(1)", "%6aavascript:alert(1)", "//evil.example/",
+])
+def test_score_source_renderer_refuses_unsafe_links(tmp_path, monkeypatch, url):
+    from pipeline.load import Catalogue, Model, load_models
+    from pipeline.render import model_page
+    from tests.test_cite_only_exports import BUILD, card_tree
+
+    front, path = card_tree(tmp_path, "https://example.org/models")
+    front["benchmarks"]["benchmark_source"] = url
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+    model = load_models(tmp_path)[0]
+    monkeypatch.setattr(Model, "scores_citation",
+                        property(lambda self: {"status": "cited", "url": url}))
+    page = model_page(model, BUILD, {}, Catalogue(BUILD.as_of))
+    notice = page.split("Cited, not machine-verified", 1)[1].split("</div>", 1)[0]
+    assert "<a" not in notice
+    assert "score source" in notice
+
+
+@pytest.mark.parametrize("dot", ["。", "．", "｡"])
+def test_unicode_terminal_dot_cannot_reopen_evidence(dot):
+    from pydantic import HttpUrl
+
+    url = "https://x.ai" + dot + "/"
+    assert str(HttpUrl(url)) == "https://x.ai./"
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["resolved_urls"] = [url]
+    inputs = replace(snapshot_input(url=SOURCES["src-lab-docs"]), evidence=[row])
+    assert loaded(inputs).evidence("lab/alpha", "swe_bench_pro") == ()
