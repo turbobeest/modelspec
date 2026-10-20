@@ -41,7 +41,7 @@ per breached target raises the alarm.
 | `offering-price-age` | Every lineup offering's prices were re-read within 7 days | 7 days | yes |
 | `plan-age` | Every subscription plan was re-read within 7 days, and its facts are verified | 7 days | yes |
 | `premier-speed-age` | Every lineup offering has a ModelSpec speed measurement that ended within 14 days | 14 days | no: in force when the MODEL-230 pilot and baseline have run |
-| `workflow-health` | The latest completed run on main of each coverage workflow succeeded, and is not overdue | per workflow | yes |
+| `workflow-health` | The latest completed run on main of each scheduled workflow, here and in modelspec-data, succeeded, and is not overdue | 1.5 × its cron cadence | yes |
 | `refresh-pr-merged` | The newest PR on each scheduled refresh branch merged within 3 days of opening | 3 days | yes |
 
 ### How each target is measured
@@ -69,11 +69,43 @@ per breached target raises the alarm.
   guaranteed facet with no fact at all.
 - **`offering-price-age`, `plan-age`.** One finding per offering or plan names
   how many of its facts are overdue and the oldest re-read date.
-- **`workflow-health`.** For each watched workflow in `targets.yaml`, the
-  newest completed run on main that was not cancelled. A failure, or a run
-  older than the workflow's `max_age_hours`, is a breach. For
-  `release-signals.yml`, a run whose every job was skipped is a breach, because
-  that means `SIGNALS_ENABLED` is off.
+- **`workflow-health`.** Every workflow with a `schedule:` trigger in
+  `turbobeest/modelspec` and `turbobeest/modelspec-data` (MODEL-421). The list
+  and each cadence come from the cron lines in the workflow files, so a new
+  scheduled job is watched the day it lands; nobody keeps a list. The cadence
+  is the longest gap between consecutive firings: 168 hours for a weekly job,
+  6 for `41 */6 * * *`. One REST call per workflow reads its ten newest runs on
+  main. It is red, with the run's URL, when:
+  - its newest completed run concluded anything but `success`, `skipped` or
+    `neutral`. A cancelled or timed-out run is red, never skipped over;
+  - or its newest run of any kind started more than 1.5 times its cadence ago
+    (`stale_factor`), or it has no run on main at all.
+
+  A `skipped` run is a job switched off by its own `if:`, which is a
+  production switch, not a failure. `deploy-sites.yml` has no schedule but is
+  watched under `unscheduled`, where only a red run counts.
+
+  This report, its log, its page and its issues are public, so
+  `modelspec-data` never appears in them by workflow name, run URL, date or
+  error text, and no raw `gh` stderr is kept for any repository. On GitHub the
+  private repository is checked in a separate job, `private-health`. It is the
+  only job holding `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
+  It reads the private workflow files and runs through the API with no
+  checkout, prints nothing, and uploads or caches nothing. It hands on only
+  pass or fail, as its job result. The report job has no private access. It
+  turns that word into one line: "scheduled workflow(s) red or unreadable", or
+  "could not read run status" when the check was skipped or cancelled. Run
+  locally with the token, the report reads the repository itself and shows
+  counts only, for example "3 of 6 scheduled workflow(s) red". A missing token
+  fails `private-health`, so it is never a pass.
+
+  The detail lives in the private repository. Its own `workflow-health.yml`
+  runs `python -m scripts.slo workflows --repo turbobeest/modelspec-data
+  --private-detail --issue`, which names each red workflow and its run, and
+  keeps one `workflow-health` issue there. That issue closes when everything is
+  green. `--private-detail` is refused in any other repository's run.
+  `python -m scripts.slo workflows` without it prints the public view and exits
+  1 when anything is red.
 - **`refresh-pr-merged`.** A refresh re-reads boards on a branch and resets
   `live-reading-age` only when its PR merges, because the report reads main.
   For each branch under `branches` in `targets.yaml` (today only

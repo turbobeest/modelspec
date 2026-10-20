@@ -1201,9 +1201,11 @@ def accuracy_collector(method: str) -> VerificationActor:
 
 
 def test_the_coverage_report_watches_the_nightly() -> None:
-    targets = yaml.safe_load(Path("scripts/slo/targets.yaml").read_text())
+    # MODEL-421: workflow-health watches every scheduled workflow from its cron.
+    from scripts.slo.schedule import scheduled_workflows
 
-    assert "accuracy-nightly.yml" in {row["file"] for row in targets["workflows"]}
+    found, _ = scheduled_workflows(Path(".github/workflows"))
+    assert {s.file: s.cadence_hours for s in found}["accuracy-nightly.yml"] == 24
 
 
 def test_reference_disagreement_names_the_engine_evidence_responsible() -> None:

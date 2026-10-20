@@ -486,7 +486,7 @@ def _facet(**over):
 
 def test_registry_schema_versions_are_independent_compatibility_gates():
     expected = {
-        "facets": 2,
+        "facets": 3,
         "providers": 1,
         "harnesses": 1,
         "domains": 1,
@@ -501,7 +501,7 @@ def test_registry_schema_versions_are_independent_compatibility_gates():
 
 
 @pytest.mark.parametrize(("name", "version", "expected"), [
-    ("facets", 1, 2),
+    ("facets", 2, 3),
     ("providers", 2, 1),
 ])
 def test_registry_loader_rejects_an_incompatible_file_version(

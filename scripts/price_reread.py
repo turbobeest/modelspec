@@ -12,14 +12,12 @@ Each fact ends in one status:
 - ``unchanged``: the recorded value verifies against the new copy. With
   ``--write`` that verification is logged with today's date, so the value's age
   restarts; the offering file is not touched.
-- ``changed``: it does not, and exactly one new value for the same subject
-  verifies against the new copy. With ``--write`` the fact takes that value and
-  the new copy, and the verification is logged. A price change is never merged
-  by a machine: the workflow opens a pull request for a person to review, on a
-  branch ``automerge.yml`` skips.
-- ``needs_review``: the value no longer verifies and the readers find no single
-  replacement (several candidates, a list or flag the job does not rewrite,
-  or free text read only from a whole-page region).
+- ``needs_review``: the value no longer verifies. The reason carries what the
+  readers propose instead, if anything: one new value, several, a list or flag,
+  or free text read only from a whole-page region. The job never writes a
+  changed value (MODEL-423): a reader can take a price from the wrong row, so a
+  person reviews every proposal and files it as a data change. ``changed`` is
+  kept in the report's counts and is always zero.
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
@@ -34,10 +32,8 @@ Each fact ends in one status:
 ``needs_review``, ``unreadable`` and ``unreachable`` are alerts. The job never
 guesses a value for them; a person re-collects.
 
-Two keys: the old value's collector is whoever filed it. A new value is filed
-by ``modelspec-price-reread`` and confirmed by the verifier's deterministic
-readers. Both keys are code from one repository, so the pull request's human
-reviewer is the check that the readers still read the page as intended.
+With ``--write`` the job records only reconfirmations of unchanged values, and
+the dated citations of cite-only sources; it never edits a value.
 
 The optional, read-only Firecrawl fallback has its own credit limits. Replays
 and ordinary re-reads never call a model or a paid scraper.
@@ -87,6 +83,7 @@ from decision.sources import (
     RenderedFetcher,
     fingerprint_bytes,
     load_sources,
+    rendered_preparation,
 )
 from decision.verify import (
     Claim,
@@ -124,6 +121,8 @@ REREAD = VerificationActor(
 DIFF_LINES = 80
 MAX_RENDERED_BODY_BYTES = 20 * 1024 * 1024
 MAX_RENDERED_MANIFEST_BYTES = 1024 * 1024
+#: Candidate replacement values checked per fact; see ``_propose``.
+MAX_PROPOSAL_CHECKS = 32
 
 
 class Status(StrEnum):
@@ -304,7 +303,7 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {}
     for url, ids in sorted(urls.items()):
-        result = _fetch_rendered(rendered, url, ids)
+        result = _fetch_rendered(rendered, url, ids, sources)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
         restricted = cite_only_origin(url, result.resolved_urls)
         if restricted:
@@ -414,13 +413,18 @@ class RenderedReplayFetcher:
 
 
 def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
-                    source_ids: Iterable[str]) -> FetchResult:
+                    source_ids: Iterable[str], sources: Mapping[str, Any] | None = None
+                    ) -> FetchResult:
     # A replay, or a fallback wrapped around one, serves captured bytes: only a live
     # browser takes a preparation.
     if isinstance(getattr(rendered, "primary", rendered), RenderedReplayFetcher):
         return rendered.fetch(url)
-    preparation = next((RENDERED_PREPARATIONS[sid] for sid in sorted(source_ids)
+    source_ids = sorted(set(source_ids))
+    preparation = next((RENDERED_PREPARATIONS[sid] for sid in source_ids
                         if sid in RENDERED_PREPARATIONS), None)
+    if preparation is None and sources is not None:
+        # Wait for the cited CSS regions a client-side app mounts late (MODEL-423).
+        preparation = rendered_preparation(source_ids, sources)
     return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
 
 
@@ -445,7 +449,7 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             if NORMALISERS[source.normaliser].content != "html":
                 fetched[sid] = SourceFetch(sid, url, "text_projection")
                 continue
-            result = _fetch_rendered(rendered, url, (sid,))
+            result = _fetch_rendered(rendered, url, (sid,), sources)
         else:
             result = fetcher.fetch(url)
         if result.outcome == "ok":
@@ -525,24 +529,63 @@ def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False
     return found
 
 
+@dataclass(frozen=True)
+class Proposal:
+    """What the readers propose in place of a value that no longer verifies."""
+
+    #: Values that verify for the claim's subject: none, one, or the first two found.
+    values: list[Any]
+    #: Whether the readers found any value at all for that subject.
+    read_any: bool
+    #: How many distinct candidate values the readers offered.
+    candidates: int
+
+    @property
+    def stopped_early(self) -> bool:
+        """Whether the search hit ``MAX_PROPOSAL_CHECKS`` and left candidates unchecked."""
+        return self.candidates > MAX_PROPOSAL_CHECKS
+
+    @property
+    def unique(self) -> bool:
+        """One verified value, and every other candidate was checked and failed."""
+        return len(self.values) == 1 and not self.stopped_early
+
+    @property
+    def cap_note(self) -> str:
+        """Says so in a review reason when the search stopped at the cap."""
+        return (f" (the search checked only the first {MAX_PROPOSAL_CHECKS} of "
+                f"{self.candidates} candidate values)" if self.stopped_early else "")
+
+
 def _propose(claim: Claim, regions: StoredRegions, today: date, *,
-             narrow_only: bool = False) -> tuple[list[Any], bool]:
-    """New values that verify for the claim's subject, and whether the readers found
-    any value at all for that subject."""
+             narrow_only: bool = False) -> Proposal:
+    """New values that verify for the claim's subject.
+
+    Each check is a full verification that reads the cited regions again. A coverage
+    quote offers every line, sentence and run of lines of its region as a candidate,
+    so checking all of them was quadratic in the page: on a long page one fact ran
+    past the job's 15-minute cap (MODEL-423). The callers only tell none, one and
+    several apart, so the search stops at the second value that verifies, and it
+    checks at most ``MAX_PROPOSAL_CHECKS`` candidates.
+    """
     own = _own_names(claim)
     readings = [r for r in _readings(claim, regions, narrow_only=narrow_only)
                 if r.subject and split_model_cell(r.subject)[0] in own and r.value is not None]
     candidates: list[Any] = []
+    seen: set[str] = set()
     for reading in readings:
         value = _candidate(claim.value, reading.value, reading.unit)
-        if value is not None and value_hash(value) not in {value_hash(c) for c in candidates}:
+        if value is not None and (digest := value_hash(value)) not in seen:
+            seen.add(digest)
             candidates.append(value)
-    confirmed = [
-        value for value in candidates
+    confirmed: list[Any] = []
+    for value in candidates[:MAX_PROPOSAL_CHECKS]:
         if verify(replace(claim, value=value, collector=REREAD), regions,
-                  deterministic_extractors(), today=today).outcome == "verified"
-    ]
-    return confirmed, bool(readings)
+                  deterministic_extractors(), today=today).outcome == "verified":
+            confirmed.append(value)
+            if len(confirmed) == 2:
+                break
+    return Proposal(confirmed, bool(readings), len(candidates))
 
 
 def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetch],
@@ -608,13 +651,20 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # a reader that cannot parse the page says nothing about it.
         # A verbatim string "verifies" as whatever a reader returns, so only a number
         # counts here.
-        confirmed = [v for v in (_propose(claim, regions, today)[0]
-                                 if result.outcome == "mismatch" else [])
+        llm_proposal = _propose(claim, regions, today) if result.outcome == "mismatch" else None
+        confirmed = [v for v in (llm_proposal.values if llm_proposal else [])
                      if isinstance(v, (int, float)) and not isinstance(v, bool)]
         if confirmed:
             return replace(base, status=Status.NEEDS_REVIEW,
                            reason=f"last verified by an LLM reader ({llm}); a deterministic "
-                           "reader now reads " + ", ".join(map(json.dumps, confirmed)))
+                           "reader now reads " + ", ".join(map(json.dumps, confirmed))
+                           + llm_proposal.cap_note)
+        if llm_proposal is not None and llm_proposal.stopped_early:
+            # Unchecked candidates may hold the new value: fail closed to review
+            # rather than report that the readers cannot read the page (MODEL-423).
+            return replace(base, status=Status.NEEDS_REVIEW,
+                           reason=f"last verified by an LLM reader ({llm}); no deterministic "
+                           "reading confirms a value" + llm_proposal.cap_note)
         return replace(base, reason=f"last verified by an LLM reader ({llm}); "
                        "the deterministic readers cannot read it")
     if result.outcome == "unreachable":
@@ -626,14 +676,14 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
 
-    confirmed, read_any = _propose(claim, regions, today)
+    proposal = _propose(claim, regions, today)
+    confirmed = proposal.values
     diff = _diff_text(result)
-    if not read_any:
+    if not proposal.read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
     if any(isinstance(value, str) for value in confirmed):
-        narrow, _ = _propose(claim, regions, today, narrow_only=True)
-        if not narrow:
+        if not _propose(claim, regions, today, narrow_only=True).values:
             page_regions = [
                 f"{source.source_id}#{region.id}"
                 for source in claim.sources
@@ -643,18 +693,28 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
             return replace(base, status=Status.NEEDS_REVIEW,
                            reason="a free-text value read from a whole-page region "
                            f"({', '.join(page_regions)}) is not proposed as a change; "
-                           "cite a narrower region")
-    if len(confirmed) == 1 and fact["state"] == "known":
-        return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
-    if len(confirmed) == 1:
+                           "cite a narrower region" + proposal.cap_note)
+    if proposal.unique and fact["state"] == "known":
+        # The job never writes a changed value: a person reviews the proposal and
+        # files it (MODEL-423). Only a value that still verifies is recorded.
+        return replace(base, status=Status.NEEDS_REVIEW, new_value=confirmed[0],
+                       reason=f"a reader now reads {json.dumps(confirmed[0])} in place of "
+                       f"{json.dumps(fact.get('value'))}; a person reviews and files every "
+                       f"change: {diff}")
+    if proposal.unique:
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
         return replace(base, status=Status.NEEDS_REVIEW,
                        reason=f"was {fact['state']}; a reader now reads "
                        f"{json.dumps(confirmed[0])}: {diff}")
-    why = ("several new values verify: " + ", ".join(map(json.dumps, confirmed))
-           if confirmed else "no single new value verifies")
-    return replace(base, status=Status.NEEDS_REVIEW, reason=f"{why}; {diff}")
+    if len(confirmed) > 1:
+        why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
+    elif confirmed:
+        why = f"a reader reads {json.dumps(confirmed[0])}, but it may not be the only value"
+    else:
+        why = "no single new value verifies"
+    return replace(base, status=Status.NEEDS_REVIEW,
+                   reason=f"{why}{proposal.cap_note}; {diff}")
 
 
 def _page_size(regions: StoredRegions, claim: Claim) -> str:
@@ -756,15 +816,6 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
         for fact in report.facts:
             if fact.status is Status.UNCHANGED and fact.verification is not None:
                 log.append(fact.verification)
-    if write and report.changes:
-        refused = apply_changes(root, report.changes, at=at, today=today, regions=regions)
-        report.facts = [
-            replace(f, status=Status.NEEDS_REVIEW,
-                    reason=f"read {f.new_value!r}, but the rewrite guard refused it: "
-                    f"{refused[f.fact_id]}")
-            if f.fact_id in refused else f
-            for f in report.facts
-        ]
     return report
 
 
@@ -803,46 +854,6 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
 
 
 # --- writing ------------------------------------------------------------------------------------
-
-
-def apply_changes(root: Path, changes: Sequence[FactResult], *, at: datetime, today: date,
-                  regions: StoredRegions) -> dict[str, str]:
-    """Rewrite each changed fact in place, then file and verify its new value.
-
-    Returns the changes the guard refused, fact ID -> why; nothing is written for
-    those, and the caller reports them as alerts.
-    """
-    refused: dict[str, str] = {}
-    applied: list[FactResult] = []
-    by_file: dict[str, list[FactResult]] = {}
-    for change in changes:
-        by_file.setdefault(change.file, []).append(change)
-    for rel, file_changes in by_file.items():
-        path = root / rel
-        text = path.read_text(encoding="utf-8")
-        for change in file_changes:
-            try:
-                after = rewrite_fact(text, change)
-                check_value_only(text, after, [change])
-            except ValueError as exc:
-                refused[change.fact_id] = str(exc)
-                continue
-            text = after
-            applied.append(change)
-        path.write_text(text, encoding="utf-8")
-
-    queue = Queue(root / "verification")
-    log = VerificationLog(root / "verification")
-    for change in applied:
-        assert change.claim is not None
-        claim = replace(change.claim, value=change.new_value, collector=REREAD)
-        queue.file(claim, at=at)
-        result = verify(claim, regions, deterministic_extractors(), today=today)
-        if result.outcome != "verified" or result.verification is None:
-            raise RuntimeError(f"{change.fact_id}: the new value did not verify on write")
-        log.append(result.verification)
-        queue.checked(result, at=at)
-    return refused
 
 
 def _dump_value(value: Any) -> str:

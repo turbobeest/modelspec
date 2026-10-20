@@ -69,6 +69,7 @@ import os
 import re
 import subprocess
 import urllib.request
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
@@ -96,7 +97,8 @@ from decision.model import (
     VerificationTarget,
     evidence_verification_value,
     fact_verification_value,
-    value_hash,
+    unordered_facet,
+    verification_value_hash,
 )
 from decision.normalise import (
     NORMALISERS,
@@ -2133,6 +2135,10 @@ class ModelPageExtractor:
         return len(lines) >= 3
 
     def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field.startswith("offering.price.") \
+                and (table := MetricPriceTable.read(text)) is not None:
+            # A page with a Metric | Price table is read from that table alone.
+            return [table.reading(claim)]
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         names = {normalise_name(name): name for name in claim.names}
 
@@ -2250,6 +2256,236 @@ class ModelPageExtractor:
             if any(phrase in corpus for phrase in phrases):
                 readings.append(Reading(subject=subject, value="supported"))
         return readings or [Reading(subject=subject, value=None)]
+
+
+#: A Metric | Price row label, as normalised, and the price kind it states.
+_METRIC_KINDS = {
+    "input": "input", "cached input": "cached_input", "input cached": "cached_input",
+    "output": "output", "batch input": "batch_input", "batch output": "batch_output",
+}
+#: Words in a section heading that make its tables something other than the
+#: standard, cached or batch token prices of the page's model.
+_OTHER_TIER = re.compile(
+    r"(?i)fine[- ]?tun|training|flex|priority|fast|long[- ]context|regional|audio|image|"
+    r"realtime|video|embedding|search|tool")
+_BATCH_TIER = re.compile(r"(?i)(?<!non[- ])(?<!non)\bbatch\b")
+_MODEL_DECLARATION = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?(?:model id|default snapshot)\s*:\s*`?([A-Za-z0-9._:/-]+)`?\s*$")
+_HALF_BATCH = re.compile(r"(?i)\bbatch(?: and flex)? (?:are |is )?priced at 50%")
+#: A cell holding an amount of money; a pipe row with none is a table header.
+_AMOUNT = re.compile(r"(?i)[$€£¥]\s*\d|\d\s*(?:usd|eur)\b")
+_SEPARATOR = re.compile(r"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")
+#: Words a section heading may use without naming a model. A heading with any
+#: other word may name a model, so a table under it is not the declared model's.
+_SECTION_WORDS = frozenset(
+    "pricing price prices text token tokens standard non batch cached caching cache prompt "
+    "rate rates cost costs fee fees billing usage per 1m 1k api the and of model details "
+    "fine tuning training flex priority fast long context regional audio image images "
+    "realtime video embedding embeddings search tool tools processing mode modes tier tiers "
+    "limits".split())
+#: A parenthetical after "Price" that names the unit of a standard price.
+_PRICE_UNIT = re.compile(r"(?i)\b(?:per|tokens?|mtok|ktok|million|thousand|units?|1m|1k)\b")
+
+
+def _price_column_tier(header: str) -> str | None:
+    """The tier a ``Price`` column states, ``"ambiguous"``, or None for another column.
+
+    ``Price`` and ``Price (per 1M tokens)`` are the standard price. ``Price (batch)``,
+    ``Batch price`` and the like are tier columns, never the standard price.
+    """
+    text = header.replace("*", "").replace("`", "").strip().lower()
+    words = set(normalise_name(text).split())
+    if "price" not in words and "prices" not in words:
+        return None
+    if words & {"batch"} and not re.search(r"non[- ]?batch", text):
+        return "batch"
+    if any(word.startswith("cach") for word in words):
+        return "cached"
+    if text == "price":
+        return "standard"
+    if (unit := re.fullmatch(r"price\s*\(([^)]*)\)", text)) and _PRICE_UNIT.search(unit.group(1)):
+        return "standard"
+    return "ambiguous"
+
+
+def _cell(text: str) -> str:
+    return normalise_name(text.replace("*", "").replace("`", ""))
+
+
+@dataclass(frozen=True)
+class _PriceSection:
+    """One ``Metric | Price`` table: its heading path, tier and stated amounts."""
+
+    headings: tuple[str, ...]
+    tier: str  # "standard", "batch", "other" or "ambiguous"
+    found: Mapping[str, tuple[str, ...]]
+
+
+@dataclass(frozen=True)
+class MetricPriceTable:
+    """The token prices a model page states in ``Metric | Price`` tables.
+
+    OpenAI's Markdown model pages state them as ``| Metric | Price | Unit |`` rows
+    (MODEL-423). The parse is strict, and it reads the normalised text the
+    verifier sees, which has no blank lines.
+
+    - A table ends at a heading or any other line without a pipe, at a
+      header-shaped row (no amount of money, or a ``|---|`` rule after its first
+      row), and where the column count changes.
+    - A table counts for a claim only when a heading above it names the claim's
+      model, every other heading above it is a section heading (``Pricing``,
+      ``Text tokens``), and the page declares exactly that one model ID. A
+      heading that may name another model reads nothing.
+    - The standard price column is ``Price`` or ``Price (<unit>)``. ``Price
+      (batch)`` and ``Batch price`` are batch columns, ``Price (cached)`` a cached
+      column. Any other price column, or two of a kind, reads nothing.
+    - A standard section's table states standard prices, a batch section's table
+      states batch prices, and cached, fine-tuning and other sections are not
+      read. In a batch section a ``Price (batch)`` column is the batch price, and
+      a plain ``Price`` column is one only when it is the only price column. A kind
+      stated with two amounts, or two standard tables, reads nothing.
+    """
+
+    sections: tuple[_PriceSection, ...]
+    #: Every model ID the page declares.
+    models: frozenset[str]
+    half_batch: bool
+
+    @classmethod
+    def read(cls, text: str) -> MetricPriceTable | None:
+        """The page's price tables, or None when it has no Metric | Price table."""
+        sections: list[_PriceSection] = []
+        headings: list[tuple[int, str]] = []
+        table: list[list[str]] = []
+
+        def close() -> None:
+            if not table:
+                return
+            table_header = list(table[0])
+            header = [_cell(cell) for cell in table_header]
+            rows = list(table[1:])
+            table.clear()
+            columns: dict[str, list[int]] = defaultdict(list)
+            for i, cell in enumerate(table_header):
+                if (column_tier := _price_column_tier(cell)) is not None:
+                    columns[column_tier].append(i)
+            if "metric" not in header or not columns:
+                return
+            path = " ".join(h for _, h in headings)
+            tier = ("other" if _OTHER_TIER.search(path) or re.search(r"(?i)cach", path)
+                    else "batch" if _BATCH_TIER.search(path) else "standard")
+            if columns["ambiguous"] or any(len(columns[kind]) > 1
+                                           for kind in ("standard", "batch", "cached")):
+                tier = "ambiguous"  # which column states which price is not clear
+            elif tier == "standard" and not columns["standard"]:
+                tier = "ambiguous"
+            elif tier == "batch" and (columns["cached"]
+                                      or not (columns["standard"] or columns["batch"])):
+                tier = "ambiguous"
+            metric_col = header.index("metric")
+            price_col = columns["standard"][0] if columns["standard"] else None
+            batch_col = columns["batch"][0] if columns["batch"] else None
+            cached_col = columns["cached"][0] if columns["cached"] else None
+            found: dict[str, list[str]] = defaultdict(list)
+            for row in rows:
+                cells = [cell.replace("*", "").strip() for cell in row]
+                kind = _METRIC_KINDS.get(_cell(cells[metric_col]))
+                if kind is None or tier in {"other", "ambiguous"}:
+                    continue
+                if tier == "batch":
+                    # In a batch section a "Price (batch)" column is the batch price,
+                    # and a plain Price column is one only when it is the only price
+                    # column. Both, stating different amounts, read nothing (MODEL-423).
+                    kind = {"input": "batch_input", "output": "batch_output"}.get(kind, kind)
+                    if kind in {"batch_input", "batch_output"}:
+                        found[kind] += [cells[col] for col in (batch_col, price_col)
+                                        if col is not None and cells[col]]
+                    continue
+                found[kind].append(cells[price_col])
+                if batch_col is not None and kind in {"input", "output"} and cells[batch_col]:
+                    found[f"batch_{kind}"].append(cells[batch_col])
+                if cached_col is not None and kind == "input" and cells[cached_col] \
+                        and tier == "standard":
+                    found["cached_input"].append(cells[cached_col])
+            sections.append(_PriceSection(
+                tuple(h for _, h in headings), tier,
+                {kind: tuple(values) for kind, values in found.items()}))
+
+        for line in text.splitlines():
+            stripped = line.strip()
+            if "|" not in stripped:
+                close()
+                if heading := re.match(r"^(#{1,6})\s+(.*)$", stripped):
+                    level = len(heading.group(1))
+                    headings = [(lvl, h) for lvl, h in headings if lvl < level]
+                    headings.append((level, heading.group(2)))
+                continue
+            if _SEPARATOR.match(stripped):
+                if len(table) != 1:  # a rule under a header belongs to it
+                    close()
+                continue
+            cells = stripped.strip("|").split("|")
+            if table and (len(cells) != len(table[0]) or not _AMOUNT.search(stripped)):
+                close()  # a new column count or a header-shaped row starts a table
+            table.append(cells)
+        close()
+        if not sections:
+            return None
+        return cls(tuple(sections), frozenset(m.lower() for m in _MODEL_DECLARATION.findall(text)),
+                    bool(_HALF_BATCH.search(text)))
+
+    def reading(self, claim: Claim) -> Reading:
+        """The page's price for the claim, or an empty reading when it states none."""
+        names = {normalise_name(name): name for name in claim.names}
+        declared = {normalise_name(model) for model in self.models}
+        name = names.get(next(iter(declared))) if len(declared) == 1 else None
+        own = [section for section in self.sections
+               if name is not None and self._under(section, names)]
+        prices = self._prices(own)
+        value = prices.get(claim.field.removeprefix("offering.price."))
+        return Reading(subject=name or claim.names[0], value=value, unit=claim.unit)
+
+    @staticmethod
+    def _under(section: _PriceSection, names: Mapping[str, str]) -> bool:
+        """Whether the table sits under the claim model's own heading.
+
+        Every heading above it must either name the claim's model or be a section
+        heading (``Pricing``, ``Text tokens``). Any other heading, above or below
+        the model's own, may name another model, so the table is not read.
+        """
+        named = False
+        for heading in section.headings:
+            normal = normalise_name(heading.replace("*", "").replace("`", ""))
+            if normal in names:
+                named = True
+            elif not set(normal.split()) <= _SECTION_WORDS:
+                return False
+        return named
+
+    def _prices(self, sections: list[_PriceSection]) -> dict[str, str]:
+        if any(section.tier == "ambiguous" for section in sections) \
+                or sum(section.tier == "standard" for section in sections) != 1:
+            return {}
+        found: dict[str, set[str]] = defaultdict(set)
+        for section in sections:
+            for kind, values in section.found.items():
+                found[kind].update(values)
+        for kind in ("input", "output"):
+            if self.half_batch and len(found[kind]) == 1:
+                base = parse_quantity(next(iter(found[kind])), "usd_per_1m_tokens")
+                if base is not None:
+                    found[f"batch_{kind}"].add(f"${_decimal_text(base.number / 2)}")
+        return {kind: next(iter(values)) for kind, values in found.items()
+                if len({_price_key(v) for v in values}) == 1}
+
+
+def _price_key(text: str) -> str:
+    quantity = parse_quantity(text, "usd_per_1m_tokens")
+    return text if quantity is None else repr(quantity.number)
+
+
+def _decimal_text(number: float) -> str:
+    return f"{number:.10f}".rstrip("0").rstrip(".")
 
 
 def _model_spec_subject(claim: Claim, text: str) -> str | None:
@@ -5760,7 +5996,11 @@ def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: d
         target=VerificationTarget(
             kind=claim.target.kind,
             id=claim.target.id,
-            value_hash=value_hash(claim_verification_value(claim)),
+            value_hash=verification_value_hash(
+                claim_verification_value(claim),
+                unordered=claim.target.kind == "fact"
+                and unordered_facet(_facet_or_none(claim.field)),
+            ),
         ),
         collector=claim.collector,
         verifier=actor,
