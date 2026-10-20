@@ -367,6 +367,9 @@ class SnapshotInputs:
     #: The verification log. The latest verification of a target wins, over an
     #: inline one too.
     verifications: Sequence[Any] = ()
+    #: Append-only records that supersede a cite-only fact's stale mismatch
+    #: (MODEL-415, ``decision.supersession``). Empty: nothing is superseded.
+    supersessions: Sequence[Any] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -769,6 +772,13 @@ class _Compiler:
         self.logged_hashes: dict[tuple[str, str], list[str]] = {}
         for log_kind, log_id, log_hash in self.log:
             self.logged_hashes.setdefault((log_kind, log_id), []).append(log_hash)
+        #: Supersession records by (fact id, value hash). Every row is validated
+        #: here, so a malformed store fails the build even when no fact needs it.
+        #: Only a compile with records imports ``decision.supersession``; the
+        #: Worker never compiles, so the module stays unimported there.
+        self._supersessions = self._supersession_index(inputs.supersessions)
+        #: record ID -> the mismatches a supersession retired, for provenance.
+        self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
         self.subjects: dict[str, dict[str, Any]] = {}
         #: subject id -> facet -> [state, value, source ids]
@@ -861,6 +871,8 @@ class _Compiler:
             kind, record.get("id"), record.get("verification"), value, record.get("facet"))
         if citation is not None:
             retained.update(verification=None, citation=citation)
+            if rid in self.superseded:
+                retained["superseded_mismatches"] = self.superseded[rid]
         if rid in self.records and self.records[rid] != retained:
             raise SnapshotBuildError(f"duplicate record ID {rid}")
         self.records[rid] = retained
@@ -873,15 +885,24 @@ class _Compiler:
 
     def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
                extra_urls: Iterable[Any] = (), benchmark: Any = None,
-               citation: dict | None = None, facet: Any = None) -> str | None:
-        """Why a record stays out, or ``None`` when it enters."""
+               citation: dict | None = None, facet: Any = None,
+               refs: Sequence[Any] = ()) -> str | None:
+        """Why a record stays out, or ``None`` when it enters.
+
+        A cited fact's mismatch can be superseded (MODEL-415): see
+        ``_supersede``. The fact then enters as cited, never as verified.
+        """
         urls = [self.sources[s] for s in source_ids if s in self.sources]
         if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
                                        or (benchmark is not None
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
         outcome = self._outcome(kind, rid, inline, value, facet)
-        if citation is not None and outcome in {"mismatch", "unreachable"}:
+        if kind == "fact" and citation is not None and outcome == "mismatch":
+            refused = self._supersede(rid, inline, value, refs, facet)
+            if refused is not None:
+                return refused
+        elif citation is not None and outcome in {"mismatch", "unreachable"}:
             return f"quarantined ({outcome})"
         if citation is None and outcome != "verified":
             return f"quarantined ({outcome})"
@@ -894,6 +915,47 @@ class _Compiler:
 
             if any(is_cite_only(url) for url in [*urls, *extra_urls]):
                 return "quarantined (cited)"
+        return None
+
+    @staticmethod
+    def _supersession_index(rows: Sequence[Any]) -> dict:
+        if not rows:
+            return {}
+        from decision import supersession
+
+        try:
+            return supersession.index(rows)
+        except supersession.StoreError as exc:
+            raise SnapshotBuildError(str(exc)) from None
+
+    def _supersede(self, rid: Any, inline: Any, value: Any, refs: Sequence[Any],
+                   facet: Any = None) -> str | None:
+        """Why a cited fact's winning mismatch still holds, or ``None`` once superseded.
+
+        Only an append-only record naming this mismatch, a different region the
+        fact now cites, and a newer cite-only read of it supersedes. See
+        ``docs/design/cite-only-supersession.md``.
+        """
+        if not self._supersessions:
+            return "quarantined (mismatch)"
+        from decision import supersession
+
+        # A record names the winning mismatch row by that row's own value hash.
+        # For an unordered facet the row may bind another order of the same
+        # members (MODEL-416); _verification has already matched it to value.
+        winner = self._verification("fact", rid, inline, value, facet)
+        expected = str(((winner or {}).get("target") or {}).get("value_hash")
+                       or value_hash(value))
+        candidates = self._supersessions.get((str(rid), expected), ())
+        entry, refused = supersession.supersede(
+            candidates, winner, expected,
+            [_as_dict(ref) for ref in refs], self.sources)
+        if entry is None:
+            if refused:
+                logger.warning("%s: mismatch supersession refused: %s", rid, refused)
+                return f"quarantined (mismatch; supersession refused: {refused})"
+            return "quarantined (mismatch)"
+        self.superseded[str(rid)] = [entry]
         return None
 
     def _exclude(self, sid: str | None, reason: str) -> None:
@@ -959,6 +1021,7 @@ class _Compiler:
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
                     fact_verification_value(f), source_ids, citation=citation, facet=facet_id,
+                    refs=f.get("sources") or (),
                     extra_urls=[url for ref in f.get("sources") or ()
                                 for url in ref.get("resolved_urls") or ()])
             )
@@ -1755,6 +1818,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Sources: canonical ``registry/sources.yaml``; see ``verification/README.md``.
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
+    * Mismatch supersessions: ``verification/supersessions.jsonl`` (MODEL-415).
     * Hardware: dated vendor memory specifications in ``hardware/*.yaml``.
     """
     from pipeline.load import load_benchmarks, load_models
@@ -1838,6 +1902,12 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for line in verification_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 verifications.append(json.loads(line))
+    supersessions = []
+    supersession_store = root / "verification" / "supersessions.jsonl"
+    if supersession_store.is_file():
+        from decision.supersession import read_store
+
+        supersessions = read_store(supersession_store)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -1851,6 +1921,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           benchmark_domains=domains, benchmark_metadata=metadata,
                           benchmark_refinements=refinements,
                           verifications=verifications,
+                          supersessions=supersessions,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

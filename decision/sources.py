@@ -51,6 +51,7 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
+from decision.perplexity_faq import prepare_pro_faq
 
 
 class FetchMode(StrEnum):
@@ -352,7 +353,10 @@ def _prepare_aws_pricing(page: Any, timeout: float) -> None:
 
 
 # Preparations are engine code, never executable instructions from the registry.
-RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {"aws-pricing": _prepare_aws_pricing}
+RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {
+    "aws-pricing": _prepare_aws_pricing,
+    "model-368-perplexity-pro-faq": prepare_pro_faq,
+}
 
 
 class RenderedFetcher:
