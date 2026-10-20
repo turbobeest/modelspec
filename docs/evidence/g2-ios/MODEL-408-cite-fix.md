@@ -300,3 +300,32 @@ Verification (exit codes checked directly):
 - Focused tests exit 0 with 1,013 passed.
 - The full suite under the shared lock exits 0 with 12,615 passed and
   9 skipped.
+
+## Final merge prep (REV-822-r3)
+
+Merged `origin/main` (with #843, e64f9f20) into the branch with no conflicts.
+The PR head now includes main's cite-only compaction.
+
+`admitted_subscription_facts` now adds `subject` and `id` to each raw fact
+before it validates the fact, the same way `collect_repo` does. Before this
+change, the helper rejected a cite-only fact that had no `id` or `subject`,
+but the snapshot admitted it. A new test passes such a raw fact through the
+helper and through `collect_repo` + `build_snapshot`. It fails on the old
+helper (exit 1) and passes on the new one.
+
+Verification (exit codes checked directly):
+
+- Focused tests, including the worker-memory and compaction tests: exit 0,
+  408 passed.
+- The full suite under the shared lock (`-n 4 --dist loadfile`): exit 0,
+  12,638 passed, 9 skipped.
+- Private-CI composition with modelspec-data PR #96's head (85fb6db6): the
+  linked-data guard exits 0. The broader data tests exit 0 with 983 passed and
+  18 skipped.
+- Deploy-style memory probe: `vendor.py --data-dir` on #96's head with a
+  throwaway key, then `measure_memory.cjs` with Pyodide 0.28.3 on Node
+  22.22.3. Steady memory was 108.95, 104.56, 103.65 and 104.63 MiB. The first
+  run had a cold wheel cache. Peak wasm memory was 59.875 MiB in every run,
+  and every run exited 0. The same engine with data main (5d797a6) as a
+  control measured 104.59 MiB steady and 59.875 MiB peak wasm, so #96 adds no
+  measurable memory.
