@@ -13,10 +13,11 @@ Targets and thresholds: ``scripts/slo/targets.yaml``. Prose:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -43,10 +44,45 @@ class Target:
 
 
 @dataclass(frozen=True)
+class WorkflowRepo:
+    """A repository whose scheduled workflows ``workflow-health`` watches.
+
+    ``dir`` is its checkout, relative to this repository's root; the workflow
+    list and cadences come from the files there. Without one, the files are
+    read through the contents API. ``token_env`` names the
+    environment variable holding a token that can read its Actions runs; none
+    means the job's own token. A repository that is not ``public`` appears in
+    this public report only as counts: never a workflow name, run URL, date or
+    error text (MODEL-421).
+    """
+
+    repo: str
+    dir: str | None = None
+    token_env: str | None = None
+    public: bool = True
+    #: The environment variable carrying the pass/fail result of a separate job
+    #: that checked this repository with its token. When set, the report reads
+    #: that one word instead of the repository (MODEL-421): the job that holds
+    #: the private token writes nothing public, so pass or fail is all it hands on.
+    result_env: str | None = None
+
+    @property
+    def name(self) -> str:
+        return self.repo.split("/")[-1]
+
+
+@dataclass(frozen=True)
 class WatchedWorkflow:
+    """One workflow and how old its newest run may be (none: no schedule)."""
+
+    repo: str
     file: str
-    max_age_hours: float | None
-    skipped_ok: bool
+    cadence_hours: float | None = None
+    max_age_hours: float | None = None
+
+    @property
+    def key(self) -> str:
+        return f"{self.repo.split('/')[-1]}/{self.file}"
 
 
 @dataclass(frozen=True)
@@ -57,7 +93,13 @@ class Config:
     issue_label: str
     targets: tuple[Target, ...]
     domain_map: Mapping[str, tuple[str, ...]]
-    workflows: tuple[WatchedWorkflow, ...]
+    workflow_repos: tuple[WorkflowRepo, ...]
+    stale_factor: float
+    unscheduled: tuple[WatchedWorkflow, ...]
+
+    @property
+    def private_repos(self) -> frozenset[str]:
+        return frozenset(r.repo for r in self.workflow_repos if not r.public)
 
     def target(self, target_id: str) -> Target:
         for t in self.targets:
@@ -80,11 +122,14 @@ def load_config(path: Path = TARGETS_PATH) -> Config:
         issue_label=str(data["issue_label"]),
         targets=tuple(targets),
         domain_map={k: tuple(v) for k, v in data["domain_map"].items()},
-        workflows=tuple(
-            WatchedWorkflow(file=w["file"], max_age_hours=w.get("max_age_hours"),
-                            skipped_ok=bool(w.get("skipped_ok", True)))
-            for w in data["workflows"]
-        ),
+        workflow_repos=tuple(WorkflowRepo(repo=r["repo"], dir=r.get("dir"),
+                                          token_env=r.get("token_env"),
+                                          public=bool(r["public"]),
+                                          result_env=r.get("result_env"))
+                             for r in data["workflow_health"]["repos"]),
+        stale_factor=float(data["workflow_health"]["stale_factor"]),
+        unscheduled=tuple(WatchedWorkflow(repo=w["repo"], file=w["file"])
+                          for w in data["workflow_health"].get("unscheduled") or ()),
     )
 
 
@@ -450,40 +495,178 @@ def _when(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+#: Conclusions that leave a workflow green. ``skipped`` is a job switched off by
+#: its own ``if:`` (a production switch), not a failure. Everything else,
+#: ``cancelled`` and ``timed_out`` included, is red.
+GREEN = frozenset({"success", "skipped", "neutral"})
+
+
+#: What a run listing that failed reads as. Raw ``gh`` stderr and exception
+#: text never reach the report: this job's output is public (MODEL-421).
+UNREADABLE = "could not read run status"
+
+#: A failure to list one repository's workflows: (repository, message).
+ListingError = tuple[str, str]
+
+
+def fetch_workflow_files(repo: str, gh: Gh) -> dict[str, str] | None:
+    """A repository's workflow files on main, through the contents API.
+
+    One call lists ``.github/workflows`` and one reads each YAML file. Nothing
+    is checked out, so no commit subject of a private repository reaches this
+    job's public log. ``None`` when any call fails; the stderr is dropped.
+    """
+    try:
+        listing = json.loads(gh(["api", f"repos/{repo}/contents/.github/workflows?ref=main"]))
+        names = [e["path"] for e in listing if e.get("type") == "file"
+                 and str(e.get("name", "")).endswith((".yml", ".yaml"))]
+        return {path.rsplit("/", 1)[-1]: gh(["api", "-H", "Accept: application/vnd.github.raw",
+                                             f"repos/{repo}/contents/{path}?ref=main"])
+                for path in names}
+    except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+        return None
+
+
+def discover_workflows(root: Path, config: Config,
+                       dirs: Mapping[str, Path] | None = None,
+                       skip: str | None = None,
+                       clients: Mapping[str, Gh | str] | None = None,
+                       ) -> tuple[tuple[WatchedWorkflow, ...], tuple[ListingError, ...]]:
+    """Every scheduled workflow in the watched repositories, from its cron lines.
+
+    Each workflow may go ``stale_factor`` times its cadence without a run. A
+    repository with a ``dir`` is read from that checkout (``dirs`` overrides
+    it); one without is read through the API with its client. A repository
+    whose files cannot be read is an error, never an empty list. ``skip`` is a
+    workflow key to leave out: the run measuring the others, which cannot
+    judge itself.
+    """
+    from scripts.slo.schedule import scheduled_in, workflow_files
+
+    watched: list[WatchedWorkflow] = []
+    errors: list[ListingError] = []
+    for r in config.workflow_repos:
+        base = (dirs or {}).get(r.repo) or (root / r.dir if r.dir else None)
+        files: dict[str, str] | None = None
+        if base is not None:
+            workflow_dir = base / ".github" / "workflows"
+            files = workflow_files(workflow_dir) if workflow_dir.is_dir() else None
+        else:
+            gh = (clients or {}).get(r.repo)
+            files = fetch_workflow_files(r.repo, gh) if callable(gh) else None
+        if files is None:
+            errors.append((r.repo, "its workflow files could not be read, so its scheduled "
+                                   "workflows cannot be listed"))
+            continue
+        found, bad = scheduled_in(files)
+        errors.extend((r.repo, e) for e in bad)
+        if not found:
+            errors.append((r.repo, "no scheduled workflow found"))
+        watched.extend(WatchedWorkflow(r.repo, s.file, s.cadence_hours,
+                                       s.cadence_hours * config.stale_factor)
+                       for s in found)
+    have = {w.key for w in watched}
+    watched.extend(w for w in config.unscheduled if w.key not in have)
+    return tuple(w for w in watched if w.key != skip), tuple(errors)
+
+
+def _hours(hours: float) -> str:
+    return f"{hours / 24:g} d" if hours >= 48 and hours % 24 == 0 else f"{hours:.0f} h"
+
+
+def _red(w: WatchedWorkflow, runs: Sequence[Mapping[str, Any]], now: datetime) -> list[str]:
+    """Why one workflow is red, naming each run; empty when it is green."""
+    why = []
+    newest_first = sorted(runs, key=lambda r: r["created_at"], reverse=True)
+    done = [r for r in newest_first if r.get("status") == "completed"]
+    if done and done[0].get("conclusion") not in GREEN:
+        latest = done[0]
+        streak = next((i for i, r in enumerate(done) if r.get("conclusion") in GREEN),
+                      len(done))
+        why.append(f"latest run concluded {latest.get('conclusion')} on "
+                   f"{latest['created_at']}; {streak} red run(s) in a row: "
+                   f"{latest.get('html_url', '')}")
+    if w.max_age_hours is None:
+        if not newest_first:
+            why.append("no run on main")
+        return why
+    cadence = (f"scheduled every {_hours(w.cadence_hours or 0)}, "
+               f"limit {_hours(w.max_age_hours)}")
+    if not newest_first:
+        return [*why, f"no run on main; {cadence}"]
+    newest = newest_first[0]
+    hours = (now - _when(newest["created_at"])).total_seconds() / 3600
+    if hours > w.max_age_hours:
+        why.append(f"has not run for {hours:.0f} h; {cadence}; "
+                   f"last run: {newest.get('html_url', '')}")
+    return why
+
+
 def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
-                    watched: Sequence[WatchedWorkflow], now: datetime) -> Check:
-    """The latest completed, not-cancelled run of each watched workflow on main."""
-    findings, errors, measured = [], [], 0
+                    watched: Sequence[WatchedWorkflow], now: datetime,
+                    errors: Sequence[ListingError] = (),
+                    private: frozenset[str] = frozenset(),
+                    results: Mapping[str, str] | None = None) -> Check:
+    """Each watched workflow's newest run on main: red when it failed or is overdue.
+
+    The newest completed run must have concluded green; a cancelled or
+    timed-out run is red. A scheduled workflow is overdue when its newest run
+    of any kind, finished or not, started more than ``max_age_hours`` ago.
+    Each finding names the run and links to it.
+
+    A repository in ``private`` is reported only as counts: how many of its
+    scheduled workflows are red and how many could not be read. The names,
+    runs and reasons go to that repository's own workflow-health issue
+    (``python -m scripts.slo workflows --private-detail``), never here.
+
+    ``results`` maps a private repository to the result of the separate job
+    that checked it (``success``, ``failure``, ``cancelled``, ``skipped``):
+    pass, red, or not measured.
+    """
+    findings: list[Finding] = []
+    out: list[str] = [f"{repo}: {msg}" for repo, msg in errors if repo not in private]
+    measured = 0
+    total: dict[str, int] = defaultdict(int)
+    red: dict[str, int] = defaultdict(int)
+    unread: dict[str, int] = defaultdict(int)
     for w in watched:
-        got = runs.get(w.file)
+        total[w.repo] += 1
+        got = runs.get(w.key)
         if got is None or isinstance(got, str):
-            errors.append(f"{w.file}: runs could not be read: {got or 'not fetched'}")
+            if w.repo in private:
+                unread[w.repo] += 1
+            else:
+                out.append(f"{w.key}: {got or 'runs not fetched'}")
             continue
         measured += 1
-        done = sorted((r for r in got if r.get("status") == "completed"
-                       and r.get("conclusion") != "cancelled"),
-                      key=lambda r: r["created_at"], reverse=True)
-        if not done:
-            if not any(r.get("status") in ("queued", "in_progress") for r in got):
-                findings.append(Finding(w.file, "no completed run on main"))
-            continue
-        latest = done[0]
-        conclusion = latest.get("conclusion")
-        where = f"{latest['created_at']} {latest.get('html_url', '')}".strip()
-        if conclusion == "skipped" and not w.skipped_ok:
-            findings.append(Finding(w.file, f"latest run skipped every job (pipeline "
-                                            f"switched off): {where}"))
-        elif conclusion not in ("success", "skipped"):
-            streak = next((i for i, r in enumerate(done) if r.get("conclusion") == "success"),
-                          len(done))
-            findings.append(Finding(w.file, f"latest run concluded {conclusion}; "
-                                            f"{streak} failing run(s) in a row: {where}"))
-        if w.max_age_hours is not None:
-            hours = (now - _when(latest["created_at"])).total_seconds() / 3600
-            if hours > w.max_age_hours:
-                findings.append(Finding(w.file, f"latest completed run is {hours:.0f} h old, "
-                                                f"limit {w.max_age_hours:.0f} h"))
-    return Check(measured, tuple(findings), tuple(errors))
+        why = _red(w, got, now)
+        if w.repo in private:
+            red[w.repo] += bool(why)
+        else:
+            findings.extend(Finding(w.key, detail) for detail in why)
+    unlisted = {repo for repo, _ in errors if repo in private}
+    for repo in sorted(private & (set(total) | unlisted)):
+        name, n = repo.split("/")[-1], total[repo]
+        if repo in unlisted:
+            out.append(f"{name}: could not list its scheduled workflows")
+        if unread[repo]:
+            out.append(f"{name}: {UNREADABLE} of {unread[repo]} of {n} scheduled workflow(s)")
+        if red[repo]:
+            findings.append(Finding(name, f"{red[repo]} of {n} scheduled workflow(s) red; "
+                                          f"the names and runs are in {name}'s own "
+                                          "workflow-health issue"))
+    for repo, result in sorted((results or {}).items()):
+        name = repo.split("/")[-1]
+        if result == "success":
+            measured += 1
+        elif result == "failure":
+            measured += 1
+            findings.append(Finding(name, "scheduled workflow(s) red or unreadable; the names "
+                                          f"and runs are in {name}'s own workflow-health issue"))
+        else:
+            word = result if result in ("cancelled", "skipped") else "no result"
+            out.append(f"{name}: {UNREADABLE} (its check: {word})")
+    return Check(measured, tuple(findings), tuple(out))
 
 
 # ── checks over the refresh pull requests ──────────────────────────────────
@@ -535,18 +718,52 @@ def gh_cli(args: Sequence[str], stdin: str | None = None) -> str:
     return done.stdout
 
 
-def fetch_runs(watched: Sequence[WatchedWorkflow], gh: Gh = gh_cli,
-               repo: str = REPO) -> dict[str, Sequence[Mapping[str, Any]] | str]:
-    """One REST call per workflow: its ten newest runs on main."""
+def gh_with_token(token: str) -> Gh:
+    """``gh`` authenticated with ``token`` instead of the ambient ``GH_TOKEN``."""
+
+    def gh(args: Sequence[str], stdin: str | None = None) -> str:
+        env = {**os.environ, "GH_TOKEN": token}
+        done = subprocess.run(["gh", *args], check=True, capture_output=True, text=True,
+                              input=stdin, env=env)
+        return done.stdout
+
+    return gh
+
+
+def repo_clients(config: Config, gh: Gh = gh_cli,
+                 environ: Mapping[str, str] = os.environ,
+                 with_token: Callable[[str], Gh] = gh_with_token) -> dict[str, Gh | str]:
+    """A ``gh`` per watched repository, or why there is none (its token is unset)."""
+    out: dict[str, Gh | str] = {}
+    for r in config.workflow_repos:
+        if r.token_env is None:
+            out[r.repo] = gh
+        elif environ.get(r.token_env):
+            out[r.repo] = with_token(environ[r.token_env])
+        else:
+            out[r.repo] = f"{r.token_env} is not set"
+    return out
+
+
+def fetch_runs(watched: Sequence[WatchedWorkflow], clients: Mapping[str, Gh | str]
+               ) -> dict[str, Sequence[Mapping[str, Any]] | str]:
+    """One REST call per workflow: its ten newest runs on main.
+
+    A failed call reads as ``UNREADABLE``. The ``gh`` stderr is dropped, not
+    kept: it can name a private repository's workflows.
+    """
     out: dict[str, Sequence[Mapping[str, Any]] | str] = {}
     for w in watched:
+        gh = clients.get(w.repo, UNREADABLE)
+        if isinstance(gh, str):
+            out[w.key] = gh
+            continue
         try:
-            body = gh(["api", f"repos/{repo}/actions/workflows/{w.file}/runs"
+            body = gh(["api", f"repos/{w.repo}/actions/workflows/{w.file}/runs"
                               "?branch=main&per_page=10&exclude_pull_requests=true"])
-            out[w.file] = json.loads(body)["workflow_runs"]
-        except (subprocess.CalledProcessError, ValueError, KeyError) as exc:
-            stderr = getattr(exc, "stderr", "") or ""
-            out[w.file] = f"{type(exc).__name__}: {stderr.strip() or exc}"
+            out[w.key] = json.loads(body)["workflow_runs"]
+        except (subprocess.CalledProcessError, ValueError, KeyError):
+            out[w.key] = UNREADABLE
     return out
 
 
@@ -560,9 +777,9 @@ def fetch_refresh_prs(branches: Sequence[str], gh: Gh = gh_cli,
             body = gh(["api", f"repos/{repo}/pulls?state=all&head={owner}:{branch}"
                               "&sort=created&direction=desc&per_page=5"])
             out[branch] = json.loads(body)
-        except (subprocess.CalledProcessError, ValueError) as exc:
-            stderr = getattr(exc, "stderr", "") or ""
-            out[branch] = f"{type(exc).__name__}: {stderr.strip() or exc}"
+        except (subprocess.CalledProcessError, ValueError):
+            # MODEL-421: no raw gh stderr in the public report.
+            out[branch] = "could not read pull requests"
     return out
 
 
@@ -586,6 +803,11 @@ class Inputs:
     runs: Mapping[str, Sequence[Mapping[str, Any]] | str]
     models_dir: Path
     refresh_prs: Mapping[str, Sequence[Mapping[str, Any]] | str] = field(default_factory=dict)
+    #: The workflows ``runs`` is keyed by, and what stopped any being listed.
+    watched: Sequence[WatchedWorkflow] = ()
+    watch_errors: Sequence[ListingError] = ()
+    #: Private repository -> the result of the job that checked it.
+    private_results: Mapping[str, str] = field(default_factory=dict)
     extra_findings: Mapping[str, Sequence[Finding]] = field(default_factory=dict)
 
 
@@ -600,9 +822,23 @@ def authored_facts(snapshot_inputs: Any) -> dict[str, list[str]]:
     return out
 
 
+def read_workflow_health(root: Path, config: Config, *, gh: Gh = gh_cli,
+                         dirs: Mapping[str, Path] | None = None,
+                         environ: Mapping[str, str] = os.environ,
+                         skip: str | None = None,
+                         with_token: Callable[[str], Gh] = gh_with_token,
+                         ) -> tuple[tuple[WatchedWorkflow, ...], tuple[ListingError, ...],
+                                    dict[str, Sequence[Mapping[str, Any]] | str]]:
+    """The watched workflows, the errors listing them, and their runs."""
+    clients = repo_clients(config, gh, environ, with_token)
+    watched, errors = discover_workflows(root, config, dirs, skip, clients)
+    return watched, errors, fetch_runs(watched, clients)
+
+
 def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,
-              models_dev: tuple[dict | None, str | None] | None = None) -> Inputs:
-    """Build the premier audit from the checkout and read the two network inputs."""
+              models_dev: tuple[dict | None, str | None] | None = None,
+              workflow_dirs: Mapping[str, Path] | None = None) -> Inputs:
+    """Build the premier audit from the checkout and read the network inputs."""
     from decision.excluded import excluded_sources
     from decision.snapshot import audit_build, collect_repo, default_registry, load_premier
 
@@ -612,14 +848,23 @@ def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,
                         premier=load_premier(premier_path), as_of=as_of,
                         guard=excluded_sources())
     config = load_config()
+    # A repository whose check ran in its own job is read from that job's result.
+    results = {r.repo: os.environ[r.result_env] for r in config.workflow_repos
+               if r.result_env and r.result_env in os.environ}
+    direct = replace(config, workflow_repos=tuple(r for r in config.workflow_repos
+                                                  if r.repo not in results))
+    watched, watch_errors, runs = read_workflow_health(root, direct, gh=gh, dirs=workflow_dirs)
     return Inputs(
         audit=audit,
         premier=yaml.safe_load(premier_path.read_text(encoding="utf-8")),
         authored=authored_facts(snapshot_inputs),
         models_dev=models_dev if models_dev is not None else fetch_models_dev(),
-        runs=fetch_runs(config.workflows, gh),
+        runs=runs,
         models_dir=root / "models",
         refresh_prs=fetch_refresh_prs(config.target("refresh-pr-merged").params["branches"], gh),
+        watched=watched,
+        watch_errors=watch_errors,
+        private_results=results,
     )
 
 
@@ -671,7 +916,10 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
         "premier-speed-age": check_speed(
             lineup, fact_records, record, audit.rejected, as_of,
             int(t("premier-speed-age").params["max_age_days"])),
-        "workflow-health": check_workflows(inputs.runs, config.workflows, now),
+        # Public: a private repository's workflows appear only as counts.
+        "workflow-health": check_workflows(inputs.runs, inputs.watched, now,
+                                           inputs.watch_errors, config.private_repos,
+                                           inputs.private_results),
         "refresh-pr-merged": check_refresh_prs(
             inputs.refresh_prs, t("refresh-pr-merged").params["branches"], now,
             float(t("refresh-pr-merged").params["max_open_days"])),
