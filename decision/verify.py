@@ -2290,7 +2290,8 @@ _SECTION_WORDS = frozenset(
     "rate rates cost costs fee fees billing usage per 1m 1k api the and of model details "
     "fine tuning training flex priority fast long context regional audio image images "
     "realtime video embedding embeddings search tool tools processing mode modes tier tiers "
-    "limits".split())
+    "limits models overview available all list summary table tables plan plans paid on demand "
+    "charges".split())
 #: A parenthetical after "Price" that names the unit of a standard price.
 _PRICE_UNIT = re.compile(r"(?i)\b(?:per|tokens?|mtok|ktok|million|thousand|units?|1m|1k)\b")
 
@@ -2341,6 +2342,8 @@ class _PriceSection:
     headings: tuple[str, ...]
     tier: str  # "standard", "batch", "other" or "ambiguous"
     found: Mapping[str, tuple[str, ...]]
+    #: The table's line numbers in the text, its header and rules included.
+    lines: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2379,6 +2382,7 @@ class MetricPriceTable:
         sections: list[_PriceSection] = []
         headings: tuple[tuple[int, str], ...] = ()
         table: list[list[str]] = []
+        table_lines: list[int] = []
 
         def close() -> None:
             if not table:
@@ -2386,7 +2390,9 @@ class MetricPriceTable:
             table_header = list(table[0])
             header = [_cell(cell) for cell in table_header]
             rows = list(table[1:])
+            lines = tuple(table_lines)
             table.clear()
+            table_lines.clear()
             columns: dict[str, list[int]] = defaultdict(list)
             for i, cell in enumerate(table_header):
                 if (column_tier := _price_column_tier(cell)) is not None:
@@ -2431,9 +2437,9 @@ class MetricPriceTable:
                     found["cached_input"].append(cells[cached_col])
             sections.append(_PriceSection(
                 tuple(h for _, h in headings), tier,
-                {kind: tuple(values) for kind, values in found.items()}))
+                {kind: tuple(values) for kind, values in found.items()}, lines))
 
-        for line in text.splitlines():
+        for number, line in enumerate(text.splitlines()):
             stripped = line.strip()
             if "|" not in stripped:
                 close()
@@ -2442,16 +2448,42 @@ class MetricPriceTable:
             if _SEPARATOR.match(stripped):
                 if len(table) != 1:  # a rule under a header belongs to it
                     close()
+                else:
+                    table_lines.append(number)
                 continue
             cells = stripped.strip("|").split("|")
             if table and (len(cells) != len(table[0]) or not _AMOUNT.search(stripped)):
                 close()  # a new column count or a header-shaped row starts a table
             table.append(cells)
+            table_lines.append(number)
         close()
         if not sections:
             return None
         return cls(tuple(sections), frozenset(m.lower() for m in _MODEL_DECLARATION.findall(text)),
                     bool(_HALF_BATCH.search(text)))
+
+    @classmethod
+    def outside(cls, text: str) -> str:
+        """``text`` without the tables this reader owns, for the looser price readers.
+
+        Only this reader reads a ``Metric | Price`` table, so its refusal of one
+        stands (MODEL-426). Prices stated elsewhere on the page stay readable.
+
+        One exception keeps the looser readers' reading of HTML and plain-text
+        pages, which have no Markdown headings: when the page's only table has no
+        heading above it and clear price columns, the looser readers read it by the
+        line directly above it, as before MODEL-426. With two or more tables and
+        no headings, which table is whose is not clear, so none is left to them.
+        """
+        table = cls.read(text)
+        if table is None:
+            return text
+        [only, *more] = table.sections
+        if not more and not only.headings and only.tier != "ambiguous":
+            return text
+        owned = {number for section in table.sections for number in section.lines}
+        return "\n".join(line for number, line in enumerate(text.splitlines())
+                         if number not in owned)
 
     def reading(self, claim: Claim) -> Reading:
         """The page's price for the claim, or an empty reading when it states none."""
@@ -2473,6 +2505,11 @@ class MetricPriceTable:
         (``Pricing``, ``Text tokens``), and one must name the model. Any other
         heading, above or below the model's own, may name another model, so the
         table is not read. ``OfferingPriceExtractor`` uses the same rule (MODEL-426).
+
+        Headings are compared whole, and section words word by word. A heading that
+        names two models (``Example Mini, Example Maxi``) or labels one
+        (``Models: Example Mini``) is not the model's own heading, so a table under
+        it reads nothing. That misses a price rather than risk another model's.
         """
         named = False
         for heading in headings:
@@ -6305,17 +6342,9 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     cited region is a binding page. It is not a reading, for a known value or
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
-
-    An ``offering.price.*`` region with a ``Metric | Price`` table is read by
-    ``ModelPageExtractor`` alone, which reads it with the strict
-    ``MetricPriceTable`` (MODEL-426). When that reader refuses the table as
-    ambiguous, or binds it to another model, no looser reader is asked.
     """
     if dated_price_claim(claim):
         return []  # Dated claims use StoredRegions.dated_prices exclusively.
-    if claim.field.startswith("offering.price.") and MetricPriceTable.read(text) is not None:
-        return [extractor for extractor in extractors
-                if isinstance(extractor, ModelPageExtractor)]
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
         permitted = set(facet.permitted_source_kinds) if facet is not None else set()
@@ -6629,12 +6658,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``ExtractorError``, is skipped.
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
     and every one of them has to contribute.
-    A stricter reader's refusal is not overridden by a looser one: an
-    ``offering.price.*`` region in which ``MetricPriceTable`` finds a
-    ``Metric | Price`` table is read by ``ModelPageExtractor`` alone, so when that
-    reader finds the table ambiguous or another model's, the region verifies
-    nothing, and ``OfferingPriceExtractor`` or an LLM reader is not asked
-    (MODEL-426, ``_readers_for``).
+    A stricter reader's refusal is not overridden by a looser one. For an
+    ``offering.price.*`` claim, a ``Metric | Price`` table that ``MetricPriceTable``
+    owns is read by ``ModelPageExtractor`` alone: every other reader, an LLM reader
+    included, reads the region without that table (``MetricPriceTable.outside``).
+    When the strict reader finds the table ambiguous or another model's, the
+    table verifies nothing, and prices stated elsewhere in the region stay
+    readable (MODEL-426).
     """
     url_of = getattr(regions, "source_url", None)
     protected_copy = getattr(regions, "cite_only", None)
@@ -6690,7 +6720,11 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         continue
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
+            # Only the strict reader reads the Metric | Price tables it owns (MODEL-426).
+            loose = MetricPriceTable.outside(text) \
+                if claim.field.startswith("offering.price.") else text
             for extractor in independent:
+                read = text if isinstance(extractor, ModelPageExtractor) else loose
                 try:
                     if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor,
                                               LicenceTermsExtractor)):
@@ -6708,7 +6742,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                     elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
                             claim,
-                            text,
+                            read,
                             cache_key=(source.snapshot_ref, region_id, claim.field,
                                        *claim.names),
                         )
@@ -6720,7 +6754,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             raise ExtractorError("template drifted")
                         readings = extractor.extract(claim, html)
                     else:
-                        readings = extractor.extract(claim, text)
+                        readings = extractor.extract(claim, read)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
