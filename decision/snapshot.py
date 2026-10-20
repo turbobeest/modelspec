@@ -43,6 +43,7 @@ import logging
 import math
 import os
 import warnings
+from array import array
 from bisect import bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -665,9 +666,41 @@ def _pack_records(records: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     return {"fields": fields, "values": values, "rows": rows}
 
 
+def _pack_row(row: Any) -> Any:
+    """One record-table row as an array of shifted positions, or the row as loaded.
+
+    A JSON row holds ``None`` or an int object for every field, several
+    hundred bytes per record in the Worker. Packed, position ``p`` is stored
+    as ``p + 1`` and an absent field as 0, in two bytes per field (four when a
+    position needs them). ``_unpack_record`` reads back exactly the loaded
+    row. A row that is not a list of ``None`` and non-negative ints is
+    returned unchanged (MODEL-417).
+    """
+    if type(row) is not list or -1 in row:
+        return row
+    try:
+        shifted = [0 if position is None else position + 1 for position in row]
+        try:
+            return array("H", shifted)
+        except OverflowError:
+            return array("I", shifted)
+    except (TypeError, OverflowError):
+        return row
+
+
+#: The streaming loader packs each row as soon as it is decoded, so the JSON
+#: lists of a whole table are never held at once (MODEL-417).
+_RECORD_TABLE_TRANSFORMS = {"rows": {"*": {None: _pack_row}}}
+_SNAPSHOT_TRANSFORMS = {"record_table": _RECORD_TABLE_TRANSFORMS,
+                        "hardware_fit_record_table": _RECORD_TABLE_TRANSFORMS}
+
+
 def _unpack_record(table: Mapping[str, Any], rid: str) -> dict[str, Any]:
     record: dict[str, Any] = {}
-    for path, position in zip(table["fields"], table["rows"][rid]):
+    row = table["rows"][rid]
+    if type(row) is array:
+        row = [None if position == 0 else position - 1 for position in row]
+    for path, position in zip(table["fields"], row):
         if position is None:
             continue
         target = record
@@ -2653,7 +2686,8 @@ def _stream_canonical_envelope(data: bytes) -> tuple[dict[str, Any], str] | None
         if stream.read(len(prefix)) != prefix:
             return None
         digest = hashlib.sha256()
-        reader = JSONStreamReader(stream, initial="{", digest=digest)
+        reader = JSONStreamReader(stream, initial="{", digest=digest,
+                                  transforms=_SNAPSHOT_TRANSFORMS)
         content = reader.read_value()
         suffix = reader.remainder().lstrip()
         envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
@@ -2677,6 +2711,11 @@ def load_snapshot_bytes(
             streamed = _stream_canonical_envelope(data)
         except RecursionError:
             # Preserve the standard decoder's greater depth for legacy files.
+            streamed = None
+        if streamed is not None and streamed[1] != streamed[0].get("content_hash"):
+            # Only canonical writer output is checked by its streamed digest.
+            # Any other encoding is hashed from its decoded content, which must
+            # not hold the streaming loader's packed rows.
             streamed = None
         if streamed is not None:
             envelope, stored_digest = streamed

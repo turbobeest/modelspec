@@ -63,6 +63,24 @@ def materialize(public: Path, out: Path, *, recipe: Path = RECIPE,
             "fetch": "conditional_http", "normaliser": "html-default",
             "cited_regions": regions,
         })
+    if config.get("register_hardware_sources"):
+        # Deployed data registers every device specification URL, so each
+        # device's sourced memory enters the general record table and widens
+        # every provenance row (MODEL-417). The public registry names only a
+        # few of them; without this the fixture's rows stayed one list-capacity
+        # step narrower than deployment and missed the MODEL-411 growth.
+        registered = {str(source["url"]) for source in sources["sources"]}
+        urls = sorted({str(url) for path in sorted((out / "hardware").glob("*.yaml"))
+                       if not path.name.startswith("_")
+                       for device in [yaml.safe_load(path.read_text())]
+                       if isinstance(device, dict)
+                       for url in device.get("sources") or ()} - registered)
+        for i, url in enumerate(urls):
+            sources["sources"].append({
+                "id": f"memory-fixture-hardware-{i:04d}", "url": url,
+                "fetch": "conditional_http", "normaliser": "html-default",
+                "cited_regions": [{"id": "page", "locator": {"kind": "page", "value": ""}}],
+            })
     source_path.write_text(yaml.safe_dump(sources, sort_keys=False))
     rows = []
     for i in range(config["hardware_fit_records"]):

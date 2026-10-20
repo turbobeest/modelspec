@@ -101,6 +101,14 @@ def test_public_fixture_builds_admitted_synthetic_hardware_records(tmp_path):
                for row in synthetic for sid in row["source_ids"])
     assert (root / "models").resolve() == ROOT / "models"
     assert not (root / "hardware").is_symlink()
+    # MODEL-417: as in deployment, every device's sourced memory is a retained
+    # record, so provenance rows are as wide as the deployed table's.
+    devices = [path.stem for path in (root / "hardware").glob("*.yaml")
+               if not path.name.startswith("_")]
+    assert len(devices) > 50
+    for device in devices:
+        record_id = snapshot.hardware_device(device)["record_id"]
+        assert snapshot.record(record_id)["memory"]
 
 
 def test_public_memory_workflow_gates_and_compares_the_main_bundle():
