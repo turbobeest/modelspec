@@ -358,3 +358,39 @@ are unchanged. `pipeline.agent_copy write`/`check`,
 `openapi.yaml` is 232,783 bytes, the same as main. The focused tests gave
 605 passed. The full suite under the shared lock gave exit 0, with 12,410
 passed and 9 skipped in 1,982.77s.
+
+## Merge prep after #843
+
+`check_reader_fingerprint.py` no longer reads commit `fe37dad5`, which will not
+exist on main after the squash merge. It pins the original suffix length (70),
+its SHA-256 and the FAQ template hash, checks them against the reader's
+constants, and checks absence by hashing every 70-character window of the
+reader, design doc and tests. It stores no page text. It exits 0 on this branch
+and exits 1 when the old suffix-bearing reader is used as the reader or is
+appended to the test file.
+
+`git merge origin/main` (#843, `e64f9f20`) had no conflicts.
+`pipeline.agent_copy write`/`check`, `api.worker.openapi`/`--check` and
+`qa.contracts` all exit 0 and changed no file; `openapi.yaml` is 232,783 bytes.
+
+Worker memory, Pyodide 0.28.3, Node v22.23.2, exit codes 0. Steady MiB / Wasm MiB:
+
+| Check | main `e64f9f20` | this branch | Delta |
+| --- | ---: | ---: | ---: |
+| PR job fixture, current period | 104.571 / 59.875 | 104.571 / 59.875 | 0.000 |
+| PR job fixture, successor period | 103.669 / 59.875 | 103.660 / 59.875 | -0.009 |
+| Private data (`modelspec-data` `5d797a6`, test key), steady | 104.582 / 59.875 | 104.561 / 59.875 | -0.021 |
+
+The PR job ran as `rank-api.yml` defines it, with the #843 fixture recipe and
+`--limit-mib 115` against main baselines. The first main measurement downloaded
+the Pyodide wheels and read 109.02 MiB; repeats with cached wheels read the
+values above. The private check ran `vendor.py --data-dir` with
+`MODELSPEC_REQUIRE_DATA_DIR=1`, then `measure_memory.cjs api/worker/src`; the
+premier report was `known 26, explicit null 18, gap 0`. The vendored private
+files and the scratch worktrees were removed afterwards.
+
+Focused tests (the nine files above plus `test_worker_memory.py` and
+`test_worker_memory_compaction.py`) gave 591 passed. Web `npm ci` and
+`npm run build` exited 0.
+The full suite under the shared lock (`-n 4 --dist loadfile`) exited 0:
+12,432 passed, 9 skipped, 11 warnings in 1,939.67s.
