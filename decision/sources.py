@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     import httpx
 
 from decision.model import CitedRegion as CitedRegion
-from decision.model import Source, SourceSnapshot
+from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import citation_metadata, cite_only_origin, require_source_url
 from decision.normalise import (
     NORMALISERS,
@@ -395,6 +395,91 @@ class CitedRegionWait:
                 return
 
 
+class RenderedInteractionError(Exception):
+    """A recipe could not safely reach its required page state."""
+
+
+_SAFE_CONTROL = r"""(node, action) => {
+    const tag = node.tagName.toLowerCase();
+    const role = node.getAttribute('role');
+    const label = (node.getAttribute('aria-label') || node.textContent || node.value || '').trim();
+    if (node.closest('form') || node.hasAttribute('form')) return false;
+    if (node.closest('a[href]') && !node.closest('a[href]').getAttribute('href').startsWith('#'))
+        return false;
+    const context = node.closest('[id*="cookie"],[id*="consent"],[class*="cookie"],[class*="consent"]');
+    if (action !== 'reject_consent' &&
+        (context || /\b(cookie|consent|accept|agree|allow all)\b/i.test(label))) return false;
+    if (/\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b/i.test(label))
+        return false;
+    if (action === 'select_option') return tag === 'select';
+    const control = tag === 'button' || ['tab', 'button', 'combobox', 'option'].includes(role);
+    if (!control) return false;
+    if (action === 'reject_consent')
+        return /^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$/i.test(label);
+    if (/^(submit|reset)$/i.test(node.getAttribute('type') || '')) return false;
+    return true;
+}"""
+
+_REGION_CONTAINS_TEXT = """({selector, text}) => {
+    const nodes = document.querySelectorAll(selector);
+    return nodes.length === 1 && nodes[0].innerText.includes(text);
+}"""
+
+
+@dataclass(frozen=True)
+class RenderedInteractions:
+    """Execute validated UI data within one deadline; never capture a failed recipe."""
+
+    recipes: tuple[tuple[RenderedInteraction, ...], ...]
+
+    def __call__(self, page: Any, timeout: float) -> None:
+        from playwright.sync_api import Error
+
+        if any(recipe != self.recipes[0] for recipe in self.recipes[1:]):
+            raise RenderedInteractionError("conflicting interaction recipes for one URL")
+        deadline = time.monotonic() + timeout
+
+        def remaining_ms() -> float:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RenderedInteractionError("interaction time budget exhausted")
+            return remaining * 1000
+
+        # Controls cannot submit a form or navigate to another document. Reading
+        # public pricing assets needs only GET/HEAD, including after a selection.
+        def read_only(route: Any) -> None:
+            request = route.request
+            if request.method not in {"GET", "HEAD"} or request.is_navigation_request():
+                route.abort()
+            else:
+                route.fallback()
+
+        page.route("**/*", read_only)
+        try:
+            for step in self.recipes[0]:
+                if step.action == "wait_text":
+                    page.wait_for_function(
+                        _REGION_CONTAINS_TEXT,
+                        arg={"selector": step.selector, "text": step.text},
+                        timeout=remaining_ms())
+                    continue
+                target = page.locator(step.selector)
+                if step.action == "scroll":
+                    target.scroll_into_view_if_needed(timeout=remaining_ms())
+                    continue
+                if not target.evaluate(_SAFE_CONTROL, step.action, timeout=remaining_ms()):
+                    raise RenderedInteractionError("unsafe interaction control")
+                if step.action == "select_option":
+                    target.select_option(value=step.value, timeout=remaining_ms())
+                else:
+                    target.click(timeout=remaining_ms())
+            remaining_ms()
+        except Error as exc:
+            raise RenderedInteractionError(f"interaction failed: {exc}") from exc
+        finally:
+            page.unroute("**/*", read_only)
+
+
 def rendered_preparation(source_ids: Iterable[str],
                          sources: Mapping[str, Source]) -> RenderedPreparation | None:
     """The preparation a live render of these sources' shared URL runs before capture.
@@ -403,6 +488,10 @@ def rendered_preparation(source_ids: Iterable[str],
     the render waits for every cited CSS region of every source at the URL.
     """
     ids = sorted(set(source_ids))
+    recipes = tuple(tuple(sources[sid].rendered_interactions)
+                    for sid in ids if sid in sources and sources[sid].rendered_interactions)
+    if recipes:
+        return RenderedInteractions(recipes)
     named = next((RENDERED_PREPARATIONS[sid] for sid in ids if sid in RENDERED_PREPARATIONS),
                  None)
     if named is not None:
@@ -473,6 +562,8 @@ class RenderedFetcher:
             if prepare is not None:
                 try:
                     prepare(page, self.timeout)
+                except RenderedInteractionError as exc:
+                    return FetchResult("unreachable", response.status, error=str(exc))
                 except Error as exc:
                     preparation_error = f"rendered preparation failed: {exc}"
             redirects = []
