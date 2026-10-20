@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from decision.labs import Lab
-from decision.model import value_hash, verification_counts
+from decision.model import matching_value_hashes, unordered_facet, verification_counts
 
 
 def day(value: Any) -> date | None:
@@ -138,6 +138,16 @@ def load(root: Path) -> Catalogue:
     return c
 
 
+def _unordered(facet: Any) -> bool:
+    """MODEL-416: an unordered set facet's verification binds its members, not their order."""
+    from decision import registry
+
+    try:
+        return unordered_facet(registry.facet(str(facet)))
+    except KeyError:
+        return False
+
+
 def _records(c, rows, subject, kind, parent):
     for index, raw in enumerate(rows):
         if not isinstance(raw, dict):
@@ -159,7 +169,10 @@ def _records(c, rows, subject, kind, parent):
 
             checked_value = evidence_verification_value(raw)
         try:
-            if (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
+            recorded = (v.get("target") or {}).get("value_hash")
+            if recorded and matching_value_hashes(
+                    checked_value, [recorded],
+                    unordered=kind == "fact" and _unordered(facet)):
                 read_date = v.get("date") or read_date
             else:
                 v = {}

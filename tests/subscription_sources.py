@@ -1,5 +1,6 @@
 """Independent source expectations for subscription integration tests."""
 
+import itertools
 import json
 import subprocess
 
@@ -46,12 +47,27 @@ def json_record(record):
     return json.loads(json.dumps(record, default=lambda value: value.isoformat()))
 
 
-def admitted_subscription_facts(root, subscriptions, as_of):
+def bound_hashes(value, unordered):
+    """The value hashes a verification of ``value`` may carry (MODEL-416).
+
+    An unordered set facet binds its members: sorted, or in any order up to
+    nine members. Anything else binds the value as filed.
+    """
+    hashes = {value_hash(value)}
+    if unordered and isinstance(value, list):
+        hashes.add(value_hash(sorted(set(value))))
+        if len(value) <= 9:
+            hashes.update(value_hash(list(order)) for order in itertools.permutations(value))
+    return hashes
+
+
+def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
     """Project raw facts using the documented second-key and source rules.
 
     Do not call the snapshot compiler or collector to form its expected output.
     Log entries win same-day ties over inline verification, and later log rows
-    win ties with earlier rows. Same-family verified entries do not count.
+    win ties with earlier rows. Same-family verified entries do not count. With
+    ``registry``, an unordered set facet's verification binds its members.
     """
     log = [
         json.loads(line)
@@ -66,13 +82,16 @@ def admitted_subscription_facts(root, subscriptions, as_of):
             if fact["state"] == "unknown":
                 continue
             fid = fact.get("id", f"{sid}#{fact['facet']}")
+            unordered = registry is not None and getattr(
+                registry.facet(fact["facet"]).value_type, "unordered", False)
+            bound = bound_hashes(fact.get("value"), unordered)
             candidates = [
                 (str(record["date"]), order, record)
                 for order, record in enumerate([fact.get("verification"), *log])
                 if record
                 and record["target"]["kind"] == "fact"
                 and record["target"]["id"] == fid
-                and record["target"].get("value_hash") == value_hash(fact.get("value"))
+                and record["target"].get("value_hash") in bound
                 and verification_counts(
                     record["outcome"],
                     record["collector"]["model_family"],

@@ -61,10 +61,11 @@ CODING_TOOL = "coding_tool:"
 CODING_TOOL_OPEN = "coding_tool:*"
 
 #: Each registry document has its own compatibility gate. Facets moved to v2
-#: when MODEL-173 added ``string`` to the closed ``value_type.kind`` range;
+#: when MODEL-173 added ``string`` to the closed ``value_type.kind`` range, and
+#: to v3 when MODEL-416 made every set facet declare ``value_type.unordered``;
 #: the other registry document contracts remain at v1.
 REGISTRY_SCHEMA_VERSIONS = {
-    "facets": 2,
+    "facets": 3,
     "providers": 1,
     "harnesses": 1,
     "domains": 1,
@@ -132,6 +133,9 @@ class ValueType:
     unbounded: bool = False
     #: A known value may be the literal `not_offered`.
     not_offered: bool = False
+    #: A set whose member order means nothing: its verifications bind the
+    #: sorted members (MODEL-416). Every set facet declares it.
+    unordered: bool = False
 
 
 @dataclass(frozen=True)
@@ -566,9 +570,14 @@ def _value_type(err: _Errors, where: str, raw: Any, unit: Any, units: Mapping, l
         err.add(where, f"value_type.kind {kind!r} must be one of {', '.join(KINDS)}")
         return None
     optional = {"unbounded", "not_offered"} if kind == "number" else set()
+    required = {"kind"}
     if kind in ("enum", "set"):
         optional = {"values", "values_from"}
-    _keys(err, where, raw, {"kind"}, optional)
+    if kind == "set":
+        required = {"kind", "unordered"}
+    _keys(err, where, raw, required, optional)
+    if kind == "set" and "unordered" in raw and not isinstance(raw["unordered"], bool):
+        err.add(where, "unordered must be true or false")
     if kind in ("number", "range"):
         if unit is None:
             err.add(where, f"a {kind} facet needs a unit")
@@ -591,6 +600,7 @@ def _value_type(err: _Errors, where: str, raw: Any, unit: Any, units: Mapping, l
         values_from=values_from,
         unbounded=bool(raw.get("unbounded", False)),
         not_offered=bool(raw.get("not_offered", False)),
+        unordered=raw.get("unordered") is True,
     )
 
 

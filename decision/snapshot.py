@@ -67,8 +67,9 @@ from decision.model import (
     Measurement,
     evidence_verification_value,
     fact_verification_value,
+    matching_value_hashes,
+    unordered_facet,
     validate_price_schedules,
-    value_hash,
     verification_counts,
 )
 
@@ -764,6 +765,10 @@ class _Compiler:
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
         self.log = self._verification_log(inputs.verifications)
+        #: (kind, id) -> the value hashes the log holds a counting row for.
+        self.logged_hashes: dict[tuple[str, str], list[str]] = {}
+        for log_kind, log_id, log_hash in self.log:
+            self.logged_hashes.setdefault((log_kind, log_id), []).append(log_hash)
         #: subject id -> {"kind", "model", "lifecycle"}
         self.subjects: dict[str, dict[str, Any]] = {}
         #: subject id -> facet -> [state, value, source ids]
@@ -799,24 +804,48 @@ class _Compiler:
                 latest[key] = entry
         return latest
 
-    def _verification(self, kind: str, rid: Any, inline: Any, value: Any) -> dict | None:
-        """The winning verification record, or ``None``."""
-        expected = value_hash(value)
+    def _unordered(self, kind: str, facet_id: Any) -> bool:
+        """An unordered set facet's verifications bind its members, not their order.
+
+        Without a registry, the repository's own decides, as ``Fact`` validation does.
+        """
+        if kind != "fact" or facet_id is None:
+            return False
+        registry = self.registry if self.registry is not None else default_registry()
+        try:
+            return unordered_facet(registry.facet(str(facet_id)))
+        except KeyError:
+            return False
+
+    def _verification(self, kind: str, rid: Any, inline: Any, value: Any,
+                      facet: Any = None) -> dict | None:
+        """The winning verification record, or ``None``.
+
+        A record counts when its ``value_hash`` binds ``value``; for an
+        unordered facet, any order of the same members (MODEL-416).
+        """
         inline_record = None if inline is None else _as_dict(inline)
-        best = (
-            None
-            if inline_record is None
-            or not _counts(inline_record)
-            or inline_record.get("target", {}).get("value_hash") != expected
-            else (str(inline_record["date"]), 0, inline_record)
-        )
-        logged = self.log.get((kind, str(rid), expected)) if rid is not None else None
-        if logged is not None and (best is None or logged[:2] >= best[:2]):
-            best = logged
+        if inline_record is not None and not _counts(inline_record):
+            inline_record = None
+        inline_hash = (None if inline_record is None
+                       else inline_record.get("target", {}).get("value_hash"))
+        logged = (self.logged_hashes.get((kind, str(rid)), [])
+                  if rid is not None else [])
+        bound = matching_value_hashes(
+            value, [*logged, *([inline_hash] if inline_hash else [])],
+            unordered=self._unordered(kind, facet))
+        best = (None if inline_hash not in bound
+                else (str(inline_record["date"]), 0, inline_record))
+        for logged_hash in logged:
+            if logged_hash not in bound:
+                continue
+            entry = self.log[(kind, str(rid), logged_hash)]
+            if best is None or entry[:2] >= best[:2]:
+                best = entry
         return None if best is None else best[2]
 
-    def _outcome(self, kind: str, rid: Any, inline: Any, value: Any) -> str:
-        record = self._verification(kind, rid, inline, value)
+    def _outcome(self, kind: str, rid: Any, inline: Any, value: Any, facet: Any = None) -> str:
+        record = self._verification(kind, rid, inline, value, facet)
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
@@ -829,7 +858,7 @@ class _Compiler:
         retained = dict(record)
         retained.pop("citation", None)
         retained["verification"] = self._verification(
-            kind, record.get("id"), record.get("verification"), value)
+            kind, record.get("id"), record.get("verification"), value, record.get("facet"))
         if citation is not None:
             retained.update(verification=None, citation=citation)
         if rid in self.records and self.records[rid] != retained:
@@ -844,14 +873,14 @@ class _Compiler:
 
     def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
                extra_urls: Iterable[Any] = (), benchmark: Any = None,
-               citation: dict | None = None) -> str | None:
+               citation: dict | None = None, facet: Any = None) -> str | None:
         """Why a record stays out, or ``None`` when it enters."""
         urls = [self.sources[s] for s in source_ids if s in self.sources]
         if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
                                        or (benchmark is not None
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
-        outcome = self._outcome(kind, rid, inline, value)
+        outcome = self._outcome(kind, rid, inline, value, facet)
         if citation is not None and outcome in {"mismatch", "unreachable"}:
             return f"quarantined ({outcome})"
         if citation is None and outcome != "verified":
@@ -929,7 +958,7 @@ class _Compiler:
                 and measurement.stale(self.as_of)
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
-                    fact_verification_value(f), source_ids, citation=citation,
+                    fact_verification_value(f), source_ids, citation=citation, facet=facet_id,
                     extra_urls=[url for ref in f.get("sources") or ()
                                 for url in ref.get("resolved_urls") or ()])
             )
@@ -1030,6 +1059,7 @@ class _Compiler:
         source_ids = self._source_ids(shared.get("sources"))
         reason = self._admit(
             "fact", shared.get("id"), shared.get("verification"), shared.get("value"), source_ids,
+            facet=shared.get("facet", FACET),
         )
         if reason is not None:
             return facts
