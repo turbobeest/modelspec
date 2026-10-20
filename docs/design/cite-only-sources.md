@@ -80,8 +80,33 @@ retrieval timestamps. It cannot masquerade as verified even when an old
 verification record remains in frozen data. Missing dates remain null.
 Source references must resolve and carry valid hashes. Existing latest
 mismatch or unreachable results still quarantine the associated value;
-excluded publishers remain excluded. Non-cite-only facts keep the existing
+excluded publishers remain excluded. MODEL-415 adds one narrow exception: a
+recorded supersession can retire a mismatch read from a region the fact no
+longer cites ([design](cite-only-supersession.md)). Non-cite-only facts keep the existing
 value-hash-bound, independent verification gate (`decision/snapshot.py:750,804`).
+
+MODEL-420 decides cite-only status per source reference
+(`decision/citation.py`), and a card's own fields only ever make a record
+stricter:
+
+- A ref is *cited* when its registered source URL is on a cite-only host, or
+  when the fetcher's citation record for the ref's `snapshot_ref` (the
+  `CopyStore` the build opens only when `MODELSPEC_SOURCE_CACHE` names it)
+  names a cite-only redirect origin. Only a cited ref can stand in for
+  verification.
+- A ref is *restricted* when it is not cited but the card's `resolved_urls`
+  name a cite-only host, or the store holds a citation record for its hash.
+  Its bytes are never retained, benchmark evidence citing it stays out, and a
+  fact citing it still needs a verified outcome.
+- A fact is admitted as cited only when every ref is cited. A fact that mixes
+  a cited ref with any other ref is quarantined as `quarantined (mixed
+  citation)`: an old verification record cannot show which source it read,
+  and the verifier refuses a fact with any cite-only ref, so its other refs
+  can never be verified apart from the cite-only one.
+- An unreadable store record, one whose hash or source URL differs from the
+  ref, or malformed redirect metadata fails closed: the record is excluded as
+  `invalid_citation`, never read as "no redirect".
+- Only `http` and `https` URLs can be cite-only.
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate

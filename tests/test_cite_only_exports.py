@@ -198,18 +198,23 @@ def test_flat_score_source_citation_survives_exports_rank_and_model_page(tmp_pat
     assert ("Cited, not machine-verified" in score_section) is cited
 
 
-def test_javascript_benchmark_source_renders_as_plain_text(tmp_path):
-    from pipeline.render import _safe_link, esc, model_page
+@pytest.mark.parametrize("source", ["javascript://x.ai/%0aalert(1)", "JavaScript://docs.x.ai/"])
+def test_javascript_benchmark_source_is_never_linked(tmp_path, monkeypatch, source):
+    from pipeline.load import Model
+    from pipeline.render import esc, model_page
 
-    source = "javascript://x.ai/%0aalert(1)"
     front, path = card_tree(tmp_path, "https://lab.example/models")
     front["benchmarks"]["benchmark_source"] = source
     path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
-    page = model_page(load_models(tmp_path)[0], BUILD, {}, Catalogue(BUILD.as_of))
-    score_section = page.split("<h2>Reported benchmark scores</h2>", 1)[1]
-    assert 'href="javascript:' not in page
-    notice, _rest = score_section.split("</div>", 1)
-    assert "javascript:" in notice
+    model = load_models(tmp_path)[0]
+    assert model.scores_citation is None
+    page = model_page(model, BUILD, {}, Catalogue(BUILD.as_of))
+    assert "javascript:" not in page.lower().replace(esc(source).lower(), "")
+    # Even a citation that names a non-HTTP URL renders its link text only.
+    monkeypatch.setattr(Model, "scores_citation",
+                        property(lambda self: {"status": "cited", "url": source}))
+    page = model_page(model, BUILD, {}, Catalogue(BUILD.as_of))
+    notice = page.split("Cited, not machine-verified", 1)[1].split("</div>", 1)[0]
     assert "<a" not in notice
-    assert esc(source) in notice
-    assert _safe_link(source, source) == esc(source)
+    assert "score source" in notice
+    assert "href=\"javascript" not in page.lower()

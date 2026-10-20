@@ -251,13 +251,39 @@ def test_cite_stored_regions_refuses_historical_copy(tmp_path):
 
 
 ORDINARY = "https://example.org/models"
+REDIRECT = "https://example.org/redirect"
 PERPLEXITY = "https://www.perplexity.ai/pro"
+CONTEXT = ("lab/alpha", "model.context_window")
+
+
+def rejected(inputs, source_cache=None):
+    """Why each fact stayed out: the reason the compiler recorded."""
+    from decision.snapshot import _compile
+
+    c = _compile(inputs, None, None, TODAY, False, source_cache)
+    return {key: reason for key, (reason, _urls) in c.rejected.items()}
+
+
+def fetcher_store(tmp_path, ref, *, source_url=REDIRECT, resolved_urls=(CITE_URL,)):
+    store = CopyStore(tmp_path / "copies")
+    store.record_citation(ref, source_url=source_url, retrieved_at=FETCHED,
+                          resolved_urls=list(resolved_urls))
+    return store
+
+
+def card_redirect(inputs, ref=None):
+    for row in inputs.models[0]["facts"]:
+        row["sources"][0]["resolved_urls"] = [CITE_URL]
+        if ref is not None:
+            row["sources"][0]["snapshot_ref"] = ref
+    return inputs
 
 
 @pytest.mark.parametrize("url,cited", [
     ("javascript://x.ai/", False),
     ("javascript://x.ai/%0aalert(1)", False),
     ("ftp://x.ai/", False),
+    ("//x.ai/pricing", False),
     ("https://X.AI./", True),
     ("https://x.ai/pricing", True),
     (PERPLEXITY, True),
@@ -270,7 +296,7 @@ def test_cite_only_requires_an_http_scheme(url, cited):
 @pytest.mark.parametrize("url", ["https://x.ai/pricing", PERPLEXITY])
 def test_registered_cite_only_fact_is_still_cited(url):
     index = loaded(snapshot_input(url=url, outcome=None))
-    row = index.fact("lab/alpha", "model.context_window")
+    row = index.fact(*CONTEXT)
     assert row.state == "known" and row.value == 128000
     record = index.record(row.record_id)
     assert record["verification"] is None
@@ -278,144 +304,217 @@ def test_registered_cite_only_fact_is_still_cited(url):
     assert record["citation"]["sources"][0]["url"] == url
 
 
+@pytest.mark.parametrize("with_store", [False, True])
 @pytest.mark.parametrize("outcome", ["mismatch", "unreachable", None])
-def test_forged_resolved_urls_stay_quarantined(outcome):
-    inputs = snapshot_input(outcome=outcome, url=ORDINARY)
-    for row in inputs.models[0]["facts"]:
-        row["sources"][0]["resolved_urls"] = [CITE_URL]
-    assert loaded(inputs).fact("lab/alpha", "model.context_window").state == "unknown"
+def test_forged_resolved_urls_stay_quarantined(tmp_path, outcome, with_store):
+    """A card's own redirect never stands in for verification, store or no store."""
+    inputs = card_redirect(snapshot_input(outcome=outcome, url=REDIRECT))
+    store = CopyStore(tmp_path / "copies") if with_store else None
+    assert loaded(inputs, source_cache=store).fact(*CONTEXT).state == "unknown"
+    assert rejected(inputs, store)[CONTEXT] == f"quarantined ({outcome or 'unverified'})"
 
 
-def test_mixed_ref_fact_requires_the_ordinary_ref_to_verify():
-    unverified = _mixed_fact(outcome=None)
-    verified = _mixed_fact(outcome="verified")
-    inputs = SnapshotInputs(
-        models=[model("lab/alpha", facts=[unverified, verified])],
-        sources={"src-cite": CITE_URL, "src-ordinary": ORDINARY, **SOURCES},
-    )
-    index = loaded(inputs)
-    assert index.fact("lab/alpha", "model.context_window").state == "unknown"
-    kept = index.fact("lab/alpha", "model.weights_openness")
-    assert kept.state == "known"
-    record = index.record(kept.record_id)
+@pytest.mark.parametrize("with_store", [False, True])
+def test_forged_resolved_urls_leave_a_verified_fact_verified_not_cited(tmp_path, with_store):
+    inputs = card_redirect(snapshot_input(outcome="verified", url=REDIRECT))
+    store = CopyStore(tmp_path / "copies") if with_store else None
+    index = loaded(inputs, source_cache=store)
+    record = index.record(index.fact(*CONTEXT).record_id)
     assert record["verification"]["outcome"] == "verified"
     assert "citation" not in record
 
 
-def test_fetcher_recorded_redirect_is_still_cited(tmp_path):
-    store = CopyStore(tmp_path / "copies")
+@pytest.mark.parametrize("outcome", [None, "verified"])
+def test_fetcher_recorded_redirect_is_still_cited(tmp_path, outcome):
     ref = "sha256:" + "a" * 64
-    store.record_citation(ref, source_url=ORDINARY, retrieved_at=FETCHED, resolved_urls=[CITE_URL])
-    inputs = snapshot_input(url=ORDINARY, outcome=None)
+    store = fetcher_store(tmp_path, ref)
+    inputs = card_redirect(snapshot_input(url=REDIRECT, outcome=outcome), ref)
     for row in inputs.models[0]["facts"]:
-        row["sources"][0]["snapshot_ref"] = ref
-        row["sources"][0]["resolved_urls"] = ["https://example.org/forged-card-url"]
+        row["sources"][0]["resolved_urls"] = ["https://example.org/card-claim"]
     index = loaded(inputs, source_cache=store)
-    row = index.fact("lab/alpha", "model.context_window")
+    row = index.fact(*CONTEXT)
     assert row.state == "known"
     record = index.record(row.record_id)
     assert record["verification"] is None
     assert record["citation"]["status"] == "cited"
-    assert CITE_URL in record["citation"]["sources"][0]["resolved_urls"]
+    assert record["citation"]["sources"][0]["resolved_urls"] == [CITE_URL]
 
 
-def test_forged_resolved_urls_do_not_cite_verified_evidence():
+def test_fetcher_redirect_without_its_store_needs_verification(tmp_path):
+    ref = "sha256:" + "a" * 64
+    inputs = snapshot_input(url=REDIRECT, outcome=None)
+    for row in inputs.models[0]["facts"]:
+        row["sources"][0]["snapshot_ref"] = ref
+    assert rejected(inputs)[CONTEXT] == "quarantined (unverified)"
+
+
+def test_build_from_repo_opens_the_configured_fetcher_store(tmp_path, monkeypatch):
+    from decision import snapshot
+
+    seen = []
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root: SnapshotInputs())
+    monkeypatch.setattr(snapshot, "excluded_sources", lambda: None)
+    monkeypatch.setattr(snapshot, "build_snapshot",
+                        lambda inputs, **kwargs: seen.append(kwargs["source_cache"]))
+    monkeypatch.delenv("MODELSPEC_SOURCE_CACHE", raising=False)
+    snapshot.build_from_repo(tmp_path, premier=None, as_of=TODAY, registry=object())
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(tmp_path / "copies"))
+    snapshot.build_from_repo(tmp_path, premier=None, as_of=TODAY, registry=object())
+    assert seen[0] is None
+    assert isinstance(seen[1], CopyStore) and seen[1].root == tmp_path / "copies"
+
+
+@pytest.mark.parametrize("damage", ["unparseable", "other_hash", "other_source", "bad_redirects"])
+@pytest.mark.parametrize("registered", [REDIRECT, CITE_URL])
+def test_unreadable_fetcher_record_fails_closed(tmp_path, damage, registered):
+    """A store error never reads as "no redirect": the fact stays out even when verified."""
+    ref = "sha256:" + "e" * 64
+    store = fetcher_store(tmp_path, ref, source_url=registered)
+    path = store.path(ref).with_suffix(".citation.json")
+    import json
+
+    record = json.loads(path.read_text())
+    if damage == "unparseable":
+        path.write_text("{not json")
+    elif damage == "other_hash":
+        path.write_text(json.dumps({**record, "snapshot_ref": "sha256:" + "f" * 64}))
+    elif damage == "other_source":
+        path.write_text(json.dumps({**record, "url": "https://elsewhere.example/"}))
+    else:
+        path.write_text(json.dumps({**record, "resolved_urls": "https://x.ai/"}))
+    inputs = card_redirect(snapshot_input(url=registered, outcome="verified"), ref)
+    for row in inputs.models[0]["facts"]:
+        row["sources"][0].pop("resolved_urls")
+    assert loaded(inputs, source_cache=store).fact(*CONTEXT).state == "unknown"
+    assert rejected(inputs, store)[CONTEXT] == "invalid_citation"
+
+
+def _mixed(second, *, outcome):
+    record = fact("model", "lab/alpha", "model.context_window", 128000,
+                  source="src-cite", outcome=outcome)
+    record["sources"] = [source_ref("src-cite"), second]
+    for ref in record["sources"]:
+        ref["retrieved_at"] = FETCHED.isoformat()
+    return SnapshotInputs(
+        models=[model("lab/alpha", facts=[record])],
+        sources={"src-cite": CITE_URL, "src-ordinary": ORDINARY, "src-redirect": REDIRECT,
+                 **SOURCES},
+    )
+
+
+@pytest.mark.parametrize("with_store", [False, True])
+@pytest.mark.parametrize("outcome", [None, "verified", "mismatch"])
+@pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+def test_mixed_citation_fact_is_quarantined(tmp_path, outcome, second, with_store):
+    """A cited ref never carries an uncited one, verified or not (docs/design/cite-only-sources.md)."""
+    ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+    if second == "card_redirect":
+        ref["resolved_urls"] = [CITE_URL]
+    inputs = _mixed(ref, outcome=outcome)
+    store = CopyStore(tmp_path / "copies") if with_store else None
+    assert loaded(inputs, source_cache=store).fact(*CONTEXT).state == "unknown"
+    assert rejected(inputs, store)[CONTEXT] == "quarantined (mixed citation)"
+
+
+def test_two_cited_refs_one_through_a_fetcher_redirect_are_cited(tmp_path):
+    ref = {**source_ref("src-redirect"), "snapshot_ref": "sha256:" + "2" * 64}
+    store = fetcher_store(tmp_path, ref["snapshot_ref"])
+    inputs = _mixed(ref, outcome=None)
+    assert rejected(inputs)[CONTEXT] == "quarantined (mixed citation)"
+    index = loaded(inputs, source_cache=store)
+    record = index.record(index.fact(*CONTEXT).record_id)
+    assert [item["source_id"] for item in record["citation"]["sources"]] == [
+        "src-cite", "src-redirect"]
+
+
+@pytest.mark.parametrize("with_store", [False, True])
+def test_card_redirect_keeps_evidence_out(tmp_path, with_store):
     row = evidence("lab/alpha", "swe_bench_pro", 55.0)
     row["sources"][0]["resolved_urls"] = [CITE_URL]
-    index = loaded(replace(snapshot_input(url=ORDINARY), evidence=[row]))
-    assert index.evidence("lab/alpha", "swe_bench_pro")
-
-
-def test_fetcher_recorded_redirect_keeps_evidence_out(tmp_path):
-    store = CopyStore(tmp_path / "copies")
-    ref = "sha256:" + "b" * 64
-    store.record_citation(
-        ref, source_url="https://board.example.org/results", retrieved_at=FETCHED,
-        resolved_urls=[CITE_URL],
-    )
-    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
-    row["sources"][0]["snapshot_ref"] = ref
+    store = CopyStore(tmp_path / "copies") if with_store else None
     index = loaded(replace(snapshot_input(url=ORDINARY), evidence=[row]), source_cache=store)
     assert index.evidence("lab/alpha", "swe_bench_pro") == ()
 
 
-def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path):
+def test_fetcher_recorded_redirect_keeps_evidence_out(tmp_path):
+    ref = "sha256:" + "b" * 64
+    store = fetcher_store(tmp_path, ref, source_url=SOURCES["src-board"])
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["snapshot_ref"] = ref
+    inputs = replace(snapshot_input(url=ORDINARY), evidence=[row])
+    assert loaded(inputs).evidence("lab/alpha", "swe_bench_pro")
+    assert loaded(inputs, source_cache=store).evidence("lab/alpha", "swe_bench_pro") == ()
+
+
+def test_unreadable_fetcher_record_keeps_evidence_out(tmp_path):
+    ref = "sha256:" + "b" * 64
+    store = fetcher_store(tmp_path, ref, source_url=SOURCES["src-board"])
+    store.path(ref).with_suffix(".citation.json").write_text("{not json")
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["sources"][0]["snapshot_ref"] = ref
+    inputs = replace(snapshot_input(url=ORDINARY), evidence=[row])
+    assert loaded(inputs, source_cache=store).evidence("lab/alpha", "swe_bench_pro") == ()
+
+
+@pytest.mark.parametrize("with_store", [False, True])
+def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path, with_store):
     from tests.subscription_sources import admitted_subscription_facts
 
     root = tmp_path / "repo"
     (root / "registry").mkdir(parents=True)
     (root / "verification").mkdir()
     (root / "verification" / "log.jsonl").write_text("")
+    urls = {"src-cite": CITE_URL, "src-ordinary": ORDINARY, "src-redirect": REDIRECT,
+            "src-broken": "https://example.org/broken"}
     (root / "registry" / "sources.yaml").write_text(yaml.safe_dump({
         "schema_version": 1,
-        "sources": [
-            {"id": "src-cite", "url": CITE_URL},
-            {"id": "src-ordinary", "url": ORDINARY},
-            {"id": "src-redirect", "url": "https://example.org/redirect"},
-        ],
+        "sources": [{"id": sid, "url": url} for sid, url in urls.items()],
     }))
-    store = CopyStore(tmp_path / "copies")
-    redirect_ref = "sha256:" + "c" * 64
-    store.record_citation(
-        redirect_ref, source_url="https://example.org/redirect", retrieved_at=FETCHED,
-        resolved_urls=[PERPLEXITY],
-    )
+    store = None
+    redirect_ref, broken_ref = "sha256:" + "c" * 64, "sha256:" + "9" * 64
+    if with_store:
+        store = fetcher_store(tmp_path, redirect_ref, resolved_urls=[PERPLEXITY])
+        store.record_citation(broken_ref, source_url=urls["src-broken"], retrieved_at=FETCHED,
+                              resolved_urls=[CITE_URL])
+        store.path(broken_ref).with_suffix(".citation.json").write_text("{not json")
     cite = source_ref("src-cite")
     ordinary = source_ref("src-ordinary")
     forged = {**source_ref("src-ordinary"), "resolved_urls": [CITE_URL]}
-    redirect = source_ref("src-redirect")
-    redirect["snapshot_ref"] = redirect_ref
-    pro_id = "sambanova/subscription/pro"
-    max_id = "sambanova/subscription/max"
+    redirect = {**source_ref("src-redirect"), "snapshot_ref": redirect_ref}
+    broken = {**source_ref("src-broken"), "snapshot_ref": broken_ref}
 
     def row(plan, facet, value, sources, outcome="verified"):
-        record = fact(
-            "offering", f"sambanova/subscription/{plan}", facet, value,
-            source=sources[0]["source_id"], outcome=outcome,
-        )
+        record = fact("offering", f"sambanova/subscription/{plan}", facet, value,
+                      source=sources[0]["source_id"], outcome=outcome)
         record["sources"] = sources
         return record
 
-    pro_facts = [
-        row("pro", "offering.subscription.price", 20, [cite], outcome=None),
-        row("pro", "offering.subscription.billing_period", "monthly", [forged], outcome="mismatch"),
-        row("pro", "offering.subscription.models_covered", ["lab/alpha"], [cite, ordinary], outcome=None),
-    ]
-    max_facts = [
-        row("max", "offering.subscription.price", 20, [cite, ordinary], outcome="verified"),
-        row("max", "offering.subscription.billing_period", "monthly", [redirect], outcome=None),
-        row("max", "offering.subscription.models_covered", ["lab/alpha"], [forged], outcome="unreachable"),
-    ]
-    subscriptions = [
-        subscription(plan="pro", facts=pro_facts),
-        subscription(plan="max", facts=max_facts),
-    ]
-    index = loaded(SnapshotInputs(
-        subscriptions=subscriptions,
-        sources={
-            "src-cite": CITE_URL,
-            "src-ordinary": ORDINARY,
-            "src-redirect": "https://example.org/redirect",
-        },
-    ), source_cache=store)
-    admitted = {item["id"]: item["facts"] for item in index.subscription_offerings()}
-    expected = admitted_subscription_facts(root, {
-        pro_id: subscriptions[0],
-        max_id: subscriptions[1],
-    }, TODAY, store=store)
-    assert admitted == expected
-    assert set(expected[pro_id]) == {"offering.subscription.price"}
-    assert set(expected[max_id]) == {
-        "offering.subscription.price",
-        "offering.subscription.billing_period",
+    plans = {
+        "pro": [
+            row("pro", "offering.subscription.price", 20, [cite], outcome=None),
+            row("pro", "offering.subscription.billing_period", "monthly", [forged],
+                outcome="mismatch"),
+            row("pro", "offering.subscription.models_covered", ["lab/alpha"],
+                [cite, ordinary], outcome=None),
+            row("pro", "offering.subscription.usage_allowance", "5x", [forged]),
+        ],
+        "max": [
+            row("max", "offering.subscription.price", 20, [cite, ordinary]),
+            row("max", "offering.subscription.billing_period", "monthly", [redirect],
+                outcome=None),
+            row("max", "offering.subscription.models_covered", ["lab/alpha"], [forged],
+                outcome="unreachable"),
+            row("max", "offering.subscription.usage_allowance", "5x", [broken]),
+        ],
     }
-
-
-def _mixed_fact(*, outcome):
-    facet = "model.context_window" if outcome is None else "model.weights_openness"
-    value = 128000 if facet == "model.context_window" else "open_weights"
-    record = fact("model", "lab/alpha", facet, value, source="src-cite", outcome=outcome)
-    record["sources"] = [source_ref("src-cite"), source_ref("src-ordinary")]
-    for ref in record["sources"]:
-        ref["retrieved_at"] = FETCHED.isoformat()
-    return record
+    subscriptions = {f"sambanova/subscription/{plan}": subscription(plan=plan, facts=facts)
+                     for plan, facts in plans.items()}
+    index = loaded(SnapshotInputs(subscriptions=list(subscriptions.values()), sources=urls),
+                   source_cache=store)
+    admitted = {item["id"]: item["facts"] for item in index.subscription_offerings()}
+    expected = admitted_subscription_facts(root, subscriptions, TODAY, store=store)
+    assert admitted == expected
+    pro, max_ = expected["sambanova/subscription/pro"], expected["sambanova/subscription/max"]
+    assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance"}
+    assert set(max_) == ({"offering.subscription.billing_period"} if with_store
+                         else {"offering.subscription.usage_allowance"})

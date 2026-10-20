@@ -1437,10 +1437,6 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
         stale = ('<div class="notice">Cited, not machine-verified: the shared '
                  f'{_safe_link(model.scores_citation["url"], "score source")} '
                  'is retained as a citation without a page copy.</div>') + stale
-    elif model.scores and model.scores_source:
-        shown = _safe_link(model.scores_source, model.scores_source)
-        if "<a" not in shown:
-            stale = f'<div class="notice">Score source: {shown}</div>' + stale
 
     rel = relations
     chips = ""

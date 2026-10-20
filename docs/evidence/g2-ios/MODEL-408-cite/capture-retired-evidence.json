@@ -1,0 +1,24 @@
+{
+  "node_version": "v22.22.3",
+  "red": {
+    "command": "PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=tmp/model-408-cite/review/retired-red tests/test_xai_capture_retired.py > tmp/model-408-cite/review/capture-retired-red.log 2>&1",
+    "exit_code": 1,
+    "result": "1 failed; Browser stub was reached: launch attempted"
+  },
+  "green": {
+    "command": "PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=tmp/model-408-cite/review/retired-green tests/test_xai_capture_retired.py tests/test_xai_consumer_citations.py tests/test_xai_consumer_lineup.py > tmp/model-408-cite/review/capture-retired-green.log 2>&1",
+    "exit_code": 0,
+    "result": "203 passed in 1.46s"
+  },
+  "direct": {
+    "command": "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node docs/evidence/g2-ios/MODEL-367/capture.mjs tmp/model-408-cite/review/retired-direct pricing=https://x.ai/pricing > tmp/model-408-cite/review/capture-retired-direct.log 2>&1",
+    "exit_code": 1,
+    "output_directory_created": false
+  },
+  "limits": [
+    "No real browser import or launch",
+    "No live network or provider call",
+    "No Git mutation",
+    "Only synthetic fixture text used"
+  ]
+}
