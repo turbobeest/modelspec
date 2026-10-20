@@ -151,3 +151,11 @@ changes. CI and independent cross-model review remain pending.
 The executor pushes only the assigned branches and opens both PRs as drafts.
 No merge or Linear write is part of this execution. Scratch private clones,
 captures, and bundles are deleted after the draft PRs are published.
+
+## Review corrections, MODEL-433-r2
+
+The subsequent review fixes and red/green results are recorded in
+[MODEL-433-r2-fix.md](MODEL-433-r2-fix.md). They cover Firecrawl exclusion for
+recipe URLs, independent control-label checks, exact selected-option waits,
+and serialization on Worker Pydantic 2.10.6. Both PRs remain drafts; merge the
+engine first, advance the data pin to that main commit, then merge the data PR.

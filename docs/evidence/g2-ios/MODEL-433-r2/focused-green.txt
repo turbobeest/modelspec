@@ -1,0 +1,14 @@
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+........................................................................ [ 57%]
+........................................................................ [ 72%]
+........................................................................ [ 86%]
+...................................................................      [100%]
+=============================== warnings summary ===============================
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: 47 warnings
+  /Users/terbeest/dev/worktrees/model-433/tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'exclude_if'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.10/migration/
+    warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+499 passed, 47 warnings in 30.45s

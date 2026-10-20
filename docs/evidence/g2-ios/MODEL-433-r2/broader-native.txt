@@ -1,0 +1,19 @@
+........................................................................ [ 19%]
+........................................................................ [ 38%]
+........................................................................ [ 58%]
+........................................................................ [ 77%]
+....................................sssssss.........ssssssssssssssssssss [ 97%]
+s.......ss.                                                              [100%]
+=========================== short test summary info ============================
+SKIPPED [7] tests/test_rendered_interactions.py:49: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_rendered_interactions.py:112: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [3] tests/test_rendered_interactions.py:118: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [5] tests/test_rendered_interactions.py:133: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_rendered_interactions.py:149: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [2] tests/test_rendered_interactions.py:159: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_rendered_interactions.py:171: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [3] tests/test_rendered_interactions.py:182: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [5] tests/test_rendered_interactions.py:211: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_rendered_interactions.py:273: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_rendered_interactions.py:282: could not import 'playwright.sync_api': No module named 'playwright'
+341 passed, 30 skipped in 33.31s
