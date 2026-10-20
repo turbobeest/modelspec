@@ -131,6 +131,30 @@ probe with `--baseline`. The workflow checks out the PR's main base commit.
 Object attribution runs after the acceptance sample. Categories overlap and
 are Python object-size estimates; their sum is not the Worker allocation.
 
+### MODEL-417 refresh: Wasm growth is a step, and rows must have deployed width
+
+Pyodide grows Wasm memory by 20% of its current size whenever the C heap
+needs more. Steady memory therefore moves in steps of about 12 MiB, and a
+change of a few hundred kilobytes decides which step a bundle lands on.
+MODEL-411 (#840) added about 600 KB of import-time heap. The private bundle
+crossed from 59.875 to 71.875 MiB of Wasm and measured 121.34 MiB in the
+deploy check. The public fixture stayed about 150 KB below the step and
+passed. Its provenance rows were narrower than deployment's: the public
+registry names only a few device specification URLs, so the fixture admitted
+no device memory records. Each row stayed inside one list-capacity step that
+the private rows crossed when #840 added three fields.
+
+The recipe's `register_hardware_sources` registers every public device
+specification URL as a synthetic source, as deployment does. The fixture's
+rows then have the deployed width, and its heap high-water mark is within
+40 KB of the private bundle's for 88ffd476, 2bdc4eb3 and the MODEL-417 fix.
+With this recipe the 115 MiB gate fails 2bdc4eb3 (116.57 MiB in both periods)
+and passes the fix (104.57 MiB in both periods).
+
+To compare a change with the step, read the C heap's high-water mark (the
+Emscripten `_sbrk(0)` break after the probe's requests) against the current
+Wasm size. Steady memory alone shows only the step.
+
 ## Keep one parsed price snapshot
 
 Retain #813's signed current and successor bundle and its response-binding
