@@ -19,11 +19,13 @@ from decision.retention import (
 from decision.sources import CopyStore, FetchResult, recheck
 from decision.verify import StoredRegions, verify
 from tests.snapshot_records import SOURCES, evidence, fact
+from tests.test_price_reread import estate  # noqa: F401  (fixture)
 from tests.test_cite_only_verification import (
     CITE_URL, CONTEXT, TODAY, claim as make_claim, loaded, rejected, snapshot_input,
 )
 
 BAD_URL = "https://example.com:bad/pricing"
+
 
 
 @pytest.mark.parametrize("url,host,cited", [
@@ -148,9 +150,150 @@ def test_byte_free_fetch_with_malformed_origin_is_refused(tmp_path, redirect):
     source = Source(id="s", url="https://plans.example/pricing", cited_regions=[
         CitedRegion(id="page", locator={"kind": "page", "value": ""})])
     store = CopyStore(tmp_path / "cache")
-    with pytest.raises(ValueError, match="byte-free replay requires a cite-only origin"):
-        price_reread.fetch_sources(["s"], {"s": source}, HashOnly(), store)
+    fetched = price_reread.fetch_sources(["s"], {"s": source}, HashOnly(), store)
+    assert (fetched["s"].outcome, fetched["s"].copy_ref) == ("invalid_citation_metadata", None)
     assert not list(tmp_path.rglob("*.citation.json"))
+
+
+# REV-857 round-three probes
+
+
+REV3_BAD = "https://reader@x.ai/pricing"
+
+
+@pytest.mark.parametrize("hash_only", [False, True])
+def test_fetch_sources_continues_after_malformed_redirect(tmp_path, hash_only):
+    from scripts import price_reread
+
+    class FakeFetcher:
+        def __init__(self):
+            self.calls = []
+
+        def fetch(self, url, **kwargs):
+            self.calls.append(url)
+            return FetchResult(
+                "ok", 200, body=b"<p>sample</p>",
+                resolved_urls=(REV3_BAD,) if url.endswith("bad") else (),
+                snapshot_ref="sha256:" + "5" * 64 if hash_only and url.endswith("bad") else None,
+            )
+
+    sources = {sid: Source(id=sid, url="https://example.org/" + sid) for sid in ("bad", "good")}
+    fetcher = FakeFetcher()
+    store = CopyStore(tmp_path / "cache")
+    result = price_reread.fetch_sources(sources, sources, fetcher, store)
+    assert result["good"].outcome == "ok"
+    assert result["bad"].outcome == "invalid_citation_metadata"
+    assert len(fetcher.calls) == 2
+    assert not list(tmp_path.rglob("*.citation.json"))
+
+
+@pytest.mark.parametrize("hash_only", [False, True])
+def test_weekly_run_continues_after_malformed_fetch_redirect(estate, hash_only):
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+
+    class BadFirst(ReplayFetcher):
+        def fetch(self, url, **kwargs):
+            result = super().fetch(url, **kwargs)
+            return replace(result, resolved_urls=(REV3_BAD,),
+                           snapshot_ref="sha256:" + "5" * 64 if hash_only else None) \
+                if url == API_URL else result
+
+    fetcher = BadFirst({API_URL: [page("api-pricing.html")], PLANS_URL: [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT)
+    assert PLANS_URL in fetcher.fetched
+    assert report.sources["example-plans"].outcome == "ok"
+    assert report.sources["example-api-pricing"].outcome == "invalid_citation_metadata"
+
+
+def _store_record(store, ref, data):
+    import json
+
+    path = store.path(ref).with_suffix(".citation.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data))
+    return path
+
+
+@pytest.mark.parametrize("field,value", [
+    ("url", REV3_BAD), ("sourceURL", REV3_BAD), ("final_url", REV3_BAD),
+    ("sourceURL", 7), ("final_url", ""), ("sourceURL", "javascript:alert(1)"),
+])
+def test_all_store_origins_are_checked_before_verifier_cited_grant(tmp_path, field, value):
+    from decision.citation import ref_state
+
+    claim = make_claim()
+    ref = claim.sources[0].snapshot_ref
+    store = CopyStore(tmp_path / "cache")
+    _store_record(store, ref, {"snapshot_ref": ref, "url": SOURCES["src-lab-docs"],
+                               "resolved_urls": [], field: value})
+    regions = StoredRegions(store, {"src-lab-docs": Source(id="src-lab-docs",
+                                                           url=SOURCES["src-lab-docs"])})
+    with pytest.raises(ValueError):
+        ref_state({"source_id": "src-lab-docs", "snapshot_ref": ref},
+                  {"src-lab-docs": SOURCES["src-lab-docs"]}, store)
+    assert regions.cite_only_status("src-lab-docs", ref) is None
+    assert regions.cite_only("src-lab-docs", ref) is True  # restrictive: copy withheld
+    assert verify(claim, regions, [], today=TODAY).outcome == "skipped"
+
+
+def test_well_formed_store_record_still_grants_the_verifier_cited_skip(tmp_path):
+    claim = make_claim()
+    ref = claim.sources[0].snapshot_ref
+    store = CopyStore(tmp_path / "cache")
+    store.record_citation(ref, source_url=SOURCES["src-lab-docs"], resolved_urls=[CITE_URL])
+    regions = StoredRegions(store, {"src-lab-docs": Source(id="src-lab-docs",
+                                                           url=SOURCES["src-lab-docs"])})
+    assert regions.cite_only_status("src-lab-docs", ref) is True
+    assert verify(claim, regions, [], today=TODAY).outcome == "cited"
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url"])
+def test_recheck_refuses_malformed_prior_record_origins(tmp_path, field):
+    import json
+
+    now = datetime(2026, 10, 20, tzinfo=UTC)
+    source = Source(id="ordinary", url="https://ordinary.example/pricing")
+    store = CopyStore(tmp_path / "cache")
+
+    class Fresh:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=b"<p>sample</p>")
+
+    initial = recheck([source], {}, [], fetcher=Fresh(), store=store, now=now)
+    snapshot = initial.states[source.id].snapshot
+    assert snapshot is not None
+    data = {"snapshot_ref": snapshot.copy_ref, "url": str(source.url), "resolved_urls": [],
+            field: REV3_BAD}
+    path = _store_record(store, snapshot.copy_ref, data)
+
+    class NotModified:
+        def fetch(self, url, **kwargs):
+            return FetchResult("not_modified", 304)
+
+    result = recheck([source], initial.states, [], fetcher=NotModified(), store=store, now=now)
+    assert ("ordinary", "invalid_citation_metadata") in {
+        (item.source_id, item.reason) for item in result.skipped}
+    assert json.loads(path.read_text()) == data
+
+
+@pytest.mark.parametrize("record,expected", [
+    ({"url": "https://example.org/"}, False),
+    ({"url": "https://example.org/", "resolved_urls": ["https://x.ai/"]}, True),
+    ({"url": "https://example.org/", "final_url": "https://docs.x.ai/"}, True),
+    ({"url": "https://example.org/", "sourceURL": REV3_BAD}, None),
+    ({"url": "https://example.org/", "final_url": None}, None),
+    ({"url": "https://example.org/", "resolved_urls": None}, None),
+    ({}, None),
+    ([], None),
+])
+def test_record_origin_status_checks_every_origin(record, expected):
+    from decision.retention import record_origin_status
+
+    assert record_origin_status(record) is expected
 
 
 def test_one_bad_fetch_redirect_does_not_abort_recheck(tmp_path):

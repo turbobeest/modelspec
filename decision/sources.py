@@ -42,8 +42,8 @@ if TYPE_CHECKING:
 from decision.model import CitedRegion as CitedRegion
 from decision.model import Source, SourceSnapshot
 from decision.retention import (
-    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, cite_only_status,
-    require_source_url,
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    record_origin_status, require_source_url,
 )
 from decision.normalise import (
     NORMALISERS,
@@ -526,11 +526,12 @@ class CopyStore:
             resolved_urls: Iterable[str] = ()) -> str:
         source_url = require_source_url(source_url)
         resolved_urls = tuple(resolved_urls)
-        if cite_only_origin_status(source_url, resolved_urls) is None:
+        cite_only = cite_only_origin_status(source_url, resolved_urls)
+        if cite_only is None:
             # Neither bytes nor a citation record for a malformed origin (MODEL-420).
             raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only_origin_restrictive(source_url, resolved_urls):
+        if cite_only:
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
@@ -762,17 +763,21 @@ def _check_one(
 
     try:
         previous_citation = store.citation(previous.copy_ref) if previous else None
+        # Every origin of the previous record is validated before its presence
+        # grants the cite-only path (MODEL-420).
+        if previous_citation is not None and record_origin_status(previous_citation) is None:
+            raise ValueError("invalid previous citation record")
         resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
                               *((previous_citation or {}).get("resolved_urls", ())))))
-        if cite_only_status(source.url) is None \
-                or any(cite_only_status(url) is None for url in resolved_urls):
+        cite_only = cite_only_origin_status(source.url, resolved_urls)
+        if cite_only is None:
             raise ValueError("invalid redirect URL")
     except (TypeError, ValueError):
         # Fail closed for this source only (MODEL-420): keep nothing, change no
-        # snapshot, and go on to the next source.
+        # snapshot or record, and go on to the next source.
         report.skipped.append(Skipped(source.id, "invalid_citation_metadata"))
         return replace(state, last_attempt_at=now)
-    if (cite_only_origin_restrictive(source.url, resolved_urls) or previous_citation is not None) \
+    if (cite_only or previous_citation is not None) \
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)

@@ -10,7 +10,8 @@ import yaml
 from decision.citation import fact_citation
 from decision.model import Fact, Measurement, value_hash, verification_counts
 from decision.retention import (
-    canonical_host, cite_only_status, is_cite_only_restrictive, metadata_origins, redirect_urls,
+    cite_only_origin_status, cite_only_status, metadata_origins, record_origin_status,
+    redirect_urls,
 )
 from decision.snapshot import FactValue
 from decision.sources import load_sources
@@ -76,12 +77,14 @@ def _cited_ref(ref, urls, store):
                 raise ValueError("citation record does not match its hash")
             if record.get("url") != registered:
                 raise ValueError("citation record names another source")
-            if "resolved_urls" in record:
-                redirect_urls(record["resolved_urls"])
-            origins = metadata_origins(record)
-            if any(canonical_host(origin) is None for origin in origins):
+            if record_origin_status(record) is None:
                 raise ValueError("invalid citation redirect record")
-    return is_cite_only_restrictive(registered) or any(is_cite_only_restrictive(origin) for origin in origins)
+            origins = metadata_origins(record)
+    # Granting: only a well-formed cite-only origin makes the ref cited.
+    cited = cite_only_origin_status(registered, origins)
+    if cited is None:
+        raise ValueError("invalid citation origin")
+    return cited
 
 
 def bound_hashes(value, unordered):

@@ -141,6 +141,38 @@ def metadata_origins(metadata: dict) -> tuple[str, ...]:
     return tuple(dict.fromkeys((*urls, *resolved)))
 
 
+def record_origin_status(record: object) -> bool | None:
+    """Whether a stored citation record names a cite-only origin; None when malformed.
+
+    For GRANTING call sites. Every origin the record carries is checked
+    (``url``, ``sourceURL``, ``final_url`` and ``resolved_urls``): a present
+    field that is not a well-formed HTTP(S) URL, or a record with no origin,
+    gives None, never "no redirect" (MODEL-420).
+    """
+    if not isinstance(record, dict):
+        return None
+    for key in ("sourceURL", "url", "final_url"):
+        if key in record and (not isinstance(record[key], str) or not record[key]):
+            return None
+    try:
+        if "resolved_urls" in record:
+            redirect_urls(record["resolved_urls"])
+        origins = metadata_origins(record)
+    except (TypeError, ValueError):
+        return None
+    if not origins:
+        return None
+    statuses = []
+    for origin in origins:
+        try:
+            if canonical_host(origin) is None:
+                return None
+        except ValueError:
+            return None
+        statuses.append(cite_only_status(origin))
+    return any(statuses)
+
+
 def require_source_url(url: object) -> str:
     value = str(url)
     parsed = urlsplit(value)

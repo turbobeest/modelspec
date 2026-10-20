@@ -130,8 +130,14 @@ stricter:
     `skipped`), supersedes a mismatch, dates an audit record by retrieval,
     puts a fact in re-read scope, accepts a byte-free replay, or writes a
     citation record (`CopyStore.put` refuses a malformed origin).
-  - The weekly re-check skips one source with malformed redirect metadata
-    as `invalid_citation_metadata` and goes on.
+  - A stored citation record grants only after every origin it carries
+    (`url`, `sourceURL`, `final_url`, `resolved_urls`) is validated
+    (`retention.record_origin_status`), in the snapshot, the verifier and
+    the re-check alike.
+  - The weekly re-check skips one source with malformed redirect metadata,
+    in the fetch or in its previous record, as `invalid_citation_metadata`,
+    leaves that record untouched, and goes on. The price re-read records the
+    same outcome for one source and goes on.
 
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate

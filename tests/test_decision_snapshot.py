@@ -209,7 +209,7 @@ def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
 
 def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subscription_repository):
     from decision.model import verification_counts
-    from decision.retention import cite_only_origin_restrictive
+    from decision.retention import cite_only_status
     from decision.sources import load_sources
     from tests.subscription_sources import admitted_subscription_facts, source_subscriptions
 
@@ -248,8 +248,9 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subsc
                 fact["state"], fact.get("value"),
                 tuple(sorted({ref["source_id"] for ref in fact["sources"]}))), (sid, facet)
             assert type(admitted.value) is type(fact.get("value")), (sid, facet)
-            if any(cite_only_origin_restrictive(urls[ref["source_id"]], ref.get("resolved_urls") or ())
-                   for ref in fact["sources"]):
+            # Granting: only registered cite-only URLs admit a fact without a
+            # verified record; a card redirect or a malformed URL never does.
+            if all(cite_only_status(urls[ref["source_id"]]) is True for ref in fact["sources"]):
                 routes.add("cite-only")
             else:
                 # Without a cite-only source, a fact enters only on an independent

@@ -112,7 +112,7 @@ from decision.normalise import (
 from decision.perplexity_faq import PerplexityFaqExtractor
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
-from decision.retention import cite_only_origin_status, cite_only_status, redirect_urls
+from decision.retention import cite_only_origin_status, cite_only_status, record_origin_status
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 from decision.units import _MAGNITUDE, UNITS, unit_id
 from decision.xai_matrix import (
@@ -5793,11 +5793,11 @@ class StoredRegions:
         status = False if source is None else cite_only_status(source.url)
         try:
             record = self.store.citation(copy_ref)
-            if record is not None:
-                redirect_urls(record.get("resolved_urls", []))
-                if cite_only_status(record.get("url")) is None:
-                    return None
         except ValueError:
+            return None
+        # Every stored origin is validated before the record's presence can
+        # grant the "cited" skip.
+        if record is not None and record_origin_status(record) is None:
             return None
         return None if status is None else status or record is not None
 

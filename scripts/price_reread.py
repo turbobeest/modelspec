@@ -461,16 +461,22 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             result = fetcher.fetch(url)
         if result.outcome == "ok":
             retrieved_at = result.retrieved_at or datetime.now(UTC)
-            if result.snapshot_ref is not None:
-                if cite_only_origin_status(url, result.resolved_urls) is not True:
-                    raise ValueError("a byte-free replay requires a cite-only origin")
-                ref = result.snapshot_ref
-                store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
-                                      resolved_urls=result.resolved_urls)
-            else:
-                ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
-                                resolved_urls=result.resolved_urls)
-            outcome = "cited" if store.citation(ref) is not None else "ok"
+            try:
+                if result.snapshot_ref is not None:
+                    if cite_only_origin_status(url, result.resolved_urls) is not True:
+                        raise ValueError("a byte-free replay requires a cite-only origin")
+                    ref = result.snapshot_ref
+                    store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
+                                          resolved_urls=result.resolved_urls)
+                else:
+                    ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
+                                    resolved_urls=result.resolved_urls)
+                outcome = "cited" if store.citation(ref) is not None else "ok"
+            except ValueError:
+                # Fail closed for this source only (MODEL-420): no bytes, no
+                # citation, and the other sources still run.
+                fetched[sid] = SourceFetch(sid, url, "invalid_citation_metadata")
+                continue
             fetched[sid] = SourceFetch(sid, url, outcome, ref,
                                        error=None if outcome == "cited" else result.error,
                                        retrieved_at=retrieved_at, resolved_urls=result.resolved_urls)

@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple
 
 from decision.retention import (
-    canonical_host, citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
-    cite_only_status, metadata_origins, redirect_urls,
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, cite_only_status,
+    metadata_origins, record_origin_status, redirect_urls,
     require_source_url,
 )
 
@@ -50,14 +50,10 @@ def _fetcher_record(ref: Mapping[str, Any], sources: Mapping[str, str],
         raise ValueError("citation record does not match its hash")
     if metadata.get("url") != sources.get(ref.get("source_id")):
         raise ValueError("citation record names another source")
-    redirects = redirect_urls(metadata["resolved_urls"]) if "resolved_urls" in metadata else ()
-    try:
-        origins = metadata_origins(dict(metadata))
-    except (TypeError, ValueError):
-        raise ValueError("invalid citation redirect record") from None
-    if any(canonical_host(origin) is None for origin in origins):
+    if record_origin_status(dict(metadata)) is None:
         raise ValueError("invalid citation redirect record")
-    return _Fetched(origins, redirects)
+    redirects = redirect_urls(metadata["resolved_urls"]) if "resolved_urls" in metadata else ()
+    return _Fetched(metadata_origins(dict(metadata)), redirects)
 
 
 def ref_state(ref: Mapping[str, Any], sources: Mapping[str, str], store: Any = None) -> RefState:
