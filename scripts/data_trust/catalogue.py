@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from decision.labs import Lab
-from decision.model import value_hash, verification_counts
+from decision.model import (
+    evidence_verification_value,
+    fact_verification_value,
+    value_hash,
+    verification_counts,
+)
 
 
 def day(value: Any) -> date | None:
@@ -42,6 +47,8 @@ class Catalogue:
     served_counts: dict = field(default_factory=dict)
     findings: list[Finding] = field(default_factory=list)
     verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
+    # The verification log as read, kept after calibration for cited records.
+    logged_verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
 
 
 def _document(path: Path) -> Any:
@@ -138,6 +145,49 @@ def load(root: Path) -> Catalogue:
     return c
 
 
+def cited(f: dict) -> bool:
+    """A cite-only record (MODEL-411): provenance without machine verification."""
+    return isinstance(f.get("citation"), dict) and f["citation"].get("status") == "cited"
+
+
+def registered_cite_only(c: Catalogue, ref: Any) -> bool:
+    """Whether a reference's REGISTERED source URL is cite-only.
+
+    The audit decides this itself from the source registry and never from
+    card-authored ``resolved_urls`` or a record's citation status.
+    """
+    from decision.retention import is_cite_only
+
+    if not isinstance(ref, dict):
+        return False
+    url = (c.sources.get(ref.get("source_id")) or {}).get("url")
+    return bool(url) and is_cite_only(url)
+
+
+def only_cite_only_sources(c: Catalogue, f: dict) -> bool:
+    """True when the record has references and every registered source is cite-only."""
+    refs = f.get("sources") or []
+    return bool(refs) and all(registered_cite_only(c, ref) for ref in refs)
+
+
+def retrieved_on(citation: dict, source_ids: set[str]) -> str | None:
+    """The latest UTC retrieval day among the named citation sources, or None."""
+    days = []
+    for source in citation.get("sources") or []:
+        if not isinstance(source, dict) or source.get("source_id") not in source_ids:
+            continue
+        when = source.get("retrieved_at")
+        if when is None:
+            continue
+        try:
+            parsed = when if isinstance(when, datetime) else datetime.fromisoformat(str(when))
+        except ValueError:
+            continue
+        if parsed.tzinfo is not None:
+            days.append(parsed.astimezone(UTC).date())
+    return max(days).isoformat() if days else None
+
+
 def _records(c, rows, subject, kind, parent):
     for index, raw in enumerate(rows):
         if not isinstance(raw, dict):
@@ -152,14 +202,25 @@ def _records(c, rows, subject, kind, parent):
         v = c.verifications.get((kind, rid), raw.get("verification") or {})
         value = raw.get("value") if kind == "fact" else raw.get("score")
         read_date = raw.get("read_date") or raw.get("verified_at")
+        if cited(raw):
+            if only_cite_only_sources(c, raw):
+                # MODEL-411: a fact cited only from registered cite-only sources is
+                # dated by their retrieval, never by an old verification left in
+                # frozen data; without a retrieval time it stays undated.
+                ids = {ref["source_id"] for ref in raw["sources"]}
+                v, read_date = {}, retrieved_on(raw["citation"], ids)
+            else:
+                # A registered retainable source still needs a verification of
+                # this value, whatever the citation says (MODEL-422 review).
+                v = c.verifications.get((kind, rid)) or c.logged_verifications.get((kind, rid))
+                v, read_date = v or {}, None
         # A verification for another value must not reset the current value's age.
-        checked_value = value
-        if kind == "evidence":
-            from decision.model import evidence_verification_value
-
-            checked_value = evidence_verification_value(raw)
+        # Hash what the verifier hashed: a dated price binds its period (MODEL-394).
         try:
-            if (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
+            checked_value = (
+                fact_verification_value(raw) if kind == "fact" else evidence_verification_value(raw)
+            )
+            if v and (v.get("target") or {}).get("value_hash") == value_hash(checked_value):
                 read_date = v.get("date") or read_date
             else:
                 v = {}
@@ -174,7 +235,8 @@ def _records(c, rows, subject, kind, parent):
                 "kind": kind,
                 "value": value,
                 "read_date": read_date,
-                "verification": v,
+                # A cited record never presents as machine-verified (MODEL-411).
+                "verification": {} if cited(raw) else v,
                 "names": (parent.get("display_name") or subject, subject),
                 "provider": parent.get("provider") or subject.split("/")[0],
             }
@@ -250,6 +312,7 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     admitted = set(compiler.records)
     c.legacy = [f for f in c.facts if f["id"] not in admitted]
     c.facts = []
+    c.logged_verifications = c.verifications
     c.verifications = {}  # The compiler already selected the winning value-hash verification.
     c.labs = {f"lab:{lab_id}": lab for lab_id, lab in compiler.labs.items()}
     c.models = {m["id"]: c.models[m["id"]] for m in inputs.models}

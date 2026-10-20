@@ -22,6 +22,7 @@ from scripts.slo.report import (
     Result,
     Target,
     WatchedWorkflow,
+    WorkflowRepo,
     check_fact_age,
     check_facts_verified,
     check_lab_feeds,
@@ -31,11 +32,14 @@ from scripts.slo.report import (
     check_refresh_prs,
     check_unclassified_evidence,
     check_workflows,
+    discover_workflows,
+    fetch_runs,
     load_config,
     measure,
     report_from_json,
     settle,
 )
+from scripts.slo.schedule import CronError, cadence_hours, scheduled_workflows
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs" / "method" / "coverage-slo.md"
@@ -71,8 +75,9 @@ def test_the_thin_evidence_floor_is_the_ranking_floor() -> None:
     assert CONFIG.target("thin-evidence").params["min_benchmarks"] == MIN_BENCHMARK_COUNT
 
 
-def test_every_watched_workflow_exists() -> None:
-    for w in CONFIG.workflows:
+def test_every_unscheduled_workflow_exists() -> None:
+    for w in CONFIG.unscheduled:
+        assert w.repo == "turbobeest/modelspec"
         assert (ROOT / ".github" / "workflows" / w.file).is_file(), w.file
 
 
@@ -111,7 +116,186 @@ def test_the_report_is_met_only_when_every_in_force_target_is(statuses, expected
     assert _report(*statuses).status == expected
 
 
-# ── workflow health ────────────────────────────────────────────────────────
+# ── workflow health (MODEL-215, MODEL-421) ────────────────────────────────
+
+
+@pytest.mark.parametrize(("crons", "hours"), [
+    (["17 6 * * 1"], 168),
+    (["41 */6 * * *"], 6),
+    (["23 * * * *"], 1),
+    (["0 6 * * *"], 24),
+    (["17 6 * * 1", "47 6 * * *"], 24),
+    (["0 9 * * MON-FRI"], 72),
+    (["0 0 1 * *"], 744),
+    (["0 0 13 * 5"], 168),
+])
+def test_a_cadence_is_the_longest_gap_between_cron_firings(crons, hours) -> None:
+    assert cadence_hours(crons) == hours
+
+
+@pytest.mark.parametrize("line", ["0 6 * *", "61 * * * *", "*/0 * * * *", "0 6 * * funday"])
+def test_an_unreadable_cron_line_is_refused(line) -> None:
+    with pytest.raises(CronError):
+        cadence_hours([line])
+
+
+def _workflows(base: Path, files: dict[str, str]) -> Path:
+    d = base / ".github" / "workflows"
+    d.mkdir(parents=True)
+    for name, text in files.items():
+        (d / name).write_text(text, encoding="utf-8")
+    return base
+
+
+WEEKLY = "on:\n  schedule:\n    - cron: '17 6 * * 1'\n  workflow_dispatch:\njobs: {}\n"
+EVERY_6H = "on:\n  schedule:\n    - cron: '41 */6 * * *'\njobs: {}\n"
+DAILY_CRON = "on:\n  schedule:\n    - cron: 0 6 * * *\njobs: {}\n"
+PUSH_ONLY = "on:\n  push:\n    branches: [main]\njobs: {}\n"
+PUBLIC, PRIVATE = "turbobeest/modelspec", "turbobeest/modelspec-data"
+
+
+def test_the_watched_list_and_cadences_come_from_the_cron_triggers(tmp_path: Path) -> None:
+    public = _workflows(tmp_path / "public", {
+        "release-watch.yml": EVERY_6H, "accuracy-nightly.yml": DAILY_CRON,
+        "deploy-sites.yml": PUSH_ONLY})
+    private = _workflows(tmp_path / "private", {
+        "private-audit.yml": WEEKLY, "private-reread.yml": WEEKLY,
+        "private-daily.yml": DAILY_CRON, "private-dispatched.yml": PUSH_ONLY})
+    watched, errors = discover_workflows(tmp_path, CONFIG, {PUBLIC: public, PRIVATE: private})
+    assert errors == ()
+    assert [(w.key, w.cadence_hours, w.max_age_hours) for w in watched] == [
+        ("modelspec/accuracy-nightly.yml", 24, 36),
+        ("modelspec/release-watch.yml", 6, 9),
+        ("modelspec-data/private-audit.yml", 168, 252),
+        ("modelspec-data/private-daily.yml", 24, 36),
+        ("modelspec-data/private-reread.yml", 168, 252),
+        # Push-triggered, so no cadence: only a red run counts.
+        ("modelspec/deploy-sites.yml", None, None),
+    ]
+
+
+def test_the_run_measuring_the_others_leaves_itself_out(tmp_path: Path) -> None:
+    public = _workflows(tmp_path / "public", {"coverage-slo.yml": DAILY_CRON,
+                                              "release-watch.yml": EVERY_6H})
+    watched, _ = discover_workflows(tmp_path, CONFIG, {PUBLIC: public},
+                                    skip="modelspec/coverage-slo.yml")
+    assert "modelspec/coverage-slo.yml" not in {w.key for w in watched}
+    assert "modelspec/release-watch.yml" in {w.key for w in watched}
+
+
+def test_the_private_workflow_files_are_read_through_the_api() -> None:
+    from scripts.slo.report import fetch_workflow_files
+
+    calls: list = []
+
+    def gh(args, stdin=None):
+        calls.append(args)
+        if args[-1].endswith("workflows?ref=main"):
+            return json.dumps([{"name": "a.yml", "path": ".github/workflows/a.yml",
+                                "type": "file"},
+                               {"name": "notes.md", "path": ".github/workflows/notes.md",
+                                "type": "file"}])
+        return WEEKLY
+
+    assert fetch_workflow_files(PRIVATE, gh) == {"a.yml": WEEKLY}
+    assert calls == [
+        ["api", f"repos/{PRIVATE}/contents/.github/workflows?ref=main"],
+        ["api", "-H", "Accept: application/vnd.github.raw",
+         f"repos/{PRIVATE}/contents/.github/workflows/a.yml?ref=main"]]
+
+
+def test_unreadable_private_workflow_files_are_an_error_not_an_empty_list(
+        tmp_path: Path) -> None:
+    public = _workflows(tmp_path / "public", {"release-watch.yml": EVERY_6H})
+    watched, errors = discover_workflows(tmp_path, CONFIG, {PUBLIC: public},
+                                         clients={PRIVATE: "MODELSPEC_DATA_TOKEN is not set"})
+    assert all(w.repo == PUBLIC for w in watched)
+    assert [repo for repo, _ in errors] == [PRIVATE]
+    check = check_workflows({w.key: [] for w in watched}, watched, NOW, errors,
+                            CONFIG.private_repos)
+    assert "modelspec-data: could not list its scheduled workflows" in check.errors
+    assert settle(CONFIG.target("workflow-health"), check).status == "error"
+
+
+def test_every_scheduled_workflow_here_is_watched_with_its_cron_cadence() -> None:
+    found, errors = scheduled_workflows(ROOT / ".github" / "workflows")
+    assert errors == []
+    cadences = {s.file: s.cadence_hours for s in found}
+    assert cadences["release-watch.yml"] == 6
+    assert cadences["coverage-slo.yml"] == 24
+    assert "deploy-sites.yml" not in cadences
+
+
+FIXTURE_RUNS = json.loads(
+    (ROOT / "tests" / "fixtures" / "workflow_health" / "runs.json").read_text(encoding="utf-8"))
+FIXTURE_WATCHED = (
+    WatchedWorkflow(PRIVATE, "private-audit.yml", 168, 252),
+    WatchedWorkflow(PRIVATE, "private-reread.yml", 168, 252),
+    WatchedWorkflow(PUBLIC, "release-watch.yml", 6, 9),
+    WatchedWorkflow(PUBLIC, "accuracy-nightly.yml", 24, 36),
+    WatchedWorkflow(PRIVATE, "private-daily.yml", 24, 36),
+)
+
+
+def _fixture_gh(calls: list):
+    def gh(args, stdin=None):
+        calls.append(args)
+        path = args[1].split("?", 1)[0]
+        if path not in FIXTURE_RUNS:
+            raise ValueError(f"no fixture for {path}")
+        return json.dumps(FIXTURE_RUNS[path])
+    return gh
+
+
+def _fixture_check(private: frozenset[str] = frozenset()) -> tuple[Check, list]:
+    calls: list = []
+    gh = _fixture_gh(calls)
+    runs = fetch_runs(FIXTURE_WATCHED, {PUBLIC: gh, PRIVATE: gh})
+    return check_workflows(runs, FIXTURE_WATCHED, NOW, (), private), calls
+
+
+def test_failed_cancelled_and_stale_workflows_are_red_with_their_run_urls() -> None:
+    check, calls = _fixture_check()
+    assert check.measured == 5 and check.errors == ()
+    assert [(f.subject, f.detail) for f in check.findings] == [
+        ("modelspec-data/private-audit.yml",
+         "latest run concluded failure on 2026-09-29T06:37:00Z; 2 red run(s) in a row: "
+         "https://github.com/turbobeest/modelspec-data/actions/runs/1001"),
+        ("modelspec-data/private-reread.yml",
+         "latest run concluded cancelled on 2026-09-28T07:37:00Z; 1 red run(s) in a row: "
+         "https://github.com/turbobeest/modelspec-data/actions/runs/1004"),
+        ("modelspec/release-watch.yml",
+         "has not run for 20 h; scheduled every 6 h, limit 9 h; last run: "
+         "https://github.com/turbobeest/modelspec/actions/runs/1006"),
+    ]
+    # One call per workflow, each on main.
+    assert calls[0] == ["api", "repos/turbobeest/modelspec-data/actions/workflows/"
+                               "private-audit.yml/runs?branch=main&per_page=10"
+                               "&exclude_pull_requests=true"]
+    assert len(calls) == 5
+
+
+def test_the_public_check_shows_a_private_repository_only_as_counts() -> None:
+    check, _ = _fixture_check(CONFIG.private_repos)
+    assert check.measured == 5 and check.errors == ()
+    assert [(f.subject, f.detail) for f in check.findings] == [
+        ("modelspec/release-watch.yml",
+         "has not run for 20 h; scheduled every 6 h, limit 9 h; last run: "
+         "https://github.com/turbobeest/modelspec/actions/runs/1006"),
+        ("modelspec-data", "2 of 3 scheduled workflow(s) red; the names and runs are in "
+                           "modelspec-data's own workflow-health issue"),
+    ]
+
+
+def test_a_red_workflow_makes_the_report_red() -> None:
+    check, _ = _fixture_check(CONFIG.private_repos)
+    assert settle(CONFIG.target("workflow-health"), check).status == "breach"
+
+
+def test_a_successful_run_and_a_run_in_progress_are_green() -> None:
+    check, _ = _fixture_check()
+    red = {f.subject for f in check.findings}
+    assert {"modelspec/accuracy-nightly.yml", "modelspec-data/private-daily.yml"} & red == set()
 
 
 def _run(conclusion: str | None, hours_ago: float, status: str = "completed") -> dict:
@@ -120,37 +304,234 @@ def _run(conclusion: str | None, hours_ago: float, status: str = "completed") ->
             "html_url": f"https://example.test/{hours_ago}"}
 
 
-DAILY = WatchedWorkflow("daily.yml", 30, True)
+DAILY = WatchedWorkflow(PUBLIC, "daily.yml", 24, 36)
 
 
-def test_a_failing_workflow_is_a_breach_naming_the_streak() -> None:
-    check = check_workflows(
-        {"daily.yml": [_run("failure", 3), _run("failure", 27), _run("success", 51)]},
-        [DAILY], NOW)
-    assert [f.detail.split(":")[0] for f in check.findings] == [
-        "latest run concluded failure; 2 failing run(s) in a row"]
-
-
-def test_a_cancelled_run_is_skipped_over_and_an_overdue_one_is_a_breach() -> None:
-    check = check_workflows({"daily.yml": [_run("cancelled", 1), _run("success", 40)]},
+@pytest.mark.parametrize("conclusion", ["cancelled", "timed_out", "startup_failure",
+                                        "action_required"])
+def test_a_cancelled_or_timed_out_run_is_never_skipped_over(conclusion) -> None:
+    check = check_workflows({DAILY.key: [_run(conclusion, 1), _run("success", 25)]},
                             [DAILY], NOW)
-    assert [f.detail for f in check.findings] == ["latest completed run is 40 h old, limit 30 h"]
+    assert [f.detail.split(" on ")[0] for f in check.findings] == [
+        f"latest run concluded {conclusion}"]
 
 
-def test_a_switched_off_pipeline_is_a_breach_only_where_skipping_is_not_ok() -> None:
-    runs = {"signals.yml": [_run("skipped", 1)], "daily.yml": [_run("skipped", 1)]}
-    check = check_workflows(runs, [WatchedWorkflow("signals.yml", 3, False), DAILY], NOW)
-    assert [f.subject for f in check.findings] == ["signals.yml"]
-
-
-def test_a_first_run_still_in_progress_is_not_a_breach() -> None:
-    check = check_workflows({"daily.yml": [_run(None, 0, "in_progress")]}, [DAILY], NOW)
+def test_a_job_switched_off_by_its_own_if_is_not_red() -> None:
+    check = check_workflows({DAILY.key: [_run("skipped", 1)]}, [DAILY], NOW)
     assert (check.measured, check.findings) == (1, ())
 
 
+def test_a_scheduled_workflow_that_never_ran_is_red() -> None:
+    check = check_workflows({DAILY.key: []}, [DAILY], NOW)
+    assert [f.detail for f in check.findings] == [
+        "no run on main; scheduled every 24 h, limit 36 h"]
+
+
 def test_unreadable_runs_are_an_error_not_a_pass() -> None:
-    check = check_workflows({"daily.yml": "HTTPError: 502"}, [DAILY], NOW)
+    check = check_workflows({DAILY.key: "could not read run status"}, [DAILY], NOW)
     assert settle(TARGET, check).status == "error"
+    assert check.errors == ("modelspec/daily.yml: could not read run status",)
+
+
+def test_an_unset_private_token_is_an_error_for_its_workflows() -> None:
+    from scripts.slo.report import repo_clients
+
+    clients = repo_clients(CONFIG, gh=lambda args, stdin=None: "{}", environ={})
+    assert clients[PRIVATE] == "MODELSPEC_DATA_TOKEN is not set"
+    private = WatchedWorkflow(PRIVATE, "private-reread.yml", 168, 252)
+    check = check_workflows(fetch_runs([private], clients), [private], NOW, (),
+                            CONFIG.private_repos)
+    assert check.errors == ("modelspec-data: could not read run status of 1 of 1 "
+                            "scheduled workflow(s)",)
+    assert settle(TARGET, check).status == "error"
+
+
+def test_the_private_repo_is_read_with_its_own_token_and_no_checkout() -> None:
+    from scripts.slo.report import repo_clients
+
+    assert callable(repo_clients(CONFIG, environ={"MODELSPEC_DATA_TOKEN": "t"})[PRIVATE])
+    assert WorkflowRepo(PRIVATE, None, "MODELSPEC_DATA_TOKEN", False,
+                        "PRIVATE_WORKFLOW_HEALTH") in CONFIG.workflow_repos
+    assert CONFIG.private_repos == frozenset({PRIVATE})
+
+
+def test_only_the_pass_fail_job_holds_the_private_token() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "coverage-slo.yml").read_text())
+    jobs = workflow["jobs"]
+    private, report = jobs["private-health"], jobs["report"]
+    # A checkout prints the private repository's commit subject into this public log.
+    assert "repository: turbobeest/modelspec-data" not in json.dumps(workflow)
+    assert "MODELSPEC_DATA" in json.dumps(private)
+    assert "MODELSPEC_DATA" not in json.dumps(report)
+    assert "outputs" not in private
+    assert private["steps"][-1]["run"].rstrip().endswith(
+        "python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet")
+    assert report["needs"] == "private-health" and report["if"] == "${{ !cancelled() }}"
+    assert report["env"]["PRIVATE_WORKFLOW_HEALTH"] == "${{ needs.private-health.result }}"
+
+
+@pytest.mark.parametrize(("result", "status", "text"), [
+    ("success", "met", ""),
+    ("failure", "breach", "modelspec-data: scheduled workflow(s) red or unreadable; the "
+                          "names and runs are in modelspec-data's own workflow-health issue"),
+    ("skipped", "error", "modelspec-data: could not read run status (its check: skipped)"),
+    ("<b>anything</b>", "error",
+     "modelspec-data: could not read run status (its check: no result)"),
+])
+def test_the_private_job_result_is_the_only_private_input(result, status, text) -> None:
+    check = check_workflows({DAILY.key: [_run("success", 1)]}, [DAILY], NOW, (),
+                            CONFIG.private_repos, {PRIVATE: result})
+    r = settle(CONFIG.target("workflow-health"), check)
+    assert r.status == status
+    said = [f"{f.subject}: {f.detail}" for f in r.findings] + list(r.errors)
+    assert said == ([text] if text else [])
+
+
+def test_quiet_mode_prints_nothing_and_answers_by_exit_status(monkeypatch, capsys) -> None:
+    from scripts.slo import __main__ as cli
+
+    real = cli.read_workflow_health
+    monkeypatch.setattr(cli, "read_workflow_health", lambda root, config, **kw: real(
+        root, config, gh=_leaky_gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: _leaky_gh, **kw))
+    assert cli.main(["workflows", "--repo", PRIVATE, "--quiet", "--now", NOW.isoformat()]) == 1
+
+    def crash(*args, **kw):
+        raise KeyError("private-audit.yml")
+
+    monkeypatch.setattr(cli, "read_workflow_health", crash)
+    assert cli.main(["workflows", "--repo", PRIVATE, "--quiet"]) == 2
+    out = capsys.readouterr()
+    assert (out.out, out.err) == ("", "")
+
+
+# ── MODEL-421: nothing private reaches the public report ───────────────────
+
+
+SECRET_STDERR = "HTTP 404: secret-stderr names .github/workflows/hidden-writer.yml"
+PRIVATE_FILES = {"private-audit.yml": WEEKLY, "private-reread.yml": WEEKLY,
+                 "private-daily.yml": DAILY_CRON, "hidden-writer.yml": WEEKLY}
+
+
+def _leaky_gh(args, stdin=None):
+    """Serve the fixture; fail the hidden writer with stderr naming it."""
+    import subprocess
+
+    target = args[-1]
+    if target.endswith("contents/.github/workflows?ref=main"):
+        return json.dumps([{"name": n, "path": f".github/workflows/{n}", "type": "file"}
+                           for n in PRIVATE_FILES])
+    if "/contents/.github/workflows/" in target:
+        return PRIVATE_FILES[target.split("/")[-1].split("?")[0]]
+    if "hidden-writer.yml" in target:
+        raise subprocess.CalledProcessError(1, ["gh"], output="", stderr=SECRET_STDERR)
+    path = target.split("?", 1)[0]
+    if path in FIXTURE_RUNS:
+        return json.dumps(FIXTURE_RUNS[path])
+    return json.dumps({"workflow_runs": [_run("success", 1)]})
+
+
+def _forbidden() -> list[str]:
+    words = [*PRIVATE_FILES, "secret-stderr", "modelspec-data/actions/runs",
+             "Private audit", "2026-09-29T06:37", "2026-09-28T07:37"]
+    return words
+
+
+def test_no_private_workflow_name_url_date_or_stderr_reaches_public_output(
+        tmp_path: Path, monkeypatch, capsys) -> None:
+    from scripts.slo import __main__ as cli
+    from scripts.slo.report import read_workflow_health
+
+    watched, errors, runs = read_workflow_health(
+        ROOT, CONFIG, gh=_leaky_gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: _leaky_gh)
+    assert sum(w.repo == PRIVATE for w in watched) == 4
+    report = _measured(tmp_path, watched=watched, runs=runs, watch_errors=errors)
+    health = {r.target: r for r in report.results}["workflow-health"]
+    assert health.status == "error"
+    assert "modelspec-data: could not read run status of 1 of 4 scheduled workflow(s)" \
+        in health.errors
+    assert Finding("modelspec-data", "2 of 4 scheduled workflow(s) red; the names and runs "
+                                     "are in modelspec-data's own workflow-health issue") \
+        in health.findings
+
+    outputs = {
+        "summary": render.markdown(report, CONFIG.report_url),
+        "page": render.page(report, CONFIG.report_url),
+        "json": json.dumps(report.to_json()),
+        "issues": "\n".join(a.body + a.title for a in alerts.plan(report, CONFIG, [], NOW)),
+    }
+    real = cli.read_workflow_health
+    monkeypatch.setattr(cli, "read_workflow_health", lambda root, config, **kw: real(
+        root, config, gh=_leaky_gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: _leaky_gh, **kw))
+    assert cli.main(["workflows", "--now", NOW.isoformat()]) == 1
+    outputs["cli"] = capsys.readouterr().out
+    assert "modelspec-data: 4 scheduled workflow(s), private; counts only" in outputs["cli"]
+    for where, text in outputs.items():
+        for word in _forbidden():
+            assert word not in text, (where, word)
+
+
+def test_private_detail_is_refused_outside_the_private_repository(monkeypatch) -> None:
+    from scripts.slo import __main__ as cli
+
+    monkeypatch.setenv("GITHUB_REPOSITORY", PUBLIC)
+    with pytest.raises(SystemExit, match="refused in turbobeest/modelspec"):
+        cli.main(["workflows", "--repo", PRIVATE, "--private-detail"])
+    with pytest.raises(SystemExit, match="only private repositories"):
+        cli.main(["workflows", "--private-detail"])
+    with pytest.raises(SystemExit, match="needs --private-detail"):
+        cli.main(["workflows", "--repo", PRIVATE, "--issue"])
+
+
+def test_inside_the_private_repository_the_detail_goes_to_its_own_issue(
+        monkeypatch, capsys) -> None:
+    from scripts.slo import __main__ as cli
+
+    calls: list = []
+
+    def gh(args, stdin=None):
+        calls.append((args, stdin))
+        if args[:2] == ["issue", "list"]:
+            return "[]"
+        return "" if args[0] in ("issue", "label") else _leaky_gh(args)
+
+    real = cli.read_workflow_health
+    monkeypatch.setattr(cli, "read_workflow_health", lambda root, config, **kw: real(
+        root, config, gh=gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: gh, **kw))
+    monkeypatch.setattr(cli, "gh_cli", gh)
+    monkeypatch.setenv("GITHUB_REPOSITORY", PRIVATE)
+    monkeypatch.setenv("GITHUB_WORKFLOW_REF",
+                       f"{PRIVATE}/.github/workflows/private-daily.yml@refs/heads/main")
+    assert cli.main(["workflows", "--repo", PRIVATE, "--private-detail", "--issue",
+                     "--now", NOW.isoformat()]) == 1
+    out = capsys.readouterr().out
+    assert "RED   modelspec-data/private-audit.yml" in out
+    assert "https://github.com/turbobeest/modelspec-data/actions/runs/1001" in out
+    # The running workflow leaves itself out; stderr is still never echoed.
+    assert "private-daily.yml" not in out and "secret-stderr" not in out
+    created = [(a, body) for a, body in calls if a[:2] == ["issue", "create"]]
+    assert len(created) == 1 and created[0][0][3] == PRIVATE
+    assert "modelspec-data/private-reread.yml" in created[0][1]
+    assert "modelspec-data/hidden-writer.yml: could not read run status" in created[0][1]
+
+
+def test_a_green_private_repository_closes_its_issue() -> None:
+    from scripts.slo import health_issue
+    from scripts.slo.alerts import Issue
+
+    met = Result("workflow-health", "t", "met", 3, ())
+    issue = Issue(7, health_issue.TITLE, health_issue.MARKER + "\nold")
+    assert [a.kind for a in health_issue.plan(met, [issue], NOW, None)] == [
+        "comment", "close"]
+    red = Result("workflow-health", "t", "breach", 3, (Finding("x", "y"),))
+    body = health_issue.body_for(red, NOW, None)
+    same = Issue(7, health_issue.TITLE, body.replace(NOW.isoformat(), "earlier"))
+    assert health_issue.plan(red, [same], NOW, None) == []
 
 
 # ── the evidence and fact checks ───────────────────────────────────────────
@@ -312,7 +693,7 @@ def test_the_weekly_refresh_branch_is_watched() -> None:
 
 
 def _measured(tmp_path: Path, staged: dict | None = None,
-              refresh_prs: dict | None = None) -> Report:
+              refresh_prs: dict | None = None, **workflow_inputs) -> Report:
     audit = audit_build(
         SnapshotInputs(models=[{"id": "acme/m1", "lifecycle": "active", "facts": []}]),
         registry=default_registry(), premier=["acme/m1"], as_of=AS_OF, guard=None)
@@ -321,11 +702,13 @@ def _measured(tmp_path: Path, staged: dict | None = None,
         premier={"models": [{"model_id": "acme/m1", "clauses": []}]},
         authored={},
         models_dev=(None, "offline"),
-        runs={w.file: [_run("success", 1)] for w in CONFIG.workflows},
+        runs=workflow_inputs.get("runs", {DAILY.key: [_run("success", 1)]}),
         models_dir=tmp_path,
         refresh_prs=refresh_prs or {
             b: [] for b in CONFIG.target("refresh-pr-merged").params["branches"]},
         extra_findings=staged or {},
+        watched=workflow_inputs.get("watched", (DAILY,)),
+        watch_errors=workflow_inputs.get("watch_errors", ()),
     )
     return measure(inputs, CONFIG, as_of=AS_OF, now=NOW)
 

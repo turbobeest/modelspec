@@ -519,3 +519,142 @@ def test_public_source_detection_does_not_use_catalogue_or_hold_bursts(world):
     runs = run_all(limited, baseline, fetch=replay("after"), now=NOW)
     assert runs[0].status == "ok"
     assert "load_catalogue" not in __import__('inspect').getsource(release_watch.main)
+
+
+# ── MODEL-421: an outage fails the run ─────────────────────────────────────
+
+
+def _outage_fetch(url: str) -> Response:
+    """The lab page is down, OpenRouter answers 503, Hugging Face is fine."""
+    if url.endswith("/robots.txt"):
+        return Response(404, b"")
+    if url == PAGE:
+        raise httpx.ConnectError(f"cannot reach {url}")
+    if url == OPENROUTER:
+        return Response(503, b"")
+    return Response(200, (FIXTURES / "after" / FILES[url]).read_bytes())
+
+
+def _watch_files(tmp_path: Path, world) -> tuple[Path, Path]:
+    from release_signals.watch import write_baseline
+
+    _registry_, baseline, _catalogue_ = world
+    path = tmp_path / "baseline.json"
+    write_baseline(path, baseline, NOW)
+    return tmp_path / "release-watch.yaml", path
+
+
+def test_a_source_outage_makes_the_watcher_exit_non_zero(world, tmp_path, monkeypatch) -> None:
+    registry_path, baseline_path = _watch_files(tmp_path, world)
+    monkeypatch.setattr(release_watch, "http_fetch", lambda user_agent: _outage_fetch)
+    report_path = tmp_path / "watch.json"
+
+    status = release_watch.main(["--registry", str(registry_path), "--baseline",
+                                 str(baseline_path), "--report", str(report_path)])
+
+    assert status == 1
+    sources = {row["id"]: (row["status"], row["detail"])
+               for row in json.loads(report_path.read_text())["sources"]}
+    assert sources == {
+        "acme-models": ("unreachable", f"ConnectError: cannot reach {PAGE}"),
+        "hf-acme": ("ok", ""),
+        "openrouter": ("unreachable", "HTTP 503"),
+    }
+
+
+def test_every_source_answering_exits_zero(world, tmp_path, monkeypatch) -> None:
+    registry_path, baseline_path = _watch_files(tmp_path, world)
+    monkeypatch.setattr(release_watch, "http_fetch", lambda user_agent: replay("after"))
+    assert release_watch.main(["--registry", str(registry_path),
+                               "--baseline", str(baseline_path)]) == 0
+
+
+SHIM = '''
+import sys
+import httpx
+from release_signals.watch import Response
+from scripts import release_watch
+
+PAGE, OPENROUTER = {page!r}, {openrouter!r}
+OK = {ok!r}
+
+def fetch(url):
+    if url.endswith("/robots.txt"):
+        return Response(404, b"")
+    if url == PAGE and not OK:
+        raise httpx.ConnectError("cannot reach " + url)
+    if url == OPENROUTER and not OK:
+        return Response(503, b"")
+    return Response(200, open({fixtures!r} + "/" + {files!r}[url], "rb").read())
+
+release_watch.http_fetch = lambda user_agent: fetch
+# The workflow passes the sink; this simulation files nowhere.
+args = [a for a in sys.argv[2:] if a not in ("--post", "--issues")]
+sys.exit(release_watch.main(args + ["--registry", {registry!r}, "--baseline", {baseline!r}]))
+'''
+
+
+def _run_watch_step(tmp_path: Path, world, *, ok: bool):
+    """Run the workflow's real watch step, with `python` running the real
+    watcher against a simulated fetch."""
+    import os
+    import shutil
+    import subprocess
+
+    if not shutil.which("jq") or not shutil.which("bash"):
+        pytest.skip("the watch step needs bash and jq")
+    registry_path, baseline_path = _watch_files(tmp_path, world)
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release-watch.yml").read_text(encoding="utf-8"))
+    step = next(s for s in workflow["jobs"]["watch"]["steps"] if s.get("id") == "watch")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shim = tmp_path / "shim.py"
+    shim.write_text(SHIM.format(
+        page=PAGE, openrouter=OPENROUTER, ok=ok, fixtures=str(FIXTURES / "after"),
+        files=FILES, registry=str(registry_path), baseline=str(baseline_path)))
+    python = bin_dir / "python"
+    python.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{shim}" "$@"\n')
+    python.chmod(0o755)
+    runner_temp = tmp_path / "runner"
+    runner_temp.mkdir()
+    outputs, step_summary = tmp_path / "outputs", tmp_path / "summary"
+    env = {
+        **os.environ,
+        "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+        "PYTHONPATH": str(ROOT),
+        "SIGNALS_ENABLED": "true",
+        "RUNNER_TEMP": str(runner_temp),
+        "GITHUB_OUTPUT": str(outputs),
+        "GITHUB_STEP_SUMMARY": str(step_summary),
+    }
+    # GitHub's default shell for `run:` steps.
+    done = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c",
+                           step["run"]], cwd=ROOT, env=env, capture_output=True, text=True,
+                          timeout=120)
+    return done, outputs.read_text(), step_summary.read_text()
+
+
+def test_a_simulated_outage_fails_the_workflow_run(world, tmp_path) -> None:
+    done, outputs, step_summary = _run_watch_step(tmp_path, world, ok=False)
+    assert done.returncode == 1, done.stderr
+    assert "::error::release_watch.py exited 1" in done.stdout
+    # The outputs are written before the step fails, so dispatch still sees them.
+    assert "status=1" in outputs and "discoveries=0" in outputs
+    assert "### Outages" in step_summary
+    assert f"`acme-models` unreachable: ConnectError: cannot reach {PAGE}" in step_summary
+    assert "`openrouter` unreachable: HTTP 503" in step_summary
+
+
+def test_a_run_where_every_source_answers_stays_green(world, tmp_path) -> None:
+    done, outputs, step_summary = _run_watch_step(tmp_path, world, ok=True)
+    assert done.returncode == 0, done.stderr
+    assert "status=0" in outputs and "### Outages" not in step_summary
+
+
+def test_dispatch_still_runs_for_discoveries_when_the_watch_job_fails() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release-watch.yml").read_text(encoding="utf-8"))
+    condition = workflow["jobs"]["dispatch"]["if"]
+    assert condition.startswith("${{ !cancelled() &&")
+    assert "needs.watch.outputs.discoveries != ''" in condition

@@ -59,7 +59,7 @@ async def replay(data):
     bundle.read = lambda path: vocabulary if path == "/api/decision/vocabulary.json" else None
     stubs = {"js": js, "workers": workers, "bundled_data": bundle}
     missing = object()
-    saved = {name: sys.modules.get(name, missing) for name in stubs}
+    original = {name: sys.modules.get(name, missing) for name in stubs}
     sys.modules.update(stubs)
     try:
         spec = importlib.util.spec_from_file_location(
@@ -67,11 +67,11 @@ async def replay(data):
         entry = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(entry)
     finally:
-        for name, value in saved.items():
-            if value is missing:
+        for name, module in original.items():
+            if module is missing:
                 sys.modules.pop(name, None)
             else:
-                sys.modules[name] = value
+                sys.modules[name] = module
 
     def request_key(payload):
         return json.dumps({key: value for key, value in payload.items() if key != "snapshot"}, sort_keys=True)

@@ -1,0 +1,98 @@
+name: Workflow health
+
+# MODEL-421. The public coverage report shows this repository only as counts
+# ("2 of 7 scheduled workflow(s) red"), because its log, page and issues are
+# public. This private check names each red scheduled workflow here and links
+# its run: in this run's log and summary, and in one issue labelled
+# `workflow-health` that closes itself once everything is green.
+#
+# A scheduled workflow is red when its newest completed run on main failed,
+# was cancelled or timed out, or when it has not run for 1.5 times the cadence
+# of its cron lines. The list comes from the cron lines, not a kept list. This
+# run fails when anything is red, so GitHub's failed-run notification fires
+# too. It leaves itself out of its own check.
+#
+# It runs the pinned public engine (`.engine-pin`); the pin must include
+# MODEL-421 (`python -m scripts.slo workflows`). Cost: one Linux job of about a
+# minute and one REST call per scheduled workflow, plus issue calls.
+
+on:
+  schedule:
+    # After the 06:00-07:41 UTC writers and the 09:37 public coverage report.
+    - cron: '7 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: workflow-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Check every scheduled workflow here
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          persist-credentials: false
+
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install the check's one dependency
+        run: python -m pip install pyyaml
+
+      # The detail is printed only here: --private-detail refuses to run in any
+      # repository but the one it describes.
+      - name: Name every red scheduled workflow and keep the issue
+        working-directory: engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODELSPEC_DATA_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          python -m scripts.slo workflows --repo turbobeest/modelspec-data \
+            --workflow-dir "turbobeest/modelspec-data=$GITHUB_WORKSPACE/data" \
+            --private-detail --issue | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
