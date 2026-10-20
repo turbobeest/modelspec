@@ -36,6 +36,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import threading
@@ -221,43 +222,136 @@ class Entry:
     evidence: str
 
 
-def store_entries(root: Path) -> Iterator[tuple[str, Path]]:
-    """Every byte file in a ``CopyStore`` root, as ``(ref, path)``; sidecars excluded."""
-    if not root.is_dir():
-        return
-    for prefix in sorted(root.iterdir()):
-        if not (prefix.is_dir() and not prefix.is_symlink() and PREFIX.match(prefix.name)):
+def _reason(exc: OSError) -> str:
+    return exc.strerror or type(exc).__name__
+
+
+def _scandir(directory: Path, errors: list[str]) -> list[os.DirEntry] | None:
+    """The sorted entries of ``directory``; ``None``, with the reason recorded, if unreadable."""
+    try:
+        with os.scandir(directory) as listing:
+            return sorted(listing, key=lambda entry: entry.name)
+    except FileNotFoundError:
+        return []
+    except OSError as exc:
+        errors.append(f"{directory}: skipped, unreadable ({_reason(exc)})")
+        return None
+
+
+def _real_dir(entry: os.DirEntry) -> bool:
+    try:
+        return entry.is_dir(follow_symlinks=False)
+    except OSError:
+        return False
+
+
+def store_entries(root: Path, errors: list[str]) -> Iterator[tuple[str, Path, bool]]:
+    """Every digest-named file in a ``CopyStore`` root, as ``(ref, path, is_regular)``.
+
+    Sidecars are excluded, prefix symlinks are not followed, and an unreadable
+    directory is recorded in ``errors`` and passed over.
+    """
+    for prefix in _scandir(root, errors) or ():
+        if not (PREFIX.match(prefix.name) and _real_dir(prefix)):
             continue
-        for path in sorted(prefix.iterdir()):
-            if DIGEST.match(path.name) and path.name.startswith(prefix.name) \
-                    and (path.is_file() or path.is_symlink()):
-                yield f"sha256:{path.name}", path
+        for entry in _scandir(Path(prefix.path), errors) or ():
+            if DIGEST.match(entry.name) and entry.name.startswith(prefix.name):
+                try:
+                    regular = entry.is_file(follow_symlinks=False)
+                except OSError:
+                    regular = False
+                yield f"sha256:{entry.name}", Path(entry.path), regular
 
 
-def is_store_root(path: Path) -> bool:
-    return next(store_entries(path), None) is not None or any(
-        path.glob("[0-9a-f][0-9a-f]/" + "[0-9a-f]" * 64 + ".citation.json"))
+def is_store_root(path: Path, errors: list[str]) -> bool:
+    for prefix in _scandir(path, errors) or ():
+        if PREFIX.match(prefix.name) and _real_dir(prefix):
+            for entry in _scandir(Path(prefix.path), errors) or ():
+                name = entry.name.removesuffix(".citation.json")
+                if DIGEST.match(name) and name.startswith(prefix.name):
+                    return True
+    return False
 
 
-def discover_roots(base: Path) -> list[Path]:
-    """Copy-store roots under ``base``: directories of ``<2 hex>/<64 hex>`` files."""
-    roots = []
-    for directory, dirs, _ in os.walk(base):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
-        if any(PREFIX.match(d) for d in dirs) and is_store_root(Path(directory)):
-            roots.append(Path(directory))
-            dirs[:] = [d for d in dirs if not PREFIX.match(d)]
-    return roots
+def discover_roots(base: Path, errors: list[str], notes: list[str]) -> list[Path]:
+    """Copy-store roots under ``base``: directories of ``<2 hex>/<64 hex>`` files.
+
+    The walk stays on ``base``'s filesystem and never follows a symlink; a
+    symlinked ``base`` is resolved first, and the resolution is noted.
+    """
+    if base.is_symlink():
+        resolved = base.resolve()
+        notes.append(f"{base}: a symlink; discovering under {resolved} instead")
+        base = resolved
+    try:
+        device = os.lstat(base).st_dev
+    except FileNotFoundError:
+        return []
+    except OSError as exc:
+        errors.append(f"{base}: skipped, unreadable ({_reason(exc)})")
+        return []
+    roots, pending = [], [base]
+    while pending:
+        directory = pending.pop()
+        entries = _scandir(directory, errors)
+        if entries is None:
+            continue
+        found = any(PREFIX.match(e.name) and _real_dir(e) for e in entries) \
+            and is_store_root(directory, errors)
+        if found:
+            roots.append(directory)
+        for entry in reversed(entries):
+            if entry.name in SKIP_DIRS or not _real_dir(entry) \
+                    or (found and PREFIX.match(entry.name)):
+                continue
+            try:
+                if entry.stat(follow_symlinks=False).st_dev != device:
+                    notes.append(f"{entry.path}: another filesystem; not searched")
+                    continue
+            except OSError as exc:
+                errors.append(f"{entry.path}: skipped, unreadable ({_reason(exc)})")
+                continue
+            pending.append(Path(entry.path))
+    return sorted(roots)
 
 
-def protected(root: Path, data: Iterable[Path]) -> bool:
-    """A store inside a data directory or the private repository is never purged here."""
+def _git_checkouts(path: Path) -> Iterator[Path]:
+    """Each directory at or above ``path`` that has a ``.git`` entry (raises if unknowable)."""
+    for parent in (path, *path.parents):
+        try:
+            os.lstat(parent / ".git")
+        except FileNotFoundError:
+            continue
+        except NotADirectoryError:
+            continue
+        yield parent
+
+
+def protected(root: Path, data: Iterable[Path]) -> tuple[str, bool] | None:
+    """Why ``root`` must be skipped, as ``(reason, is_error)``, or ``None`` to process it.
+
+    A store inside a data directory or a private-repository checkout is never
+    purged here. A ``.git`` entry at or above the store that git cannot read
+    leaves the checkout unknown, so the store is skipped as an error.
+    """
     resolved = root.resolve()
     if any(resolved == d.resolve() or d.resolve() in resolved.parents for d in data):
-        return True
-    remotes = subprocess.run(["git", "-C", str(resolved), "remote", "-v"],
-                             capture_output=True, text=True).stdout
-    return "turbobeest/modelspec-data" in remotes
+        return "inside a data directory", False
+    try:
+        checkouts = list(_git_checkouts(resolved))
+    except OSError as exc:
+        return f"cannot check for a .git entry ({_reason(exc)})", True
+    for checkout in checkouts:
+        try:
+            result = subprocess.run(["git", "-C", str(checkout), "remote", "-v"],
+                                    capture_output=True, text=True)
+        except OSError as exc:
+            return f"cannot run git for {checkout} ({_reason(exc)})", True
+        if result.returncode != 0:
+            return f"{checkout}/.git exists but git cannot read it", True
+        if "turbobeest/modelspec-data" in result.stdout:
+            return "inside a private-repository checkout", False
+    return None
 
 
 @dataclass
@@ -268,11 +362,11 @@ class Scan:
     identified: int = 0
 
 
-def find_entries(roots: Iterable[Path], provenance: Provenance) -> Scan:
+def find_entries(roots: Iterable[Path], provenance: Provenance, errors: list[str]) -> Scan:
     scan = Scan()
     for root in roots:
         store = CopyStore(root)
-        for ref, path in store_entries(root):
+        for ref, path, regular in store_entries(root, errors):
             scan.scanned += 1
             try:
                 citation = store.citation(ref)
@@ -283,19 +377,32 @@ def find_entries(roots: Iterable[Path], provenance: Provenance) -> Scan:
             origins = provenance.origins(ref)
             scan.identified += bool(sidecar or origins)
             if sidecar and cite_only_origin(sidecar[0], sidecar[1:]):
-                scan.entries.append(Entry(root, ref, path,
-                                          tuple(u for u in sidecar if is_cite_only(u)), "sidecar"))
+                matched, evidence = sidecar, "sidecar"
             elif origins and cite_only_origin(origins[0], origins[1:]):
-                scan.entries.append(Entry(root, ref, path,
-                                          tuple(u for u in origins if is_cite_only(u)), "data"))
+                matched, evidence = origins, "data"
+            else:
+                continue
+            if not regular:
+                errors.append(f"{path}: cite-only name but not a regular file; skipped")
+                continue
+            scan.entries.append(Entry(root, ref, path,
+                                      tuple(u for u in matched if is_cite_only(u)), evidence))
     return scan
 
 
 def delete(entry: Entry) -> None:
-    path = entry.path
-    if path.parent.parent != entry.root or f"sha256:{path.name}" != entry.ref:
-        raise ValueError(f"refusing to delete outside its copy store: {path}")
-    path.unlink()
+    """Unlink one matched page, only a regular file strictly inside its resolved store."""
+    root = entry.root.resolve(strict=True)
+    name = entry.path.name
+    if not DIGEST.match(name) or entry.ref != f"sha256:{name}":
+        raise ValueError(f"refusing to delete a file not named by its ref: {entry.path}")
+    parent = entry.path.parent.resolve(strict=True)
+    target = parent / name
+    if parent.parent != root or parent.name != name[:2] or root not in target.parents:
+        raise ValueError(f"refusing to delete outside its copy store: {entry.path}")
+    if not stat.S_ISREG(os.lstat(target).st_mode):
+        raise ValueError(f"refusing to delete a non-regular file: {entry.path}")
+    os.unlink(target)
 
 
 # --- command line --------------------------------------------------------------------------------
@@ -330,20 +437,31 @@ def main(argv: list[str] | None = None) -> int:
     for repo in args.data_git:
         read_data_git(provenance, repo)
 
-    roots = list(args.root)
+    errors: list[str] = []
+    notes: list[str] = []
+    roots = []
+    for root in args.root:
+        if root.is_symlink():
+            notes.append(f"{root}: a symlink; using {root.resolve()}")
+        roots.append(root.resolve())
     for base in args.discover:
-        roots.extend(discover_roots(base))
+        roots.extend(discover_roots(base, errors, notes))
     if not args.root and not args.discover:
-        roots.append(CopyStore().root)
+        roots.append(CopyStore().root.resolve())
     guarded = [*data_dirs, *args.data_git]
     kept = []
     for root in dict.fromkeys(roots):
-        if protected(root, guarded):
-            print(f"skipped (data directory or private repository): {root}", file=sys.stderr)
-        else:
+        skip = protected(root, guarded)
+        if skip is None:
             kept.append(root)
+            continue
+        reason, is_error = skip
+        if is_error:
+            errors.append(f"{root}: skipped, {reason}")
+        else:
+            notes.append(f"{root}: skipped, {reason}")
 
-    scan = find_entries(kept, provenance)
+    scan = find_entries(kept, provenance, errors)
     entries = scan.entries
     shown = entries[:args.limit] if args.limit else entries
     for entry in shown:
@@ -352,15 +470,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"... {len(entries) - len(shown)} more")
     for warning in provenance.warnings:
         print(f"warning: {warning}", file=sys.stderr)
+    for note in notes:
+        print(f"note: {note}", file=sys.stderr)
     print(f"stores={len(kept)} entries={scan.scanned} identified={scan.identified} "
           f"cite_only={len(entries)} mode={'apply' if args.apply else 'dry-run'}")
-    if not args.apply:
-        return 0
-    for entry in entries:
-        delete(entry)
-    remaining = find_entries(kept, provenance).entries
-    print(f"deleted={len(entries)} remaining_cite_only={len(remaining)}")
-    return 0 if not remaining else 1
+    if args.apply:
+        deleted = 0
+        for entry in entries:
+            try:
+                delete(entry)
+                deleted += 1
+            except (OSError, ValueError) as exc:
+                errors.append(f"{entry.path}: not deleted ({exc})")
+        remaining = find_entries(kept, provenance, errors).entries
+        print(f"deleted={deleted} remaining_cite_only={len(remaining)}")
+    else:
+        remaining = []
+    errors = list(dict.fromkeys(errors))
+    for error in errors:
+        print(f"error: {error}", file=sys.stderr)
+    print(f"skipped_for_error={len(errors)}")
+    return 1 if remaining or errors else 0
 
 
 if __name__ == "__main__":

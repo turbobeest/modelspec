@@ -5,6 +5,7 @@ never read.
 """
 
 import json
+import os
 import subprocess
 from datetime import UTC, datetime
 
@@ -179,7 +180,7 @@ def test_discover_finds_scratch_stores_and_skips_data_directories(capsys, tmp_pa
         store.path(ref).parent.mkdir(parents=True)
         store.path(ref).write_bytes(body)
     (tmp_path / "tmp" / "ticket-1" / "ab").mkdir()  # a hex-named directory, not a store
-    assert purge.discover_roots(tmp_path / "tmp") == [scratch.root]
+    assert purge.discover_roots(tmp_path / "tmp", [], []) == [scratch.root]
 
     code, out = run(capsys, "--discover", tmp_path / "tmp", "--root", inside_data.root,
                     "--data-dir", data, "--apply")
@@ -195,3 +196,139 @@ def test_default_root_is_the_copy_store_root(capsys, tmp_path):
     store.record_citation(ref, source_url="https://docs.x.ai/x", retrieved_at=AT)
     _, out = run(capsys)
     assert listed_refs(out) == {ref}
+
+
+# --- fail-safe: every uncertain case skips, never deletes (REV-848) ---------------------------
+
+needs_permissions = pytest.mark.skipif(os.geteuid() == 0, reason="root ignores file modes")
+
+
+@pytest.fixture
+def restore_modes():
+    """Paths whose mode a test lowers; restored even when the test fails."""
+    changed = []
+    yield changed
+    for path in changed:
+        os.chmod(path, 0o755)
+
+
+def cite_only_store(path, body):
+    store = CopyStore(path)
+    ref = old_copy(store, body)
+    store.record_citation(ref, source_url="https://docs.x.ai/x", retrieved_at=AT)
+    return store, ref
+
+
+@needs_permissions
+def test_unreadable_git_entry_skips_the_store(capsys, tmp_path, restore_modes):
+    checkout = tmp_path / "checkout"
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    inside, kept = cite_only_store(checkout / "cache", b"page in an unknown checkout")
+    plain, gone = cite_only_store(tmp_path / "plain-cache", b"page in a plain cache")
+    os.chmod(checkout / ".git", 0)
+    restore_modes.append(checkout / ".git")
+
+    code = purge.main(["--root", str(inside.root), "--root", str(plain.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert inside.path(kept).is_file()
+    assert not plain.path(gone).exists()
+    assert ".git exists but git cannot read it" in captured.err
+    assert "skipped_for_error=1" in captured.out
+
+
+@needs_permissions
+def test_unreadable_directories_are_reported_and_siblings_still_purged(
+        capsys, tmp_path, restore_modes):
+    base = tmp_path / "scratch"
+    readable, gone = cite_only_store(base / "a" / "copies", b"readable store page")
+    partly = CopyStore(base / "b" / "copies")
+    ordinary = old_copy(partly, b"ordinary page")
+    locked = partly.root / "ff"
+    locked.mkdir()
+    unreadable_root, kept = cite_only_store(tmp_path / "locked-root", b"page in a locked root")
+    for path in (locked, unreadable_root.root):
+        os.chmod(path, 0)
+        restore_modes.append(path)
+
+    code = purge.main(["--discover", str(base), "--root", str(unreadable_root.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert not readable.path(gone).exists()
+    assert partly.path(ordinary).is_file()
+    assert f"{locked}: skipped, unreadable" in captured.err
+    assert f"{unreadable_root.root}: skipped, cannot check for a .git entry" in captured.err
+    assert "deleted=1 remaining_cite_only=0" in captured.out
+    os.chmod(unreadable_root.root, 0o755)
+    assert unreadable_root.path(kept).is_file()
+
+
+@needs_permissions
+def test_failed_unlink_is_reported_and_the_rescan_still_runs(capsys, tmp_path, restore_modes):
+    store, ref = cite_only_store(tmp_path / "cache", b"page in a read-only prefix")
+    prefix = store.path(ref).parent
+    os.chmod(prefix, 0o555)
+    restore_modes.append(prefix)
+
+    code = purge.main(["--root", str(store.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert store.path(ref).is_file()
+    assert "deleted=0 remaining_cite_only=1" in captured.out
+    assert "not deleted" in captured.err
+
+
+def test_discover_stays_on_one_filesystem_and_follows_no_symlink(
+        capsys, tmp_path, monkeypatch):
+    real = tmp_path / "real"
+    store, _ = cite_only_store(real / "copies", b"page behind a symlink")
+    elsewhere, _ = cite_only_store(tmp_path / "elsewhere" / "copies", b"page through a child link")
+    (real / "child-link").symlink_to(elsewhere.root.parent, target_is_directory=True)
+    link = tmp_path / "start-link"
+    link.symlink_to(real, target_is_directory=True)
+
+    errors, notes = [], []
+    assert purge.discover_roots(link, errors, notes) == [store.root]
+    assert errors == []
+    assert notes == [f"{link}: a symlink; discovering under {real} instead"]
+
+    lstat = os.lstat
+
+    def other_device(path, *args, **kwargs):
+        result = lstat(path, *args, **kwargs)
+        if os.fspath(path) == os.fspath(real):
+            fields = list(result[:10])
+            fields[2] += 1
+            return os.stat_result(fields)
+        return result
+
+    monkeypatch.setattr(os, "lstat", other_device)
+    notes = []
+    assert purge.discover_roots(real, [], notes) == []
+    assert f"{real / 'copies'}: another filesystem; not searched" in notes
+
+
+def test_delete_refuses_dot_dot_and_symlinks(capsys, tmp_path):
+    store, ref = cite_only_store(tmp_path / "cache", b"page in the store")
+    outside = tmp_path / ref[7:]
+    outside.write_bytes(b"a file outside the store")
+    with pytest.raises(ValueError, match="outside its copy store"):
+        purge.delete(purge.Entry(store.root, ref, store.root / ".." / ref[7:], ("x",), "data"))
+    assert outside.is_file()
+
+    target = tmp_path / "precious"
+    target.write_bytes(b"symlink target")
+    other = "sha256:" + "ab" * 32
+    link = store.path(other)
+    link.parent.mkdir(parents=True)
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="non-regular"):
+        purge.delete(purge.Entry(store.root, other, link, ("x",), "data"))
+    store.record_citation(other, source_url="https://x.ai/y", retrieved_at=AT)
+
+    code = purge.main(["--root", str(store.root), "--apply"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert link.is_symlink() and target.read_bytes() == b"symlink target"
+    assert not store.path(ref).exists()
+    assert "not a regular file; skipped" in captured.err
