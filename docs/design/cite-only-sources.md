@@ -96,8 +96,8 @@ stricter:
   verification.
 - A ref is *restricted* when it is not cited but the card's `resolved_urls`
   name a cite-only host, or the store holds a citation record for its hash.
-  Its bytes are never retained, benchmark evidence citing it stays out, and a
-  fact citing it still needs a verified outcome.
+  Its bytes are never retained. When no ref is cited, benchmark evidence
+  citing it stays out and a fact citing it still needs a verified outcome.
 - A fact or benchmark evidence row that mixes a cited ref with other refs
   is admitted as cited, with `verification: null` and every ref in its
   citation payload. Historical verification cannot be attributed to either

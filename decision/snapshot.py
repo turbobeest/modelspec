@@ -1250,9 +1250,6 @@ class _Compiler:
         except ValueError:
             self._exclude(sid, "invalid_citation")
             return
-        if citation is not None and any(state != "cited" for state in states):
-            self._exclude(sid, "quarantined (mixed citation)")
-            return
         if citation is None and any(state != "open" for state in states):
             self._exclude(sid, "quarantined (cited)")
             return

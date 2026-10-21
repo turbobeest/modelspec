@@ -1667,7 +1667,12 @@ A shown fact may add `citation` (`FactCitation`). Its `status` is `cited`,
 and its nonempty `sources` list contains `CitationSource` objects with
 `source_id`, `url`, `snapshot_ref` as a SHA-256 content hash, and `retrieved_at`
 as a retrieval timestamp or null when none was recorded. An optional
-`resolved_urls` list records redirect destinations. No page copy is retained.
+`resolved_urls` list records redirect destinations. No page copy is retained
+for a cite-only source. MODEL-439 also admits a fact or score with mixed
+cite-only and other references as cited when verification cannot be
+attributed to either side. Its citation preserves every reference, and its
+retained record has `verification: null`. This uses the existing
+`CitationSource` fields without widening the contract.
 The ordinary `sources[].date` stays a verification date and is null when only
 cited records reference that source. A cited score whose latest outcome is
 `mismatch` or `unreachable` stays quarantined. Card-authored redirect URLs can
