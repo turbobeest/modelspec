@@ -63,6 +63,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install Python Playwright on the interaction recipe shard
+        run: |
+          if grep -qx 'tests/test_rendered_interactions.py' shard-files.txt; then
+            python -m pip install "playwright==1.63.0"
+            python -m playwright install --with-deps chromium
+          fi
       - name: Install the browser and build the app on the Chromium pytest shard
         # test_landing.py serves the built decide app at /decide/, and
         # test_social_cards.py renders cards in Chromium. They share a shard's
