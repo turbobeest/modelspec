@@ -85,6 +85,60 @@ recorded supersession can retire a mismatch read from a region the fact no
 longer cites ([design](cite-only-supersession.md)). Non-cite-only facts keep the existing
 value-hash-bound, independent verification gate (`decision/snapshot.py:750,804`).
 
+MODEL-420 decides cite-only status per source reference
+(`decision/citation.py`), and a card's own fields only ever make a record
+stricter:
+
+- A ref is *cited* when its registered source URL is on a cite-only host, or
+  when the fetcher's citation record for the ref's `snapshot_ref` (the
+  `CopyStore` the build opens only when `MODELSPEC_SOURCE_CACHE` names it)
+  names a cite-only redirect origin. Only a cited ref can stand in for
+  verification.
+- A ref is *restricted* when it is not cited but the card's `resolved_urls`
+  name a cite-only host, or the store holds a citation record for its hash.
+  Its bytes are never retained, benchmark evidence citing it stays out, and a
+  fact citing it still needs a verified outcome.
+- A fact is admitted as cited only when every ref is cited. A fact that mixes
+  a cited ref with any other ref is quarantined as `quarantined (mixed
+  citation)`: an old verification record cannot show which source it read,
+  and the verifier refuses a fact with any cite-only ref, so its other refs
+  can never be verified apart from the cite-only one.
+- The card's `resolved_urls` and any store record are validated in full
+  before anything is decided, including for a registered cite-only source.
+  An unreadable store entry (a directory, a dangling symlink, bad JSON, not a
+  JSON object), a record whose hash or source URL differs from the ref, or
+  malformed redirect metadata (`null`, `{}`, `false`, `""`, a non-HTTP or
+  unparseable URL) fails closed: the record is excluded as
+  `invalid_citation`, never read as "no redirect". Only a missing entry means
+  no record.
+- One canonical host decides both admission and restriction
+  (`decision/retention.py` `canonical_host`): the URL is parsed as the
+  repository's `HttpUrl` (WHATWG rules, IDNA), then a terminal dot is
+  dropped. Only `http` and `https` URLs can be cite-only. An HTTP(S) URL with
+  an invalid port or userinfo, or that does not parse, never yields a guessed
+  host. It fails closed for its own record only, and never aborts a build or
+  job:
+  - Restrictive call sites (retention, storage, display) use
+    `is_cite_only_restrictive` / `cite_only_origin_restrictive`, which read
+    it as cite-only: no bytes are kept, evidence stays out, scores and facts
+    are never counted as verified, and the score-source notice shows plain
+    text.
+  - Granting call sites use `cite_only_status` / `cite_only_origin_status`,
+    which return None for a malformed URL, and refuse. Granting means
+    cite-only status admits a fact as cited, skips verification (the
+    verifier's `cited` outcome; a malformed URL or unreadable record gives
+    `skipped`), supersedes a mismatch, dates an audit record by retrieval,
+    puts a fact in re-read scope, accepts a byte-free replay, or writes a
+    citation record (`CopyStore.put` refuses a malformed origin).
+  - A stored citation record grants only after every origin it carries
+    (`url`, `sourceURL`, `final_url`, `resolved_urls`) is validated
+    (`retention.record_origin_status`), in the snapshot, the verifier and
+    the re-check alike.
+  - The weekly re-check skips one source with malformed redirect metadata,
+    in the fetch or in its previous record, as `invalid_citation_metadata`,
+    leaves that record untouched, and goes on. The price re-read records the
+    same outcome for one source and goes on.
+
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate
 currently checks admitted presence (`decision/snapshot.py:1430`), so a cited

@@ -34,7 +34,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from decision.retention import cite_only_origin, metadata_origins  # noqa: E402
+from decision.retention import cite_only_origin_restrictive, metadata_origins  # noqa: E402
 from scripts.benchmarks.validate import check  # noqa: E402
 
 BENCH_DIR = ROOT / "benchmarks"
@@ -200,7 +200,7 @@ def draft_page(page_path: Path, change: dict, source_text: str, drafter: Drafter
     page_id = page_path.stem
     res = DraftResult(page=page_id, url=change["url"], kinds=change.get("kinds", []), accepted=False,
                       drafter=drafter.label)
-    if cite_only_origin(change["url"], metadata_origins(change)):
+    if cite_only_origin_restrictive(change["url"], metadata_origins(change)):
         res.kinds = []
         res.errors = [CITE_ONLY_ERROR]
         return res
@@ -266,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
         drafter: Drafter = FakeDrafter(url=change["url"], today=today)
     else:
         drafter = ClaudeDrafter()
-    source_text = "" if cite_only_origin(change["url"], metadata_origins(change)) \
+    source_text = "" if cite_only_origin_restrictive(change["url"], metadata_origins(change)) \
         else args.source_text.read_text(encoding="utf-8")
     res = draft_page(args.bench_dir / f"{page_id}.md", change, source_text,
                      drafter, today=today, out_dir=args.out_dir, apply=args.apply and not args.dry_run)
@@ -274,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
         items = json.loads(args.manifest.read_text()) if args.manifest.exists() else []
         for index, item in enumerate(items):
             origins = metadata_origins(item)
-            if cite_only_origin(item["url"], origins):
+            if cite_only_origin_restrictive(item["url"], origins):
                 items[index] = {**asdict(DraftResult(page=item["page"], url=item["url"], kinds=[],
                                                     accepted=False, errors=[CITE_ONLY_ERROR])),
                                 "resolved_urls": list(origins)}

@@ -42,7 +42,10 @@ if TYPE_CHECKING:
 
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
-from decision.retention import citation_metadata, cite_only_origin, require_source_url
+from decision.retention import (
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    record_origin_status, require_source_url,
+)
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -661,8 +664,12 @@ class CopyStore:
             resolved_urls: Iterable[str] = ()) -> str:
         source_url = require_source_url(source_url)
         resolved_urls = tuple(resolved_urls)
+        cite_only = cite_only_origin_status(source_url, resolved_urls)
+        if cite_only is None:
+            # Neither bytes nor a citation record for a malformed origin (MODEL-420).
+            raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only_origin(source_url, resolved_urls):
+        if cite_only:
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
@@ -689,16 +696,29 @@ class CopyStore:
         os.replace(temporary, target)
 
     def citation(self, ref: str) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        """
         target = self.path(ref).with_suffix(".citation.json")
-        if not target.is_file():
+        if not os.path.lexists(target):
             return None
-        metadata = json.loads(target.read_text(encoding="utf-8"))
+        if not target.is_file():
+            raise ValueError("citation record is not a readable file")
+        try:
+            metadata = json.loads(target.read_text(encoding="utf-8"))
+        except OSError:
+            raise ValueError("citation record is not a readable file") from None
+        if not isinstance(metadata, dict):
+            raise ValueError("citation record is not a JSON object")
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
-        if self.citation(ref) is not None or source_url is not None and cite_only_origin(source_url):
+        if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
             raise ValueError("cite-only source has no readable retained copy")
         body = self.path(ref).read_bytes()
         if fingerprint_bytes(body) != ref:
@@ -706,8 +726,11 @@ class CopyStore:
         return body
 
     def has(self, ref: str) -> bool:
-        if self.citation(ref) is not None:
-            return False
+        try:
+            if self.citation(ref) is not None:
+                return False
+        except ValueError:
+            return False  # an unreadable citation record still withholds the copy
         target = self.path(ref)
         if not target.is_file() or target.is_symlink():
             return False
@@ -880,10 +903,23 @@ def _check_one(
     report.fetches[source.id] = result
     old = previous.region_fingerprints if previous else {}
 
-    previous_citation = store.citation(previous.copy_ref) if previous else None
-    resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
-                          *((previous_citation or {}).get("resolved_urls", ())))))
-    if (cite_only_origin(source.url, resolved_urls) or previous_citation is not None) \
+    try:
+        previous_citation = store.citation(previous.copy_ref) if previous else None
+        # Every origin of the previous record is validated before its presence
+        # grants the cite-only path (MODEL-420).
+        if previous_citation is not None and record_origin_status(previous_citation) is None:
+            raise ValueError("invalid previous citation record")
+        resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
+                              *((previous_citation or {}).get("resolved_urls", ())))))
+        cite_only = cite_only_origin_status(source.url, resolved_urls)
+        if cite_only is None:
+            raise ValueError("invalid redirect URL")
+    except (TypeError, ValueError):
+        # Fail closed for this source only (MODEL-420): keep nothing, change no
+        # snapshot or record, and go on to the next source.
+        report.skipped.append(Skipped(source.id, "invalid_citation_metadata"))
+        return replace(state, last_attempt_at=now)
+    if (cite_only or previous_citation is not None) \
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)

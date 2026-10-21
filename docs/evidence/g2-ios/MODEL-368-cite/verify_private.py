@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from decision.retention import is_cite_only
+from decision.retention import cite_only_status
 from decision.snapshot import load_snapshot_bytes
 from decision.sources import load_sources
 
@@ -52,7 +52,10 @@ def main() -> None:
         assert sid in plans, "missing subscription"
         for row in plan["facts"]:
             refs = row.get("sources", [])
-            if not any(is_cite_only(sources[ref["source_id"]].url) for ref in refs):
+            # Granting (MODEL-420): a fact is expected as cited only when every
+            # registered source is a well-formed cite-only URL.
+            if not refs or not all(
+                    cite_only_status(sources[ref["source_id"]].url) is True for ref in refs):
                 continue
             exported = plans[sid]["facts"].get(row["facet"])
             if exported is None:

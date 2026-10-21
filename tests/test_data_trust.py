@@ -900,8 +900,11 @@ def test_sampled_dated_price_keeps_its_period(catalogue, registry, monkeypatch, 
     }
 
 
-def calibrate_refs(catalogue, registry, monkeypatch, tmp_path, refs, *, verified=True):
-    """Calibrate one context-window fact citing ``refs``: (source_id, retrieved_at, resolved)."""
+def calibrate_row(catalogue, registry, monkeypatch, tmp_path, refs, *, verified=True):
+    """Calibrate one context-window fact citing ``refs``: (source_id, retrieved_at, resolved).
+
+    Returns the served record, or None when the snapshot kept the fact out, and the raw row.
+    """
     from decision.snapshot import SnapshotInputs
 
     catalogue.sources["src-xai"] = {
@@ -931,9 +934,42 @@ def calibrate_refs(catalogue, registry, monkeypatch, tmp_path, refs, *, verified
     )
     monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
-    [served] = [f for f in catalogue.facts if f["field"] == "model.context_window"]
+    served = [f for f in catalogue.facts if f["field"] == "model.context_window"]
+    assert len(served) <= 1
+    return (served[0] if served else None), row
+
+
+def calibrate_refs(catalogue, registry, monkeypatch, tmp_path, refs, *, verified=True):
+    served, _row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, refs,
+                                 verified=verified)
     assert served["citation"]["status"] == "cited"
     return served
+
+
+def audit_as_cited(catalogue, row):
+    """Feed ``row`` to the audit cited over every ref, as the snapshot cited it before MODEL-420.
+
+    The audit decides cite-only status from registered URLs itself (MODEL-422),
+    so it must still flag such a record if one ever reached it.
+    """
+    citation = {"status": "cited", "sources": [
+        {"source_id": ref["source_id"], "url": catalogue.sources[ref["source_id"]]["url"],
+         "snapshot_ref": ref["snapshot_ref"], "retrieved_at": ref.get("retrieved_at"),
+         **({"resolved_urls": ref["resolved_urls"]} if ref.get("resolved_urls") else {})}
+        for ref in row["sources"]
+    ]}
+    _records(catalogue, [{**row, "verification": None, "citation": citation}], MID, "fact",
+             catalogue.models[MID])
+    [audited] = [f for f in catalogue.facts if f["field"] == "model.context_window"]
+    return audited
+
+
+def assert_only_read_date_required(catalogue, registry):
+    result = invariants.run(catalogue, registry, TODAY)
+    assert result["errors"] == 1
+    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
+        ("read_date_required", "error"),
+    }
 
 
 def calibrate_cited(catalogue, registry, monkeypatch, tmp_path, retrieved_at):
@@ -976,45 +1012,43 @@ def test_authored_resolved_url_dates_a_retainable_source_and_drops_its_verificat
     catalogue, registry, monkeypatch, tmp_path
 ):
     """Review probe: a card's resolved_urls cannot make a retainable source cite-only."""
-    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-lab-docs", "2026-09-19T12:00:00+00:00", XAI_REDIRECT),
     ])
-    assert (served["read_date"], served["verification"]) == (None, {})
-    result = invariants.run(catalogue, registry, TODAY)
-    assert result["errors"] == 1
-    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
-        ("read_date_required", "error"),
-    }
+    # MODEL-420: the snapshot serves it only as verified, dated by that verification.
+    assert "citation" not in served
+    assert (served["read_date"], served["verification"]["outcome"]) == ("2026-09-20", "verified")
+    assert invariants.run(catalogue, registry, TODAY)["findings"] == []
+    catalogue.facts = [f for f in catalogue.facts if f is not served]
+    audited = audit_as_cited(catalogue, row)
+    assert (audited["read_date"], audited["verification"]) == (None, {})
+    assert_only_read_date_required(catalogue, registry)
 
 
 def test_authored_resolved_url_without_retrieval_reaches_the_warning(
     catalogue, registry, monkeypatch, tmp_path
 ):
     """Review probe: citation_undated is only for registered cite-only sources."""
-    calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-lab-docs", None, XAI_REDIRECT),
     ], verified=False)
-    result = invariants.run(catalogue, registry, TODAY)
-    assert result["errors"] == 1
-    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
-        ("read_date_required", "error"),
-    }
+    assert served is None  # MODEL-420: unverified, so the snapshot quarantines it
+    audit_as_cited(catalogue, row)
+    assert_only_read_date_required(catalogue, registry)
 
 
 def test_latest_retrieval_can_come_from_the_retainable_source(
     catalogue, registry, monkeypatch, tmp_path
 ):
     """Review probe: a retainable source on a mixed fact still needs its verification."""
-    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-xai", "2026-01-01T00:00:00+00:00", ()),
         ("src-lab-docs", "2026-09-19T12:00:00+00:00", ()),
     ], verified=False)
-    assert (served["read_date"], served["verification"]) == (None, {})
-    result = invariants.run(catalogue, registry, TODAY)
-    assert result["errors"] == 1
-    assert {(f["rule"], f["severity"]) for f in result["findings"]} == {
-        ("read_date_required", "error"),
-    }
+    assert served is None  # MODEL-420: the snapshot quarantines a mixed citation
+    audited = audit_as_cited(catalogue, row)
+    assert (audited["read_date"], audited["verification"]) == (None, {})
+    assert_only_read_date_required(catalogue, registry)
 
 
 def test_mixed_fact_is_dated_by_its_logged_verification(
@@ -1025,9 +1059,11 @@ def test_mixed_fact_is_dated_by_its_logged_verification(
 
     fid = f"{MID}#model.context_window"
     catalogue.verifications[("fact", fid)] = verification("fact", fid, day="2026-09-17")
-    served = calibrate_refs(catalogue, registry, monkeypatch, tmp_path, [
+    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-xai", "2026-09-19T12:00:00+00:00", ()),
         ("src-lab-docs", None, ()),
     ])
-    assert (served["read_date"], served["verification"]) == ("2026-09-17", {})
+    assert served is None  # MODEL-420: the snapshot quarantines a mixed citation, verified or not
+    audited = audit_as_cited(catalogue, row)
+    assert (audited["read_date"], audited["verification"]) == ("2026-09-17", {})
     assert invariants.run(catalogue, registry, TODAY)["findings"] == []

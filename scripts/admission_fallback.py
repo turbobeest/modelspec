@@ -20,7 +20,7 @@ from decision.firecrawl import (
     firecrawl_allowed,
 )
 from decision.normalise import canonical_url
-from decision.retention import cite_only_origin
+from decision.retention import cite_only_origin_restrictive
 from decision.sources import FetchResult, fingerprint_bytes
 from scripts.price_reread_fallback import monthly_budget
 
@@ -31,7 +31,8 @@ def _without_restricted_bytes(url: str, result: FetchResult) -> FetchResult:
     origins = (url, *result.resolved_urls)
     if any(excluded_sources().url(origin) for origin in origins):
         return FetchResult("unreachable", error="Admission source is excluded")
-    if result.outcome == "ok" and cite_only_origin(url, result.resolved_urls):
+    # Restrictive: withhold bytes; the drafter refuses to cite a malformed origin.
+    if result.outcome == "ok" and cite_only_origin_restrictive(url, result.resolved_urls):
         return replace(
             result,
             body=b"",

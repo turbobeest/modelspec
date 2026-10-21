@@ -112,7 +112,7 @@ from decision.normalise import (
 from decision.perplexity_faq import PerplexityFaqExtractor
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
-from decision.retention import cite_only_origin, is_cite_only
+from decision.retention import cite_only_origin_status, cite_only_status, record_origin_status
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 from decision.units import _MAGNITUDE, UNITS, unit_id
 from decision.xai_matrix import (
@@ -5803,10 +5803,23 @@ class StoredRegions:
             )
         return self._pdf_copies[copy_ref]
 
-    def cite_only(self, source_id: str, copy_ref: str) -> bool:
+    def cite_only_status(self, source_id: str, copy_ref: str) -> bool | None:
+        """Whether the source or its copy is cite-only; None when either is unreadable."""
         source = self.sources.get(source_id)
-        return bool((source is not None and is_cite_only(source.url))
-                    or self.store.citation(copy_ref) is not None)
+        status = False if source is None else cite_only_status(source.url)
+        try:
+            record = self.store.citation(copy_ref)
+        except ValueError:
+            return None
+        # Every stored origin is validated before the record's presence can
+        # grant the "cited" skip.
+        if record is not None and record_origin_status(record) is None:
+            return None
+        return None if status is None else status or record is not None
+
+    def cite_only(self, source_id: str, copy_ref: str) -> bool:
+        """Restrictive: withhold the copy when it is cite-only or unreadable."""
+        return self.cite_only_status(source_id, copy_ref) is not False
 
     def source_kind(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
@@ -6705,13 +6718,22 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     readable (MODEL-426).
     """
     url_of = getattr(regions, "source_url", None)
+    copy_status = getattr(regions, "cite_only_status", None)
     protected_copy = getattr(regions, "cite_only", None)
-    if any(
-        cite_only_origin(url_of(source.source_id) if callable(url_of) else "",
-                         source.resolved_urls)
-        or (callable(protected_copy) and protected_copy(source.source_id, source.snapshot_ref))
-        for source in claim.sources
-    ):
+    # Granting: "cited" skips verification, so a malformed URL or an unreadable
+    # citation record refuses instead (MODEL-420). No bytes are read either way.
+    statuses = []
+    for source in claim.sources:
+        statuses.append(cite_only_origin_status(
+            url_of(source.source_id) if callable(url_of) else "", source.resolved_urls))
+        if callable(copy_status):
+            statuses.append(copy_status(source.source_id, source.snapshot_ref))
+        elif callable(protected_copy):
+            statuses.append(bool(protected_copy(source.source_id, source.snapshot_ref)))
+    if None in statuses:
+        return Result(claim.target, "skipped",
+                      reason="malformed source URL or citation record; not verified")
+    if any(statuses):
         return Result(claim.target, "cited", reason="cite-only retention policy; not machine-verified")
     if isinstance(regions, StoredRegions) and any(
         regions.is_pdf(source.source_id, source.snapshot_ref) for source in claim.sources

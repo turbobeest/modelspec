@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
+
+logger = logging.getLogger(__name__)
 
 POLICY_PATH = Path(__file__).resolve().parents[1] / "registry" / "source-retention.json"
 
@@ -25,13 +28,108 @@ def cite_only_hosts() -> tuple[str, ...]:
     return tuple(hosts)
 
 
-def is_cite_only(url: object) -> bool:
-    host = (urlsplit(str(url)).hostname or "").rstrip(".").lower().encode("idna").decode("ascii")
-    return any(host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
+_C0_OR_SPACE = "".join(chr(code) for code in range(0x21))
 
 
-def cite_only_origin(url: object, resolved_urls=()) -> bool:
-    return any(is_cite_only(origin) for origin in (url, *resolved_urls))
+def canonical_host(url: object) -> str | None:
+    """The host an HTTP(S) URL names, as the repository's ``HttpUrl`` reads it.
+
+    One parser decides both admission and restriction (MODEL-420): the URL is
+    parsed as ``HttpUrl`` (WHATWG rules, IDNA), then a terminal dot is dropped.
+    Returns None for a URL whose scheme is not http or https. An HTTP(S) URL
+    that does not parse, has an invalid port or carries userinfo raises
+    ValueError, so callers fail closed instead of guessing a host.
+    """
+    text = str(url)
+    scheme, colon, _rest = text.lstrip(_C0_OR_SPACE).partition(":")
+    scheme = scheme.replace("\t", "").replace("\n", "").replace("\r", "").lower()
+    if not colon or scheme not in {"http", "https"}:
+        return None
+    from pydantic import HttpUrl, ValidationError
+
+    try:
+        parsed = HttpUrl(text)
+    except ValidationError:
+        raise ValueError("invalid HTTP URL") from None
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("HTTP URL carries userinfo")
+    host = (parsed.host or "").lower().rstrip(".")
+    if not host:
+        raise ValueError("HTTP URL has no host")
+    return host
+
+
+# Two readings of one policy (MODEL-420). Pick by what cite-only status does
+# at the call site:
+# - GRANTING: it admits a fact as cited, skips verification, supersedes a
+#   mismatch, dates a record by retrieval, or puts a fact in re-read scope.
+#   Use ``cite_only_status`` / ``cite_only_origin_status`` and REFUSE on None.
+# - RESTRICTIVE: it withholds bytes, keeps evidence out, refuses a fetch or a
+#   draft, or discloses "not machine-verified". Use ``is_cite_only_restrictive``
+#   / ``cite_only_origin_restrictive``, which count a malformed URL as
+#   cite-only so one bad URL fails closed for its own record and never aborts
+#   a build or job.
+
+
+def cite_only_status(url: object) -> bool | None:
+    """Whether a URL is cite-only, or None for an HTTP(S) URL that does not parse.
+
+    For GRANTING call sites: None must refuse (exclude, invalid_citation, out
+    of scope), never grant.
+    """
+    try:
+        host = canonical_host(url)
+    except ValueError:
+        return None
+    return host is not None and any(
+        host == denied or host.endswith("." + denied) for denied in cite_only_hosts())
+
+
+def is_cite_only_restrictive(url: object) -> bool:
+    """Whether a URL is cite-only, counting a malformed HTTP(S) URL as cite-only.
+
+    For RESTRICTIVE call sites only (retention, storage, display): no bytes
+    are kept, evidence stays out and nothing reads as machine-verified. Never
+    use it where cite-only status grants anything; use ``cite_only_status``.
+    """
+    status = cite_only_status(url)
+    if status is None:
+        # The URL itself is not logged: it may come from private data.
+        logger.warning("a malformed HTTP(S) URL is treated as cite-only")
+        return True
+    return status
+
+
+def redirect_urls(value: object) -> tuple[str, ...]:
+    """Validated redirect URLs: a list of HTTP(S) URL strings, or ValueError.
+
+    A malformed value is never read as "no redirects": ``None``, ``{}``,
+    ``False`` or ``""`` raise like any other non-list.
+    """
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("invalid redirect URL metadata")
+    for url in value:
+        if not isinstance(url, str) or canonical_host(url) is None:
+            raise ValueError("invalid redirect URL metadata")
+    return tuple(value)
+
+
+def cite_only_origin_status(url: object, resolved_urls=()) -> bool | None:
+    """Whether any origin is cite-only, or None when any origin is malformed.
+
+    For GRANTING call sites: None must refuse, even if another origin is
+    cite-only.
+    """
+    statuses = [cite_only_status(origin) for origin in (url, *resolved_urls)]
+    return None if None in statuses else any(statuses)
+
+
+def cite_only_origin_restrictive(url: object, resolved_urls=()) -> bool:
+    """Whether any origin is cite-only, counting a malformed one as cite-only.
+
+    For RESTRICTIVE call sites only (retention, storage, display).
+    """
+    return any(is_cite_only_restrictive(origin) for origin in (url, *resolved_urls))
 
 
 def metadata_origins(metadata: dict) -> tuple[str, ...]:
@@ -41,6 +139,38 @@ def metadata_origins(metadata: dict) -> tuple[str, ...]:
     if not isinstance(resolved, (list, tuple)) or any(not isinstance(url, str) for url in resolved):
         raise ValueError("invalid redirect URL metadata")
     return tuple(dict.fromkeys((*urls, *resolved)))
+
+
+def record_origin_status(record: object) -> bool | None:
+    """Whether a stored citation record names a cite-only origin; None when malformed.
+
+    For GRANTING call sites. Every origin the record carries is checked
+    (``url``, ``sourceURL``, ``final_url`` and ``resolved_urls``): a present
+    field that is not a well-formed HTTP(S) URL, or a record with no origin,
+    gives None, never "no redirect" (MODEL-420).
+    """
+    if not isinstance(record, dict):
+        return None
+    for key in ("sourceURL", "url", "final_url"):
+        if key in record and (not isinstance(record[key], str) or not record[key]):
+            return None
+    try:
+        if "resolved_urls" in record:
+            redirect_urls(record["resolved_urls"])
+        origins = metadata_origins(record)
+    except (TypeError, ValueError):
+        return None
+    if not origins:
+        return None
+    statuses = []
+    for origin in origins:
+        try:
+            if canonical_host(origin) is None:
+                return None
+        except ValueError:
+            return None
+        statuses.append(cite_only_status(origin))
+    return any(statuses)
 
 
 def require_source_url(url: object) -> str:
@@ -63,7 +193,7 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
 
 
 def refuse_disk_scrape(url: object) -> None:
-    if is_cite_only(url):
+    if is_cite_only_restrictive(url):
         raise ValueError("cite-only source requires a transient fetch; disk-writing scraper refused")
 
 
@@ -73,18 +203,18 @@ def open_retained_source(request, *, timeout):
 
     url = request if isinstance(request, str) else request.full_url
     refusal = "cite-only source cannot supply retained content"
-    if is_cite_only(url):
+    if is_cite_only_restrictive(url):
         raise ValueError(refusal)
 
     class RetainedRedirect(HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
-            if is_cite_only(newurl):
+            if is_cite_only_restrictive(newurl):
                 fp.close()
                 raise ValueError(refusal)
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
     response = build_opener(RetainedRedirect()).open(request, timeout=timeout)
-    if is_cite_only(response.geturl()):
+    if is_cite_only_restrictive(response.geturl()):
         response.close()
         raise ValueError(refusal)
     return response

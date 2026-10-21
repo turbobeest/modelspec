@@ -1435,7 +1435,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
              'Benchmark pages carry the reviewed, dated evidence where it exists.</div>') if scores else ""
     if model.scores_citation:
         stale = ('<div class="notice">Cited, not machine-verified: the shared '
-                 f'<a href="{esc(model.scores_citation["url"])}" rel="nofollow noopener">score source</a> '
+                 f'{_score_source_link(model.scores_citation["url"])} '
                  'is retained as a citation without a page copy.</div>') + stale
 
     rel = relations
@@ -1611,6 +1611,13 @@ DISPOSITION_BLURB = {
                   "contract, so it carries no disposition. Absence of evidence here is not evidence "
                   "of staleness.",
 }
+
+
+def _score_source_link(url: Any) -> str:
+    """The cited score source, linked only when it is a well-formed URL (MODEL-420)."""
+    from decision.retention import cite_only_status
+
+    return esc("score source") if cite_only_status(url) is None else _safe_link(url, "score source")
 
 
 def _safe_link(url: Any, label: Any) -> str:

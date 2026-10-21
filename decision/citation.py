@@ -5,27 +5,123 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, NamedTuple
 
-from decision.retention import citation_metadata, cite_only_origin, require_source_url
+from decision.retention import (
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, cite_only_status,
+    metadata_origins, record_origin_status, redirect_urls,
+    require_source_url,
+)
+
+_HASH = re.compile(r"sha256:[0-9a-f]{64}")
+
+RefState = Literal["cited", "restricted", "open"]
 
 
-def fact_citation(record: Mapping[str, Any], sources: Mapping[str, str]) -> dict | None:
-    """Return cite-only provenance, or None when every origin permits retention.
+class _Fetched(NamedTuple):
+    origins: tuple[str, ...]
+    redirects: tuple[str, ...]
+
+
+def _card_redirects(ref: Mapping[str, Any]) -> tuple[str, ...]:
+    """The card's own ``resolved_urls``, validated. Present but malformed raises."""
+    return redirect_urls(ref["resolved_urls"]) if "resolved_urls" in ref else ()
+
+
+def _fetcher_record(ref: Mapping[str, Any], sources: Mapping[str, str],
+                    store: Any) -> _Fetched | None:
+    """The fetcher's validated citation record for this ref's snapshot hash, or None.
+
+    Every record found is validated in full, whatever the registered URL. A
+    record the store cannot read, one that names another hash or source, or
+    malformed redirect metadata raises ValueError: an unreadable redirect is
+    never read as "no redirect".
+    """
+    snapshot_ref = ref.get("snapshot_ref")
+    if store is None or not isinstance(snapshot_ref, str) or not _HASH.fullmatch(snapshot_ref):
+        return None
+    try:
+        metadata = store.citation(snapshot_ref)
+    except (OSError, AttributeError, TypeError):
+        raise ValueError("unreadable citation record") from None
+    if metadata is None:
+        return None
+    if not isinstance(metadata, Mapping) or metadata.get("snapshot_ref") != snapshot_ref:
+        raise ValueError("citation record does not match its hash")
+    if metadata.get("url") != sources.get(ref.get("source_id")):
+        raise ValueError("citation record names another source")
+    if record_origin_status(dict(metadata)) is None:
+        raise ValueError("invalid citation redirect record")
+    redirects = redirect_urls(metadata["resolved_urls"]) if "resolved_urls" in metadata else ()
+    return _Fetched(metadata_origins(dict(metadata)), redirects)
+
+
+def ref_state(ref: Mapping[str, Any], sources: Mapping[str, str], store: Any = None) -> RefState:
+    """How the retention policy treats one source reference.
+
+    ``cited``: the registered URL, or a redirect origin in the fetcher's
+    citation record (``store``) for this ref's snapshot hash, is cite-only.
+    Only a cited ref can stand in for verification.
+    ``restricted``: not cited, but the card's own ``resolved_urls`` name a
+    cite-only host, or the store holds a citation record for this hash. Its
+    bytes are never retained and it still needs verification.
+    ``open``: neither. Card-authored fields only ever make a ref stricter.
+    The card's redirects and any store record are validated before anything
+    is decided; a malformed one raises ValueError.
+    """
+    registered = sources.get(ref.get("source_id"), "")
+    card = _card_redirects(ref)
+    fetched = _fetcher_record(ref, sources, store)
+    registered_status = cite_only_status(registered)
+    if registered_status is None:
+        raise ValueError("invalid registered source URL")
+    if registered_status:
+        return "cited"
+    if fetched is not None:
+        # Granting: a fetched redirect can make the ref cited, so None refuses.
+        fetched_status = cite_only_origin_status(registered, fetched.origins)
+        if fetched_status is None:
+            raise ValueError("invalid citation redirect record")
+        return "cited" if fetched_status else "restricted"
+    # Restrictive: a card's redirect can only withhold, never grant.
+    return "restricted" if cite_only_origin_restrictive("", card) else "open"
+
+
+def ref_states(record: Mapping[str, Any], sources: Mapping[str, str],
+               store: Any = None) -> tuple[RefState, ...]:
+    return tuple(ref_state(ref, sources, store) for ref in record.get("sources") or ())
+
+
+def mixed_citation(record: Mapping[str, Any], sources: Mapping[str, str],
+                   store: Any = None) -> bool:
+    """Whether a fact cites a cite-only source beside one that is not cited.
+
+    Such a fact is quarantined: its other sources were never machine-verified
+    apart from the cite-only one (docs/design/cite-only-sources.md).
+    """
+    states = ref_states(record, sources, store)
+    return "cited" in states and any(state != "cited" for state in states)
+
+
+def fact_citation(record: Mapping[str, Any], sources: Mapping[str, str],
+                  store: Any = None) -> dict | None:
+    """Return cite-only provenance, or None when no source ref is cited.
 
     Invalid citations raise ValueError. A supplied citation status is never
-    trusted; the registered source and observed redirect origins decide it.
+    trusted, and neither are a card's own ``resolved_urls``: the registered
+    source URL decides, plus redirect origins in the fetcher's citation record
+    in ``store`` for the ref's snapshot hash. Callers that admit facts must
+    also refuse a ``mixed_citation``.
     """
     refs = record.get("sources") or ()
-    if not any(cite_only_origin(sources.get(ref.get("source_id"), ""),
-                                ref.get("resolved_urls") or ()) for ref in refs):
+    if "cited" not in ref_states(record, sources, store):
         return None
     cited = []
     for ref in refs:
         source_id, snapshot_ref = ref.get("source_id"), ref.get("snapshot_ref")
         if source_id not in sources:
             raise ValueError("unresolved citation source")
-        if not isinstance(snapshot_ref, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot_ref):
+        if not isinstance(snapshot_ref, str) or not _HASH.fullmatch(snapshot_ref):
             raise ValueError("invalid citation snapshot hash")
         if not ref.get("cited_regions"):
             raise ValueError("citation requires a cited region")
@@ -34,7 +130,9 @@ def fact_citation(record: Mapping[str, Any], sources: Mapping[str, str]) -> dict
             parsed = when if isinstance(when, datetime) else datetime.fromisoformat(str(when))
             if parsed.tzinfo is None or parsed.utcoffset() is None:
                 raise ValueError("citation retrieval time must include its timezone")
-        redirects = [require_source_url(url) for url in ref.get("resolved_urls") or ()]
+        fetched = _fetcher_record(ref, sources, store)
+        shown = fetched.redirects if fetched is not None else _card_redirects(ref)
+        redirects = [require_source_url(url) for url in shown]
         metadata = citation_metadata(sources[source_id], snapshot_ref,
                                      retrieved_at=when, resolved_urls=redirects)
         if not metadata["resolved_urls"]:

@@ -61,7 +61,7 @@ from decision.excluded import (
     removed_text_hit,
 )
 from decision.json_stream import JSONStreamReader
-from decision.citation import fact_citation
+from decision.citation import fact_citation, mixed_citation, ref_states
 from decision.model import (
     Fact,
     Measurement,
@@ -758,10 +758,12 @@ class Snapshot:
 
 class _Compiler:
     def __init__(self, inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
-                 as_of: date | None = None, allow_fixture_measurements: bool = False):
+                 as_of: date | None = None, allow_fixture_measurements: bool = False,
+                 source_cache: Any = None):
         self.inputs = inputs
         self.as_of = as_of
         self.allow_fixture_measurements = allow_fixture_measurements
+        self.source_cache = source_cache
         self.registry = registry
         self.guard = guard
         self.sources = {str(k): str(v) for k, v in inputs.sources.items()}
@@ -942,9 +944,9 @@ class _Compiler:
         if len(urls) != len(source_ids):
             return "unresolved_source"
         if kind == "evidence":
-            from decision.retention import is_cite_only
+            from decision.retention import is_cite_only_restrictive
 
-            if any(is_cite_only(url) for url in [*urls, *extra_urls]):
+            if any(is_cite_only_restrictive(url) for url in [*urls, *extra_urls]):
                 return "quarantined (cited)"
         return None
 
@@ -1038,12 +1040,16 @@ class _Compiler:
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
-                citation = fact_citation(f, self.sources)
+                citation = fact_citation(f, self.sources, self.source_cache)
+                mixed = mixed_citation(f, self.sources, self.source_cache)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})
             except ValueError:
                 self._reject((sid, facet_id), "invalid_citation", source_ids)
+                continue
+            if mixed:
+                self._reject((sid, facet_id), "quarantined (mixed citation)", source_ids)
                 continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
@@ -1228,11 +1234,14 @@ class _Compiler:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
         try:
-            citation = fact_citation(e, self.sources)
+            citation = fact_citation(e, self.sources, self.source_cache)
+            # A card's own redirect to a cite-only host only adds this refusal.
+            restricted = any(state != "open" for state in
+                             ref_states(e, self.sources, self.source_cache))
         except ValueError:
             self._exclude(sid, "invalid_citation")
             return
-        if citation is not None:
+        if citation is not None or restricted:
             self._exclude(sid, "quarantined (cited)")
             return
         reason = self._admit(
@@ -1714,7 +1723,8 @@ def default_registry() -> Any:
 def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
                    premier: Iterable[str] | None = None, as_of: date | None = None,
                    guard: ExcludedSources | None = None, gate: bool = True,
-                   allow_fixture_measurements: bool = False) -> Snapshot:
+                   allow_fixture_measurements: bool = False,
+                   source_cache: Any = None) -> Snapshot:
     """Compile ``inputs``. With ``premier``, the lineup is the premier set.
 
     With ``premier`` and ``gate`` (the default), the completeness gate runs
@@ -1725,8 +1735,11 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     ``build_from_repo`` always passes it. ``allow_fixture_measurements`` lets a
     test compile fixture speed numbers; ``build_from_repo`` never passes it.
     A measurement older than its staleness limit at ``as_of`` stays out.
+    ``source_cache`` is the fetcher's ``CopyStore``. Its citation records can
+    make a ref cited through a recorded redirect; without it only registered
+    URLs can, which is never less strict (``decision/citation.py``).
     """
-    c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements)
+    c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements, source_cache)
     premier = None if premier is None else tuple(premier)
     if premier is not None and gate:
         coverage = c.jurisdiction_coverage(premier)
@@ -1767,8 +1780,9 @@ def audit_build(inputs: SnapshotInputs, *, registry: Any, premier: Iterable[str]
 
 
 def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
-             as_of: date | None, allow_fixture_measurements: bool) -> _Compiler:
-    c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements)
+             as_of: date | None, allow_fixture_measurements: bool,
+             source_cache: Any = None) -> _Compiler:
+    c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements, source_cache)
     for m in inputs.models:
         c.add_model(m)
     for o in inputs.offerings:
@@ -1986,8 +2000,17 @@ def load_premier(path: str | Path) -> tuple[str, ...]:
 
 def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | None,
                     registry: Any = None, gate: bool = True) -> Snapshot:
-    """The production build: collect, guard, gate and compile."""
+    """The production build: collect, guard, gate and compile.
+
+    The fetcher's copy store joins only when ``MODELSPEC_SOURCE_CACHE`` names
+    it, so a build never depends on an unconfigured home-directory cache.
+    """
     root = Path(root)
+    store = None
+    if os.environ.get("MODELSPEC_SOURCE_CACHE"):
+        from decision.sources import CopyStore
+
+        store = CopyStore()
     return build_snapshot(
         collect_repo(root),
         registry=registry if registry is not None else default_registry(),
@@ -1995,6 +2018,7 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
         as_of=as_of,
         guard=excluded_sources(),
         gate=gate,
+        source_cache=store,
     )
 
 

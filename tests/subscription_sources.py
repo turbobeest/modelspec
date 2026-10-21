@@ -2,13 +2,17 @@
 
 import itertools
 import json
+import re
 import subprocess
 
 import yaml
 
 from decision.citation import fact_citation
 from decision.model import Fact, Measurement, value_hash, verification_counts
-from decision.retention import cite_only_origin
+from decision.retention import (
+    cite_only_origin_status, cite_only_status, metadata_origins, record_origin_status,
+    redirect_urls,
+)
 from decision.snapshot import FactValue
 from decision.sources import load_sources
 
@@ -49,6 +53,40 @@ def json_record(record):
     return json.loads(json.dumps(record, default=lambda value: value.isoformat()))
 
 
+def _cited_ref(ref, urls, store):
+    """Cited by its registered URL or a fetcher record for its hash; never by the card.
+
+    The card's redirects and any store record are validated first, in full;
+    anything malformed raises ValueError and the fact stays out.
+    """
+    registered = urls.get(ref["source_id"], "")
+    if cite_only_status(registered) is None:
+        raise ValueError("invalid registered source URL")
+    if "resolved_urls" in ref:
+        redirect_urls(ref["resolved_urls"])
+    snapshot_ref = ref.get("snapshot_ref")
+    origins = ()
+    if store is not None and isinstance(snapshot_ref, str) \
+            and re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot_ref):
+        try:
+            record = store.citation(snapshot_ref)
+        except (OSError, AttributeError, TypeError):
+            raise ValueError("unreadable citation record") from None
+        if record is not None:
+            if not isinstance(record, dict) or record.get("snapshot_ref") != snapshot_ref:
+                raise ValueError("citation record does not match its hash")
+            if record.get("url") != registered:
+                raise ValueError("citation record names another source")
+            if record_origin_status(record) is None:
+                raise ValueError("invalid citation redirect record")
+            origins = metadata_origins(record)
+    # Granting: only a well-formed cite-only origin makes the ref cited.
+    cited = cite_only_origin_status(registered, origins)
+    if cited is None:
+        raise ValueError("invalid citation origin")
+    return cited
+
+
 def bound_hashes(value, unordered):
     """The value hashes a verification of ``value`` may carry (MODEL-416).
 
@@ -63,19 +101,22 @@ def bound_hashes(value, unordered):
     return hashes
 
 
-def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
+def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store=None):
     """Project raw facts using the documented second-key and source rules.
 
     Do not call the snapshot compiler or collector to form its expected output.
     Log entries win same-day ties over inline verification, and later log rows
     win ties with earlier rows. Same-family verified entries do not count.
 
-    A fact whose registered source or observed redirect is on a cite-only host
-    enters without a verification record (docs/design/cite-only-sources.md),
-    unless its citation or record is invalid (the fact must validate against
-    ``registry`` as the snapshot validates it), it names an identifier facet,
-    or its latest counting outcome is a mismatch or unreachable. Every other
-    fact still needs a latest counting outcome of verified.
+    A fact whose every source is cite-only, by its registered URL or by a
+    redirect in the fetcher's citation record in ``store`` (never by the card's
+    own ``resolved_urls``), enters without a verification record
+    (docs/design/cite-only-sources.md), unless its citation or record is
+    invalid (the fact must validate against ``registry`` as the snapshot
+    validates it), it names an identifier facet, or its latest counting
+    outcome is a mismatch or unreachable. A fact that mixes a cite-only source
+    with another stays out. Every other fact still needs a latest counting
+    outcome of verified.
 
     With ``registry``, an unordered set facet's verification binds its members
     (MODEL-416). A set with a repeated member never enters. Past nine members, a
@@ -132,15 +173,17 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None):
                        and (best is None or row[:2] > best[:2])
                        for key, row in per_hash.items()):
                     continue
-            cited = any(
-                cite_only_origin(urls.get(ref["source_id"], ""), ref.get("resolved_urls") or ())
-                for ref in fact.get("sources", [])
-            )
-            if cited:
+            try:
+                flags = [_cited_ref(ref, urls, store) for ref in fact.get("sources", [])]
+            except ValueError:
+                continue
+            if any(flags):
+                if not all(flags):
+                    continue
                 if fact["facet"] in {"offering.api_model_id", "offering.router_slug"}:
                     continue
                 try:
-                    fact_citation(fact, urls)
+                    fact_citation(fact, urls, store)
                     Fact.model_validate({**fact, "verification": None},
                                         context={"registry": registry})
                 except ValueError:
