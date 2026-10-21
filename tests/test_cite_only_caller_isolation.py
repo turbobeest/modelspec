@@ -509,3 +509,217 @@ def test_proposal_plan_skips_malformed_manifest_entry():
 ])
 def test_origin_status_refuses_any_malformed_origin(origins, expected):
     assert cite_only_origin_status(*origins) is expected
+
+
+# Admission drafter (#861) and fallback
+
+
+@pytest.mark.parametrize("url", ["https://docs.x.ai:bad/x", "https://docs.x.ai:99999/x",
+                                 "https://reader@docs.x.ai/x", "http://["])
+def test_admission_source_block_refuses_malformed_urls_without_raising(url):
+    from scripts import admission_drafter as drafter
+
+    assert drafter.source_block(url, "xai", {}) is not None
+
+
+def _xai_draft(tmp_path, monkeypatch, redirect, *, bypass_block):
+    from scripts import admission_drafter as drafter
+    from tests.test_admission_drafter import MODEL, TODAY as DRAFT_TODAY, catalogue, small_registry
+
+    root = catalogue(tmp_path)
+    model_id = "xai/fixture-model"
+    model_url = "https://docs.x.ai/docs/models/fixture-model"
+    card = yaml.safe_load((root / "models" / f"{MODEL}.md").read_text().split("---")[1])
+    card.update(model_id=model_id, sources={"provider_docs_url": model_url})
+    path = root / "models" / f"{model_id}.md"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
+    if bypass_block:
+        # Isolate the granting check itself: the host gate is tested above.
+        monkeypatch.setattr(drafter, "source_block", lambda *args: None)
+
+    class Fetch:
+        def fetch(self, url):
+            if url != model_url:
+                return FetchResult("unreachable", 404)
+            return FetchResult("ok", 200, body=b"", snapshot_ref="sha256:" + "6" * 64,
+                               retrieved_at=datetime(2026, 10, 20, 12, tzinfo=UTC),
+                               resolved_urls=(redirect,))
+
+    store = CopyStore(tmp_path / "copies")
+    packet = drafter.draft_packet(root=root, model_id=model_id, fetcher=Fetch(), store=store,
+                                  today=DRAFT_TODAY, registry=small_registry())
+    return packet, store
+
+
+@pytest.mark.parametrize("bypass_block", [False, True])
+@pytest.mark.parametrize("redirect", ["https://reader@docs.x.ai/docs/models/fixture-model",
+                                      "https://docs.x.ai:99999/docs/models/fixture-model"])
+def test_admission_draft_never_cites_a_malformed_origin(tmp_path, monkeypatch, redirect,
+                                                        bypass_block):
+    """Granting: a "cited" source writes a citation record, so a malformed origin is refused."""
+    packet, store = _xai_draft(tmp_path, monkeypatch, redirect, bypass_block=bypass_block)
+    assert not [s for s in packet.sources if s["outcome"] == "cited"]
+    assert any(s["outcome"] == "blocked" for s in packet.sources)
+    assert not list((tmp_path / "copies").rglob("*.citation.json"))
+    if bypass_block:
+        assert any(s.get("reason") == "malformed source or redirect URL" for s in packet.sources)
+
+
+def test_admission_draft_still_cites_a_well_formed_cite_only_origin(tmp_path, monkeypatch):
+    packet, store = _xai_draft(tmp_path, monkeypatch,
+                               "https://docs.x.ai/docs/models/fixture-model", bypass_block=False)
+    [source] = [s for s in packet.sources if s["outcome"] == "cited"]
+    assert store.citation(source["snapshot_ref"]) is not None
+
+
+@pytest.mark.parametrize("redirect", ["https://reader@docs.x.ai/x", "https://docs.x.ai:99999/x"])
+def test_admission_fallback_withholds_bytes_for_a_malformed_origin(redirect):
+    """Restrictive: the fallback drops bytes; the drafter then refuses to cite (above)."""
+    from scripts.admission_fallback import _without_restricted_bytes
+
+    result = _without_restricted_bytes(
+        "https://docs.example.com/models",
+        FetchResult("ok", 200, body=b"page bytes", resolved_urls=(redirect,)))
+    assert result.body == b"" and result.snapshot_ref is not None
+
+
+# REV-857 round-four probes: an existing citation record for the fetched hash
+
+
+def _current_record(store, ref, url, field):
+    import json
+
+    record = {"snapshot_ref": ref, "url": url, "resolved_urls": []}
+    record[field] = [REV3_BAD] if field == "resolved_urls" else REV3_BAD
+    path = store.path(ref).with_suffix(".citation.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record))
+    return path, record
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_existing_current_citation_is_validated_before_fetch_grant(tmp_path, field):
+    import json
+
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+
+    body = b"<p>current page</p>"
+    ref = fingerprint_bytes(body)
+    store = CopyStore(tmp_path / "cache")
+    path, record = _current_record(store, ref, "https://example.org/bad", field)
+
+    class Fake:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=body if url.endswith("/bad") else b"healthy")
+
+    sources = {sid: Source(id=sid, url="https://example.org/" + sid) for sid in ["bad", "good"]}
+    result = price_reread.fetch_sources(sources, sources, Fake(), store)
+    assert result["good"].outcome == "ok"
+    assert json.loads(path.read_text()) == record  # untouched
+    assert not store.path(ref).exists()  # bytes still withheld
+    assert (result["bad"].outcome, result["bad"].copy_ref) == ("invalid_citation_metadata", None)
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_byte_free_fetch_never_overwrites_a_malformed_record(tmp_path, field):
+    import json
+
+    from scripts import price_reread
+
+    ref = "sha256:" + "7" * 64
+    store = CopyStore(tmp_path / "cache")
+    path, record = _current_record(store, ref, "https://x.ai/pricing", field)
+
+    class HashOnly:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=b"", snapshot_ref=ref)
+
+    sources = {"s": Source(id="s", url="https://x.ai/pricing")}
+    result = price_reread.fetch_sources(sources, sources, HashOnly(), store)
+    assert (result["s"].outcome, result["s"].copy_ref) == ("invalid_citation_metadata", None)
+    assert json.loads(path.read_text()) == record
+
+
+def test_valid_existing_citation_record_still_gives_cited(tmp_path):
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+
+    body = b"<p>current page</p>"
+    ref = fingerprint_bytes(body)
+    store = CopyStore(tmp_path / "cache")
+    store.record_citation(ref, source_url="https://example.org/s", resolved_urls=[CITE_URL])
+
+    class Fake:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=body)
+
+    sources = {"s": Source(id="s", url="https://example.org/s")}
+    result = price_reread.fetch_sources(sources, sources, Fake(), store)
+    assert (result["s"].outcome, result["s"].copy_ref) == ("cited", ref)
+    assert not store.path(ref).exists()
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_weekly_run_refuses_existing_malformed_current_citation(estate, field):
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    _current_record(store, fingerprint_bytes(page("api-pricing.html")), API_URL, field)
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")], PLANS_URL: [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT)
+    assert report.sources["example-plans"].outcome == "ok"
+    assert report.sources["example-api-pricing"].outcome == "invalid_citation_metadata"
+    cited = [(f.fact_id, f.status.value) for f in report.facts
+             if f.status is price_reread.Status.CITED]
+    assert not cited, cited
+    # MODEL-423 (#863): no report row carries a citation for the refused source.
+    assert not [row for rows in report.to_dict().values() if isinstance(rows, list)
+                for row in rows if isinstance(row, dict)
+                and "example-api-pricing" in (row.get("citations") or {})]
+
+
+def test_weekly_write_does_not_record_cited_for_malformed_current_record(estate):
+    import json
+
+    from decision.sources import fingerprint_bytes
+    from decision.verify import Queue
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    path, record = _current_record(store, fingerprint_bytes(page("api-pricing.html")), API_URL,
+                                   "sourceURL")
+    queue = Queue(root / "verification")
+    before = len(queue.path.read_text().splitlines())
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")], PLANS_URL: [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT,
+                              write=True)
+    assert json.loads(path.read_text()) == record
+    assert not [f for f in report.facts if f.status is price_reread.Status.CITED]
+    events = [json.loads(line) for line in queue.path.read_text().splitlines()[before:]]
+    cited = [event for event in events
+             if event.get("event") == "checked" and event.get("outcome") == "cited"]
+    assert not cited, cited
+
+
+def test_valid_cited_record_still_appears_in_report_citations(estate):
+    """MODEL-423 (#863) control: a well-formed cite-only record is still written to citations."""
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    registry = root / "registry/sources.yaml"
+    registry.write_text(registry.read_text().replace(PLANS_URL, "https://x.ai/pricing"))
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")],
+                             "https://x.ai/pricing": [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT)
+    assert report.sources["example-plans"].outcome == "cited"
+    rows = [row for row in report.to_dict()["cited"] if row.get("citations")]
+    assert rows and all(set(row["citations"]) == {"example-plans"} for row in rows)

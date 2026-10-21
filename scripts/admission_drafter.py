@@ -27,7 +27,9 @@ from decision.excluded import excluded_sources
 from decision.model import Fact, Source, SourceRef, TargetRef, VerificationActor
 from decision.normalise import NORMALISERS
 from decision.registry import default as default_registry
-from decision.retention import cite_only_hosts, cite_only_origin
+from decision.retention import (
+    canonical_host, cite_only_hosts, cite_only_origin_restrictive, cite_only_origin_status,
+)
 from decision.snapshot import Gap, audit_build, collect_repo
 from decision.sources import CopyStore, Fetcher, load_sources
 from decision.units import UNITS, unit_id
@@ -97,10 +99,16 @@ def load_source_terms(root: Path) -> dict:
 
 
 def source_block(url: str, lab: str, terms: dict) -> str | None:
-    parsed = urlsplit(url)
-    host = (parsed.hostname or "").lower().rstrip(".")
-    if (parsed.scheme != "https" or parsed.username or parsed.password
-            or parsed.port not in (None, 443)):
+    # One canonical host (MODEL-420): a URL the repository's parser rejects, or
+    # one with userinfo or an invalid port, is blocked, never guessed.
+    try:
+        parsed = urlsplit(url)
+        host = canonical_host(url)
+        port = parsed.port
+    except ValueError:
+        return "source requires a well-formed HTTPS URL"
+    if (host is None or parsed.scheme != "https" or parsed.username or parsed.password
+            or port not in (None, 443)):
         return "source requires an HTTPS URL without credentials or a custom port"
     if excluded_sources().url(url):
         return "excluded source"
@@ -391,7 +399,12 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
                            if (reason := source_block(str(hop), lab, terms))), None):
             status.update(outcome="blocked", reason=reason)
             continue
-        cited = cite_only_origin(url, result.resolved_urls)
+        # Granting (MODEL-420): "cited" writes a citation record that later
+        # stands in for verification, so a malformed origin is refused outright.
+        cited = cite_only_origin_status(url, result.resolved_urls)
+        if cited is None:
+            status.update(outcome="blocked", reason="malformed source or redirect URL")
+            continue
         if cited and result.snapshot_ref:
             ref = result.snapshot_ref
             store.record_citation(ref, source_url=url, resolved_urls=result.resolved_urls,
@@ -462,7 +475,7 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
                 url = source_urls.get(ref["source_id"], "")
                 origins = (url, *ref.get("resolved_urls", []))
                 reason = ("cite-only provenance is not verified"
-                          if cite_only_origin(url, ref.get("resolved_urls", []))
+                          if cite_only_origin_restrictive(url, ref.get("resolved_urls", []))
                           else next((reason for origin in origins
                                      if (reason := source_block(origin, lab, terms))), None))
                 if reason:
