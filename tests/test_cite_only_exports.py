@@ -218,3 +218,26 @@ def test_javascript_benchmark_source_is_never_linked(tmp_path, monkeypatch, sour
     assert "<a" not in notice
     assert "score source" in notice
     assert "href=\"javascript" not in page.lower()
+
+
+@pytest.mark.parametrize("verified_first", [False, True])
+def test_legacy_ranker_prefers_verified_score_to_cited_sibling(tmp_path, verified_first):
+    front, path = card_tree(tmp_path)
+    verified = {
+        "benchmark_id": "humaneval", "model_id_as_evaluated": "Cited model",
+        "score": 95, "unit": "percent", "source_url": "https://lab.example/results",
+        "source_kind": "provider_self_report", "evidence_date": "2026-10-19",
+        "date_type": "published", "verified_at": "2026-10-19",
+    }
+    cited = {**verified, "score": 40, "source_url": URL}
+    front["benchmarks"]["evidence"] = [verified, cited] if verified_first else [cited, verified]
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+    candidate = ranking.build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
+    result = ranking.score(candidate, {"benchmark_weights": {"humaneval": 1}})
+    assert candidate.benchmark_scores["humaneval"] == 95
+    assert candidate.verified_benchmarks == {"humaneval"}
+    assert candidate.cited_benchmarks == {}
+    assert result["benchmark_score"] == 37.78
+    assert result["verified_contributions"] == 1
+    assert result["verified_benchmark_coverage"] == 1
+    assert "cite_only_not_machine_verified" not in result.get("warnings", [])

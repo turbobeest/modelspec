@@ -1298,6 +1298,20 @@ class _Compiler:
 
     # output ------------------------------------------------------------------
 
+    def prefer_verified_evidence(self) -> None:
+        """A verified model/benchmark reading supersedes its cited siblings."""
+        verified = {
+            (self.subjects[sid]["model"], row[0])
+            for sid, rows in self.evidence.items() for row in rows
+            if "citation" not in self.records[row[10]]
+        }
+        self.evidence = {
+            sid: [row for row in rows
+                  if "citation" not in self.records[row[10]]
+                  or (self.subjects[sid]["model"], row[0]) not in verified]
+            for sid, rows in self.evidence.items()
+        }
+
     def _section(self, ids: list[str]) -> dict[str, Any]:
         index = {sid: i for i, sid in enumerate(ids)}
         columns: dict[str, dict[str, list[Any]]] = {}
@@ -1825,6 +1839,7 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_subscription(subscription)
     for e in inputs.evidence:
         c.add_evidence(e)
+    c.prefer_verified_evidence()
     for device in inputs.hardware:
         c.add_hardware(device)
     for record in inputs.hardware_fit_records:

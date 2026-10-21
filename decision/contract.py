@@ -2034,6 +2034,7 @@ class Decision(_ExcludeIf):
 
     # Server-only inputs for testing candidates. Never serialized or ranked.
     _feasible_models: tuple[str, ...] | None = PrivateAttr(default=None)
+    _cited_record_kinds: frozenset[Literal["facts", "benchmark scores"]] | None = PrivateAttr(default=None)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Decision):

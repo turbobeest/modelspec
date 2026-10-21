@@ -148,12 +148,18 @@ def test_short_circuit_skips_unused_cited_score_filter():
 def test_cited_driver_after_eight_shown_drivers_still_warns(dimension):
     inputs = score_inputs()
     inputs.evidence[0]["id"] = "zz-cited-driver"
-    inputs.evidence.extend(evidence("lab/cited", BENCHMARK, 90, eid=f"aa-driver-{index}")
+    inputs.evidence.extend(evidence("lab/cited", "swe_bench_verified", 90, eid=f"aa-driver-{index}")
                            for index in range(8))
+    inputs.evidence.append(evidence("lab/plain", "swe_bench_verified", 70))
     inputs = replace(
         inputs, models=[model(mid, facts=[fact("model", mid, "model.class", "text-generator")])
                         for mid in ("lab/cited", "lab/plain")],
-        benchmark_refinements={BENCHMARK: [("rust", "direct")]},
+        benchmark_domains={**inputs.benchmark_domains,
+                           "swe_bench_verified": [("software_engineering", "direct")]},
+        benchmark_metadata={**inputs.benchmark_metadata,
+                            "swe_bench_verified": {"random_baseline": 0, "sample_size": 100}},
+        benchmark_refinements={key: [("rust", "direct")]
+                               for key in (BENCHMARK, "swe_bench_verified")},
     )
     index = load(inputs)
     drivers = (index.refinement_drivers("lab/cited", dimension) if "/" in dimension
@@ -192,15 +198,19 @@ def mixed_score_index(*, cited_score=80, verified_score=50):
     f"{BENCHMARK} = 50",
     {"facet": BENCHMARK, "between": [40, 70]},
     {"not": {"not": f"{BENCHMARK} <= 70"}},
-    f"{BENCHMARK} = 50 soft(0.2)",
     f"{BENCHMARK} <= model(lab/plain)",
 ])
-@pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
-def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+@pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
     answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
-                        where=[condition])
-    assert answer.answer.members == ["lab/cited"]
-    assert (CITE_ONLY_WARNING in answer.warnings) is warned
+                        where=["model.context_window >= 150000", condition])
+    if qualifies:
+        assert answer.answer is not None
+        assert answer.answer.members == ["lab/cited"]
+    else:
+        assert answer.answer is None
+    assert answer.status == ("answered" if qualifies else "no_feasible")
+    assert CITE_ONLY_WARNING not in answer.warnings
 
 
 @pytest.mark.parametrize("condition", [
@@ -208,6 +218,71 @@ def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, ve
     f"{BENCHMARK} = 90 soft(0.2)",
 ])
 def test_failed_score_predicate_keeps_cited_provenance(condition):
-    answer = answer_for(mixed_score_index(), where=[condition])
+    answer = answer_for(score_index(cited_score=80), where=[condition],
+                        objective={"min": "model.context_window"})
     assert answer.answer.members == ["lab/cited"]
     assert CITE_ONLY_WARNING in answer.warnings
+
+
+@pytest.mark.parametrize("verified_first", [False, True])
+def test_verified_score_remains_the_benchmark_objective_winner(verified_first):
+    inputs = score_inputs()
+    inputs.evidence[0]["score"] = 40
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 95))
+    if verified_first:
+        inputs.evidence.reverse()
+    answer = answer_for(load(inputs), objective={"max": BENCHMARK}, level="full")
+    assert answer.status == "answered"
+    assert answer.answer.members == ["lab/cited"]
+    assert answer.results[0].contributions[0].raw_value == 95
+    assert CITE_ONLY_WARNING not in answer.warnings
+    assert CITE_ONLY_WARNING not in answer.results[0].warnings
+
+
+@pytest.mark.parametrize("condition, qualifies", [
+    (f"{BENCHMARK} >= 80", True),
+    (f"{BENCHMARK} <= 70", False),
+    (f"{BENCHMARK} = 40", False),
+    ({"facet": BENCHMARK, "between": [30, 50]}, False),
+])
+def test_cited_score_neither_admits_nor_vetoes_verified_candidate(condition, qualifies):
+    answer = answer_for(mixed_score_index(cited_score=40, verified_score=95),
+                        where=["model.context_window >= 150000", condition])
+    assert answer.status == ("answered" if qualifies else "no_feasible")
+    if qualifies:
+        assert answer.answer is not None
+        assert answer.answer.members == ["lab/cited"]
+    else:
+        assert answer.answer is None
+    assert CITE_ONLY_WARNING not in answer.warnings
+
+
+@pytest.mark.parametrize("verified_first", [False, True])
+def test_cited_sibling_does_not_change_capability_estimate(verified_first):
+    inputs = score_inputs()
+    cited = inputs.evidence.pop(0)
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 40, day="2026-07-01"))
+    baseline = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+    expected = next(row for row in baseline.results if row.model == "lab/cited").estimates
+    assert len(expected) == 1
+    assert expected[0].value == pytest.approx(-0.574, abs=0.001)
+    inputs.evidence.append(cited)
+    if not verified_first:
+        inputs.evidence.reverse()
+    answer = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+    actual = next(row for row in answer.results if row.model == "lab/cited")
+    assert actual.estimates == expected
+    assert answer.answer.members == baseline.answer.members
+    assert CITE_ONLY_WARNING not in actual.warnings
+    assert all(item.record_id != cited["id"]
+               for row in answer.results for contribution in row.contributions
+               for item in contribution.evidence)
+
+
+@pytest.mark.parametrize("cited_score, verified_score, penalty", [(80, 50, 0), (50, 80, 0.2)])
+def test_soft_score_predicate_penalty_uses_verified_value(cited_score, verified_score, penalty):
+    answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                        where=[f"{BENCHMARK} = 50 soft(0.2)"])
+    assert answer.answer.members == ["lab/cited"]
+    assert answer.results[0].soft_penalty == penalty
+    assert CITE_ONLY_WARNING not in answer.warnings

@@ -493,7 +493,8 @@ class _CitationUse:
     def __init__(self, snapshot, reach=None):
         self.snapshot = snapshot
         self.reach = reach
-        self.used: set[str] = set()
+        self.facts_used: set[str] = set()
+        self.scores_used: set[str] = set()
         self._records: dict[str, frozenset[str]] = {}
 
     def __getattr__(self, name):
@@ -511,8 +512,8 @@ class _CitationUse:
 
     def observe_evidence(self, cid, rows, used_by=()):
         owners = set(used_by or (cid,))
-        if not owners <= self.used and any(row.record_id in self.records(cid) for row in rows):
-            self.used.update(owners)
+        if not owners <= self.scores_used and any(row.record_id in self.records(cid) for row in rows):
+            self.scores_used.update(owners)
 
     def capability_estimate(self, cid, domain):
         found = self.snapshot.capability_estimate(cid, domain)
@@ -528,7 +529,7 @@ class _CitationUse:
 
     def observe_estimate(self, cid, dimension, used_by=()):
         owners = set(used_by or (cid,))
-        if owners <= self.used:
+        if owners <= self.scores_used:
             return
         lookup = getattr(self.snapshot, "estimate_cited_records", None)
         if lookup is not None:
@@ -539,24 +540,24 @@ class _CitationUse:
                        else self.snapshot.capability_drivers(cid, dimension))
             cited = self.records(cid).intersection(driver.record_id for driver in drivers)
         if cited:
-            self.used.update(owners)
+            self.scores_used.update(owners)
 
     def observe(self, cid, facet, used_by=(), *, found=None):
         owners = set(used_by or (cid,))
-        if owners <= self.used:
-            return
         if facet in self.snapshot.domain_ids():
             self.observe_estimate(cid, facet, used_by)
+            return
+        if owners <= self.facts_used:
             return
         cited = self.records(cid)
         if cited:
             found = self.snapshot.fact(cid, facet) if found is None else found
             if found.record_id in cited:
-                self.used.update(owners)
+                self.facts_used.update(owners)
                 return
             computed = self.snapshot.computed(cid, facet)
             if computed is not None and cited.intersection(computed.records):
-                self.used.update(owners)
+                self.facts_used.update(owners)
                 return
             if facet == "offering.cost_per_task" and computed is None:
                 # A missing cited price can also remove a candidate from ranking.
@@ -568,7 +569,7 @@ class _CitationUse:
                     if self.snapshot.record(record).get("facet") in {
                         "offering.subscription.price", "offering.subscription.billing_period",
                     }:
-                        self.used.update(owners)
+                        self.facts_used.update(owners)
                         return
 
     def shown(self, decision, ordered):
@@ -584,31 +585,34 @@ class _CitationUse:
                 self.observe_evidence(row.candidate_id, (
                     item for contribution in row.contributions for item in contribution.evidence
                 ))
-        if self.used.intersection(recommended | models):
-            return True
+        kinds = set()
+        if self.facts_used.intersection(recommended | models):
+            kinds.add("facts")
+        if self.scores_used.intersection(recommended | models):
+            kinds.add("benchmark scores")
         if any(CITE_ONLY_NOTICE in plan.basis
                for result, row in zip(decision.results, ordered.results)
                if row.candidate_id in recommended for plan in result.plans):
-            return True
+            kinds.add("facts")
         for result, row in zip(decision.results, ordered.results):
             if row.candidate_id in recommended and any(
                 item.citation is not None
                 for group in result.evidence for item in group.items
             ):
-                return True
+                kinds.add("benchmark scores")
         for shown, row in zip(decision.top, ordered.results):
             if row.candidate_id not in recommended:
                 continue
             cited = self.records(row.candidate_id)
             if any(item.citation is not None
                    for group in shown.evidence for item in group.items):
-                return True
+                kinds.add("benchmark scores")
             if any(fact.citation is not None or cited.intersection(fact.records)
                    for fact in shown.facts):
-                return True
+                kinds.add("facts")
             if any(cited.intersection(estimate.records) for estimate in shown.hardware_estimates):
-                return True
-        return False
+                kinds.add("facts")
+        return frozenset(kinds)
 
 
 def decide(
@@ -1011,7 +1015,8 @@ def _decide(
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)
-    if citation_use.shown(decision, ordered):
+    decision._cited_record_kinds = citation_use.shown(decision, ordered)
+    if decision._cited_record_kinds:
         decision.warnings.append(CITE_ONLY_WARNING)
     if _capture_evidence is not None:
         from decision.explain import contributions, domain_evidence

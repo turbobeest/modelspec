@@ -15,7 +15,7 @@ from decision.snapshot import (
     SnapshotInputs, build_snapshot, canonical_json, content_hash, load_built_snapshot,
     load_snapshot_bytes,
 )
-from tests.snapshot_records import SOURCES, evidence, model, source_ref, verification
+from tests.snapshot_records import SOURCES, evidence, model, offering, source_ref, verification
 
 
 TODAY = date(2026, 10, 21)
@@ -75,6 +75,69 @@ def test_format_one_verified_snapshot_remains_readable():
     raw = gzip.compress(canonical_json(envelope))
     index = load_snapshot_bytes(raw, key=None, public_keys={})
     assert index.evidence("lab/cited", BENCHMARK)[0].verified is True
+
+
+@pytest.mark.parametrize("verified_first", [False, True])
+def test_cited_offering_score_cannot_replace_its_models_verified_score(verified_first):
+    inputs = score_inputs()
+    oid = "sambanova/lab/cited/global/standard"
+    inputs.evidence[0] = evidence(
+        oid, BENCHMARK, 40, source="src-cited", source_url=CITED_URL,
+        subject_kind="offering", outcome=None,
+    )
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 95))
+    if verified_first:
+        inputs.evidence.reverse()
+    index = load(replace(inputs, offerings=[offering("lab/cited")]))
+    spec = parse_spec({
+        "spec_version": 1, "where": [f"{BENCHMARK} >= 80"],
+        "optimize": {"max": BENCHMARK}, "explain": "full",
+    }, facets=facet)
+
+    answer = decide(spec, index, facets=facet)
+
+    assert answer.status == "answered"
+    assert answer.answer.members == ["lab/cited"]
+    assert answer.results[0].offering.provider == "sambanova"
+    assert answer.results[0].contributions[0].raw_value == 95
+    assert CITE_ONLY_WARNING not in answer.warnings
+    assert CITE_ONLY_WARNING not in answer.results[0].warnings
+
+
+@pytest.mark.parametrize("outcome", [None, "mismatch", "unreachable"])
+def test_rejected_open_score_does_not_displace_cited_score(outcome):
+    inputs = score_inputs()
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 40, outcome=outcome))
+    index = load(inputs)
+    spec = parse_spec({
+        "spec_version": 1, "optimize": {"max": BENCHMARK}, "explain": "full",
+    }, facets=facet)
+
+    answer = decide(spec, index, facets=facet)
+
+    assert answer.status == "answered"
+    assert answer.answer.members == ["lab/cited"]
+    assert answer.results[0].contributions[0].raw_value == 90
+    assert CITE_ONLY_WARNING in answer.warnings
+
+
+def test_cited_precedence_preserves_multiple_verified_measurements():
+    inputs = score_inputs()
+    inputs.evidence.extend([
+        evidence("lab/cited", BENCHMARK, 95),
+        evidence("lab/cited", BENCHMARK, 96),
+    ])
+    index = load(inputs)
+    spec = parse_spec({
+        "spec_version": 1, "optimize": {"max": BENCHMARK}, "explain": "full",
+    }, facets=facet)
+
+    answer = decide(spec, index, facets=facet)
+
+    assert answer.status == "partial"
+    assert answer.answer.members == ["lab/plain"]
+    assert [row.value for row in index.evidence("lab/cited", BENCHMARK)] == [95, 96]
+    assert CITE_ONLY_WARNING not in answer.warnings
 
 
 @pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])

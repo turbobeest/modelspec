@@ -1,7 +1,10 @@
 """Cited benchmark provenance survives each public evidence representation."""
 
+import httpx
 import pytest
+from typer.testing import CliRunner
 
+from cli.modelspec import cli, client
 from decision.contract import ComparisonEvidence, EvidenceItem
 from decision.model_comparison import collect_models
 from tests.test_cited_scores import BENCHMARK, CITED_URL, load, score_inputs
@@ -37,3 +40,22 @@ def test_named_comparison_preserves_cited_benchmark_provenance():
     assert cited[0]["value"] == 90
     assert cited[0]["citation"] == CITATION
     assert "citation" not in body["models"][1]["evidence"][0]
+
+
+def test_human_named_comparison_labels_cited_benchmark_score(monkeypatch, tmp_path):
+    body = collect_models(["lab/cited", "lab/plain"], load(score_inputs()))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, json=body),
+    ))
+    result = CliRunner().invoke(cli.app, ["compare", "lab/cited", "lab/plain"],
+                                env={"MODELSPEC_API_KEY": "test_model437_key"})
+    assert result.exit_code == 0, result.output
+    row = next(line for line in result.stdout.splitlines()
+               if line.startswith(f"| {BENCHMARK}"))
+    cited, verified = row.split(" | ")[1:3]
+    assert "90.0 percent" in cited
+    assert "[Cited, not machine-verified]" in cited
+    assert "70.0 percent" in verified
+    assert "Cited, not machine-verified" not in verified
