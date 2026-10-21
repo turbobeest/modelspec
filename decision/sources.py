@@ -839,7 +839,11 @@ def recheck(
                         previous_fingerprint=result.previous,
                         current_fingerprint=result.current,
                         previous_copy_ref=previous.snapshot.copy_ref,
-                        current_copy_ref=current.copy_ref,
+                        current_copy_ref=(
+                            fingerprint_bytes(report.fetches[result.source_id].body)
+                            if report.fetches[result.source_id].outcome == "ok"
+                            else current.copy_ref
+                        ),
                     )
                 )
         elif result.status is RegionStatus.UNCHANGED and result.detail != "cite-only":
@@ -921,8 +925,20 @@ def _check_one(
         return SourceState(source.id, previous, failures, failures >= grace, now)
 
     rules = NORMALISERS[source.normaliser]
+    if rules.content == "pdf":
+        from decision.pdf_templates import retention_approved
+
+        if not retention_approved(str(source.url), fingerprint_bytes(result.body)):
+            if previous is not None and previous.copy_ref != fingerprint_bytes(result.body):
+                for region in source.cited_regions:
+                    report.regions.append(RegionResult(
+                        source.id, region.id, RegionStatus.CHANGED,
+                        old.get(region.id), None, "pdf_unapproved_revision",
+                    ))
+            report.skipped.append(Skipped(source.id, "pdf_retention_not_approved"))
+            return replace(state, last_attempt_at=now)
     try:
-        if "pdf" in result.content_type.lower():
+        if "pdf" in result.content_type.lower() and rules.content != "pdf":
             raise UnsupportedContentError("pdf")
         doc = normalise_document(result.body, rules, charset=result.charset)
     except UnsupportedContentError as exc:

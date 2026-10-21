@@ -36,6 +36,9 @@ BUILD_TIME = {
     ("pipeline/ranking.py", "pipeline.load"),
     # Hardware arithmetic is used at runtime; graph is only a type annotation.
     ("pipeline/hardware.py", "schema.graph"),
+    # Retained PDF normalization runs only in operator verification. Source
+    # schemas stay available in the Worker without importing the PDF parser.
+    ("decision/normalise.py", "decision.pdf_sources"),
 }
 
 

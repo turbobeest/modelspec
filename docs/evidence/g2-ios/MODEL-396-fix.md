@@ -1,457 +1,218 @@
-> Current status, round three: PDF support and the table-scope reader were
-> withdrawn after REV-760 and REV-760b. Earlier PDF and sixteen-fact results
-> below describe rejected prototypes. The retained change is the Mistral label
-> rule; current filing has fifteen facts and four gaps. See round three below.
+# MODEL-396 PDF source support evidence
 
-# MODEL-396 execution evidence
+Base SHA: `3c8042a11aa47e8577559e01f71379119bda2cec`.
+Final implementation SHA: `6e85998943eb3767e0e10cbf399a6f7f4835a719`.
+The subsequent evidence-only commit is the delivery HEAD. Its final SHA is
+reported in `CODEX_EXEC_DONE` and can be reproduced with `git rev-parse HEAD`.
 
-The two reader gaps are closed. A genuine retained-source replay verifies
-sixteen of nineteen guaranteed Small 4 facts. Per-model streaming, express base
-lineage and the complete first-party weights-hosting country set still lack
-qualifying primary statements. Small 4 remains outside premier and no La
-Plateforme offering was filed.
+Worktree: `/Users/terbeest/dev/worktrees/model-396`.
+Branch: `model-396-pdf-sources`.
 
-## Revisions and design order
+## Result and limits
 
-- Engine worktree: `/Users/terbeest/dev/worktrees/model-396`, branch
-  `model-396-readers`, base `c9b625605750f29ede73ade4d7020eb2714b1513`.
-- Engine final code SHA: `8b9bff5b9124e04b349414d984845a5c79a1a3a0`.
-  The delivery commit adds only this evidence and logs. Resolve its final SHA
-  with `git rev-parse model-396-readers`; that SHA is also in the executor's
-  final output and the draft PR head.
-- Data worktree: `/Users/terbeest/dev/worktrees/data-model-396`, branch
-  `model-396-mistral-small`, base `cf93edc381b4699fb251c1f06f206237b77ea727`.
-  Final data SHA: `df86c419ed26701a9d73e16452e56c8f18dd44c5`, delivered in
-  draft [data PR 90](https://github.com/turbobeest/modelspec-data/pull/90).
-- The engine design note was committed as `2fba54ba` and posted as the body of
-  draft [engine PR 760](https://github.com/turbobeest/modelspec/pull/760) before
-  any reader or test code. The [current design](../../design/MODEL-396-readers.md)
-  records the exact normalization, supported source forms, conservative raster
-  limits and adversarial cases.
+Added an offline PDF recipe pinned to `pypdf==6.19.0`, an explicit object
+allowlist, bounded decoding and parsing, and exact source templates for
+verification. Original bytes and extracted text use separate existing hashes.
+PDFs cannot reach generic or LLM readers. Retention approval is required for
+the exact source URL and copy hash. Cite-only rules take precedence.
 
-Packaging support was completed in `8b9bff5b`. The first PDF implementation was committed as `66227354`, then the scoped
-readers as `84ec2e7d`. Independent raster-container probes exposed additional
-scan paths. Their red-first fixes are in the final code commit above. Two
-preliminary full-suite starts were deliberately interrupted with exit 130 to
-test the final artifact after those changes. They are not successful gates.
+There are no approved production templates. This PR supplies the engine and
+synthetic acceptance tests, not a Mistral data filing. The existing Mistral
+reasoning-label implementation was already correct at the base SHA and remains
+unchanged. It maps the first-party `reasoning, text` output list to `{text}`.
 
-## Red before green
+The accepted PDF subset, limits, template bindings and prior review probes are
+documented in `docs/design/MODEL-396-readers.md`.
 
-All initial tests ran before production reader changes. Original red output
-and final green output are retained in the compressed logs alongside this file.
+## Red-first evidence
 
-| Defect | Red-first behavior tests | Observed red | Observed green |
-|---|---|---|---|
-| No opt-in PDF normalization, source recheck or retained verification path | `test_pdf_normalization_has_literal_reproducible_text`, `test_pdf_recheck_and_verifier_use_original_hashed_bytes`, `test_pdf_recheck_detects_changed_text` | Unknown `pdf-pypdf-6.19.0-v1` recipe, `KeyError` or source validation error. Initial module: 19 failed, 3 passed, exit 1. | Original bytes, exact text and changed/unchanged regions pass. Final PDF module: 27 passed, exit 0. |
-| Mistral's documented reasoning label prevented exact text output verification | `test_mistral_reasoning_output_label_verifies_exact_text_set`, `test_mistral_rule_keeps_real_output_labels`, `test_mistral_rule_refuses_conflicting_output_blocks_even_with_claim_label` | Initial reader module: 10 failed, 36 passed, exit 1. Valid labels mismatched; a conflicting block was incorrectly accepted by a generic fallback. | Reader module: 47 passed, exit 0. Only exact reasoning is removed in the scoped primary output forms. Unknown and real extra labels remain. |
-| The four-column PDF table did not yield a text output maximum | `test_model_properties_reads_output_maximum_not_input_maximum` | Expected 256000 was not verified. Included in the initial reader module's 10 failures. | Output cell verifies 256000; differing 128000 input limit fails the output claim. |
-| A raster scan in a pattern escaped the ordinary image walk | `test_scan_painted_through_pattern_cannot_supply_text_overlay` | `DID NOT RAISE UnsupportedContentError`, 1 failed, exit 1. | Pattern resources are unsupported. |
-| A raster scan in annotation appearances or graphics-state masks escaped the ordinary image walk | `test_scan_in_unsupported_rendering_container_fails_closed` | Both cases: `DID NOT RAISE UnsupportedContentError`, 2 failed, exit 1. | Both containers are unsupported. Plain primary-document link annotations still work. |
-| A full-page raster inside a Type 3 glyph escaped the ordinary image walk | `test_type3_font_cannot_paint_scan_behind_extractable_text` | `DID NOT RAISE UnsupportedContentError`, 1 failed, 1 passed, exit 1. | Glyph image dimensions include font, text and page transforms. The oversized glyph fails; `test_small_type3_bitmap_glyph_is_supported` passes. |
-| The dependency pin invalidated the generated CLI source hash; the PDF helper was missing from the Worker bundle | `test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources`, `test_wheel_contains_only_the_thin_client_and_its_guidance`, `test_every_imported_repository_module_is_vendored` | Focused packaging replay: 3 failed, exit 1. | Regenerated one existing CLI hash and added one Worker source entry. Expanded packaging suites: 24 passed, exit 0. |
+All pytest commands below ran serially, with cacheprovider disabled. Exit codes
+were checked directly.
 
-The final new reader modules together passed 74 tests. The regression command
-covering existing verifier, licence, source and MODEL-235 readers passed 829
-tests. The first source/model/PDF regression command passed 177 tests. After
-the rendering-container changes, source/model/new-reader coverage passed 227
-tests; the two final Type 3 tests also passed in the final new-module run.
-
-## Commands and versions
-
-Commands below ran from the engine worktree unless a different directory is
-stated. Exit codes were read from the process, without a pipeline.
+Before changing production code:
 
 ```sh
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_readers.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_sources.py tests/test_decision_model.py tests/test_model_396_pdf.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_verify.py tests/test_model_235_readers.py tests/test_model_390_licence_readers.py tests/test_decision_sources.py tests/test_model_396_readers.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py::test_scan_painted_through_pattern_cannot_supply_text_overlay
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py::test_scan_in_unsupported_rendering_container_fails_closed
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py::test_type3_font_cannot_paint_scan_behind_extractable_text tests/test_model_396_pdf.py::test_small_type3_bitmap_glyph_is_supported
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py tests/test_model_396_readers.py tests/test_decision_sources.py tests/test_decision_model.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_396_pdf.py tests/test_model_396_readers.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check decision/pdf_text.py tests/test_model_396_pdf.py tests/test_model_396_readers.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py tests/test_model_396_readers.py
+```
+
+Exit `1`, `3 failed, 51 passed in 1.11s`.
+
+| Test | Observed red output |
+| --- | --- |
+| `test_pdf_extracts_repeatable_text_and_hash` | `UnsupportedContentError: unsupported content: pdf` |
+| `test_pdf_recipe_refuses_malformed_or_mislabeled_content[<html>Not a PDF</html>]` | `Failed: DID NOT RAISE UnsupportedContentError` |
+| `test_pdf_recheck_hashes_extraction_and_retains_original_only_with_terms_approval` | `Value error, unknown normaliser 'pdf-pypdf-6.19.0-v1'` |
+
+The same command first became green with exit `0`,
+`54 passed in 1.37s`. The existing reasoning-label tests passed on both runs.
+
+Review then found additional defects in the new implementation. Each group
+below was reproduced before its fix, using:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py -k trailer_extensions
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py -k strings_in_name
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py -k text_transforms
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py -k independent_non_pdf
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py -k repairs
+```
+
+| Defect and test | Red result, each exit `1` | Correction |
+| --- | --- | --- |
+| `test_pdf_rejects_trailer_extensions_before_constructing_parser` | `3 failed, 63 deselected`; `unapproved trailer reached PdfReader` | Complete trailer allowlist before library construction, including escaped-name rejection. |
+| `test_pdf_refuses_strings_in_name_fields` | `4 failed, 66 deselected`; `DID NOT RAISE` | Enforce PDF name and integer types rather than string or numeric equality. |
+| `test_pdf_refuses_text_transforms_outside_the_subset` | `3 failed, 72 deselected`; `DID NOT RAISE` | Remove transformations and graphics-state operators from the subset. |
+| `test_pdf_does_not_block_an_independent_non_pdf_source` | `1 failed, 79 deselected`; `'skipped' == 'verified'` | Allow independent non-PDF verification while retaining complete-citation requirements for jurisdiction unions. |
+| `test_pdf_refuses_numeric_repairs`, `test_pdf_refuses_numeric_repairs_inside_text_arrays` | Part of `6 failed, 80 deselected`; `DID NOT RAISE`, with pypdf warning that invalid numbers were replaced with zero | Validate numeric lexemes and nesting before library parsing, including structural and content arrays. |
+| `test_pdf_refuses_stream_length_repairs` | Part of the same six failures; negative and off-by-one lengths both returned text | Check raw stream dictionaries, direct lengths and exact byte boundaries before parsing. |
+
+The Worker import-closure test also failed while the lazy operator import was
+unclassified:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py tests/test_model_396_readers.py tests/test_worker_vendor_imports.py
+```
+
+Exit `1`, `1 failed, 104 passed in 1.65s`. The missing import was
+`decision/normalise.py imports decision.pdf_sources`. It is now explicitly
+classified as build-time only. A fresh Python process proves that importing
+the Worker-shipped model and normalizer does not load pypdf or the PDF module.
+The private Worker memory runs below exercise the bundled runtime.
+
+## Final focused verification
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pdf_sources.py tests/test_model_396_readers.py tests/test_decision_sources.py tests/test_decision_verify.py tests/test_decision_model.py tests/test_cite_only_retention.py tests/test_cite_only_verification.py tests/test_worker_vendor_imports.py
+```
+
+Exit `0`, `714 passed in 30.63s`. This includes every red-first test above.
+
+The PDF tests generate their own fixtures. They cover repeatable extraction,
+both hashes, approved and unapproved retention, every template binding,
+changed ownership and units, wrong recipes and versions, malformed inputs,
+encrypted PDFs, blank pages, active objects, embedded files and production
+resource limits. No third-party PDF is committed.
+
+Additional commands:
+
+```sh
+/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check --fix decision/pdf_sources.py decision/pdf_templates.py tests/test_pdf_sources.py
+/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check decision/pdf_sources.py decision/pdf_templates.py tests/test_pdf_sources.py
 git diff --check
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 4 --summary
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py
 ```
 
-Final full engine suite: **11249 passed, 9 skipped, 11 existing warnings in 1162.35 seconds**, exit 0. The locked web dependencies made fifteen previously skipped tests runnable.
-The additional static site build, `PYTHONPATH=$PWD
-/Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist`,
-exited 0 against reader commit `858f1fe0` and frozen public data. Subsequent changes only repair packaging. Its manifest keeps
-`export_schema_version` at `3.0`; output stayed in ignored `dist/`.
-New-file Ruff and `git diff --check` passed. A broader exploratory Ruff check
-also reported existing violations elsewhere in `normalise.py` and `verify.py`;
-those unrelated lines were not changed to suppress that result.
+Ruff fixed import formatting, then reported `All checks passed!`.
+Whitespace validation passed. The shard planner assigned 82, 82, 83 and 82
+files with predicted totals of 3958.133, 3958.132, 3958.132 and 3958.133 seconds.
+Public vendoring exited `0` and reported `vendored 129 files`. Generated
+packages remain ignored by git.
 
-Engine tools: Python 3.14.4, pytest 9.1.1, pytest-xdist 3.8.0, pypdf 6.19.0,
-Pydantic 2.13.5, PyYAML 6.0.3, HTTPX 0.28.1, Ruff 0.16.6, Git 2.50.1,
-GitHub CLI 2.102.0. The recipe and development dependency pin pypdf 6.19.0
-exactly and an installed-version mismatch fails closed.
+No full local pytest suite or local site build was run. CI remains the full
+gate. Frozen data, ranking floors, legal terms, public response fields,
+production switches and Worker dependency locks were not changed.
 
-The first completed full run exited 1 with **5 failed, 11229 passed, 24 skipped
-in 1210.34 seconds**. Three failures were the packaging omissions above. Two
-social-card failures reported `ERR_MODULE_NOT_FOUND` for `@playwright/test`.
-The rendering script and locked web dependencies are byte-identical to the
-assigned base. `npm ci` installed those locked packages; it changed no tracked
-web files. The initial run inherited Node 22.23.1 from the shell. Subsequent
-Node commands and the final full Python run explicitly use the brief's Node
-22.22.3, with npm 10.9.8 and Playwright 1.63.0. The final full run is the gate,
-with those local setup omissions repaired. Its exact invocation was:
+## Existing Small 4 copies
+
+The private checkout was created with:
 
 ```sh
-PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-396-scratch/private_sources/modelspec-data
 ```
+
+Its HEAD was `a6f8fd798d7d6f40b35ed08320796b773f29df9a`. From that checkout:
 
 ```sh
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_copy.py::test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources tests/test_cli_wheel.py::test_wheel_contains_only_the_thin_client_and_its_guidance tests/test_worker_vendor_imports.py::test_every_imported_repository_module_is_vendored
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_copy.py tests/test_cli_wheel.py tests/test_worker_vendor_imports.py tests/test_worker_bundle.py
+git ls-remote origin refs/pull/98/head
+git fetch --depth 1 origin refs/pull/98/head:refs/remotes/origin/data-pr-98
+git show origin/data-pr-98:research/model-409/source-terms-audit.md
+env PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python tools/research/model-396/replay.py
 ```
 
-From `web/`, with `PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH`
-and `PYTHONPATH=/Users/terbeest/dev/worktrees/model-396`:
+The audit ref was `8fb320abf57dddd63bcdd8709b686e8cb7f02080`. It classifies the
+Mistral hosts as silent and says silence is not permission. The current engine
+policy continues to identify x.ai, docs.x.ai and perplexity.ai as cite-only.
+
+Replay exited `0` and reported 15 supported facts verified through
+`StoredRegions` and independent deterministic readers. Output modalities read
+as `["text"]` via `mistral-output-labels@1`. Four gaps remain: maximum output,
+per-model streaming, express base lineage and complete first-party
+weights-hosting countries.
+
+The existing technical PDF was also checked in memory, without writing a new
+retained PDF. Reproduce that check from the engine worktree:
 
 ```sh
-npm ci
-npm run build
-npm test
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import gzip
+from pathlib import Path
+from decision.normalise import NORMALISERS, normalise_document, UnsupportedContentError
+from decision.pdf_templates import retention_approved
+from decision.sources import fingerprint_bytes
+root = Path('/tmp/model-396-scratch/private_sources/modelspec-data')
+body = gzip.decompress((root / 'research/model-396/sources/primary-research/technical-documentation.pdf.gz').read_bytes())
+url = 'https://legal.mistral.ai/documents/For%20Downstream%20Providers%20only%20-%20Technical%20Documentation%20Mistral%20Small%204.pdf'
+print('existing_pdf_bytes:', len(body))
+print('existing_pdf_hash:', fingerprint_bytes(body))
+print('retention_approved:', retention_approved(url, fingerprint_bytes(body)))
+try:
+    normalise_document(body, NORMALISERS['pdf-pypdf-6.19.0-v1'])
+except UnsupportedContentError as exc:
+    print('extraction_refused:', exc.kind)
+else:
+    raise SystemExit('Unexpected acceptance: a production template still needs review')
+PY
 ```
 
-All exited 0. Web tests: **52 files passed, one skipped; 843 tests passed**.
-The Worker bundle change retains lazy pypdf loading. Importing `decision.pdf_text`
-and normalizing plain text leaves pypdf unloaded. Worker lockfiles and production
-variables are unchanged. The generated CLI diff is a single provenance hash;
-no prose, schema or public field range changed.
-
-The new modules also passed **74 tests under Python 3.11.15**, exit 0, after
-installing that same extractor in the isolated private validation environment.
-These commands ran from the data worktree and write only its ignored scratch:
-
-```sh
-research/model-396/validation/venv/bin/python -m pip install pypdf==6.19.0
-PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 research/model-396/validation/venv/bin/python -m pytest -q /Users/terbeest/dev/worktrees/model-396/tests/test_model_396_pdf.py /Users/terbeest/dev/worktrees/model-396/tests/test_model_396_readers.py
-```
-
-The source collector used Python `urllib.request` with public GET requests and
-a thirty-second timeout. Poppler 26.09.0 rendered PDF page 2 for visual review;
-the Poppler text derivative was never used as a verifier source. Fetch commands,
-URLs, byte hashes and failed HTTP probes are in the private research bundle.
-
-## Private-data results and reproduction
-
-From the data worktree:
-
-```sh
-PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/replay.py
-/Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/sources/primary-research/check-sources.py
-```
-
-Both exited 0. Replay preserves the fourteen previous fact records and adds
-two research candidates with real independent verifications:
-
-- `model.output_modalities = [text]`, method `mistral-output-labels@1`.
-- `model.max_output_tokens = 256000`, method `model-properties-output-limit@1`.
-
-The original PDF source hash is
+Exit `0`. The 201,453-byte PDF matched
 `sha256:9a40824543b1f0eedd0dd9db66f01e8f86f7284ec86e3063de40fa407dc6cc32`.
-`StoredRegions` normalizes those original bytes, not a fabricated text copy.
-The source checker validates twenty-nine retained observations and records four
-failed HTTP probes. Unsupported facts are research `not_attempted` results,
-excluded from both candidate facts and verification records.
+Approval was `False`; extraction refused with `pdf_object_limit`.
+The supplied 256,000-token candidate was not independently read or verified.
+The implementation does not admit Small 4 to premier or file an API offering.
 
-The broader data suite ran in an isolated composition of private data and its
-unchanged main engine pin, `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`.
-The pin matches `git show origin/main:.engine-pin`. No production data changed.
-Python 3.11.15 was used, matching the workflow's minor version; pip 24.0
-installed the pinned engine with `python -m pip install -e '.[dev]'`.
-From `research/model-396/validation/data` the exact workflow test command was:
+## Private Worker memory
+
+Following the deploy path in `.github/workflows/rank-api.yml`, a scratch bundle
+was built from the private data checkout with a disposable signing key.
+No production signing key was used. Commands ran from the engine worktree:
 
 ```sh
-MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_DATA_DIR=$PWD PYTHONPATH=$PWD ../venv/bin/python -m pytest -q .github/scripts/tests tests/test_decision_sources.py tests/test_decision_verify.py tests/test_decision_model.py tests/test_decision_snapshot.py tests/test_subscription_availability.py tests/test_subscription_availability_reader.py tests/test_slice1_offerings.py
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm install --prefix /tmp/model-396-scratch/private_sources/memory-runtime --no-save --cache /tmp/model-396-scratch/private_sources/memory-runtime/npm-cache pyodide@0.28.3
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 TMPDIR=/tmp/model-396-scratch/private_sources/memory-tmp MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_SNAPSHOT_KEY=model396-memory-disposable-fixture-key /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --data-dir /tmp/model-396-scratch/private_sources/modelspec-data --out /tmp/model-396-scratch/private_sources/memory-bundle
 ```
 
-The final run exited 0: **938 passed, 17 skipped in 151.19 seconds**. The
-private recall run and baseline comparison each exited 0: sixteen pass, four
-existing partials, zero fail, no regressions. Exact setup commands, exit codes,
-versions and logs are in the private `research/model-396/validation` bundle.
+After vendoring, each `api/worker/src/*.py` was copied into the scratch bundle
+using `shutil.copy2`, matching the workflow's copy step. Then:
 
-Independent PDF probes in that bundle rejected nested Form, pattern,
-annotation appearance, graphics-state mask and Type 3 glyph scans. The tested
-`decision/pdf_text.py` hash is
-`510ce69eb7d466ee99d2d2908b30789c4b87055114f2c734b93af109992d151f`, identical
-to the final committed reader. This check exited 0.
-
-The local private-data premier decision for
-`origin.lab_jurisdiction in {FR}` used `optimize.max=model.context_window` and
-`access.kind=own_software`. Before and after, its full JSON bytes were identical,
-SHA-256 `fd99c2c5158ee476e1f4933927b59287e76b0bf74565226cde617aae96b8423c`.
-Both used `snap_1318fd523c982c07`, returned `no_feasible`, had no API routes,
-and excluded Small 4 from premier and results.
-
-## Remaining source gaps and contract check
-
-| Gap | Observed limitation | What would close it |
-|---|---|---|
-| `feature.streaming` | Model pages omit it. The generic chat API parameter is not a per-model guarantee; observed streaming examples use other models. | A first-party Small 4 streaming statement or explicitly model-bound capability/example. |
-| `origin.base_lineage` | `Model dependencies NA` and a base lifecycle label do not state random initialization or enumerate ancestors. | An express first-party random-initialization statement, or a complete ancestor chain with the required jurisdiction evidence. |
-| `origin.weights_hosting` | EU/EFTA/US inference scopes and customer-data location do not enumerate this model's first-party weight-storage and serving countries. | An explicit complete country set for Small 4's first-party stored and served weights. |
-
-The data `.engine-pin` stays at main's value. Adoption of these readers in
-production data needs a pin bump to the merged engine commit after review and
-merge. Research candidates do not currently require the pinned production
-engine to understand the new PDF recipe.
-
-The actual MODEL-59 rules in `docs/decision-contract.md` and
-`docs/cli-contract.md` were read. No public response field range, enum, nullability,
-optional presence, unit or envelope changes. The output-modality vocabulary
-and generic exact-set comparison remain unchanged. Source normalizer names
-are internal open text fields. No public contract version bump is required.
-Frozen cards, facts, offerings and premier files in the public engine are
-unchanged.
-
-## Observation limits
-
-No live production decision or model response was observed. The before/after
-decision is a local snapshot execution. The source audit establishes what the
-inspected documents say; it does not prove absence from every possible private
-agreement or future publication. Raster checks conservatively reject some
-legitimate PDFs; they do not determine the historical origin of visible text.
-
-No vendor API spend, Firecrawl credits, machine or device calls, workflow
-dispatch, production switch, legal text change, Linear write or merge occurred.
-No WSL gate, SSH, SCP or forbidden download command ran. No Node or Swift
-files changed. All spawned validation, fetch, build and test processes completed before delivery. Hosted CI and the orchestrator's
-gate are not claimed as observed here.
-
-## REV-760 round two (MODEL-396-r2)
-
-Review base: engine `a8cfd787f6d315d8ad9a0e328a87b14effb6e49f`, data
-`df86c419ed26701a9d73e16452e56c8f18dd44c5`. Read the full REV-760 verdict.
-Updated the design note and draft PR #760 body before implementation.
-
-The extractor owns limits of 25 MiB original input, 300 pages, 4 MiB per
-decoded stream, 25 MiB aggregate decoded streams, 5 MiB total UTF-8 extracted
-text (including page separators), and 50 million Python line events in pypdf
-and the extractor. The last budget bounds parser, decoding and layout loops
-without a clock-dependent verdict. The actual Mistral document uses about
-14 million pypdf events; its largest decoded stream is 181,044 bytes.
-Configuration is explicit, context-local and restored. A private BaseException
-signal prevents parser recovery from swallowing the operation limit.
-
-The active-content preflight rejects JavaScript/JS, Launch, embedded files,
-file attachments and RichMedia names, including escaped names and names in
-decoded object streams. OpenAction/AA chains support internal navigation only.
-The retained PDF has duplicate named-destination keys: a failed strict Dests
-parse may bypass resolution only for a bounded, uncompressed dictionary of
-named internal destination arrays. Streams and action dictionaries cannot use
-that exception. An independently discovered compressed-Dests bypass was
-reproduced red, then closed and checked independently.
-
-Output limits come from exactly one table owned by the subject's own heading
-or title. Two separately headed subjects may each own a table. Another
-subject's table before or after the title cannot establish the claim. Multiple
-own tables, foreign model names, headingless tables and ambiguous normalized
-heading text refuse. The four-column matrix permits explicit modality labels
-and token quantities; unrelated text does not extend its scope.
-
-PDF extraction is supplied by the offline `decision.source_document` adapter.
-The shared normalizer takes an explicit PDF extractor; the Worker has none.
-The actual generated Worker bundle contains neither pdf_text.py nor any pypdf
-import path, and an isolated bundle rejects the PDF recipe without importing
-an offline reader. Existing verifier document-cache tests remain unchanged.
-
-Red-first observations (each command exited 1):
-
-- `tests/test_model_396_pdf.py`: 17 failed, 27 passed against unchanged code.
-  The failures cover input/page/stream/text/work limits and eleven distinct
-  active-content fixtures. Bomb and 301-page fixtures are generated in memory.
-- Reader probes: 10 failed, 49 passed; a normalized HTML foreign-heading probe
-  failed separately. Additional subject-ownership probes failed 3 cases, then
-  the foreign-column and bare-posttable probes failed 5 cases before their fixes.
-- Actual Worker bundle exclusion test failed, reporting bundled pdf_text.py,
-  the normalizer's import of it, and its pypdf imports.
-- `test_pdf_destination_metadata_cannot_hide_compressed_active_names` failed
-  before narrowing the destination exception.
-
-Final focused command:
-
-```bash
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q \
-  tests/test_model_396_pdf.py tests/test_model_396_readers.py \
-  tests/test_worker_vendor_imports.py tests/test_worker_bundle.py \
-  tests/test_decision_regions.py tests/test_decision_sources.py \
-  tests/test_decision_verify.py
+```sh
+env NODE_PATH=/tmp/model-396-scratch/private_sources/memory-runtime/node_modules MODELSPEC_SNAPSHOT_KEY=model396-memory-disposable-fixture-key /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --expose-gc api/worker/measure_memory.cjs /tmp/model-396-scratch/private_sources/memory-bundle --limit-mib 115 --output /tmp/model-396-scratch/private_sources/memory-evidence/current.json
+env NODE_PATH=/tmp/model-396-scratch/private_sources/memory-runtime/node_modules MODELSPEC_SNAPSHOT_KEY=model396-memory-disposable-fixture-key /Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --expose-gc api/worker/measure_memory.cjs /tmp/model-396-scratch/private_sources/memory-bundle --successor --limit-mib 115 --output /tmp/model-396-scratch/private_sources/memory-evidence/successor.json
 ```
 
-Result: **628 passed in 2.54 s**, exit **0**. The PDF module has 51 passing
-tests; the reader module has 70. Independent broader reader/source regression:
-853 passed, exit 0. Changed PDF/adapter/reader test lint and diff whitespace
-checks pass. Tools: Python 3.14.4, pypdf 6.19.0, Node 22.22.3.
+Both probes exited `0`.
 
-The first focused invocation used a nonexistent normalizer test filename and
-exited 4 before collecting anything; corrected to test_decision_regions.py.
-A restoration test initially compared an apply_configuration copy by identity
-with its input; corrected it to compare the active context returned by the
-public API. No existing test was weakened.
+| Period | Steady bytes | Steady MiB | Peak MiB |
+| --- | ---: | ---: | ---: |
+| Current | 114206478 | 108.915785 | 109.738157 |
+| Successor | 109677046 | 104.596182 | 105.418722 |
 
-Full engine suite and fresh data replay results will be recorded below once
-the implementation commit is clean. No Worker deployment, production switch,
-contract change, data pin bump, lineup admission or offering was performed.
+Each exercised decide, vocabulary, rank and policy-check. Network requests
+were stubbed to fail, and no Worker network request occurred. The public
+bundle was re-vendored afterward.
 
-### Final subject-ownership hardening
+## Tool versions and observations
 
-An independent probe found unknown model names accepted as architecture or
-parameter-range metadata values. Six cases failed red, then explicit supported
-architecture descriptions and anchored numerical parameter ranges closed them.
-Two further red cases showed an unknown numbered model heading could be
-followed by Model properties and regain ownership. Only General information
-and Model properties are now permitted numbered sections before the table.
+- Python 3.14.4, pytest 9.1.1, pypdf 6.19.0, Ruff 0.16.6.
+- Git 2.50.1; GitHub CLI 2.102.0.
+- Node 22.22.3; Pyodide 0.28.3.
+- Generator dependencies matched the workflow pins: pydantic 2.13.5,
+  PyYAML 6.0.3, httpx 0.28.1 and cryptography 45.0.7.
+- The measured Pyodide runtime used pydantic 2.10.6, pydantic-core 2.27.2
+  and PyYAML 6.0.2. The generator interpreter differs from CI's Python 3.13.
 
-The first full run was intentionally interrupted (exit 130) after 8566 passed,
-5 skipped, 4 warnings in 237.15 s because these additional source changes
-required a fresh run. That partial run is not a completed validation gate.
-
-The final combined focused command above now passes **637 tests**, exit **0**;
-the reader module has **79** passing tests and the PDF module **51**. The actual
-original Mistral PDF still verifies 256000 through the stricter reader.
-
-### Completed round-two gates
-
-Final implementation SHA: `75aa2df3b0d94975637c11771c2fa2c0e3da2e61`.
-This evidence commit adds only the completed gate record and compressed log.
-The source implementation remained clean throughout the final full run.
-
-```bash
-export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-```
-
-Result: **11307 passed, 9 skipped, 11 warnings in 1543.18 s (25:43)**,
-exit **0**, checked directly from the process. Warnings are the existing
-unsigned decision-vocabulary warnings in CLI snapshot/keyed-origin tests.
-There are no failed or errored tests. Full stdout/stderr is retained in
-MODEL-396-r2-full-engine.log.gz.
-
-The private-data worktree replay against this clean implementation passed
-with Python 3.11.15 and 3.14.4: the same **16** facts verify, every field of
-the **14** baseline fact dictionaries remains identical, and the same three
-unfiled gaps remain unknown. Python 3.11's focused PDF/reader suite passed
-**130 tests in 1.18 s**, exit **0**. Source-byte integrity and the five
-independent scan probes also pass. The canonical replay is refreshed once
-more against the evidence head before the data commit, and its exact head,
-clean status, runtime and exit codes live in data PR #90's
-research/model-396/candidate-results.json and validation/r2-replay-results.json.
-
-Data replay command (cwd /Users/terbeest/dev/worktrees/data-model-396):
-
-```bash
-PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/replay.py
-```
-
-The data .engine-pin stays `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`.
-Contract version remains 2.18; decision/contract.py, the decision JSON schema,
-Worker OpenAPI, ranking floors, legal terms, production variables, premier
-and frozen public data are unchanged. Source and verification records remain
-research-only. No Worker isolate deployment or paid provider request was
-observed or performed. Both PRs remain drafts; no merge was performed.
-
-## Round three: withdraw PDF support
-
-Base engine `b10f80d66b31220f499b4e7f1c91c3314aa367ab`; base data
-`f59692b443ee223a8bf61d6975387d4c31d4bcc1`. Read REV-760b fully. The
-orchestrator explicitly withdrew PDF support instead of extending its action
-blocklist or table-heading heuristic.
-
-Removed the PDF recipe, extractor, offline adapter, dependency, PDF locator
-change, model-properties reader and their tests. The shared normalizer, source
-fetcher/model, CLI provenance and Worker import tests match pre-ticket commit
-`c9b62560` byte for byte. Worker vendor code and locks also match that baseline;
-there were no remaining lock changes to revert. PDF-specific Worker guards
-were removed with their dead path; the existing general import-closure test
-remains. The Mistral reasoning-label rule and its 33 behavioral cases remain.
-
-Red-first removal audit: exit 1, listing eleven remnants of the withdrawn
-feature. The same audit now exits 0. Its rerunnable source is
-MODEL-396-r3-removal-audit.py; run from the engine with:
-
-```bash
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-396-r3-removal-audit.py
-```
-
-Focused command, exit 0: **524 passed in 9.56 s**.
-
-```bash
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q \
-  tests/test_model_396_readers.py tests/test_decision_verify.py \
-  tests/test_decision_sources.py tests/test_worker_vendor_imports.py \
-  tests/test_worker_bundle.py
-```
-
-The source-pipeline tests retain the pre-existing PDF-is-unsupported behavior.
-No new parser replacement or PDF tests were introduced. The design note and
-PR body record both reviews' probes as acceptance requirements for a future
-structural allowlist and exact hashed region templates. Current code provides
-neither PDF extraction nor a heading-based output-limit reader.
-
-Python 3.14.4; Node 22.22.3. Playwright's locked package was present before the
-full run. The completed full-engine and broader-data results are recorded below; no
-partial run is counted as a completed gate.
-
-
-### Completed round-three gates
-
-Implementation SHA: `9b620332de18c12c54fbd1ef54ab445893c8205b`. The full run
-used this clean implementation. This final engine commit changes only evidence;
-the canonical data replay records its exact final evidence-head SHA after commit.
-
-```bash
-export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-```
-
-Result: **11208 passed, 9 skipped, 11 warnings in 1167.86 s (19:27)**,
-exit **0**, captured directly from the process. The eleven warnings concern the
-existing unsigned decision vocabulary in CLI snapshot/keyed-origin tests.
-There are no failed or errored tests. Full stdout/stderr is retained in
-MODEL-396-r3-full-engine.log.gz. The focused gate remains **524 passed**, exit 0.
-
-Data replay, cwd `/Users/terbeest/dev/worktrees/data-model-396`:
-
-```bash
-PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/replay.py
-/Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/validation/r3/audit.py
-/Users/terbeest/dev/modelspec/.venv/bin/python research/model-396/sources/primary-research/check-sources.py
-```
-
-All three exit **0**. The genuine verifier produces **15** independent,
-schema-valid facts, with all **14** baseline fact dictionaries unchanged. The
-candidate bundle contains no PDF source registrations or citations. The raw
-receipt integrity check covers 29 retained responses and four recorded HTTP
-failures; it does not parse PDFs. A second red/green audit exposed and removed
-a redundant PDF citation from the new output-modalities claim, which still
-verifies from the model page alone.
-
-The exact broader private-data suite from recall-private.yml ran on archived
-data `f9eb36f96a68a1222b2afd5f77b04804a35f69f8` with main's unchanged engine
-pin `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`: **938 passed, 17 skipped,
-zero failures in 161.86 s**, exit **0**. Python 3.11.15; pytest 9.1.1; Git
-2.50.1. Its three candidate bundle files match the tested revision byte for byte.
-The exact commands, environments, versions, exit codes and hashes are retained
-in data PR #90 under research/model-396/validation/r3/. Subsequent data changes
-record validation evidence and the final engine-head replay binding only.
-
-Four gaps remain unfiled: reader gap `model.max_output_tokens`, and source gaps
-`feature.streaming`, `origin.base_lineage`, `origin.weights_hosting`. No premier
-admission, API offering, production fact or data-pin change was made. Public
-contract version 2.18, schema/OpenAPI, ranking floors, legal terms and production
-switches still match the pre-ticket baseline. The original unsupported-PDF
-source-pipeline test remains green; there is no replacement PDF parser.
-
-Both review probe sets are documented as future acceptance requirements, not
-claims that the retired implementation was safe. Historical round-one and
-round-two PDF/16-fact results above are superseded. No paid provider call,
-Worker isolate deployment, live production query, workflow dispatch, Linear
-write or merge was performed. The hosted workflow and production behavior were
-not independently observed in this round. Both PRs remain drafts.
+No live deployment, browser rendering, OCR, vendor API call, Firecrawl call,
+new provider fetch, full CI result or cross-model review was observed.
+No private dataset or source bytes were added to this repository.
+The private clone and generated private bundle were deleted after the checks.
+All started command sessions completed; no background process was left running.
