@@ -1,0 +1,68 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________________ test_registry_loads_a_bounded_data_only_recipe ________________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1694/test_registry_loads_a_bounded_0')
+
+    def test_registry_loads_a_bounded_data_only_recipe(tmp_path):
+>       sources = registry(tmp_path)
+                  ^^^^^^^^^^^^^^^^^^
+
+tests/test_rendered_interactions.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1694/test_registry_loads_a_bounded_0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1694/test_registry_loads_a_bounded_0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+/tmp/model-433-scratch/baseline-wdh0tgak/sources.py:101: ValueError
+__ test_render_to_and_live_reread_use_the_registry_recipe_for_a_legacy_source __
+
+estate = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1694/test_render_to_and_live_reread0/repo'), <decision.sources.CopyStore object at 0x10ac8ee40>)
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1694/test_render_to_and_live_reread0')
+
+    def test_render_to_and_live_reread_use_the_registry_recipe_for_a_legacy_source(estate, tmp_path):
+>       from decision.sources import RenderedInteractions
+E       ImportError: cannot import name 'RenderedInteractions' from 'decision.sources' (/tmp/model-433-scratch/baseline-wdh0tgak/sources.py)
+
+tests/test_price_reread.py:756: ImportError
+=========================== short test summary info ============================
+FAILED tests/test_rendered_interactions.py::test_registry_loads_a_bounded_data_only_recipe
+FAILED tests/test_price_reread.py::test_render_to_and_live_reread_use_the_registry_recipe_for_a_legacy_source
+2 failed in 0.57s

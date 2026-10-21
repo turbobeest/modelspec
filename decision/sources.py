@@ -27,6 +27,7 @@ import re
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
     import httpx
 
 from decision.model import CitedRegion as CitedRegion
-from decision.model import Source, SourceSnapshot
+from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import citation_metadata, cite_only_origin, require_source_url
 from decision.normalise import (
     NORMALISERS,
@@ -395,6 +396,132 @@ class CitedRegionWait:
                 return
 
 
+class RenderedInteractionError(Exception):
+    """A recipe could not safely reach its required page state."""
+
+
+@contextmanager
+def _read_only_interactions(page: Any, prepare: RenderedInteractions):
+    context = page.context
+    other_pages = set(context.pages) - {page}
+    blocked = False
+
+    def endpoint(url: str) -> tuple[str, str, str]:
+        parsed = urlsplit(url)
+        return parsed.scheme, parsed.netloc, parsed.path
+
+    telemetry = {
+        endpoint(str(step.url))
+        for recipe in prepare.recipes for step in recipe if step.action == "block_telemetry"
+    }
+
+    def read_only(route: Any) -> None:
+        nonlocal blocked
+        request = route.request
+        navigation = request.is_navigation_request()
+        known_telemetry = endpoint(request.url) in telemetry
+        if navigation or request.method not in {"GET", "HEAD"} or known_telemetry:
+            if navigation or not known_telemetry:
+                blocked = True
+            route.abort()
+        else:
+            route.fallback()
+
+    # Context routes also intercept the first request of a new popup.
+    context.route("**/*", read_only)
+    try:
+        yield
+    finally:
+        try:
+            for opened_page in context.pages:
+                if opened_page not in other_pages:
+                    opened_page.close()
+        finally:
+            context.unroute("**/*", read_only)
+    if blocked:
+        raise RenderedInteractionError("blocked interaction request")
+
+
+_SAFE_CONTROL = r"""(node, action) => {
+    const tag = node.tagName.toLowerCase();
+    const role = node.getAttribute('role');
+    const labels = [node.getAttribute('aria-label'), node.textContent, node.value]
+        .map(value => (value || '').trim()).filter(Boolean);
+    if (node.closest('form') || node.hasAttribute('form')) return false;
+    if (node.closest('a[href]') && !node.closest('a[href]').getAttribute('href').startsWith('#'))
+        return false;
+    const context = node.closest('[id*="cookie"],[id*="consent"],[class*="cookie"],[class*="consent"]');
+    if (action !== 'reject_consent' &&
+        (context || labels.some(label =>
+            /\b(cookie|consent|accept|agree|allow all)\b/i.test(label)))) return false;
+    if (labels.some(label =>
+        /\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b/i.test(label)))
+        return false;
+    if (action === 'select_option') return tag === 'select';
+    const control = tag === 'button' || ['tab', 'button', 'combobox', 'option'].includes(role);
+    if (!control) return false;
+    if (action === 'reject_consent') {
+        const reject = /^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$/i;
+        return labels.length > 0 && labels.every(label => reject.test(label));
+    }
+    if (/^(submit|reset)$/i.test(node.getAttribute('type') || '')) return false;
+    return true;
+}"""
+
+_REGION_CONTAINS_TEXT = """({selector, text}) => {
+    const nodes = document.querySelectorAll(selector);
+    if (nodes.length !== 1) return false;
+    const node = nodes[0];
+    if (node.tagName === 'SELECT')
+        return Array.from(node.selectedOptions).some(option => option.label === text);
+    return node.innerText.includes(text);
+}"""
+
+
+@dataclass(frozen=True)
+class RenderedInteractions:
+    """Execute validated UI data within one deadline; never capture a failed recipe."""
+
+    recipes: tuple[tuple[RenderedInteraction, ...], ...]
+
+    def __call__(self, page: Any, timeout: float) -> None:
+        from playwright.sync_api import Error
+
+        if any(recipe != self.recipes[0] for recipe in self.recipes[1:]):
+            raise RenderedInteractionError("conflicting interaction recipes for one URL")
+        deadline = time.monotonic() + timeout
+
+        def remaining_ms() -> float:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RenderedInteractionError("interaction time budget exhausted")
+            return remaining * 1000
+
+        try:
+            for step in self.recipes[0]:
+                if step.action == "block_telemetry":
+                    continue
+                if step.action == "wait_text":
+                    page.wait_for_function(
+                        _REGION_CONTAINS_TEXT,
+                        arg={"selector": step.selector, "text": step.text},
+                        timeout=remaining_ms())
+                    continue
+                target = page.locator(step.selector)
+                if step.action == "scroll":
+                    target.scroll_into_view_if_needed(timeout=remaining_ms())
+                    continue
+                if not target.evaluate(_SAFE_CONTROL, step.action, timeout=remaining_ms()):
+                    raise RenderedInteractionError("unsafe interaction control")
+                if step.action == "select_option":
+                    target.select_option(value=step.value, timeout=remaining_ms())
+                else:
+                    target.click(timeout=remaining_ms())
+            remaining_ms()
+        except Error as exc:
+            raise RenderedInteractionError(f"interaction failed: {exc}") from exc
+
+
 def rendered_preparation(source_ids: Iterable[str],
                          sources: Mapping[str, Source]) -> RenderedPreparation | None:
     """The preparation a live render of these sources' shared URL runs before capture.
@@ -403,6 +530,10 @@ def rendered_preparation(source_ids: Iterable[str],
     the render waits for every cited CSS region of every source at the URL.
     """
     ids = sorted(set(source_ids))
+    recipes = tuple(tuple(sources[sid].rendered_interactions)
+                    for sid in ids if sid in sources and sources[sid].rendered_interactions)
+    if recipes:
+        return RenderedInteractions(recipes)
     named = next((RENDERED_PREPARATIONS[sid] for sid in ids if sid in RENDERED_PREPARATIONS),
                  None)
     if named is not None:
@@ -421,8 +552,9 @@ class RenderedFetcher:
 
     Playwright is imported only when entering the context. Network idle is best
     effort: pages with persistent connections still yield their rendered HTML.
-    An optional preparation runs before capture, within one timeout budget. If
-    it fails, the HTML is still returned with an error for the caller to report.
+    An optional preparation runs before capture, within one timeout budget.
+    Registry recipe failures return no HTML. Legacy preparations retain their
+    partial HTML with an error for the caller to report.
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
@@ -441,6 +573,7 @@ class RenderedFetcher:
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
+                service_workers="block",
             )
         except Exception:
             self._playwright.stop()
@@ -469,23 +602,28 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            preparation_error = None
-            if prepare is not None:
-                try:
-                    prepare(page, self.timeout)
-                except Error as exc:
-                    preparation_error = f"rendered preparation failed: {exc}"
-            redirects = []
-            request = response.request
-            while request is not None:
-                redirects.append(str(request.url))
-                request = request.redirected_from
-            return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
-                               content_type="text/html", charset="utf-8",
-                               error=preparation_error,
-                               resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
-                                                    str(response.url), str(page.url)))),
-                               retrieved_at=datetime.now(UTC))
+            guard = (_read_only_interactions(page, prepare) if isinstance(prepare, RenderedInteractions)
+                     else nullcontext())
+            with guard:
+                preparation_error = None
+                if prepare is not None:
+                    try:
+                        prepare(page, self.timeout)
+                    except Error as exc:
+                        preparation_error = f"rendered preparation failed: {exc}"
+                redirects = []
+                request = response.request
+                while request is not None:
+                    redirects.append(str(request.url))
+                    request = request.redirected_from
+                return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
+                                   content_type="text/html", charset="utf-8",
+                                   error=preparation_error,
+                                   resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
+                                                        str(response.url), str(page.url)))),
+                                   retrieved_at=datetime.now(UTC))
+        except RenderedInteractionError as exc:
+            return FetchResult("unreachable", response.status, error=str(exc))
         except Error as exc:
             return FetchResult("unreachable", error=str(exc))
         finally:

@@ -26,12 +26,15 @@ from pydantic import (
     Field,
     HttpUrl,
     JsonValue,
+    SerializerFunctionWrapHandler,
     TypeAdapter,
     ValidationInfo,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
+from decision.contract import NATIVE_EXCLUDE_IF, apply_exclude_if
 from schema.evidence import BenchmarkEvidence
 
 Text = Annotated[str, Field(min_length=1, pattern=r"\S", strict=True)]
@@ -540,6 +543,52 @@ class CitedRegion(Record):
     locator: RegionLocator
 
 
+class RenderedControl(Record):
+    selector: Annotated[Text, Field(max_length=1024)]
+
+    @field_validator("selector")
+    @classmethod
+    def css_selector(cls, value: str) -> str:
+        from decision.normalise import Locator
+
+        Locator("css", value)
+        return value
+
+
+class RenderedClick(RenderedControl):
+    action: Literal["click", "reject_consent", "scroll"]
+
+
+class RenderedSelect(RenderedControl):
+    action: Literal["select_option"]
+    value: Annotated[Text, Field(max_length=256)]
+
+
+class RenderedWait(RenderedControl):
+    action: Literal["wait_text"]
+    text: Annotated[Text, Field(max_length=256)]
+
+
+class RenderedTelemetryBlock(Record):
+    action: Literal["block_telemetry"]
+    url: HttpUrl
+
+    @field_validator("url")
+    @classmethod
+    def exact_https_endpoint(cls, value: HttpUrl) -> HttpUrl:
+        if value.scheme != "https" or any(
+            part is not None for part in (value.username, value.password, value.query, value.fragment)
+        ):
+            raise ValueError("telemetry endpoint requires HTTPS without credentials, query or fragment")
+        return value
+
+
+RenderedInteraction = Annotated[
+    RenderedClick | RenderedSelect | RenderedWait | RenderedTelemetryBlock,
+    Field(discriminator="action"),
+]
+
+
 class Source(Record):
     id: Text
     url: HttpUrl
@@ -552,6 +601,16 @@ class Source(Record):
     #: is unknown; existing registries still load.
     kind: str | None = None
     cited_regions: list[CitedRegion] = Field(default_factory=list)
+    rendered_interactions: list[RenderedInteraction] = Field(
+        default_factory=list, max_length=16,
+        **({"exclude_if": lambda value: not value} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: not value},
+        }))
+
+    if not NATIVE_EXCLUDE_IF:
+        @model_serializer(mode="wrap")
+        def _exclude_if(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+            return apply_exclude_if(self, handler(self))
 
     @model_validator(mode="after")
     def unique_regions(self) -> Self:
@@ -562,6 +621,11 @@ class Source(Record):
             raise ValueError("cited region IDs must be unique within a source")
         if self.normaliser not in NORMALISERS:
             raise ValueError(f"unknown normaliser {self.normaliser!r}")
+        if self.rendered_interactions:
+            if self.fetch != "rendered" or NORMALISERS[self.normaliser].content != "html":
+                raise ValueError("rendered interactions require a rendered HTML source")
+            if self.rendered_interactions[-1].action != "wait_text":
+                raise ValueError("rendered interactions must end by waiting for cited text")
         for region in self.cited_regions:
             locator = region.locator
             if locator.kind == "xpath":

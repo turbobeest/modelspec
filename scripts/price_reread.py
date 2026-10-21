@@ -420,11 +420,9 @@ def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
     if isinstance(getattr(rendered, "primary", rendered), RenderedReplayFetcher):
         return rendered.fetch(url)
     source_ids = sorted(set(source_ids))
-    preparation = next((RENDERED_PREPARATIONS[sid] for sid in source_ids
-                        if sid in RENDERED_PREPARATIONS), None)
-    if preparation is None and sources is not None:
-        # Wait for the cited CSS regions a client-side app mounts late (MODEL-423).
-        preparation = rendered_preparation(source_ids, sources)
+    preparation = (rendered_preparation(source_ids, sources) if sources is not None else
+                   next((RENDERED_PREPARATIONS[sid] for sid in source_ids
+                         if sid in RENDERED_PREPARATIONS), None))
     return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
 
 
