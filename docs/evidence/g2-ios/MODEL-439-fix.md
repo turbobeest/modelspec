@@ -98,7 +98,8 @@ command named a nonexistent test file and exited 4 before running tests; the
 corrected command above passed. New evidence helpers pass Ruff. The
 [lint comparison](MODEL-439/r3/lint-comparison.public.json) reports no new
 findings in edited existing files; those files retain 22 pre-existing
-findings. The [data-freeze guard](MODEL-439/r3/data-freeze.txt) passes.
+findings. The [final data-freeze guard](MODEL-439/r3/final-data-freeze.txt) passes
+at evidence commit `bff61e9b`; the following receipt commit adds evidence only.
 
 ## Private deployment acceptance
 
