@@ -14,20 +14,22 @@ from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapsho
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Disposition, Model
 from pipeline.render import benchmark_page, model_page
-from tests.snapshot_records import SOURCES, fact, model
+from tests.snapshot_records import SOURCES, fact, model, source_ref
 
 WARNING = "cite_only_not_machine_verified"
 NOTICE = "Cited, not machine-verified"
 
 
-def cited_record():
+def cited_record(*, mixed=False):
     record = fact("model", "lab/cited", "model.context_window", 128000)
     record["sources"][0]["retrieved_at"] = "2026-10-19T12:00:00Z"
+    if mixed:
+        record["sources"].append(source_ref("src-board"))
     return record
 
 
-def cited_index(state="known"):
-    record = cited_record()
+def cited_index(state="known", *, mixed=False):
+    record = cited_record(mixed=mixed)
     if state != "known":
         record["state"] = state
         record["value"] = None
@@ -38,8 +40,9 @@ def cited_index(state="known"):
 
 
 @pytest.mark.parametrize("level", ["none", "summary", "full"])
-def test_cited_fact_warns_in_complete_and_bounded_decisions(level):
-    index = cited_index()
+@pytest.mark.parametrize("mixed", [False, True])
+def test_cited_fact_warns_in_complete_and_bounded_decisions(level, mixed):
+    index = cited_index(mixed=mixed)
     spec = parse_spec({"spec_version": 1, "optimize": {"max": "model.context_window"},
                        "explain": level}, facets=facet)
     answer = decide(spec, index, facets=facet)
@@ -55,13 +58,20 @@ def test_cited_fact_warns_in_complete_and_bounded_decisions(level):
         shown = next(item for item in answer.top[0].facts if item.facet == "model.context_window")
         citation = shown.model_dump(mode="json")["citation"]
         assert citation["status"] == "cited"
-        assert citation["sources"] == [{
+        expected_sources = [{
             "source_id": "src-lab-docs", "url": "https://docs.x.ai/models",
             "snapshot_ref": "sha256:" + "0" * 64,
             "retrieved_at": "2026-10-19T12:00:00Z",
         }]
-        source = next(item for item in answer.sources if item.id == "src-lab-docs")
-        assert source.date is None
+        if mixed:
+            expected_sources.append({
+                "source_id": "src-board", "url": SOURCES["src-board"],
+                "snapshot_ref": "sha256:" + "0" * 64, "retrieved_at": None,
+            })
+        assert citation["sources"] == expected_sources
+        for expected in expected_sources:
+            source = next(item for item in answer.sources if item.id == expected["source_id"])
+            assert source.date is None
 
 
 def test_cited_record_never_passes_as_verified_evidence():
@@ -85,14 +95,13 @@ def test_cited_record_never_passes_as_verified_evidence():
         checked_record(EvidenceSnapshot(), "evidence")
 
 
-def test_model_page_names_cited_fact_and_source_without_claiming_verification():
-    record = cited_record()
-    record["verification"] = None
-    record["citation"] = {"status": "cited", "sources": [{
-        "source_id": "src-lab-docs", "url": "https://docs.x.ai/models",
-        "snapshot_ref": "sha256:" + "0" * 64,
-        "retrieved_at": "2026-10-19T12:00:00Z",
-    }]}
+@pytest.mark.parametrize("mixed", [False, True])
+def test_model_page_names_cited_fact_and_source_without_claiming_verification(mixed):
+    index = cited_index(mixed=mixed)
+    fact_value = index.fact("lab/cited", "model.context_window")
+    assert fact_value.record_id is not None
+    record = index.record(fact_value.record_id)
+    assert record["verification"] is None
     card = Model("lab/cited", Path("models/lab/cited.md"), {}, "", cited_facts=[record])
     html = model_page(card, Build(commit="test", built_at="2026-10-19T12:00:00Z",
                                  as_of=date(2026, 10, 19)), {}, Catalogue(as_of=date(2026, 10, 19)))
@@ -101,18 +110,25 @@ def test_model_page_names_cited_fact_and_source_without_claiming_verification():
     assert 'href="https://docs.x.ai/models"' in html
     assert "2026-10-19T12:00:00Z" in html
     assert "sha256:" + "0" * 64 in html
+    if mixed:
+        assert f'href="{SOURCES["src-board"]}"' in html
 
 
 @pytest.mark.parametrize("state", ["known", "not_disclosed", "requires_contract"])
-def test_named_comparison_preserves_citation_metadata(state):
+@pytest.mark.parametrize("mixed", [False, True])
+def test_named_comparison_preserves_citation_metadata(state, mixed):
     from decision.model_comparison import collect_models
 
-    body = collect_models(["lab/cited"], cited_index(state))
+    body = collect_models(["lab/cited"], cited_index(state, mixed=mixed))
     shown = next(row for row in body["models"][0]["facts"] if row["facet"] == "model.context_window")
     assert shown["citation"]["status"] == "cited"
     assert shown["citation"]["sources"][0]["url"] == "https://docs.x.ai/models"
     assert shown["state"] == state
-    assert shown["source_ids"] == ["src-lab-docs"]
+    expected_ids = {"src-lab-docs", "src-board"} if mixed else {"src-lab-docs"}
+    assert set(shown["source_ids"]) == expected_ids
+    assert {source["source_id"] for source in shown["citation"]["sources"]} == expected_ids
+    if mixed:
+        assert shown["citation"]["sources"][1]["url"] == SOURCES["src-board"]
     if state != "known":
         assert shown["value"] is None
 

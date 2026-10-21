@@ -61,7 +61,7 @@ from decision.excluded import (
     removed_text_hit,
 )
 from decision.json_stream import JSONStreamReader
-from decision.citation import fact_citation, mixed_citation, ref_states
+from decision.citation import fact_citation, ref_states
 from decision.model import (
     Fact,
     Measurement,
@@ -1041,15 +1041,11 @@ class _Compiler:
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
                 citation = fact_citation(f, self.sources, self.source_cache)
-                mixed = mixed_citation(f, self.sources, self.source_cache)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})
             except ValueError:
                 self._reject((sid, facet_id), "invalid_citation", source_ids)
-                continue
-            if mixed:
-                self._reject((sid, facet_id), "quarantined (mixed citation)", source_ids)
                 continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)

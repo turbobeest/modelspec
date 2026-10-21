@@ -98,11 +98,13 @@ stricter:
   name a cite-only host, or the store holds a citation record for its hash.
   Its bytes are never retained, benchmark evidence citing it stays out, and a
   fact citing it still needs a verified outcome.
-- A fact is admitted as cited only when every ref is cited. A fact that mixes
-  a cited ref with any other ref is quarantined as `quarantined (mixed
-  citation)`: an old verification record cannot show which source it read,
-  and the verifier refuses a fact with any cite-only ref, so its other refs
-  can never be verified apart from the cite-only one.
+- A fact or benchmark evidence row that mixes a cited ref with other refs
+  is admitted as cited, with `verification: null` and every ref in its
+  citation payload. Historical verification cannot be attributed to either
+  side, and held source copies cannot be re-checked. MODEL-439 therefore
+  shows the record as cited, not machine-verified, instead of hiding it or
+  claiming verification. A data repair that proves retained-only support
+  can still remove the cite-only ref and preserve that verification.
 - The card's `resolved_urls` and any store record are validated in full
   before anything is decided, including for a registered cite-only source.
   An unreadable store entry (a directory, a dangling symlink, bad JSON, not a
