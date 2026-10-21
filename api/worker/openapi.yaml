@@ -384,7 +384,7 @@ paths:
               limit: 3
       responses:
         '200':
-          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.18), with optional top[].hardware_estimates and
+          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.19), with optional top[].hardware_estimates and
             unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
             1.5, no contract_version).'
           content:
@@ -2057,7 +2057,7 @@ components:
       additionalProperties: false
       properties:
         all: &id018
-          items: &id043
+          items: &id044
             anyOf:
             - {type: string}
             - {$ref: '#/components/schemas/DecisionCompare'}
@@ -2116,7 +2116,7 @@ components:
         estimates:
           items: {$ref: '#/components/schemas/DecisionDimensionEstimate'}
           type: array
-        warnings: &id037
+        warnings: &id038
           description: Assurance warnings for this row.
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
@@ -2164,7 +2164,7 @@ components:
           - {$ref: '#/components/schemas/DecisionEstimate'}
           - {type: 'null'}
         after: *id023
-        removed_drivers: &id029
+        removed_drivers: &id030
           items: {$ref: '#/components/schemas/DecisionEvidenceItem'}
           type: array
       required: [model, domain]
@@ -2205,7 +2205,7 @@ components:
 
         when they share the best value.'
       properties:
-        dimension: &id030 {pattern: '^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$', type: string}
+        dimension: &id031 {pattern: '^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$', type: string}
         weight: {type: number}
         share: {maximum: 1, minimum: 0, type: number}
         estimated: {type: boolean}
@@ -2234,7 +2234,7 @@ components:
       properties:
         representation: {const: bounded, type: string}
         bounded_version: {const: '1.5', type: string}
-        projects_contract: {const: '2.18', type: string}
+        projects_contract: {const: '2.19', type: string}
         decision_id: {type: string}
         snapshot: {type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2312,10 +2312,10 @@ components:
         facts:
           items: {$ref: '#/components/schemas/DecisionShownFact'}
           type: array
-        contributions: &id042
+        contributions: &id043
           items: {$ref: '#/components/schemas/DecisionContribution'}
           type: array
-        evidence: &id038
+        evidence: &id039
           items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
           type: array
         unknown_facets: *id026
@@ -2419,13 +2419,17 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        interval: &id033
+        interval: &id034
           anyOf:
           - *id027
           - {type: 'null'}
         n:
           anyOf:
           - {type: integer}
+          - {type: 'null'}
+        citation: &id028
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionFactCitation'}
           - {type: 'null'}
       required: [benchmark, value, unit, record_id, source_ids]
       type: object
@@ -2448,10 +2452,7 @@ components:
         source_ids:
           items: {type: string}
           type: array
-        citation: &id046
-          anyOf:
-          - {$ref: '#/components/schemas/DecisionFactCitation'}
-          - {type: 'null'}
+        citation: *id028
       required: [facet, state, value, unit]
       type: object
     DecisionComparisonModel:
@@ -2461,7 +2462,7 @@ components:
         lifecycle:
           enum: [active, deprecated, retired]
           type: string
-        facts: &id028
+        facts: &id029
           items: {$ref: '#/components/schemas/DecisionComparisonFact'}
           type: array
         offerings:
@@ -2476,7 +2477,7 @@ components:
       additionalProperties: false
       properties:
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
-        facts: *id028
+        facts: *id029
       required: [offering, facts]
       type: object
     DecisionComparisonOmitted:
@@ -2544,12 +2545,12 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        evidence: *id029
+        evidence: *id030
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        preferred_value: &id041
+        preferred_value: &id042
           anyOf:
           - {type: boolean}
           - {type: integer}
@@ -2562,7 +2563,7 @@ components:
           - enum: [satisfied, not_satisfied, unknown]
             type: string
           - {type: 'null'}
-        refinement: &id032
+        refinement: &id033
           anyOf:
           - {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
           - {type: 'null'}
@@ -2661,7 +2662,7 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
-        contract_version: {const: '2.18', default: '2.18', type: string}
+        contract_version: {const: '2.19', default: '2.19', type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', type: string}
         signature_verified: {default: false, type: boolean}
@@ -2672,7 +2673,7 @@ components:
         status:
           enum: [answered, partial, no_feasible]
           type: string
-        answer: &id035
+        answer: &id036
           anyOf:
           - discriminator:
               mapping: {separated: '#/components/schemas/DecisionSeparatedAnswer', tied: '#/components/schemas/DecisionTiedAnswer'}
@@ -2745,7 +2746,7 @@ components:
       additionalProperties: false
       description: A band entry's estimate on one weighted capability. Added in 2.7 (MODEL-206).
       properties:
-        dimension: *id030
+        dimension: *id031
         value: {type: number}
         interval: *id027
         benchmarks: {minimum: 0, type: integer}
@@ -2756,7 +2757,7 @@ components:
       additionalProperties: false
       properties:
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        items: *id029
+        items: *id030
       required: [domain, items]
       type: object
     DecisionEliminated:
@@ -2785,13 +2786,13 @@ components:
 
         takes its key and its plans with it.'
       properties:
-        providers: &id031
+        providers: &id032
           items: {maxLength: 120, minLength: 1, type: string}
           maxItems: 64
           type: array
-        plans: *id031
-        devices: *id031
-        exhausted: *id031
+        plans: *id032
+        devices: *id032
+        exhausted: *id032
       type: object
     DecisionEstateGap:
       additionalProperties: false
@@ -2852,7 +2853,7 @@ components:
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
         value: {type: number}
         interval: *id027
-        harness: &id034
+        harness: &id035
           anyOf:
           - {pattern: '^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$', type: string}
           - {type: 'null'}
@@ -2865,7 +2866,7 @@ components:
     DecisionEvidenceItem:
       additionalProperties: false
       properties:
-        requested_domain: *id032
+        requested_domain: *id033
         record_id:
           anyOf:
           - {type: string}
@@ -2888,7 +2889,7 @@ components:
           anyOf:
           - {minimum: 1, type: integer}
           - {type: 'null'}
-        interval: *id033
+        interval: *id034
         quality_flags:
           items:
             enum: [deprecated, contamination_warning]
@@ -2901,7 +2902,7 @@ components:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        harness: *id034
+        harness: *id035
         harness_unregistered: {default: false, type: boolean}
         date: {format: date, type: string}
         date_type:
@@ -2927,6 +2928,7 @@ components:
           anyOf:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
+        citation: *id028
       required: [benchmark, value, measured_by, date, date_type, source, directness]
       type: object
     DecisionEvidenceQualifiers:
@@ -2942,7 +2944,7 @@ components:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        harness: *id034
+        harness: *id035
         measured_after:
           anyOf:
           - {format: date, type: string}
@@ -3010,7 +3012,7 @@ components:
           enum: [answered, partial, no_feasible]
           type: string
         leader: *id024
-        answer: *id035
+        answer: *id036
       required: [add, status]
       type: object
     DecisionHardware:
@@ -3061,10 +3063,10 @@ components:
       description: '``facet in {a, b}`` or ``facet not in {a, b}``. Values are kept sorted and unique.'
       properties:
         facet: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        in: &id036
+        in: &id037
           anyOf:
-          - &id039
-            items: &id044
+          - &id040
+            items: &id045
               anyOf:
               - {type: boolean}
               - {type: integer}
@@ -3073,7 +3075,7 @@ components:
               - {type: string}
             type: array
           - {type: 'null'}
-        not_in: *id036
+        not_in: *id037
         soft: *id019
         unknown: *id020
       required: [facet]
@@ -3113,8 +3115,8 @@ components:
     DecisionLexStep:
       additionalProperties: false
       properties:
-        max: *id032
-        min: *id032
+        max: *id033
+        min: *id033
         within:
           anyOf:
           - {$ref: '#/components/schemas/DecisionTolerance'}
@@ -3138,12 +3140,12 @@ components:
       additionalProperties: false
       properties:
         model: *id021
-        offering: &id040
+        offering: &id041
           anyOf:
           - {$ref: '#/components/schemas/DecisionOfferingRef'}
           - {type: 'null'}
         unknown: *id026
-        warnings: *id037
+        warnings: *id038
       required: [model, unknown]
       type: object
     DecisionMemberEvidence:
@@ -3151,14 +3153,14 @@ components:
       description: Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354).
       properties:
         model: *id021
-        evidence: *id038
+        evidence: *id039
         omitted_items: {minimum: 0, type: integer}
       required: [model, evidence, omitted_items]
       type: object
     DecisionModelComparison:
       additionalProperties: false
       properties:
-        comparison_version: {const: '1.0', default: '1.0', type: string}
+        comparison_version: {const: '1.1', default: '1.1', type: string}
         endpoint: {const: compare-models, default: compare-models, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', type: string}
         models:
@@ -3185,8 +3187,8 @@ components:
     DecisionModelElimination:
       additionalProperties: false
       properties:
-        values: *id039
-        offering: *id040
+        values: *id040
+        offering: *id041
         unit:
           anyOf:
           - {type: string}
@@ -3196,12 +3198,12 @@ components:
           type: array
         model: *id021
         condition: {type: string}
-        value: *id041
+        value: *id042
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id037
+        warnings: *id038
       required: [model, condition]
       type: object
     DecisionModelEliminationGroup:
@@ -3230,8 +3232,8 @@ components:
           anyOf:
           - {type: integer}
           - {type: 'null'}
-        evidence: *id038
-        contributions: *id042
+        evidence: *id039
+        contributions: *id043
         unknown:
           items: {type: string}
           type: array
@@ -3264,7 +3266,7 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id037
+        warnings: *id038
       required: [offering, status]
       type: object
     DecisionModelRef:
@@ -3305,14 +3307,14 @@ components:
     DecisionNearMiss:
       additionalProperties: false
       properties:
-        values: *id039
+        values: *id040
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
         condition: {type: string}
         facet:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        value: *id041
+        value: *id042
         distance:
           anyOf:
           - {type: number}
@@ -3354,7 +3356,7 @@ components:
     DecisionNotOf:
       additionalProperties: false
       properties:
-        not: *id043
+        not: *id044
         soft: *id019
         unknown: *id020
       required: [not]
@@ -3379,8 +3381,8 @@ components:
       additionalProperties: false
       description: Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``.
       properties:
-        max: *id032
-        min: *id032
+        max: *id033
+        min: *id033
         lexicographic:
           anyOf:
           - items: {$ref: '#/components/schemas/DecisionLexStep'}
@@ -3409,7 +3411,7 @@ components:
       additionalProperties: false
       description: Why one offering of an eliminated model left the lineup. Added in 1.6.
       properties:
-        values: *id039
+        values: *id040
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
         unit:
           anyOf:
@@ -3419,12 +3421,12 @@ components:
           items: {type: string}
           type: array
         condition: {type: string}
-        value: *id041
+        value: *id042
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id037
+        warnings: *id038
       required: [offering, condition]
       type: object
     DecisionOfferingRef:
@@ -3555,7 +3557,7 @@ components:
       additionalProperties: false
       description: A weighted preference for one value of a boolean or enum facet.
       properties:
-        prefer: *id044
+        prefer: *id045
         weight: {exclusiveMinimum: 0, type: number}
       required: [prefer, weight]
       type: object
@@ -3715,12 +3717,12 @@ components:
           anyOf:
           - {type: number}
           - {type: 'null'}
-        harness: *id034
+        harness: *id035
         effort:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        evidence: *id038
+        evidence: *id039
         estimates:
           anyOf:
           - items: {$ref: '#/components/schemas/DecisionEstimate'}
@@ -3740,7 +3742,7 @@ components:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
         soft_penalty: {default: 0.0, minimum: 0, type: number}
-        contributions: *id042
+        contributions: *id043
         warnings:
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
@@ -3763,7 +3765,7 @@ components:
       additionalProperties: false
       properties:
         kind: {const: separated, type: string}
-        members: &id045
+        members: &id046
           items: *id021
           maxItems: 1
           minItems: 1
@@ -3771,7 +3773,7 @@ components:
         leader: *id021
         basis: {type: string}
         tie_breakers: {$ref: '#/components/schemas/DecisionTieBreakers'}
-        deterministic_order: *id045
+        deterministic_order: *id046
       required: [kind, members, leader, basis, tie_breakers, deterministic_order]
       type: object
     DecisionShownFact:
@@ -3785,7 +3787,7 @@ components:
           - {type: number}
           - {format: date, type: string}
           - {type: string}
-          - *id039
+          - *id040
           - {type: 'null'}
         unit:
           anyOf:
@@ -3805,7 +3807,7 @@ components:
         source_ids:
           items: {type: string}
           type: array
-        citation: *id046
+        citation: *id028
       required: [facet]
       type: object
     DecisionSingleGate:
@@ -3952,7 +3954,7 @@ components:
           - {type: number}
           - {type: 'null'}
         new_top: *id024
-        refinement: *id032
+        refinement: *id033
       required: [description]
       type: object
     DecisionTolerance:
@@ -3984,8 +3986,8 @@ components:
           maxItems: 2
           minItems: 2
           prefixItems:
-          - *id044
-          - *id044
+          - *id045
+          - *id045
           type: array
         qualifiers: *id049
         soft: *id019
@@ -3999,7 +4001,7 @@ components:
         status:
           enum: [answered, partial, no_feasible]
           type: string
-        answer: *id035
+        answer: *id036
         results:
           items: {$ref: '#/components/schemas/DecisionEstateResult'}
           type: array
@@ -4033,7 +4035,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [decide]
@@ -4078,7 +4080,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [decide]
@@ -4105,7 +4107,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [decide]
@@ -4126,7 +4128,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [decide]
@@ -4153,7 +4155,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [decide]
@@ -4169,7 +4171,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [compare]
@@ -4196,7 +4198,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [compare]
@@ -4212,7 +4214,7 @@ components:
       properties:
         comparison_version:
           type: string
-          enum: ['1.0']
+          enum: ['1.1']
         endpoint:
           type: string
           enum: [compare-models]
@@ -4238,7 +4240,7 @@ components:
       properties:
         comparison_version:
           type: string
-          enum: ['1.0']
+          enum: ['1.1']
         endpoint:
           type: string
           enum: [compare-models]
@@ -4458,7 +4460,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.18']
+          enum: ['2.19']
         endpoint:
           type: string
           enum: [compare]

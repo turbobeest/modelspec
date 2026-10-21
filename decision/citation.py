@@ -18,6 +18,13 @@ _HASH = re.compile(r"sha256:[0-9a-f]{64}")
 RefState = Literal["cited", "restricted", "open"]
 
 
+def cited_records(snapshot: Any, cid: str) -> tuple[str, ...]:
+    """The candidate's cited facts and scores, including inherited records."""
+    return tuple(sorted({rid for name in ("cited_facts", "cited_evidence")
+                         if (lookup := getattr(snapshot, name, None)) is not None
+                         for rid in lookup(cid)}))
+
+
 class _Fetched(NamedTuple):
     origins: tuple[str, ...]
     redirects: tuple[str, ...]

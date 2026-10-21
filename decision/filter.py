@@ -360,7 +360,7 @@ def _is_leaf(cond: Any) -> bool:
 
 
 def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str] | None) -> bool:
-    if not getattr(row, "verified", False):
+    if not getattr(row, "admitted", getattr(row, "verified", False) or getattr(row, "cited", False)):
         return False
     if measured is not None and row.measured_by not in measured:
         return False
@@ -374,11 +374,14 @@ def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str]
 
 class _Run:
     def __init__(self, resolved: Resolved, index: Any, reach: Any = None,
-                 fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> None:
+                 fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None,
+                 evidence_used: Callable[[str, Sequence[Any], tuple[str, ...]], None] | None = None
+                 ) -> None:
         self.resolved = resolved
         self.index = index
         self.reach = reach
         self.fact_used = fact_used
+        self.evidence_used = evidence_used
         self.soft_conditions: list[Any] = []
         self.facets = resolved.facets
         self.facet_cache: dict[str, Any] = {}
@@ -567,7 +570,7 @@ class _Run:
                 failed |= bit
         return 0, listed, failed
 
-    def _admitted(self, cid: str, cond: Any) -> list[Any]:
+    def _admitted_rows(self, cid: str, cond: Any) -> list[Any]:
         qualifiers = cond.qualifiers or EvidenceQualifiers()
         if qualifiers.direct and not self.index.direct_for(cond.facet, self.domains):
             return []
@@ -579,7 +582,10 @@ class _Run:
             harness=qualifiers.harness,
             after=qualifiers.measured_after,
         )
-        return [row.value for row in rows if _keep_row(row, qualifiers, measured)]
+        return [row for row in rows if _keep_row(row, qualifiers, measured)]
+
+    def _admitted(self, cid: str, cond: Any) -> list[Any]:
+        return [row.value for row in self._admitted_rows(cid, cond)]
 
     def _reference(self, cond: Compare) -> Any:
         assert isinstance(cond.value, ModelRef)
@@ -759,7 +765,7 @@ class _Run:
         return bits
 
     def _record_penalty(self, cond: Any, raw: Bits) -> None:
-        if self.fact_used is not None:
+        if self.fact_used is not None or self.evidence_used is not None:
             self.soft_conditions.append(cond)
         lineup = self.lineup
         self.penalties.append(SoftPenalty(
@@ -775,7 +781,7 @@ class _Run:
         The bitset evaluator computes entire columns. Those reads alone do not
         mean an excluded row, or an unnecessary Boolean branch, affected an answer.
         """
-        if not bits or self.fact_used is None:
+        if not bits or (self.fact_used is None and self.evidence_used is None):
             return
         if isinstance(cond, NotOf):
             if cond.not_.soft is None:
@@ -793,22 +799,36 @@ class _Run:
                     break
             return
         facet = _facet_of(cond)
-        if facet is None or self._is_domain(facet) or self._is_evidence(cond):
+        if facet is None:
             return
         owners = tuple(self._ids_of(bits))
         for cid in owners:
-            self.fact_used(cid, facet, (cid,))
+            self._used_operand(cid, cond, (cid,))
         if isinstance(cond, Compare):
             if isinstance(cond.value, ModelRef):
-                self.fact_used(cond.value.model, facet, owners)
+                self._used_operand(cond.value.model, cond, owners, reference=True)
             elif isinstance(cond.value, BestRef):
-                values = {cid: self._known_value(cid, facet)
+                values = {cid: (_shown(self._admitted(cid, cond), cond.op)
+                                if self._is_evidence(cond) else self._known_value(cid, facet))
                           for cid in self._ids_of(self.anchor or 0)}
                 highest = max((value for value in values.values() if _numeric(value)),
                               default=None)
                 for cid, value in values.items():
                     if _numeric(value) and value == highest:
-                        self.fact_used(cid, facet, owners)
+                        self._used_operand(cid, cond, owners, reference=True)
+
+    def _used_operand(self, cid: str, cond: Any, owners: tuple[str, ...], *,
+                      reference: bool = False) -> None:
+        if self._is_evidence(cond):
+            if self.evidence_used is not None:
+                rows = self._admitted_rows(cid, cond)
+                if reference:
+                    selected = _shown([row.value for row in rows], cond.op)
+                    if not isinstance(selected, tuple):
+                        rows = [row for row in rows if row.value == selected]
+                self.evidence_used(cid, rows, owners)
+        elif self.fact_used is not None:
+            self.fact_used(cid, _facet_of(cond), owners)
 
     def _decisive(self, cond: Any, bit: int, leg: Leg) -> Any:
         if isinstance(cond, NotOf):
@@ -1002,7 +1022,7 @@ class _Run:
                 ))
                 continue
             raw = self._eval(cond)
-            if self.fact_used is not None:
+            if self.fact_used is not None or self.evidence_used is not None:
                 self._used(cond, feasible | maybe)
             fe_pass, fe_fail, fe_unk = _split(raw, feasible)
             _mb_pass, mb_fail, mb_unk = _split(raw, maybe)
@@ -1069,14 +1089,18 @@ def _split(raw: Bits, mask: int) -> tuple[int, int, int]:
 
 
 def apply(resolved: Resolved, index: Any, reach: Any = None, *,
-          fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None) -> FilterResult:
+          fact_used: Callable[[str, str, tuple[str, ...]], None] | None = None,
+          evidence_used: Callable[[str, Sequence[Any], tuple[str, ...]], None] | None = None
+          ) -> FilterResult:
     """Filter ``index`` by the resolved conditions. The same inputs give the same result.
 
     ``reach`` (``decision.estate.Reach``) restricts the lineup to the rows a
     caller's estate can use, and starts its ``unknown`` rows as may-qualify.
 
-    ``fact_used`` optionally observes the fact operands affecting filtering or
+    ``fact_used`` optionally observes fact and capability operands affecting filtering or
     a surviving candidate's soft penalty, without observing whole-column reads.
     It receives the source candidate, facet and candidates relying on that operand.
+    ``evidence_used`` receives the source candidate, admitted evidence rows and
+    candidates relying on those rows, after applying the condition's qualifiers.
     """
-    return _Run(resolved, index, reach, fact_used).run()
+    return _Run(resolved, index, reach, fact_used, evidence_used).run()

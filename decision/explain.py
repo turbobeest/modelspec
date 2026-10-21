@@ -70,8 +70,9 @@ def facet_unit(facet_id):
 
 
 def _citation_warnings(snapshot, candidate):
-    cited = getattr(snapshot, "cited_facts", None)
-    return [CITE_ONLY_WARNING] if cited and cited(candidate) else []
+    from decision.citation import cited_records
+
+    return [CITE_ONLY_WARNING] if cited_records(snapshot, candidate) else []
 
 
 def _unverified_suffix(facet_id):
@@ -145,7 +146,7 @@ def checked_record(snapshot, rid):
         # a collector/verifier pair for an estimate's bandwidth input.
         if record.get("figures_are") != "vendor-specification" or not record.get("verified_at"):
             raise ExplanationError(f"{rid}: hardware lacks dated vendor specifications")
-    elif record.get("facet") and record.get("citation") is not None:
+    elif record.get("citation") is not None:
         from pydantic import ValidationError
 
         try:
@@ -194,7 +195,7 @@ def evidence_item(
     recency_weight=None,
 ):
     record = checked_record(snapshot, row.record_id)
-    if not row.verified or row.date is None or row.directness is None:
+    if not row.admitted or row.date is None or row.directness is None:
         raise ExplanationError(f"{row.record_id}: missing evidence date or domain directness")
     if record.get("score") != row.value:
         raise ExplanationError(f"{row.record_id}: evidence differs from retained record")
@@ -224,11 +225,12 @@ def evidence_item(
         loading=loading,
         estimate_weight=estimate_weight,
         recency_weight=recency_weight,
+        citation=record.get("citation"),
     )
 
 
 def domain_evidence(snapshot, cid, domains, benchmarks=None):
-    """Verified evidence per domain. An offering answers its model's evidence,
+    """Admitted evidence per domain. An offering answers its model's evidence,
     so a row the offering and its model both return is listed once."""
     subjects = [cid]
     if snapshot.model_of(cid) != cid:
@@ -238,7 +240,7 @@ def domain_evidence(snapshot, cid, domains, benchmarks=None):
         rows = {}
         for subject in subjects:
             for row in snapshot.evidence_for_domain(subject, domain):
-                if row.verified and (benchmarks is None or row.benchmark_id in benchmarks):
+                if row.admitted and (benchmarks is None or row.benchmark_id in benchmarks):
                     rows.setdefault(row.record_id, row)
         groups.append(DomainEvidence(
             domain=domain, items=[evidence_item(snapshot, row, domain) for row in rows.values()]))
@@ -1124,13 +1126,15 @@ def render_html(decision, snapshot):
         for group in groups:
             out.append(f"<h3>{esc(group.domain)}</h3>")
             if not group.items:
-                out.append("<p>No verified evidence for this domain.</p>")
+                out.append("<p>No admitted evidence for this domain.</p>")
             for item in group.items:
                 label = (
                     "Lab-reported"
                     if item.measured_by == "provider_self_report"
                     else item.measured_by
                 )
+                if item.citation is not None:
+                    label += "; Cited, not machine-verified"
                 out.append(
                     f"<p><strong>{esc(label)}</strong> · {esc(item.benchmark)} "
                     f"· version {esc(item.version or 'not recorded')} "
@@ -1179,7 +1183,7 @@ def render_html(decision, snapshot):
         "</style><body><h1>ModelSpec decision</h1>",
         f"<p>{esc(decision.decision_id)} · {esc(decision.snapshot)} · {esc(decision.status)}</p>",
         (
-            "<p>Capability estimates use verified evidence and include uncertainty intervals.</p>"
+            "<p>Capability estimates use admitted evidence and include uncertainty intervals.</p>"
             if has_estimates
             else "<p>Evidence is unblended. Capability estimates and probabilities are not available.</p>"
         ),

@@ -5,6 +5,16 @@ const objectiveId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(\/[a-z
 const modelId = z.string().regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/);
 const nullableString = z.string().nullable();
 const scalar = z.union([z.string(), z.number().finite(), z.boolean()]);
+const citationSchema = z.object({
+  status: z.literal("cited"),
+  sources: z.array(z.object({
+    source_id: z.string(),
+    url: z.url(),
+    snapshot_ref: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    retrieved_at: z.string().nullable(),
+    resolved_urls: z.array(z.url()).optional(),
+  }).strict()).min(1),
+}).strict();
 
 export const offeringRefSchema = z
   .object({
@@ -54,6 +64,7 @@ export const evidenceItemSchema = z
     loading: z.number().finite().nullable().optional(),
     estimate_weight: z.number().min(0).max(1).nullable().optional(),
     recency_weight: z.number().min(0).max(1).nullable().optional(),
+    citation: citationSchema.optional(),
   })
   .strict();
 
@@ -418,16 +429,7 @@ export const decisionSchema = z
                   formula: nullableString.optional(),
                   // 1.4: the fact's sources, as IDs into the decision's `sources`.
                   source_ids: z.array(z.string()).optional().default([]),
-                  citation: z.object({
-                    status: z.literal("cited"),
-                    sources: z.array(z.object({
-                      source_id: z.string(),
-                      url: z.string().url(),
-                      snapshot_ref: z.string().regex(/^sha256:[0-9a-f]{64}$/),
-                      retrieved_at: z.string().nullable(),
-                      resolved_urls: z.array(z.string().url()).optional(),
-                    }).strict()).min(1),
-                  }).strict().optional(),
+                  citation: citationSchema.optional(),
                 })
                 .strict(),
             ),
@@ -543,6 +545,7 @@ export const decisionSchema = z
       "2.16",
       "2.17",
       "2.18",
+      "2.19",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
