@@ -1,0 +1,44 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_shown_capability_citation_warns_with_a_fact_objective[summary] ______
+
+level = 'summary'
+
+    @pytest.mark.parametrize("level", ["summary", "full"])
+    def test_shown_capability_citation_warns_with_a_fact_objective(level):
+        answer = answer_for(
+            score_index(), objective={"min": "model.context_window"}, level=level,
+            capabilities={"software_engineering": "required"},
+        )
+        assert answer.answer.members == ["lab/cited"]
+        assert any(item.model_dump().get("citation") is not None
+                   for shown in answer.results if shown.model == "lab/cited"
+                   for group in shown.evidence for item in group.items)
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...t present estimates as measurements.', 'Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:99: AssertionError
+_______ test_shown_capability_citation_warns_with_a_fact_objective[full] _______
+
+level = 'full'
+
+    @pytest.mark.parametrize("level", ["summary", "full"])
+    def test_shown_capability_citation_warns_with_a_fact_objective(level):
+        answer = answer_for(
+            score_index(), objective={"min": "model.context_window"}, level=level,
+            capabilities={"software_engineering": "required"},
+        )
+        assert answer.answer.members == ["lab/cited"]
+        assert any(item.model_dump().get("citation") is not None
+                   for shown in answer.results if shown.model == "lab/cited"
+                   for group in shown.evidence for item in group.items)
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[CandidateValues(offering=OfferingRef(model='lab/cited', provider=None, region=None, tier...t present estimates as measurements.', 'Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:99: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_warnings.py::test_shown_capability_citation_warns_with_a_fact_objective[summary]
+FAILED tests/test_cited_score_warnings.py::test_shown_capability_citation_warns_with_a_fact_objective[full]
+2 failed, 27 deselected in 0.46s

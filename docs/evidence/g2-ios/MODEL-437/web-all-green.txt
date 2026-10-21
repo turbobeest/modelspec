@@ -1,0 +1,15 @@
+
+> web@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-437/web
+
+
+ Test Files  59 passed | 1 skipped (60)
+      Tests  908 passed (908)
+   Start at  13:12:24
+   Duration  19.34s (tests 66%, environment 22%, import 5%, setup 4%, transform 3%)
+
+    Isolate  60 workers spawned · ~326ms startup each (spawn + environment, per file)
+             at least ~4.57s faster with isolate: false — reuses workers across files instead of one per file

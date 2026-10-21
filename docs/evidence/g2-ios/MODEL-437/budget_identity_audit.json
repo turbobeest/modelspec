@@ -1,0 +1,200 @@
+{
+  "base_commit": "44f3bdb5",
+  "format1_snapshot": "snap_cc3a845eb12c5459",
+  "entire_original_fixture_reproduced": false,
+  "diffs": [
+    {
+      "path": "$.default.decision_id",
+      "before": "dec_37602676f0f8d769d4b35d25",
+      "after": "dec_b3b642aaad6067e92b7bb61d"
+    },
+    {
+      "path": "$.default.results[0].p_best",
+      "before": 0.22265625,
+      "after": 0.2109375
+    },
+    {
+      "path": "$.default.results[1].p_best",
+      "before": 0.22265625,
+      "after": 0.2109375
+    },
+    {
+      "path": "$.default.results[2].p_best",
+      "before": 0.22265625,
+      "after": 0.2109375
+    },
+    {
+      "path": "$.default.results[3].p_best",
+      "before": 0.15234375,
+      "after": 0.12890625
+    },
+    {
+      "path": "$.default.results[4].p_best",
+      "before": 0.15234375,
+      "after": 0.12890625
+    },
+    {
+      "path": "$.default.results[5].p_best",
+      "before": 0.15234375,
+      "after": 0.12890625
+    },
+    {
+      "path": "$.default.results[6].p_best",
+      "before": 0.01953125,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.results[7].p_best",
+      "before": 0.01953125,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.results[8].p_best",
+      "before": 0.0390625,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.results[9].p_best",
+      "before": 0.0390625,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_cc3a845eb12c5459"
+    },
+    {
+      "path": "$.drill_down.decision_id",
+      "before": "dec_37602676f0f8d769d4b35d25",
+      "after": "dec_b3b642aaad6067e92b7bb61d"
+    },
+    {
+      "path": "$.drill_down.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_cc3a845eb12c5459"
+    },
+    {
+      "path": "$.speech.coverage.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_cc3a845eb12c5459"
+    },
+    {
+      "path": "$.speech.decision_id",
+      "before": "dec_60ac9a3bc98cfda35cb15bdb",
+      "after": "dec_8647a87183fb880cfcde72ea"
+    },
+    {
+      "path": "$.speech.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_cc3a845eb12c5459"
+    }
+  ],
+  "normalization": "projects_contract 2.19 -> 2.18 only, on all three response bodies",
+  "format2_snapshot": "snap_697a0215e634e5d7",
+  "format2_reproduces_regenerated_fixture": true,
+  "format2_changed_paths": [
+    {
+      "path": "$.default.decision_id",
+      "before": "dec_37602676f0f8d769d4b35d25",
+      "after": "dec_f5cb662ca4510b0305d2a517"
+    },
+    {
+      "path": "$.default.projects_contract",
+      "before": "2.18",
+      "after": "2.19"
+    },
+    {
+      "path": "$.default.results[0].p_best",
+      "before": 0.22265625,
+      "after": 0.23046875
+    },
+    {
+      "path": "$.default.results[1].p_best",
+      "before": 0.22265625,
+      "after": 0.23046875
+    },
+    {
+      "path": "$.default.results[2].p_best",
+      "before": 0.22265625,
+      "after": 0.23046875
+    },
+    {
+      "path": "$.default.results[3].p_best",
+      "before": 0.15234375,
+      "after": 0.140625
+    },
+    {
+      "path": "$.default.results[4].p_best",
+      "before": 0.15234375,
+      "after": 0.140625
+    },
+    {
+      "path": "$.default.results[5].p_best",
+      "before": 0.15234375,
+      "after": 0.140625
+    },
+    {
+      "path": "$.default.results[6].p_best",
+      "before": 0.01953125,
+      "after": 0.03515625
+    },
+    {
+      "path": "$.default.results[7].p_best",
+      "before": 0.01953125,
+      "after": 0.03515625
+    },
+    {
+      "path": "$.default.results[8].p_best",
+      "before": 0.0390625,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.results[9].p_best",
+      "before": 0.0390625,
+      "after": 0.02734375
+    },
+    {
+      "path": "$.default.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_697a0215e634e5d7"
+    },
+    {
+      "path": "$.drill_down.decision_id",
+      "before": "dec_37602676f0f8d769d4b35d25",
+      "after": "dec_f5cb662ca4510b0305d2a517"
+    },
+    {
+      "path": "$.drill_down.projects_contract",
+      "before": "2.18",
+      "after": "2.19"
+    },
+    {
+      "path": "$.drill_down.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_697a0215e634e5d7"
+    },
+    {
+      "path": "$.speech.coverage.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_697a0215e634e5d7"
+    },
+    {
+      "path": "$.speech.decision_id",
+      "before": "dec_60ac9a3bc98cfda35cb15bdb",
+      "after": "dec_cb4f57a2a25a956519406ebc"
+    },
+    {
+      "path": "$.speech.projects_contract",
+      "before": "2.18",
+      "after": "2.19"
+    },
+    {
+      "path": "$.speech.snapshot",
+      "before": "snap_e2b0967b4808bcc7",
+      "after": "snap_697a0215e634e5d7"
+    }
+  ],
+  "cited_evidence_records": 0,
+  "old_snapshot_identity_reproduces_entire_original_fixture": true,
+  "interpretation": "All observed response changes are contract versions and snapshot identity, including probability draws seeded by that identity. Original snapshot identity reproduces every original field and p_best value with current data."
+}

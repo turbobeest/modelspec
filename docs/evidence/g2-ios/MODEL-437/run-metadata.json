@@ -1,0 +1,11 @@
+{
+  "base_sha": "44f3bdb5cbc96afa275ee1ca836703560d10c97b",
+  "final_code_sha": "7d6f5c15652c453b667f056206c540a3d2930eaf",
+  "baseline_main_sha": "9be40994f5e884588aa21d49b2f2647e4a3fec3c",
+  "merged_main_sha": "9f280970f83e0530782516890e5d4345ce590053",
+  "host_policy_sha": "82ebcf4627d255d7641303caff2d149e879cf359",
+  "private_data_sha": "a6f8fd798d7d6f40b35ed08320796b773f29df9a",
+  "acceptance": "BLOCKED: final candidate plus host policy fails prerequisite completeness gate; c recommendation/memory results unobserved",
+  "remaining_commits": "evidence only; final HEAD is recorded in PR body and executor completion marker",
+  "memory_supporting_code_sha": "7d6f5c15652c453b667f056206c540a3d2930eaf"
+}
