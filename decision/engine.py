@@ -331,22 +331,22 @@ def _unique_extreme(values: Mapping[str, float | None], *, highest: bool) -> str
     return winners[0] if len(winners) == 1 else None
 
 
-def _independent_measurements(snapshot, model_id: str) -> int:
-    records = set()
+def _independent_measurements(snapshot, model_id: str) -> tuple:
+    records = {}
     for benchmark_id in snapshot.benchmark_ids():
         for row in snapshot.evidence(
             model_id, benchmark_id, measured_by=set(_INDEPENDENT_MEASURERS)
         ):
             if row.admitted and not row.quality_flags:
-                records.add(row.record_id or (
+                records[row.record_id or (
                     row.benchmark_id,
                     row.version,
                     row.subcategory,
                     row.value,
                     row.effort,
                     row.harness,
-                ))
-    return len(records)
+                )] = row
+    return tuple(records.values())
 
 
 def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -> TieBreakers:
@@ -365,13 +365,18 @@ def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -
         if snapshot.fact(model_id, "model.weights_openness").value == "open_weights"
     )
     measurements = {
-        model_id: float(_independent_measurements(snapshot, model_id))
+        model_id: _independent_measurements(snapshot, model_id)
         for model_id in by_model
     }
+    most_measured = _unique_extreme(
+        {model_id: float(len(records)) for model_id, records in measurements.items()}, highest=True)
+    observe = getattr(snapshot, "observe_evidence", None)
+    if most_measured is not None and observe is not None:
+        observe(most_measured, measurements[most_measured])
     return TieBreakers(
         cheapest=_unique_extreme(costs, highest=False),
         open_weights=open_models[0] if len(open_models) == 1 else None,
-        most_independently_measured=_unique_extreme(measurements, highest=True),
+        most_independently_measured=most_measured,
         fastest=_unique_extreme(speeds, highest=True),
     )
 
@@ -585,10 +590,19 @@ class _CitationUse:
                for result, row in zip(decision.results, ordered.results)
                if row.candidate_id in recommended for plan in result.plans):
             return True
+        for result, row in zip(decision.results, ordered.results):
+            if row.candidate_id in recommended and any(
+                item.citation is not None
+                for group in result.evidence for item in group.items
+            ):
+                return True
         for shown, row in zip(decision.top, ordered.results):
             if row.candidate_id not in recommended:
                 continue
             cited = self.records(row.candidate_id)
+            if any(item.citation is not None
+                   for group in shown.evidence for item in group.items):
+                return True
             if any(fact.citation is not None or cited.intersection(fact.records)
                    for fact in shown.facts):
                 return True

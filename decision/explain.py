@@ -146,7 +146,7 @@ def checked_record(snapshot, rid):
         # a collector/verifier pair for an estimate's bandwidth input.
         if record.get("figures_are") != "vendor-specification" or not record.get("verified_at"):
             raise ExplanationError(f"{rid}: hardware lacks dated vendor specifications")
-    elif record.get("citation") is not None:
+    elif (record.get("facet") or record.get("benchmark_id")) and record.get("citation") is not None:
         from pydantic import ValidationError
 
         try:

@@ -8,7 +8,7 @@ from decision.contract import CITE_ONLY_WARNING, parse_spec
 from decision.engine import decide
 from decision.registry import facet
 from tests.snapshot_records import evidence, fact, model
-from tests.test_cited_scores import BENCHMARK, load, score_inputs
+from tests.test_cited_scores import BENCHMARK, CITED_URL, load, score_inputs
 
 
 def score_index(*, cited_score=90, refinement=False):
@@ -64,6 +64,15 @@ def test_best_reference_warns_only_for_cited_winning_anchor(cited_score, warned,
     assert (CITE_ONLY_WARNING in answer.warnings) is warned
 
 
+def test_cited_best_reference_warns_after_another_best_filter_eliminates_anchor():
+    answer = answer_for(score_index(), where=[
+        f"{BENCHMARK} >= best(25)", "model.context_window >= best(0)",
+    ])
+    assert answer.answer.members == ["lab/plain"]
+    assert all(row.model != "lab/cited" for row in answer.results)
+    assert CITE_ONLY_WARNING in answer.warnings
+
+
 @pytest.mark.parametrize("level", ["none", "summary", "full"])
 def test_capability_objective_warns_for_cited_driver(level):
     answer = answer_for(score_index(), objective={"max": "software_engineering"}, level=level)
@@ -84,6 +93,19 @@ def test_unrelated_score_on_recommended_model_has_only_row_warning():
     assert CITE_ONLY_WARNING not in answer.warnings
     assert CITE_ONLY_WARNING in answer.results[0].warnings
     assert CITE_ONLY_WARNING in answer.bands.best[0].warnings
+
+
+def test_cited_score_used_by_independent_measurement_tie_breaker_warns():
+    inputs = score_inputs()
+    inputs.evidence.append(evidence("lab/cited", "gpqa_diamond", 85,
+                                    source="src-cited", source_url=CITED_URL, outcome=None))
+    inputs = replace(inputs, benchmark_domains={
+        **inputs.benchmark_domains, "gpqa_diamond": [("reasoning", "direct")],
+    })
+    answer = answer_for(load(inputs))
+    assert answer.answer.kind == "tied"
+    assert answer.answer.tie_breakers.most_independently_measured == "lab/cited"
+    assert CITE_ONLY_WARNING in answer.warnings
 
 
 @pytest.mark.parametrize("level", ["summary", "full"])

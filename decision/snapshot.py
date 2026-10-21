@@ -1266,7 +1266,9 @@ class _Compiler:
             e.get("verification"),
             evidence_verification_value(e),
             source_ids,
-            extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"),
+            extra_urls=[e.get("source_url"), *(url for ref in e.get("sources") or ()
+                                             for url in ref.get("resolved_urls") or ())],
+            benchmark=e.get("benchmark_id"),
             citation=citation)
         if reason is None:
             from schema.benchmark_values import validate_value

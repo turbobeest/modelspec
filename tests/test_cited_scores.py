@@ -2,14 +2,19 @@
 
 from dataclasses import replace
 from datetime import date
+import gzip
 
 import pytest
 
 from decision.contract import CITE_ONLY_WARNING, parse_spec
 from decision.engine import decide
+from decision.excluded import ExcludedSources
 from decision.model import evidence_verification_value
 from decision.registry import facet
-from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+from decision.snapshot import (
+    SnapshotInputs, build_snapshot, canonical_json, content_hash, load_built_snapshot,
+    load_snapshot_bytes,
+)
 from tests.snapshot_records import SOURCES, evidence, model, source_ref, verification
 
 
@@ -36,11 +41,16 @@ def load(inputs, **kwargs):
 
 @pytest.mark.parametrize("outcome", [None, "verified"])
 def test_cited_score_survives_snapshot_roundtrip_without_verification(outcome):
-    index = load(score_inputs(outcome=outcome))
+    built = build_snapshot(score_inputs(outcome=outcome), as_of=TODAY)
+    assert built.envelope(None)["format_version"] == 2
+    index = load_built_snapshot(built)
     rows = index.evidence("lab/cited", BENCHMARK)
     assert len(rows) == 1
     assert rows[0].value == 90
     assert rows[0].verified is False
+    corpus_row = next(row for _, row in index.corpus_evidence()
+                      if row.record_id == rows[0].record_id)
+    assert corpus_row.verified is False
     record = index.record(rows[0].record_id)
     assert record["verification"] is None
     assert record["citation"] == {
@@ -51,6 +61,20 @@ def test_cited_score_survives_snapshot_roundtrip_without_verification(outcome):
     }
     assert index.capability_estimate("lab/cited", "software_engineering") is not None
     assert index.evidence("lab/plain", BENCHMARK)[0].verified is True
+
+
+def test_format_one_verified_snapshot_remains_readable():
+    inputs = score_inputs(outcome="verified")
+    inputs.sources["src-cited"] = SOURCES["src-board"]
+    inputs.evidence[0]["source_url"] = SOURCES["src-board"]
+    envelope = build_snapshot(inputs, as_of=TODAY).envelope(None)
+    envelope["format_version"] = 1
+    envelope["content"]["format_version"] = 1
+    digest = content_hash(envelope["content"])
+    envelope.update(content_hash=digest, snapshot_id="snap_" + digest.split(":")[1][:16])
+    raw = gzip.compress(canonical_json(envelope).encode())
+    index = load_snapshot_bytes(raw, key=None, public_keys={})
+    assert index.evidence("lab/cited", BENCHMARK)[0].verified is True
 
 
 @pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])
@@ -94,6 +118,13 @@ def test_invalid_cited_score_region_stays_out(regions):
     inputs = score_inputs()
     inputs.evidence[0]["sources"][0]["cited_regions"] = regions
     assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+
+
+def test_cited_score_redirect_to_excluded_source_stays_out():
+    inputs = score_inputs()
+    inputs.evidence[0]["sources"][0]["resolved_urls"] = ["https://blocked.example/results"]
+    index = load(inputs, guard=ExcludedSources(hosts=("blocked.example",)))
+    assert index.evidence("lab/cited", BENCHMARK) == ()
 
 
 @pytest.mark.parametrize("level", ["none", "summary", "full"])

@@ -11,7 +11,7 @@ workload against the signed snapshot. The MCP tool is `hardware_fit`.
 Both require an API key, including when optional access enforcement is off.
 A browser visit token does not admit this route.
 
-This contract is independent of Decision 2.18. Its `status` is a closed set.
+This contract is independent of the Decision contract. Its `status` is a closed set.
 Widening a field's range requires a major version under MODEL-59. No existing
 Decision field changes. This check does not change estate reach or ranking.
 
