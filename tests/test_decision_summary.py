@@ -6,6 +6,8 @@ import re
 
 from pathlib import Path
 
+import pytest
+
 from decision.bounded import AGENT_BYTES, mcp_text_bytes, project
 from decision.contract import Decision, ModelEvidence, ResponseOptions, parse_spec, render_condition
 from decision.summary import (
@@ -77,7 +79,7 @@ def _row(model: str, rank: int = 1, **extra) -> dict:
 
 def _decision(**overrides) -> Decision:
     base = {
-        "contract_version": "2.18",
+        "contract_version": "2.19",
         "decision_id": "dec_01J8ZK3Q7Y",
         "snapshot": "snap_2026-09-24T06:00Z",
         "spec_hash": "sha256:" + "0" * 64,
@@ -120,6 +122,96 @@ def _spec(**extra):
 
 def _answer_sentence(text: str) -> str:
     return text.split(". ", 1)[0]
+
+
+@pytest.mark.parametrize("level", ["none", "summary", "full"])
+@pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+    (True, False, "This answer uses cited facts."),
+    (False, True, "This answer uses cited benchmark scores."),
+    (True, True, "This answer uses cited facts and benchmark scores."),
+], ids=["facts", "scores", "both"])
+def test_cited_answer_sentence_covers_facts_scores_and_both(
+    level, cited_facts, cited_scores, sentence,
+):
+    from dataclasses import replace
+
+    from decision.engine import decide
+    from decision.registry import facet
+    from tests.snapshot_records import evidence, model
+    from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+    inputs = score_inputs()
+    models = [model("lab/cited", context=200000), model("lab/plain")]
+    if cited_facts:
+        models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+    if not cited_scores:
+        inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 100000"],
+        "optimize": {"max": BENCHMARK},
+        "explain": level,
+    }, facets=facet)
+    answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+    assert answer.answer.members == ["lab/cited"]
+    assert "_cited_record_kinds" not in answer.model_dump(mode="json")
+    assert "_cited_record_kinds" not in Decision.model_json_schema()["properties"]
+    bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+    assert sentence in bounded["summary_for_user"]
+    assert any(item.startswith(sentence) for item in bounded["must_mention"])
+
+
+def test_cited_score_reference_is_named_after_reference_model_is_eliminated():
+    from tests.test_cited_score_warnings import BENCHMARK, answer_for, score_index
+
+    answer = answer_for(score_index(cited_score=60), where=[
+        "model.context_window >= 100000", f"{BENCHMARK} >= model(lab/cited)",
+    ])
+    assert answer.answer.members == ["lab/plain"]
+    text, mentions = summarize(answer)
+    sentence = "This answer uses cited benchmark scores."
+    assert sentence in text
+    assert any(item.startswith(sentence) for item in mentions)
+
+
+def test_cited_score_tie_breaker_is_named_without_explanation():
+    from dataclasses import replace
+
+    from tests.snapshot_records import evidence
+    from tests.test_cited_score_warnings import answer_for
+    from tests.test_cited_scores import CITED_URL, load, score_inputs
+
+    inputs = score_inputs()
+    inputs.evidence.append(evidence("lab/cited", "gpqa_diamond", 85,
+                                    source="src-cited", source_url=CITED_URL, outcome=None))
+    inputs = replace(inputs, benchmark_domains={
+        **inputs.benchmark_domains, "gpqa_diamond": [("reasoning", "direct")],
+    })
+    answer = answer_for(load(inputs))
+    assert answer.answer.kind == "tied"
+    assert answer.answer.tie_breakers.most_independently_measured == "lab/cited"
+    text, _ = summarize(answer)
+    assert "This answer uses cited benchmark scores." in text
+
+
+def test_shown_cited_score_is_named_for_fact_only_objective():
+    from tests.test_cited_score_warnings import answer_for, score_index
+
+    answer = answer_for(score_index(), objective={"min": "model.context_window"},
+                        level="summary", capabilities={"software_engineering": "required"})
+    assert answer.answer.members == ["lab/cited"]
+    text, _ = summarize(answer)
+    assert "This answer uses cited benchmark scores." in text
+
+
+def test_deserialized_citation_warning_does_not_guess_the_record_kind():
+    from decision.contract import CITE_ONLY_WARNING
+
+    answer = _decision(answer=_separated("lab/a"), warnings=[CITE_ONLY_WARNING])
+    text, mentions = summarize(answer)
+    sentence = "This answer uses cited facts or benchmark scores."
+    assert sentence in text
+    assert any(item.startswith(sentence) for item in mentions)
 
 
 def test_a_tie_names_every_member_and_does_not_order_them() -> None:

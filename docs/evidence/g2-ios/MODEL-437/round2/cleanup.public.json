@@ -1,0 +1,18 @@
+{
+  "acceptance_cleanup_command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/cleanup_acceptance.py",
+    "--confirmed-public-evidence-copied"
+  ],
+  "acceptance_cleanup_exit": 0,
+  "acceptance_verified_at": "2026-10-21T19:08:50.491987+00:00",
+  "acceptance_scratch_exists": false,
+  "acceptance_owned_processes_remaining": 0,
+  "private_clone_exports_bundles_logs_removed": true,
+  "public_evidence_copied_and_hash_verified": true,
+  "labels_scratch_removed": true,
+  "executor_scratch_removed": true,
+  "entire_task_scratch_exists": false,
+  "verified_at": "2026-10-21T19:10:06.503884+00:00",
+  "root_owned_tool_sessions_remaining": 0
+}

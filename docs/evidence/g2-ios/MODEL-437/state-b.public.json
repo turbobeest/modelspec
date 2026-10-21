@@ -1,0 +1,36 @@
+{
+  "current": {
+    "as_of": "2026-10-21",
+    "valid_from": null,
+    "valid_until": "2027-01-01",
+    "snapshot_id": "snap_262150421798a522",
+    "corpus_cases": 319,
+    "repo_cases": 302,
+    "repo_http_200_cases": 269,
+    "expectation_failures": 0,
+    "contract_validated_http_200": 286,
+    "template_cases": 40,
+    "template_warnings": 15,
+    "corpus_warnings": 129,
+    "unique_benchmark_evidence_records": 933,
+    "cited_benchmark_evidence_records": 0,
+    "cited_records_with_nonnull_verification": 0
+  },
+  "successor": {
+    "as_of": "2027-01-01",
+    "valid_from": "2027-01-01",
+    "valid_until": null,
+    "snapshot_id": "snap_5d2596bb7c65306a",
+    "corpus_cases": 319,
+    "repo_cases": 302,
+    "repo_http_200_cases": 269,
+    "expectation_failures": 0,
+    "contract_validated_http_200": 286,
+    "template_cases": 40,
+    "template_warnings": 15,
+    "corpus_warnings": 130,
+    "unique_benchmark_evidence_records": 933,
+    "cited_benchmark_evidence_records": 0,
+    "cited_records_with_nonnull_verification": 0
+  }
+}

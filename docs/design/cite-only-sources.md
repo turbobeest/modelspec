@@ -150,11 +150,14 @@ still required to claim verified; citation admission makes no such claim.
 Unknown facts remain unknown. A cite-only host is not a reason to manufacture
 an absent value or bypass registry/schema validation.
 
-This exception is for facts. Benchmark evidence in decision responses still
-requires independent verification. The legacy card/ranking path must stop
-counting evidence from a cite-only host as verified, retain its ordinary
-ranking policy, and disclose citation status separately. Ranking floors,
-class boundaries, and cost-to-correct policy do not change.
+MODEL-437 extends this exception to benchmark scores, following Jamie's
+2026-10-21 decision to count cited scores. Every reference must qualify as
+cited under the same origin rules as a fact. Latest mismatch and unreachable
+outcomes still exclude scores. Admitted scores retain `verification: null`
+and `citation.status: cited`; they contribute to ranking and capability fits.
+The legacy rank path continues to exclude them from verified counts and
+discloses their citation status. Ranking floors, class boundaries, and
+cost-to-correct policy do not change.
 
 ## Public representations
 
@@ -166,7 +169,7 @@ Keep all existing closed states and verification outcomes. Add citation
 metadata to exports and shown facts as needed, and use
 `cite_only_not_machine_verified` in decision and result warnings. Full,
 bounded, and explain-none decisions retain the decision warning only when a
-recommended model uses a cited fact: a displayed fact, a ranking or objective
+recommended model uses a cited fact or score: a displayed fact, a ranking or objective
 input, or a Must that admitted it. The recommendation includes all top or tied
 answer members, or the returned ranked results when there is no named answer.
 Rest, eliminated, screened-out and may-qualify rows carry their own warnings;
@@ -178,9 +181,9 @@ continue to mean verification dates (`decision/contract.py:1775` and
 null. Fetch dates and hashes belong to citation metadata. Verified-only API
 model identifiers must not be promoted from cite-only facts.
 
-The explanation guard currently accepts verified records only
-(`decision/explain.py:130`); add a narrow branch for validated cited fact
-records, never for benchmark evidence. Model pages show a citation notice
+The explanation guard accepts verified records and validated cited facts or
+scores. Evidence items carry citation metadata and a notice beside the score.
+Model pages show a citation notice
 beside affected facts. Both decide interfaces show the notice. The MCP
 forwards decision and result warnings (`mcp/src/server.ts:563,574`), so it uses
 the same assurance disclosure. CLI JSON preserves the response body.
@@ -189,7 +192,9 @@ For legacy rank results, add citation metadata/warnings while preserving the
 closed `evidence_basis` vocabulary in `docs/api.md:45`. A cited record is
 excluded from verified counts. Export additions leave
 `export_schema_version: 3.0` unchanged (`pipeline/export.py:28,218`). No public
-contract field widens, so this design requires no major version bump.
+contract field widens in those exports. MODEL-437 changes the snapshot format
+to major 2 because retained benchmark verification becomes nullable. Older
+snapshot readers must refuse these scores instead of calling them verified.
 
 ## Later reads and verification
 

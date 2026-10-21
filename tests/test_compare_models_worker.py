@@ -16,7 +16,7 @@ from tests.test_x402 import _Req, _entry_env, entry
 def test_named_comparison_preserves_order_facts_prices_and_verified_evidence(service, snapshot):
     status, body = service.compare_models({"models": ["lab/b", "lab/a"]}, snapshot)
     assert status == 200
-    assert body["comparison_version"] == "1.0"
+    assert body["comparison_version"] == "1.1"
     assert "contract_version" not in body
     assert body["endpoint"] == "compare-models"
     assert body["snapshot"] == snapshot.snapshot_id
@@ -163,7 +163,7 @@ def test_named_comparison_keyless_probe_matrix(
     )))
     assert response.status == 401, response.json()
     assert response.json()["error"]["code"] == "missing_api_key"
-    assert response.json()["comparison_version"] == "1.0"
+    assert response.json()["comparison_version"] == "1.1"
     assert "contract_version" not in response.json()
     assert produced == []
     assert worker.env.ACCESS.store.data == {}

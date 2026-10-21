@@ -1,0 +1,148 @@
+FFFFFF........                                                           [100%]
+=================================== FAILURES ===================================
+_ test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro <= 70] _
+
+condition = 'swe_bench_pro <= 70', cited_score = 80, verified_score = 50
+warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+_ test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro = 50] _
+
+condition = 'swe_bench_pro = 50', cited_score = 80, verified_score = 50
+warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+__ test_score_predicate_warning_uses_supporting_rows[80-50-False-condition2] ___
+
+condition = {'facet': 'swe_bench_pro', 'between': [40, 70]}, cited_score = 80
+verified_score = 50, warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+__ test_score_predicate_warning_uses_supporting_rows[80-50-False-condition3] ___
+
+condition = {'not': {'not': 'swe_bench_pro <= 70'}}, cited_score = 80
+verified_score = 50, warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+_ test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro = 50 soft(0.2)] _
+
+condition = 'swe_bench_pro = 50 soft(0.2)', cited_score = 80
+verified_score = 50, warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+_ test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro <= model(lab/plain)] _
+
+condition = 'swe_bench_pro <= model(lab/plain)', cited_score = 80
+verified_score = 50, warned = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} = 50 soft(0.2)",
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+    def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=[condition])
+        assert answer.answer.members == ["lab/cited"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in ['cite_only_not_machine_verified']) is False
+E        +  where ['cite_only_not_machine_verified'] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:203: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro <= 70]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro = 50]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-condition2]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-condition3]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro = 50 soft(0.2)]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_warning_uses_supporting_rows[80-50-False-swe_bench_pro <= model(lab/plain)]
+6 failed, 8 passed, 31 deselected in 0.44s

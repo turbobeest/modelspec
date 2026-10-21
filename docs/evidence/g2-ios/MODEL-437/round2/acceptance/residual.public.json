@@ -1,0 +1,90 @@
+{
+  "current": {
+    "case": "facet-must-model.fits_hardware",
+    "public_case_spec": {
+      "spec_version": 1,
+      "where": [
+        {
+          "known": "model.fits_hardware"
+        }
+      ],
+      "optimize": {
+        "max": "software_engineering"
+      },
+      "explain": "summary",
+      "limit": 5
+    },
+    "hardware_fit_changed_models": 10,
+    "hardware_facet_tier": "best_effort",
+    "hardware_facts_unchanged_by_repair": true,
+    "identical_hardware_records_admission_by_policy": {
+      "main": {
+        "admitted": 10
+      },
+      "866": {
+        "quarantined (mixed citation)": 10
+      }
+    },
+    "hardware_fit_state_transitions": {
+      "known->unknown": 32
+    },
+    "candidate_with_baseline_hardware_facts_matches_baseline_answer": true,
+    "candidate_with_baseline_hardware_facts_and_seed_matches_baseline_answer": true,
+    "current_engine_baseline_matches_original": true,
+    "extra_admitted_evidence_records": 1,
+    "baseline_evidence_missing": 0,
+    "common_evidence_readings_changed": 0,
+    "candidate_subject_set_changed": false,
+    "hardware_fit_facet_values_changed": 32,
+    "software_engineering_estimates_changed": 0,
+    "candidate_with_baseline_snapshot_seed_matches_baseline_answer": false,
+    "candidate_with_baseline_capability_fit_matches_baseline_answer": false,
+    "candidate_with_baseline_fit_and_seed_matches_baseline_answer": false,
+    "baseline_answer_member_count": 3,
+    "candidate_answer_member_count": 4
+  },
+  "successor": {
+    "case": "facet-must-model.fits_hardware",
+    "public_case_spec": {
+      "spec_version": 1,
+      "where": [
+        {
+          "known": "model.fits_hardware"
+        }
+      ],
+      "optimize": {
+        "max": "software_engineering"
+      },
+      "explain": "summary",
+      "limit": 5
+    },
+    "hardware_fit_changed_models": 10,
+    "hardware_facet_tier": "best_effort",
+    "hardware_facts_unchanged_by_repair": true,
+    "identical_hardware_records_admission_by_policy": {
+      "main": {
+        "admitted": 10
+      },
+      "866": {
+        "quarantined (mixed citation)": 10
+      }
+    },
+    "hardware_fit_state_transitions": {
+      "known->unknown": 32
+    },
+    "candidate_with_baseline_hardware_facts_matches_baseline_answer": true,
+    "candidate_with_baseline_hardware_facts_and_seed_matches_baseline_answer": true,
+    "current_engine_baseline_matches_original": true,
+    "extra_admitted_evidence_records": 1,
+    "baseline_evidence_missing": 0,
+    "common_evidence_readings_changed": 0,
+    "candidate_subject_set_changed": false,
+    "hardware_fit_facet_values_changed": 32,
+    "software_engineering_estimates_changed": 0,
+    "candidate_with_baseline_snapshot_seed_matches_baseline_answer": false,
+    "candidate_with_baseline_capability_fit_matches_baseline_answer": false,
+    "candidate_with_baseline_fit_and_seed_matches_baseline_answer": false,
+    "baseline_answer_member_count": 5,
+    "candidate_answer_member_count": 5
+  }
+}

@@ -57,8 +57,8 @@ def _response_bytes_at_base_contract(response):
     body = response.body
     data = response.json()
     field = "projects_contract" if data.get("representation") == "bounded" else "contract_version"
-    assert data[field] == "2.18"
-    current = f'"{field}":"2.18"'
+    assert data[field] == "2.19"
+    current = f'"{field}":"2.19"'
     assert body.count(current) == 1
     body = body.replace(current, f'"{field}":"2.17"', 1)
     if data.get("representation") == "bounded":
@@ -70,9 +70,9 @@ def _response_bytes_at_base_contract(response):
 
 @pytest.mark.parametrize("flag", [None, "false", "0", "off", "no", ""])
 @pytest.mark.parametrize("controls,expected", [
-    ({"fields": None}, "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"),
-    ({"fields": ["model"]}, "a1a9d9368d44471a8df735a172e72cd1097503eb97963e96b5eba3a6d7fa7e02"),
-    ({"fields": None, "evidence_for": "lab/a"}, "53882129c52ad97377f85e828b63fe01b86f344e23c3954a70ebc758736b4dd3"),
+    ({"fields": None}, "309830876ab3749b7fa279b981fb85536b8bd5c454c2b98bbbc48aac5f1955b7"),
+    ({"fields": ["model"]}, "810844867c994b0f61ca588138ca562f03fe74e1fe9037bc05992c115f38c539"),
+    ({"fields": None, "evidence_for": "lab/a"}, "600ce1daf831390959466d9654e2681cc68cc1602c5696034c63be035346a9e9"),
 ])
 def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, controls, expected):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED=flag)
@@ -207,7 +207,7 @@ def test_sensitive_inputs_do_not_get_links(entry, snapshot, monkeypatch, private
 def test_complete_and_drill_down_keep_their_budgets(entry, snapshot, monkeypatch):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED="true")
     complete = decide(worker, fields=None)
-    assert hashlib.sha256(_response_bytes_at_base_contract(complete)).hexdigest() == "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"
+    assert hashlib.sha256(_response_bytes_at_base_contract(complete)).hexdigest() == "309830876ab3749b7fa279b981fb85536b8bd5c454c2b98bbbc48aac5f1955b7"
     drill = decide(worker, fields=None, evidence_for="lab/a").json()
     assert drill.get("decision_url")
     assert len(json.dumps(drill, ensure_ascii=False, separators=(",", ":")).encode()) <= DRILL_DOWN_BYTES

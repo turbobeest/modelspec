@@ -1,0 +1,22 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_cited_score_used_by_independent_measurement_tie_breaker_warns ______
+
+    def test_cited_score_used_by_independent_measurement_tie_breaker_warns():
+        inputs = score_inputs()
+        inputs.evidence.append(evidence("lab/cited", "gpqa_diamond", 85,
+                                        source="src-cited", source_url=CITED_URL, outcome=None))
+        inputs = replace(inputs, benchmark_domains={
+            **inputs.benchmark_domains, "gpqa_diamond": [("reasoning", "direct")],
+        })
+        answer = answer_for(load(inputs))
+        assert answer.answer.kind == "tied"
+        assert answer.answer.tie_breakers.most_independently_measured == "lab/cited"
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...not name a single winner among tied.', 'Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:108: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_warnings.py::test_cited_score_used_by_independent_measurement_tie_breaker_warns
+1 failed in 0.47s

@@ -31,7 +31,7 @@ def evidence_state(
     """(state, measured models, eligible models) over ``candidates``.
 
     ``benchmarks`` are the refinement's (benchmark ID, directness) tags. A
-    model is measured when any of its candidates has a verified row on one.
+    model is measured when any of its candidates has an admitted row on one.
     """
     classes = set(eligible_classes)
     candidates_by_model: dict[str, list[str]] = {}
@@ -47,7 +47,7 @@ def evidence_state(
     for benchmark_id, directness in tags:
         for model_id in eligible:
             if any(
-                row.verified
+                row.admitted
                 for candidate in candidates_by_model[model_id]
                 for row in snapshot.evidence(candidate, benchmark_id)
             ):

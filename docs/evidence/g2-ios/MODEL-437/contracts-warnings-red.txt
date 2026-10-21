@@ -1,0 +1,558 @@
+FFFFFFFFFFFFFFFF.F.FFFFF...                                              [100%]
+=================================== FAILURES ===================================
+_ test_evidence_contract_preserves_citation_and_omits_it_when_uncited[EvidenceItem-fields0] _
+
+contract = <class 'decision.contract.EvidenceItem'>
+fields = {'benchmark': 'swe_bench_pro', 'value': 90, 'measured_by': 'independent', 'date': '2026-10-21', ...}
+
+    @pytest.mark.parametrize("contract,fields", [
+        (EvidenceItem, {"benchmark": BENCHMARK, "value": 90, "measured_by": "independent",
+                        "date": "2026-10-21", "date_type": "observed", "source": CITED_URL,
+                        "directness": "direct"}),
+        (ComparisonEvidence, {"benchmark": BENCHMARK, "value": 90, "unit": "percent",
+                              "record_id": "lab/cited#score", "source_ids": ["src-cited"]}),
+    ])
+    def test_evidence_contract_preserves_citation_and_omits_it_when_uncited(contract, fields):
+        assert "citation" not in contract.model_validate(fields).model_dump(mode="json")
+>       cited = contract.model_validate({**fields, "citation": CITATION}).model_dump(mode="json")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EvidenceItem
+E       citation
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'status': 'cited', 'sour... 'retrieved_at': None}]}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+tests/test_cited_score_contract.py:28: ValidationError
+_ test_evidence_contract_preserves_citation_and_omits_it_when_uncited[ComparisonEvidence-fields1] _
+
+contract = <class 'decision.contract.ComparisonEvidence'>
+fields = {'benchmark': 'swe_bench_pro', 'value': 90, 'unit': 'percent', 'record_id': 'lab/cited#score', ...}
+
+    @pytest.mark.parametrize("contract,fields", [
+        (EvidenceItem, {"benchmark": BENCHMARK, "value": 90, "measured_by": "independent",
+                        "date": "2026-10-21", "date_type": "observed", "source": CITED_URL,
+                        "directness": "direct"}),
+        (ComparisonEvidence, {"benchmark": BENCHMARK, "value": 90, "unit": "percent",
+                              "record_id": "lab/cited#score", "source_ids": ["src-cited"]}),
+    ])
+    def test_evidence_contract_preserves_citation_and_omits_it_when_uncited(contract, fields):
+        assert "citation" not in contract.model_validate(fields).model_dump(mode="json")
+>       cited = contract.model_validate({**fields, "citation": CITATION}).model_dump(mode="json")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for ComparisonEvidence
+E       citation
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'status': 'cited', 'sour... 'retrieved_at': None}]}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+tests/test_cited_score_contract.py:28: ValidationError
+__________ test_named_comparison_preserves_cited_benchmark_provenance __________
+
+    def test_named_comparison_preserves_cited_benchmark_provenance():
+        body = collect_models(["lab/cited", "lab/plain"], load(score_inputs()))
+        cited = body["models"][0]["evidence"]
+        assert len(cited) == 1
+        assert cited[0]["value"] == 90
+>       assert cited[0]["citation"] == CITATION
+               ^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'citation'
+
+tests/test_cited_score_contract.py:38: KeyError
+___ test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-none] ____
+
+level = 'none', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+        answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+        assert answer.answer.members == ["lab/cited"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:42: AssertionError
+__ test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-summary] __
+
+level = 'summary', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+        answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+        assert answer.answer.members == ["lab/cited"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:42: AssertionError
+___ test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-full] ____
+
+level = 'full', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+>       answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+
+tests/test_cited_score_warnings.py:39:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_cited_score_warnings.py:33: in answer_for
+    return decide(spec, index, facets=facet)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/engine.py:593: in decide
+    return _decide(
+decision/engine.py:955: in _decide
+    explain(
+decision/explain.py:596: in explain
+    _full(
+decision/explain.py:896: in _full
+    evidence = [group for group in domain_evidence(snapshot, cid, domains, benchmarks)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/explain.py:246: in domain_evidence
+    domain=domain, items=[evidence_item(snapshot, row, domain) for row in rows.values()]))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+snapshot = <decision.computed.ComputedFacets object at 0x10a1c0050>
+row = EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+domain = 'software_engineering', loading = None, estimate_weight = None
+recency_weight = None
+
+    def evidence_item(
+        snapshot,
+        row,
+        domain,
+        *,
+        loading=None,
+        estimate_weight=None,
+        recency_weight=None,
+    ):
+        record = checked_record(snapshot, row.record_id)
+        if not row.admitted or row.date is None or row.directness is None:
+            raise ExplanationError(f"{row.record_id}: missing evidence date or domain directness")
+        if record.get("score") != row.value:
+            raise ExplanationError(f"{row.record_id}: evidence differs from retained record")
+        measured = {"independent_evaluator": "independent"}.get(row.measured_by, row.measured_by)
+        date_type = {"evaluated": "observed"}.get(row.date_type, row.date_type)
+        unregistered = row.harness == UNREGISTERED
+>       return EvidenceItem(
+            requested_domain=domain,
+            record_id=row.record_id,
+            benchmark=row.benchmark_id,
+            version=row.version,
+            sub_category=row.subcategory,
+            value=row.value,
+            unit=row.unit,
+            measured_by=measured,
+            effort=row.effort,
+            harness=None if unregistered else row.harness,
+            harness_unregistered=unregistered,
+            date=row.date,
+            date_type=date_type,
+            source=snapshot.source_url(row.source_ids[0]),
+            source_snapshot=row.source_snapshot,
+            directness=row.directness,
+            n=row.n,
+            interval=row.interval,
+            quality_flags=list(row.quality_flags),
+            loading=loading,
+            estimate_weight=estimate_weight,
+            recency_weight=recency_weight,
+            citation=record.get("citation"),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EvidenceItem
+E       citation
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'sources': [{'retrieved_...s'}], 'status': 'cited'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+decision/explain.py:205: ValidationError
+_ test_cited_score_filter_warns_for_recommended_model[software_engineering-none] _
+
+level = 'none', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+        answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+        assert answer.answer.members == ["lab/cited"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:42: AssertionError
+_ test_cited_score_filter_warns_for_recommended_model[software_engineering-summary] _
+
+level = 'summary', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+        answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+        assert answer.answer.members == ["lab/cited"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:42: AssertionError
+_ test_cited_score_filter_warns_for_recommended_model[software_engineering-full] _
+
+level = 'full', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_filter_warns_for_recommended_model(level, dimension):
+        answer = answer_for(score_index(), where=[f"{dimension} >= -100"],
+                            objective={"min": "model.context_window"}, level=level)
+        assert answer.answer.members == ["lab/cited"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[CandidateValues(offering=OfferingRef(model='lab/cited', provider=None, region=None, tier...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:42: AssertionError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-none] _
+
+level = 'none', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+>       assert answer.answer.members == ["lab/plain"]
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'members'
+
+tests/test_cited_score_warnings.py:53: AttributeError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-summary] _
+
+level = 'summary', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+>       assert answer.answer.members == ["lab/plain"]
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'members'
+
+tests/test_cited_score_warnings.py:53: AttributeError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-full] _
+
+level = 'full', dimension = 'swe_bench_pro'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+>       assert answer.answer.members == ["lab/plain"]
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'members'
+
+tests/test_cited_score_warnings.py:53: AttributeError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-none] _
+
+level = 'none', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+        assert answer.answer.members == ["lab/plain"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:54: AssertionError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-summary] _
+
+level = 'summary', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+        assert answer.answer.members == ["lab/plain"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[NearMiss(values=[], offering=OfferingRef(model='lab/cited', provider=None, region=None, tier=Non...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:54: AssertionError
+_ test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-full] _
+
+level = 'full', dimension = 'software_engineering'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("dimension", [BENCHMARK, "software_engineering"])
+    def test_cited_score_reference_warns_after_reference_model_eliminated(level, dimension):
+        answer = answer_for(score_index(cited_score=60), where=[
+            "model.context_window >= 100000", f"{dimension} >= model(lab/cited)",
+        ], level=level)
+        assert answer.answer.members == ["lab/plain"]
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[NearMiss(values=[], offering=OfferingRef(model='lab/cited', provider=None, region=None, tier=Non...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:54: AssertionError
+_ test_best_reference_warns_only_for_cited_winning_anchor[swe_bench_pro-25-90-True] _
+
+cited_score = 90, warned = True, dimension = 'swe_bench_pro', margin = 25
+
+    @pytest.mark.parametrize("cited_score, warned", [(90, True), (60, False)])
+    @pytest.mark.parametrize("dimension, margin", [(BENCHMARK, 25), ("software_engineering", 100)])
+    def test_best_reference_warns_only_for_cited_winning_anchor(cited_score, warned, dimension, margin):
+        answer = answer_for(score_index(cited_score=cited_score),
+                            where=[f"{dimension} >= best({margin})"])
+        assert answer.answer.members == ["lab/plain"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in []) is True
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:64: AssertionError
+_ test_best_reference_warns_only_for_cited_winning_anchor[software_engineering-100-90-True] _
+
+cited_score = 90, warned = True, dimension = 'software_engineering'
+margin = 100
+
+    @pytest.mark.parametrize("cited_score, warned", [(90, True), (60, False)])
+    @pytest.mark.parametrize("dimension, margin", [(BENCHMARK, 25), ("software_engineering", 100)])
+    def test_best_reference_warns_only_for_cited_winning_anchor(cited_score, warned, dimension, margin):
+        answer = answer_for(score_index(cited_score=cited_score),
+                            where=[f"{dimension} >= best({margin})"])
+        assert answer.answer.members == ["lab/plain"]
+>       assert (CITE_ONLY_WARNING in answer.warnings) is warned
+E       AssertionError: assert ('cite_only_not_machine_verified' in []) is True
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...pplied=[], estimates=[], do_not_claim=['Do not claim a quality rank from this objective.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:64: AssertionError
+____________ test_capability_objective_warns_for_cited_driver[none] ____________
+
+level = 'none'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_capability_objective_warns_for_cited_driver(level):
+        answer = answer_for(score_index(), objective={"max": "software_engineering"}, level=level)
+        assert "lab/cited" in answer.answer.members
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...stimates=['results.estimates'], do_not_claim=['Do not present estimates as measurements.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:71: AssertionError
+__________ test_capability_objective_warns_for_cited_driver[summary] ___________
+
+level = 'summary'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_capability_objective_warns_for_cited_driver(level):
+>       answer = answer_for(score_index(), objective={"max": "software_engineering"}, level=level)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cited_score_warnings.py:69:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_cited_score_warnings.py:33: in answer_for
+    return decide(spec, index, facets=facet)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/engine.py:593: in decide
+    return _decide(
+decision/engine.py:955: in _decide
+    explain(
+decision/explain.py:570: in explain
+    result.contributions = contributions(
+decision/explain.py:385: in contributions
+    items = estimate_evidence(snapshot, cid, part.dimension.removeprefix("-"))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/explain.py:292: in estimate_evidence
+    items.append(evidence_item(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+snapshot = <decision.computed.ComputedFacets object at 0x10a1dbf20>
+row = EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+domain = 'software_engineering', loading = 1.0, estimate_weight = 1.0
+recency_weight = 0.857424884
+
+    def evidence_item(
+        snapshot,
+        row,
+        domain,
+        *,
+        loading=None,
+        estimate_weight=None,
+        recency_weight=None,
+    ):
+        record = checked_record(snapshot, row.record_id)
+        if not row.admitted or row.date is None or row.directness is None:
+            raise ExplanationError(f"{row.record_id}: missing evidence date or domain directness")
+        if record.get("score") != row.value:
+            raise ExplanationError(f"{row.record_id}: evidence differs from retained record")
+        measured = {"independent_evaluator": "independent"}.get(row.measured_by, row.measured_by)
+        date_type = {"evaluated": "observed"}.get(row.date_type, row.date_type)
+        unregistered = row.harness == UNREGISTERED
+>       return EvidenceItem(
+            requested_domain=domain,
+            record_id=row.record_id,
+            benchmark=row.benchmark_id,
+            version=row.version,
+            sub_category=row.subcategory,
+            value=row.value,
+            unit=row.unit,
+            measured_by=measured,
+            effort=row.effort,
+            harness=None if unregistered else row.harness,
+            harness_unregistered=unregistered,
+            date=row.date,
+            date_type=date_type,
+            source=snapshot.source_url(row.source_ids[0]),
+            source_snapshot=row.source_snapshot,
+            directness=row.directness,
+            n=row.n,
+            interval=row.interval,
+            quality_flags=list(row.quality_flags),
+            loading=loading,
+            estimate_weight=estimate_weight,
+            recency_weight=recency_weight,
+            citation=record.get("citation"),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EvidenceItem
+E       citation
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'sources': [{'retrieved_...s'}], 'status': 'cited'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+decision/explain.py:205: ValidationError
+____________ test_capability_objective_warns_for_cited_driver[full] ____________
+
+level = 'full'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_capability_objective_warns_for_cited_driver(level):
+>       answer = answer_for(score_index(), objective={"max": "software_engineering"}, level=level)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cited_score_warnings.py:69:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_cited_score_warnings.py:33: in answer_for
+    return decide(spec, index, facets=facet)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/engine.py:593: in decide
+    return _decide(
+decision/engine.py:955: in _decide
+    explain(
+decision/explain.py:570: in explain
+    result.contributions = contributions(
+decision/explain.py:385: in contributions
+    items = estimate_evidence(snapshot, cid, part.dimension.removeprefix("-"))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decision/explain.py:292: in estimate_evidence
+    items.append(evidence_item(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+snapshot = <decision.computed.ComputedFacets object at 0x10a1da5d0>
+row = EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+domain = 'software_engineering', loading = 1.0, estimate_weight = 1.0
+recency_weight = 0.857424884
+
+    def evidence_item(
+        snapshot,
+        row,
+        domain,
+        *,
+        loading=None,
+        estimate_weight=None,
+        recency_weight=None,
+    ):
+        record = checked_record(snapshot, row.record_id)
+        if not row.admitted or row.date is None or row.directness is None:
+            raise ExplanationError(f"{row.record_id}: missing evidence date or domain directness")
+        if record.get("score") != row.value:
+            raise ExplanationError(f"{row.record_id}: evidence differs from retained record")
+        measured = {"independent_evaluator": "independent"}.get(row.measured_by, row.measured_by)
+        date_type = {"evaluated": "observed"}.get(row.date_type, row.date_type)
+        unregistered = row.harness == UNREGISTERED
+>       return EvidenceItem(
+            requested_domain=domain,
+            record_id=row.record_id,
+            benchmark=row.benchmark_id,
+            version=row.version,
+            sub_category=row.subcategory,
+            value=row.value,
+            unit=row.unit,
+            measured_by=measured,
+            effort=row.effort,
+            harness=None if unregistered else row.harness,
+            harness_unregistered=unregistered,
+            date=row.date,
+            date_type=date_type,
+            source=snapshot.source_url(row.source_ids[0]),
+            source_snapshot=row.source_snapshot,
+            directness=row.directness,
+            n=row.n,
+            interval=row.interval,
+            quality_flags=list(row.quality_flags),
+            loading=loading,
+            estimate_weight=estimate_weight,
+            recency_weight=recency_weight,
+            citation=record.get("citation"),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EvidenceItem
+E       citation
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'sources': [{'retrieved_...s'}], 'status': 'cited'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+decision/explain.py:205: ValidationError
+_______________ test_refinement_objective_warns_for_cited_driver _______________
+
+    def test_refinement_objective_warns_for_cited_driver():
+        answer = answer_for(score_index(refinement=True),
+                            objective={"weights": {"software_engineering/rust": 1}})
+        assert any(row.model == "lab/cited" for row in answer.results)
+>       assert CITE_ONLY_WARNING in answer.warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...results.refinement_estimates'], do_not_claim=['Do not present estimates as measurements.'], omitted={}), coverage=None).warnings
+
+tests/test_cited_score_warnings.py:78: AssertionError
+________ test_unrelated_score_on_recommended_model_has_only_row_warning ________
+
+    def test_unrelated_score_on_recommended_model_has_only_row_warning():
+        answer = answer_for(score_index(), objective={"min": "model.context_window"})
+        assert answer.answer.members == ["lab/cited"]
+        assert CITE_ONLY_WARNING not in answer.warnings
+>       assert CITE_ONLY_WARNING in answer.results[0].warnings
+E       AssertionError: assert 'cite_only_not_machine_verified' in []
+E        +  where [] = Result(rank=1, offering=OfferingRef(model='lab/cited', provider=None, region=None, tier=None, api_model_id=None, route...refinement_estimates=None, p_best=None, top3_stability=None, soft_penalty=0.0, contributions=[], warnings=[], plans=[]).warnings
+
+tests/test_cited_score_warnings.py:85: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_contract.py::test_evidence_contract_preserves_citation_and_omits_it_when_uncited[EvidenceItem-fields0]
+FAILED tests/test_cited_score_contract.py::test_evidence_contract_preserves_citation_and_omits_it_when_uncited[ComparisonEvidence-fields1]
+FAILED tests/test_cited_score_contract.py::test_named_comparison_preserves_cited_benchmark_provenance
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-none]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-summary]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[swe_bench_pro-full]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[software_engineering-none]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[software_engineering-summary]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_filter_warns_for_recommended_model[software_engineering-full]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-none]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-summary]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[swe_bench_pro-full]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-none]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-summary]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_reference_warns_after_reference_model_eliminated[software_engineering-full]
+FAILED tests/test_cited_score_warnings.py::test_best_reference_warns_only_for_cited_winning_anchor[swe_bench_pro-25-90-True]
+FAILED tests/test_cited_score_warnings.py::test_best_reference_warns_only_for_cited_winning_anchor[software_engineering-100-90-True]
+FAILED tests/test_cited_score_warnings.py::test_capability_objective_warns_for_cited_driver[none]
+FAILED tests/test_cited_score_warnings.py::test_capability_objective_warns_for_cited_driver[summary]
+FAILED tests/test_cited_score_warnings.py::test_capability_objective_warns_for_cited_driver[full]
+FAILED tests/test_cited_score_warnings.py::test_refinement_objective_warns_for_cited_driver
+FAILED tests/test_cited_score_warnings.py::test_unrelated_score_on_recommended_model_has_only_row_warning
+22 failed, 5 passed in 0.69s

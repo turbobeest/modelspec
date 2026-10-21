@@ -218,7 +218,7 @@ def test_decide_response_description_uses_the_bounded_version(monkeypatch) -> No
     description = generator.build_spec()["paths"]["/v1/decide"]["post"]["responses"]["200"]["description"]
     assert description == (
         "A decision pinned to the snapshot that produced it: a complete "
-        "Decision (contract_version 2.18), with optional "
+        "Decision (contract_version 2.19), with optional "
         "top[].hardware_estimates and unknown_facets; or, when the request sends "
         "fields, evidence_for or router_config, the separate bounded representation "
         "(representation: bounded, bounded_version 7.9, no contract_version)."
@@ -538,7 +538,7 @@ def test_named_model_comparison_documents_bounded_keyed_facts(
         assert "comparison_version" in schema["properties"]
         assert "contract_version" not in schema["properties"]
         version = generator._resolve(schema["properties"]["comparison_version"], spec)
-        assert version.get("const", version.get("enum")) in ("1.0", ["1.0"])
+        assert version.get("const", version.get("enum")) in ("1.1", ["1.1"])
 
 
 def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(

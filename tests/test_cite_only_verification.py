@@ -206,7 +206,12 @@ def test_cite_redirect_evidence_cannot_enter_as_verified(tmp_path):
     row["sources"][0]["snapshot_ref"] = ref
     row["sources"][0]["resolved_urls"] = [CITE_URL]
     index = loaded(replace(snapshot_input(), evidence=[row]), source_cache=store)
-    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+    rows = index.evidence("lab/alpha", "swe_bench_pro")
+    assert len(rows) == 1
+    assert rows[0].verified is False
+    record = index.record(rows[0].record_id)
+    assert record["verification"] is None
+    assert record["citation"]["status"] == "cited"
 
 
 def test_cite_copy_marker_blocks_verification_after_redirect(tmp_path):
@@ -469,14 +474,18 @@ def test_card_redirect_keeps_evidence_out(tmp_path, with_store):
     assert index.evidence("lab/alpha", "swe_bench_pro") == ()
 
 
-def test_fetcher_recorded_redirect_keeps_evidence_out(tmp_path):
+def test_fetcher_recorded_redirect_admits_cited_evidence(tmp_path):
     ref = "sha256:" + "b" * 64
     store = fetcher_store(tmp_path, ref, source_url=SOURCES["src-board"])
     row = evidence("lab/alpha", "swe_bench_pro", 55.0)
     row["sources"][0]["snapshot_ref"] = ref
     inputs = replace(snapshot_input(url=ORDINARY), evidence=[row])
     assert loaded(inputs).evidence("lab/alpha", "swe_bench_pro")
-    assert loaded(inputs, source_cache=store).evidence("lab/alpha", "swe_bench_pro") == ()
+    index = loaded(inputs, source_cache=store)
+    rows = index.evidence("lab/alpha", "swe_bench_pro")
+    assert len(rows) == 1
+    assert rows[0].verified is False
+    assert index.record(rows[0].record_id)["citation"]["status"] == "cited"
 
 
 def test_unreadable_fetcher_record_keeps_evidence_out(tmp_path):

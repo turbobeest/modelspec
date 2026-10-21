@@ -1,0 +1,13 @@
+{
+  "label": "repair-view-audit",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/audit_repaired_view.py"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T18:57:08.768772+00:00",
+  "finished": "2026-10-21T18:57:09.859333+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/repair-view-audit.private.log"
+}

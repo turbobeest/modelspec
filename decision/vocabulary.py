@@ -112,7 +112,7 @@ def frontier_coverage(
         model_id
         for model_id, candidates in by_model.items()
         if any(
-            row.verified and row.benchmark_id in direct_benchmarks
+            row.admitted and row.benchmark_id in direct_benchmarks
             for candidate in candidates
             for row in snapshot.evidence_for_domain(candidate, domain_id)
         )
@@ -131,7 +131,7 @@ def frontier_coverage(
             model_id
             for model_id in direct
             if any(
-                row.verified
+                row.admitted
                 for candidate in by_model[model_id]
                 for row in snapshot.evidence(candidate, benchmark)
             )
@@ -261,7 +261,7 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
         units: Counter[str] = Counter()
         scores: list[float] = []
         for cid in lineup:
-            found = [e for e in snapshot.evidence(cid, benchmark) if e.verified]
+            found = [e for e in snapshot.evidence(cid, benchmark) if e.admitted]
             if found:
                 models.add(snapshot.model_of(cid))
                 units.update(e.unit for e in found if e.unit)

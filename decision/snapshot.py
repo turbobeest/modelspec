@@ -5,7 +5,7 @@ builds it, gates it and loads it:
 
 * ``build_snapshot`` compiles models, offerings and evidence into a columnar
   snapshot. Values enter with independent verification, or as explicitly cited
-  facts when source retention policy forbids a copied page. Every source must
+  facts or scores when source retention policy forbids a copied page. Every source must
   resolve to a registered URL that is not an
   excluded source. A ``verified`` from the collector's own model family is not
   a second key (MODEL-159): it is skipped as if never logged, while a
@@ -65,6 +65,7 @@ from decision.citation import fact_citation, ref_states
 from decision.model import (
     Fact,
     Measurement,
+    SourceRef,
     evidence_verification_value,
     exceeds_legacy_orderings,
     fact_verification_value,
@@ -78,7 +79,7 @@ from decision.model import (
 logger = logging.getLogger(__name__)
 
 FORMAT = "modelspec.decision-snapshot"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 KEY_ENV = "MODELSPEC_SNAPSHOT_KEY"
 SIGNATURE_ALG = "hmac-sha256"
 ED25519_KEY_ENV = "MODELSPEC_SNAPSHOT_ED25519_KEY"
@@ -207,6 +208,11 @@ class EvidenceValue:
     interval: tuple[float, float] | None = None
     n: int | None = None
     quality_flags: tuple[str, ...] = ()
+    cited: bool = False
+
+    @property
+    def admitted(self) -> bool:
+        return self.verified or self.cited
 
 
 @dataclass(frozen=True)
@@ -943,7 +949,7 @@ class _Compiler:
             return "unsourced"
         if len(urls) != len(source_ids):
             return "unresolved_source"
-        if kind == "evidence":
+        if kind == "evidence" and citation is None:
             from decision.retention import is_cite_only_restrictive
 
             if any(is_cite_only_restrictive(url) for url in [*urls, *extra_urls]):
@@ -1232,12 +1238,22 @@ class _Compiler:
         try:
             citation = fact_citation(e, self.sources, self.source_cache)
             # A card's own redirect to a cite-only host only adds this refusal.
-            restricted = any(state != "open" for state in
-                             ref_states(e, self.sources, self.source_cache))
+            states = ref_states(e, self.sources, self.source_cache)
+            if citation is not None:
+                from decision.retention import cite_only_status, require_source_url
+
+                url = require_source_url(e.get("source_url"))
+                if cite_only_status(url) is None:
+                    raise ValueError("invalid evidence source URL")
+                for ref in e.get("sources") or ():
+                    SourceRef.model_validate(ref)
         except ValueError:
             self._exclude(sid, "invalid_citation")
             return
-        if citation is not None or restricted:
+        if citation is not None and any(state != "cited" for state in states):
+            self._exclude(sid, "quarantined (mixed citation)")
+            return
+        if citation is None and any(state != "open" for state in states):
             self._exclude(sid, "quarantined (cited)")
             return
         reason = self._admit(
@@ -1246,7 +1262,10 @@ class _Compiler:
             e.get("verification"),
             evidence_verification_value(e),
             source_ids,
-                             extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+            extra_urls=[e.get("source_url"), *(url for ref in e.get("sources") or ()
+                                             for url in ref.get("resolved_urls") or ())],
+            benchmark=e.get("benchmark_id"),
+            citation=citation)
         if reason is None:
             from schema.benchmark_values import validate_value
 
@@ -1267,13 +1286,27 @@ class _Compiler:
             str(e["benchmark_id"]), e.get("benchmark_version") or None, e.get("subcategory"),
             float(e["score"]), e.get("unit"), e.get("measured_by"), e.get("effort"),
             e.get("harness"), str(e.get("evidence_date") or "") or None, source_ids,
-            self._retain("evidence", e), e.get("date_type"),
+            self._retain("evidence", e, citation), e.get("date_type"),
             next((r.get("snapshot_ref") for r in e.get("sources", [])
                   if r["source_id"] == source_ids[0]), None),
             e.get("interval"), e.get("n"), sorted(e.get("quality_flags") or []),
         ])
 
     # output ------------------------------------------------------------------
+
+    def prefer_verified_evidence(self) -> None:
+        """A verified model/benchmark reading supersedes its cited siblings."""
+        verified = {
+            (self.subjects[sid]["model"], row[0])
+            for sid, rows in self.evidence.items() for row in rows
+            if "citation" not in self.records[row[10]]
+        }
+        self.evidence = {
+            sid: [row for row in rows
+                  if "citation" not in self.records[row[10]]
+                  or (self.subjects[sid]["model"], row[0]) not in verified]
+            for sid, rows in self.evidence.items()
+        }
 
     def _section(self, ids: list[str]) -> dict[str, Any]:
         index = {sid: i for i, sid in enumerate(ids)}
@@ -1562,6 +1595,18 @@ class _Compiler:
                 self.subjects[sid]["model"] for sid in kept
                 if self.subjects[sid]["kind"] == "model"
             )
+            cited = {rid for rid, record in self.records.items()
+                     if record.get("citation", {}).get("status") == "cited"}
+            cited_estimates = {}
+            for model_id in sorted(fitted_models):
+                for dimension in (*fit.domain_sd, *refinements):
+                    benchmarks = [benchmark for benchmark, _ in
+                                  refinements.get(dimension, {}).get("benchmarks", ())]
+                    records = fit.cited_records(model_id, dimension, cited, benchmarks)
+                    if records:
+                        cited_estimates.setdefault(model_id, {})[dimension] = list(records)
+            if cited_estimates:
+                capability["cited_records"] = cited_estimates
         retained_fit_ids = {row["id"] for row in hardware_fit}
         retained_records = {}
         retained_fit_records = {}
@@ -1601,10 +1646,13 @@ class _Compiler:
                 if sid in kept or sid in subscription_ids
             },
         }
-        cited_records = sorted(rid for rid, record in retained_records.items()
-                               if record.get("citation", {}).get("status") == "cited")
-        if cited_records:
-            content["cited_fact_records"] = cited_records
+        for kind, key in (("facet", "cited_fact_records"),
+                          ("benchmark_id", "cited_evidence_records")):
+            cited_records = sorted(rid for rid, record in retained_records.items()
+                                   if kind in record
+                                   and record.get("citation", {}).get("status") == "cited")
+            if cited_records:
+                content[key] = cited_records
         periods = [period for sid in kept for period in self.price_periods.get(sid, ())]
         starts = [start for start, _until in periods if start is not None]
         ends = [until for _start, until in periods if until is not None and until < date.max]
@@ -1787,6 +1835,7 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_subscription(subscription)
     for e in inputs.evidence:
         c.add_evidence(e)
+    c.prefer_verified_evidence()
     for device in inputs.hardware:
         c.add_hardware(device)
     for record in inputs.hardware_fit_records:
@@ -2207,10 +2256,11 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
     """
 
     def __init__(self, rows: Mapping[str, Sequence[Sequence[Any]]],
-                 model_of: Mapping[str, str]):
+                 model_of: Mapping[str, str], cited: frozenset[str] = frozenset()):
         super().__init__()
         self.rows = rows
         self.model_of = model_of
+        self.cited = cited
         self._parsed_records: dict[tuple[str, str], EvidenceValue] = {}
         self.records = {
             (model_of.get(cid, cid), row[10]): row
@@ -2220,7 +2270,8 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         }
 
     @staticmethod
-    def _value(row: Sequence[Any]) -> EvidenceValue:
+    def _value(row: Sequence[Any], cited: frozenset[str] = frozenset()) -> EvidenceValue:
+        is_cited = len(row) > 10 and row[10] in cited
         return EvidenceValue(
             benchmark_id=row[0], version=row[1], subcategory=row[2], value=row[3],
             unit=row[4], measured_by=row[5], effort=row[6], harness=row[7],
@@ -2231,6 +2282,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
             interval=tuple(row[13]) if len(row) > 13 and row[13] is not None else None,
             n=row[14] if len(row) > 14 else None,
             quality_flags=tuple(row[15]) if len(row) > 15 else (),
+            verified=not is_cited, cited=is_cited,
         )
 
     def record(self, cid: str, record_id: str) -> EvidenceValue | None:
@@ -2239,7 +2291,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         if row is None:
             return None
         if key not in self._parsed_records:
-            self._parsed_records[key] = self._value(row)
+            self._parsed_records[key] = self._value(row, self.cited)
         return self._parsed_records[key]
 
     def _rows(self, cid: str) -> list[Sequence[Any]]:
@@ -2252,7 +2304,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         return sorted(own + inherited, key=lambda r: (r[0], r[8] or "", r[3], canonical_json(r)))
 
     def __missing__(self, cid: str) -> tuple[EvidenceValue, ...]:
-        self[cid] = tuple(self._value(row) for row in self._rows(cid))
+        self[cid] = tuple(self._value(row, self.cited) for row in self._rows(cid))
         return self[cid]
 
 
@@ -2309,6 +2361,7 @@ class LoadedSnapshot:
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
         self._cited_fact_records = frozenset(content.get("cited_fact_records", ()))
+        self._cited_evidence_records = frozenset(content.get("cited_evidence_records", ()))
         self.explanation_rebuild_required = (
             None
             if "fact_records" in content and ("record_table" in content or "records" in content)
@@ -2360,7 +2413,8 @@ class LoadedSnapshot:
 
         self._evidence = _Evidence({cid: rows for section in sections
                                     for cid, rows in section["evidence"].items()},
-                                   {cid: meta["model"] for cid, meta in self._meta.items()})
+                                   {cid: meta["model"] for cid, meta in self._meta.items()},
+                                   self._cited_evidence_records)
         self._evidence_bits: dict[tuple[Any, ...], _FacetBitsets] = {}
         self._benchmarks = tuple(sorted(content["benchmark_domains"]))
         capability = content.get("capability") or {}
@@ -2374,6 +2428,7 @@ class LoadedSnapshot:
             for domain_id, row in domains.items()
         }
         self._capability_drivers = _Drivers(capability.get("drivers"))
+        self._estimate_cited_records = capability.get("cited_records") or {}
         # Refinements (MODEL-190): stored estimates exist only where a model
         # has refinement evidence; everyone else falls back at read time.
         self._refinements: Mapping[str, Mapping[str, Any]] = content.get("refinements") or {}
@@ -2443,6 +2498,12 @@ class LoadedSnapshot:
             facts = iter(plan["facts"].values())
         return tuple(sorted({fact.record_id for fact in facts
                              if fact.record_id in self._cited_fact_records}))
+
+    def cited_evidence(self, cid: str) -> tuple[str, ...]:
+        """Cited scores used by this candidate, respecting offering overrides."""
+        if not self._cited_evidence_records or cid not in self._row:
+            return ()
+        return tuple(sorted(row.record_id for row in self._evidence[cid] if row.cited))
 
     def ids_where(self, facet_id: str, op: str, arg: Any) -> Bitset3:
         """Candidates passing, failing, or unknown on ``facet op arg``.
@@ -2638,6 +2699,10 @@ class LoadedSnapshot:
         model_id = self._meta[cid]["model"]
         return self._capability_drivers[model_id, domain_id]
 
+    def estimate_cited_records(self, cid: str, dimension: str) -> tuple[str, ...]:
+        """All citations used by the fitted estimate, including unshown drivers."""
+        return tuple(self._estimate_cited_records.get(self.model_of(cid), {}).get(dimension, ()))
+
     def refinement_keys(self) -> tuple[str, ...]:
         """Every registered refinement's weight key, when the snapshot carries them."""
         return tuple(self._refinements)
@@ -2747,7 +2812,7 @@ class LoadedSnapshot:
             model_of = {c["id"]: c["model"] for c in section["candidates"]}
             for subject in sorted(section["evidence"]):
                 for row in section["evidence"][subject]:
-                    yield model_of[subject], _Evidence._value(row)
+                    yield model_of[subject], _Evidence._value(row, self._cited_evidence_records)
 
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]:
         """Each benchmark's (domain, directness) tags, sorted by domain."""
@@ -2838,7 +2903,7 @@ def load_snapshot_bytes(
         raise SnapshotIntegrityError(f"{source}: not a gzipped JSON snapshot: {exc}") from exc
     if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:
         raise SnapshotIntegrityError(f"{source}: not a {FORMAT} file")
-    if envelope.get("format_version") != FORMAT_VERSION:
+    if envelope.get("format_version") not in {1, FORMAT_VERSION}:
         raise SnapshotIntegrityError(
             f"{source}: format version {envelope.get('format_version')!r}, "
             f"expected {FORMAT_VERSION}"

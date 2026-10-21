@@ -39,6 +39,7 @@ export interface Evidence {
   harness: string;
   who: string;
   src: string;
+  cited?: boolean;
   /** Learned-estimate explanation fields, present on capability drivers. */
   loading?: number | null;
   estimateWeight?: number | null;

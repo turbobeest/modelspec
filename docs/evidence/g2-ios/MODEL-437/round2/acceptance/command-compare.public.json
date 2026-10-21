@@ -1,0 +1,18 @@
+{
+  "label": "compare",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/compare_private.py",
+    "compare",
+    "--output",
+    "/tmp/model-437-scratch/acceptance/results",
+    "--states",
+    "adc"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T19:00:44.303124+00:00",
+  "finished": "2026-10-21T19:00:44.347197+00:00",
+  "exit": 1,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/compare.private.log"
+}
