@@ -21,7 +21,6 @@ remains, so the model keeps its domain value with a wider interval.
 
 from __future__ import annotations
 
-import hashlib
 import math
 import random
 from collections import Counter, defaultdict
@@ -1250,42 +1249,100 @@ def backtest_newest_capabilities(
 
 def deterministic_probabilities(
     estimates: Mapping[str, CapabilityEstimate],
-    *,
-    seed_material: str,
-    samples: int = 256,
 ) -> dict[str, tuple[float, float]]:
-    """Return P(best) and top-three stability with a snapshot-derived seed.
+    """Return P(best) and top-three stability for independent normal scores.
 
-    The page presents these probabilities to whole-percent precision.  A 256
-    draw deterministic sample keeps that honesty while bounding the dominant
-    CPU loop on a cold Python Worker request.
+    Each model's chance is an integral over its own score: at score x, the
+    other models are each below x with their normal CDF, and the count above x
+    has a closed form. The integral is taken at fixed quantile nodes, so the
+    answer depends on the estimates alone. A seeded sample reordered near-tied
+    models whenever the snapshot id changed (MODEL-440).
     """
     distributions = tuple((model_id, estimates[model_id].value, estimates[model_id].sd)
                           for model_id in sorted(estimates))
-    return dict(_probability_draws(distributions, seed_material, samples))
+    return dict(_probabilities(distributions))
+
+
+#: Equal-probability cells per model. The integrand rises with the model's
+#: score, so the midpoint rule is within 1/PROBABILITY_CELLS of the integral
+#: even when another model's score is a step.
+PROBABILITY_CELLS = 64
+#: Each end cell is halved this many times. A weak model is best only in its
+#: upper tail, which one end cell would read at a single point.
+_PROBABILITY_TAIL_SPLITS = 8
+#: Another model further than this many of its sds from every node is fixed
+#: below or above them; its CDF there differs from 0 or 1 by under 1e-17.
+_PROBABILITY_REACH = 8.5
+_PROBABILITY_PRECISION = 4
+#: A node whose integrand is below this adds nothing at that precision.
+_PROBABILITY_NEGLIGIBLE = 1e-12
+
+
+@lru_cache(maxsize=1)
+def _probability_nodes() -> tuple[tuple[float, float], ...]:
+    """(standard normal quantile, probability weight) per cell, highest first."""
+    from statistics import NormalDist
+
+    width = 1 / PROBABILITY_CELLS
+    edges = [k * width for k in range(1, PROBABILITY_CELLS)]
+    for split in range(1, _PROBABILITY_TAIL_SPLITS + 1):
+        edges += [width / 2**split, 1 - width / 2**split]
+    edges = [0.0, *sorted(edges), 1.0]
+    standard = NormalDist()
+    return tuple((standard.inv_cdf((low + high) / 2), high - low)
+                 for low, high in reversed(list(zip(edges, edges[1:]))))
 
 
 @lru_cache(maxsize=128)
-def _probability_draws(
-    distributions: tuple[tuple[str, float, float], ...], seed_material: str, samples: int,
+def _probabilities(
+    distributions: tuple[tuple[str, float, float], ...],
 ) -> tuple[tuple[str, tuple[float, float]], ...]:
     # Estate gain trials use more than 16 distinct distributions in one call.
-    # Keep that working set so the next call does not repeat every draw.
+    # Keep that working set so the next call does not repeat every integral.
     # Cache only the sufficient inputs and immutable output, never a snapshot
-    # or caller's spec. New estimates, seed or sample count cannot reuse a draw.
-    if not distributions:
-        return ()
-    seed = int.from_bytes(hashlib.sha256(seed_material.encode()).digest()[:8], "big")
-    rng = random.Random(seed)
-    best = {model_id: 0 for model_id, _, _ in distributions}
-    top3 = dict(best)
-    for _ in range(samples):
-        drawn = sorted(
-            ((rng.gauss(value, sd), model_id) for model_id, value, sd in distributions),
-            key=lambda pair: (-pair[0], pair[1]),
-        )
-        best[drawn[0][1]] += 1
-        for _, model_id in drawn[:3]:
-            top3[model_id] += 1
-    return tuple((model_id, (best[model_id] / samples, top3[model_id] / samples))
-                 for model_id, _, _ in distributions)
+    # or caller's spec.
+    nodes = _probability_nodes()
+    found = []
+    for model_id, value, sd in distributions:
+        points = [(value + sd * z, weight) for z, weight in nodes] if sd else [(value, 1.0)]
+        high, low = points[0][0], points[-1][0]
+        others, above = [], 0
+        for other_id, other_value, other_sd in distributions:
+            reach = _PROBABILITY_REACH * other_sd
+            if other_id == model_id or other_value + reach < low:
+                continue
+            if other_value - reach > high:
+                above += 1
+                continue
+            # A tie at a point mass goes to the lower model id, as a sort would.
+            others.append((other_value + reach, other_value, other_sd * math.sqrt(2),
+                           model_id < other_id))
+        if above >= 3:
+            found.append((model_id, (0.0, 0.0)))
+            continue
+        # Highest reach first: once x clears one, it clears the rest.
+        others.sort(reverse=True)
+        best = top3 = 0.0
+        # Highest score first: the integrand only falls from there, so the
+        # first node where it vanishes ends the integral.
+        for x, weight in points:
+            # P(exactly 0, 1, 2 of the others score above x).
+            none, one, two = float(above == 0), float(above == 1), float(above == 2)
+            for edge, other_value, scale, wins_tie in others:
+                if x > edge:
+                    break
+                if scale:
+                    below = 0.5 * math.erfc((other_value - x) / scale)
+                else:
+                    below = float(other_value < x or (other_value == x and wins_tie))
+                over = 1.0 - below
+                none, one, two = none * below, one * below + none * over, two * below + one * over
+                if none + one + two < _PROBABILITY_NEGLIGIBLE:
+                    break
+            if none + one + two < _PROBABILITY_NEGLIGIBLE:
+                break
+            best += weight * none
+            top3 += weight * (none + one + two)
+        found.append((model_id, (round(best, _PROBABILITY_PRECISION),
+                                 round(top3, _PROBABILITY_PRECISION))))
+    return tuple(found)

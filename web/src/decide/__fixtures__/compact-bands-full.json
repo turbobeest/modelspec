@@ -1362,7 +1362,7 @@
           0.546339,
           0.999193
         ],
-        "p_best": 0.3203125,
+        "p_best": 0.3003,
         "p_beats_leader": null,
         "cost_per_task": 0.112,
         "estimates": [
@@ -1391,7 +1391,7 @@
           0.444557,
           0.897411
         ],
-        "p_best": 0.11328125,
+        "p_best": 0.1414,
         "p_beats_leader": 0.3419,
         "cost_per_task": 0.0224,
         "estimates": [
@@ -1422,7 +1422,7 @@
           0.373573,
           0.826427
         ],
-        "p_best": 0.07421875,
+        "p_best": 0.0774,
         "p_beats_leader": 0.2446,
         "cost_per_task": 0.336,
         "estimates": [
@@ -1451,7 +1451,7 @@
           0.130509,
           0.571246
         ],
-        "p_best": 0.01171875,
+        "p_best": 0.0044,
         "p_beats_leader": 0.0435,
         "cost_per_task": 0.056,
         "estimates": [
@@ -1482,7 +1482,7 @@
           0.227164,
           1.413502
         ],
-        "p_best": 0.48046875,
+        "p_best": 0.4763,
         "p_beats_leader": 0.5382,
         "cost_per_task": 0.0168,
         "estimates": [
@@ -1510,7 +1510,7 @@
         "lab/strong"
       ],
       "value": 0.880537101,
-      "p_best": 0.609375,
+      "p_best": 0.6361,
       "runner_up": "lab/steady",
       "p_runner_up": 0.3329,
       "order": [
@@ -1572,8 +1572,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.48046875,
-      "top3_stability": 0.73046875,
+      "p_best": 0.4763,
+      "top3_stability": 0.7218,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1663,8 +1663,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.3203125,
-      "top3_stability": 0.8515625,
+      "p_best": 0.3003,
+      "top3_stability": 0.8806,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1779,8 +1779,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.11328125,
-      "top3_stability": 0.765625,
+      "p_best": 0.1414,
+      "top3_stability": 0.7308,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1895,8 +1895,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.07421875,
-      "top3_stability": 0.5625,
+      "p_best": 0.0774,
+      "top3_stability": 0.5669,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -2011,8 +2011,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.01171875,
-      "top3_stability": 0.08984375,
+      "p_best": 0.0044,
+      "top3_stability": 0.1,
       "soft_penalty": 0.0,
       "contributions": [
         {

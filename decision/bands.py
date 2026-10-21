@@ -16,7 +16,7 @@ This module sorts the ranked models into three bands instead:
   than ``THIN_INTERVAL_WIDTH``. They are never in the leader's band.
 
 The probability that one score is at least another's is read from the same
-score posteriors ``p_best`` resamples: each model's score is normal, with the
+score posteriors ``p_best`` integrates over: each model's score is normal, with the
 capability terms' variance and exact terms fixed, and models are independent.
 The pairwise probability has a closed form, so it is computed exactly rather
 than estimated from a finite set of draws.
@@ -219,7 +219,7 @@ def entries(
 def blend(
     rows: Sequence[OptimisedResult],
     model_of: Callable[[str], str],
-    probabilities: Callable[[str, Mapping[str, Distribution]], Mapping[str, float]],
+    probabilities: Callable[[Mapping[str, Distribution]], Mapping[str, float]],
 ) -> list[BlendTerm]:
     """Each weighted dimension, heaviest first, its share, and the order on it alone.
 
@@ -263,7 +263,7 @@ def blend(
                         best[model_id][1].estimate.value, best[model_id][1].estimate.sd)
                     for model_id in order
                 }
-                p_leader = probabilities(first.dimension, spreads).get(leaders[0])
+                p_leader = probabilities(spreads).get(leaders[0])
                 if len(order) > 1:
                     runner_up = order[1]
                     p_runner_up = p_at_least(spreads[runner_up], spreads[leaders[0]])

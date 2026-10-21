@@ -765,7 +765,9 @@ def test_weighted_capability_objective_reports_p_best() -> None:
 
     assert all(result.p_best is not None for result in decision.results)
     by_model = {result.offering.model: result.p_best for result in decision.results}
-    assert sum(value for value in by_model.values() if value is not None) == pytest.approx(1)
+    # Each value is rounded to four decimals, so the ten can miss 1 by a few ten-thousandths.
+    total = sum(value for value in by_model.values() if value is not None)
+    assert total == pytest.approx(1, abs=1e-3)
 
 
 def test_exact_objective_answer_ignores_requested_capability_overlap() -> None:
