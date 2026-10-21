@@ -582,3 +582,123 @@ def test_admission_fallback_withholds_bytes_for_a_malformed_origin(redirect):
         "https://docs.example.com/models",
         FetchResult("ok", 200, body=b"page bytes", resolved_urls=(redirect,)))
     assert result.body == b"" and result.snapshot_ref is not None
+
+
+# REV-857 round-four probes: an existing citation record for the fetched hash
+
+
+def _current_record(store, ref, url, field):
+    import json
+
+    record = {"snapshot_ref": ref, "url": url, "resolved_urls": []}
+    record[field] = [REV3_BAD] if field == "resolved_urls" else REV3_BAD
+    path = store.path(ref).with_suffix(".citation.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record))
+    return path, record
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_existing_current_citation_is_validated_before_fetch_grant(tmp_path, field):
+    import json
+
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+
+    body = b"<p>current page</p>"
+    ref = fingerprint_bytes(body)
+    store = CopyStore(tmp_path / "cache")
+    path, record = _current_record(store, ref, "https://example.org/bad", field)
+
+    class Fake:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=body if url.endswith("/bad") else b"healthy")
+
+    sources = {sid: Source(id=sid, url="https://example.org/" + sid) for sid in ["bad", "good"]}
+    result = price_reread.fetch_sources(sources, sources, Fake(), store)
+    assert result["good"].outcome == "ok"
+    assert json.loads(path.read_text()) == record  # untouched
+    assert not store.path(ref).exists()  # bytes still withheld
+    assert (result["bad"].outcome, result["bad"].copy_ref) == ("invalid_citation_metadata", None)
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_byte_free_fetch_never_overwrites_a_malformed_record(tmp_path, field):
+    import json
+
+    from scripts import price_reread
+
+    ref = "sha256:" + "7" * 64
+    store = CopyStore(tmp_path / "cache")
+    path, record = _current_record(store, ref, "https://x.ai/pricing", field)
+
+    class HashOnly:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=b"", snapshot_ref=ref)
+
+    sources = {"s": Source(id="s", url="https://x.ai/pricing")}
+    result = price_reread.fetch_sources(sources, sources, HashOnly(), store)
+    assert (result["s"].outcome, result["s"].copy_ref) == ("invalid_citation_metadata", None)
+    assert json.loads(path.read_text()) == record
+
+
+def test_valid_existing_citation_record_still_gives_cited(tmp_path):
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+
+    body = b"<p>current page</p>"
+    ref = fingerprint_bytes(body)
+    store = CopyStore(tmp_path / "cache")
+    store.record_citation(ref, source_url="https://example.org/s", resolved_urls=[CITE_URL])
+
+    class Fake:
+        def fetch(self, url, **kwargs):
+            return FetchResult("ok", 200, body=body)
+
+    sources = {"s": Source(id="s", url="https://example.org/s")}
+    result = price_reread.fetch_sources(sources, sources, Fake(), store)
+    assert (result["s"].outcome, result["s"].copy_ref) == ("cited", ref)
+    assert not store.path(ref).exists()
+
+
+@pytest.mark.parametrize("field", ["url", "sourceURL", "final_url", "resolved_urls"])
+def test_weekly_run_refuses_existing_malformed_current_citation(estate, field):
+    from decision.sources import fingerprint_bytes
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    _current_record(store, fingerprint_bytes(page("api-pricing.html")), API_URL, field)
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")], PLANS_URL: [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT)
+    assert report.sources["example-plans"].outcome == "ok"
+    assert report.sources["example-api-pricing"].outcome == "invalid_citation_metadata"
+    cited = [(f.fact_id, f.status.value) for f in report.facts
+             if f.status is price_reread.Status.CITED]
+    assert not cited, cited
+
+
+def test_weekly_write_does_not_record_cited_for_malformed_current_record(estate):
+    import json
+
+    from decision.sources import fingerprint_bytes
+    from decision.verify import Queue
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    path, record = _current_record(store, fingerprint_bytes(page("api-pricing.html")), API_URL,
+                                   "sourceURL")
+    queue = Queue(root / "verification")
+    before = len(queue.path.read_text().splitlines())
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")], PLANS_URL: [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT,
+                              write=True)
+    assert json.loads(path.read_text()) == record
+    assert not [f for f in report.facts if f.status is price_reread.Status.CITED]
+    events = [json.loads(line) for line in queue.path.read_text().splitlines()[before:]]
+    cited = [event for event in events
+             if event.get("event") == "checked" and event.get("outcome") == "cited"]
+    assert not cited, cited

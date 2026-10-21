@@ -104,6 +104,7 @@ from decision.verify import (
 
 from decision.retention import (
     citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, is_cite_only_restrictive,
+    record_origin_status,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -433,6 +434,18 @@ def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
     return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
 
 
+def _valid_citation_record(store: CopyStore, ref: str) -> bool:
+    """Whether ``ref`` has a citation record; ValueError when that record is malformed.
+
+    A record whose stored origins fail ``record_origin_status`` never grants
+    the cited outcome (MODEL-420); the caller refuses the source instead.
+    """
+    record = store.citation(ref)
+    if record is not None and record_origin_status(record) is None:
+        raise ValueError("invalid citation record")
+    return record is not None
+
+
 def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher: Fetcher,
                   store: CopyStore, rendered: RenderedFetcher | RenderedReplayFetcher | None = None
                   ) -> dict[str, SourceFetch]:
@@ -464,12 +477,15 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
                     if cite_only_origin_status(url, result.resolved_urls) is not True:
                         raise ValueError("a byte-free replay requires a cite-only origin")
                     ref = result.snapshot_ref
+                    _valid_citation_record(store, ref)  # never overwrite a damaged one
                     store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
                                           resolved_urls=result.resolved_urls)
                 else:
                     ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
                                     resolved_urls=result.resolved_urls)
-                outcome = "cited" if store.citation(ref) is not None else "ok"
+                # Granting: "cited" skips verification, so an existing record for
+                # this hash counts only once every origin it carries is valid.
+                outcome = "cited" if _valid_citation_record(store, ref) else "ok"
             except ValueError:
                 # Fail closed for this source only (MODEL-420): no bytes, no
                 # citation, and the other sources still run.
