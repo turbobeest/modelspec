@@ -1,0 +1,33 @@
+{
+  "gate": "failed",
+  "gate_enabled": true,
+  "as_of": "2026-10-21",
+  "source_cache_configured": false,
+  "gap_count": 192,
+  "distinct_subjects": 11,
+  "distinct_models": 11,
+  "reason_counts": {
+    "quarantined (mixed citation)": 192
+  },
+  "facet_counts": {
+    "feature.batch": 10,
+    "feature.effort_controls": 10,
+    "feature.streaming": 10,
+    "feature.structured_output": 10,
+    "feature.tool_calling": 10,
+    "licence.commercial_use": 11,
+    "licence.fine_tuning": 10,
+    "licence.output_training": 11,
+    "licence.user_cap": 10,
+    "model.class": 10,
+    "model.context_window": 10,
+    "model.input_modalities": 10,
+    "model.lifecycle": 10,
+    "model.max_output_tokens": 10,
+    "model.output_modalities": 10,
+    "model.release_date": 10,
+    "model.weights_openness": 10,
+    "origin.base_lineage": 10,
+    "origin.weights_hosting": 10
+  }
+}

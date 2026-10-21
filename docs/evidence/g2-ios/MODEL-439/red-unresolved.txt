@@ -1,0 +1,27 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_invalid_input_prevents_all_writes[unresolved_source] ___________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-102/test_invalid_input_prevents_al0')
+damage = 'unresolved_source'
+
+    @pytest.mark.parametrize("damage", ["invalid_citation", "unresolved_source", "unterminated_log"])
+    def test_invalid_input_prevents_all_writes(tmp_path, damage):
+        root, cache, policy, card = setup_data(tmp_path)
+        if damage == "invalid_citation":
+            rewrite_card(card, lambda data: data["facts"][0]["sources"][1].update(cited_regions=[]))
+        elif damage == "unresolved_source":
+            rewrite_card(card, lambda data: data["facts"][0]["sources"][0].update(source_id="missing"))
+        else:
+            path = root / "verification/log.jsonl"
+            path.write_bytes(path.read_bytes().rstrip(b"\r\n"))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode != 0
+E       assert 0 != 0
+E        +  where 0 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri...unreachable",\n      "rule": 2\n    }\n  ],\n  "counts": {\n    "1": 0,\n    "2": 1,\n    "3": 0\n  }\n}\n', stderr='').returncode
+
+tests/test_refile_mixed_citations.py:260: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_invalid_input_prevents_all_writes[unresolved_source]
+1 failed, 11 deselected in 1.04s

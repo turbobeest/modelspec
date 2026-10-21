@@ -1,0 +1,6 @@
+{
+  "a": "Pinned main engine and actual main policy; original private data",
+  "b": "Pinned main engine and #866 policy; repaired private data",
+  "c": "Unobserved: pinned main plus #889 does not merge cleanly",
+  "d": "Supporting only: pinned main engine and actual main policy; repaired private data"
+}

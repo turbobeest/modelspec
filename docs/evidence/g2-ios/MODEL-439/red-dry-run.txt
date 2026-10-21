@@ -1,0 +1,20 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_dry_run_verifies_retained_refs_without_writing ______________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-90/test_dry_run_verifies_retained0')
+
+    def test_dry_run_verifies_retained_refs_without_writing(tmp_path):
+        root, cache, policy, _ = setup_data(tmp_path)
+        before = files(tmp_path)
+        result = invoke(root, cache, policy)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py': [Errno 2] No such file or directory
+E
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri...le '/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py': [Errno 2] No such file or directory\n").returncode
+
+tests/test_refile_mixed_citations.py:76: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_dry_run_verifies_retained_refs_without_writing
+1 failed in 0.83s
