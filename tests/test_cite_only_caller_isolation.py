@@ -677,6 +677,10 @@ def test_weekly_run_refuses_existing_malformed_current_citation(estate, field):
     cited = [(f.fact_id, f.status.value) for f in report.facts
              if f.status is price_reread.Status.CITED]
     assert not cited, cited
+    # MODEL-423 (#863): no report row carries a citation for the refused source.
+    assert not [row for rows in report.to_dict().values() if isinstance(rows, list)
+                for row in rows if isinstance(row, dict)
+                and "example-api-pricing" in (row.get("citations") or {})]
 
 
 def test_weekly_write_does_not_record_cited_for_malformed_current_record(estate):
@@ -702,3 +706,20 @@ def test_weekly_write_does_not_record_cited_for_malformed_current_record(estate)
     cited = [event for event in events
              if event.get("event") == "checked" and event.get("outcome") == "cited"]
     assert not cited, cited
+
+
+def test_valid_cited_record_still_appears_in_report_citations(estate):
+    """MODEL-423 (#863) control: a well-formed cite-only record is still written to citations."""
+    from scripts import price_reread
+    from tests.test_price_reread import API_URL, AT, PLANS_URL, ReplayFetcher, page
+    from tests.test_price_reread import TODAY as REREAD_TODAY
+
+    root, store = estate
+    registry = root / "registry/sources.yaml"
+    registry.write_text(registry.read_text().replace(PLANS_URL, "https://x.ai/pricing"))
+    fetcher = ReplayFetcher({API_URL: [page("api-pricing.html")],
+                             "https://x.ai/pricing": [page("plans.html")]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=REREAD_TODAY, at=AT)
+    assert report.sources["example-plans"].outcome == "cited"
+    rows = [row for row in report.to_dict()["cited"] if row.get("citations")]
+    assert rows and all(set(row["citations"]) == {"example-plans"} for row in rows)
