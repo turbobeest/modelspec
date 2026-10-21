@@ -72,7 +72,7 @@ def test_format_one_verified_snapshot_remains_readable():
     envelope["content"]["format_version"] = 1
     digest = content_hash(envelope["content"])
     envelope.update(content_hash=digest, snapshot_id="snap_" + digest.split(":")[1][:16])
-    raw = gzip.compress(canonical_json(envelope).encode())
+    raw = gzip.compress(canonical_json(envelope))
     index = load_snapshot_bytes(raw, key=None, public_keys={})
     assert index.evidence("lab/cited", BENCHMARK)[0].verified is True
 

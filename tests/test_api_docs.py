@@ -538,7 +538,7 @@ def test_named_model_comparison_documents_bounded_keyed_facts(
         assert "comparison_version" in schema["properties"]
         assert "contract_version" not in schema["properties"]
         version = generator._resolve(schema["properties"]["comparison_version"], spec)
-        assert version.get("const", version.get("enum")) in ("1.0", ["1.0"])
+        assert version.get("const", version.get("enum")) in ("1.1", ["1.1"])
 
 
 def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(
