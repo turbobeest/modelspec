@@ -178,3 +178,36 @@ def test_excluded_cited_score_does_not_warn_for_capability_objective():
                         exclude_benchmarks=[BENCHMARK])
     assert "lab/cited" in answer.answer.members
     assert CITE_ONLY_WARNING not in answer.warnings
+
+
+def mixed_score_index(*, cited_score=80, verified_score=50):
+    inputs = score_inputs()
+    inputs.evidence[0]["score"] = cited_score
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, verified_score, day="2026-07-01"))
+    return load(replace(inputs, models=[model("lab/cited", context=200000), model("lab/plain")]))
+
+
+@pytest.mark.parametrize("condition", [
+    f"{BENCHMARK} <= 70",
+    f"{BENCHMARK} = 50",
+    {"facet": BENCHMARK, "between": [40, 70]},
+    {"not": {"not": f"{BENCHMARK} <= 70"}},
+    f"{BENCHMARK} = 50 soft(0.2)",
+    f"{BENCHMARK} <= model(lab/plain)",
+])
+@pytest.mark.parametrize("cited_score, verified_score, warned", [(80, 50, False), (50, 80, True)])
+def test_score_predicate_warning_uses_supporting_rows(condition, cited_score, verified_score, warned):
+    answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                        where=[condition])
+    assert answer.answer.members == ["lab/cited"]
+    assert (CITE_ONLY_WARNING in answer.warnings) is warned
+
+
+@pytest.mark.parametrize("condition", [
+    {"not": f"{BENCHMARK} = 90"},
+    f"{BENCHMARK} = 90 soft(0.2)",
+])
+def test_failed_score_predicate_keeps_cited_provenance(condition):
+    answer = answer_for(mixed_score_index(), where=[condition])
+    assert answer.answer.members == ["lab/cited"]
+    assert CITE_ONLY_WARNING in answer.warnings

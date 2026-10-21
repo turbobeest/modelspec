@@ -826,9 +826,27 @@ class _Run:
                     selected = _shown([row.value for row in rows], cond.op)
                     if not isinstance(selected, tuple):
                         rows = [row for row in rows if row.value == selected]
+                else:
+                    raw = self._eval(cond)
+                    bit = 1 << self.pos[cid]
+                    if raw.unknown & bit:
+                        rows = []
+                    else:
+                        passing = bool(raw.passing & bit)
+                        rows = [row for row in rows
+                                if self._operand_matches(cond, row.value) == passing]
                 self.evidence_used(cid, rows, owners)
         elif self.fact_used is not None:
             self.fact_used(cid, _facet_of(cond), owners)
+
+    def _operand_matches(self, cond: Any, value: Any) -> bool:
+        if isinstance(cond, Compare):
+            return _op(cond.op, value, self._threshold(cond))
+        if isinstance(cond, Window):
+            low, high = cond.between
+            return _op(">=", value, low) and _op("<=", value, high)
+        values = cond.in_ if cond.in_ is not None else cond.not_in
+        return value in values if cond.in_ is not None else value not in values
 
     def _decisive(self, cond: Any, bit: int, leg: Leg) -> Any:
         if isinstance(cond, NotOf):
