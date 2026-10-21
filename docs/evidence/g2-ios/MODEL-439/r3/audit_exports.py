@@ -131,15 +131,22 @@ def benchmark_changes(before, after):
     ]
 
 
-def assurance(period, states, content, inputs, registry, citation, snapshot):
+def assurance(period, states, content, inputs, registry, citation, snapshot, index):
+    from decision.labs import FACET, lab_id_of, stated_codes
+
     raw = {
         fact["id"]: fact
         for group in (inputs.models, inputs.offerings, inputs.subscriptions)
         for owner in group
         for fact in owner.get("facts", [])
     }
+    retained = unpack(content, snapshot)
+    records = raw | retained
+    derived = {rid for rid, record in records.items() if "derivation" in record}
     scopes = {}
-    for rid, fact in raw.items():
+    for rid, fact in records.items():
+        if "facet" not in fact:
+            continue
         refs = citation.ref_states(fact, inputs.sources)
         scopes[rid] = (
             "mixed"
@@ -148,7 +155,9 @@ def assurance(period, states, content, inputs, registry, citation, snapshot):
             if refs and all(s == "cited" for s in refs)
             else "other"
         )
-    mixed = {rid for rid, scope in scopes.items() if scope == "mixed"}
+    all_mixed = {rid for rid in raw if scopes[rid] == "mixed"}
+    mixed = all_mixed - derived
+    derived_mixed = all_mixed & derived
     guaranteed = {rid for rid in mixed if registry.facet(raw[rid]["facet"]).tier == "guaranteed"}
     old = states["a"][period]["private_fact_assurance"]
     new = states["c"][period]["private_fact_assurance"]
@@ -157,31 +166,39 @@ def assurance(period, states, content, inputs, registry, citation, snapshot):
             "record_id": rid,
             "before": old.get(rid, "not_admitted"),
             "after": new.get(rid, "not_admitted"),
-            "ref_scope": scopes.get(rid, "other"),
+            "ref_scope": ("derived_mixed" if rid in derived_mixed
+                          else scopes.get(rid, "other")),
         }
         for rid in sorted(old.keys() | new.keys())
         if old.get(rid) != new.get(rid)
     ]
     downgrade = [row for row in changes if row["before"] == "verified" and row["after"] == "cited"]
     inherited, absent = [], []
+    inherited_assurance = Counter()
     for rid in sorted(mixed - new.keys()):
         fact = raw[rid]
         subject = fact["subject"]["id"]
-        replacement = content["fact_records"].get(subject, {}).get(fact["facet"])
-        record = (
-            snapshot._unpack_record(content["record_table"], replacement) if replacement else {}
-        )
+        found = index.fact(subject, fact["facet"])
+        replacement = found.record_id
+        record = index.record(replacement) if replacement else {}
+        lab = inputs.labs.get(lab_id_of(subject))
         if (
-            fact["facet"] == "origin.lab_jurisdiction"
+            fact["facet"] == FACET
+            and lab is not None and lab.codes is not None
+            and replacement == lab.fact()["id"]
             and replacement != rid
-            and (record.get("verification") or {}).get("outcome") == "verified"
+            and found.state == "known" and frozenset(found.value) == lab.codes
+            and stated_codes(record) == lab.codes
+            and record.get("sources") == lab.fact()["sources"]
+            and new.get(replacement) in {"verified", "cited"}
         ):
             inherited.append(rid)
+            inherited_assurance[new[replacement]] += 1
         else:
             absent.append(rid)
     broken_refs = []
     nonnull_verification = []
-    for rid in sorted(mixed & new.keys()):
+    for rid in sorted(all_mixed & new.keys()):
         record = snapshot._unpack_record(content["record_table"], rid)
         cited = record.get("citation") or {}
         expected = [ref["source_id"] for ref in raw[rid].get("sources", [])]
@@ -196,13 +213,17 @@ def assurance(period, states, content, inputs, registry, citation, snapshot):
         "raw_mixed_facts": len(mixed),
         "raw_mixed_guaranteed_facts": len(guaranteed),
         "raw_mixed_admitted_as_cited": sum(new.get(rid) == "cited" for rid in mixed),
-        "raw_mixed_replaced_by_verified_lab_jurisdiction": len(inherited),
+        "raw_mixed_replaced_by_lab_jurisdiction": len(inherited),
+        "raw_mixed_inherited_assurance_counts": dict(inherited_assurance),
         "raw_mixed_unexplained_absence": len(absent),
+        "derived_mixed_facts": len(derived_mixed),
+        "derived_mixed_admitted_as_cited": sum(new.get(rid) == "cited" for rid in derived_mixed),
+        "derived_mixed_by_facet": dict(Counter(raw[rid]["facet"] for rid in derived_mixed)),
         "mixed_citation_reference_failures": len(broken_refs),
         "mixed_citation_nonnull_verification": len(nonnull_verification),
         "verified_to_cited_total": len(downgrade),
         "verified_to_cited_split": {
-            name: split[name] for name in ("mixed", "fully_cite_only", "other")
+            name: split[name] for name in ("mixed", "fully_cite_only", "derived_mixed", "other")
         },
         "fact_assurance_transitions": dict(
             Counter(row["before"] + "_to_" + row["after"] for row in changes)
@@ -265,8 +286,12 @@ def main():
                 return instant.astimezone(tz) if tz is not None else instant.replace(tzinfo=None)
 
         snapshot.datetime = PeriodClock
+        index = snapshot.load_snapshot(
+            results / "c" / "exports" / "decision" / filename,
+            key=KEY, include_archive=True,
+        )
         report, confidential = assurance(
-            period, states, contents["c"], inputs, registry, citation, snapshot
+            period, states, contents["c"], inputs, registry, citation, snapshot, index
         )
         baseline, candidate = states["a"][period]["predictions"], states["c"][period]["predictions"]
         control = states["d"][period]["predictions"]

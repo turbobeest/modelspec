@@ -1,0 +1,163 @@
+{
+  "current": {
+    "deploy_export_accepted": true,
+    "raw_mixed_facts": 150,
+    "raw_mixed_guaranteed_facts": 150,
+    "raw_mixed_admitted_as_cited": 144,
+    "raw_mixed_replaced_by_lab_jurisdiction": 6,
+    "raw_mixed_inherited_assurance_counts": {
+      "cited": 6
+    },
+    "raw_mixed_unexplained_absence": 0,
+    "derived_mixed_facts": 10,
+    "derived_mixed_admitted_as_cited": 10,
+    "derived_mixed_by_facet": {
+      "model.fits_hardware": 10
+    },
+    "mixed_citation_reference_failures": 0,
+    "mixed_citation_nonnull_verification": 0,
+    "verified_to_cited_total": 255,
+    "verified_to_cited_split": {
+      "mixed": 144,
+      "fully_cite_only": 101,
+      "derived_mixed": 10,
+      "other": 0
+    },
+    "fact_assurance_transitions": {
+      "verified_to_cited": 255,
+      "not_admitted_to_cited": 12
+    },
+    "verified_to_cited_by_facet": {
+      "feature.streaming": 11,
+      "feature.structured_output": 11,
+      "feature.tool_calling": 11,
+      "licence.commercial_use": 12,
+      "licence.fine_tuning": 12,
+      "licence.output_training": 12,
+      "licence.user_cap": 12,
+      "model.fits_hardware": 10,
+      "model.input_modalities": 11,
+      "model.output_modalities": 11,
+      "model.release_date": 11,
+      "model.weights_openness": 11,
+      "offering.subscription.billing_period": 11,
+      "offering.subscription.models_covered": 8,
+      "offering.subscription.price": 11,
+      "offering.subscription.programmatic_or_agent_use": 10,
+      "offering.subscription.surfaces": 3,
+      "offering.subscription.usage_allowance": 7,
+      "origin.lab_jurisdiction": 1,
+      "feature.batch": 5,
+      "feature.effort_controls": 5,
+      "model.class": 5,
+      "model.context_window": 5,
+      "model.lifecycle": 5,
+      "model.max_output_tokens": 5,
+      "origin.base_lineage": 5,
+      "origin.weights_hosting": 5,
+      "offering.price.batch_input": 5,
+      "offering.price.batch_output": 5,
+      "offering.price.cached_input": 5,
+      "offering.price.input": 5,
+      "offering.price.output": 5,
+      "offering.attestation.baa": 1,
+      "offering.data.retention": 1,
+      "offering.data.trains_on_customer_data": 1,
+      "offering.data.zero_retention": 1
+    },
+    "assurance_passed": true,
+    "benchmark_row_changes": [
+      {
+        "benchmark": "hle_tools",
+        "change": "added",
+        "records": 1
+      }
+    ],
+    "explained_cases": [],
+    "changed_case_count": 0,
+    "unexplained_case_count": 0,
+    "explanation_method": "In-memory counterfactual input restorations, separate from accepted deployment exports",
+    "audit_passed": true
+  },
+  "successor": {
+    "deploy_export_accepted": true,
+    "raw_mixed_facts": 150,
+    "raw_mixed_guaranteed_facts": 150,
+    "raw_mixed_admitted_as_cited": 144,
+    "raw_mixed_replaced_by_lab_jurisdiction": 6,
+    "raw_mixed_inherited_assurance_counts": {
+      "cited": 6
+    },
+    "raw_mixed_unexplained_absence": 0,
+    "derived_mixed_facts": 10,
+    "derived_mixed_admitted_as_cited": 10,
+    "derived_mixed_by_facet": {
+      "model.fits_hardware": 10
+    },
+    "mixed_citation_reference_failures": 0,
+    "mixed_citation_nonnull_verification": 0,
+    "verified_to_cited_total": 255,
+    "verified_to_cited_split": {
+      "mixed": 144,
+      "fully_cite_only": 101,
+      "derived_mixed": 10,
+      "other": 0
+    },
+    "fact_assurance_transitions": {
+      "verified_to_cited": 255,
+      "not_admitted_to_cited": 12
+    },
+    "verified_to_cited_by_facet": {
+      "feature.streaming": 11,
+      "feature.structured_output": 11,
+      "feature.tool_calling": 11,
+      "licence.commercial_use": 12,
+      "licence.fine_tuning": 12,
+      "licence.output_training": 12,
+      "licence.user_cap": 12,
+      "model.fits_hardware": 10,
+      "model.input_modalities": 11,
+      "model.output_modalities": 11,
+      "model.release_date": 11,
+      "model.weights_openness": 11,
+      "offering.subscription.billing_period": 11,
+      "offering.subscription.models_covered": 8,
+      "offering.subscription.price": 11,
+      "offering.subscription.programmatic_or_agent_use": 10,
+      "offering.subscription.surfaces": 3,
+      "offering.subscription.usage_allowance": 7,
+      "origin.lab_jurisdiction": 1,
+      "feature.batch": 5,
+      "feature.effort_controls": 5,
+      "model.class": 5,
+      "model.context_window": 5,
+      "model.lifecycle": 5,
+      "model.max_output_tokens": 5,
+      "origin.base_lineage": 5,
+      "origin.weights_hosting": 5,
+      "offering.price.batch_input": 5,
+      "offering.price.batch_output": 5,
+      "offering.price.cached_input": 5,
+      "offering.price.input": 5,
+      "offering.price.output": 5,
+      "offering.attestation.baa": 1,
+      "offering.data.retention": 1,
+      "offering.data.trains_on_customer_data": 1,
+      "offering.data.zero_retention": 1
+    },
+    "assurance_passed": true,
+    "benchmark_row_changes": [
+      {
+        "benchmark": "hle_tools",
+        "change": "added",
+        "records": 1
+      }
+    ],
+    "explained_cases": [],
+    "changed_case_count": 0,
+    "unexplained_case_count": 0,
+    "explanation_method": "In-memory counterfactual input restorations, separate from accepted deployment exports",
+    "audit_passed": true
+  },
+  "same_assurance_changes_both_periods": true
+}

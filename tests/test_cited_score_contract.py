@@ -45,7 +45,9 @@ def citation_case(request):
     (ComparisonEvidence, {"benchmark": BENCHMARK, "value": 90, "unit": "percent",
                           "record_id": "lab/cited#score", "source_ids": ["src-cited"]}),
 ])
-def test_evidence_contract_preserves_citation_and_omits_it_when_uncited(contract, fields, citation_case):
+def test_evidence_contract_preserves_citation_and_omits_it_when_uncited(
+    contract, fields, citation_case,
+):
     _, citation = citation_case
     assert "citation" not in contract.model_validate(fields).model_dump(mode="json")
     cited = contract.model_validate({**fields, "citation": citation}).model_dump(mode="json")
