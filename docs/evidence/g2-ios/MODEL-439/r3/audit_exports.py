@@ -51,7 +51,7 @@ def restore(candidate, baseline, snapshot, *, facts, benchmarks):
     content = deepcopy(candidate)
     original_records = unpack(candidate, snapshot)
     baseline_records = unpack(baseline, snapshot)
-    restored_kinds = ({"fact"} if facts else set()) | ({"evidence"} if benchmarks else set())
+    restored_fields = ({"facet"} if facts else set()) | ({"benchmark_id"} if benchmarks else set())
     for section in ("lineup", "archive"):
         if candidate[section]["candidates"] != baseline[section]["candidates"]:
             raise ValueError("candidate sets differ; input-restoration audit needs extension")
@@ -81,21 +81,26 @@ def restore(candidate, baseline, snapshot, *, facts, benchmarks):
     records = {
         rid: record
         for rid, record in original_records.items()
-        if record.get("kind") not in restored_kinds
+        if not any(field in record for field in restored_fields)
     }
     records.update(
         {
             rid: record
             for rid, record in baseline_records.items()
-            if record.get("kind") in restored_kinds
+            if any(field in record for field in restored_fields)
         }
     )
     content["record_table"] = snapshot._pack_records(records)
-    content["cited_fact_records"] = sorted(
-        rid
-        for rid, record in records.items()
-        if (record.get("citation") or {}).get("status") == "cited"
-    )
+    for field, key in (("facet", "cited_fact_records"),
+                       ("benchmark_id", "cited_evidence_records")):
+        cited = sorted(
+            rid for rid, record in records.items()
+            if field in record and (record.get("citation") or {}).get("status") == "cited"
+        )
+        if cited:
+            content[key] = cited
+        else:
+            content.pop(key, None)
     content["sources"] = candidate["sources"] | baseline["sources"]
     digest = snapshot.content_hash(content)
     built = snapshot.Snapshot(content, digest, snapshot.snapshot_id_for(digest))

@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "env",
+    "PYTHONPATH=/Users/terbeest/dev/worktrees/model-439",
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "docs/evidence/g2-ios/MODEL-439/r3/check_restoration.py"
+  ],
+  "cwd": "/Users/terbeest/dev/worktrees/model-439",
+  "started_at": "2026-10-21T19:58:55.145558+00:00",
+  "finished_at": "2026-10-21T19:58:55.645100+00:00",
+  "python_version": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "exit_code": 0,
+  "output": "/tmp/model-439-scratch/measurement-plan/check-restoration.log"
+}

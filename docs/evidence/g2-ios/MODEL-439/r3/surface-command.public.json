@@ -1,0 +1,18 @@
+{
+  "cwd": "/Users/terbeest/dev/worktrees/model-439",
+  "environment": {
+    "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-439"
+  },
+  "argv": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_cited_score_contract.py",
+    "tests/test_cite_only_surfaces.py"
+  ],
+  "exit": 0,
+  "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]"
+}
