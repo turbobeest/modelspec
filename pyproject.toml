@@ -31,10 +31,10 @@ Repository = "https://github.com/turbobeest/modelspec"
 Documentation = "https://github.com/turbobeest/modelspec/tree/main/docs"
 
 [project.optional-dependencies]
+verify = ["pypdf==6.19.0"]
 dev = [
     "build>=1.2",
     "pydantic>=2.0",
-    "pypdf>=6.19",
     "falkordb>=1.0",
     "rich>=13.0",
     "cryptography>=43,<46",

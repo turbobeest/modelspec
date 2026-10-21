@@ -509,3 +509,76 @@ def test_proposal_plan_skips_malformed_manifest_entry():
 ])
 def test_origin_status_refuses_any_malformed_origin(origins, expected):
     assert cite_only_origin_status(*origins) is expected
+
+
+# Admission drafter (#861) and fallback
+
+
+@pytest.mark.parametrize("url", ["https://docs.x.ai:bad/x", "https://docs.x.ai:99999/x",
+                                 "https://reader@docs.x.ai/x", "http://["])
+def test_admission_source_block_refuses_malformed_urls_without_raising(url):
+    from scripts import admission_drafter as drafter
+
+    assert drafter.source_block(url, "xai", {}) is not None
+
+
+def _xai_draft(tmp_path, monkeypatch, redirect, *, bypass_block):
+    from scripts import admission_drafter as drafter
+    from tests.test_admission_drafter import MODEL, TODAY as DRAFT_TODAY, catalogue, small_registry
+
+    root = catalogue(tmp_path)
+    model_id = "xai/fixture-model"
+    model_url = "https://docs.x.ai/docs/models/fixture-model"
+    card = yaml.safe_load((root / "models" / f"{MODEL}.md").read_text().split("---")[1])
+    card.update(model_id=model_id, sources={"provider_docs_url": model_url})
+    path = root / "models" / f"{model_id}.md"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text("---\n" + yaml.safe_dump(card) + "---\n")
+    if bypass_block:
+        # Isolate the granting check itself: the host gate is tested above.
+        monkeypatch.setattr(drafter, "source_block", lambda *args: None)
+
+    class Fetch:
+        def fetch(self, url):
+            if url != model_url:
+                return FetchResult("unreachable", 404)
+            return FetchResult("ok", 200, body=b"", snapshot_ref="sha256:" + "6" * 64,
+                               retrieved_at=datetime(2026, 10, 20, 12, tzinfo=UTC),
+                               resolved_urls=(redirect,))
+
+    store = CopyStore(tmp_path / "copies")
+    packet = drafter.draft_packet(root=root, model_id=model_id, fetcher=Fetch(), store=store,
+                                  today=DRAFT_TODAY, registry=small_registry())
+    return packet, store
+
+
+@pytest.mark.parametrize("bypass_block", [False, True])
+@pytest.mark.parametrize("redirect", ["https://reader@docs.x.ai/docs/models/fixture-model",
+                                      "https://docs.x.ai:99999/docs/models/fixture-model"])
+def test_admission_draft_never_cites_a_malformed_origin(tmp_path, monkeypatch, redirect,
+                                                        bypass_block):
+    """Granting: a "cited" source writes a citation record, so a malformed origin is refused."""
+    packet, store = _xai_draft(tmp_path, monkeypatch, redirect, bypass_block=bypass_block)
+    assert not [s for s in packet.sources if s["outcome"] == "cited"]
+    assert any(s["outcome"] == "blocked" for s in packet.sources)
+    assert not list((tmp_path / "copies").rglob("*.citation.json"))
+    if bypass_block:
+        assert any(s.get("reason") == "malformed source or redirect URL" for s in packet.sources)
+
+
+def test_admission_draft_still_cites_a_well_formed_cite_only_origin(tmp_path, monkeypatch):
+    packet, store = _xai_draft(tmp_path, monkeypatch,
+                               "https://docs.x.ai/docs/models/fixture-model", bypass_block=False)
+    [source] = [s for s in packet.sources if s["outcome"] == "cited"]
+    assert store.citation(source["snapshot_ref"]) is not None
+
+
+@pytest.mark.parametrize("redirect", ["https://reader@docs.x.ai/x", "https://docs.x.ai:99999/x"])
+def test_admission_fallback_withholds_bytes_for_a_malformed_origin(redirect):
+    """Restrictive: the fallback drops bytes; the drafter then refuses to cite (above)."""
+    from scripts.admission_fallback import _without_restricted_bytes
+
+    result = _without_restricted_bytes(
+        "https://docs.example.com/models",
+        FetchResult("ok", 200, body=b"page bytes", resolved_urls=(redirect,)))
+    assert result.body == b"" and result.snapshot_ref is not None

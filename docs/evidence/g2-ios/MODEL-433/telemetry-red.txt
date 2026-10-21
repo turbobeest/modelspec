@@ -1,0 +1,443 @@
+FFFFF.......                                                             [100%]
+=================================== FAILURES ===================================
+_ test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-telemetry] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele0')
+browser = <decision.sources.RenderedFetcher object at 0x10a8f27b0>
+action = "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})"
+expected = 'ok'
+
+    @pytest.mark.parametrize("action, expected", [
+        pytest.param(
+            "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+            "ok", id="listed-telemetry"),
+        pytest.param(
+            "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-path"),
+        pytest.param(
+            "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-host"),
+        pytest.param("window.open('https://telemetry.example/events')",
+                     "unreachable", id="listed-navigation"),
+        pytest.param("document.querySelector('#other').submit()",
+                     "unreachable", id="listed-form-post"),
+    ])
+    def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+            tmp_path, browser, action, expected):
+        requests = []
+        html = f"""
+            <form id="other" action="https://telemetry.example/events"
+                  method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action};
+                document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+>       sources = registry(tmp_path, [
+            {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+            {"action": "click", "selector": "#control"},
+            {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+        ])
+
+tests/test_rendered_interactions.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:102: ValueError
+_ test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[unlisted-path] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele1')
+browser = <decision.sources.RenderedFetcher object at 0x10aba3750>
+action = "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})"
+expected = 'unreachable'
+
+    @pytest.mark.parametrize("action, expected", [
+        pytest.param(
+            "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+            "ok", id="listed-telemetry"),
+        pytest.param(
+            "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-path"),
+        pytest.param(
+            "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-host"),
+        pytest.param("window.open('https://telemetry.example/events')",
+                     "unreachable", id="listed-navigation"),
+        pytest.param("document.querySelector('#other').submit()",
+                     "unreachable", id="listed-form-post"),
+    ])
+    def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+            tmp_path, browser, action, expected):
+        requests = []
+        html = f"""
+            <form id="other" action="https://telemetry.example/events"
+                  method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action};
+                document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+>       sources = registry(tmp_path, [
+            {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+            {"action": "click", "selector": "#control"},
+            {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+        ])
+
+tests/test_rendered_interactions.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele1/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele1/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:102: ValueError
+_ test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[unlisted-host] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele2')
+browser = <decision.sources.RenderedFetcher object at 0x10aa39d10>
+action = "fetch('https://other.example/events', {method:'POST'}).catch(() => {})"
+expected = 'unreachable'
+
+    @pytest.mark.parametrize("action, expected", [
+        pytest.param(
+            "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+            "ok", id="listed-telemetry"),
+        pytest.param(
+            "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-path"),
+        pytest.param(
+            "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-host"),
+        pytest.param("window.open('https://telemetry.example/events')",
+                     "unreachable", id="listed-navigation"),
+        pytest.param("document.querySelector('#other').submit()",
+                     "unreachable", id="listed-form-post"),
+    ])
+    def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+            tmp_path, browser, action, expected):
+        requests = []
+        html = f"""
+            <form id="other" action="https://telemetry.example/events"
+                  method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action};
+                document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+>       sources = registry(tmp_path, [
+            {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+            {"action": "click", "selector": "#control"},
+            {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+        ])
+
+tests/test_rendered_interactions.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele2/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele2/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:102: ValueError
+_ test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-navigation] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele3')
+browser = <decision.sources.RenderedFetcher object at 0x10ae72ea0>
+action = "window.open('https://telemetry.example/events')"
+expected = 'unreachable'
+
+    @pytest.mark.parametrize("action, expected", [
+        pytest.param(
+            "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+            "ok", id="listed-telemetry"),
+        pytest.param(
+            "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-path"),
+        pytest.param(
+            "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-host"),
+        pytest.param("window.open('https://telemetry.example/events')",
+                     "unreachable", id="listed-navigation"),
+        pytest.param("document.querySelector('#other').submit()",
+                     "unreachable", id="listed-form-post"),
+    ])
+    def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+            tmp_path, browser, action, expected):
+        requests = []
+        html = f"""
+            <form id="other" action="https://telemetry.example/events"
+                  method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action};
+                document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+>       sources = registry(tmp_path, [
+            {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+            {"action": "click", "selector": "#control"},
+            {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+        ])
+
+tests/test_rendered_interactions.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele3/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele3/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:102: ValueError
+_ test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-form-post] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele4')
+browser = <decision.sources.RenderedFetcher object at 0x10ae73e10>
+action = "document.querySelector('#other').submit()", expected = 'unreachable'
+
+    @pytest.mark.parametrize("action, expected", [
+        pytest.param(
+            "fetch('https://telemetry.example/events?session=fixture', {method:'POST'}).catch(() => {})",
+            "ok", id="listed-telemetry"),
+        pytest.param(
+            "fetch('https://telemetry.example/other', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-path"),
+        pytest.param(
+            "fetch('https://other.example/events', {method:'POST'}).catch(() => {})",
+            "unreachable", id="unlisted-host"),
+        pytest.param("window.open('https://telemetry.example/events')",
+                     "unreachable", id="listed-navigation"),
+        pytest.param("document.querySelector('#other').submit()",
+                     "unreachable", id="listed-form-post"),
+    ])
+    def test_recipe_blocks_listed_telemetry_without_discarding_selected_prices(
+            tmp_path, browser, action, expected):
+        requests = []
+        html = f"""
+            <form id="other" action="https://telemetry.example/events"
+                  method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action};
+                document.querySelector('#prices').textContent='US East $8.00'">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+>       sources = registry(tmp_path, [
+            {"action": "block_telemetry", "url": "https://telemetry.example/events"},
+            {"action": "click", "selector": "#control"},
+            {"action": "wait_text", "selector": "#prices", "text": "US East $8.00"},
+        ])
+
+tests/test_rendered_interactions.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele4/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1689/test_recipe_blocks_listed_tele4/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:102: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-telemetry]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[unlisted-path]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[unlisted-host]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-navigation]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_listed_telemetry_without_discarding_selected_prices[listed-form-post]
+5 failed, 7 passed, 27 deselected in 2.26s

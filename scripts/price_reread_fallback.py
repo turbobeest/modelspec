@@ -215,13 +215,18 @@ def fallback_to(
         if _in_scope(tracked.fact, claim, latest, sources) is None:
             source_ids.update(s.source_id for s in claim.sources)
     excluded = excluded_sources()
+    recipe_urls = {
+        canonical_url(str(source.url))
+        for source in sources.values()
+        if source.rendered_interactions
+    }
     candidates = {}
     for sid in sorted(source_ids):
         source = sources.get(sid)
         if source is None or NORMALISERS[source.normaliser].content != "html":
             continue
         url = canonical_url(str(source.url))
-        if not firecrawl_allowed(url) or excluded.url(url):
+        if url in recipe_urls or not firecrawl_allowed(url) or excluded.url(url):
             continue
         if source.fetch == FetchMode.RENDERED.value:
             entry = rendered.manifest.get(url)

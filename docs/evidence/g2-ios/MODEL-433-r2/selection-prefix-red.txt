@@ -1,0 +1,31 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_________ test_wait_text_on_select_requires_the_selected_option[False] _________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1744/test_wait_text_on_select_requi0')
+browser = <decision.sources.RenderedFetcher object at 0x10bce2930>
+selected = False
+
+    @pytest.mark.parametrize("selected", [False, True])
+    def test_wait_text_on_select_requires_the_selected_option(tmp_path, browser, selected):
+        recipe = [{"action": "wait_text", "selector": "#region", "text": "East US"}]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            '<select id="region"><option value="east2">East US 2</option>'
+            f'<option value="east" {"selected" if selected else ""}>East US</option></select>')
+>       assert result.outcome == ("ok" if selected else "unreachable")
+E       AssertionError: assert 'ok' == 'unreachable'
+E         
+E         - unreachable
+E         + ok
+
+tests/test_rendered_interactions.py:166: AssertionError
+=============================== warnings summary ===============================
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: 47 warnings
+  /Users/terbeest/dev/worktrees/model-433/tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'exclude_if'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.10/migration/
+    warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_rendered_interactions.py::test_wait_text_on_select_requires_the_selected_option[False]
+1 failed, 1 passed, 47 deselected, 47 warnings in 1.15s

@@ -1,9 +1,10 @@
 # MODEL-396 source readers
 
-Only the scoped Mistral output-label rule remains in this change. PDF source
-support and the model-properties output-limit reader were dropped after two
-cross-model reviews, REV-760 and REV-760b. Small 4 has fifteen supported facts
-and four gaps. It remains outside premier, with no API offering filed.
+The scoped Mistral output-label rule remains unchanged. PDF extraction now has
+an explicit structural allowlist and a verifier route bound to reviewed source
+templates. There are no approved production PDF templates. Small 4 still has
+fifteen supported facts and four gaps. It remains outside premier, with no API
+offering filed.
 
 ## Mistral output labels
 
@@ -26,16 +27,72 @@ image, unknown labels, reasoning-only lists, similarly named labels, input
 lists, other labs, other source hosts/paths, model identity mismatches and
 conflicting output blocks. Both reviews found this rule sound.
 
-## PDF support withdrawn
+## Restricted PDF support
 
-Remove the PDF recipe, extractor, offline adapter, dependency, source-locator
-extension and model-properties output-limit reader. Remove their tests and
-restore the shared normalizer, source fetcher, source model, CLI provenance
-hash and Worker import tests to their pre-ticket versions. The Worker vendor
-map and dependency locks already match that baseline. Its existing general
-import-closure test remains; the PDF-specific guards are removed with the code
-they guarded. PDF bytes and PDF content types remain unsupported by the
-existing source pipeline.
+`pdf-pypdf-6.19.0-v1` uses exactly `pypdf==6.19.0`. The parser runs offline in
+the operator process and rejects a different installed version. The Worker
+does not import or vendor the parser or its dependency.
+
+`decision/pdf_sources.py` admits this structure:
+
+- One classic cross-reference section, with consecutive generation-zero
+  objects in file order. The trailer has integer `Size`, a `Root` reference,
+  and an optional `Info` reference. No incremental updates, cross-reference
+  streams or object streams are admitted.
+- A catalog containing only `Type` and `Pages`. The page tree is flat, has
+  unique page references, and its `Count` matches its children.
+- Each page has `Type`, the matching `Parent`, a numeric `MediaBox`,
+  `Resources` and one `Contents` stream.
+- Resources contain only a font map. Fonts are the standard Helvetica,
+  Courier or Times Type1 variants, with optional Standard or WinAnsi encoding.
+  PDF names must have the PDF name type, not a string with matching text.
+- Content streams are unfiltered or use one Flate filter without decode
+  parameters. Operators are `BT`, `ET`, `Tf`, `Td`, `TL`, `T*`, `Tj` and `TJ`.
+  Their operands and text-state transitions are checked before extraction.
+- Optional document information contains only a string `Producer`.
+
+Every indexed object must belong to that structure. Unused objects, unknown
+keys, actions, links, annotations, embedded files, images, scanned pages,
+forms, font programs and metadata streams refuse. Encrypted, malformed and
+blank documents refuse. There is no partial output or alternative text recipe.
+
+The limits are 1 MiB of input, 16 pages, 256 indirect objects, 256 KiB decoded
+per stream, 1 MiB decoded in total, 10,000 content operations and 64 KiB of
+extracted UTF-8 text. Parser I/O has a separate budget of 16 MiB read and
+262,144 read calls. Token nesting is limited to 32. The cross-reference
+section, complete trailer, numeric lexemes and exact stream lengths are
+checked before the library can repair them. Flate decoding uses bounded
+output; operations are counted during token parsing.
+
+PDF sources require a whole-document page locator with an empty value. The
+existing `copy_ref` hashes original bytes. The existing `page_fingerprint`
+and region fingerprint hash extracted text.
+
+`decision/pdf_templates.py` holds reviewed templates. Each template binds
+the source URL, original hash, complete extraction hash, subject, source kind
+and facet. It names a fixed line and a full-match expression whose `value`
+group reads the value from that line. It also records the affirmative
+retention-terms decision's URL. Templates are executable review policy, not
+collector-supplied assertions.
+
+Source rechecks and stored-region reads require approval for the exact URL
+and original bytes. The existing cite-only policy takes precedence. PDF
+verification runs before ordinary readers, with no generic or LLM fallback.
+Changed captions, duplicate tables or ownership context change the hashes
+and require review. An independent non-PDF citation can still verify a claim.
+A jurisdiction union cannot omit its PDF citation.
+
+No production template is included because the data#98 audit classifies the
+Mistral hosts as silent and expressly distinguishes silence from permission.
+Existing-copy replay is a diagnostic, not an affirmative retention decision.
+The current Small 4 PDF also exceeds the 256-object limit. Its 256,000-token
+maximum-output candidate remains unverified.
+
+## Prior withdrawn implementations
+
+The earlier PDF recipe and model-properties output-limit heuristic were
+withdrawn after REV-760 and REV-760b. The current implementation does not
+restore that heuristic, page-number locators or a broad PDF object walker.
 
 REV-760 found resource limits missing, another model's table accepted, and
 JavaScript plus embedded files accepted. The second attempt added limits and
@@ -45,7 +102,7 @@ PDF support would close only `model.max_output_tokens`; the other three source
 gaps already prevent admission. The orchestrator withdrew the feature rather
 than extend either parser heuristic.
 
-## Requirements for any future PDF design
+## Requirements when extending PDF support
 
 A future proposal starts with an **allowlist of acceptable PDF object
 structure**: permitted object types, keys, value types and relationships.
@@ -56,12 +113,14 @@ Any table region needs an **exact hashed template**, bound to its claim subject,
 source bytes and approved region representation. The template must account for
 captions, headings, cell order and surrounding ownership context. Unrecognized
 or changed templates must refuse; heading proximity cannot establish ownership.
-No reusable PDF implementation or table heuristic is retained here.
+The restricted implementation above starts from a structural allowlist and
+exact source templates. Extensions require the same review.
 
-The following review probes are required acceptance tests for that new design.
-They are recorded as a test specification; this PR provides no PDF parser to run
-against them. Unless a case is explicitly admitted by the reviewed allowlist
-and exact template, it must refuse and must never verify the wrong claim.
+The following historical review probes remain acceptance requirements.
+`tests/test_pdf_sources.py` exercises synthetic extraction, template bindings,
+resource limits and refusals. The current limits are smaller than the former
+implementation's limits. A case outside the structural allowlist and exact
+template must refuse and must never verify the wrong claim.
 
 ### REV-760 probes
 
@@ -120,9 +179,10 @@ The retained rule changes source interpretation only. No public response field,
 output modality, facet, ranking floor or legal term changes. Contract version
 2.18 and its schemas stay unchanged.
 
-`model.max_output_tokens` is now a reader gap: the retained PDF is a research
-receipt, with no approved verification path. Closing it requires either a
-qualifying non-PDF primary source or the separately reviewed design above.
+`model.max_output_tokens` remains a gap. The retained PDF is a research receipt,
+with no approved retention decision or supported verification template.
+Closing it requires a qualifying non-PDF primary source, or both an affirmative
+retention decision and a reviewed extension that admits the actual PDF.
 The source gaps remain per-model streaming, express base lineage and the
 complete first-party weights-hosting country set. Four gaps mean no premier
 admission or offering, and no data engine-pin bump in this PR.
