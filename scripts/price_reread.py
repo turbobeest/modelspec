@@ -172,7 +172,23 @@ class FactResult:
             "new_value": None if self.cited or self.status is Status.CITED else self.new_value,
             "reason": self.reason,
             "copies": {sid: {"old": old, "new": new} for sid, (old, new) in self.copies.items()},
+            **({"citations": self.citations()} if self.status is Status.CITED else {}),
         }
+
+    def citations(self) -> dict[str, dict[str, Any]]:
+        """Source ID -> the dated citation ``--write`` records on that reference.
+
+        These are the exact ``snapshot_ref``, ``retrieved_at`` and ``resolved_urls``
+        that ``rewrite_fact`` writes, so the data repository's guard can require
+        each written citation to be one this run recorded (MODEL-423).
+        """
+        if self.claim is None:
+            return {}
+        return {ref.source_id: {"snapshot_ref": ref.snapshot_ref,
+                                "retrieved_at": ref.retrieved_at.isoformat(),
+                                "resolved_urls": [str(url) for url in ref.resolved_urls]}
+                for ref in self.claim.sources
+                if ref.source_id in self.copies and ref.retrieved_at is not None}
 
 
 @dataclass
