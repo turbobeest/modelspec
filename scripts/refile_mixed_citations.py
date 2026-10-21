@@ -21,12 +21,21 @@ from decision.model import Fact, SourceRef
 from decision.sources import CopyStore, load_sources
 from decision.verify import Queue, StoredRegions, deterministic_extractors, verify
 
-
 IDENTIFIERS = {"offering.api_model_id", "offering.router_slug"}
 
 
 def mapping(node):
     return {key.value: value for key, value in node.value}
+
+
+def yaml_body(path, text):
+    if path.suffix != ".md":
+        return text, 0
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(f"missing front matter: {path}")
+    end = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
+    return "".join(lines[1:end]), len(lines[0])
 
 
 def documents(root):
@@ -35,15 +44,7 @@ def documents(root):
     paths += sorted((root / "offerings").glob("**/*.yaml"))
     for path in paths:
         text = path.read_bytes().decode("utf-8")
-        offset = 0
-        body = text
-        if path.suffix == ".md":
-            lines = text.splitlines(keepends=True)
-            if not lines or lines[0].strip() != "---":
-                raise ValueError(f"missing front matter: {path}")
-            end = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
-            offset = len(lines[0])
-            body = "".join(lines[1:end])
+        body, offset = yaml_body(path, text)
         data = yaml.load(body, Loader=yaml.CSafeLoader)
         node = yaml.compose(body, Loader=yaml.CSafeLoader)
         if not data:
@@ -61,23 +62,35 @@ def documents(root):
                 model, kind = parent["model"], "offering"
                 subject = "/".join(parent[key] for key in ("provider", "model", "region", "tier"))
             for row, row_node in zip(parent["facts"], mapping(parent_node)["facts"].value):
-                record = {"id": f"{subject}#{row['facet']}",
-                          "subject": {"kind": kind, "id": subject}, **row}
-                yield path, text, offset, record, row_node, model
+                record = {
+                    "id": f"{subject}#{row['facet']}",
+                    "subject": {"kind": kind, "id": subject},
+                    **row,
+                }
+                yield path, text, offset, record, row_node, model, data, row
 
 
 def drop_refs(text, offset, source_node, keep):
     """Delete only unwanted source items, keeping surviving block YAML verbatim."""
     if source_node.flow_style:
         refs = yaml.safe_load(yaml.serialize(source_node))
-        return [(offset + source_node.start_mark.index, offset + source_node.end_mark.index,
-                 json.dumps([ref for ref, kept in zip(refs, keep) if kept]))]
+        return [
+            (
+                offset + source_node.start_mark.index,
+                offset + source_node.end_mark.index,
+                json.dumps([ref for ref, kept in zip(refs, keep) if kept]),
+            )
+        ]
     edits = []
     for node, kept in zip(source_node.value, keep):
         if kept:
             continue
         start = text.rfind("\n", 0, offset + node.start_mark.index) + 1
-        end = offset + node.end_mark.index - node.end_mark.column
+        if node.flow_style:
+            newline = text.find("\n", offset + node.end_mark.index)
+            end = len(text) if newline == -1 else newline + 1
+        else:
+            end = offset + node.end_mark.index - node.end_mark.column
         edits.append((start, end, ""))
     return edits
 
@@ -89,7 +102,8 @@ def plan(root, store, today):
     filed = Queue(root / "verification").filed()
     changes = []
     edits, originals, events, verifications = defaultdict(list), {}, [], []
-    for path, text, offset, row, node, model in documents(root):
+    expected = {}
+    for path, text, offset, row, node, model, document, raw in documents(root):
         facet = registry.facet(row["facet"])
         if facet.tier != "guaranteed" and row["facet"] not in IDENTIFIERS:
             continue
@@ -101,15 +115,28 @@ def plan(root, store, today):
             continue
         if row["state"] == "unknown":
             continue
+        fact_citation(row, urls, store)
+        if path not in expected and any(
+            isinstance(token, yaml.AliasToken) for token in yaml.scan(yaml_body(path, text)[0])
+        ):
+            raise ValueError(f"cannot safely edit a document with YAML aliases: {path}")
         fact = Fact.model_validate({**row, "verification": None})
         old = filed[("fact", row["id"])]
         # Filed values can be older than the card. Keep reader hints, but always
         # ask the verifier about the current fact and its current references.
-        claim = replace(old, subject=fact.subject.id, field=fact.facet, value=fact.value,
-                        sources=tuple(fact.sources),
-                        conditions={key: getattr(fact, key).isoformat() if getattr(fact, key) else None
-                                    for key in ("effective_from", "effective_until")}
-                        if fact.effective_from or fact.effective_until else {})
+        claim = replace(
+            old,
+            subject=fact.subject.id,
+            field=fact.facet,
+            value=fact.value,
+            sources=tuple(fact.sources),
+            conditions={
+                key: getattr(fact, key).isoformat() if getattr(fact, key) else None
+                for key in ("effective_from", "effective_until")
+            }
+            if fact.effective_from or fact.effective_until
+            else {},
+        )
         retained = [ref for ref, state in zip(row["sources"], states) if state != "cited"]
         checked = replace(claim, sources=tuple(SourceRef.model_validate(ref) for ref in retained))
         result = verify(checked, regions, deterministic_extractors(), today=today)
@@ -120,28 +147,51 @@ def plan(root, store, today):
             rule = 2
             refs = [ref for ref, state in zip(row["sources"], states) if state == "cited"]
             fact_citation({**row, "sources": refs}, urls, store)
-        changes.append({"id": row["id"], "facet": row["facet"], "model": model, "rule": rule,
-                        "retained_outcome": result.outcome})
+        changes.append(
+            {
+                "id": row["id"],
+                "facet": row["facet"],
+                "model": model,
+                "rule": rule,
+                "retained_outcome": result.outcome,
+            }
+        )
         final_claim = replace(claim, sources=tuple(SourceRef.model_validate(ref) for ref in refs))
         at = datetime.combine(today, datetime.min.time(), tzinfo=UTC).isoformat()
-        events.extend([
-            {"event": "collected", "at": at, "claim": final_claim.to_dict()},
-            {"event": "checked", "at": at, "target": final_claim.target.model_dump(),
-             "outcome": "verified" if rule == 1 else "cited", "diff": []},
-        ])
+        events.extend(
+            [
+                {"event": "collected", "at": at, "claim": final_claim.to_dict()},
+                {
+                    "event": "checked",
+                    "at": at,
+                    "target": final_claim.target.model_dump(),
+                    "outcome": "verified" if rule == 1 else "cited",
+                    "diff": [],
+                },
+            ]
+        )
         originals[path] = text.encode("utf-8")
-        edits[path].extend(drop_refs(text, offset, mapping(node)["sources"],
-                                    [ref in refs for ref in row["sources"]]))
+        edits[path].extend(
+            drop_refs(
+                text, offset, mapping(node)["sources"], [ref in refs for ref in row["sources"]]
+            )
+        )
+        raw["sources"] = refs
+        expected[path] = document
     writes = {}
     for path, replacements in edits.items():
         text = originals[path].decode("utf-8")
         for start, end, replacement in sorted(replacements, reverse=True):
             text = text[:start] + replacement + text[end:]
+        if yaml.load(yaml_body(path, text)[0], Loader=yaml.CSafeLoader) != expected[path]:
+            raise ValueError(f"source edit changed unexpected data: {path}")
         writes[path] = text.encode("utf-8")
     for path, lines in (
         (root / "verification/log.jsonl", verifications),
-        (root / "verification/queue/events.jsonl",
-         [json.dumps(event, sort_keys=True, ensure_ascii=False) for event in events]),
+        (
+            root / "verification/queue/events.jsonl",
+            [json.dumps(event, sort_keys=True, ensure_ascii=False) for event in events],
+        ),
     ):
         if not lines:
             continue
@@ -165,7 +215,8 @@ def main():
     retention.cite_only_hosts.cache_clear()
     retention.cite_only_hosts()
     changes, originals, writes = plan(
-        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of)
+        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
+    )
     if args.write:
         for path, original in originals.items():
             current = path.read_bytes() if path.exists() else b""
@@ -180,10 +231,21 @@ def main():
         groups = defaultdict(Counter)
         for change in changes:
             groups[change[field]][str(change["rule"])] += 1
-        grouped["by_" + field] = {key: {rule: count[rule] for rule in ("1", "2", "3")}
-                                 for key, count in sorted(groups.items())}
-    print(json.dumps({"counts": {rule: counts[rule] for rule in ("1", "2", "3")},
-                      **grouped, "changes": changes}, indent=2, sort_keys=True))
+        grouped["by_" + field] = {
+            key: {rule: count[rule] for rule in ("1", "2", "3")}
+            for key, count in sorted(groups.items())
+        }
+    print(
+        json.dumps(
+            {
+                "counts": {rule: counts[rule] for rule in ("1", "2", "3")},
+                **grouped,
+                "changes": changes,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
