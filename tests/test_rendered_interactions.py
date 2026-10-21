@@ -68,6 +68,46 @@ def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attribut
     assert "unsafe" in result.error
 
 
+@pytest.mark.parametrize("name", ["Accept all cookies", "Log in", "Submit"])
+@pytest.mark.parametrize("naming", ["labelledby", "title", "image-alt"])
+def test_recipe_refuses_unsafe_accessible_names(tmp_path, browser, name, naming):
+    attributes = 'aria-labelledby="control-name"' if naming == "labelledby" else ""
+    if naming == "title":
+        attributes = f'title="{name}"'
+    image = f'<img alt="{name}">' if naming == "image-alt" else ""
+    result = render_fixture(
+        browser, registry(tmp_path, [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]),
+        f'<span id="control-name" hidden>{name}</span>'
+        f'<button id="unsafe" type="button" {attributes} '
+        f'onclick="document.cookie=\'consent=yes\'">Region{image}</button>'
+        '<div id="prices">$4.00</div>')
+    assert browser._context.cookies() == []
+    assert result.outcome == "unreachable"
+    assert result.body == b""
+    assert "unsafe" in result.error
+
+
+@pytest.mark.parametrize("action,name,expected", [
+    ("click", "Region", "ok"),
+    ("reject_consent", "Reject all cookies", "ok"),
+    ("reject_consent", "Accept all cookies", "unreachable"),
+])
+def test_recipe_checks_computed_name_when_rejecting_consent(
+        tmp_path, browser, action, name, expected):
+    text = "Reject all cookies" if action == "reject_consent" else "US East"
+    result = render_fixture(
+        browser, registry(tmp_path, [{"action": action, "selector": "#control"}, RECIPE[-1]]),
+        f'<span id="control-name" hidden>{name}</span>'
+        '<button id="control" type="button" aria-labelledby="control-name" '
+        f'onclick="this.remove()">{text}</button><div id="prices">$4.00</div>')
+    assert result.outcome == expected, result.error
+    if expected == "ok":
+        assert b'id="control"' not in result.body
+    else:
+        assert result.body == b""
+        assert "unsafe" in result.error
+
+
 @pytest.mark.parametrize("recipe, overrides", [
     ([{"action": "evaluate", "selector": "body", "code": "alert(1)"}], {}),
     ([{"action": "fill", "selector": "input", "value": "password"}], {}),
@@ -300,3 +340,137 @@ def test_registry_recipe_takes_precedence_over_legacy_source_preparation(tmp_pat
     from decision.sources import RENDERED_PREPARATIONS
 
     assert rendered_preparation(sources, sources) is not RENDERED_PREPARATIONS["aws-pricing"]
+
+
+def test_recipe_closes_a_popup_created_while_the_capture_page_is_closing(
+        tmp_path, browser, monkeypatch):
+    context = browser._context
+    existing_page = context.new_page()
+    opened_pages = []
+
+    def track_page(opened_page):
+        opened_pages.append(opened_page)
+        if len(opened_pages) == 1:
+            close = opened_page.close
+            popup_created = False
+
+            def close_with_late_popup(*args, **kwargs):
+                nonlocal popup_created
+                close(*args, **kwargs)
+                if not popup_created:
+                    popup_created = True
+                    with context.expect_page():
+                        existing_page.evaluate("window.open('about:blank') !== null")
+
+            monkeypatch.setattr(opened_page, "close", close_with_late_popup)
+
+    unroute = context.unroute
+
+    def unroute_after_pages_close(*args, **kwargs):
+        assert len(opened_pages) == 2
+        assert opened_pages[1].is_closed()
+        return unroute(*args, **kwargs)
+
+    context.on("page", track_page)
+    monkeypatch.setattr(context, "unroute", unroute_after_pages_close)
+    try:
+        result = render_fixture(browser, registry(tmp_path, [RECIPE[-1]]),
+                                '<div id="prices">$4.00</div>')
+
+        assert result.outcome == "ok", result.error
+        assert len(opened_pages) == 2
+        assert opened_pages[1].is_closed()
+        assert context.pages == [existing_page]
+    finally:
+        context.remove_listener("page", track_page)
+        existing_page.close()
+
+
+AZURE_TABLES = ("GPT-6 Series", "GPT-5.6 Series", "GPT 5.4 Series")
+
+
+def azure_fixture(tmp_path, *, late_table=None, cell=None, currency="usd", region="us-east"):
+    recipe = [
+        {"action": "select_option", "selector": "#region-selector", "value": region},
+        {"action": "select_option", "selector": "#currency-selector", "value": currency},
+        *({"action": "wait_text", "selector": f'table[aria-label="{label}"] tbody', "text": "$"}
+          for label in AZURE_TABLES),
+    ]
+    html = '''<select id="region-selector" onchange="updateTables()">
+      <option value="us-west">West US</option><option value="us-east">East US</option>
+      </select><select id="currency-selector">
+      <option value="usd">USD</option><option value="cad">CAD</option></select>'''
+    default_cell = '''<span class="price-data"
+      data-amount='{"regional":{"us-east":4,"us-west":99}}'>
+      <span class="price-value">$99</span></span>'''
+    for label in AZURE_TABLES:
+        html += f'<table aria-label="{label}"><tbody><tr><td>{cell or default_cell}</td></tr></tbody></table>'
+    if cell is None:
+        html += '''<script>
+          function updateTables() {
+            for (const table of document.querySelectorAll('table')) {
+              const delay = table.getAttribute('aria-label') === %s ? 300 : 0;
+              setTimeout(() => table.querySelector('.price-value').textContent = '$4', delay);
+            }
+          }
+        </script>''' % json.dumps(late_table)
+    else:
+        html += '<script>function updateTables() {}</script>'
+    return registry(tmp_path, recipe, id="azure-pricing"), html
+
+
+@pytest.mark.parametrize("late_table", AZURE_TABLES)
+def test_azure_recipe_waits_for_delayed_region_table_content(tmp_path, browser, late_table):
+    sources, html = azure_fixture(tmp_path, late_table=late_table)
+    result = render_fixture(browser, sources, html)
+    assert result.outcome == "ok", result.error
+    assert result.body.count(b'class="price-value">$4<') == 3
+    assert b">$99<" not in result.body
+
+
+@pytest.mark.parametrize("cell", [
+    '<span class="price-data" data-amount=\'{"regional":{"us-east":4}}\'><span class="price-value">$99</span></span>',
+    '<span class="price-data" data-amount=\'{"regional":{"us-west":4}}\'><span class="price-value">$4</span></span>',
+    '<span class="price-data" data-amount=\'{"regional":{"us-east":null}}\'><span class="price-value">$4</span></span>',
+    '<span class="price-data" data-amount="invalid"><span class="price-value">$4</span></span>',
+    '<span class="price-data"><span class="price-value">$4</span></span>',
+    '<span class="price-data" data-amount=\'{"regional":{"us-east":4}}\'>$4</span>',
+    '<span class="price-data" data-amount=\'{"regional":{"us-east":4}}\'><span class="price-value"></span>$4</span>',
+    '$4',
+])
+def test_azure_recipe_refuses_unconfirmed_table_content(tmp_path, browser, cell):
+    sources, html = azure_fixture(tmp_path, cell=cell)
+    result = render_fixture(browser, sources, html)
+    assert result.outcome == "unreachable"
+    assert result.body == b""
+
+
+@pytest.mark.parametrize("amount,rendered", [(0, "$0"), (1234.5, "$1,234.50"), (0.025, "$0.025")])
+def test_azure_recipe_accepts_selected_usd_amounts(tmp_path, browser, amount, rendered):
+    metadata = json.dumps({"regional": {"us-east": amount}})
+    cell = f'<span class="price-data" data-amount=\'{metadata}\'><span class="price-value">{rendered}</span></span>'
+    sources, html = azure_fixture(tmp_path, cell=cell)
+    result = render_fixture(browser, sources, html)
+    assert result.outcome == "ok", result.error
+
+
+@pytest.mark.parametrize("amount,rendered", [
+    (0.025, "$0.03"), (1.005, "$1.01"), (1234.567, "$1,234.57"),
+    (0.022, "$0.03"), (1.1, "$1.10"),
+])
+def test_azure_recipe_uses_declared_display_precision(tmp_path, browser, amount, rendered):
+    metadata = json.dumps({"regional": {"us-east": amount}})
+    cell = (f'<span class="price-data" data-decimals="2" data-amount=\'{metadata}\'>'
+            f'<span class="price-value">{rendered}</span></span>')
+    sources, html = azure_fixture(tmp_path, cell=cell)
+    result = render_fixture(browser, sources, html)
+    assert result.outcome == "ok", result.error
+
+
+@pytest.mark.parametrize("overrides", [{"region": "us-west"}, {"currency": "cad"}])
+def test_azure_recipe_refuses_wrong_table_selection(tmp_path, browser, overrides):
+    cell = '<span class="price-data" data-amount=\'{"regional":{"us-east":4,"us-west":4}}\'><span class="price-value">$4</span></span>'
+    sources, html = azure_fixture(tmp_path, cell=cell, **overrides)
+    result = render_fixture(browser, sources, html)
+    assert result.outcome == "unreachable"
+    assert result.body == b""

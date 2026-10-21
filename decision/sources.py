@@ -40,6 +40,7 @@ import yaml
 if TYPE_CHECKING:
     import httpx
 
+from decision.azure_pricing import wait_for_selected_prices
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import citation_metadata, cite_only_origin, require_source_url
@@ -359,6 +360,10 @@ RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {
     "model-368-perplexity-pro-faq": prepare_pro_faq,
 }
 
+RENDERED_POSTCONDITIONS: Mapping[str, RenderedPreparation] = {
+    "azure-pricing": wait_for_selected_prices,
+}
+
 _REGION_HAS_TEXT = """selector => {
     const node = document.querySelector(selector);
     return node !== null && node.textContent.trim().length > 0;
@@ -401,10 +406,20 @@ class RenderedInteractionError(Exception):
 
 
 @contextmanager
-def _read_only_interactions(page: Any, prepare: RenderedInteractions):
+def _read_only_interactions(page: Any, prepare: RenderedInteractions, timeout: float):
+    from playwright.sync_api import Error
+
     context = page.context
     other_pages = set(context.pages) - {page}
+    opened_pages = {page}
+    pending_navigations = []
     blocked = False
+
+    def navigation_page(request: Any) -> Any:
+        try:
+            return request.frame.page
+        except Error:
+            return None
 
     def endpoint(url: str) -> tuple[str, str, str]:
         parsed = urlsplit(url)
@@ -423,21 +438,46 @@ def _read_only_interactions(page: Any, prepare: RenderedInteractions):
         if navigation or request.method not in {"GET", "HEAD"} or known_telemetry:
             if navigation or not known_telemetry:
                 blocked = True
+            # A popup's first request can arrive before Playwright creates its Page.
+            if navigation and navigation_page(request) is None:
+                pending_navigations.append(request)
             route.abort()
         else:
             route.fallback()
 
+    def close_opened_page(opened_page: Any) -> None:
+        opened_pages.add(opened_page)
+        opened_page.close()
+
     # Context routes also intercept the first request of a new popup.
     context.route("**/*", read_only)
+    context.on("page", close_opened_page)
     try:
         yield
     finally:
         try:
-            for opened_page in context.pages:
-                if opened_page not in other_pages:
-                    opened_page.close()
+            deadline = time.monotonic() + timeout
+            opened_pages.update(set(context.pages) - other_pages)
+            while opened_pages or pending_navigations:
+                while pending_navigations:
+                    request = pending_navigations.pop()
+                    target = navigation_page(request)
+                    if target is None:
+                        target = context.wait_for_event(
+                            "page", predicate=lambda candidate: navigation_page(request) == candidate,
+                            timeout=max(1.0, (deadline - time.monotonic()) * 1000))
+                    if target not in other_pages:
+                        opened_pages.add(target)
+                if opened_pages:
+                    opened_pages.pop().close()
+        except Error:
+            context.close()
+            raise
         finally:
-            context.unroute("**/*", read_only)
+            try:
+                context.unroute("**/*", read_only)
+            finally:
+                context.remove_listener("page", close_opened_page)
     if blocked:
         raise RenderedInteractionError("blocked interaction request")
 
@@ -445,7 +485,9 @@ def _read_only_interactions(page: Any, prepare: RenderedInteractions):
 _SAFE_CONTROL = r"""(node, action) => {
     const tag = node.tagName.toLowerCase();
     const role = node.getAttribute('role');
-    const labels = [node.getAttribute('aria-label'), node.textContent, node.value]
+    const labels = [node.getAttribute('aria-label'), node.title,
+                    node.innerText, node.textContent, node.value,
+                    ...Array.from(node.querySelectorAll('img[alt]'), image => image.alt)]
         .map(value => (value || '').trim()).filter(Boolean);
     if (node.closest('form') || node.hasAttribute('form')) return false;
     if (node.closest('a[href]') && !node.closest('a[href]').getAttribute('href').startsWith('#'))
@@ -468,6 +510,12 @@ _SAFE_CONTROL = r"""(node, action) => {
     return true;
 }"""
 
+_TRANSACTION_NAME = re.compile(
+    r"\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b", re.I)
+_CONSENT_NAME = re.compile(r"\b(cookie|consent|accept|agree|allow all)\b", re.I)
+_REJECT_NAME = re.compile(
+    r"^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$", re.I)
+
 _REGION_CONTAINS_TEXT = """({selector, text}) => {
     const nodes = document.querySelectorAll(selector);
     if (nodes.length !== 1) return false;
@@ -483,9 +531,10 @@ class RenderedInteractions:
     """Execute validated UI data within one deadline; never capture a failed recipe."""
 
     recipes: tuple[tuple[RenderedInteraction, ...], ...]
+    postconditions: tuple[RenderedPreparation, ...] = ()
 
     def __call__(self, page: Any, timeout: float) -> None:
-        from playwright.sync_api import Error
+        from playwright.sync_api import Error, expect
 
         if any(recipe != self.recipes[0] for recipe in self.recipes[1:]):
             raise RenderedInteractionError("conflicting interaction recipes for one URL")
@@ -513,11 +562,21 @@ class RenderedInteractions:
                     continue
                 if not target.evaluate(_SAFE_CONTROL, step.action, timeout=remaining_ms()):
                     raise RenderedInteractionError("unsafe interaction control")
+                # Playwright includes external labels and image alt text in the computed name.
+                expect(target).not_to_have_accessible_name(_TRANSACTION_NAME, timeout=remaining_ms())
+                if step.action == "reject_consent":
+                    expect(target).to_have_accessible_name(_REJECT_NAME, timeout=remaining_ms())
+                else:
+                    expect(target).not_to_have_accessible_name(_CONSENT_NAME, timeout=remaining_ms())
                 if step.action == "select_option":
                     target.select_option(value=step.value, timeout=remaining_ms())
                 else:
                     target.click(timeout=remaining_ms())
+            for postcondition in self.postconditions:
+                postcondition(page, remaining_ms() / 1000)
             remaining_ms()
+        except AssertionError as exc:
+            raise RenderedInteractionError("unsafe interaction control") from exc
         except Error as exc:
             raise RenderedInteractionError(f"interaction failed: {exc}") from exc
 
@@ -533,7 +592,10 @@ def rendered_preparation(source_ids: Iterable[str],
     recipes = tuple(tuple(sources[sid].rendered_interactions)
                     for sid in ids if sid in sources and sources[sid].rendered_interactions)
     if recipes:
-        return RenderedInteractions(recipes)
+        urls = {canonical_url(str(sources[sid].url)) for sid in ids if sid in sources}
+        postconditions = tuple(check for sid, check in RENDERED_POSTCONDITIONS.items()
+                               if sid in sources and canonical_url(str(sources[sid].url)) in urls)
+        return RenderedInteractions(recipes, postconditions)
     named = next((RENDERED_PREPARATIONS[sid] for sid in ids if sid in RENDERED_PREPARATIONS),
                  None)
     if named is not None:
@@ -602,7 +664,7 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            guard = (_read_only_interactions(page, prepare) if isinstance(prepare, RenderedInteractions)
+            guard = (_read_only_interactions(page, prepare, self.timeout) if isinstance(prepare, RenderedInteractions)
                      else nullcontext())
             with guard:
                 preparation_error = None
