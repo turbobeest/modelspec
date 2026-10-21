@@ -162,6 +162,14 @@ def test_weekly_citation_update_keeps_values_and_records_retrieval(estate):
     assert claim.sources[0].retrieved_at is not None
     assert PAGE.decode() not in json.dumps(report.to_dict())
     assert not report.diffs.get("example-plans")
+    # MODEL-423: the report carries each citation exactly as written, so the data
+    # repository's guard can require the written citation to be this run's.
+    [row] = [row for row in report.to_dict()["cited"] if row["fact"] == fact["id"]]
+    written = fact["sources"][0]
+    assert row["citations"] == {"example-plans": {
+        key: written[key] for key in ("snapshot_ref", "retrieved_at", "resolved_urls")}}
+    assert all("citations" not in row for row in report.to_dict()["alerts"]
+               if row["status"] != "cited")
 
 
 @pytest.mark.parametrize("url,links", [
