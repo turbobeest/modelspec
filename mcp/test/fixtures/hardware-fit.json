@@ -16,7 +16,7 @@
       "body": {
         "hardware_fit_version": "2.0",
         "endpoint": "hardware-fit",
-        "snapshot": "snap_e592255d0721ae03",
+        "snapshot": "snap_e4297f04c6e19425",
         "request": {
           "model": "lab/hardware-model",
           "sku": "fixture_gpu",
@@ -138,7 +138,7 @@
       "body": {
         "hardware_fit_version": "2.0",
         "endpoint": "hardware-fit",
-        "snapshot": "snap_fc683d3097025244",
+        "snapshot": "snap_6e90ec5121f4cf08",
         "request": {
           "model": "lab/hardware-model",
           "sku": "fixture_gpu",

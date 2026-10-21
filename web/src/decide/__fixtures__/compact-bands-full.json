@@ -1318,9 +1318,9 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.18",
-  "decision_id": "dec_9b52c5b2f6cd8cab89248556",
-  "snapshot": "snap_b00a0d674da5f48d",
+  "contract_version": "2.19",
+  "decision_id": "dec_911b82c2d72e597877eb2856",
+  "snapshot": "snap_45b417c27b0fb87d",
   "signature_verified": false,
   "spec_hash": "sha256:3ae6878d8fb680bed7aaf1e0d0334af2ca76d1d80372f1bb430e204bf99f9234",
   "explain": "full",
@@ -1362,7 +1362,7 @@
           0.546339,
           0.999193
         ],
-        "p_best": 0.3203125,
+        "p_best": 0.30078125,
         "p_beats_leader": null,
         "cost_per_task": 0.112,
         "estimates": [
@@ -1391,7 +1391,7 @@
           0.444557,
           0.897411
         ],
-        "p_best": 0.11328125,
+        "p_best": 0.09765625,
         "p_beats_leader": 0.3419,
         "cost_per_task": 0.0224,
         "estimates": [
@@ -1422,7 +1422,7 @@
           0.373573,
           0.826427
         ],
-        "p_best": 0.07421875,
+        "p_best": 0.06640625,
         "p_beats_leader": 0.2446,
         "cost_per_task": 0.336,
         "estimates": [
@@ -1451,7 +1451,7 @@
           0.130509,
           0.571246
         ],
-        "p_best": 0.01171875,
+        "p_best": 0.015625,
         "p_beats_leader": 0.0435,
         "cost_per_task": 0.056,
         "estimates": [
@@ -1482,7 +1482,7 @@
           0.227164,
           1.413502
         ],
-        "p_best": 0.48046875,
+        "p_best": 0.51953125,
         "p_beats_leader": 0.5382,
         "cost_per_task": 0.0168,
         "estimates": [
@@ -1572,8 +1572,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.48046875,
-      "top3_stability": 0.73046875,
+      "p_best": 0.51953125,
+      "top3_stability": 0.76171875,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1663,8 +1663,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.3203125,
-      "top3_stability": 0.8515625,
+      "p_best": 0.30078125,
+      "top3_stability": 0.91796875,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1779,8 +1779,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.11328125,
-      "top3_stability": 0.765625,
+      "p_best": 0.09765625,
+      "top3_stability": 0.74609375,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -1895,8 +1895,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.07421875,
-      "top3_stability": 0.5625,
+      "p_best": 0.06640625,
+      "top3_stability": 0.48046875,
       "soft_penalty": 0.0,
       "contributions": [
         {
@@ -2011,8 +2011,8 @@
           "effort": null
         }
       ],
-      "p_best": 0.01171875,
-      "top3_stability": 0.08984375,
+      "p_best": 0.015625,
+      "top3_stability": 0.09375,
       "soft_penalty": 0.0,
       "contributions": [
         {

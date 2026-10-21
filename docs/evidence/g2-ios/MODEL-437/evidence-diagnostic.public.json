@@ -1,0 +1,23 @@
+{
+  "purpose": "score admission diagnostic only",
+  "deployable": false,
+  "gate_enabled": false,
+  "production_acceptance": "blocked by separately reproduced completeness gaps",
+  "as_of": "2026-10-21",
+  "snapshot_written": false,
+  "corpus_run": false,
+  "memory_run": false,
+  "baseline_evidence_records": 944,
+  "host_only_evidence_records": 933,
+  "diagnostic_evidence_records": 945,
+  "cited_evidence_records": 12,
+  "cited_records_with_null_verification": 12,
+  "cited_records_with_cited_status": 12,
+  "cited_values_marked_verified": 0,
+  "host_policy_lost_records": 11,
+  "lost_records_restored": 11,
+  "restored_records_labelled_cited": 11,
+  "baseline_records_still_missing": 0,
+  "additional_records_vs_baseline": 1,
+  "common_score_readings_changed_vs_baseline": 0
+}

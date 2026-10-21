@@ -174,7 +174,7 @@ export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
   );
 
   return <section className="panel board-ranked-answer">
-    {decision.warnings.includes("cite_only_not_machine_verified") && <p className="note">Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy.</p>}
+    {decision.warnings.includes("cite_only_not_machine_verified") && <p className="note">Cited, not machine-verified: some facts or benchmark scores retain a source URL and content hash, without a page copy.</p>}
     {ranked && (decision.answer || decision.bands) && <TieAwareAnswer answer={decision.answer} decision={decision} dimensionName={dimensionName} />}
     {!ranked && <p className="board-unranked">Not ranked yet: listed alphabetically</p>}
     {ranked && !decision.answer && !decision.bands && inseparable.length > 0 && <p className="board-inseparable">

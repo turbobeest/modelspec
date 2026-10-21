@@ -1,0 +1,21 @@
+{
+  "label": "gate-c-successor",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/check_completeness.py",
+    "--code",
+    "/tmp/model-437-scratch/acceptance/results/c/code",
+    "--data-dir",
+    "/tmp/model-437-scratch/acceptance/prepared/repaired-data",
+    "--output",
+    "/tmp/model-437-scratch/acceptance/gate-c-successor",
+    "--as-of",
+    "2027-01-01"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T19:01:24.649373+00:00",
+  "finished": "2026-10-21T19:01:56.985998+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/gate-c-successor.private.log"
+}

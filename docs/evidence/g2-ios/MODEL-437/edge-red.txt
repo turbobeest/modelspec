@@ -1,0 +1,34 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_cited_score_redirect_to_excluded_source_stays_out ____________
+
+    def test_cited_score_redirect_to_excluded_source_stays_out():
+        inputs = score_inputs()
+        inputs.evidence[0]["sources"][0]["resolved_urls"] = ["https://blocked.example/results"]
+        index = load(inputs, guard=ExcludedSources(hosts=("blocked.example",)))
+>       assert index.evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:104: AssertionError
+______ test_cited_score_used_by_independent_measurement_tie_breaker_warns ______
+
+    def test_cited_score_used_by_independent_measurement_tie_breaker_warns():
+        inputs = score_inputs()
+        inputs.evidence.append(evidence("lab/cited", "gpqa_diamond", 85,
+                                        source="src-cited", source_url=CITED_URL, outcome=None))
+        answer = answer_for(load(inputs))
+        assert answer.answer.kind == "tied"
+>       assert answer.answer.tie_breakers.most_independently_measured == "lab/cited"
+E       assert None == 'lab/cited'
+E        +  where None = TieBreakers(cheapest=None, open_weights=None, most_independently_measured=None, fastest=None).most_independently_measured
+E        +    where TieBreakers(cheapest=None, open_weights=None, most_independently_measured=None, fastest=None) = TiedAnswer(kind='tied', members=['lab/cited', 'lab/plain'], basis="probability bands: a model joins the leader when P(...ne, open_weights=None, most_independently_measured=None, fastest=None), deterministic_order=['lab/cited', 'lab/plain']).tie_breakers
+E        +      where TiedAnswer(kind='tied', members=['lab/cited', 'lab/plain'], basis="probability bands: a model joins the leader when P(...ne, open_weights=None, most_independently_measured=None, fastest=None), deterministic_order=['lab/cited', 'lab/plain']) = Decision(near_misses=[], top=[], chart=None, number_origins=[], sources=[], benchmark_exclusions=None, contract_versio...not name a single winner among tied.', 'Do not claim a quality rank from this objective.'], omitted={}), coverage=None).answer
+
+tests/test_cited_score_warnings.py:104: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_scores.py::test_cited_score_redirect_to_excluded_source_stays_out
+FAILED tests/test_cited_score_warnings.py::test_cited_score_used_by_independent_measurement_tie_breaker_warns
+2 failed in 0.39s

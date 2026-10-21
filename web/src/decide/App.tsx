@@ -1185,6 +1185,7 @@ export function DesignedApp({
               ×
             </button>
           </div>
+          {provenance.e.cited && <p>Cited, not machine-verified</p>}
           <dl>
             {[
               [

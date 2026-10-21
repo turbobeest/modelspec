@@ -340,6 +340,7 @@ function uiEvidence(item: EvidenceItem): Evidence {
     harness: item.harness ?? "not available",
     who: item.measured_by,
     src: item.source,
+    ...(item.citation ? { cited: true } : {}),
     loading: item.loading,
     estimateWeight: item.estimate_weight,
     recencyWeight: item.recency_weight,

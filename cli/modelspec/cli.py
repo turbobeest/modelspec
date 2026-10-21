@@ -416,6 +416,8 @@ def _model_comparison_value(record: dict[str, Any]) -> str:
         shown += f" [record: {record['record_id']}]"
     if record.get("source_ids"):
         shown += f" [sources: {', '.join(record['source_ids'])}]"
+    if (record.get("citation") or {}).get("status") == "cited":
+        shown += " [Cited, not machine-verified]"
     return shown
 
 
