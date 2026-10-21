@@ -1,0 +1,324 @@
+....................................FFFFF..FFFFFFFF.............F        [100%]
+=================================== FAILURES ===================================
+__ test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro <= 70] ___
+
+condition = 'swe_bench_pro <= 70', cited_score = 50, verified_score = 80
+qualifies = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+    def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.answer.members == (["lab/cited"] if qualifies else [])
+E       AssertionError: assert ['lab/cited'] == []
+E
+E         Left contains one more item: 'lab/cited'
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:207: AssertionError
+___ test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro = 50] ___
+
+condition = 'swe_bench_pro = 50', cited_score = 50, verified_score = 80
+qualifies = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+    def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.answer.members == (["lab/cited"] if qualifies else [])
+E       AssertionError: assert ['lab/cited'] == []
+E
+E         Left contains one more item: 'lab/cited'
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:207: AssertionError
+_______ test_score_predicate_uses_verified_value[50-80-False-condition2] _______
+
+condition = {'facet': 'swe_bench_pro', 'between': [40, 70]}, cited_score = 50
+verified_score = 80, qualifies = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+    def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.answer.members == (["lab/cited"] if qualifies else [])
+E       AssertionError: assert ['lab/cited'] == []
+E
+E         Left contains one more item: 'lab/cited'
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:207: AssertionError
+_______ test_score_predicate_uses_verified_value[50-80-False-condition3] _______
+
+condition = {'not': {'not': 'swe_bench_pro <= 70'}}, cited_score = 50
+verified_score = 80, qualifies = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+    def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.answer.members == (["lab/cited"] if qualifies else [])
+E       AssertionError: assert ['lab/cited'] == []
+E
+E         Left contains one more item: 'lab/cited'
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:207: AssertionError
+_ test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro <= model(lab/plain)] _
+
+condition = 'swe_bench_pro <= model(lab/plain)', cited_score = 50
+verified_score = 80, qualifies = False
+
+    @pytest.mark.parametrize("condition", [
+        f"{BENCHMARK} <= 70",
+        f"{BENCHMARK} = 50",
+        {"facet": BENCHMARK, "between": [40, 70]},
+        {"not": {"not": f"{BENCHMARK} <= 70"}},
+        f"{BENCHMARK} <= model(lab/plain)",
+    ])
+    @pytest.mark.parametrize("cited_score, verified_score, qualifies", [(80, 50, True), (50, 80, False)])
+    def test_score_predicate_uses_verified_value(condition, cited_score, verified_score, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=cited_score, verified_score=verified_score),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.answer.members == (["lab/cited"] if qualifies else [])
+E       AssertionError: assert ['lab/cited'] == []
+E
+E         Left contains one more item: 'lab/cited'
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:207: AssertionError
+______ test_verified_score_remains_the_benchmark_objective_winner[False] _______
+
+verified_first = False
+
+    @pytest.mark.parametrize("verified_first", [False, True])
+    def test_verified_score_remains_the_benchmark_objective_winner(verified_first):
+        inputs = score_inputs()
+        inputs.evidence[0]["score"] = 40
+        inputs.evidence.append(evidence("lab/cited", BENCHMARK, 95))
+        if verified_first:
+            inputs.evidence.reverse()
+        answer = answer_for(load(inputs), objective={"max": BENCHMARK}, level="full")
+>       assert answer.status == "answered"
+E       AssertionError: assert 'partial' == 'answered'
+E
+E         - answered
+E         + partial
+
+tests/test_cited_score_warnings.py:231: AssertionError
+_______ test_verified_score_remains_the_benchmark_objective_winner[True] _______
+
+verified_first = True
+
+    @pytest.mark.parametrize("verified_first", [False, True])
+    def test_verified_score_remains_the_benchmark_objective_winner(verified_first):
+        inputs = score_inputs()
+        inputs.evidence[0]["score"] = 40
+        inputs.evidence.append(evidence("lab/cited", BENCHMARK, 95))
+        if verified_first:
+            inputs.evidence.reverse()
+        answer = answer_for(load(inputs), objective={"max": BENCHMARK}, level="full")
+>       assert answer.status == "answered"
+E       AssertionError: assert 'partial' == 'answered'
+E
+E         - answered
+E         + partial
+
+tests/test_cited_score_warnings.py:231: AssertionError
+_ test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro >= 80-True] _
+
+condition = 'swe_bench_pro >= 80', qualifies = True
+
+    @pytest.mark.parametrize("condition, qualifies", [
+        (f"{BENCHMARK} >= 80", True),
+        (f"{BENCHMARK} <= 70", False),
+        (f"{BENCHMARK} = 40", False),
+        ({"facet": BENCHMARK, "between": [30, 50]}, False),
+    ])
+    def test_cited_score_neither_admits_nor_vetoes_verified_candidate(condition, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=40, verified_score=95),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.status == ("answered" if qualifies else "no_feasible")
+E       AssertionError: assert 'no_feasible' == 'answered'
+E
+E         - answered
+E         + no_feasible
+
+tests/test_cited_score_warnings.py:247: AssertionError
+_ test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro <= 70-False] _
+
+condition = 'swe_bench_pro <= 70', qualifies = False
+
+    @pytest.mark.parametrize("condition, qualifies", [
+        (f"{BENCHMARK} >= 80", True),
+        (f"{BENCHMARK} <= 70", False),
+        (f"{BENCHMARK} = 40", False),
+        ({"facet": BENCHMARK, "between": [30, 50]}, False),
+    ])
+    def test_cited_score_neither_admits_nor_vetoes_verified_candidate(condition, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=40, verified_score=95),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.status == ("answered" if qualifies else "no_feasible")
+E       AssertionError: assert 'answered' == 'no_feasible'
+E
+E         - no_feasible
+E         + answered
+
+tests/test_cited_score_warnings.py:247: AssertionError
+_ test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro = 40-False] _
+
+condition = 'swe_bench_pro = 40', qualifies = False
+
+    @pytest.mark.parametrize("condition, qualifies", [
+        (f"{BENCHMARK} >= 80", True),
+        (f"{BENCHMARK} <= 70", False),
+        (f"{BENCHMARK} = 40", False),
+        ({"facet": BENCHMARK, "between": [30, 50]}, False),
+    ])
+    def test_cited_score_neither_admits_nor_vetoes_verified_candidate(condition, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=40, verified_score=95),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.status == ("answered" if qualifies else "no_feasible")
+E       AssertionError: assert 'answered' == 'no_feasible'
+E
+E         - no_feasible
+E         + answered
+
+tests/test_cited_score_warnings.py:247: AssertionError
+_ test_cited_score_neither_admits_nor_vetoes_verified_candidate[condition3-False] _
+
+condition = {'facet': 'swe_bench_pro', 'between': [30, 50]}, qualifies = False
+
+    @pytest.mark.parametrize("condition, qualifies", [
+        (f"{BENCHMARK} >= 80", True),
+        (f"{BENCHMARK} <= 70", False),
+        (f"{BENCHMARK} = 40", False),
+        ({"facet": BENCHMARK, "between": [30, 50]}, False),
+    ])
+    def test_cited_score_neither_admits_nor_vetoes_verified_candidate(condition, qualifies):
+        answer = answer_for(mixed_score_index(cited_score=40, verified_score=95),
+                            where=["model.context_window >= 100000", condition])
+>       assert answer.status == ("answered" if qualifies else "no_feasible")
+E       AssertionError: assert 'answered' == 'no_feasible'
+E
+E         - no_feasible
+E         + answered
+
+tests/test_cited_score_warnings.py:247: AssertionError
+________ test_cited_sibling_does_not_change_capability_estimate[False] _________
+
+verified_first = False
+
+    @pytest.mark.parametrize("verified_first", [False, True])
+    def test_cited_sibling_does_not_change_capability_estimate(verified_first):
+        inputs = score_inputs()
+        cited = inputs.evidence.pop(0)
+        inputs.evidence.append(evidence("lab/cited", BENCHMARK, 40, day="2026-07-01"))
+        baseline = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+        expected = next(row for row in baseline.results if row.model == "lab/cited").estimates
+        assert len(expected) == 1
+        assert expected[0].value == pytest.approx(-0.574, abs=0.001)
+        inputs.evidence.append(cited)
+        if not verified_first:
+            inputs.evidence.reverse()
+        answer = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+        actual = next(row for row in answer.results if row.model == "lab/cited")
+>       assert actual.estimates == expected
+E       AssertionError: assert [Estimate(dom... effort=None)] == [Estimate(dom... effort=None)]
+E
+E         At index 0 diff: Estimate(domain='software_engineering', value=0.037625788, interval=(-0.777623293, 0.852874869), harness=None, effort=None) != Estimate(domain='software_engineering', value=-0.573979142, interval=(-1.68611462, 0.538156336), harness=None, effort=None)
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:266: AssertionError
+_________ test_cited_sibling_does_not_change_capability_estimate[True] _________
+
+verified_first = True
+
+    @pytest.mark.parametrize("verified_first", [False, True])
+    def test_cited_sibling_does_not_change_capability_estimate(verified_first):
+        inputs = score_inputs()
+        cited = inputs.evidence.pop(0)
+        inputs.evidence.append(evidence("lab/cited", BENCHMARK, 40, day="2026-07-01"))
+        baseline = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+        expected = next(row for row in baseline.results if row.model == "lab/cited").estimates
+        assert len(expected) == 1
+        assert expected[0].value == pytest.approx(-0.574, abs=0.001)
+        inputs.evidence.append(cited)
+        if not verified_first:
+            inputs.evidence.reverse()
+        answer = answer_for(load(inputs), objective={"max": "software_engineering"}, level="full")
+        actual = next(row for row in answer.results if row.model == "lab/cited")
+>       assert actual.estimates == expected
+E       AssertionError: assert [Estimate(dom... effort=None)] == [Estimate(dom... effort=None)]
+E
+E         At index 0 diff: Estimate(domain='software_engineering', value=0.037625788, interval=(-0.777623293, 0.852874869), harness=None, effort=None) != Estimate(domain='software_engineering', value=-0.573979142, interval=(-1.68611462, 0.538156336), harness=None, effort=None)
+E         Use -v to get more diff
+
+tests/test_cited_score_warnings.py:266: AssertionError
+_______ test_legacy_ranker_prefers_verified_score_to_cited_sibling[True] _______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-112/test_legacy_ranker_prefers_ver1')
+verified_first = True
+
+    @pytest.mark.parametrize("verified_first", [False, True])
+    def test_legacy_ranker_prefers_verified_score_to_cited_sibling(tmp_path, verified_first):
+        front, path = card_tree(tmp_path)
+        verified = {
+            "benchmark_id": "humaneval", "model_id_as_evaluated": "Cited model",
+            "score": 95, "unit": "percent", "source_url": "https://lab.example/results",
+            "source_kind": "provider_self_report", "evidence_date": "2026-10-19",
+            "date_type": "published", "verified_at": "2026-10-19",
+        }
+        cited = {**verified, "score": 40, "source_url": URL}
+        front["benchmarks"]["evidence"] = [verified, cited] if verified_first else [cited, verified]
+        path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+        candidate = ranking.build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
+        result = ranking.score(candidate, {"benchmark_weights": {"humaneval": 1}})
+>       assert candidate.benchmark_scores["humaneval"] == 95
+E       assert 40.0 == 95
+
+tests/test_cite_only_exports.py:237: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro <= 70]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro = 50]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_uses_verified_value[50-80-False-condition2]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_uses_verified_value[50-80-False-condition3]
+FAILED tests/test_cited_score_warnings.py::test_score_predicate_uses_verified_value[50-80-False-swe_bench_pro <= model(lab/plain)]
+FAILED tests/test_cited_score_warnings.py::test_verified_score_remains_the_benchmark_objective_winner[False]
+FAILED tests/test_cited_score_warnings.py::test_verified_score_remains_the_benchmark_objective_winner[True]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro >= 80-True]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro <= 70-False]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_neither_admits_nor_vetoes_verified_candidate[swe_bench_pro = 40-False]
+FAILED tests/test_cited_score_warnings.py::test_cited_score_neither_admits_nor_vetoes_verified_candidate[condition3-False]
+FAILED tests/test_cited_score_warnings.py::test_cited_sibling_does_not_change_capability_estimate[False]
+FAILED tests/test_cited_score_warnings.py::test_cited_sibling_does_not_change_capability_estimate[True]
+FAILED tests/test_cite_only_exports.py::test_legacy_ranker_prefers_verified_score_to_cited_sibling[True]
+14 failed, 51 passed in 1.05s

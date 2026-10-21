@@ -1,0 +1,23 @@
+{
+  "label": "memory-c",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/measure_private.py",
+    "--code",
+    "/tmp/model-437-scratch/acceptance/results/c/code",
+    "--data-dir",
+    "/tmp/model-437-scratch/acceptance/prepared/repaired-data",
+    "--output",
+    "/tmp/model-437-scratch/acceptance/memory-c",
+    "--node",
+    "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+    "--runtime",
+    "/tmp/model-437-scratch/acceptance/memory-runtime"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T18:59:06.539675+00:00",
+  "finished": "2026-10-21T19:02:11.253765+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/memory-c.private.log"
+}

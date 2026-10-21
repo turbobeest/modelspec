@@ -1,0 +1,66 @@
+{
+  "commands": [
+    [
+      "git",
+      "clone",
+      "--quiet",
+      "--depth",
+      "1",
+      "https://github.com/turbobeest/modelspec-data.git",
+      "/tmp/model-437-scratch/acceptance/modelspec-data"
+    ],
+    [
+      "git",
+      "-C",
+      "/tmp/model-437-scratch/acceptance/modelspec-data",
+      "fetch",
+      "--quiet",
+      "--depth",
+      "1",
+      "origin",
+      "model-439-mixed-citation"
+    ],
+    [
+      "git",
+      "init",
+      "--quiet",
+      "/tmp/model-437-scratch/acceptance/engine-refs"
+    ],
+    [
+      "git",
+      "-C",
+      "/tmp/model-437-scratch/acceptance/engine-refs",
+      "remote",
+      "add",
+      "origin",
+      "https://github.com/turbobeest/modelspec.git"
+    ],
+    [
+      "git",
+      "-C",
+      "/tmp/model-437-scratch/acceptance/engine-refs",
+      "fetch",
+      "--quiet",
+      "--depth",
+      "1",
+      "origin",
+      "main:refs/remotes/origin/main",
+      "refs/pull/866/head:refs/remotes/origin/pr-866",
+      "refs/pull/891/head:refs/remotes/origin/pr-891"
+    ],
+    [
+      "npm",
+      "install",
+      "--prefix",
+      "/tmp/model-437-scratch/acceptance/memory-runtime",
+      "--no-save",
+      "pyodide@0.28.3"
+    ]
+  ],
+  "setup_script": "setup_acceptance.py records the equivalent Python git-archive and repaired-view construction actually executed inline. It has not been rerun against the occupied scratch directory.",
+  "cleanup_planned": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/cleanup_acceptance.py",
+    "--confirmed-public-evidence-copied"
+  ]
+}

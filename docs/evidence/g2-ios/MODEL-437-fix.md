@@ -1,332 +1,233 @@
-# MODEL-437: count cited benchmark scores
+# MODEL-437 round 2: verified score precedence and citation labels
 
-Implementation complete; acceptance **BLOCKED** by a reproduced prerequisite
-data-completeness failure. Keep this PR draft pending #857 and review. The
-required candidate with #866's host policy cannot produce a deployable snapshot,
-so its recommendation parity, 40-template warning count and Worker memory are
-unobserved.
+All three review findings are fixed. Private exports pass completeness in both
+periods under main's policy and under #866's policy plus the MODEL-439 data
+repair. All four private Worker memory measurements are below 115 MiB steady.
+The repaired configuration changes one of the 302 repository corpus cases per
+period. The diagnostic below proves that hardware-fit facts cause that change.
 
-## Revisions and scope
+PR #889 remains a draft for independent review. This report replaces the
+round-1 blocker assessment. The earlier report and measurements remain in
+[the starting revision](https://github.com/turbobeest/modelspec/blob/25b29cbab0f0f8751b1ed6968bd3370562e13acd/docs/evidence/g2-ios/MODEL-437-fix.md).
 
-- Starting prerequisite #857: `44f3bdb5cbc96afa275ee1ca836703560d10c97b`.
-- Final implementation/test SHA: `7d6f5c15652c453b667f056206c540a3d2930eaf`.
-- Baseline main used for private comparisons:
-  `9be40994f5e884588aa21d49b2f2647e4a3fec3c`.
-- Merged main after implementation:
-  `9f280970f83e0530782516890e5d4345ce590053`.
-- Scratch-only #866 policy: `82ebcf4627d255d7641303caff2d149e879cf359`.
-- Private data: `a6f8fd798d7d6f40b35ed08320796b773f29df9a`.
-- Worktree: `/Users/terbeest/dev/worktrees/model-437`; branch:
-  `model-437-count-cited-scores`.
+## Revisions
 
-The final branch SHA follows in the PR body and executor completion marker.
-Commits after the implementation SHA above contain evidence only; a file cannot
-embed the hash of the commit containing itself. Machine-readable identities are
-in [run-metadata.json](MODEL-437/run-metadata.json).
-
-Cited scores now enter the snapshot with `verification: null` and citation
-status `cited`. Ranking, filtering, capability fits, refinements, comparison,
-explanations and browser provenance retain that distinction. Decision warnings
-track scores actually used by a top or tied model, including hidden tied rows,
-reference operands, unshown fit drivers and measurement tie breakers. Unused,
-excluded or short-circuited scores do not add a decision warning. Mismatch,
-unreachable, invalid citations, mixed refs and authored redirect restrictions
-still refuse admission. An authored redirect cannot grant citation status.
-
-No source-retention host policy, frozen data, ranking floor, legal text or
-production switch was changed by this ticket. Changes inherited from #857 stay
-on the branch as required. The main merge retained both PDF/rendered source
-support and #857's restrictive source handling.
-
-## Contracts
-
-Read the decision, rank, snapshot and export contracts before changing them.
-
-- Snapshot format **1 → 2** is a major bump. An old reader treated every evidence
-  row as verified; the new format adds cited-evidence and estimate provenance
-  indexes. New readers accept both format 1 and format 2.
-- Decision **2.18 → 2.19**, named comparison **1.0 → 1.1**: add optional citation
-  metadata, omitted for uncited evidence. No existing response field gains a
-  new enum member, nullability or absence. Export record verification already
-  allowed null; the snapshot reader's changed interpretation requires format 2.
-- Export **3.0**, rank **1.0**, bounded decision **1.5** stay unchanged. The
-  bounded response advertises its updated underlying decision version.
-- Regenerated the JSON schema and OpenAPI, updated the strict browser decoder
-  and MCP contract-version fallback. Tests still enforce full response bytes
-  and golden hashes.
-
-The [golden audit](MODEL-437/golden_identity_audit.json) reproduces all nine old
-plan responses and three Worker hashes with snapshot format 1. Format 2 changes
-only their snapshot and decision identities. The [public budget audit](MODEL-437/budget_identity_audit.json)
-replays the old snapshot identity with current data and reproduces the entire old
-fixture, including ten `p_best` values. Those probability changes come from the
-snapshot-derived random seed; answers, order, evidence and summaries stay the
-same. The saved budget fixture's identity was already older than a newly built
-format-1 identity; format alone does not explain that earlier difference.
-
-## Red first and regression results
-
-The initial score tests ran against unchanged `44f3bdb5`. Additional edge tests
-ran before their corresponding fixes. Logs below contain actual assertion
-failures, not crashes.
-Retained text logs have trailing whitespace and surplus final blank lines
-removed; assertion text and test results are unchanged.
-
-| Defect and test | Red result | Final green coverage |
-| --- | --- | --- |
-| Snapshot admission and ranking: `test_cited_score_survives_snapshot_roundtrip_without_verification`, `test_cited_score_ranks_and_warns_on_the_recommendation`, `test_tied_cited_score_outside_limit_still_warns` | [8 failed, 10 passed](MODEL-437/red.txt) | Post-merge focused suite and final fixture suite |
-| Citation contracts/comparison; qualified filters, model/best references, capabilities and refinements | [22 failed, 5 passed](MODEL-437/contracts-warnings-red.txt) | Contract suite and post-merge focused suite |
-| Invalid citation display URL/regions | [6 failed](MODEL-437/invalid-citation-red.txt) | Post-merge focused suite |
-| Shown capability citation with a fact objective | [2 failed](MODEL-437/shown-score-red.txt) | Post-merge focused suite |
-| Independent-measurement tie-break citation | [1 failed](MODEL-437/tiebreak-red.txt) | Post-merge focused suite |
-| Authored redirect to excluded host | [failure](MODEL-437/edge-red.txt) | Post-merge focused suite |
-| Browser decoder and displayed score provenance | [2 failed](MODEL-437/web-red.txt) | 908 web tests and production web build |
-| A cited score fails a predicate while a verified score admits the model: `test_score_predicate_warning_uses_supporting_rows` | [6 failed, 8 passed](MODEL-437/predicate-red.txt) | [14 passed](MODEL-437/predicate-green.txt); 182-test warning/filter suite |
-
-| Completed check | Result / log |
+| Input | Revision |
 | --- | --- |
-| Contracts, comparisons, MCP version | [334 passed](MODEL-437/contracts-green.txt) |
-| Decision engine, capability, calibration, explanation, optimisation, vocabulary, streaming, memory-compaction, corpus | [916 passed](MODEL-437/decision-suites-green.txt) |
-| Final merged code: cited scores/warnings/contracts, cite-only surfaces/verification/caller isolation, PDF/rendered sources, excluded-source guard, Worker imports | [416 passed, 31 skipped](MODEL-437/post-merge-focused.txt) |
-| Refreshed golden identities, links, API docs, bounded responses, score admission | [218 passed, 2 skipped](MODEL-437/final-fixtures-green.txt) |
-| Web suite | [908 passed; one test file skipped](MODEL-437/web-all-green.txt) |
-| Web production build | [exit 0](MODEL-437/web-build.txt) |
-| MCP suite / typecheck | [235 passed](MODEL-437/mcp-tests.txt); [typecheck exit 0](MODEL-437/mcp-typecheck.txt) |
-| Regenerated MCP fixture consumers | [106 passed](MODEL-437/mcp-fixtures-green.txt) |
-| Schema / OpenAPI consistency | [exit 0](MODEL-437/schema-check.txt); [exit 0](MODEL-437/openapi-check.txt) |
-| Public bundle rebuilt after private memory run | [129 files, imports clean](MODEL-437/public-vendor-check.txt) |
-| Data freeze | [passed](MODEL-437/data-freeze.txt) |
-| Final predicate warning fix, score admission, fact warning scope and filters | [182 passed](MODEL-437/filter-warning-green.txt) |
-| Excluded-source guard with all evidence artifacts staged | [46 passed, 1 skipped](MODEL-437/final-artifact-guard.txt) |
+| Starting branch | `25b29cbab0f0f8751b1ed6968bd3370562e13acd` |
+| Main, including #857's final code | `a03c4d077acc03c2bc5dba526ff635fb708ccb94` |
+| Main merge commit | `a65a4997692d20abcccc848abf6a8c48448ed727` |
+| Final implementation and tests | `6b9695fc75748bf31d8f07955bbf8fea89fc57f0` |
+| Scratch-only #866 policy | `82ebcf4627d255d7641303caff2d149e879cf359` |
+| MODEL-439 repair script, engine #891 | `77a9566822f7a23e322d2647913c755ad3cb7ed8` |
+| Baseline private data | `9d9de96f062ac031336ee483ae97c3b436bd3845` |
+| Repaired private data, data #118 | `f722d3fcb673b28bdff9fa1b5cac06c22cc61c38` |
 
-Counts overlap between suites and are not a unique test total. Intermediate
-broader runs caught current-version literals, format-derived golden IDs, a
-malformed-record citation guard and two test setup errors. These were corrected:
-the malformed-record guard still requires a fact or benchmark record; old-format
-readability uses the existing bytes returned by `canonical_json`; the shown-score
-test inspects the contribution that actually carries its evidence. Golden
-assertions were refreshed after the identity audits, not loosened. The hidden-tie
-test explicitly puts the cited model outside the returned limit.
+Worktree `/Users/terbeest/dev/worktrees/model-437`, branch
+`model-437-count-cited-scores`. Commits after the implementation SHA contain
+evidence only. The final branch SHA is in the executor completion marker.
 
-The final audit found and corrected an extra warning when a failing cited row
-shared a benchmark with a passing verified row. Predicate provenance now selects
-the rows supporting its evaluated outcome; failed predicates still retain
-citations when negation or a soft penalty uses them. This changes warning
-attribution only. [Exact red/green commands](MODEL-437/predicate-verification.md)
-cover comparisons, windows, relative references, soft conditions and negation.
+The merge retained main's final record-origin validation and the granting
+versus restrictive cite-only APIs. `scripts/price_reread.py` and
+`tests/test_cite_only_caller_isolation.py` match main exactly. The other conflict
+resolutions retained #889's cited-score additions.
 
-## Private deploy-equivalent proof
+## Changes and red-first proof
 
-All private builds used the same private data revision, a throwaway signing key,
-the production `vendor.export_data` path and its completeness gate. No provider
-calls were made. Each state ran in its own staged tree/process. Current and
-successor snapshots were evaluated at their respective `as_of` dates
-(`2026-10-21`, `2027-01-01`) so the successor validity guard remained enabled.
+The snapshot compiler removes cited rows when an admitted verified row exists
+for the same canonical model and benchmark. This runs before capabilities,
+objective lookups and predicate indexes are built. Offering records use their
+canonical model. Rejected records from copy-permitted sources cannot suppress
+a cited score, and multiple verified measurements remain intact. The legacy ranker's score
+admission applies the same precedence regardless of input order.
 
-State definitions:
+The CLI comparison table appends `[Cited, not machine-verified]` to cited
+benchmark values. Answer sentences distinguish cited facts, benchmark scores,
+and both. Citation-kind tracking stays internal to the decision object and
+does not alter the JSON contract or schema. A deserialized decision without
+that internal context uses generic wording instead of guessing.
 
-- **a:** pinned main with its host policy.
-- **b:** the same main plus #866's host policy, in scratch only.
-- **c:** this implementation plus #866's policy, in scratch only.
-- **d:** supporting check of this implementation with main's current host policy.
+| Finding | Red-first regression tests | Red result | Green evidence |
+| --- | --- | --- | --- |
+| P1, objectives and predicate admission/veto | `test_verified_score_remains_the_benchmark_objective_winner`, `test_cited_score_neither_admits_nor_vetoes_verified_candidate`, rewritten `test_score_predicate_uses_verified_value` | Initial [14 failed, 51 passed](MODEL-437/round2/precedence-red.txt) | [99 passed](MODEL-437/round2/precedence-green.txt) |
+| P1, capability estimate and legacy ranker | `test_cited_sibling_does_not_change_capability_estimate`, `test_legacy_ranker_prefers_verified_score_to_cited_sibling` | Included in the same initial red run | Included in the same 99-test green run |
+| P2, human comparison table | `test_human_named_comparison_labels_cited_benchmark_score` | Combined P2/P3 [7 failed, 3 passed](MODEL-437/round2/labels-red.txt) | [154 passed](MODEL-437/round2/labels-green.txt) |
+| P3, actual cited categories | `test_cited_answer_sentence_covers_facts_scores_and_both` | Included in the P2/P3 red run | Included in the 154-test green run; [17 selected tests passed](MODEL-437/round2/labels-final-green.txt) |
 
-| Measurement | a | b | c | d, supporting only |
-| --- | ---: | ---: | --- | ---: |
-| Admitted benchmark records | 944 | 933 | Blocked | 944 |
-| Cited benchmark records | 0 | 0 | Blocked | 0 |
-| Warned templates, current / successor | 1 / 1 of 40 | 15 / 15 of 40 | Unobserved | 1 / 1 of 40 |
-| Corpus expectation failures, each period | 0 | 0 | Unobserved | 0 |
-| Contract-validated HTTP-200 responses, each period | 286 | 286 | Unobserved | 286 |
+Additional regressions cover offering inheritance, rejected verified siblings,
+multiple verified measurements, soft penalties, hidden reference operands,
+measurement tie breakers, shown estimates and omitted private metadata. The
+hidden ninth-driver fixture now uses a different benchmark so its cited driver
+is not superseded by a verified sibling.
 
-Each successful state exercised all 319 corpus cases, including 302 repo cases
-(269 repo cases return HTTP 200; the other cases intentionally exercise errors).
-State reports: [a](MODEL-437/state-a.public.json),
-[b](MODEL-437/state-b.public.json), [d](MODEL-437/state-d.public.json).
+The final P1 test files also ran against an untouched archive of merge commit
+`a65a4997`. Only the tests were copied into that archive. They produced
+[18 assertion failures and 81 passes](MODEL-437/round2/precedence-confirmation-red.txt).
+This replay includes corrected test fixtures. Earlier green attempts exposed
+three fixture mistakes: comparing a normalized contribution with a raw score,
+assuming an empty answer was populated, and choosing a context threshold that
+did not exclude the default competitor. The final assertions use the raw
+contribution, the absent answer and a threshold above that competitor's context.
 
-| Comparison across 302 repo cases | Current | Successor |
+## Completed checks
+
+| Check | Result |
+| --- | --- |
+| Merged cite-only verification and caller isolation | [211 passed](MODEL-437/round2/merge-green.txt) |
+| Final touched test files plus class-fit, legal and removed-source guards | [367 passed, 1 skipped](MODEL-437/round2/focused-green.txt), exit 0 |
+| Decision schema and OpenAPI checks | Exit 0; no generated contract changes |
+| Data freeze guard against main | Exit 0 |
+| CI shard planner | Exit 0; predicted 4,111.592 to 4,111.594 seconds per shard |
+| Tracked-file guard with acceptance artifacts staged | [1 passed](MODEL-437/round2/final-artifact-guard.txt), exit 0 |
+| Public Worker bundle restored after all private probes | [129 files; clean imports](MODEL-437/round2/public-vendor-check.txt), exit 0 |
+
+The optional built-site scan was the only final-suite skip because
+`MODELSPEC_DIST` was unset. Suite counts overlap. Retained test logs only remove
+trailing whitespace and surplus final blank lines; assertions and results are
+unchanged. Exact commands and versions are in
+[commands.md](MODEL-437/round2/commands.md).
+
+## Private acceptance
+
+Both candidate builds used final implementation `6b9695fc`. The staged-source
+audit compared 205 files in each candidate against that commit, permitting only
+the intended scratch policy override. Each state ran in a separate staged tree
+and process.
+
+The [acceptance README](MODEL-437/round2/acceptance/README.md) gives the replay
+steps. The [comparison](MODEL-437/round2/acceptance/comparison.public.json),
+[aggregate results](MODEL-437/round2/acceptance/summary.public.json),
+[source audit](MODEL-437/round2/acceptance/staged-code.public.json) and
+[repair audit](MODEL-437/round2/acceptance/repair-view.public.json) retain the
+measured results. Command records include the failed setup attempt.
+
+| State | Engine | Policy | Private data |
+| --- | --- | --- | --- |
+| a, baseline | Main `a03c4d07` | Main | `9d9de96f` |
+| d | Candidate `6b9695fc` | Main | `9d9de96f` |
+| c | Candidate `6b9695fc` | #866 | Data #118 repair on `9d9de96f` |
+
+Data #118 directly descends from the baseline data revision. Its 13 changed
+files were applied byte-for-byte in scratch. Unchanged leaf files were linked
+to the original clone, with real containing directories. The #891 repair
+script ran in dry-run mode against the repaired view with an explicit empty
+CopyStore. All three rule counts and remaining changes were zero. No retained
+research page bytes were read or copied to prepare or audit the view.
+
+The first c setup used directory symlinks, which recursive model discovery
+skipped. It exited 1 before corpus evaluation. Replacing only the scratch view
+with real directories and leaf symlinks corrected the setup. No engine change
+or completeness-gate bypass was involved.
+
+Current exports were built on `2026-10-21`; successor exports start
+`2027-01-01`. Corpus evaluation uses each snapshot's own date and keeps validity
+checks enabled. Export creation uses the wall clock, so replaying calendar-
+dependent identities later also requires the same build date.
+
+Every state ran 319 total corpus cases, including 302 repository cases, in each
+period. Every run had zero expectation failures and 286 contract-validated
+HTTP-200 responses, including 269 repository cases. These responses came from
+the local Worker service path, with no live API requests.
+
+| Comparison against a, across 302 repository cases | Current | Successor |
 | --- | ---: | ---: |
-| b vs a: first result model changes | 66 | 66 |
-| b vs a: tie member set changes | 72 | 71 |
-| b vs a: answer kind or member set changes | 72 | 72 |
-| c vs a | Unobserved | Unobserved |
-| d vs a: first result model changes | 0 | 0 |
-| d vs a: tie member set changes | 0 | 0 |
-| d vs a: answer kind or member set changes | 0 | 0 |
+| d first-result model changes | 0 | 0 |
+| d tie-member-set changes | 0 | 0 |
+| d answer-kind changes | 0 | 0 |
+| c first-result model changes | 1 | 1 |
+| c tie-member-set changes | 1 | 1 |
+| c answer-kind changes | 0 | 0 |
 
-“First result” means `results[0].model`, not a unique-winner claim. A tie member
-set is sorted `answer.members` for `answer.kind == tied`, otherwise empty.
-[The comparison report](MODEL-437/comparison-available.public.json) includes
-case IDs and additional status/order counts. d changes the contract version in
-all 302 cases; it does not establish c's required parity. a/b/d were measured
-before merging main's new source readers; all ticket scoring changes were
-already present. The final c gate and supporting memory probe used merged code.
-The last predicate-warning correction followed the corpus runs; a/b use their
-own unchanged code and d has no cited benchmark rows. The supporting memory
-probe was repeated after that correction.
+Both candidates' standalone completeness checks passed with `gap_count: 0` for
+both periods. The deploy-style exports also kept the gate enabled.
 
-### Reproduced prerequisite blocker
+| Additional measurement | a | d | c |
+| --- | ---: | ---: | ---: |
+| Admitted benchmark records, each period | 944 | 944 | 945 |
+| Cited benchmark records, each period | 0 | 0 | 12 |
+| Cited records with non-null verification | 0 | 0 | 0 |
+| Warned templates, current, of 40 | 1 | 1 | 18 |
+| Warned templates, successor, of 40 | 1 | 1 | 16 |
 
-The production c export failed before producing a deployable snapshot. A
-separate build of untouched prerequisite `44f3bdb5` plus the same #866 policy
-failed identically: **192 guaranteed-fact gaps across 11 models**, all
-`quarantined (mixed citation)`. Exact `(subject, facet, reason)` sets match;
-there are zero candidate-only or base-only gaps. This is a prerequisite/data
-interaction, not a new gap introduced by score admission.
+First result means `results[0].model`, not a unique-winner claim. A tie set is
+sorted `answer.members` only when the answer is tied. Candidate contract
+versions differ from main in all 302 cases as expected from #889's original
+contract update. No HTTP or response status changed.
 
-- [Base #857 gate](MODEL-437/gate-base857.public.json)
-- [Candidate gate](MODEL-437/gate-c.public.json)
-- [Exact set comparison](MODEL-437/gate-comparison.public.json)
-- [Final post-merge c gate](MODEL-437/gate-final-c.public.json): still 192, exact match
+The strict comparator retains exit 1 and `acceptance_passed: false` because
+it requires zero differences. Round 2 explicitly permits each remaining change
+to be explained. The comparator was not weakened to hide the difference.
 
-The gate stayed enabled for every deploy/acceptance attempt. Private data and
-the production gate were not changed to force a passing result.
+### The one changed case
 
-A separate, explicitly **nondeployable score-only diagnostic** used `gate=False`
-in memory solely to inspect score admission. It wrote no snapshot and fed no
-corpus or memory run. It found 945 records: all 11 lost by b are restored and
-labelled cited; all 944 original readings are unchanged; one additional record
-is admitted. All 12 cited records have null verification, citation status cited,
-and `verified == False`. This [aggregate](MODEL-437/evidence-diagnostic.public.json)
-supports admission behavior, not deployment or recommendation parity.
+The case is `facet-must-model.fits_hardware` in both periods. Its generated
+spec requires a known `model.fits_hardware` value and maximizes
+`software_engineering`, with `explain: summary` and `limit: 5`.
 
-### Memory
+Under #866's policy, 10 unchanged hardware-fit facts are quarantined as mixed
+citations. These are best-effort facts, outside MODEL-439's guaranteed-fact
+repair. They are identical in the original and repaired data. Feeding each
+identical admitted baseline record through the compiler under main's policy
+admits all 10; changing only the policy to #866 rejects all 10. Their inherited
+offering facts account for 32 subjects changing from known to unknown.
 
-The required **c memory result is unobserved** because c cannot build. The
-supporting probe used private data with the repository's actual host policy,
-the merged implementation, deploy-style vendoring, Pyodide 0.28.3, Node 22 and a
-throwaway key. It exercised decide, vocabulary, rank and policy-check requests.
+No software-engineering estimate changes. All 944 baseline benchmark readings
+remain present and unchanged, with one additional admitted record. The
+candidate subject set is unchanged.
 
-| Supporting period | Steady MiB | Peak MiB | Limit | Result |
-| --- | ---: | ---: | ---: | --- |
-| Current | 109.0142 | 112.5679 | 115 steady | Exit 0 |
-| Successor | 104.6141 | 105.3975 | 115 steady | Exit 0 |
+An in-memory diagnostic replaced only the candidate's hardware-fit fact and
+bitset columns with the baseline columns. That restored the exact baseline
+first result, answer kind and member set in both periods while retaining the
+candidate snapshot seed. Replacing only the seed or capability estimates did
+not restore the answer. This isolates the remaining case change to #866's
+policy treatment of best-effort hardware facts, rather than score precedence
+or the data repair. The unmodified candidate snapshots and enabled production
+gate were used for every acceptance and memory run.
 
-Raw probe results: [current](MODEL-437/memory-actual-policy-current.json),
-[successor](MODEL-437/memory-actual-policy-successor.json).
-The public Worker bundle was re-vendored after this private run.
+The [public causal report](MODEL-437/round2/acceptance/residual.public.json)
+and [replay script](MODEL-437/round2/acceptance/explain_difference.py) record
+that diagnostic without publishing model identities or fact values.
 
-## Reproduction commands and versions
+### Worker memory
 
-Environment: macOS; Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5, PyYAML 6.0.3,
-pypdf 6.19.0, cryptography 45.0.7; Node 22.22.3, Vitest 5.0.1,
-Pyodide 0.28.3; git 2.50.1, gh 2.102.0. Python is the shared repo virtualenv;
-Node is `/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node`.
+Each probe used deploy-style private vendoring, a throwaway signing key,
+Node 22.22.3 and Pyodide 0.28.3. It exercised decide, vocabulary, rank and
+policy-check with a 115 MiB steady limit. Source-cache and real signing-key
+environment variables were absent.
 
-The following commands ran from the ticket worktree; `PY` below abbreviates
-the exact Python executable for readability. Each pytest call was serial with
-`-p no:cacheprovider`; exit codes were read directly, without a pipe.
+| Configuration | Period | Steady MiB | Peak MiB | Result |
+| --- | --- | ---: | ---: | --- |
+| d, main policy | Current | 109.0079 | 109.7911 | Exit 0 |
+| d, main policy | Successor | 104.6112 | 107.7897 | Exit 0 |
+| c, #866 plus repair | Current | 104.6295 | 105.4141 | Exit 0 |
+| c, #866 plus repair | Successor | 103.7415 | 105.7109 | Exit 0 |
 
-```bash
-PY=/Users/terbeest/dev/modelspec/.venv/bin/python
-export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+Probe outputs: [d current](MODEL-437/round2/acceptance/memory-d-current.public.json),
+[d successor](MODEL-437/round2/acceptance/memory-d-successor.public.json),
+[c current](MODEL-437/round2/acceptance/memory-c-current.public.json),
+[c successor](MODEL-437/round2/acceptance/memory-c-successor.public.json).
 
-# Initial red, before production changes.
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_scores.py
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_score_contract.py tests/test_cited_score_warnings.py
-# Later red selections, before their respective fixes.
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_scores.py -k invalid_cited_score
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_score_warnings.py -k shown_capability
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_score_warnings.py::test_cited_score_used_by_independent_measurement_tie_breaker_warns
-(cd web && npm test -- cited-score.test.tsx)
+The public Worker bundle was rebuilt after all private memory runs, without a
+private-data argument or signing key. It passed the import check and left no
+tracked bundle changes.
 
-# Green contract and broader decision suites.
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_score_contract.py tests/test_decision_contract.py tests/test_compare_models_worker.py tests/test_mcp_contract_version.py
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_scores.py tests/test_cited_score_contract.py tests/test_cite_only_surfaces.py tests/test_decision_capability.py tests/test_capability_calibration.py tests/test_decision_explain.py tests/test_decision_optimise.py tests/test_decision_vocabulary.py tests/test_snapshot_streaming.py tests/test_worker_memory_compaction.py tests/test_corpus.py
-# Final post-merge and fixture suites.
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_cited_scores.py tests/test_cited_score_warnings.py tests/test_cited_score_contract.py tests/test_cite_only_surfaces.py tests/test_cite_only_verification.py tests/test_cite_only_caller_isolation.py tests/test_pdf_sources.py tests/test_rendered_interactions.py tests/test_removed_sources.py tests/test_worker_vendor_imports.py
-env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_decision_plans.py tests/test_decision_link.py tests/test_api_docs.py tests/test_decide_bounded.py tests/test_cited_scores.py
-(cd web && npm test)
-(cd web && env PYTHONPATH=$PWD/.. npm run build)
-(cd mcp && npm test)
-(cd mcp && npm run typecheck)
-(cd mcp && npm test -- decide-budget.test.ts server.test.ts)
-env PYTHONPATH=$PWD "$PY" -m decision.schema --check
-env PYTHONPATH=$PWD "$PY" api/worker/openapi.py --check
-env PYTHONPATH=$PWD "$PY" api/worker/vendor.py --check
-env PYTHONPATH=$PWD "$PY" scripts/data_freeze_guard.py --base origin/main --head HEAD --branch model-437-count-cited-scores
-git diff --check
-```
+## Reproduction and limits
 
-Private-proof scripts are committed beside this report. They keep private
-records, error details and exports in scratch and emit public aggregate reports.
-To reproduce, restore the pinned main and private revisions in the named scratch
-paths, copy the policy from the pinned #866 commit into `hosts-866.json`, and use
-fresh output directories. The private clone used HTTPS git; no source page
-fetches or paid APIs were used.
+Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5, PyYAML 6.0.3,
+cryptography 45.0.7, pypdf 6.19.0, Node 22.22.3, Pyodide 0.28.3,
+Git 2.50.1 and gh 2.102.0 were used. Pytest ran serially with
+`-p no:cacheprovider`; exit codes were checked directly.
 
-Export creation used the actual UTC date `2026-10-21`; `vendor.export_data`
-reads the wall clock. No export-time clock override was used. Replaying the
-numeric snapshot comparison on a later date requires an environment with that
-date fixed; pinned revisions alone do not reproduce calendar-dependent exports.
-The explicit per-period clock in the helper applies only while evaluating the
-already-built snapshots. The standalone gate and score diagnostic do accept
-`--as-of`.
+Private acceptance helpers and public aggregates accompany this report.
+They record revisions, exact arguments, timestamps, exit codes and aggregate
+results. Private records, response bodies, snapshots, exports and error logs
+were removed with all task scratch before handoff. The
+[cleanup record](MODEL-437/round2/cleanup.public.json) confirms removal and
+zero remaining owned processes. The acceptance package is an immutable copy
+from before cleanup, so its historical pending-cleanup fields remain intact.
 
-Scripts: [corpus comparison](MODEL-437/compare_private.py),
-[completeness gate](MODEL-437/check_completeness.py),
-[score-only diagnostic](MODEL-437/evidence_restore_diagnostic.py),
-[supporting memory probe](MODEL-437/memory_actual_policy.sh),
-[planned c memory probe](MODEL-437/memory_steps.sh),
-[golden identity audit](MODEL-437/golden_identity_audit.py),
-[budget identity audit](MODEL-437/budget_identity_audit.py).
-
-```bash
-PROOF=/tmp/model-437-scratch/proof-setup
-PY=/Users/terbeest/dev/modelspec/.venv/bin/python
-mkdir -p "$PROOF" /tmp/model-437-scratch/contract-audit
-cp docs/evidence/g2-ios/MODEL-437/{compare_private.py,check_completeness.py,evidence_restore_diagnostic.py,memory_actual_policy.sh} "$PROOF/"
-"$PY" "$PROOF/compare_private.py" run \
-  --main-root /tmp/model-437-scratch/main --candidate-root "$PWD" \
-  --host-policy /tmp/model-437-scratch/executor/hosts-866.json \
-  --data-dir /tmp/model-437-scratch/modelspec-data \
-  --output "$PROOF/results" --states ab
-# Same command with --states c: exit 1, production completeness failure.
-# Same command with --states d: exit 0, supporting actual-policy comparison.
-env PYTHONPATH=$PWD "$PY" docs/evidence/g2-ios/MODEL-437/compare_private.py compare \
-  --output "$PROOF/results" --states abd
-# Exit 0; emits comparisons for available states and explicitly marks c unobserved.
-
-env PYTHONPATH="$PROOF/final-gated-c/code" "$PY" "$PROOF/check_completeness.py" \
-  --code "$PROOF/final-gated-c/code" \
-  --data-dir /tmp/model-437-scratch/modelspec-data \
-  --output "$PROOF/final-gated-c/gate" \
-  --compare-gaps "$PROOF/gate-base857/gaps.private.json" --as-of 2026-10-21
-
-env MODELSPEC_SNAPSHOT_KEY=model437-private-proof-throwaway-key \
-  "$PY" "$PROOF/evidence_restore_diagnostic.py" \
-  --code "$PROOF/results/c/code" --data-dir /tmp/model-437-scratch/modelspec-data \
-  --baseline-export "$PROOF/results/a/exports/decision/snapshot.json.gz" \
-  --host-only-export "$PROOF/results/b/exports/decision/snapshot.json.gz" \
-  --output "$PROOF/evidence-diagnostic-c"
-
-bash "$PROOF/memory_actual_policy.sh"
-# Actual script vendors private data into a scratch bundle, copies handwritten
-# Worker modules, and runs measure_memory.cjs --limit-mib 115 for both periods.
-env PYTHONPATH=$PWD "$PY" api/worker/vendor.py --check
-
-env PYTHONPATH=$PWD "$PY" docs/evidence/g2-ios/MODEL-437/golden_identity_audit.py
-env PYTHONPATH=$PWD "$PY" docs/evidence/g2-ios/MODEL-437/budget_identity_audit.py
-```
-
-The comparator was corrected during setup to evaluate in a fresh process after
-vendoring: imported default paths otherwise referred to a deleted overlay.
-The successor clock was then set to the snapshot period, matching the existing
-memory probe. No failure from either setup mistake is counted as a corpus
-result. The committed helper reflects both corrections.
-
-## Unobserved and handoff limits
-
-- c vs a recommendation parity, c's 40-template warning count and c's private
-  Worker memory remain blocked by the prerequisite mixed-ref fact gaps.
-- The extra admitted record in the score-only diagnostic means evidence-count
-  restoration alone cannot establish zero recommendation changes.
-- No full local pytest, full two-site pipeline build, release-chart check,
-  production deploy, Cloudflare runtime measurement or remote CI result is
-  claimed. CI remains the full gate.
-- Optional Python Playwright cases and the `MODELSPEC_DIST` output scan were
-  skipped; the two live API probes in `tests/test_api_docs.py` were disabled,
-  and one web test file was skipped.
-- No private score rows, fact values, snapshots or private error logs are
-  committed. Private clone, overlays, exports and task scratch are removed
-  before completion. All spawned processes must exit before handoff.
-- This is executor evidence; independent cross-model review is still pending.
+No source-retention policy, frozen data, ranking floor, legal text or production
+switch changed in the repository. No provider calls or API spend occurred.
+No full local pytest run, full two-site build, release-chart check, remote CI
+result, production deployment or Cloudflare runtime memory measurement is
+claimed. CI remains the full gate, and independent cross-model review is pending.

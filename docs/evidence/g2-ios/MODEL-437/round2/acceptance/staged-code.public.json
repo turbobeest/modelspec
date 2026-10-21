@@ -1,0 +1,16 @@
+{
+  "c": {
+    "implementation_commit": "6b9695fc75748bf31d8f07955bbf8fea89fc57f0",
+    "compared_files": 205,
+    "matches_commit_except_intentional_policy": true,
+    "different_files": [],
+    "source_digest": "6a82cd06cc0c7d49d3b49cc8d34236b986c39a0cb470af1d7fabeffc7d0b0d88"
+  },
+  "d": {
+    "implementation_commit": "6b9695fc75748bf31d8f07955bbf8fea89fc57f0",
+    "compared_files": 205,
+    "matches_commit_except_intentional_policy": true,
+    "different_files": [],
+    "source_digest": "6a82cd06cc0c7d49d3b49cc8d34236b986c39a0cb470af1d7fabeffc7d0b0d88"
+  }
+}
