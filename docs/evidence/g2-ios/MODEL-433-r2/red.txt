@@ -1,0 +1,297 @@
+FFFFFFFFF.                                                               [100%]
+=================================== FAILURES ===================================
+_______________ test_failed_recipe_never_calls_firecrawl[False] ________________
+
+allowed_estate = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_failed_recipe_never_calls0/repo'), <decision.sources.CopyStore object at 0x10a67cb30>)
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_failed_recipe_never_calls0')
+alias = False
+
+    @pytest.mark.parametrize("alias", [False, True])
+    def test_failed_recipe_never_calls_firecrawl(allowed_estate, tmp_path, alias):
+        root, _ = allowed_estate
+        path = root / "registry" / "sources.yaml"
+        registry = yaml.safe_load(path.read_text())
+        source = next(s for s in registry["sources"] if s["url"] == HELP)
+        recipe = [{"action": "wait_text", "selector": "#prices", "text": "US East"}]
+        if alias:
+            registry["sources"].append({
+                **source, "id": "recipe-alias", "rendered_interactions": recipe,
+            })
+        else:
+            source["rendered_interactions"] = recipe
+        path.write_text(yaml.safe_dump(registry))
+        rendered = price_reread.RenderedReplayFetcher(artifact(tmp_path / "render"))
+        balance_calls = []
+    
+        def balance(request):
+            balance_calls.append(request)
+            return httpx.Response(200, json={"success": True, "data": {"remainingCredits": 1000}})
+    
+        paid, calls = scraper(balance_handler=balance)
+        fallback.fallback_to(
+            root=root,
+            rendered=rendered,
+            directory=tmp_path / "fallback",
+            month=MONTH,
+            plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
+            firecrawl=paid,
+            budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
+        )
+>       assert calls == []
+E       AssertionError: assert [<Request('PO.../v2/scrape')>] == []
+E         
+E         Left contains one more item: <Request('POST', 'https://api.firecrawl.dev/v2/scrape')>
+E         Use -v to get more diff
+
+tests/test_price_reread_fallback.py:491: AssertionError
+________________ test_failed_recipe_never_calls_firecrawl[True] ________________
+
+allowed_estate = (PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_failed_recipe_never_calls1/repo'), <decision.sources.CopyStore object at 0x10a682570>)
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_failed_recipe_never_calls1')
+alias = True
+
+    @pytest.mark.parametrize("alias", [False, True])
+    def test_failed_recipe_never_calls_firecrawl(allowed_estate, tmp_path, alias):
+        root, _ = allowed_estate
+        path = root / "registry" / "sources.yaml"
+        registry = yaml.safe_load(path.read_text())
+        source = next(s for s in registry["sources"] if s["url"] == HELP)
+        recipe = [{"action": "wait_text", "selector": "#prices", "text": "US East"}]
+        if alias:
+            registry["sources"].append({
+                **source, "id": "recipe-alias", "rendered_interactions": recipe,
+            })
+        else:
+            source["rendered_interactions"] = recipe
+        path.write_text(yaml.safe_dump(registry))
+        rendered = price_reread.RenderedReplayFetcher(artifact(tmp_path / "render"))
+        balance_calls = []
+    
+        def balance(request):
+            balance_calls.append(request)
+            return httpx.Response(200, json={"success": True, "data": {"remainingCredits": 1000}})
+    
+        paid, calls = scraper(balance_handler=balance)
+        fallback.fallback_to(
+            root=root,
+            rendered=rendered,
+            directory=tmp_path / "fallback",
+            month=MONTH,
+            plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
+            firecrawl=paid,
+            budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
+        )
+>       assert calls == []
+E       AssertionError: assert [<Request('PO.../v2/scrape')>] == []
+E         
+E         Left contains one more item: <Request('POST', 'https://api.firecrawl.dev/v2/scrape')>
+E         Use -v to get more diff
+
+tests/test_price_reread_fallback.py:491: AssertionError
+____ test_empty_recipe_is_omitted_from_python_json_and_nested_serialization ____
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_empty_recipe_is_omitted_f0')
+
+    def test_empty_recipe_is_omitted_from_python_json_and_nested_serialization(tmp_path):
+        from pydantic import TypeAdapter
+    
+        from decision.model import Source
+    
+        source = registry(tmp_path, interactions=[])["fixture-pricing"]
+>       assert "rendered_interactions" not in source.model_dump()
+E       AssertionError: assert 'rendered_interactions' not in {'id': 'fixture-pricing', 'url': HttpUrl('https://fixture.example/prices'), 'volatility': 'static', 'fetch': 'rendered', ...}
+E        +  where {'id': 'fixture-pricing', 'url': HttpUrl('https://fixture.example/prices'), 'volatility': 'static', 'fetch': 'rendered', ...} = model_dump()
+E        +    where model_dump = Source(id='fixture-pricing', url=HttpUrl('https://fixture.example/prices'), volatility='static', fetch='rendered', nor...cited_regions=[CitedRegion(id='prices', locator=RegionLocator(kind='css', value='#prices'))], rendered_interactions=[]).model_dump
+
+tests/test_rendered_interactions.py:44: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Accept all cookies] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un0')
+browser = <decision.sources.RenderedFetcher object at 0x108dd2060>
+attributes = 'aria-label="Region"', text = 'Accept all cookies'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Log in] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un1')
+browser = <decision.sources.RenderedFetcher object at 0x108dd3ad0>
+attributes = 'aria-label="Region"', text = 'Log in'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Submit] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un2')
+browser = <decision.sources.RenderedFetcher object at 0x10aa13560>
+attributes = 'aria-label="Region"', text = 'Submit'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Accept all cookies"-Region] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un3')
+browser = <decision.sources.RenderedFetcher object at 0x10aa1ef30>
+attributes = 'aria-label="Region" value="Accept all cookies"', text = 'Region'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Log in"-Region] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un4')
+browser = <decision.sources.RenderedFetcher object at 0x10aa171a0>
+attributes = 'aria-label="Region" value="Log in"', text = 'Region'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+_ test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Submit"-Region] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1735/test_safe_label_cannot_hide_un5')
+browser = <decision.sources.RenderedFetcher object at 0x10aa25d60>
+attributes = 'aria-label="Region" value="Submit"', text = 'Region'
+
+    @pytest.mark.parametrize("attributes,text", [
+        ('aria-label="Region"', "Accept all cookies"),
+        ('aria-label="Region"', "Log in"),
+        ('aria-label="Region"', "Submit"),
+        ('aria-label="Region" value="Accept all cookies"', "Region"),
+        ('aria-label="Region" value="Log in"', "Region"),
+        ('aria-label="Region" value="Submit"', "Region"),
+        ('aria-label="Accept all cookies"', "Region"),
+    ])
+    def test_safe_label_cannot_hide_unsafe_text_or_value(tmp_path, browser, attributes, text):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+        result = render_fixture(
+            browser, registry(tmp_path, recipe),
+            f'<button id="unsafe" type="button" {attributes} '
+            f'onclick="document.cookie=\'consent=yes\'">{text}</button>'
+            '<div id="prices">$4.00</div>')
+>       assert browser._context.cookies() == []
+E       AssertionError: assert [{'name': 'co...h': '/', ...}] == []
+E         
+E         Left contains one more item: {'name': 'consent', 'value': 'yes', 'domain': 'fixture.example', 'path': '/', ...}
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:65: AssertionError
+=============================== warnings summary ===============================
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: 48 warnings
+  /Users/terbeest/dev/worktrees/model-433/tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'exclude_if'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.10/migration/
+    warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_price_reread_fallback.py::test_failed_recipe_never_calls_firecrawl[False]
+FAILED tests/test_price_reread_fallback.py::test_failed_recipe_never_calls_firecrawl[True]
+FAILED tests/test_rendered_interactions.py::test_empty_recipe_is_omitted_from_python_json_and_nested_serialization
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Accept all cookies]
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Log in]
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region"-Submit]
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Accept all cookies"-Region]
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Log in"-Region]
+FAILED tests/test_rendered_interactions.py::test_safe_label_cannot_hide_unsafe_text_or_value[aria-label="Region" value="Submit"-Region]
+9 failed, 1 passed, 187 deselected, 48 warnings in 3.79s

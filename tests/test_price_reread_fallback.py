@@ -457,6 +457,50 @@ def allowed_estate(estate):
     return root, store
 
 
+@pytest.mark.parametrize("alias", [False, True])
+def test_failed_recipe_never_calls_firecrawl(allowed_estate, tmp_path, alias):
+    root, _ = allowed_estate
+    path = root / "registry" / "sources.yaml"
+    registry = yaml.safe_load(path.read_text())
+    source = next(s for s in registry["sources"] if s["url"] == HELP)
+    recipe = [{"action": "wait_text", "selector": "#prices", "text": "US East"}]
+    if alias:
+        registry["sources"].append({
+            **source, "id": "recipe-alias", "rendered_interactions": recipe,
+        })
+    else:
+        source["rendered_interactions"] = recipe
+    path.write_text(yaml.safe_dump(registry))
+    directory = artifact(tmp_path / "render")
+    manifest_path = directory / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest[HELP].update(status=200, error="interaction failed: selection did not complete")
+    manifest_path.write_text(json.dumps(manifest))
+    rendered = price_reread.RenderedReplayFetcher(directory)
+    balance_calls = []
+
+    def balance(request):
+        balance_calls.append(request)
+        return httpx.Response(200, json={"success": True, "data": {"remainingCredits": 1000}})
+
+    paid, calls = scraper(balance_handler=balance)
+    fallback.fallback_to(
+        root=root,
+        rendered=rendered,
+        directory=tmp_path / "fallback",
+        month=MONTH,
+        plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
+        firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
+    )
+    assert calls == []
+    assert balance_calls == []
+    assert paid.credits_spent == 0
+    replay, spent = fallback.read_fallback(tmp_path / "fallback")
+    assert replay.manifest == {} and spent == 0
+    assert rendered.fetch(HELP).outcome == "unreachable"
+
+
 @pytest.mark.parametrize("render_ok,missing", [(False, False), (True, False), (False, True)])
 def test_only_actual_failed_render_entries_are_fetched(
     allowed_estate, tmp_path, render_ok, missing

@@ -1,0 +1,794 @@
+F.........FFFFFFFFFFFF                                                   [100%]
+=================================== FAILURES ===================================
+________________ test_registry_loads_a_bounded_data_only_recipe ________________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_loads_a_bounded_0')
+
+    def test_registry_loads_a_bounded_data_only_recipe(tmp_path):
+>       sources = registry(tmp_path)
+                  ^^^^^^^^^^^^^^^^^^
+
+tests/test_rendered_interactions.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_loads_a_bounded_0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_loads_a_bounded_0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_______ test_recipe_captures_prices_after_click_selection_and_text_wait ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_captures_prices_af0')
+browser = <decision.sources.RenderedFetcher object at 0x10aca9be0>
+
+    def test_recipe_captures_prices_after_click_selection_and_text_wait(tmp_path, browser):
+>       result = render_fixture(browser, registry(tmp_path))
+                                         ^^^^^^^^^^^^^^^^^^
+
+tests/test_rendered_interactions.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_captures_prices_af0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_captures_prices_af0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_____ test_failed_recipe_never_captures_a_plausible_partial_page[recipe0] ______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu0')
+browser = <decision.sources.RenderedFetcher object at 0x10ab5e490>
+recipe = [{'action': 'click', 'selector': '#missing'}, {'action': 'wait_text', 'selector': '#prices', 'text': '$4.00'}]
+
+    @pytest.mark.parametrize("recipe", [
+        [{"action": "click", "selector": "#missing"}, RECIPE[-1]],
+        [{"action": "wait_text", "selector": "#prices", "text": "$999"}],
+        [{"action": "click", "selector": "button"}, RECIPE[-1]],
+    ])
+    def test_failed_recipe_never_captures_a_plausible_partial_page(tmp_path, browser, recipe):
+        result = render_fixture(
+>           browser, registry(tmp_path, recipe),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            '<button type="button">A</button><button type="button">B</button>'
+            '<div id="prices">Model A Input $4.00 Output $20.00</div>')
+
+tests/test_rendered_interactions.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_____ test_failed_recipe_never_captures_a_plausible_partial_page[recipe1] ______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu1')
+browser = <decision.sources.RenderedFetcher object at 0x10ab5fd90>
+recipe = [{'action': 'wait_text', 'selector': '#prices', 'text': '$999'}]
+
+    @pytest.mark.parametrize("recipe", [
+        [{"action": "click", "selector": "#missing"}, RECIPE[-1]],
+        [{"action": "wait_text", "selector": "#prices", "text": "$999"}],
+        [{"action": "click", "selector": "button"}, RECIPE[-1]],
+    ])
+    def test_failed_recipe_never_captures_a_plausible_partial_page(tmp_path, browser, recipe):
+        result = render_fixture(
+>           browser, registry(tmp_path, recipe),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            '<button type="button">A</button><button type="button">B</button>'
+            '<div id="prices">Model A Input $4.00 Output $20.00</div>')
+
+tests/test_rendered_interactions.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu1/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu1/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_____ test_failed_recipe_never_captures_a_plausible_partial_page[recipe2] ______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu2')
+browser = <decision.sources.RenderedFetcher object at 0x10af96b10>
+recipe = [{'action': 'click', 'selector': 'button'}, {'action': 'wait_text', 'selector': '#prices', 'text': '$4.00'}]
+
+    @pytest.mark.parametrize("recipe", [
+        [{"action": "click", "selector": "#missing"}, RECIPE[-1]],
+        [{"action": "wait_text", "selector": "#prices", "text": "$999"}],
+        [{"action": "click", "selector": "button"}, RECIPE[-1]],
+    ])
+    def test_failed_recipe_never_captures_a_plausible_partial_page(tmp_path, browser, recipe):
+        result = render_fixture(
+>           browser, registry(tmp_path, recipe),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            '<button type="button">A</button><button type="button">B</button>'
+            '<div id="prices">Model A Input $4.00 Output $20.00</div>')
+
+tests/test_rendered_interactions.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu2/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_failed_recipe_never_captu2/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_ test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<a id="unsafe" href="/login">Sign in</a>] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation0')
+browser = <decision.sources.RenderedFetcher object at 0x10af97100>
+control = '<a id="unsafe" href="/login">Sign in</a>'
+
+    @pytest.mark.parametrize("control", [
+        '<a id="unsafe" href="/login">Sign in</a>',
+        '<form><button id="unsafe">Submit</button></form>',
+        '<input id="unsafe" type="submit">',
+        '<button id="unsafe" type="button">Accept all cookies</button>',
+        '<button id="unsafe" type="button">Log in</button>',
+    ])
+    def test_recipe_refuses_navigation_forms_login_and_cookie_acceptance(tmp_path, browser, control):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+>       result = render_fixture(browser, registry(tmp_path, recipe),
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                control + '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_ test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<form><button id="unsafe">Submit</button></form>] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation1')
+browser = <decision.sources.RenderedFetcher object at 0x10aa05250>
+control = '<form><button id="unsafe">Submit</button></form>'
+
+    @pytest.mark.parametrize("control", [
+        '<a id="unsafe" href="/login">Sign in</a>',
+        '<form><button id="unsafe">Submit</button></form>',
+        '<input id="unsafe" type="submit">',
+        '<button id="unsafe" type="button">Accept all cookies</button>',
+        '<button id="unsafe" type="button">Log in</button>',
+    ])
+    def test_recipe_refuses_navigation_forms_login_and_cookie_acceptance(tmp_path, browser, control):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+>       result = render_fixture(browser, registry(tmp_path, recipe),
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                control + '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation1/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation1/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_ test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<input id="unsafe" type="submit">] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation2')
+browser = <decision.sources.RenderedFetcher object at 0x10b001d00>
+control = '<input id="unsafe" type="submit">'
+
+    @pytest.mark.parametrize("control", [
+        '<a id="unsafe" href="/login">Sign in</a>',
+        '<form><button id="unsafe">Submit</button></form>',
+        '<input id="unsafe" type="submit">',
+        '<button id="unsafe" type="button">Accept all cookies</button>',
+        '<button id="unsafe" type="button">Log in</button>',
+    ])
+    def test_recipe_refuses_navigation_forms_login_and_cookie_acceptance(tmp_path, browser, control):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+>       result = render_fixture(browser, registry(tmp_path, recipe),
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                control + '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation2/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation2/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_ test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<button id="unsafe" type="button">Accept all cookies</button>] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation3')
+browser = <decision.sources.RenderedFetcher object at 0x10b002690>
+control = '<button id="unsafe" type="button">Accept all cookies</button>'
+
+    @pytest.mark.parametrize("control", [
+        '<a id="unsafe" href="/login">Sign in</a>',
+        '<form><button id="unsafe">Submit</button></form>',
+        '<input id="unsafe" type="submit">',
+        '<button id="unsafe" type="button">Accept all cookies</button>',
+        '<button id="unsafe" type="button">Log in</button>',
+    ])
+    def test_recipe_refuses_navigation_forms_login_and_cookie_acceptance(tmp_path, browser, control):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+>       result = render_fixture(browser, registry(tmp_path, recipe),
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                control + '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation3/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation3/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_ test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<button id="unsafe" type="button">Log in</button>] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation4')
+browser = <decision.sources.RenderedFetcher object at 0x10b213850>
+control = '<button id="unsafe" type="button">Log in</button>'
+
+    @pytest.mark.parametrize("control", [
+        '<a id="unsafe" href="/login">Sign in</a>',
+        '<form><button id="unsafe">Submit</button></form>',
+        '<input id="unsafe" type="submit">',
+        '<button id="unsafe" type="button">Accept all cookies</button>',
+        '<button id="unsafe" type="button">Log in</button>',
+    ])
+    def test_recipe_refuses_navigation_forms_login_and_cookie_acceptance(tmp_path, browser, control):
+        recipe = [{"action": "click", "selector": "#unsafe"}, RECIPE[-1]]
+>       result = render_fixture(browser, registry(tmp_path, recipe),
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                control + '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation4/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_refuses_navigation4/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+___________________ test_recipe_can_reject_optional_cookies ____________________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_can_reject_optiona0')
+browser = <decision.sources.RenderedFetcher object at 0x10b3d0950>
+
+    def test_recipe_can_reject_optional_cookies(tmp_path, browser):
+        recipe = [{"action": "reject_consent", "selector": "#reject"}, RECIPE[-1]]
+        result = render_fixture(
+>           browser, registry(tmp_path, recipe),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            '<button id="reject" type="button" onclick="this.remove()">Reject all cookies</button>'
+            '<div id="prices">$4.00</div>')
+
+tests/test_rendered_interactions.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_can_reject_optiona0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_can_reject_optiona0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+__________________ test_recipe_has_one_deadline_for_all_steps __________________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_has_one_deadline_f0')
+browser = <decision.sources.RenderedFetcher object at 0x10b2f7a70>
+
+    def test_recipe_has_one_deadline_for_all_steps(tmp_path, browser):
+        recipe = [
+            {"action": "wait_text", "selector": "#first", "text": "ready"},
+            {"action": "wait_text", "selector": "#second", "text": "ready"},
+        ]
+        started = time.monotonic()
+>       result = render_fixture(browser, registry(tmp_path, recipe), """
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            <div id="first"></div><div id="second"></div><script>
+            setTimeout(() => document.querySelector('#first').textContent='ready', 700);
+            setTimeout(() => document.querySelector('#second').textContent='ready', 1400);
+            </script>""")
+
+tests/test_rendered_interactions.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_has_one_deadline_f0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_recipe_has_one_deadline_f0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+_____ test_registry_recipe_takes_precedence_over_legacy_source_preparation _____
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_recipe_takes_pre0')
+
+    def test_registry_recipe_takes_precedence_over_legacy_source_preparation(tmp_path):
+>       sources = registry(tmp_path, id="aws-pricing")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_rendered_interactions.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_rendered_interactions.py:30: in registry
+    return load_sources(path)
+           ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_recipe_takes_pre0/sources.yaml')
+
+    def load_sources(path: str | Path) -> dict[str, Source]:
+        """Load the canonical ``registry/sources.yaml`` format.
+    
+        The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+        validated by :class:`decision.model.Source`. A missing file is an empty
+        registry so a checkout with no registered sources still builds an empty
+        snapshot.
+        """
+        path = Path(path)
+        if not path.is_file():
+            return {}
+        from schema import private_data, redacted_error
+    
+        content = path.read_text(encoding="utf-8")
+        try:
+            data = yaml.safe_load(content) or {}
+        except yaml.YAMLError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path)) from None
+            raise
+        if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+            raise ValueError(f"{path}: schema_version must be 1")
+        rows = data.get("sources")
+        if not isinstance(rows, list):
+            raise ValueError(f"{path}: sources must be a list")
+        registered: dict[str, Source] = {}
+        for i, raw in enumerate(rows):
+            try:
+                source = Source.model_validate(raw)
+            except ValueError as exc:
+                if private_data(path):
+>                   raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
+E                   ValueError: /private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1638/test_registry_recipe_takes_pre0/sources.yaml: line 1: invalid data (ValidationError); values redacted
+
+decision/sources.py:101: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_rendered_interactions.py::test_registry_loads_a_bounded_data_only_recipe
+FAILED tests/test_rendered_interactions.py::test_recipe_captures_prices_after_click_selection_and_text_wait
+FAILED tests/test_rendered_interactions.py::test_failed_recipe_never_captures_a_plausible_partial_page[recipe0]
+FAILED tests/test_rendered_interactions.py::test_failed_recipe_never_captures_a_plausible_partial_page[recipe1]
+FAILED tests/test_rendered_interactions.py::test_failed_recipe_never_captures_a_plausible_partial_page[recipe2]
+FAILED tests/test_rendered_interactions.py::test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<a id="unsafe" href="/login">Sign in</a>]
+FAILED tests/test_rendered_interactions.py::test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<form><button id="unsafe">Submit</button></form>]
+FAILED tests/test_rendered_interactions.py::test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<input id="unsafe" type="submit">]
+FAILED tests/test_rendered_interactions.py::test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<button id="unsafe" type="button">Accept all cookies</button>]
+FAILED tests/test_rendered_interactions.py::test_recipe_refuses_navigation_forms_login_and_cookie_acceptance[<button id="unsafe" type="button">Log in</button>]
+FAILED tests/test_rendered_interactions.py::test_recipe_can_reject_optional_cookies
+FAILED tests/test_rendered_interactions.py::test_recipe_has_one_deadline_for_all_steps
+FAILED tests/test_rendered_interactions.py::test_registry_recipe_takes_precedence_over_legacy_source_preparation
+13 failed, 9 passed in 4.52s

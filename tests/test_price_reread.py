@@ -752,6 +752,25 @@ def test_render_to_and_a_live_reread_wait_for_cited_css_regions(estate, tmp_path
     assert renderer.preparations == [CitedRegionWait(("#plans",))] * 2
 
 
+def test_render_to_and_live_reread_use_the_registry_recipe_for_a_legacy_source(estate, tmp_path):
+    from decision.sources import RenderedInteractions
+
+    _aws_pricing_source(estate)
+    root, _ = estate
+    path = root / "registry" / "sources.yaml"
+    document = yaml.safe_load(path.read_text())
+    document["sources"][-1]["rendered_interactions"] = [
+        {"action": "wait_text", "selector": "#plans", "text": "Pro"}]
+    path.write_text(yaml.safe_dump(document))
+    renderer = PreparingRenderer([None])
+    price_reread.render_to(root=root, directory=tmp_path / "rendered", rendered=renderer)
+    reread(estate, [page("plans.html")], rendered=renderer)
+
+    assert len(renderer.preparations) == 2
+    assert all(isinstance(preparation, RenderedInteractions)
+               for preparation in renderer.preparations)
+
+
 @pytest.mark.parametrize("replay", [False, True])
 @pytest.mark.parametrize("llm", [False, True])
 def test_failed_preparation_retains_content_and_alerts_in_direct_and_replay_runs(
