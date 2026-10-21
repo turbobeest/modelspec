@@ -1,0 +1,10 @@
+{
+  "deploy_export": "failed",
+  "exit_code": 1,
+  "gate_enabled": true,
+  "gate_gap_counts_in_error": [
+    144
+  ],
+  "snapshot_written": false,
+  "memory_probe": "unobserved; deploy export failed completeness gate"
+}

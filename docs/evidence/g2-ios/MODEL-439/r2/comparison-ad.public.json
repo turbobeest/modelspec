@@ -1,0 +1,165 @@
+{
+  "selected_states": [
+    "a",
+    "d"
+  ],
+  "unobserved_states": [
+    "b",
+    "c"
+  ],
+  "definitions": {
+    "first_result_model": "results[0].model, or null when no results; this is deterministic ordering, not a claim of a unique recommendation",
+    "answer_kind_or_member_set": "answer.kind and sorted answer.members; null and [] when absent",
+    "tie_member_set": "sorted answer.members when answer.kind is tied, otherwise []",
+    "template_warnings": "40 template corpus cases at explain summary, counted once each"
+  },
+  "periods": {
+    "current": {
+      "states": {
+        "a": {
+          "as_of": "2026-10-21",
+          "valid_from": null,
+          "valid_until": "2027-01-01",
+          "snapshot_id": "snap_16276236dbd29bb0",
+          "corpus_cases": 319,
+          "repo_cases": 302,
+          "repo_http_200_cases": 269,
+          "expectation_failures": 0,
+          "contract_validated_http_200": 286,
+          "template_cases": 40,
+          "template_warnings": 1,
+          "corpus_warnings": 3,
+          "unique_benchmark_evidence_records": 944,
+          "cited_benchmark_evidence_records": 0,
+          "cited_records_with_nonnull_verification": 0,
+          "fact_assurance_counts": {
+            "verified": 1727,
+            "cited": 70
+          }
+        },
+        "d": {
+          "as_of": "2026-10-21",
+          "valid_from": null,
+          "valid_until": "2027-01-01",
+          "snapshot_id": "snap_ab8c15593e69e65a",
+          "corpus_cases": 319,
+          "repo_cases": 302,
+          "repo_http_200_cases": 269,
+          "expectation_failures": 0,
+          "contract_validated_http_200": 286,
+          "template_cases": 40,
+          "template_warnings": 1,
+          "corpus_warnings": 3,
+          "unique_benchmark_evidence_records": 944,
+          "cited_benchmark_evidence_records": 0,
+          "cited_records_with_nonnull_verification": 0,
+          "fact_assurance_counts": {
+            "verified": 1727,
+            "cited": 70
+          }
+        }
+      },
+      "b_vs_a": {
+        "status": "unobserved",
+        "state": "b"
+      },
+      "c_vs_a": {
+        "status": "unobserved",
+        "state": "c"
+      },
+      "d_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 0,
+        "verified_to_cited_changes": 0,
+        "fact_assurance_transitions": {}
+      }
+    },
+    "successor": {
+      "states": {
+        "a": {
+          "as_of": "2027-01-01",
+          "valid_from": "2027-01-01",
+          "valid_until": null,
+          "snapshot_id": "snap_f168b832b04e0655",
+          "corpus_cases": 319,
+          "repo_cases": 302,
+          "repo_http_200_cases": 269,
+          "expectation_failures": 0,
+          "contract_validated_http_200": 286,
+          "template_cases": 40,
+          "template_warnings": 1,
+          "corpus_warnings": 3,
+          "unique_benchmark_evidence_records": 944,
+          "cited_benchmark_evidence_records": 0,
+          "cited_records_with_nonnull_verification": 0,
+          "fact_assurance_counts": {
+            "verified": 1727,
+            "cited": 70
+          }
+        },
+        "d": {
+          "as_of": "2027-01-01",
+          "valid_from": "2027-01-01",
+          "valid_until": null,
+          "snapshot_id": "snap_23fce63b62f3ed90",
+          "corpus_cases": 319,
+          "repo_cases": 302,
+          "repo_http_200_cases": 269,
+          "expectation_failures": 0,
+          "contract_validated_http_200": 286,
+          "template_cases": 40,
+          "template_warnings": 1,
+          "corpus_warnings": 3,
+          "unique_benchmark_evidence_records": 944,
+          "cited_benchmark_evidence_records": 0,
+          "cited_records_with_nonnull_verification": 0,
+          "fact_assurance_counts": {
+            "verified": 1727,
+            "cited": 70
+          }
+        }
+      },
+      "b_vs_a": {
+        "status": "unobserved",
+        "state": "b"
+      },
+      "c_vs_a": {
+        "status": "unobserved",
+        "state": "c"
+      },
+      "d_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 0,
+        "verified_to_cited_changes": 0,
+        "fact_assurance_transitions": {}
+      }
+    }
+  },
+  "acceptance_passed": null
+}

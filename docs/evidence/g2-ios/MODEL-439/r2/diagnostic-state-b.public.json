@@ -1,0 +1,48 @@
+{
+  "current": {
+    "diagnostic_only": true,
+    "deploy_export_accepted": false,
+    "as_of": "2026-10-21",
+    "valid_from": null,
+    "valid_until": "2027-01-01",
+    "snapshot_id": "snap_361eaee15fb0e380",
+    "corpus_cases": 319,
+    "repo_cases": 302,
+    "repo_http_200_cases": 269,
+    "expectation_failures": 0,
+    "contract_validated_http_200": 286,
+    "template_cases": 40,
+    "template_warnings": 1,
+    "corpus_warnings": 77,
+    "unique_benchmark_evidence_records": 933,
+    "cited_benchmark_evidence_records": 0,
+    "cited_records_with_nonnull_verification": 0,
+    "fact_assurance_counts": {
+      "verified": 1472,
+      "cited": 183
+    }
+  },
+  "successor": {
+    "diagnostic_only": true,
+    "deploy_export_accepted": false,
+    "as_of": "2027-01-01",
+    "valid_from": "2027-01-01",
+    "valid_until": null,
+    "snapshot_id": "snap_0f6b3804f7ebdbec",
+    "corpus_cases": 319,
+    "repo_cases": 302,
+    "repo_http_200_cases": 269,
+    "expectation_failures": 0,
+    "contract_validated_http_200": 286,
+    "template_cases": 40,
+    "template_warnings": 1,
+    "corpus_warnings": 78,
+    "unique_benchmark_evidence_records": 933,
+    "cited_benchmark_evidence_records": 0,
+    "cited_records_with_nonnull_verification": 0,
+    "fact_assurance_counts": {
+      "verified": 1472,
+      "cited": 183
+    }
+  }
+}

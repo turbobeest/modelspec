@@ -1,0 +1,62 @@
+[
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/terbeest/dev/worktrees/model-439",
+      "rev-parse",
+      "36b2d184"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/tmp/model-439-scratch/modelspec-data",
+      "rev-parse",
+      "9d9de96"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/terbeest/dev/worktrees/model-439",
+      "rev-parse",
+      "origin/pr-866"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/terbeest/dev/worktrees/model-439",
+      "archive",
+      "36b2d184dcc5a67a90ceb1a9015275143c09691d"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/tmp/model-439-scratch/modelspec-data",
+      "archive",
+      "9d9de96f062ac031336ee483ae97c3b436bd3845"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/terbeest/dev/worktrees/model-439",
+      "show",
+      "82ebcf4627d255d7641303caff2d149e879cf359:registry/source-retention.json"
+    ],
+    "exit_code": 0
+  }
+]
