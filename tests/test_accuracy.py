@@ -36,6 +36,8 @@ class FakeEvidence:
         source_kind=None,
         source_ids=(),
         verified_at=None,
+        verified=True,
+        cited=False,
     ):
         self.benchmark_id = benchmark
         self.value = value
@@ -44,7 +46,8 @@ class FakeEvidence:
         self.source_kind = source_kind
         self.source_ids = tuple(source_ids)
         self.verified_at = verified_at
-        self.verified = True
+        self.verified = verified
+        self.cited = cited
         self.record_id = f"evidence:{benchmark}"
 
 
@@ -110,7 +113,7 @@ def test_freshness_fails_for_an_established_lineup_model_without_evidence() -> N
 
     assert result.status == "fail"
     assert result.details[0]["model"] == "lab/model"
-    assert result.details[0]["reason"] == "no_verified_domain_evidence"
+    assert result.details[0]["reason"] == "no_admitted_domain_evidence"
 
 
 def test_freshness_fails_for_a_stale_live_leaderboard_reading() -> None:
@@ -129,6 +132,59 @@ def test_freshness_fails_for_a_stale_live_leaderboard_reading() -> None:
     assert result.status == "fail"
     assert any(row["reason"] == "stale_live_leaderboard" for row in result.details)
     assert any(row["benchmark"] == "terminal_bench_v4_0" for row in result.details)
+
+
+def test_freshness_accepts_and_labels_cited_domain_evidence() -> None:
+    evidence = FakeEvidence(
+        "terminal_bench_v4_0", 70, date(2026, 9, 24), verified=False, cited=True,
+    )
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(evidence,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+    )
+
+    assert result.status == "pass"
+    assert result.details == []
+    assert result.counts["cited_domain_records"] == 1
+    assert result.counts["cited_only_models"] == 1
+    assert "cited, not machine-verified" in result.summary
+
+
+@pytest.mark.parametrize("when,reason", [
+    (date(2026, 8, 1), "stale_live_leaderboard"),
+    (None, "undated_live_leaderboard"),
+])
+def test_freshness_still_checks_cited_live_reading_age(when, reason) -> None:
+    evidence = FakeEvidence(
+        "terminal_bench_v4_0", 70, date(2026, 8, 1),
+        source_kind="live_leaderboard", verified_at=when,
+        verified=False, cited=True,
+    )
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(evidence,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+    )
+
+    assert result.status == "fail"
+    assert result.counts["live_readings"] == 1
+    assert [item["reason"] for item in result.details] == [reason]
+
+
+def test_freshness_still_rejects_unadmitted_domain_evidence() -> None:
+    evidence = FakeEvidence(
+        "terminal_bench_v4_0", 70, date(2026, 9, 24), verified=False,
+    )
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(evidence,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+    )
+
+    assert result.status == "fail"
+    assert result.counts["live_readings"] == 0
+    assert result.counts["failures"] == 1
 
 
 def test_freshness_uses_when_a_live_board_was_observed_not_when_run_was_evaluated() -> None:

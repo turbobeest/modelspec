@@ -14,7 +14,7 @@ import yaml
 
 from decision import firecrawl
 from decision.firecrawl import FirecrawlFetcher, firecrawl_allowed
-from decision.sources import FetchResult
+from decision.sources import FetchResult, fingerprint_bytes
 from scripts import price_reread
 from scripts import price_reread_fallback as fallback
 from tests.test_price_reread import (
@@ -417,7 +417,8 @@ def test_response_size_is_bounded_while_streaming(monkeypatch):
     assert firecrawl.MAX_FIRECRAWL_RESPONSE_BYTES == 63
 
 
-def artifact(directory, urls=(HELP,), *, ok=False, fallback_manifest=False, spent=None):
+def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=None):
+    urls = (HELP,) if urls is None else urls
     directory.mkdir(parents=True, exist_ok=True)
     pages = {}
     for index, url in enumerate(urls):
@@ -445,16 +446,46 @@ def artifact(directory, urls=(HELP,), *, ok=False, fallback_manifest=False, spen
 
 
 @pytest.fixture
-def allowed_estate(estate):
-    root, store = estate
+def retainable_sources(monkeypatch):
+    for name, url in (("PLAN", PLANS_URL), ("HELP", RENDERED_URL), ("API", API_URL)):
+        monkeypatch.setitem(globals(), name, url)
+    monkeypatch.setattr(firecrawl, "FIRECRAWL_HOSTS", firecrawl.FIRECRAWL_HOSTS | {
+        "plans.example", "rendered.example", "api.example",
+    })
+
+
+@pytest.fixture
+def allowed_estate(estate, retainable_sources):
+    return estate
+
+
+@pytest.mark.parametrize("url", [PLAN, HELP, API])
+def test_new_cite_only_fallback_keeps_only_hash_and_retrieval_date(estate, tmp_path, url):
+    root, _ = estate
     registry = root / "registry" / "sources.yaml"
-    registry.write_text(
-        registry.read_text()
-        .replace(PLANS_URL, PLAN)
-        .replace(API_URL, API)
-        .replace(RENDERED_URL, HELP)
+    registry.write_text(registry.read_text().replace(RENDERED_URL, url))
+    output = tmp_path / "fallback"
+    paid, calls = scraper()
+    fallback.fallback_to(
+        root=root,
+        rendered=price_reread.RenderedReplayFetcher(artifact(tmp_path / "render", urls=(url,))),
+        directory=output,
+        month=MONTH,
+        plain=ReplayFetcher({}),
+        firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
     )
-    return root, store
+    assert [json.loads(call.content)["url"] for call in calls] == [url]
+    replay, spent = fallback.read_fallback(output)
+    result = replay.fetch(url)
+    assert spent == 1
+    assert result.outcome == "ok"
+    assert result.body == b""
+    assert result.snapshot_ref == fingerprint_bytes(b"<html><body>fixture pricing</body></html>")
+    assert result.retrieved_at is not None
+    assert replay.manifest[url]["citation"]["url"] == url
+    assert list(output.iterdir()) == [output / "manifest.json"]
+    assert "fixture pricing" not in (output / "manifest.json").read_text()
 
 
 @pytest.mark.parametrize("alias", [False, True])
@@ -704,7 +735,9 @@ def test_empty_ledger_never_allows_more_than_twelve_and_missing_ledger_allows_no
 
 
 @pytest.mark.parametrize("primary_ok", [True, False])
-def test_replay_keeps_successful_primary_html_and_only_replaces_failure(tmp_path, primary_ok):
+def test_replay_keeps_successful_primary_html_and_only_replaces_failure(
+    tmp_path, primary_ok, retainable_sources
+):
     replay, _ = fallback.read_fallback(artifact(tmp_path, fallback_manifest=True, ok=True))
     primary = ReplayFetcher({HELP: [b"primary HTML" if primary_ok else None]})
     result = fallback.FallbackFetcher(primary, replay).fetch(HELP)
@@ -712,7 +745,7 @@ def test_replay_keeps_successful_primary_html_and_only_replaces_failure(tmp_path
     assert primary.fetched == [HELP]
 
 
-def test_fallback_artifact_reuses_the_render_validator(tmp_path):
+def test_fallback_artifact_reuses_the_render_validator(tmp_path, retainable_sources):
     directory = artifact(tmp_path, fallback_manifest=True, ok=True)
     (directory / "page-0.html").unlink()
     (directory / "page-0.html").symlink_to(ROOT / "scripts" / "price_reread.py")
@@ -1092,7 +1125,7 @@ def test_failed_monthly_lookup_stops_the_workflow_step(tmp_path):
 AWS_PRICING = "https://aws.amazon.com/bedrock/pricing/"
 
 
-def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path):
+def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path, retainable_sources):
     """Run 38037233884: the AWS preparation reached FallbackFetcher(replay).fetch."""
     rendered = tmp_path / "rendered"
     rendered.mkdir()
@@ -1105,7 +1138,7 @@ def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path):
     assert (result.outcome, result.body) == ("ok", b"<html><body>captured</body></html>")
 
 
-def test_a_fallback_around_a_live_renderer_keeps_the_preparation(tmp_path):
+def test_a_fallback_around_a_live_renderer_keeps_the_preparation(tmp_path, retainable_sources):
     class LiveRenderer(price_reread.RenderedFetcher):
         def __init__(self):
             self.prepared = []

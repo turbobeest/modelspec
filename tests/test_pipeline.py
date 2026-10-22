@@ -158,12 +158,22 @@ def test_coverage_is_derived_from_the_cards() -> None:
     for key, rows in _coverage().items():
         for row in rows:
             card = cards[row["model_id"]]
-            evidence = [r["score"] for r in card.front["benchmarks"].get("evidence") or []
+            evidence = [r for r in card.front["benchmarks"].get("evidence") or []
                         if r["benchmark_id"] == key]
-            if row["attribution"] == "verified":
-                assert row["score"] in evidence
+            if evidence:
+                matches = [r for r in evidence if (
+                    r["score"], str(r["evidence_date"]), r["source_url"], r["source_kind"]
+                ) == (row["score"], str(row["as_of"]), row["source"], row["source_kind"])]
+                assert matches
+                if matches[0] in card.cited_evidence:
+                    assert row["attribution"] == "unverified-legacy"
+                    assert row["citation"] == {"status": "cited", "url": row["source"]}
+                else:
+                    assert row["attribution"] == "verified"
+                    assert "citation" not in row
             else:
-                assert evidence == [] and card.scores[key] == row["score"]
+                assert row["attribution"] == "unverified-legacy"
+                assert card.scores[key] == row["score"]
 
 
 def test_coverage_is_ordered_by_score() -> None:
@@ -286,17 +296,25 @@ def test_coverage_is_ordered_best_first_by_metric_direction(
 
 def test_every_card_evidence_record_reaches_its_benchmark_page(tmp_path: Path) -> None:
     """Thirteen benchmarks were reported only in evidence records and listed no model."""
-    records = [(m.model_id, rec) for m in _models()
+    records = [(m, rec) for m in _models()
                for rec in (m.front.get("benchmarks") or {}).get("evidence") or []]
     ids = {str(rec["benchmark_id"]) for _, rec in records}
     published = _published(tmp_path, _models(),
                            [b for b in _benchmarks() if b.benchmark_id in ids])
     shown = {key: {(r["model_id"], r["score"], r["as_of"], r.get("source_kind"),
-                    r["attribution"]) for r in rows}
+                    r["source"], r["attribution"], (r.get("citation") or {}).get("status"),
+                    (r.get("citation") or {}).get("url")) for r in rows}
              for key, rows in published.items()}
-    missing = [(model_id, rec["benchmark_id"]) for model_id, rec in records
-               if (model_id, rec["score"], str(rec["evidence_date"]), rec["source_kind"],
-                   "verified") not in shown[str(rec["benchmark_id"])]]
+    missing = []
+    for model, rec in records:
+        cited = rec in model.cited_evidence
+        expected = (
+            model.model_id, rec["score"], str(rec["evidence_date"]), rec["source_kind"],
+            rec["source_url"], "unverified-legacy" if cited else "verified",
+            "cited" if cited else None, rec["source_url"] if cited else None,
+        )
+        if expected not in shown[str(rec["benchmark_id"])]:
+            missing.append((model.model_id, rec["benchmark_id"]))
     assert missing == []
 
 
@@ -1005,3 +1023,60 @@ def test_use_case_decisions_use_public_image_and_the_shared_engine(monkeypatch, 
                              loaded[0], facets=public_registry.facet).model_dump(mode="json")
     assert decisions[0] == expected
     assert as_of == expected_date
+
+
+@pytest.mark.parametrize("source", [
+    "https://www.anthropic.com/news/model",
+    "https://developers.openai.com/api/docs/model",
+])
+def test_cited_evidence_reaches_benchmark_page_and_strips(tmp_path: Path, source: str) -> None:
+    card = _card("demo/cited", "Cited model", scores={"b": 99.0}, evidence=(
+        _evidence("b", 41.4, source_url=source, source_kind="provider_self_report"),))
+    card.front["release_date"] = "2026-01-01"
+    page = _page("b")
+    rows = _published(tmp_path, [card], [page])["b"]
+    assert len(rows) == 1
+    assert rows[0]["score"] == 41.4
+    assert rows[0]["source"] == source
+    assert rows[0]["attribution"] != "verified"
+    assert rows[0]["citation"] == {"status": "cited", "url": source}
+    assert builder.benchgraph_headline_stats([card], [page]) == {
+        "pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1,
+    }
+    html = benchmark_page(page, _BUILD, Catalogue(as_of=date(2026, 9, 15)), rows)
+    assert _coverage_cells(html) == [[
+        "Cited model evaluated as Demo Model", "Demo Lab", "41.4%",
+        "2026-09-01 evaluated", "Cited, not machine-verified provider self report source",
+    ]]
+    strip = model_benchmark_strips(card, {"b": page}, {"b": rows})
+    assert "1 reporting models" in strip
+    assert 'data="/assets/benchmark-strips/b.svg"' in strip
+    asset = benchmark_strip_asset(rows)
+    assert 'class="point-trigger"' in asset
+    assert "Cited, not machine-verified" in asset
+    assert f'href="{source}"' in asset
+
+
+def test_benchmark_chart_counts_cited_evidence_with_disclosure(tmp_path: Path) -> None:
+    source = "https://www.anthropic.com/news/model"
+    card = _card("demo/cited", evidence=(
+        _evidence("b", 41.4, source_url=source, source_kind="provider_self_report"),))
+    card.front["release_date"] = "2026-01-01"
+    page = _page("b")
+    rows = _published(tmp_path, [card], [page])["b"] + [
+        _chart_row(f"demo/model-{i}", float(i)) for i in range(19)
+    ]
+    chart = benchmark_chart(page, rows)
+    assert chart.count('class="chart-point') == 20
+    assert "Cited, not machine-verified" in chart
+    assert f'href="{source}"' in chart
+
+
+def test_cited_flat_score_stays_outside_evidence_charts(tmp_path: Path) -> None:
+    card = _card("demo/flat", scores={"b": 41.4})
+    card.front["release_date"] = "2026-01-01"
+    card.front["benchmarks"]["benchmark_source"] = "https://www.anthropic.com/news/model"
+    rows = _published(tmp_path, [card], [_page("b")])["b"]
+    assert rows[0]["citation"]["status"] == "cited"
+    assert benchmark_strip_asset(rows) == ""
+    assert benchmark_chart(_page("b"), rows * 20) == ""

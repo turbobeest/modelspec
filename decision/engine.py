@@ -607,7 +607,8 @@ class _CitationUse:
             if any(item.citation is not None
                    for group in shown.evidence for item in group.items):
                 kinds.add("benchmark scores")
-            if any(fact.citation is not None or cited.intersection(fact.records)
+            if any(fact.record_id in cited or fact.citation is not None
+                   or cited.intersection(fact.records)
                    for fact in shown.facts):
                 kinds.add("facts")
             if any(cited.intersection(estimate.records) for estimate in shown.hardware_estimates):

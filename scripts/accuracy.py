@@ -279,6 +279,8 @@ def check_freshness(
     problems: list[dict[str, Any]] = []
     models = _model_candidates(snapshot)
     seen_records: set[str] = set()
+    cited_records: set[tuple[str, str]] = set()
+    cited_only_models = 0
     live_rows = 0
     for model_id, candidates in sorted(models.items()):
         released = _day(snapshot.fact(model_id, "model.release_date").value)
@@ -287,8 +289,10 @@ def check_freshness(
             for candidate in candidates
             for domain in snapshot.domain_ids()
             for row in snapshot.evidence_for_domain(candidate, domain)
-            if getattr(row, "verified", False)
+            if getattr(row, "verified", False) or getattr(row, "cited", False)
         ]
+        if evidence and not any(getattr(row, "verified", False) for row in evidence):
+            cited_only_models += 1
         if (
             released is not None
             and (as_of - released).days > config.lineup_evidence_grace_days
@@ -298,11 +302,13 @@ def check_freshness(
                 {
                     "model": model_id,
                     "release_date": released.isoformat(),
-                    "reason": "no_verified_domain_evidence",
+                    "reason": "no_admitted_domain_evidence",
                 }
             )
         for row in evidence:
             key = row.record_id or f"{model_id}:{row.benchmark_id}:{row.date}:{row.value}"
+            if getattr(row, "cited", False):
+                cited_records.add((model_id, key))
             live, observed = _live_observation_date(snapshot, row, sources)
             if key in seen_records or not live:
                 continue
@@ -332,8 +338,12 @@ def check_freshness(
         status,
         True,
         f"{len(models)} lineup models and {live_rows} dated live readings checked; "
+        f"{len(cited_records)} domain records are cited, not machine-verified "
+        f"({cited_only_models} models have only cited domain evidence); "
         f"{len(problems)} freshness failure(s).",
-        {"lineup_models": len(models), "live_readings": live_rows, "failures": len(problems)},
+        {"lineup_models": len(models), "live_readings": live_rows,
+         "cited_domain_records": len(cited_records), "cited_only_models": cited_only_models,
+         "failures": len(problems)},
         problems,
     )
 

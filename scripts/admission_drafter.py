@@ -119,6 +119,14 @@ def source_block(url: str, lab: str, terms: dict) -> str | None:
     return None
 
 
+def source_fetch_block(url: str, lab: str, terms: dict) -> str | None:
+    if reason := source_block(url, lab, terms):
+        return reason
+    if terms.get(canonical_host(url)) not in ("permits", "restricts"):
+        return "source-terms hold (MODEL-409)"
+    return None
+
+
 class SourceBlockedError(ValueError):
     """Stop an HTTP redirect before the target receives a request."""
 
@@ -128,7 +136,7 @@ class AdmissionFetcher(Fetcher):
         super().__init__(client, **kwargs)
 
         def check_request(request):
-            if reason := source_block(str(request.url), lab, terms):
+            if reason := source_fetch_block(str(request.url), lab, terms):
                 raise SourceBlockedError(reason)
 
         client.event_hooks["request"].append(check_request)
@@ -383,6 +391,10 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
         statuses.append(status)
         if reason := source_block(url, lab, terms):
             status.update(outcome="blocked", reason=reason)
+            continue
+        if reason := source_fetch_block(url, lab, terms):
+            status.update(outcome="cited", reason=(
+                f"{reason}; cited, not machine-verified; not fetched"))
             continue
         if url not in fetched:
             try:

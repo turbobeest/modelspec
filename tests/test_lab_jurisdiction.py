@@ -800,7 +800,7 @@ def test_cli_only_checks_lab_claims(tmp_path, monkeypatch) -> None:
         "schema_version: 1\nsources:\n"
         + _source_row(
             "src-lab-docs",
-            "https://www.anthropic.com/news/the-long-term-benefit-trust",
+            "https://fixture.example/lab-jurisdiction",
             region="r1",
         ),
     )

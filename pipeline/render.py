@@ -336,6 +336,13 @@ def _source_url(row: dict[str, Any]) -> str:
     return url
 
 
+def _sourced_evidence(row: dict[str, Any]) -> bool:
+    return row.get("attribution") == "verified" or (
+        (row.get("citation") or {}).get("status") == "cited"
+        and row.get("source_kind") in SOURCE_KINDS
+    )
+
+
 def _marker(kind: str, x: float, y: float, colour: str, css_class: str) -> str:
     attrs = f'class="{css_class} source-{esc(kind.replace("_", "-"))}" fill="{colour}"'
     if kind == "benchmark_author":
@@ -358,6 +365,9 @@ def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
     configuration = row.get("configuration") or "not stated"
     version = row.get("benchmark_version") or "not stated"
     source_kind = str(row.get("source_kind") or "not stated").replace("_", " ")
+    source_label = f"Source kind: {source_kind}"
+    if row.get("citation"):
+        source_label += " | Cited, not machine-verified"
     line_one = f"{name}: {score} | Evidence date: {evidence_date} ({date_type})"
     line_two = f"Configuration: {configuration} | Benchmark version: {version}"
     source_y = panel_y + panel_height - 7
@@ -371,8 +381,7 @@ def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
         f'height="{panel_height:.1f}" rx="3"/>'
         f'<text x="{panel_x + 8:.1f}" y="{panel_y + 13:.1f}">{esc(line_one)}</text>'
         f'<text x="{panel_x + 8:.1f}" y="{panel_y + 27:.1f}">{esc(line_two)}</text>'
-        f'<text x="{panel_x + 8:.1f}" y="{source_y:.1f}">Source kind: '
-        f'{esc(source_kind)}</text>'
+        f'<text x="{panel_x + 8:.1f}" y="{source_y:.1f}">{esc(source_label)}</text>'
         f'<a href="{esc(source)}" rel="nofollow noopener" aria-label="Open evidence source">'
         f'<text class="point-source-label" x="{panel_x + panel_width - 83:.1f}" '
         f'y="{source_y:.1f}">Open source</text></a>'
@@ -398,7 +407,7 @@ def benchmark_chart(bench: Benchmark, covered: list[dict[str, Any]]) -> str:
     points: list[tuple[dict[str, Any], date]] = []
     undated = 0
     for row in covered:
-        if row.get("attribution") != "verified":
+        if not _sourced_evidence(row):
             continue
         released = _release_day(row.get("release_date"))
         if released is None or not isinstance(row.get("score"), (int, float)):
@@ -525,7 +534,7 @@ def _compact_marker_path(kind: str, x: float, y: float) -> str:
 
 
 def _strip_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    sourced = [row for row in rows if row.get("attribution") == "verified"
+    sourced = [row for row in rows if _sourced_evidence(row)
                and isinstance(row.get("score"), (int, float))]
     for row in sourced:
         _source_url(row)
@@ -651,7 +660,7 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     for benchmark_id in sorted(ids):
         bench = benchmarks.get(benchmark_id)
         rows = coverage.get(benchmark_id, [])
-        if bench is None or not any(row.get("attribution") == "verified" for row in rows):
+        if bench is None or not any(_sourced_evidence(row) for row in rows):
             continue
         entries.append((_benchmark_group(bench), bench, rows,
                         _strip_svg(rows, model.model_id, benchmark_id)))
@@ -665,7 +674,7 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
 
     def sourced_model_count(rows: list[dict[str, Any]]) -> int:
         return len({row["model_id"] for row in rows
-                    if row.get("attribution") == "verified"})
+                    if _sourced_evidence(row)})
 
     ordered_groups = sorted(
         groups.items(),
@@ -1865,13 +1874,13 @@ def _covered_row(c: dict[str, Any]) -> str:
     if c.get("as_of"):
         when += f' <span class="pill">{esc(c.get("date_type") or "card")}</span>'
     basis = str(c["attribution"])
-    attribution = f'<span class="pill basis-{esc(basis)}">{esc(basis)}</span>'
+    label = "Cited, not machine-verified" if c.get("citation") else basis
+    attribution = f'<span class="pill basis-{esc(basis)}">{esc(label)}</span>'
     if c.get("source_kind"):
         attribution += f' <span class="pill">{esc(str(c["source_kind"]).replace("_", " "))}</span>'
     if basis == "verified" and c.get("source"):
         attribution += f' {_safe_link(c["source"], "source")}'
     if c.get("citation"):
-        attribution += ' <span class="pill">Cited, not machine-verified</span>'
         if c["citation"].get("url"):
             attribution += f' {_safe_link(c["citation"]["url"], "source")}'
     return (f'<tr><td>{model}</td><td>{esc(c["provider_display"])}</td>'

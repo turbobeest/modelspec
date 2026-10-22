@@ -527,6 +527,7 @@ def _xai_draft(tmp_path, monkeypatch, redirect, *, bypass_block):
     from tests.test_admission_drafter import MODEL, TODAY as DRAFT_TODAY, catalogue, small_registry
 
     root = catalogue(tmp_path)
+    (root / "registry/source-terms.json").write_text('{"docs.x.ai": "permits"}')
     model_id = "xai/fixture-model"
     model_url = "https://docs.x.ai/docs/models/fixture-model"
     card = yaml.safe_load((root / "models" / f"{MODEL}.md").read_text().split("---")[1])

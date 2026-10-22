@@ -9,7 +9,6 @@ import os
 import re
 import tempfile
 from dataclasses import replace
-from datetime import UTC, datetime
 from pathlib import Path
 
 from decision.excluded import excluded_sources
@@ -37,7 +36,6 @@ def _without_restricted_bytes(url: str, result: FetchResult) -> FetchResult:
             result,
             body=b"",
             snapshot_ref=result.snapshot_ref or fingerprint_bytes(result.body),
-            retrieved_at=result.retrieved_at or datetime.now(UTC),
         )
     return result
 

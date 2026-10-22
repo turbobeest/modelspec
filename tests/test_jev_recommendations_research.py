@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yaml
 
+from decision.retention import is_cite_only_restrictive
 from decision.sources import fingerprint_bytes
 from scripts.research import eval_jev_recommendations as research
 
@@ -55,7 +56,7 @@ def test_vague_size_words_do_not_assert_a_200k_context_minimum() -> None:
 def test_blind_attribution_cases_exercise_exact_evidence_identity() -> None:
     cases = research.blind_attribution_cases()
 
-    assert len(cases) == 61
+    assert len(cases) == 60
     assert {case.expected["attribution"] for case in cases} == {
         "supported",
         research.NO_MATCH,
@@ -90,6 +91,40 @@ def test_blind_attribution_cases_exercise_exact_evidence_identity() -> None:
         assert case.source_read_date
 
 
+def test_retained_research_cases_exclude_cite_only_sources() -> None:
+    labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
+    sources = research.load_sources(research.ROOT / "registry/sources.yaml")
+    blind_cases = research.blind_attribution_cases()
+    second_key = research.second_key_cases(labels)
+    cite_only_target = "anthropic/claude-fable-5-1#terminal_bench_v4_0#be4c454ede6e"
+
+    assert cite_only_target not in {case.state["source_target"] for case in blind_cases}
+    assert f"evidence:{cite_only_target}" not in {
+        f"{case.state['filed_claim']['target']['kind']}:"
+        f"{case.state['filed_claim']['target']['id']}"
+        for case in second_key
+    }
+    for case in [*blind_cases, *second_key]:
+        assert not is_cite_only_restrictive(case.source_url)
+        assert case.state["cited_regions"]
+        assert all(
+            not is_cite_only_restrictive(sources[region["source_id"]].url)
+            for region in case.state["cited_regions"]
+        )
+
+
+def test_frozen_evidence_store_withholds_cite_only_excerpts() -> None:
+    store = research.frozen_evidence_store()
+    fixture = yaml.safe_load(research.FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
+    protected = [
+        row for row in fixture["excerpts"]
+        if is_cite_only_restrictive(row["source_url"])
+    ]
+
+    assert len(protected) == 1
+    assert all(not store.has(row["snapshot_ref"]) for row in protected)
+
+
 def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -100,8 +135,8 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
     )
 
-    assert len(blind_cases) == 61
-    assert len(second_key) == 21
+    assert len(blind_cases) == 60
+    assert len(second_key) == 20
     store = research.frozen_evidence_store()
     fixture = yaml.safe_load(research.FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
     sources = research.load_sources(research.ROOT / "registry/sources.yaml")
@@ -130,6 +165,9 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         assert row["permitted_use"]
         assert row["region_id"] in {region.id for region in source.cited_regions}
         assert row["snapshot_ref"].startswith("sha256:")
+        if is_cite_only_restrictive(row["source_url"]):
+            assert not store.has(row["snapshot_ref"])
+            continue
         assert store.has(row["snapshot_ref"])
         assert fingerprint_bytes(store.get(row["snapshot_ref"])) == row["excerpt_ref"]
         assert len(row["text"].split()) <= 90
@@ -193,16 +231,23 @@ def test_weekly_refresh_claims_do_not_replace_the_study_frozen_inputs(
     assert latest[key] == frozen_verification
 
 
-def test_published_evidence_rerun_names_the_exact_licensed_inputs() -> None:
+def test_current_retained_inputs_are_pinned_separately_from_published_rerun() -> None:
     labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
     cases = [*research.blind_attribution_cases(), *research.second_key_cases(labels)]
     published = json.loads(
         (research.ROOT / "research/jev-in-recommendations-results.json").read_text(encoding="utf-8")
     )["licensed_excerpt_rerun"]
 
-    assert len(cases) == 82
+    assert len(cases) == 80
+    assert "blind-mismatch-09" not in {case.id for case in cases}
+    assert "verify-01" not in {case.id for case in cases}
+    assert research.case_input_fingerprint(cases) == (
+        "sha256:c2f51c44ba3f4376f89c1d0f0407c3df30518a90650782b2186f95ad7308d764"
+    )
     assert published["case_counts"] == {"evidence_attribution": 61, "second_key": 21}
-    assert published["input_fingerprint"] == research.case_input_fingerprint(cases)
+    assert published["input_fingerprint"] == (
+        "sha256:01ac44743f2d0402c2d683988e0c1eb87802cdb8f52deeb481a5c22d4a3f65bd"
+    )
 
 
 def test_blind_routing_labels_are_separate_and_do_not_infer_conditions() -> None:
@@ -279,7 +324,7 @@ def test_blind_attribution_labels_match_verification_and_mutations_change_one_fi
     assert len(verified) == 27
     assert all(case.state["verification_outcome"] == "verified" for case in verified)
     assert all(case.expected == {"attribution": "supported"} for case in verified)
-    assert len(mismatches) == 9
+    assert len(mismatches) == 8
     assert all(case.state["verification_outcome"] == "mismatch" for case in mismatches)
     assert all(case.expected == {"attribution": research.NO_MATCH} for case in mismatches)
     assert len(hard_negatives) == 25
