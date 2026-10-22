@@ -129,10 +129,31 @@ def test_lower_cited_best_anchor_does_not_warn_for_plain_answer(margin):
 
 
 def test_shown_citation_outside_answer_does_not_warn():
-    answer, _ = answer_for(index_with_citation("model.class"), level="full")
+    index = index_with_citation("model.class")
+    answer, _ = answer_for(index, level="full")
     assert [row.offering.model for row in answer.results] == ["lab/plain"]
-    assert any(item.citation is not None for row in answer.top for item in row.facts)
+    assert any(item.record_id and index.record(item.record_id).get("citation")
+               for row in answer.top for item in row.facts)
     assert WARNING not in answer.warnings
+
+
+def test_display_only_cited_fact_preserves_decision_and_summary_warnings():
+    index = index_with_citation()
+    answer, bounded = answer_for(
+        index, level="full", objective={"max": "model.max_output_tokens"},
+    )
+    assert "lab/cited" in answer.answer.members
+    shown = next(
+        item for row in answer.top if row.offering.model == "lab/cited"
+        for item in row.facts if item.facet == "model.context_window"
+    )
+    assert shown.citation is None
+    assert index.record(shown.record_id)["citation"]["status"] == "cited"
+    assert shown.source_ids == ["src-xai"]
+    assert WARNING in answer.warnings
+    assert WARNING in bounded["warnings"]
+    assert NOTICE in bounded["summary_for_user"]
+    assert any(NOTICE in item for item in bounded["must_mention"])
 
 
 @pytest.mark.parametrize("where, warned", [
