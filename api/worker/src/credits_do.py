@@ -44,6 +44,9 @@ LIVE, STANDBY, MOVING, MOVED = "live", "standby", "moving", "moved"
 #: The mark a sealed ledger's errors carry. Error text can echo caller input,
 #: so callers treat it as a hint and read `handoff_status` before acting.
 SEALED_MARK = "ledger-sealed"
+#: An import this ledger refused before writing anything. Only this mark tells
+#: the source the copy did not land; any other failure may follow the writes.
+REFUSED_MARK = "ledger-import-refused"
 
 
 class LedgerSealed(RuntimeError):
@@ -162,12 +165,12 @@ class CreditsObject(DurableObject):
         Never by a live or moving ledger, whose state is still the real one."""
         text, digest = str(text), str(digest)
         if state_digest(text) != digest:
-            raise ValueError("digest does not match the document")
+            raise ValueError(f"{REFUSED_MARK}: digest does not match the document")
         role = self._role()
         if role == LIVE and self._get(_IMPORTED_KEY) == digest:
             return await self.handoff_status()
         if role not in (STANDBY, MOVED):
-            raise ValueError(f"a {role} ledger does not accept a copy")
+            raise ValueError(f"{REFUSED_MARK}: a {role} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))
         self._put(_IMPORTED_KEY, digest)
         self._set(LIVE)

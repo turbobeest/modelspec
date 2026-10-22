@@ -100,7 +100,11 @@ async def handle(env: Any, path: str, method: str, authorization: str,
             status = await stub.import_state(str(payload.get("state") or ""),
                                              str(payload.get("digest") or ""))
         except Exception as exc:
-            return _error(409, "import_refused", _reason(exc))
+            if "ledger-import-refused" in str(exc):
+                return _error(409, "import_refused", _reason(exc))
+            # The object may have failed after its writes: say unknown, so the
+            # source stays sealed and a re-run lands on the idempotent path.
+            return _error(502, "import_unknown", _reason(exc))
         return 200, _plain(status)
 
     if action == "abort":

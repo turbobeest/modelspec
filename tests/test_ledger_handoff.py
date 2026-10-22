@@ -439,3 +439,33 @@ def test_a_target_without_the_bridge_keeps_the_source_sealed():
 
     assert (status, body["error"]["code"]) == (502, "import_unknown")
     assert _status(old)["role"] == "moving"
+
+
+class AnswerLostAfterImport(Stub):
+    """The import commits, then the answer back to the Worker is lost."""
+
+    def __getattr__(self, name):
+        method = super().__getattr__(name)
+        if name != "import_state":
+            return method
+
+        async def call(*args):
+            await method(*args)
+            raise RuntimeError("Network connection lost.")
+        return call
+
+
+def test_an_import_that_commits_but_loses_its_answer_never_unseals_the_source():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    namespace = new.CREDITS
+    namespace.get = lambda _id: AnswerLostAfterImport(namespace.obj)
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["error"]["code"]) == (502, "import_unknown")
+    assert _status(old)["role"] == "moving"
+    namespace.get = lambda _id: Stub(namespace.obj)
+    assert _handoff(old, net, NEW)[1]["role"] == "moved"
+    assert _live(old, new) == [new]
+    assert _balance(new, net) == 10
