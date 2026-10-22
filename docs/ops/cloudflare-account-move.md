@@ -303,16 +303,28 @@ jq '{state, digest}' ~/cf-move/ledger.json | curl -sS -X POST \
 
 1. The export must answer `role: sealed`, and the import `role: live`, with
    the same `digest` and `holders`. Post the holder count on MODEL-441. That
-   is the number of balances that moved.
-2. `GET /internal/ledger/status` on both Workers must agree.
-3. Keep `~/cf-move/ledger.json` (mode 0600) until phase 10.
+   is the number of balances that moved. The export released any reservation
+   held by a request in flight, so those requests failed with 503 and were not
+   charged.
+2. `GET /internal/ledger/status`: the old Worker says `sealed` and the new one
+   `live`, with equal `digest`.
+3. Call nothing on the new workers.dev host until phase 8. Keep
+   `~/cf-move/ledger.json` (mode 0600) until phase 10.
 
-Rollback, before phase 8 only:
+Rollback, before phase 8 only. Always seal the new ledger before unsealing
+the old one:
 
-1. `POST /internal/ledger/export` on the new Worker. That seals it, and its
-   `digest` must still equal the old one, which proves it took no writes.
-2. `POST /internal/ledger/unseal` on the old Worker with
-   `{"digest": "<that digest>"}`.
+1. `GET /internal/ledger/status` on the new Worker.
+   - `standby`: the import never landed. Go to step 3.
+   - `live`: `POST /internal/ledger/export` on it, which seals it.
+2. Compare that export's `digest` with the one in `~/cf-move/ledger.json`.
+   - Equal: the new ledger took no writes. Go to step 3.
+   - Different: the new ledger took writes, and it is now the real one.
+     `POST /internal/ledger/unseal` on the new Worker with its new digest,
+     stop the rollback, and fix forward. Never unseal the old one in this
+     case.
+3. `POST /internal/ledger/unseal` on the old Worker with
+   `{"digest": "<digest from ledger.json>"}`.
 
 ### Phase 8. Move modelspec.dev (J approves; the point of no return)
 

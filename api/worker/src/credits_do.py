@@ -117,14 +117,24 @@ class CreditsObject(DurableObject):
 
     async def export_state(self) -> dict[str, Any]:
         """Seal this ledger and return its copy, in one synchronous write, so
-        no call can land between the copy and the seal. Exporting again
-        returns the same copy."""
+        no call can land between the copy and the seal. Open reservations and
+        taken reads are released first: their requests can no longer commit,
+        so they fail with a 503 and are not charged, and no hold is stranded
+        in the copy. Exporting again returns the same copy."""
         meta = self._meta()
         if meta.get("role") == STANDBY:
             raise ValueError("a standby ledger has nothing to export")
-        text = canonical(self._stored())
         if meta.get("role") == LIVE:
-            self._write_meta({**meta, "role": SEALED, "sealed": state_digest(text)})
+            state = self._stored()
+            for holder, acc in state.accounts.items():
+                for rid in list(acc.reservations):
+                    state.release(holder, rid)
+                for token in list(acc.taken_reads):
+                    state.release_read(holder, token)
+            self._save(state)
+            self._write_meta({**meta, "role": SEALED,
+                              "sealed": state_digest(canonical(state))})
+        text = canonical(self._stored())
         return {"state": text, "digest": state_digest(text), **await self.move_status()}
 
     async def import_state(self, text: str, digest: str) -> dict[str, Any]:

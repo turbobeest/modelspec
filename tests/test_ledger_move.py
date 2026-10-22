@@ -245,3 +245,21 @@ def test_a_seal_mark_echoed_in_an_error_does_not_pass_for_a_freeze():
         raise AssertionError("a live ledger's own error must surface") from None
     except RuntimeError as exc:
         assert "bad payment id" in str(exc)
+
+
+def test_a_request_in_flight_at_the_export_is_not_charged_and_strands_nothing():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 10)
+    held = run(_ledger(old).reserve("key:a", 3))
+    assert held.ok and _balance(old) == 7
+
+    _move(old, new)
+
+    try:
+        run(_ledger(old).commit("key:a", held.reservation_id))
+    except credits.LedgerUnavailable:
+        pass
+    else:
+        raise AssertionError("a frozen ledger must refuse the commit")
+    assert run(_ledger(new).balance("key:a")).reserved == 0
+    assert _balance(new) == 10
