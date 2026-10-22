@@ -125,13 +125,31 @@ def _band(decision: dict, name: str) -> list[str]:
     return [entry["model"] for entry in decision["bands"][name]]
 
 
+# The best band is ordered by p_best, a 256-draw Monte Carlo seeded from the
+# snapshot id. lab/frontier and lab/budget sit at p_best of about 0.13 and 0.11
+# (200k draws), so their order flips for about one snapshot id in four; any
+# change to the snapshot bytes (a contract or format bump) can flip it. lab/solid
+# leads at about 0.25 and stays first for more than 99.9% of ids. So the tests
+# pin the members and the leader, and take the order of the tied pair from the
+# decision they are checking.
+BEST = {"lab/solid", "lab/frontier", "lab/budget"}
+
+
+def _best_in_decision_order(decision: dict) -> list[str]:
+    best = _band(decision, "best")
+    assert set(best) == BEST and best[0] == "lab/solid"
+    p_best = [entry["p_best"] for entry in decision["bands"]["best"]]
+    assert p_best == sorted(p_best, reverse=True)
+    return best
+
+
 def _audit_header(text: str, decision: dict) -> None:
     for key in ("decision_id", "spec_hash", "snapshot"):
         assert decision[key] in text
 
 
 def test_the_lineup_has_every_band(decision) -> None:
-    assert _band(decision, "best") == ["lab/solid", "lab/frontier", "lab/budget"]
+    _best_in_decision_order(decision)
     assert _band(decision, "rest") == ["lab/older"]
     assert _band(decision, "thin") == ["lab/mystery"]
 
@@ -169,8 +187,12 @@ def test_openrouter_passes_its_schema_and_lists_exactly_the_best_band(decision) 
     _schema(SCHEMAS / "openrouter-create-guardrail-request.schema.json").validate(body)
     assert body["allowed_models"] == [
         f"<openrouter model id for {model_id}>" for model_id in _band(decision, "best")]
+    providers = {"lab/solid": ["openai", "azure"],
+                 "lab/frontier": ["anthropic", "amazon-bedrock"],
+                 "lab/budget": ["deepseek"]}
     assert body["allowed_providers"] == [
-        "openai", "azure", "anthropic", "amazon-bedrock", "deepseek"]
+        provider for model_id in _best_in_decision_order(decision)
+        for provider in providers[model_id]]
     _audit_header(body["description"], decision)
     assert body["name"] == f"modelspec {decision['decision_id']}"
 
@@ -294,7 +316,7 @@ def test_include_rest_adds_the_rest_band_after_the_best(decision) -> None:
     body = json.loads(_run("--emit-router-config", "json", "--include-rest").stdout)
 
     assert [(row["model"], row["band"]) for row in body["models"]] == [
-        ("lab/solid", "best"), ("lab/frontier", "best"), ("lab/budget", "best"),
+        *((model_id, "best") for model_id in _best_in_decision_order(decision)),
         ("lab/older", "rest"),
     ]
     assert body["bands"]["included"] == ["best", "rest"]

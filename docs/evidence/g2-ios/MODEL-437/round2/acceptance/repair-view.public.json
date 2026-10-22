@@ -1,0 +1,22 @@
+{
+  "baseline_data": "9d9de96f062ac031336ee483ae97c3b436bd3845",
+  "repaired_data": "f722d3fcb673b28bdff9fa1b5cac06c22cc61c38",
+  "repair_commit_parents": [
+    "9d9de96f062ac031336ee483ae97c3b436bd3845"
+  ],
+  "repair_directly_descends_from_baseline": true,
+  "changed_branch_files": 13,
+  "changed_files_match_branch_bytes": true,
+  "unchanged_leaf_files_are_links_to_original": true,
+  "unchanged_link_count": 4656,
+  "all_repaired_view_directories_are_real": true,
+  "retained_page_bytes_read_for_audit": 0,
+  "repair_application": "exact branch files applied directly",
+  "repair_script_execution": "dry-run only, no --write; explicit empty CopyStore",
+  "repair_dry_run_counts": {
+    "1": 0,
+    "2": 0,
+    "3": 0
+  },
+  "repair_dry_run_remaining_changes": 0
+}

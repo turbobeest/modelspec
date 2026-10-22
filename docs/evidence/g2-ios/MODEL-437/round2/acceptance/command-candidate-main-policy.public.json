@@ -1,0 +1,28 @@
+{
+  "label": "candidate-main-policy",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/compare_private.py",
+    "run",
+    "--main-root",
+    "/tmp/model-437-scratch/acceptance/prepared/main",
+    "--candidate-root",
+    "/Users/terbeest/dev/worktrees/model-437",
+    "--host-policy",
+    "/tmp/model-437-scratch/acceptance/prepared/hosts-866.json",
+    "--baseline-data-dir",
+    "/tmp/model-437-scratch/acceptance/modelspec-data",
+    "--data-dir",
+    "/tmp/model-437-scratch/acceptance/modelspec-data",
+    "--output",
+    "/tmp/model-437-scratch/acceptance/results",
+    "--states",
+    "d"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T18:51:52.265859+00:00",
+  "finished": "2026-10-21T18:55:15.814842+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/candidate-main-policy.private.log"
+}

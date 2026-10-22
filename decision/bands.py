@@ -31,6 +31,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from math import erfc, sqrt
 
+from decision.citation import cited_records
 from decision.contract import (
     BandEntry,
     Bands,
@@ -182,7 +183,6 @@ def entries(
     def entry(row: OptimisedResult) -> BandEntry:
         model_id = snapshot.model_of(row.candidate_id)
         low, high = row.score_interval
-        cited = getattr(snapshot, "cited_facts", None)
         return BandEntry(
             model=model_id,
             offering=offering_ref(row.candidate_id),
@@ -191,7 +191,7 @@ def entries(
             p_best=p_best.get(model_id),
             p_beats_leader=None if row is banded.leader else banded.p_beats.get(model_id),
             cost_per_task=cost(row.candidate_id),
-            warnings=[CITE_ONLY_WARNING] if cited and cited(row.candidate_id) else [],
+            warnings=[CITE_ONLY_WARNING] if cited_records(snapshot, row.candidate_id) else [],
             estimates=[
                 DimensionEstimate(
                     dimension=contribution.dimension,

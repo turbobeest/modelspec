@@ -1,0 +1,10 @@
+{
+  "failed_attempt": "candidate-repaired-policy original attempt",
+  "exit": 1,
+  "exception_type": "decision.snapshot.SnapshotBuildError",
+  "cause": "Repaired-view nested directory symlinks were skipped by recursive model discovery, omitting unchanged model directories.",
+  "correction": "Recreated the repaired view using actual directories and symlinks only for unchanged leaf files; changed files remain exact data PR #118 bytes.",
+  "engine_changed": false,
+  "failed_results_retained": "results/c-fixture-error",
+  "no_source_page_bytes_read": true
+}

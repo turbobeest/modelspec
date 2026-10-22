@@ -1,0 +1,274 @@
+F...FFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+___________ test_human_named_comparison_labels_cited_benchmark_score ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b95e650>
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-110/test_human_named_comparison_la0')
+
+    def test_human_named_comparison_labels_cited_benchmark_score(monkeypatch, tmp_path):
+        body = collect_models(["lab/cited", "lab/plain"], load(score_inputs()))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+            lambda request: httpx.Response(200, json=body),
+        ))
+        result = CliRunner().invoke(cli.app, ["compare", "lab/cited", "lab/plain"],
+                                    env={"MODELSPEC_API_KEY": "test_model437_key"})
+        assert result.exit_code == 0, result.output
+        row = next(line for line in result.stdout.splitlines()
+                   if line.startswith(f"| {BENCHMARK}"))
+        cited, verified = row.split(" | ")[1:3]
+        assert "90.0 percent" in cited
+>       assert "[Cited, not machine-verified]" in cited
+E       AssertionError: assert '[Cited, not machine-verified]' in '90.0 percent [record: lab/cited#swe_bench_pro#90] [sources: src-cited]'
+
+/Users/terbeest/dev/worktrees/model-437/tests/test_cited_score_contract.py:59: AssertionError
+_____ test_cited_answer_sentence_covers_facts_scores_and_both[scores-none] _____
+
+level = 'none', cited_facts = False, cited_scores = True
+sentence = 'This answer uses cited benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+___ test_cited_answer_sentence_covers_facts_scores_and_both[scores-summary] ____
+
+level = 'summary', cited_facts = False, cited_scores = True
+sentence = 'This answer uses cited benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+_____ test_cited_answer_sentence_covers_facts_scores_and_both[scores-full] _____
+
+level = 'full', cited_facts = False, cited_scores = True
+sentence = 'This answer uses cited benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+______ test_cited_answer_sentence_covers_facts_scores_and_both[both-none] ______
+
+level = 'none', cited_facts = True, cited_scores = True
+sentence = 'This answer uses cited facts and benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited facts and benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+____ test_cited_answer_sentence_covers_facts_scores_and_both[both-summary] _____
+
+level = 'summary', cited_facts = True, cited_scores = True
+sentence = 'This answer uses cited facts and benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited facts and benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+______ test_cited_answer_sentence_covers_facts_scores_and_both[both-full] ______
+
+level = 'full', cited_facts = True, cited_scores = True
+sentence = 'This answer uses cited facts and benchmark scores.'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    @pytest.mark.parametrize("cited_facts,cited_scores,sentence", [
+        (True, False, "This answer uses cited facts."),
+        (False, True, "This answer uses cited benchmark scores."),
+        (True, True, "This answer uses cited facts and benchmark scores."),
+    ], ids=["facts", "scores", "both"])
+    def test_cited_answer_sentence_covers_facts_scores_and_both(
+        level, cited_facts, cited_scores, sentence,
+    ):
+        from dataclasses import replace
+
+        from decision.engine import decide
+        from decision.registry import facet
+        from tests.snapshot_records import evidence, model
+        from tests.test_cited_scores import BENCHMARK, load, score_inputs
+
+        inputs = score_inputs()
+        models = [model("lab/cited", context=200000), model("lab/plain")]
+        if cited_facts:
+            models[0]["facts"][0]["sources"][0]["source_id"] = "src-cited"
+        if not cited_scores:
+            inputs.evidence[0] = evidence("lab/cited", BENCHMARK, 90)
+        spec = parse_spec({
+            "spec_version": 1,
+            "where": ["model.context_window >= 100000"],
+            "optimize": {"max": BENCHMARK},
+            "explain": level,
+        }, facets=facet)
+        answer = decide(spec, load(replace(inputs, models=models)), facets=facet)
+        assert answer.answer.members == ["lab/cited"]
+        bounded = project(answer, ResponseOptions(fields=["model_rank"]), not_applied=[], spec=spec)
+>       assert sentence in bounded["summary_for_user"]
+E       assert 'This answer uses cited facts and benchmark scores.' in "ModelSpec's answer is lab/cited. This answer uses cited facts. Cited, not machine-verified: some facts or benchmark s...s required, so results span every class. ModelSpec checked only the stated requirements; other needs were not checked."
+
+tests/test_decision_summary.py:158: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_score_contract.py::test_human_named_comparison_labels_cited_benchmark_score
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[scores-none]
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[scores-summary]
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[scores-full]
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[both-none]
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[both-summary]
+FAILED tests/test_decision_summary.py::test_cited_answer_sentence_covers_facts_scores_and_both[both-full]
+7 failed, 3 passed in 1.07s

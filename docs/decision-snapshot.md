@@ -1,6 +1,6 @@
 # The decision snapshot
 
-`decision/snapshot.py` (MODEL-138) compiles the verified catalogue into the
+`decision/snapshot.py` (MODEL-138) compiles admitted facts and evidence into the
 **snapshot** every decision reads (design §4.2, §5). Same inputs, same bytes.
 
 ## Build
@@ -23,7 +23,9 @@ Inputs, read by `collect_repo`:
 
 What never enters:
 
-- a fact or evidence row whose latest verification is not `verified`;
+- a fact or evidence row without machine verification or valid cite-only
+  admission; a cited score whose latest outcome is `mismatch` or `unreachable`
+  also stays out;
 - anything with no source, or a source ID with no registered URL;
 - anything from an excluded source. The rules are parsed from
   `tests/test_removed_sources.py`, and the serialised output is scanned with
@@ -91,13 +93,14 @@ models are skipped; a premier model missing from the catalogue is a gap.
 Gzipped canonical JSON (sorted keys, no whitespace, gzip `mtime=0`):
 
 ```json
-{"format": "modelspec.decision-snapshot", "format_version": 1,
+{"format": "modelspec.decision-snapshot", "format_version": 2,
  "snapshot_id": "snap_<16 hex>", "content_hash": "sha256:<hex>",
  "signature": {"alg": "hmac-sha256", "value": "<hex>"} | null,
  "signatures": [{"alg": "ed25519", "key_id": "<id>", "value": "<base64>"}],
  "content": {"as_of", "facet_subjects", "lineup", "archive", "subscriptions",
              "benchmark_domains", "sources", "excluded", "held_back",
-             "valid_from"?, "valid_until"?}}
+             "valid_from"?, "valid_until"?, "cited_fact_records"?,
+             "cited_evidence_records"?}}
 ```
 
 `content_hash` is SHA-256 over the canonical `content`; the ID is its first 16
@@ -120,11 +123,25 @@ sorted by id), `facets` (per facet, sparse columns `row`, `state`, `value`,
 `sources`) and `evidence` (per candidate, rows of benchmark, version,
 sub-category, value, unit, measured_by, effort, harness, date, source IDs,
 record ID, date type, source snapshot, `interval`, `n`, and `quality_flags`).
-The builder admits an evidence row only when its winning verification matches
-the canonical evidence value. That value is the scalar score when no structured
+For machine-verified evidence, the winning verification must match the
+canonical evidence value. That value is the scalar score when no structured
 metadata exists; otherwise it is the composite of `score`, `interval`, `n`,
 and sorted `quality_flags`. A verification for the score alone cannot admit a
 row carrying decision-affecting metadata.
+
+Format 2 also admits cited benchmark evidence. Every source reference must
+qualify for cite-only admission under the registered source URL or the fetcher's
+validated redirect metadata. Card-authored redirect URLs can only restrict
+admission. The record retains `verification: null` and `citation.status: cited`;
+`cited_evidence_records` indexes those record IDs without expanding the evidence
+rows. Loaded cited evidence has `verified: false` and remains usable by
+conditions, ranking and capability estimates. It never counts as machine-verified
+coverage. `cited_fact_records` continues to index facts only.
+
+This is a major snapshot format change. A format 1 reader assumes every stored
+evidence row is verified and must refuse format 2. The current loader accepts
+both formats, preserving the verified evidence in old snapshots. The decision,
+comparison and public export contracts are versioned separately.
 
 `subscriptions` is an additive list beside `lineup` and `archive`, omitted when
 there are no subscription inputs so legacy snapshots remain byte-stable. Each
@@ -171,7 +188,9 @@ Explanation provenance uses `fact_records` to link facts to retained records.
 The optional `record_table` stores sorted dictionary paths, a shared pool of
 canonical JSON values, and one row of pool positions per record ID. A null
 position means an absent field; a position pointing to JSON `null` means an
-explicit null. Every admitted field and the winning verification are retained.
+explicit null. Every admitted field and, for machine-verified records, the
+winning verification are retained. Cited facts and scores retain their citation
+metadata and an explicit null verification, with no page copy.
 A cited fact whose stale mismatch was superseded
 ([design](design/cite-only-supersession.md)) keeps `verification: null` and
 adds `superseded_mismatches`: the mismatch row with `diff_sha256` in place of

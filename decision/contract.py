@@ -44,8 +44,8 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.18"
-MODEL_COMPARISON_VERSION = "1.0"
+CONTRACT_VERSION = "2.19"
+MODEL_COMPARISON_VERSION = "1.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ SpecHash = _matching(SPEC_HASH_PATTERN, "a spec hash is sha256:<64 hex>")
 Code = _matching(CODE_PATTERN, "a warning is a lowercase code")
 Url = _matching(URL_PATTERN, "a source is an http(s) URL")
 CITE_ONLY_WARNING = "cite_only_not_machine_verified"
-CITE_ONLY_NOTICE = "Cited, not machine-verified: some facts retain a source URL and content hash, without a page copy."
+CITE_ONLY_NOTICE = "Cited, not machine-verified: some facts or benchmark scores retain a source URL and content hash, without a page copy."
 
 
 def _snapshot_ref(value: str) -> str:
@@ -1252,7 +1252,20 @@ class OfferingRef(_ExcludeIf):
     router_slug: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
-class EvidenceItem(_Strict):
+class CitationSource(_ExcludeIf):
+    source_id: str
+    url: Url
+    snapshot_ref: SpecHash
+    retrieved_at: str | None = None
+    resolved_urls: list[Url] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
+class FactCitation(_Strict):
+    status: Literal["cited"]
+    sources: list[CitationSource] = Field(min_length=1)
+
+
+class EvidenceItem(_ExcludeIf):
     requested_domain: FacetId | None = None
     record_id: str | None = None
     benchmark: str
@@ -1282,6 +1295,7 @@ class EvidenceItem(_Strict):
     estimate_weight: float | None = None
     #: Precision multiplier from the observation's age. Added in 1.7.
     recency_weight: float | None = Field(default=None, ge=0, le=1)
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _one_harness(self) -> EvidenceItem:
@@ -1735,19 +1749,6 @@ class FactInterval(_Strict):
         return self
 
 
-class CitationSource(_ExcludeIf):
-    source_id: str
-    url: Url
-    snapshot_ref: SpecHash
-    retrieved_at: str | None = None
-    resolved_urls: list[Url] = Field(default_factory=list, exclude_if=lambda value: not value)
-
-
-class FactCitation(_Strict):
-    status: Literal["cited"]
-    sources: list[CitationSource] = Field(min_length=1)
-
-
 class ShownFact(_ExcludeIf):
     facet: str
     value: Scalar | list[Scalar] | None = None
@@ -2033,6 +2034,7 @@ class Decision(_ExcludeIf):
 
     # Server-only inputs for testing candidates. Never serialized or ranked.
     _feasible_models: tuple[str, ...] | None = PrivateAttr(default=None)
+    _cited_record_kinds: frozenset[Literal["facts", "benchmark scores"]] | None = PrivateAttr(default=None)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Decision):
@@ -2286,7 +2288,7 @@ class ComparisonOffering(_Strict):
     facts: list[ComparisonFact]
 
 
-class ComparisonEvidence(_Strict):
+class ComparisonEvidence(_ExcludeIf):
     benchmark: str
     value: float
     unit: str | None
@@ -2300,6 +2302,7 @@ class ComparisonEvidence(_Strict):
     subcategory: str | None = None
     interval: tuple[float, float] | None = None
     n: int | None = None
+    citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ComparisonModel(_Strict):

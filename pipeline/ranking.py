@@ -155,9 +155,11 @@ def build_candidates(cards: list[Any], sink: CollectingSink, *,
         cited_benchmarks = ({key: {"status": "cited", "url": source} for key in scores}
                             if is_cite_only_restrictive(source) else {})
         for record in card.benchmarks.evidence:
+            cited = is_cite_only_restrictive(record.source_url)
+            if cited and record.benchmark_id in verified:
+                continue
             scores[record.benchmark_id] = float(record.score)
-            if is_cite_only_restrictive(record.source_url):
-                verified.discard(record.benchmark_id)
+            if cited:
                 cited_benchmarks[record.benchmark_id] = {"status": "cited", "url": record.source_url}
             else:
                 verified.add(record.benchmark_id)

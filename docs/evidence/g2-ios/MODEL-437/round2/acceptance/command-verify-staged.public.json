@@ -1,0 +1,13 @@
+{
+  "label": "verify-staged",
+  "command": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/verify_staged.py"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T18:57:09.902131+00:00",
+  "finished": "2026-10-21T18:57:10.027060+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/verify-staged.private.log"
+}

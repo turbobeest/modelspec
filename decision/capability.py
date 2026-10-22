@@ -240,6 +240,21 @@ class CapabilityFit:
     def explain(self, model_id: str, domain: str, *, limit: int = 8) -> tuple[EstimateDriver, ...]:
         return self.drivers.get((model_id, domain), ())[:limit]
 
+    def cited_records(self, model_id: str, dimension: str, cited: set[str] | frozenset[str],
+                      refinement_benchmarks: Iterable[str] = ()) -> tuple[str, ...]:
+        """Citations used by an estimate, before explanation drivers are truncated."""
+        if "/" not in dimension:
+            drivers = self.drivers.get((model_id, dimension), ())
+        else:
+            parent = self.drivers.get((model_id, refinement_parent(dimension)), ())
+            if (model_id, dimension) in self.refinement_estimates:
+                own = set(refinement_benchmarks)
+                drivers = (*self.refinement_drivers.get((model_id, dimension), ()),
+                           *(row for row in parent if row.benchmark_id not in own))
+            else:
+                drivers = parent
+        return tuple(sorted({row.record_id for row in drivers if row.record_id in cited}))
+
     def refinement_estimate(self, model_id: str, key: str) -> RefinementEstimate | None:
         """The nested estimate for ``key``, or the widened parent estimate without evidence."""
         stored = self.refinement_estimates.get((model_id, key))
@@ -953,6 +968,8 @@ class BenchmarkExclusionView:
         self.excluded_benchmarks = tuple(sorted(excluded))
         self._excluded = excluded
         self._fit = fit
+        self._cited_evidence_ids = {row.record_id for _, row in base.corpus_evidence()
+                                    if row.cited}
         payload = fit.to_payload()
         self.capability_method = payload["method"]
         self.capability_items = payload["items"]
@@ -1003,6 +1020,12 @@ class BenchmarkExclusionView:
             )
             for row in self._fit.explain(self.model_of(cid), domain_id)
         )
+
+    def estimate_cited_records(self, cid: str, dimension: str) -> tuple[str, ...]:
+        benchmarks = (benchmark for benchmark, _ in self.refinement_benchmarks(dimension)) \
+            if "/" in dimension else ()
+        return self._fit.cited_records(self.model_of(cid), dimension,
+                                       self._cited_evidence_ids, benchmarks)
 
     def refinement_estimate(self, cid: str, key: str) -> Any:
         from decision.snapshot import CapabilityEstimateValue, RefinementEstimateValue

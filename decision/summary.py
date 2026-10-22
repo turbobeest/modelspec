@@ -56,7 +56,6 @@ _PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
 _NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
 _TIE_TAIL = "the evidence does not separate them."
 _ESTIMATES = "Some values are estimates, not measurements."
-_CITED_ANSWER = "This answer uses cited facts. " + CITE_ONLY_NOTICE
 _HARDWARE_TAIL = (
     " is an estimate; fit for a specific quantization, context length "
     "or runtime headroom is not established."
@@ -169,6 +168,13 @@ def summarize(
 
 def _count(value: int) -> str:
     return f"{value:,}"
+
+
+def _cited_answer(decision: Decision) -> str:
+    kinds = decision._cited_record_kinds
+    named = (" and ".join(kind for kind in ("facts", "benchmark scores") if kind in kinds)
+             if kinds else "facts or benchmark scores")
+    return f"This answer uses cited {named}. " + CITE_ONLY_NOTICE
 
 
 def _dimension_name(dimension: str) -> str:
@@ -288,7 +294,7 @@ def _compose(
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
     if CITE_ONLY_WARNING in decision.warnings:
-        parts.append(_CITED_ANSWER)
+        parts.append(_cited_answer(decision))
     parts.extend(_why(
         decision, spec, unapplied, limits, conditions, joint_limit, feasible,
         omit_joint=omit_joint,
@@ -673,7 +679,7 @@ def _mentions(
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     if CITE_ONLY_WARNING in decision.warnings:
-        items.append(("citation", _CITED_ANSWER))
+        items.append(("citation", _cited_answer(decision)))
     tie = _tie_item(decision)
     if tie:
         items.append(("tie", tie))

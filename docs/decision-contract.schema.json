@@ -679,7 +679,7 @@
           "title": "Pick"
         },
         "projects_contract": {
-          "const": "2.18",
+          "const": "2.19",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -1121,6 +1121,17 @@
         "benchmark": {
           "title": "Benchmark",
           "type": "string"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactCitation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "date": {
           "anyOf": [
@@ -2135,8 +2146,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.18",
-          "default": "2.18",
+          "const": "2.19",
+          "default": "2.19",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2707,6 +2718,17 @@
         "benchmark": {
           "title": "Benchmark",
           "type": "string"
+        },
+        "citation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactCitation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "date": {
           "format": "date",
@@ -3757,8 +3779,8 @@
       "additionalProperties": false,
       "properties": {
         "comparison_version": {
-          "const": "1.0",
-          "default": "1.0",
+          "const": "1.1",
+          "default": "1.1",
           "title": "Comparison Version",
           "type": "string"
         },
@@ -6611,5 +6633,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.18"
+  "x-contract-version": "2.19"
 }

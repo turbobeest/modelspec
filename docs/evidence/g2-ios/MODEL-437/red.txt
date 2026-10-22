@@ -1,0 +1,146 @@
+FF.......FFFFFF...                                                       [100%]
+=================================== FAILURES ===================================
+___ test_cited_score_survives_snapshot_roundtrip_without_verification[None] ____
+
+outcome = None
+
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    def test_cited_score_survives_snapshot_roundtrip_without_verification(outcome):
+        index = load(score_inputs(outcome=outcome))
+        rows = index.evidence("lab/cited", BENCHMARK)
+>       assert len(rows) == 1
+E       assert 0 == 1
+E        +  where 0 = len(())
+
+tests/test_cited_scores.py:41: AssertionError
+_ test_cited_score_survives_snapshot_roundtrip_without_verification[verified] __
+
+outcome = 'verified'
+
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    def test_cited_score_survives_snapshot_roundtrip_without_verification(outcome):
+        index = load(score_inputs(outcome=outcome))
+        rows = index.evidence("lab/cited", BENCHMARK)
+>       assert len(rows) == 1
+E       assert 0 == 1
+E        +  where 0 = len(())
+
+tests/test_cited_scores.py:41: AssertionError
+_________ test_cited_score_ranks_and_warns_on_the_recommendation[none] _________
+
+level = 'none'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_cited_score_ranks_and_warns_on_the_recommendation(level):
+        index = load(score_inputs())
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.results[0].model == "lab/cited"
+E       AssertionError: assert 'lab/plain' == 'lab/cited'
+E
+E         - lab/cited
+E         + lab/plain
+
+tests/test_cited_scores.py:91: AssertionError
+_______ test_cited_score_ranks_and_warns_on_the_recommendation[summary] ________
+
+level = 'summary'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_cited_score_ranks_and_warns_on_the_recommendation(level):
+        index = load(score_inputs())
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.results[0].model == "lab/cited"
+E       AssertionError: assert 'lab/plain' == 'lab/cited'
+E
+E         - lab/cited
+E         + lab/plain
+
+tests/test_cited_scores.py:91: AssertionError
+_________ test_cited_score_ranks_and_warns_on_the_recommendation[full] _________
+
+level = 'full'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_cited_score_ranks_and_warns_on_the_recommendation(level):
+        index = load(score_inputs())
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.results[0].model == "lab/cited"
+E       AssertionError: assert 'lab/plain' == 'lab/cited'
+E
+E         - lab/cited
+E         + lab/plain
+
+tests/test_cited_scores.py:91: AssertionError
+____________ test_tied_cited_score_outside_limit_still_warns[none] _____________
+
+level = 'none'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_tied_cited_score_outside_limit_still_warns(level):
+        inputs = score_inputs()
+        inputs.evidence[0]["score"] = 70
+        index = load(inputs)
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level, "limit": 1}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.answer.kind == "tied"
+E       AssertionError: assert 'separated' == 'tied'
+E
+E         - tied
+E         + separated
+
+tests/test_cited_scores.py:110: AssertionError
+___________ test_tied_cited_score_outside_limit_still_warns[summary] ___________
+
+level = 'summary'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_tied_cited_score_outside_limit_still_warns(level):
+        inputs = score_inputs()
+        inputs.evidence[0]["score"] = 70
+        index = load(inputs)
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level, "limit": 1}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.answer.kind == "tied"
+E       AssertionError: assert 'separated' == 'tied'
+E
+E         - tied
+E         + separated
+
+tests/test_cited_scores.py:110: AssertionError
+____________ test_tied_cited_score_outside_limit_still_warns[full] _____________
+
+level = 'full'
+
+    @pytest.mark.parametrize("level", ["none", "summary", "full"])
+    def test_tied_cited_score_outside_limit_still_warns(level):
+        inputs = score_inputs()
+        inputs.evidence[0]["score"] = 70
+        index = load(inputs)
+        spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                           "explain": level, "limit": 1}, facets=facet)
+        answer = decide(spec, index, facets=facet)
+>       assert answer.answer.kind == "tied"
+E       AssertionError: assert 'separated' == 'tied'
+E
+E         - tied
+E         + separated
+
+tests/test_cited_scores.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_scores.py::test_cited_score_survives_snapshot_roundtrip_without_verification[None]
+FAILED tests/test_cited_scores.py::test_cited_score_survives_snapshot_roundtrip_without_verification[verified]
+FAILED tests/test_cited_scores.py::test_cited_score_ranks_and_warns_on_the_recommendation[none]
+FAILED tests/test_cited_scores.py::test_cited_score_ranks_and_warns_on_the_recommendation[summary]
+FAILED tests/test_cited_scores.py::test_cited_score_ranks_and_warns_on_the_recommendation[full]
+FAILED tests/test_cited_scores.py::test_tied_cited_score_outside_limit_still_warns[none]
+FAILED tests/test_cited_scores.py::test_tied_cited_score_outside_limit_still_warns[summary]
+FAILED tests/test_cited_scores.py::test_tied_cited_score_outside_limit_still_warns[full]
+8 failed, 10 passed in 0.42s
