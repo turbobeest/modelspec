@@ -67,7 +67,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
     namespace = getattr(env, "CREDITS", None)
     if namespace is None:
         return _error(503, "store_not_configured", "CREDITS is not bound")
-    stub = namespace.get(namespace.idFromName("ledger"))
+    stub = namespace.get(namespace.idFromName(credits.ledger_name(env)))
     action = path[len(PREFIX):]
 
     if action == "status":
@@ -88,7 +88,8 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         args = payload.get("args")
         if name not in CALLABLE or not isinstance(args, list):
             return _error(400, "invalid_request", "unknown ledger method or bad args")
-        ledger = credits.DurableLedger(namespace, key, post=post, bridge_target=target(env))
+        ledger = credits.DurableLedger(namespace, key, post=post, bridge_target=target(env),
+                                       name=credits.ledger_name(env))
         try:
             result = await ledger._call(name, *args)
         except credits.LedgerUnavailable as exc:
@@ -119,10 +120,10 @@ async def handle(env: Any, path: str, method: str, authorization: str,
 
 async def _handoff(stub: Any, key: str, target: str,
                    post: Any) -> tuple[int, dict[str, Any]]:
-    """Seal, copy, record. Imports are idempotent on the copy's digest, so a
-    re-run is always safe: a live target holding this digest means the copy is
-    there, the target's own refusal means it never landed (unseal and keep
-    serving), and anything else means stay sealed until the handoff is re-run."""
+    """Seal, copy, record. A target that holds this handoff id has the copy;
+    the target's own refusal means it never landed (unseal and keep serving);
+    anything else means stay sealed until the handoff is re-run, which is
+    always safe."""
     if not target.startswith("https://"):
         return _error(400, "invalid_request", "target must be an https:// origin")
     if post is None:
@@ -144,8 +145,8 @@ async def _handoff(stub: Any, key: str, target: str,
         return _error(502, "import_unknown",
                       f"no answer from the target ({type(exc).__name__}); "
                       "the ledger stays sealed; re-run the handoff")
-    if (status == 200 and answer.get("role") == "live"
-            and answer.get("imported_handoff") == sealed["handoff"]):
+    if status == 200 and answer.get("imported_handoff") == sealed["handoff"]:
+        # The target holds this handoff, whatever it has done since.
         try:
             return 200, _plain(await stub.finish_handoff(target, sealed["handoff"]))
         except Exception as exc:
@@ -153,7 +154,10 @@ async def _handoff(stub: Any, key: str, target: str,
     error = answer.get("error") or {}
     if status == 409 and error.get("code") == "import_refused":
         # Only the target's own refusal proves the copy did not land.
-        await stub.abort_handoff()
+        try:
+            await stub.abort_handoff(sealed["handoff"])
+        except Exception as exc:
+            return _error(502, "abort_failed", _reason(exc))
         return _error(409, "import_refused",
                       f"the target refused the copy ({error.get('message', '')}); "
                       "the ledger is unsealed and serving")

@@ -1,10 +1,12 @@
-"""MODEL-441: the credit ledger moves between Cloudflare accounts by handoff.
+"""MODEL-441: the credit ledger moves between Cloudflare accounts by a one-way
+handoff.
 
-Two in-memory "accounts", each with its own CreditsObject, joined by the
-bridge over a fake HTTPS hop. The properties under test are the ones the
-move must keep: every balance arrives, a payment credited before the move
-stays a duplicate after it, and exactly one copy accepts writes at a time,
-whatever answers are lost and whichever way the operator re-runs or rolls back.
+Two in-memory "accounts", each with its Durable Object namespace, joined by
+the bridge over a fake HTTPS hop that can drop requests or lose answers. The
+properties under test are the ones the move must keep: every balance arrives,
+a payment credited before the move stays a duplicate after it, exactly one
+ledger accepts writes at a time, and no sequence of re-runs, lost answers,
+duplicate deliveries or rollbacks leaves none.
 """
 
 from __future__ import annotations
@@ -68,17 +70,28 @@ class Stub:
 
 
 class Namespace:
-    def __init__(self, env=None):
-        ctx = type("Ctx", (), {})()
-        ctx.storage = type("Storage", (), {"sql": Sql()})()
-        self.obj = credits_do.CreditsObject(ctx, env=env)
+    """Objects by name, as `idFromName` gives them."""
+
+    def __init__(self, env):
+        self._env = env
+        self.objects: dict[str, credits_do.CreditsObject] = {}
+
+    def _object(self, name):
+        if name not in self.objects:
+            ctx = type("Ctx", (), {})()
+            ctx.storage = type("Storage", (), {"sql": Sql()})()
+            self.objects[name] = credits_do.CreditsObject(ctx, env=self._env)
+        return self.objects[name]
+
+    @property
+    def obj(self):
+        return self._object(credits.ledger_name(self._env))
 
     def idFromName(self, name):
-        assert name == "ledger"
         return name
 
-    def get(self, _id):
-        return Stub(self.obj)
+    def get(self, name):
+        return Stub(self._object(name))
 
 
 class Env:
@@ -86,6 +99,7 @@ class Env:
         self.LEDGER_BRIDGE_SECRET = secret
         self.LEDGER_BRIDGE_TARGET = target
         self.LEDGER_STANDBY = "true" if standby else ""
+        self.LEDGER_NAME = ""
         self.CREDITS = Namespace(self)
 
 
@@ -97,9 +111,11 @@ class Network:
         self.envs = envs
         self.down: set[str] = set()
         self.lose_answer: set[str] = set()
+        self.sent: list[tuple[str, dict]] = []
 
     async def post(self, url, payload, headers):
         origin = url.split("/internal/", 1)[0]
+        self.sent.append((url, payload))
         if origin in self.down:
             raise ConnectionError("unreachable")
         path = "/internal/" + url.split("/internal/", 1)[1]
@@ -123,7 +139,8 @@ def _accounts():
 
 def _ledger(env, net):
     return credits.DurableLedger(env.CREDITS, SECRET, post=net.post, sleep=_no_sleep,
-                                 bridge_target=env.LEDGER_BRIDGE_TARGET)
+                                 bridge_target=env.LEDGER_BRIDGE_TARGET,
+                                 name=credits.ledger_name(env))
 
 
 async def _no_sleep(_seconds):
@@ -157,8 +174,20 @@ def _refuses(env, net):
     return False
 
 
-def _live(*envs):
-    return [e for e in envs if _status(e)["role"] == "live"]
+def _live_objects(*envs):
+    """Every ledger object in every account that would serve a call."""
+    return [(i, name) for i, env in enumerate(envs)
+            for name, obj in env.CREDITS.objects.items()
+            if run(obj.handoff_status())["role"] == "live"]
+
+
+def _imports(net):
+    return [payload for url, payload in net.sent if url.endswith("/import")]
+
+
+def _roll_back_into_a_fresh_ledger(old):
+    old.LEDGER_NAME = "ledger-2"
+    old.LEDGER_STANDBY = "true"
 
 
 def test_balances_arrive_and_later_calls_on_the_old_worker_land_in_the_new_ledger():
@@ -174,7 +203,7 @@ def test_balances_arrive_and_later_calls_on_the_old_worker_land_in_the_new_ledge
     assert run(_ledger(new, net).balance("key:b")).monthly == 4000
     _credit(old, net, "pack:cs_2", 250)
     assert (_balance(new, net), _balance(old, net)) == (750, 750)
-    assert _live(old, new) == [new]
+    assert _live_objects(old, new) == [(1, "ledger")]
 
 
 def test_a_payment_credited_before_the_move_is_a_duplicate_after_it_on_either_worker():
@@ -187,12 +216,12 @@ def test_a_payment_credited_before_the_move_is_a_duplicate_after_it_on_either_wo
     assert _balance(new, net) == 500
 
 
-def test_a_new_account_ledger_serves_nothing_until_it_is_handed_over():
+def test_a_receiving_ledger_serves_nothing_until_it_is_handed_over():
     old, new, net = _accounts()
 
     assert _refuses(new, net)
-    assert _status(new)["role"] == "standby"
-    assert _live(old, new) == [old]
+    assert (_status(old)["role"], _status(new)["role"]) == ("live", "standby")
+    assert _live_objects(old, new) == [(0, "ledger")]
 
 
 def test_a_refused_import_unseals_the_old_ledger_and_it_keeps_serving():
@@ -223,7 +252,7 @@ def test_an_unreachable_target_keeps_the_seal_and_a_rerun_finishes():
     net.down.clear()
     assert _handoff(old, net, NEW)[1]["role"] == "moved"
     assert _balance(old, net) == 500
-    assert _live(old, new) == [new]
+    assert _live_objects(old, new) == [(1, "ledger")]
 
 
 def test_a_lost_answer_then_writes_on_the_target_then_a_rerun_leaves_one_live_ledger():
@@ -237,68 +266,66 @@ def test_a_lost_answer_then_writes_on_the_target_then_a_rerun_leaves_one_live_le
     status, body = _handoff(old, net, NEW)
 
     assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [new]
+    assert _live_objects(old, new) == [(1, "ledger")]
     assert (_balance(old, net), _balance(new, net)) == (15, 15)
 
 
-def test_rolling_back_while_the_old_ledger_is_still_moving_never_wipes_it():
+def test_a_duplicate_import_delivered_late_never_revives_a_copy():
     old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 10)
-    net.down.add(NEW)
+    _credit(old, net, "pack:cs_1", 5)
     _handoff(old, net, NEW)
-    net.down.clear()
+    late = _imports(net)[-1]
+    _credit(new, net, "pack:cs_2", 7)
+    _roll_back_into_a_fresh_ledger(old)
+    _handoff(new, net, OLD)
 
-    status, body = _handoff(new, net, OLD)
+    replay = run(ledger_bridge.handle(new, "/internal/ledger/import", "POST", "Bearer " + SECRET,
+                                      json.dumps(late)))
 
-    assert (status, body["error"]["code"]) == (409, "handoff_refused")
-    assert _status(old)["role"] == "moving"
-    assert _handoff(old, net, NEW)[0] == 200
-    assert _balance(new, net) == 10
-
-
-def test_rolling_back_after_a_lost_answer_keeps_every_balance_and_one_live_ledger():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 10)
-    net.lose_answer.add(NEW)
-    _handoff(old, net, NEW)
-    net.lose_answer.clear()
-
-    status, body = _handoff(new, net, OLD)
-
-    assert (status, body["error"]["code"]) == (409, "import_refused")
-    assert _live(old, new) == [new]
-    assert _handoff(old, net, NEW)[0] == 200
-    assert (_balance(old, net), _balance(new, net)) == (10, 10)
-    assert _live(old, new) == [new]
+    assert replay[0] == 200 and replay[1]["role"] == "moved"
+    assert _live_objects(old, new) == [(0, "ledger-2")]
+    assert _balance(old, net) == 12
 
 
-def test_handing_the_ledger_back_restores_the_old_account_with_later_writes():
+def test_a_rollback_receives_the_ledger_into_a_fresh_object_with_every_later_write():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 500)
     _handoff(old, net, NEW)
     _credit(new, net, "pack:cs_2", 100)
+    _roll_back_into_a_fresh_ledger(old)
+    assert _refuses(old, net)
 
     status, body = _handoff(new, net, OLD)
 
     assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [old]
+    assert _live_objects(old, new) == [(0, "ledger-2")]
     assert (_balance(old, net), _balance(new, net)) == (600, 600)
+    assert _credit(old, net, "pack:cs_1", 500).credited is False
 
 
-def test_a_hand_back_whose_answer_is_lost_finishes_on_rerun_without_a_second_live_ledger():
+def test_a_rollback_cannot_overwrite_the_moved_original():
     old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 500)
+    _credit(old, net, "pack:cs_1", 5)
     _handoff(old, net, NEW)
-    net.lose_answer.add(OLD)
-    assert _handoff(new, net, OLD)[0] == 502
-    net.lose_answer.clear()
-    _credit(old, net, "pack:cs_2", 1)
 
     status, body = _handoff(new, net, OLD)
 
+    assert (status, body["error"]["code"]) == (409, "import_refused")
+    assert _live_objects(old, new) == [(1, "ledger")]
+
+
+def test_a_target_that_moved_on_before_the_source_heard_back_lets_the_source_finish():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.lose_answer.add(NEW)
+    _handoff(old, net, NEW)
+    net.lose_answer.clear()
+    run(new.CREDITS.obj.begin_handoff(OLD))
+
+    status, body = _handoff(old, net, NEW)
+
     assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [old]
-    assert _balance(new, net) == 501
+    assert _status(old)["role"] == "moved"
 
 
 def test_rerunning_a_finished_handoff_changes_nothing():
@@ -310,7 +337,7 @@ def test_rerunning_a_finished_handoff_changes_nothing():
     again = _handoff(old, net, NEW)
 
     assert again == (200, _status(old))
-    assert first[1]["target"] == again[1]["target"] == NEW
+    assert first[1]["handoff"] == again[1]["handoff"]
     assert _balance(new, net) == 501
 
 
@@ -327,7 +354,7 @@ def test_there_is_no_remote_way_to_unseal_a_moving_ledger():
     assert _status(old)["role"] == "moving"
 
 
-def test_break_glass_unseals_only_the_named_handoff():
+def test_break_glass_unseals_only_the_named_handoff_and_abandons_its_target():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
     net.down.add(NEW)
@@ -339,6 +366,51 @@ def test_break_glass_unseals_only_the_named_handoff():
     old.LEDGER_UNSEAL_HANDOFF = handoff
     assert _status(old)["role"] == "live"
     assert _balance(old, net) == 5
+    net.down.clear()
+    status, body = _handoff(old, net, NEW)
+    assert (status, body["error"]["code"]) == (409, "handoff_refused")
+    assert _status(old)["role"] == "live"
+
+
+def test_an_import_that_commits_but_loses_its_answer_never_unseals_the_source():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    namespace = new.CREDITS
+    original = namespace.get
+    namespace.get = lambda name: AnswerLostAfterImport(namespace._object(name))
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["error"]["code"]) == (502, "import_unknown")
+    assert _status(old)["role"] == "moving"
+    namespace.get = original
+    assert _handoff(old, net, NEW)[1]["role"] == "moved"
+    assert _live_objects(old, new) == [(1, "ledger")]
+    assert _balance(new, net) == 10
+
+
+def test_a_restart_between_the_state_and_the_record_leaves_a_rerun_that_imports_again():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    sealed = run(old.CREDITS.obj.begin_handoff(NEW))
+    new.CREDITS.obj._save(credits.LedgerState.from_json(json.loads(sealed["state"])))
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live_objects(old, new) == [(1, "ledger")]
+    assert _balance(new, net) == 5
+
+
+def test_a_target_without_the_bridge_keeps_the_source_sealed():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    net.envs[NEW] = Env(secret="", standby=True)
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["error"]["code"]) == (502, "import_unknown")
+    assert _status(old)["role"] == "moving"
 
 
 def test_a_reservation_whose_forwarded_answer_was_lost_can_be_found_and_released():
@@ -401,15 +473,9 @@ class EchoingStub(Stub):
 
 def test_a_seal_mark_echoed_in_an_error_never_forwards_a_live_ledgers_call():
     old, new, net = _accounts()
-    sent = []
-
-    async def recording_post(url, payload, headers):
-        sent.append(url)
-        return await net.post(url, payload, headers)
-
     namespace = old.CREDITS
-    namespace.get = lambda _id: EchoingStub(namespace.obj, "ledger-sealed: moved")
-    ledger = credits.DurableLedger(namespace, SECRET, post=recording_post, sleep=_no_sleep,
+    namespace.get = lambda name: EchoingStub(namespace._object(name), "ledger-sealed: moved")
+    ledger = credits.DurableLedger(namespace, SECRET, post=net.post, sleep=_no_sleep,
                                    bridge_target=NEW)
 
     try:
@@ -418,7 +484,7 @@ def test_a_seal_mark_echoed_in_an_error_never_forwards_a_live_ledgers_call():
         assert "bad payment id" in str(exc)
     else:
         raise AssertionError("the original error must surface")
-    assert sent == []
+    assert net.sent == []
 
 
 def test_a_moved_ledger_forwards_only_to_the_configured_target():
@@ -445,30 +511,6 @@ def test_a_handoff_goes_only_to_the_configured_target():
     assert _status(old)["role"] == "live"
 
 
-def test_handing_back_and_forth_with_no_writes_between_leaves_one_live_ledger():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 10)
-    _handoff(old, net, NEW)
-    _handoff(new, net, OLD)
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [new]
-    assert _balance(old, net) == 10
-
-
-def test_a_target_without_the_bridge_keeps_the_source_sealed():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 10)
-    net.envs[NEW] = Env(secret="", standby=True)
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["error"]["code"]) == (502, "import_unknown")
-    assert _status(old)["role"] == "moving"
-
-
 class AnswerLostAfterImport(Stub):
     """The import commits, then the answer back to the Worker is lost."""
 
@@ -481,82 +523,3 @@ class AnswerLostAfterImport(Stub):
             await method(*args)
             raise RuntimeError("Network connection lost.")
         return call
-
-
-def test_an_import_that_commits_but_loses_its_answer_never_unseals_the_source():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 10)
-    namespace = new.CREDITS
-    namespace.get = lambda _id: AnswerLostAfterImport(namespace.obj)
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["error"]["code"]) == (502, "import_unknown")
-    assert _status(old)["role"] == "moving"
-    namespace.get = lambda _id: Stub(namespace.obj)
-    assert _handoff(old, net, NEW)[1]["role"] == "moved"
-    assert _live(old, new) == [new]
-    assert _balance(new, net) == 10
-
-
-def test_a_rerun_racing_the_targets_own_hand_back_never_unseals_the_source():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    net.lose_answer.add(NEW)
-    _handoff(old, net, NEW)
-    net.lose_answer.clear()
-    run(new.CREDITS.obj.begin_handoff(OLD))
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["error"]["code"]) == (502, "import_unknown")
-    assert _status(old)["role"] == "moving"
-    run(new.CREDITS.obj.abort_handoff())
-    assert _handoff(old, net, NEW)[1]["role"] == "moved"
-    assert _live(old, new) == [new]
-
-
-def test_a_break_glass_secret_left_behind_never_touches_a_later_handoff():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    net.down.add(NEW)
-    _handoff(old, net, NEW)
-    old.LEDGER_UNSEAL_HANDOFF = _status(old)["handoff"]
-    assert _status(old)["role"] == "live"
-    net.down.clear()
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [new]
-    assert _balance(old, net) == 5
-
-
-def test_a_wrong_way_rerun_after_a_lost_hand_back_answer_cannot_deadlock_both_ledgers():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    _handoff(old, net, NEW)
-    net.lose_answer.add(OLD)
-    assert _handoff(new, net, OLD)[0] == 502
-    net.lose_answer.clear()
-
-    forward = _handoff(old, net, NEW)
-    back = _handoff(new, net, OLD)
-
-    assert (forward[0], forward[1]["error"]["code"]) == (409, "import_refused")
-    assert (back[0], back[1]["role"]) == (200, "moved")
-    assert _live(old, new) == [old]
-    assert _balance(old, net) == 5
-
-
-def test_a_restart_between_the_state_and_the_record_leaves_a_rerun_that_imports_again():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    sealed = run(old.CREDITS.obj.begin_handoff(NEW))
-    new.CREDITS.obj._save(credits.LedgerState.from_json(json.loads(sealed["state"])))
-
-    status, body = _handoff(old, net, NEW)
-
-    assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [new]
-    assert _balance(new, net) == 5

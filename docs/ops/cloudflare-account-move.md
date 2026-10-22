@@ -85,14 +85,16 @@ or rotated between the copy and the move is missing on the new side only
 until the merge runs. Run the merge as soon as the old Worker goes quiet.
 
 **Credit ledger.** A Durable Object cannot move between accounts, so the
-ledger moves by handoff (`api/worker/src/ledger_bridge.py`,
-`api/worker/src/credits_do.py`). Each ledger has a role: `live` serves calls,
-`standby` has never served and waits for a copy, `moving` is sealed with its
-copy in flight, and `moved` is sealed for good. The new account's ledger
-starts in `standby` (`CF_LEDGER_STANDBY=true` adds the var `LEDGER_STANDBY`),
-so nothing can write to it before the handoff. The handoff runs like this:
+ledger moves by a one-way handoff (`api/worker/src/ledger_bridge.py`,
+`api/worker/src/credits_do.py`). Each ledger object has a role: `live` serves
+calls, `standby` has never served and waits for its one copy, `moving` is
+sealed with its copy in flight, and `moved` is sealed for good. The new
+account's ledger starts in `standby` (`CF_LEDGER_STANDBY=true` adds the var
+`LEDGER_STANDBY`), so nothing can write to it before the handoff. The handoff
+runs like this:
 
-1. The old Worker seals its ledger in one synchronous write.
+1. The old Worker seals its ledger in one synchronous write, under a new
+   random handoff id.
 2. It sends the copy to the new Worker's `/internal/ledger/import`.
 3. It records itself `moved`. From then on it forwards every ledger call to
    the new Worker's `/internal/ledger/call`.
@@ -102,22 +104,29 @@ duplicates a balance, and a payment credited before the move is still a
 duplicate after it. Calls that arrive mid-handoff retry for up to 5 seconds,
 then answer 503.
 
-Each seal draws a random handoff id. Imports are idempotent on that id, so
-re-running a handoff is always safe. A 200 means the copy is there. Only the target's own refusal, which
-proves the copy never landed, unseals the source. Any other answer, or none,
-keeps the source sealed until a re-run gets through. Only a `standby` ledger,
-or a `moved` one taking its ledger back, accepts a copy. A `live` or `moving`
-ledger never does, so a rollback can never overwrite real balances. Handing
-the ledger back is the same call in the other direction.
+Only a `standby` ledger ever accepts a copy, and it keeps the id of the one it
+took. A repeat of that handoff, even a duplicate delivered late, only reads
+back the record. So re-running a handoff is always safe:
 
-There is no remote abort. Three attempts at one showed that nothing outside
-the target can prove a copy still in flight will not land, and a wrong guess
-makes two live ledgers. A stuck `moving` ledger is finished by re-running the
-handoff. If the target account is gone for good, **J** sets the Worker secret
+- A target that holds this handoff id has the copy, and the source finishes.
+- The target's own refusal proves the copy never landed, and the source
+  unseals and keeps serving.
+- Any other answer, or none, keeps the source sealed until a re-run gets
+  through.
+
+The protocol is one-way on purpose. Five review rounds of a two-way version
+each found a new interleaving, so nothing hands a ledger "back". A rollback
+moves the ledger again, into a fresh, empty object on the old account
+(phase 7). There is no remote abort either: nothing outside the target can
+prove that a copy still in flight will not land. A stuck `moving` ledger is
+finished by re-running the handoff.
+
+If the target account is gone for good, **J** sets the Worker secret
 `LEDGER_UNSEAL_HANDOFF` on the sealed Worker to the `handoff` id from its
-status. That one handoff then unseals. Every seal draws a new random id, so a
+status. That one handoff unseals, and its target is recorded as abandoned, so
+the Worker never seals for it again. Every seal draws a new random id, so a
 secret left behind can never unseal a later handoff. Remove it anyway. It is
-the only break-glass, and it is only for a target that will never answer again:
+the only break-glass, and only for a target that will never answer again:
 used while the target lives, it makes two live ledgers.
 
 The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
@@ -284,7 +293,7 @@ the same commit.
    Set `LEDGER_BRIDGE_TARGET` to `https://modelspec-rank.<sub>.workers.dev` on
    the old Worker and to `https://api.modelspec.dev` on the new one. While the
    old account still serves the zone, that origin is the old Worker, which is
-   what a hand-back needs.
+   what a rollback needs.
 3. Dispatch `rank-api.yml` again, so smoke tests run with the secrets in place.
    Then dispatch `mcp.yml` with the same input.
 4. Check: `/v1/health`, decide, rank, policy-check and the MCP `tools/list` on
@@ -323,10 +332,21 @@ curl -sS -X POST https://api.modelspec.dev/internal/ledger/handoff \
    serving again: read the message and fix the cause before trying again. If
    the target can never answer again, use the break-glass above.
 
-Rollback: send the same request to `https://modelspec-rank.<sub>.workers.dev/internal/ledger/handoff`
-with target `https://api.modelspec.dev`. If the forward handoff is still
-`moving`, re-run it to completion first. A `moving` ledger accepts no copy,
-by design.
+Rollback, before phase 8 only:
+
+1. If the forward handoff is still `moving`, re-run it to completion first.
+2. **J** sets Worker secrets `LEDGER_NAME=ledger-2` and `LEDGER_STANDBY=true`
+   on the old `modelspec-rank`. The old Worker now uses a fresh, empty ledger
+   object in standby. Its ledger calls answer 503 until step 3 completes.
+3. Move the ledger into that object:
+
+   ```bash
+   curl -sS -X POST https://modelspec-rank.<sub>.workers.dev/internal/ledger/handoff \
+     -H "authorization: Bearer $LEDGER_BRIDGE_SECRET" -H 'content-type: application/json' \
+     -d '{"target": "https://api.modelspec.dev"}'
+   ```
+
+The moved original stays sealed for good, and nothing can overwrite it.
 
 ### Phase 8. Move modelspec.dev (J approves; the point of no return)
 
@@ -419,7 +439,7 @@ next staging deploy provisions staging's KV in the new account.
 | -- | -- |
 | Phases 0 to 5 | Nothing in production changed. Delete the new account's resources, or leave them. |
 | Phase 6 | benchgraph.dev cannot move back for 30 days. Fix forward in the new account. Nothing else has moved. |
-| Phase 7 | Hand the ledger back (phase 7). |
+| Phase 7 | Move the ledger into a fresh object on the old account (phase 7 rollback). |
 | Phase 8 approval | No move back for 30 days. Fix forward: `wrangler rollback` the new Workers, re-run the KV merge, redeploy Pages. The old account cannot serve the zone again. |
 | Phase 9 | Revert PR-B and restore the old secrets only to recover CI. Production stays in the new account. |
 

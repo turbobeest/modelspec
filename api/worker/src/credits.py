@@ -180,6 +180,12 @@ class LedgerUnavailable(RuntimeError):
 LEDGER_BRIDGE_SECRET_VAR = "LEDGER_BRIDGE_SECRET"
 #: The other account's Worker origin. The only host the secret is ever sent to.
 LEDGER_BRIDGE_TARGET_VAR = "LEDGER_BRIDGE_TARGET"
+
+
+def ledger_name(env: Any) -> str:
+    """The ledger object's name. Only a rollback of the account move changes
+    it, to receive the ledger into a fresh, empty object (MODEL-441)."""
+    return str(getattr(env, "LEDGER_NAME", "") or "") or "ledger"
 _MOVING_RETRIES = 25
 _MOVING_WAIT_SECONDS = 0.2
 
@@ -1775,8 +1781,8 @@ class DurableLedger:
     """
 
     def __init__(self, namespace: Any, bridge_secret: str = "", post: Any = None,
-                 sleep: Any = None, bridge_target: str = "") -> None:
-        self._stub = namespace.get(namespace.idFromName("ledger"))
+                 sleep: Any = None, bridge_target: str = "", name: str = "ledger") -> None:
+        self._stub = namespace.get(namespace.idFromName(name))
         self._bridge_secret = bridge_secret
         self._bridge_target = bridge_target.rstrip("/")
         self._post = post
@@ -1966,7 +1972,8 @@ def ledger_from_env(env: Any) -> Ledger:
     if isinstance(binding, MemoryLedger):
         return binding
     return DurableLedger(binding, str(getattr(env, LEDGER_BRIDGE_SECRET_VAR, "") or ""),
-                         bridge_target=str(getattr(env, LEDGER_BRIDGE_TARGET_VAR, "") or ""))
+                         bridge_target=str(getattr(env, LEDGER_BRIDGE_TARGET_VAR, "") or ""),
+                         name=ledger_name(env))
 
 
 def holder_from_fingerprint(fingerprint_hex: str) -> str:
