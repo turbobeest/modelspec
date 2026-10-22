@@ -3,10 +3,19 @@
 Bound as `CREDITS`. One instance, id `ledger`. SQLite holds a single JSON
 document so a mutation is one write, not a cross-key KV race. The class is
 imported from `entry.py` so Wrangler can find it by `class_name`.
+
+MODEL-441. A Durable Object cannot move between Cloudflare accounts, so the
+ledger moves by handoff: `begin_handoff` seals this copy and returns it, the
+Worker imports it into the target account's ledger, and `finish_handoff`
+records where it went. A sealed ledger refuses every call with a message
+naming the target, and `credits.DurableLedger` forwards the call there. The
+seal is one synchronous SQL write, so no call can slip between the copy and
+the seal. See docs/ops/cloudflare-account-move.md.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -22,6 +31,24 @@ except Exception:  # CPython tests stub `workers` without this name
 
 
 _STATE_KEY = "state"
+_MOVING_KEY = "moving"
+_MOVED_KEY = "moved_to"
+
+MOVED_MARK = "ledger-moved:"
+MOVING_MARK = "ledger-moving"
+
+
+class LedgerSealed(RuntimeError):
+    """This copy was handed off. The message carries the mark and target URL,
+    because only the message survives the RPC boundary."""
+
+
+def state_digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def canonical(state: LedgerState) -> str:
+    return json.dumps(state.to_json(), sort_keys=True, separators=(",", ":"))
 
 
 class CreditsObject(DurableObject):
@@ -36,24 +63,88 @@ class CreditsObject(DurableObject):
         self.ctx.storage.sql.exec(
             "CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)")
 
-    def _load(self) -> LedgerState:
+    def _get(self, key: str) -> str:
         self._ensure()
-        cursor = self.ctx.storage.sql.exec(
-            "SELECT v FROM kv WHERE k = ?", _STATE_KEY)
-        row = _one_row(cursor)
-        if row is None:
-            return LedgerState()
-        text = _cell(row, "v")
-        if not text:
-            return LedgerState()
-        return LedgerState.from_json(json.loads(str(text)))
+        row = _one_row(self.ctx.storage.sql.exec(
+            "SELECT v FROM kv WHERE k = ?", key))
+        return "" if row is None else str(_cell(row, "v") or "")
 
-    def _save(self, state: LedgerState) -> None:
+    def _put(self, key: str, value: str) -> None:
         self._ensure()
         self.ctx.storage.sql.exec(
-            "INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)",
-            _STATE_KEY, json.dumps(state.to_json()),
-        )
+            "INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)", key, value)
+
+    def _stored(self) -> LedgerState:
+        text = self._get(_STATE_KEY)
+        if not text:
+            return LedgerState()
+        return LedgerState.from_json(json.loads(text))
+
+    def _load(self) -> LedgerState:
+        moved_to = self._get(_MOVED_KEY)
+        if moved_to:
+            raise LedgerSealed(MOVED_MARK + moved_to)
+        if self._get(_MOVING_KEY):
+            raise LedgerSealed(MOVING_MARK)
+        return self._stored()
+
+    def _save(self, state: LedgerState) -> None:
+        self._put(_STATE_KEY, json.dumps(state.to_json()))
+
+    async def handoff_status(self) -> dict[str, Any]:
+        text = canonical(self._stored())
+        return {"digest": state_digest(text), "moving": self._get(_MOVING_KEY),
+                "moved_to": self._get(_MOVED_KEY)}
+
+    async def begin_handoff(self, target: str) -> dict[str, Any]:
+        """Seal this copy for `target` and return it. Re-running for the same
+        target returns the same copy, so a handoff interrupted after the seal
+        can be completed."""
+        target = str(target)
+        if not target:
+            raise ValueError("handoff needs a target")
+        current = self._get(_MOVED_KEY) or self._get(_MOVING_KEY)
+        if current and current != target:
+            raise ValueError("ledger is already sealed for another target")
+        if not current:
+            self._put(_MOVING_KEY, target)
+        text = canonical(self._stored())
+        return {"state": text, "digest": state_digest(text)}
+
+    async def finish_handoff(self, target: str, digest: str) -> dict[str, Any]:
+        target = str(target)
+        if self._get(_MOVED_KEY) == target:
+            return await self.handoff_status()
+        if self._get(_MOVING_KEY) != target:
+            raise ValueError("no handoff to this target is in progress")
+        if state_digest(canonical(self._stored())) != str(digest):
+            raise ValueError("digest does not match the sealed ledger")
+        self._put(_MOVED_KEY, target)
+        self._put(_MOVING_KEY, "")
+        return await self.handoff_status()
+
+    async def abort_handoff(self) -> dict[str, Any]:
+        if self._get(_MOVED_KEY):
+            raise ValueError("handoff already finished; hand the ledger back instead")
+        self._put(_MOVING_KEY, "")
+        return await self.handoff_status()
+
+    async def import_state(self, text: str, digest: str) -> dict[str, Any]:
+        """Take a handed-off copy. Accepted into an empty or sealed ledger
+        (a sealed copy is stale by definition, which is what makes handing
+        back work), or when it is already this ledger's state."""
+        text = str(text)
+        if state_digest(text) != str(digest):
+            raise ValueError("digest does not match the document")
+        incoming = LedgerState.from_json(json.loads(text))
+        sealed = bool(self._get(_MOVED_KEY) or self._get(_MOVING_KEY))
+        local = canonical(self._stored())
+        if not sealed and local not in (canonical(LedgerState()), canonical(incoming)):
+            raise ValueError("ledger holds a different, live state")
+        self._save(incoming)
+        self._put(_MOVED_KEY, "")
+        self._put(_MOVING_KEY, "")
+        return await self.handoff_status()
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",

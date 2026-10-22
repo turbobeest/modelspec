@@ -361,7 +361,7 @@ def test_staging_rank_worker_deploy_is_manual_and_targets_only_staging() -> None
 
     workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
     staging = workflow["jobs"]["deploy-staging"]
-    assert staging["if"] == "github.event_name == 'workflow_dispatch' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')"
+    assert staging["if"] == "github.event_name == 'workflow_dispatch' && (inputs.cloudflare_environment || 'production') == 'production' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')"
     assert staging["needs"] == "bundle"
     staging_text = yaml.safe_dump(staging)
     assert "vendor.py" in staging_text
@@ -739,3 +739,26 @@ def test_site_artifact_keeps_hidden_files() -> None:
     sites = next(upload for upload in uploads if upload["name"] == "sites")
     assert sites["path"] == "dist"
     assert sites["include-hidden-files"] is True
+
+
+def test_worker_deploys_take_their_account_from_the_job_environment() -> None:
+    """MODEL-441. Wrangler prefers the config's account_id over the secret, so
+    every Worker deploy rewrites the config from its environment first."""
+    import yaml
+
+    for path, job, config in (
+        (RANK_API, "deploy", "api/worker/wrangler.jsonc"),
+        (RANK_API, "deploy-staging", "api/worker/wrangler.jsonc"),
+        (WORKFLOWS / "mcp.yml", "deploy", "mcp/wrangler.jsonc"),
+    ):
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+        steps = workflow["jobs"][job]["steps"]
+        runs = [str(step.get("run", "")) for step in steps]
+        retarget = runs.index(f"python3 .github/scripts/cloudflare_target.py {config}")
+        deploy = next(i for i, run in enumerate(runs) if " deploy" in run and "wrangler" in run.lower())
+        assert retarget < deploy, f"{path.name} {job} deploys before it retargets"
+    for name in ("rank-api.yml", "mcp.yml", "deploy-sites.yml"):
+        workflow = yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
+        assert workflow["jobs"]["deploy"]["environment"] == \
+            "${{ inputs.cloudflare_environment || 'production' }}", name
+        assert workflow[True]["workflow_dispatch"]["inputs"]["cloudflare_environment"]["default"] == "production", name

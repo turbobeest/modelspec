@@ -26,6 +26,10 @@
   "rules": [
     { "type": "Data", "globs": ["registry/*.yaml", "registry/source-retention.json", "hardware/*.yaml", "pipeline/vocab_synonyms.json"], "fallthrough": true }
   ],
+  // The account operators' local wrangler commands reach. Wrangler prefers
+  // this value over CLOUDFLARE_ACCOUNT_ID, so deploy jobs rewrite it from
+  // their GitHub environment first (.github/scripts/cloudflare_target.py,
+  // MODEL-441). See docs/ops/cloudflare-account-move.md.
   "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,
   // A Workers route, not a Custom Domain: the CI token

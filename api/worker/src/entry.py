@@ -85,6 +85,7 @@ import display_vocabulary
 import feedback_service
 import human_gate
 import kv_value
+import ledger_bridge
 import policy_service
 import rank_service as service
 import signals_service
@@ -962,6 +963,13 @@ class Default(WorkerEntrypoint):
 
         if path == "/v1/decision-link" and decision_link.enabled(self.env):
             return await self._decision_link(request, method, origin, service_commit)
+
+        # MODEL-441. Without its secret the bridge does not exist: the generic 404 answers it.
+        if path.startswith(ledger_bridge.PREFIX) and ledger_bridge.secret(self.env):
+            status, body = await ledger_bridge.handle(
+                self.env, path, method, str(request.headers.get("authorization") or ""),
+                await request.text() if method == "POST" else "")
+            return _json_response(status, body)
 
         decider = None
         decision_transport = _DecisionTransport()

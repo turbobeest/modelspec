@@ -33,6 +33,7 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -167,6 +168,18 @@ def _move_meter_tail(existing: _Account, acc: _Account) -> None:
 
 class StoreNotConfigured(RuntimeError):
     """No Durable Object binding. Parallel to access_kv.StoreNotConfigured."""
+
+
+class LedgerUnavailable(StoreNotConfigured):
+    """The ledger is mid-handoff or its new home did not answer (MODEL-441).
+    A subclass so every caller refuses, and a webhook stays unremembered for
+    Stripe to retry, exactly as for an unbound ledger."""
+
+
+#: Wrangler secret shared by both accounts while the ledger moves (MODEL-441).
+LEDGER_BRIDGE_SECRET_VAR = "LEDGER_BRIDGE_SECRET"
+_MOVING_RETRIES = 25
+_MOVING_WAIT_SECONDS = 0.2
 
 
 def _now_iso(moment: datetime | None = None) -> str:
@@ -1759,64 +1772,103 @@ class DurableLedger:
     order. See `credits_do.CreditsObject`.
     """
 
-    def __init__(self, namespace: Any) -> None:
+    def __init__(self, namespace: Any, bridge_secret: str = "",
+                 post: Any = None, sleep: Any = None) -> None:
         self._stub = namespace.get(namespace.idFromName("ledger"))
+        self._bridge_secret = bridge_secret
+        self._post = post
+        self._sleep = sleep or asyncio.sleep
+
+    async def _call(self, name: str, *args: Any) -> Any:
+        """One RPC to the ledger, following a handoff (MODEL-441).
+
+        A sealed ledger answers with a mark in the error message: moving means
+        retry shortly, moved means send the call to the target's bridge."""
+        for _ in range(_MOVING_RETRIES):
+            try:
+                return await getattr(self._stub, name)(*args)
+            except Exception as exc:
+                text = str(exc)
+                moved = re.search(r"ledger-moved:(https://[^\s'\"]+)", text)
+                if moved:
+                    return await self._forward(moved.group(1), name, args)
+                if "ledger-moving" not in text:
+                    raise
+            await self._sleep(_MOVING_WAIT_SECONDS)
+        raise LedgerUnavailable("the credit ledger is being moved; retry shortly")
+
+    async def _forward(self, target: str, name: str, args: tuple) -> Any:
+        if not self._bridge_secret:
+            raise LedgerUnavailable(
+                "the credit ledger moved and this deployment has no bridge secret")
+        post = self._post
+        if post is None:
+            from x402_facilitator import worker_post as post
+        try:
+            status, body = await post(
+                target.rstrip("/") + "/internal/ledger/call",
+                {"method": name, "args": list(args)},
+                {"authorization": "Bearer " + self._bridge_secret,
+                 "content-type": "application/json"})
+        except Exception as exc:
+            raise LedgerUnavailable(
+                f"the moved credit ledger did not answer: {type(exc).__name__}") from exc
+        if status != 200 or "result" not in body:
+            raise LedgerUnavailable(f"the moved credit ledger answered HTTP {status}")
+        return body["result"]
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult:
-        data = await self._stub.credit(
-            holder, payment_id, int(units), tx, expires_at, source)
+        data = await self._call("credit", holder, payment_id, int(units), tx, expires_at, source)
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
-        data = await self._stub.set_monthly(
-            holder, int(units), invoice_id, plan, customer_id)
+        data = await self._call("set_monthly", holder, int(units), invoice_id, plan, customer_id)
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str) -> CreditResult:
-        data = await self._stub.clear_monthly(holder)
+        data = await self._call("clear_monthly", holder)
         return CreditResult.from_json(dict(data))
 
     async def transfer(self, src: str, dst: str) -> bool:
-        return bool(await self._stub.transfer(src, dst))
+        return bool(await self._call("transfer", src, dst))
 
     async def reserve(self, holder: str, units: int = 1, now: str = "",
                       overage_cap: int = 0) -> ReserveResult:
-        data = await self._stub.reserve(holder, int(units), now, int(overage_cap))
+        data = await self._call("reserve", holder, int(units), now, int(overage_cap))
         return ReserveResult.from_json(dict(data))
 
     async def commit(self, holder: str, reservation_id: int) -> CommitResult:
-        data = await self._stub.commit(holder, int(reservation_id))
+        data = await self._call("commit", holder, int(reservation_id))
         return CommitResult.from_json(data)
 
     async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
                         burst_limit: int, now: str = "",
                         overage_cap: int = 0) -> ReadResult:
-        data = await self._stub.take_read(
-            holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
+        data = await self._call(
+            "take_read", holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
             now, int(overage_cap))
         return ReadResult.from_json(dict(data))
 
     async def release_read(self, holder: str, token: int) -> bool:
-        return bool(await self._stub.release_read(holder, int(token)))
+        return bool(await self._call("release_read", holder, int(token)))
 
     async def keep_read(self, holder: str, token: int) -> bool:
-        return bool(await self._stub.keep_read(holder, int(token)))
+        return bool(await self._call("keep_read", holder, int(token)))
 
     async def meter_identifier(self, holder: str, kind: str,
                                counter: str | int) -> str:
-        return str(await self._stub.meter_identifier(
-            holder, str(kind), str(counter)) or "")
+        return str(await self._call("meter_identifier", holder, str(kind), str(counter)) or "")
 
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
-        return bool(await self._stub.note_unreported(
-            holder, int(units), identifier, customer_id, event_name))
+        return bool(await self._call(
+            "note_unreported", holder, int(units), identifier, customer_id, event_name))
 
     async def open_backlog(self, holder: str) -> tuple[int, int, str]:
-        data = await self._stub.open_backlog(holder)
+        data = await self._call("open_backlog", holder)
         to_py = getattr(data, "to_py", None)
         row = to_py() if callable(to_py) else data
         units, seq, ident = row
@@ -1824,51 +1876,51 @@ class DurableLedger:
 
     async def ack_backlog(self, holder: str, units: int, n: int,
                           identifier: str = "") -> bool:
-        return bool(await self._stub.ack_backlog(holder, int(units), int(n), identifier))
+        return bool(await self._call("ack_backlog", holder, int(units), int(n), identifier))
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
-        return bool(await self._stub.note_uncertain(
-            holder, int(units), identifier, int(created_at or 0)))
+        return bool(await self._call(
+            "note_uncertain", holder, int(units), identifier, int(created_at or 0)))
 
     async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
-        data = await self._stub.list_uncertain(holder)
+        data = await self._call("list_uncertain", holder)
         return _uncertain_wire(data)
 
     async def ack_uncertain(self, holder: str, identifier: str) -> bool:
-        return bool(await self._stub.ack_uncertain(holder, identifier))
+        return bool(await self._call("ack_uncertain", holder, identifier))
 
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
-        data = await self._stub.age_uncertain(holder, int(now or 0))
+        data = await self._call("age_uncertain", holder, int(now or 0))
         return _uncertain_wire(data)
 
     async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
-        data = await self._stub.open_meter_events(holder, int(now or 0))
+        data = await self._call("open_meter_events", holder, int(now or 0))
         return _meter_events_wire(data)
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
-        return bool(await self._stub.unreconcile_uncertain(holder, identifier))
+        return bool(await self._call("unreconcile_uncertain", holder, identifier))
 
     async def release(self, holder: str, reservation_id: int) -> bool:
-        return bool(await self._stub.release(holder, int(reservation_id)))
+        return bool(await self._call("release", holder, int(reservation_id)))
 
     async def has_read_funding(self, holder: str, now: str = "") -> bool:
-        return bool(await self._stub.has_read_funding(holder, now))
+        return bool(await self._call("has_read_funding", holder, now))
 
     async def balance(self, holder: str, now: str = "") -> Balance:
-        data = await self._stub.balance(holder, now)
+        data = await self._call("balance", holder, now)
         return Balance.from_json(dict(data))
 
     async def seen(self, payment_id: str) -> bool:
-        return bool(await self._stub.seen(payment_id))
+        return bool(await self._call("seen", payment_id))
 
     async def expect(self, payment_id: str, units: int, tx: str,
                      source: str = "pack") -> CreditResult:
-        data = await self._stub.expect(payment_id, int(units), tx, source)
+        data = await self._call("expect", payment_id, int(units), tx, source)
         return CreditResult.from_json(dict(data))
 
     async def payment(self, payment_id: str) -> dict[str, Any] | None:
-        data = await self._stub.payment(payment_id)
+        data = await self._call("payment", payment_id)
         if not data:
             return None
         to_py = getattr(data, "to_py", None)
@@ -1876,17 +1928,17 @@ class DurableLedger:
 
     async def refund(self, tx: str, amount: int, amount_refunded: int,
                      full: bool, now: str = "") -> ReversalResult:
-        data = await self._stub.refund(tx, int(amount), int(amount_refunded),
+        data = await self._call("refund", tx, int(amount), int(amount_refunded),
                                        bool(full), now)
         return ReversalResult.from_json(dict(data))
 
     async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
-        data = await self._stub.hold(tx, dispute_id, now)
+        data = await self._call("hold", tx, dispute_id, now)
         return ReversalResult.from_json(dict(data))
 
     async def end_hold(self, tx: str, dispute_id: str, restore: bool,
                        now: str = "") -> ReversalResult:
-        data = await self._stub.end_hold(tx, dispute_id, bool(restore), now)
+        data = await self._call("end_hold", tx, dispute_id, bool(restore), now)
         return ReversalResult.from_json(dict(data))
 
 
@@ -1896,7 +1948,7 @@ def ledger_from_env(env: Any) -> Ledger:
         return UnboundLedger()
     if isinstance(binding, MemoryLedger):
         return binding
-    return DurableLedger(binding)
+    return DurableLedger(binding, str(getattr(env, LEDGER_BRIDGE_SECRET_VAR, "") or ""))
 
 
 def holder_from_fingerprint(fingerprint_hex: str) -> str:
