@@ -1,0 +1,36 @@
+....FF....                                                               [100%]
+=================================== FAILURES ===================================
+____ test_mixed_cited_and_open_score_sources_are_cited_with_every_ref[None] ____
+
+outcome = None
+
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    def test_mixed_cited_and_open_score_sources_are_cited_with_every_ref(outcome):
+        inputs = score_inputs(outcome=outcome)
+        inputs.evidence[0]["sources"].append(source_ref("src-board"))
+        index = load(inputs)
+        rows = index.evidence("lab/cited", BENCHMARK)
+>       assert len(rows) == 1
+E       assert 0 == 1
+E        +  where 0 = len(())
+
+tests/test_cited_scores.py:176: AssertionError
+__ test_mixed_cited_and_open_score_sources_are_cited_with_every_ref[verified] __
+
+outcome = 'verified'
+
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    def test_mixed_cited_and_open_score_sources_are_cited_with_every_ref(outcome):
+        inputs = score_inputs(outcome=outcome)
+        inputs.evidence[0]["sources"].append(source_ref("src-board"))
+        index = load(inputs)
+        rows = index.evidence("lab/cited", BENCHMARK)
+>       assert len(rows) == 1
+E       assert 0 == 1
+E        +  where 0 = len(())
+
+tests/test_cited_scores.py:176: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_scores.py::test_mixed_cited_and_open_score_sources_are_cited_with_every_ref[None]
+FAILED tests/test_cited_scores.py::test_mixed_cited_and_open_score_sources_are_cited_with_every_ref[verified]
+2 failed, 8 passed, 29 deselected in 0.47s

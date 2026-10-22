@@ -1,0 +1,29 @@
+{
+  "all_final_refs_cite_only": true,
+  "data_base": "9d9de96f062ac031336ee483ae97c3b436bd3845",
+  "data_files_changed": 11,
+  "engine_main": "a03c4d077acc03c2bc5dba526ff635fb708ccb94",
+  "engine_pin_matches_main": true,
+  "facts_changed": 202,
+  "linked_data_guard_passed": true,
+  "non_source_semantics_unchanged": true,
+  "passed": true,
+  "queue_checked_events": 202,
+  "queue_collected_events": 202,
+  "queue_values_match_current_cards": true,
+  "source_page_bytes_read": false,
+  "source_refs_deleted": 490,
+  "source_refs_preserved": 394,
+  "streams": {
+    "verification/log.jsonl": {
+      "appended_lines": 0,
+      "prefix_bytes_preserved": true,
+      "unchanged": true
+    },
+    "verification/queue/events.jsonl": {
+      "appended_lines": 404,
+      "prefix_bytes_preserved": true,
+      "unchanged": false
+    }
+  }
+}

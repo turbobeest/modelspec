@@ -1,0 +1,36 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_missing_retained_copy_preserves_existing_retained_verification ______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-121/test_missing_retained_copy_pre0')
+
+    def test_missing_retained_copy_preserves_existing_retained_verification(tmp_path):
+        root, _, policy, card = setup_data(tmp_path)
+        row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+        historical = {**row, "sources": [row["sources"][0]]}
+        claim = Claim.from_fact(
+            Fact.model_validate(historical), names=("Alpha",), label="context window",
+            collector=Fact.model_validate(row).verification.collector,
+        )
+        events = root / "verification/queue/events.jsonl"
+        events.write_text("\n".join(json.dumps(event) for event in [
+            {"event": "collected", "at": "2026-09-20T12:00:00+00:00", "claim": claim.to_dict()},
+            {"event": "checked", "at": "2026-09-20T12:01:00+00:00",
+             "target": claim.target.model_dump(), "outcome": "verified", "diff": []},
+        ]) + "\n")
+        before_log = (root / "verification/log.jsonl").read_bytes()
+        result = invoke(root, tmp_path / "missing-copies", policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["counts"] == {"1": 1, "2": 0, "3": 0}
+E       AssertionError: assert {'1': 0, '2': 1, '3': 0} == {'1': 1, '2': 0, '3': 0}
+E
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'2': 1} != {'2': 0}
+E         {'1': 0} != {'1': 1}
+E         Use -v to get more diff
+
+tests/test_refile_mixed_citations.py:145: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_missing_retained_copy_preserves_existing_retained_verification
+1 failed, 12 deselected in 0.91s

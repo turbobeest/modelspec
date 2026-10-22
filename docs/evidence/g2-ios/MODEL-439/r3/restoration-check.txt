@@ -1,0 +1,1 @@
+PASS: 6 directional restorations; exact record metadata, separate citation indexes, absent empty keys, runtime evidence verified/cited flags, and fitted capability payload

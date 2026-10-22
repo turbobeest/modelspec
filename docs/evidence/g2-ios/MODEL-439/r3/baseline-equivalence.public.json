@@ -1,0 +1,12 @@
+{
+  "current": {
+    "fact_assurance_identical": true,
+    "all_corpus_predictions_identical_except_contract_version": true,
+    "corpus_cases": 319
+  },
+  "successor": {
+    "fact_assurance_identical": true,
+    "all_corpus_predictions_identical_except_contract_version": true,
+    "corpus_cases": 319
+  }
+}

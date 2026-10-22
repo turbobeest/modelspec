@@ -103,8 +103,8 @@ def mixed_citation(record: Mapping[str, Any], sources: Mapping[str, str],
                    store: Any = None) -> bool:
     """Whether a fact cites a cite-only source beside one that is not cited.
 
-    Such a fact is quarantined: its other sources were never machine-verified
-    apart from the cite-only one (docs/design/cite-only-sources.md).
+    Its verification cannot be attributed to either side. The snapshot admits
+    it as cited with every ref (docs/design/cite-only-sources.md).
     """
     states = ref_states(record, sources, store)
     return "cited" in states and any(state != "cited" for state in states)
@@ -117,8 +117,8 @@ def fact_citation(record: Mapping[str, Any], sources: Mapping[str, str],
     Invalid citations raise ValueError. A supplied citation status is never
     trusted, and neither are a card's own ``resolved_urls``: the registered
     source URL decides, plus redirect origins in the fetcher's citation record
-    in ``store`` for the ref's snapshot hash. Callers that admit facts must
-    also refuse a ``mixed_citation``.
+    in ``store`` for the ref's snapshot hash. Every ref is preserved, including
+    non-cite-only refs in a mixed record whose verification is unattributable.
     """
     refs = record.get("sources") or ()
     if "cited" not in ref_states(record, sources, store):

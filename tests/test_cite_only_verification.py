@@ -121,14 +121,18 @@ def test_cite_policy_does_not_admit_normal_host_unverified_facts():
     assert index.fact("lab/alpha", "model.context_window").state == "unknown"
 
 
+@pytest.mark.parametrize("mixed", [False, True])
 @pytest.mark.parametrize("facet", ["offering.api_model_id", "offering.router_slug"])
-def test_cite_policy_does_not_promote_operational_identifiers(facet):
+def test_cite_policy_does_not_promote_operational_identifiers(facet, mixed):
     oid = "sambanova/lab/alpha/global/standard"
     row = fact("offering", oid, facet, "lab-alpha", outcome=None)
+    if mixed:
+        row["sources"].append(source_ref("src-board"))
     inputs = snapshot_input()
     inputs = replace(inputs, offerings=[offering("lab/alpha", facts=[row])])
     index = loaded(inputs)
     assert index.fact(oid, facet).state == "unknown"
+    assert rejected(inputs)[oid, facet] == "quarantined (cited identifier)"
 
 
 def test_cite_snapshot_requires_valid_snapshot_hash():
@@ -408,24 +412,53 @@ def _mixed(second, *, outcome):
 
 
 @pytest.mark.parametrize("with_store", [False, True])
-@pytest.mark.parametrize("outcome", [None, "verified", "mismatch"])
+@pytest.mark.parametrize("outcome", [None, "verified"])
 @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
-def test_mixed_citation_fact_is_quarantined(tmp_path, outcome, second, with_store):
-    """A cited ref never carries an uncited one, verified or not (docs/design/cite-only-sources.md)."""
+def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
     ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
     if second == "card_redirect":
         ref["resolved_urls"] = [CITE_URL]
     inputs = _mixed(ref, outcome=outcome)
     store = CopyStore(tmp_path / "copies") if with_store else None
-    assert loaded(inputs, source_cache=store).fact(*CONTEXT).state == "unknown"
-    assert rejected(inputs, store)[CONTEXT] == "quarantined (mixed citation)"
+    index = loaded(inputs, source_cache=store)
+    value = index.fact(*CONTEXT)
+    assert value.state == "known" and value.value == 128000
+    record = index.record(value.record_id)
+    assert record["verification"] is None
+    assert record["sources"] == inputs.models[0]["facts"][0]["sources"]
+    assert record["citation"] == {
+        "status": "cited", "sources": [
+            {"source_id": "src-cite", "url": CITE_URL,
+             "snapshot_ref": "sha256:" + "0" * 64,
+             "retrieved_at": FETCHED.isoformat()},
+            {"source_id": "src-ordinary", "url": ORDINARY,
+             "snapshot_ref": "sha256:" + "1" * 64,
+             "retrieved_at": FETCHED.isoformat(),
+             **({"resolved_urls": [CITE_URL]} if second == "card_redirect" else {})},
+        ],
+    }
+    assert value.record_id in index.cited_facts("lab/alpha")
+
+
+@pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])
+def test_mixed_citation_does_not_override_failed_verification(outcome):
+    inputs = _mixed(source_ref("src-ordinary"), outcome=outcome)
+    assert loaded(inputs).fact(*CONTEXT).state == "unknown"
+    assert rejected(inputs)[CONTEXT] == f"quarantined ({outcome})"
+
+
+@pytest.mark.parametrize("damage", [{"snapshot_ref": "invalid"}, {"resolved_urls": None}])
+def test_mixed_citation_with_malformed_retained_ref_is_excluded(damage):
+    inputs = _mixed({**source_ref("src-ordinary"), **damage}, outcome="verified")
+    assert loaded(inputs).fact(*CONTEXT).state == "unknown"
+    assert rejected(inputs)[CONTEXT] == "invalid_citation"
 
 
 def test_two_cited_refs_one_through_a_fetcher_redirect_are_cited(tmp_path):
     ref = {**source_ref("src-redirect"), "snapshot_ref": "sha256:" + "2" * 64}
     store = fetcher_store(tmp_path, ref["snapshot_ref"])
     inputs = _mixed(ref, outcome=None)
-    assert rejected(inputs)[CONTEXT] == "quarantined (mixed citation)"
+    assert loaded(inputs).fact(*CONTEXT).record_id in loaded(inputs).cited_facts("lab/alpha")
     index = loaded(inputs, source_cache=store)
     record = index.record(index.fact(*CONTEXT).record_id)
     assert [item["source_id"] for item in record["citation"]["sources"]] == [
@@ -524,9 +557,11 @@ def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path, with
     expected = admitted_subscription_facts(root, subscriptions, TODAY, store=store)
     assert admitted == expected
     pro, max_ = expected["sambanova/subscription/pro"], expected["sambanova/subscription/max"]
-    assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance"}
-    assert set(max_) == ({"offering.subscription.billing_period"} if with_store
-                         else {"offering.subscription.usage_allowance"})
+    assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance",
+                        "offering.subscription.models_covered"}
+    assert set(max_) == {"offering.subscription.price"} | (
+        {"offering.subscription.billing_period"} if with_store
+        else {"offering.subscription.usage_allowance"})
 
 
 # REV-857 review probes (MODEL-420 round 3): each failed open before this fix.

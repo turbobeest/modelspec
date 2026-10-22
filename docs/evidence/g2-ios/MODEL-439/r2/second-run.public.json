@@ -1,0 +1,198 @@
+{
+  "by_facet": {
+    "feature.batch": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "feature.effort_controls": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "feature.streaming": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "feature.structured_output": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "feature.tool_calling": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "licence.commercial_use": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 11
+    },
+    "licence.fine_tuning": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "licence.output_training": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 11
+    },
+    "licence.user_cap": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.class": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.context_window": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.input_modalities": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.lifecycle": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.max_output_tokens": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.output_modalities": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.release_date": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.weights_openness": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "origin.base_lineage": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "origin.lab_jurisdiction": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 6
+    },
+    "origin.weights_hosting": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    }
+  },
+  "by_model": {
+    "anthropic/claude-fable-5": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "anthropic/claude-fable-5-1": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "anthropic/claude-opus-4-6": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "anthropic/claude-opus-4-7": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "anthropic/claude-opus-5": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "anthropic/claude-opus-5-5": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 12
+    },
+    "openai/gpt-5-4": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 19
+    },
+    "openai/gpt-5-6-sol": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 19
+    },
+    "openai/gpt-6-astra": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 19
+    },
+    "openai/gpt-6-luna": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 2
+    },
+    "openai/gpt-6-sol": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 19
+    }
+  },
+  "counts": {
+    "1": 0,
+    "2": 0,
+    "3": 0
+  },
+  "unresolved": 150
+}

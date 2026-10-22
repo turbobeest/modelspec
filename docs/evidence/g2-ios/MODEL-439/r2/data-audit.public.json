@@ -1,0 +1,142 @@
+{
+  "appended_cited_checks": 4,
+  "appended_collected_events": 4,
+  "by_facet": {
+    "feature.batch": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "feature.effort_controls": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "feature.streaming": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "feature.structured_output": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "feature.tool_calling": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "licence.commercial_use": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 11
+    },
+    "licence.fine_tuning": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "licence.output_training": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 11
+    },
+    "licence.user_cap": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.class": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.context_window": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.input_modalities": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.lifecycle": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.max_output_tokens": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "model.output_modalities": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.release_date": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "model.weights_openness": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "unknown": 10
+    },
+    "origin.base_lineage": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    },
+    "origin.lab_jurisdiction": {
+      "1": 0,
+      "2": 4,
+      "3": 0,
+      "unknown": 6
+    },
+    "origin.weights_hosting": {
+      "1": 6,
+      "2": 0,
+      "3": 0,
+      "unknown": 4
+    }
+  },
+  "changed_model_files": 10,
+  "counts": {
+    "1": 48,
+    "2": 4,
+    "unknown": 150
+  },
+  "engine_pin": "36b2d184dcc5a67a90ceb1a9015275143c09691d",
+  "no_code_added_under_data_paths": true,
+  "queue_prefix_byte_identical": true,
+  "removed_refs_by_rule": {
+    "1": 48,
+    "2": 4
+  },
+  "unknown_facts_unchanged": 150,
+  "values_states_other_fields_and_bodies_unchanged": true,
+  "verification_log_byte_identical": true
+}

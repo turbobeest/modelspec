@@ -178,7 +178,28 @@ def test_parity_cases_cover_admission_and_exclusion(tmp_path):
                 if both(tmp_path / name, [subscription("sambanova", "plus", facts=[_case(name)[0]])],
                         _case(name)[1])[0]["sambanova/subscription/plus"]}
     assert admitted == {"cited", "verified", "open_verified", "redirected_verified",
-                        "latest_verified"}
+                        "mixed_sources", "mixed_sources_verified", "latest_verified"}
+
+
+@pytest.mark.parametrize("name", ["mixed_sources", "mixed_sources_verified"])
+def test_a_mixed_citation_fact_is_admitted_as_cited_with_every_ref(tmp_path, name):
+    """MODEL-439: a cited ref mixed with another enters as cited, never as verified."""
+    f, log = _case(name)
+    row = subscription("sambanova", "plus", facts=[f])
+
+    helper, snapshot = both(tmp_path, [row], log)
+
+    expected = {PRICE: FactValue("known", 20, ("cited", "open"))}
+    assert helper == {"sambanova/subscription/plus": expected}
+    assert snapshot == helper
+    index = load_built_snapshot(build_snapshot(
+        SnapshotInputs(subscriptions=[row], sources=URLS, verifications=list(log)),
+        registry=REGISTRY, as_of=DAY))
+    (offering,) = index.subscription_offerings()
+    record = index.record(offering["facts"][PRICE].record_id)
+    assert record["verification"] is None
+    assert record["citation"]["status"] == "cited"
+    assert [ref["source_id"] for ref in record["sources"]] == ["cited", "open"]
 
 
 def test_a_raw_cited_fact_without_id_or_subject_is_admitted_as_the_snapshot_admits_it(tmp_path):

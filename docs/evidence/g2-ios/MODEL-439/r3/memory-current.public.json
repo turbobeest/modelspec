@@ -1,0 +1,53 @@
+{
+  "runtime": "Pyodide 0.28.3",
+  "period": "current",
+  "before_bytes": 30212096,
+  "peak_bytes": 115153711,
+  "peak_mib": 109.81913661956787,
+  "wasm_peak_bytes": 62783488,
+  "wasm_peak_mib": 59.875,
+  "steady_bytes": 114332447,
+  "steady_mib": 109.03591823577881,
+  "live_non_wasm_bytes": 51548959,
+  "wasm_bytes": 62783488,
+  "requests": [
+    "POST /v1/decide",
+    "GET /v1/vocabulary",
+    "POST /v1/rank",
+    "POST /v1/policy-check"
+  ],
+  "limit_bytes": 120586240,
+  "peak_warning_bytes": 117440512,
+  "stages": [
+    {
+      "name": "before_worker_import",
+      "bytes": 87515339,
+      "wasm_bytes": 30212096
+    },
+    {
+      "name": "after_worker_import",
+      "bytes": 115079071,
+      "wasm_bytes": 62783488
+    },
+    {
+      "name": "after_decide",
+      "bytes": 115106599,
+      "wasm_bytes": 62783488
+    },
+    {
+      "name": "after_vocabulary",
+      "bytes": 115109735,
+      "wasm_bytes": 62783488
+    },
+    {
+      "name": "after_rank",
+      "bytes": 115125391,
+      "wasm_bytes": 62783488
+    },
+    {
+      "name": "after_policy_check",
+      "bytes": 115135671,
+      "wasm_bytes": 62783488
+    }
+  ]
+}

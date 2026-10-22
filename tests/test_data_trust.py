@@ -1040,30 +1040,40 @@ def test_authored_resolved_url_without_retrieval_reaches_the_warning(
 def test_latest_retrieval_can_come_from_the_retainable_source(
     catalogue, registry, monkeypatch, tmp_path
 ):
-    """Review probe: a retainable source on a mixed fact still needs its verification."""
-    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
+    """Review probe: a mixed fact is cited, and a retainable source's retrieval does not date it."""
+    served, _row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-xai", "2026-01-01T00:00:00+00:00", ()),
         ("src-lab-docs", "2026-09-19T12:00:00+00:00", ()),
     ], verified=False)
-    assert served is None  # MODEL-420: the snapshot quarantines a mixed citation
-    audited = audit_as_cited(catalogue, row)
-    assert (audited["read_date"], audited["verification"]) == (None, {})
+    # MODEL-439: the snapshot admits a mixed fact as cited, keeping every ref.
+    assert served["citation"]["status"] == "cited"
+    assert served["verification"] == {}
+    assert [ref["source_id"] for ref in served["citation"]["sources"]] == [
+        "src-xai", "src-lab-docs"]
+    # The newer retrieval (2026-09-19) belongs to the retainable ref, which still
+    # needs a verification of this value, so it dates nothing and the audit asks for one.
+    assert served["read_date"] is None
     assert_only_read_date_required(catalogue, registry)
 
 
 def test_mixed_fact_is_dated_by_its_logged_verification(
     catalogue, registry, monkeypatch, tmp_path
 ):
-    """A matching log verification still covers the retainable source on a mixed fact."""
+    """A matching log verification still dates a mixed fact that is served as cited."""
     from tests.snapshot_records import verification
 
     fid = f"{MID}#model.context_window"
     catalogue.verifications[("fact", fid)] = verification("fact", fid, day="2026-09-17")
-    served, row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
+    served, _row = calibrate_row(catalogue, registry, monkeypatch, tmp_path, [
         ("src-xai", "2026-09-19T12:00:00+00:00", ()),
         ("src-lab-docs", None, ()),
     ])
-    assert served is None  # MODEL-420: the snapshot quarantines a mixed citation, verified or not
-    audited = audit_as_cited(catalogue, row)
-    assert (audited["read_date"], audited["verification"]) == ("2026-09-17", {})
+    # MODEL-439: served as cited, not machine-verified, with both refs kept.
+    assert served["citation"]["status"] == "cited"
+    assert served["verification"] == {}
+    assert [ref["source_id"] for ref in served["citation"]["sources"]] == [
+        "src-xai", "src-lab-docs"]
+    # The audit still dates it by the logged verification (2026-09-17), not by the
+    # cite-only ref's newer retrieval (2026-09-19), so nothing is flagged.
+    assert served["read_date"] == "2026-09-17"
     assert invariants.run(catalogue, registry, TODAY)["findings"] == []

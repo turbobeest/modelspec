@@ -78,13 +78,16 @@ def test_format_one_verified_snapshot_remains_readable():
 
 
 @pytest.mark.parametrize("verified_first", [False, True])
-def test_cited_offering_score_cannot_replace_its_models_verified_score(verified_first):
+@pytest.mark.parametrize("mixed", [False, True])
+def test_cited_offering_score_cannot_replace_its_models_verified_score(verified_first, mixed):
     inputs = score_inputs()
     oid = "sambanova/lab/cited/global/standard"
     inputs.evidence[0] = evidence(
         oid, BENCHMARK, 40, source="src-cited", source_url=CITED_URL,
         subject_kind="offering", outcome=None,
     )
+    if mixed:
+        inputs.evidence[0]["sources"].append(source_ref("src-board"))
     inputs.evidence.append(evidence("lab/cited", BENCHMARK, 95))
     if verified_first:
         inputs.evidence.reverse()
@@ -102,6 +105,7 @@ def test_cited_offering_score_cannot_replace_its_models_verified_score(verified_
     assert answer.results[0].contributions[0].raw_value == 95
     assert CITE_ONLY_WARNING not in answer.warnings
     assert CITE_ONLY_WARNING not in answer.results[0].warnings
+    assert [(row.value, row.verified) for row in index.evidence(oid, BENCHMARK)] == [(95, True)]
 
 
 @pytest.mark.parametrize("outcome", [None, "mismatch", "unreachable"])
@@ -163,9 +167,47 @@ def test_card_redirect_cannot_grant_cited_score_admission(outcome):
     assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
 
 
-def test_mixed_cited_and_open_score_sources_stay_out():
+@pytest.mark.parametrize("outcome", [None, "verified"])
+def test_mixed_cited_and_open_score_sources_are_cited_with_every_ref(outcome):
+    inputs = score_inputs(outcome=outcome)
+    inputs.evidence[0]["sources"].append(source_ref("src-board"))
+    index = load(inputs)
+    rows = index.evidence("lab/cited", BENCHMARK)
+    assert len(rows) == 1
+    assert rows[0].value == 90 and rows[0].verified is False
+    record = index.record(rows[0].record_id)
+    assert record["verification"] is None
+    assert record["sources"] == inputs.evidence[0]["sources"]
+    assert record["citation"] == {
+        "status": "cited", "sources": [
+            {"source_id": source_id, "url": url,
+             "snapshot_ref": "sha256:" + "0" * 64, "retrieved_at": None}
+            for source_id, url in [("src-cited", CITED_URL), ("src-board", SOURCES["src-board"])]
+        ],
+    }
+
+
+@pytest.mark.parametrize("mixed_first", [False, True])
+def test_mixed_cited_score_loses_to_verified_sibling(mixed_first):
     inputs = score_inputs(outcome="verified")
     inputs.evidence[0]["sources"].append(source_ref("src-board"))
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 60))
+    if mixed_first:
+        inputs.evidence.reverse()
+    index = load(inputs)
+    assert [(row.value, row.verified) for row in index.evidence("lab/cited", BENCHMARK)] == [
+        (60, True)]
+    spec = parse_spec({"spec_version": 1, "optimize": {"max": BENCHMARK},
+                       "explain": "full"}, facets=facet)
+    answer = decide(spec, index, facets=facet)
+    assert answer.answer.members == ["lab/plain"]
+    assert CITE_ONLY_WARNING not in answer.warnings
+
+
+@pytest.mark.parametrize("damage", [{"snapshot_ref": "invalid"}, {"resolved_urls": None}])
+def test_mixed_score_with_malformed_retained_ref_is_excluded(damage):
+    inputs = score_inputs(outcome="verified")
+    inputs.evidence[0]["sources"].append({**source_ref("src-board"), **damage})
     assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
 
 

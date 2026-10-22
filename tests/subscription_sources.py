@@ -108,14 +108,14 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store
     Log entries win same-day ties over inline verification, and later log rows
     win ties with earlier rows. Same-family verified entries do not count.
 
-    A fact whose every source is cite-only, by its registered URL or by a
+    A fact with any cite-only source, by its registered URL or by a
     redirect in the fetcher's citation record in ``store`` (never by the card's
     own ``resolved_urls``), enters without a verification record
     (docs/design/cite-only-sources.md), unless its citation or record is
     invalid (the fact must validate against ``registry`` as the snapshot
     validates it), it names an identifier facet, or its latest counting
-    outcome is a mismatch or unreachable. A fact that mixes a cite-only source
-    with another stays out. Every other fact still needs a latest counting
+    outcome is a mismatch or unreachable. Mixed references enter as cited,
+    with every ref preserved. Every other fact still needs a latest counting
     outcome of verified.
 
     With ``registry``, an unordered set facet's verification binds its members
@@ -178,8 +178,6 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store
             except ValueError:
                 continue
             if any(flags):
-                if not all(flags):
-                    continue
                 if fact["facet"] in {"offering.api_model_id", "offering.router_slug"}:
                     continue
                 try:

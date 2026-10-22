@@ -1,0 +1,27 @@
+2c9df39b5f751030757b71fa422d54f3ed5e510d
+100644 b3db2922b93d2e3a5ae12974b4dea6d2dbafee91 1	decision/citation.py
+100644 907426c7622b56a6ca8f4d7a82c0e9fb9256b4fc 2	decision/citation.py
+100644 5c2289cca09f032bd3340bccc0b00f30e1117d51 3	decision/citation.py
+100644 ba07d5b81939e09c0c82aa54eaa3f0303ebbf262 1	decision/snapshot.py
+100644 29adc76a79c2ce4cf9030e66294488cb891833d8 2	decision/snapshot.py
+100644 39065808090fc4204c4267a960df2a6045de30ef 3	decision/snapshot.py
+100644 9f29f01aee49d6663cbb92cff5db2f183f49067c 1	scripts/price_reread.py
+100644 d0de2ab82dad7b84fedcafac4be1f9779e95a2c3 2	scripts/price_reread.py
+100644 4d2a88ec6d1a1c174b9aa5df86d70609478b4112 3	scripts/price_reread.py
+100644 57ba0a6f1230eac4b94fc359617730e598456c45 2	tests/test_cite_only_caller_isolation.py
+100644 5e1e18b3e9f7400e3b7c714876a4b767f7a7104c 3	tests/test_cite_only_caller_isolation.py
+100644 2c66f5d9b1b77f8463cfa8778ab9add52c8d3665 1	tests/test_cite_only_verification.py
+100644 9ba7c780f35e402a8c66ce3d4c2776507a88bd98 2	tests/test_cite_only_verification.py
+100644 2c8c674150392c55612bf9c9142e07c02f4702c2 3	tests/test_cite_only_verification.py
+
+Auto-merging decision/citation.py
+CONFLICT (content): Merge conflict in decision/citation.py
+Auto-merging decision/snapshot.py
+CONFLICT (content): Merge conflict in decision/snapshot.py
+Auto-merging docs/design/cite-only-sources.md
+Auto-merging scripts/price_reread.py
+CONFLICT (content): Merge conflict in scripts/price_reread.py
+Auto-merging tests/test_cite_only_caller_isolation.py
+CONFLICT (add/add): Merge conflict in tests/test_cite_only_caller_isolation.py
+Auto-merging tests/test_cite_only_verification.py
+CONFLICT (content): Merge conflict in tests/test_cite_only_verification.py

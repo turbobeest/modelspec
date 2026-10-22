@@ -1,0 +1,450 @@
+.F.FFFFFFFFFFF..FFF.                                                     [100%]
+=================================== FAILURES ===================================
+_ test_cite_policy_does_not_promote_operational_identifiers[offering.api_model_id-True] _
+
+facet = 'offering.api_model_id', mixed = True
+
+    @pytest.mark.parametrize("mixed", [False, True])
+    @pytest.mark.parametrize("facet", ["offering.api_model_id", "offering.router_slug"])
+    def test_cite_policy_does_not_promote_operational_identifiers(facet, mixed):
+        oid = "sambanova/lab/alpha/global/standard"
+        row = fact("offering", oid, facet, "lab-alpha", outcome=None)
+        if mixed:
+            row["sources"].append(source_ref("src-board"))
+        inputs = snapshot_input()
+        inputs = replace(inputs, offerings=[offering("lab/alpha", facts=[row])])
+        index = loaded(inputs)
+        assert index.fact(oid, facet).state == "unknown"
+>       assert rejected(inputs)[oid, facet] == "quarantined (cited identifier)"
+E       AssertionError: assert 'quarantined (mixed citation)' == 'quarantined ...d identifier)'
+E
+E         - quarantined (cited identifier)
+E         + quarantined (mixed citation)
+
+tests/test_cite_only_verification.py:135: AssertionError
+_ test_cite_policy_does_not_promote_operational_identifiers[offering.router_slug-True] _
+
+facet = 'offering.router_slug', mixed = True
+
+    @pytest.mark.parametrize("mixed", [False, True])
+    @pytest.mark.parametrize("facet", ["offering.api_model_id", "offering.router_slug"])
+    def test_cite_policy_does_not_promote_operational_identifiers(facet, mixed):
+        oid = "sambanova/lab/alpha/global/standard"
+        row = fact("offering", oid, facet, "lab-alpha", outcome=None)
+        if mixed:
+            row["sources"].append(source_ref("src-board"))
+        inputs = snapshot_input()
+        inputs = replace(inputs, offerings=[offering("lab/alpha", facts=[row])])
+        index = loaded(inputs)
+        assert index.fact(oid, facet).state == "unknown"
+>       assert rejected(inputs)[oid, facet] == "quarantined (cited identifier)"
+E       AssertionError: assert 'quarantined (mixed citation)' == 'quarantined ...d identifier)'
+E
+E         - quarantined (cited identifier)
+E         + quarantined (mixed citation)
+
+tests/test_cite_only_verification.py:135: AssertionError
+____ test_mixed_citation_fact_is_cited_with_every_ref[ordinary-None-False] _____
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci0')
+outcome = None, second = 'ordinary', with_store = False
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+_____ test_mixed_citation_fact_is_cited_with_every_ref[ordinary-None-True] _____
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci1')
+outcome = None, second = 'ordinary', with_store = True
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+__ test_mixed_citation_fact_is_cited_with_every_ref[ordinary-verified-False] ___
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci2')
+outcome = 'verified', second = 'ordinary', with_store = False
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+___ test_mixed_citation_fact_is_cited_with_every_ref[ordinary-verified-True] ___
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci3')
+outcome = 'verified', second = 'ordinary', with_store = True
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+__ test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-None-False] __
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci4')
+outcome = None, second = 'card_redirect', with_store = False
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+__ test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-None-True] ___
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci5')
+outcome = None, second = 'card_redirect', with_store = True
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+_ test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-verified-False] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci6')
+outcome = 'verified', second = 'card_redirect', with_store = False
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+_ test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-verified-True] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_mixed_citation_fact_is_ci7')
+outcome = 'verified', second = 'card_redirect', with_store = True
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    @pytest.mark.parametrize("outcome", [None, "verified"])
+    @pytest.mark.parametrize("second", ["ordinary", "card_redirect"])
+    def test_mixed_citation_fact_is_cited_with_every_ref(tmp_path, outcome, second, with_store):
+        ref = {**source_ref("src-ordinary"), "snapshot_ref": "sha256:" + "1" * 64}
+        if second == "card_redirect":
+            ref["resolved_urls"] = [CITE_URL]
+        inputs = _mixed(ref, outcome=outcome)
+        store = CopyStore(tmp_path / "copies") if with_store else None
+        index = loaded(inputs, source_cache=store)
+        value = index.fact(*CONTEXT)
+>       assert value.state == "known" and value.value == 128000
+E       AssertionError: assert ('unknown' == 'known'
+E
+E         - known
+E         + unknown
+E         ? ++)
+
+tests/test_cite_only_verification.py:420: AssertionError
+_____ test_mixed_citation_does_not_override_failed_verification[mismatch] ______
+
+outcome = 'mismatch'
+
+    @pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])
+    def test_mixed_citation_does_not_override_failed_verification(outcome):
+        inputs = _mixed(source_ref("src-ordinary"), outcome=outcome)
+        assert loaded(inputs).fact(*CONTEXT).state == "unknown"
+>       assert rejected(inputs)[CONTEXT] == f"quarantined ({outcome})"
+E       AssertionError: assert 'quarantined (mixed citation)' == 'quarantined (mismatch)'
+E
+E         - quarantined (mismatch)
+E         + quarantined (mixed citation)
+
+tests/test_cite_only_verification.py:442: AssertionError
+____ test_mixed_citation_does_not_override_failed_verification[unreachable] ____
+
+outcome = 'unreachable'
+
+    @pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])
+    def test_mixed_citation_does_not_override_failed_verification(outcome):
+        inputs = _mixed(source_ref("src-ordinary"), outcome=outcome)
+        assert loaded(inputs).fact(*CONTEXT).state == "unknown"
+>       assert rejected(inputs)[CONTEXT] == f"quarantined ({outcome})"
+E       AssertionError: assert 'quarantined (mixed citation)' == 'quarantined (unreachable)'
+E
+E         - quarantined (unreachable)
+E         + quarantined (mixed citation)
+
+tests/test_cite_only_verification.py:442: AssertionError
+_________ test_two_cited_refs_one_through_a_fetcher_redirect_are_cited _________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_two_cited_refs_one_throug0')
+
+    def test_two_cited_refs_one_through_a_fetcher_redirect_are_cited(tmp_path):
+        ref = {**source_ref("src-redirect"), "snapshot_ref": "sha256:" + "2" * 64}
+        store = fetcher_store(tmp_path, ref["snapshot_ref"])
+        inputs = _mixed(ref, outcome=None)
+>       assert loaded(inputs).fact(*CONTEXT).record_id in loaded(inputs).cited_facts("lab/alpha")
+E       AssertionError: assert None in ()
+E        +  where None = FactValue(state='unknown', value=None, sources=(), record_id=None, measurement=None).record_id
+E        +    where FactValue(state='unknown', value=None, sources=(), record_id=None, measurement=None) = fact(*('lab/alpha', 'model.context_window'))
+E        +      where fact = <decision.snapshot.LoadedSnapshot object at 0x10aadd6a0>.fact
+E        +        where <decision.snapshot.LoadedSnapshot object at 0x10aadd6a0> = loaded(SnapshotInputs(models=[{'id': 'lab/alpha', 'lifecycle': 'active', 'facts': [{'id': 'lab/alpha#model.context_window', '...tadata={}, benchmark_refinements={}, verifications=(), supersessions=(), labs={}, hardware=(), hardware_fit_records=()))
+E        +  and   () = cited_facts('lab/alpha')
+E        +    where cited_facts = <decision.snapshot.LoadedSnapshot object at 0x10aadd7f0>.cited_facts
+E        +      where <decision.snapshot.LoadedSnapshot object at 0x10aadd7f0> = loaded(SnapshotInputs(models=[{'id': 'lab/alpha', 'lifecycle': 'active', 'facts': [{'id': 'lab/alpha#model.context_window', '...tadata={}, benchmark_refinements={}, verifications=(), supersessions=(), labs={}, hardware=(), hardware_fit_records=()))
+
+tests/test_cite_only_verification.py:456: AssertionError
+_____ test_subscription_helper_matches_snapshot_cite_only_admission[False] _____
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_subscription_helper_match0')
+with_store = False
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path, with_store):
+        from tests.subscription_sources import admitted_subscription_facts
+
+        root = tmp_path / "repo"
+        (root / "registry").mkdir(parents=True)
+        (root / "verification").mkdir()
+        (root / "verification" / "log.jsonl").write_text("")
+        urls = {"src-cite": CITE_URL, "src-ordinary": ORDINARY, "src-redirect": REDIRECT,
+                "src-broken": "https://example.org/broken"}
+        (root / "registry" / "sources.yaml").write_text(yaml.safe_dump({
+            "schema_version": 1,
+            "sources": [{"id": sid, "url": url} for sid, url in urls.items()],
+        }))
+        store = None
+        redirect_ref, broken_ref = "sha256:" + "c" * 64, "sha256:" + "9" * 64
+        if with_store:
+            store = fetcher_store(tmp_path, redirect_ref, resolved_urls=[PERPLEXITY])
+            store.record_citation(broken_ref, source_url=urls["src-broken"], retrieved_at=FETCHED,
+                                  resolved_urls=[CITE_URL])
+            store.path(broken_ref).with_suffix(".citation.json").write_text("{not json")
+        cite = source_ref("src-cite")
+        ordinary = source_ref("src-ordinary")
+        forged = {**source_ref("src-ordinary"), "resolved_urls": [CITE_URL]}
+        redirect = {**source_ref("src-redirect"), "snapshot_ref": redirect_ref}
+        broken = {**source_ref("src-broken"), "snapshot_ref": broken_ref}
+
+        def row(plan, facet, value, sources, outcome="verified"):
+            record = fact("offering", f"sambanova/subscription/{plan}", facet, value,
+                          source=sources[0]["source_id"], outcome=outcome)
+            record["sources"] = sources
+            return record
+
+        plans = {
+            "pro": [
+                row("pro", "offering.subscription.price", 20, [cite], outcome=None),
+                row("pro", "offering.subscription.billing_period", "monthly", [forged],
+                    outcome="mismatch"),
+                row("pro", "offering.subscription.models_covered", ["lab/alpha"],
+                    [cite, ordinary], outcome=None),
+                row("pro", "offering.subscription.usage_allowance", "5x", [forged]),
+            ],
+            "max": [
+                row("max", "offering.subscription.price", 20, [cite, ordinary]),
+                row("max", "offering.subscription.billing_period", "monthly", [redirect],
+                    outcome=None),
+                row("max", "offering.subscription.models_covered", ["lab/alpha"], [forged],
+                    outcome="unreachable"),
+                row("max", "offering.subscription.usage_allowance", "5x", [broken]),
+            ],
+        }
+        subscriptions = {f"sambanova/subscription/{plan}": subscription(plan=plan, facts=facts)
+                         for plan, facts in plans.items()}
+        index = loaded(SnapshotInputs(subscriptions=list(subscriptions.values()), sources=urls),
+                       source_cache=store)
+        admitted = {item["id"]: item["facts"] for item in index.subscription_offerings()}
+        expected = admitted_subscription_facts(root, subscriptions, TODAY, store=store)
+        assert admitted == expected
+        pro, max_ = expected["sambanova/subscription/pro"], expected["sambanova/subscription/max"]
+>       assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance",
+                            "offering.subscription.models_covered"}
+E       AssertionError: assert {'offering.su...ge_allowance'} == {'offering.su...ge_allowance'}
+E
+E         Extra items in the right set:
+E         'offering.subscription.models_covered'
+E         Use -v to get more diff
+
+tests/test_cite_only_verification.py:551: AssertionError
+_____ test_subscription_helper_matches_snapshot_cite_only_admission[True] ______
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-136/test_subscription_helper_match1')
+with_store = True
+
+    @pytest.mark.parametrize("with_store", [False, True])
+    def test_subscription_helper_matches_snapshot_cite_only_admission(tmp_path, with_store):
+        from tests.subscription_sources import admitted_subscription_facts
+
+        root = tmp_path / "repo"
+        (root / "registry").mkdir(parents=True)
+        (root / "verification").mkdir()
+        (root / "verification" / "log.jsonl").write_text("")
+        urls = {"src-cite": CITE_URL, "src-ordinary": ORDINARY, "src-redirect": REDIRECT,
+                "src-broken": "https://example.org/broken"}
+        (root / "registry" / "sources.yaml").write_text(yaml.safe_dump({
+            "schema_version": 1,
+            "sources": [{"id": sid, "url": url} for sid, url in urls.items()],
+        }))
+        store = None
+        redirect_ref, broken_ref = "sha256:" + "c" * 64, "sha256:" + "9" * 64
+        if with_store:
+            store = fetcher_store(tmp_path, redirect_ref, resolved_urls=[PERPLEXITY])
+            store.record_citation(broken_ref, source_url=urls["src-broken"], retrieved_at=FETCHED,
+                                  resolved_urls=[CITE_URL])
+            store.path(broken_ref).with_suffix(".citation.json").write_text("{not json")
+        cite = source_ref("src-cite")
+        ordinary = source_ref("src-ordinary")
+        forged = {**source_ref("src-ordinary"), "resolved_urls": [CITE_URL]}
+        redirect = {**source_ref("src-redirect"), "snapshot_ref": redirect_ref}
+        broken = {**source_ref("src-broken"), "snapshot_ref": broken_ref}
+
+        def row(plan, facet, value, sources, outcome="verified"):
+            record = fact("offering", f"sambanova/subscription/{plan}", facet, value,
+                          source=sources[0]["source_id"], outcome=outcome)
+            record["sources"] = sources
+            return record
+
+        plans = {
+            "pro": [
+                row("pro", "offering.subscription.price", 20, [cite], outcome=None),
+                row("pro", "offering.subscription.billing_period", "monthly", [forged],
+                    outcome="mismatch"),
+                row("pro", "offering.subscription.models_covered", ["lab/alpha"],
+                    [cite, ordinary], outcome=None),
+                row("pro", "offering.subscription.usage_allowance", "5x", [forged]),
+            ],
+            "max": [
+                row("max", "offering.subscription.price", 20, [cite, ordinary]),
+                row("max", "offering.subscription.billing_period", "monthly", [redirect],
+                    outcome=None),
+                row("max", "offering.subscription.models_covered", ["lab/alpha"], [forged],
+                    outcome="unreachable"),
+                row("max", "offering.subscription.usage_allowance", "5x", [broken]),
+            ],
+        }
+        subscriptions = {f"sambanova/subscription/{plan}": subscription(plan=plan, facts=facts)
+                         for plan, facts in plans.items()}
+        index = loaded(SnapshotInputs(subscriptions=list(subscriptions.values()), sources=urls),
+                       source_cache=store)
+        admitted = {item["id"]: item["facts"] for item in index.subscription_offerings()}
+        expected = admitted_subscription_facts(root, subscriptions, TODAY, store=store)
+        assert admitted == expected
+        pro, max_ = expected["sambanova/subscription/pro"], expected["sambanova/subscription/max"]
+>       assert set(pro) == {"offering.subscription.price", "offering.subscription.usage_allowance",
+                            "offering.subscription.models_covered"}
+E       AssertionError: assert {'offering.su...ge_allowance'} == {'offering.su...ge_allowance'}
+E
+E         Extra items in the right set:
+E         'offering.subscription.models_covered'
+E         Use -v to get more diff
+
+tests/test_cite_only_verification.py:551: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cite_only_verification.py::test_cite_policy_does_not_promote_operational_identifiers[offering.api_model_id-True]
+FAILED tests/test_cite_only_verification.py::test_cite_policy_does_not_promote_operational_identifiers[offering.router_slug-True]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[ordinary-None-False]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[ordinary-None-True]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[ordinary-verified-False]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[ordinary-verified-True]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-None-False]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-None-True]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-verified-False]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_fact_is_cited_with_every_ref[card_redirect-verified-True]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_does_not_override_failed_verification[mismatch]
+FAILED tests/test_cite_only_verification.py::test_mixed_citation_does_not_override_failed_verification[unreachable]
+FAILED tests/test_cite_only_verification.py::test_two_cited_refs_one_through_a_fetcher_redirect_are_cited
+FAILED tests/test_cite_only_verification.py::test_subscription_helper_matches_snapshot_cite_only_admission[False]
+FAILED tests/test_cite_only_verification.py::test_subscription_helper_matches_snapshot_cite_only_admission[True]
+15 failed, 5 passed, 101 deselected in 0.71s

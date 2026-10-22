@@ -1,0 +1,42 @@
+{
+  "cwd": "/Users/terbeest/dev/worktrees/model-439",
+  "python": "3.14.4",
+  "pytest": "9.1.1",
+  "runs": [
+    {
+      "command": "env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_refile_mixed_citations.py -k verified_dated_price > /tmp/model-439-scratch/admission-audit/dated-price-red.txt 2>&1",
+      "exit_code": 1,
+      "result": "2 failed, 23 deselected in 1.39s; both reached KeyError in decision/snapshot.py:1024",
+      "output": "/tmp/model-439-scratch/admission-audit/dated-price-red.txt"
+    },
+    {
+      "command": "env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_refile_mixed_citations.py -k verified_dated_price > /tmp/model-439-scratch/admission-audit/dated-price-green.txt 2>&1",
+      "exit_code": 0,
+      "result": "2 passed, 23 deselected in 1.39s",
+      "output": "/tmp/model-439-scratch/admission-audit/dated-price-green.txt"
+    },
+    {
+      "command": "env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_refile_mixed_citations.py -k checked_queue_event > /tmp/model-439-scratch/admission-audit/queue-copy-reset-green.txt 2>&1",
+      "exit_code": 0,
+      "result": "1 passed, 25 deselected in 0.96s",
+      "output": "/tmp/model-439-scratch/admission-audit/queue-copy-reset-green.txt"
+    },
+    {
+      "command": "env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_refile_mixed_citations.py > /tmp/model-439-scratch/admission-audit/script-suite-green.txt 2>&1",
+      "exit_code": 0,
+      "result": "26 passed in 16.21s",
+      "output": "/tmp/model-439-scratch/admission-audit/script-suite-green.txt"
+    },
+    {
+      "command": "/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check scripts/refile_mixed_citations.py tests/test_refile_mixed_citations.py > /tmp/model-439-scratch/admission-audit/ruff.txt 2>&1",
+      "exit_code": 0,
+      "result": "All checks passed!",
+      "output": "/tmp/model-439-scratch/admission-audit/ruff.txt"
+    }
+  ],
+  "diff_check": {
+    "command": "git diff --check",
+    "exit_code": 0
+  },
+  "note": "The queue-copy reset test verifies an existing fix and first passed. Only the dated-price cases required an implementation change. No tests ran concurrently."
+}

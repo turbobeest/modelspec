@@ -1,0 +1,45 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_inline_source_mappings_are_removed_and_second_run_is_empty ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-98/test_inline_source_mappings_ar0')
+
+    def test_inline_source_mappings_are_removed_and_second_run_is_empty(tmp_path):
+        root, cache, policy, card = setup_data(tmp_path, retained_value=64000)
+        text = card.read_text()
+        data = yaml.safe_load(text.split("---")[1])
+        old = data["facts"][0]["sources"]
+        start = text.index("  sources:\n") + len("  sources:\n")
+        end = text.index("  verification:", start)
+        card.write_text(text[:start] + "".join("  - " + json.dumps(ref) + "\n" for ref in old) + text[end:])
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+        row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+>       assert row["sources"] == [old[1]]
+E       AssertionError: assert [{'source_id'...00:00+00:00'}] == [{'source_id'...00:00+00:00'}]
+E
+E         At index 0 diff: {'source_id': 'open', 'snapshot_ref': 'sha256:1bac4669a1d662218ab62a95e98c788381bbde11bbd6ff75627fdb9434bcef9d', 'cited_regions': ['page']} != {'source_id': 'cite', 'snapshot_ref': 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'cited_regions': ['page'], 'retrieved_at': '2026-10-18T12:00:00+00:00'}
+E         Left contains one more item: {'source_id': 'cite', 'snapshot_ref': 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'cited_regions': ['page'], 'retrieved_at': '2026-10-18T12:00:00+00:00'}
+E         Use -v to get more diff
+
+tests/test_refile_mixed_citations.py:201: AssertionError
+_______ test_aliased_sources_are_refused_without_changing_other_records ________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-98/test_aliased_sources_are_refus0')
+
+    def test_aliased_sources_are_refused_without_changing_other_records(tmp_path):
+        root, cache, policy, card = setup_data(tmp_path, retained_value=64000)
+        data = yaml.safe_load(card.read_text().split("---")[1])
+        data["unrelated_sources"] = data["facts"][0]["sources"]
+        card.write_text("---\n" + yaml.safe_dump(data, sort_keys=False) + "---\nBody.\n")
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode != 0
+E       assert 0 != 0
+E        +  where 0 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri...: "mismatch",\n      "rule": 2\n    }\n  ],\n  "counts": {\n    "1": 0,\n    "2": 1,\n    "3": 0\n  }\n}\n', stderr='').returncode
+
+tests/test_refile_mixed_citations.py:214: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_inline_source_mappings_are_removed_and_second_run_is_empty
+FAILED tests/test_refile_mixed_citations.py::test_aliased_sources_are_refused_without_changing_other_records
+2 failed, 9 deselected in 1.43s

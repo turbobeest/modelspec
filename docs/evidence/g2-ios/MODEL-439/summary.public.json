@@ -1,0 +1,92 @@
+{
+  "acceptance_passed": false,
+  "original_gaps": 192,
+  "repaired_gaps": 0,
+  "combined_merge_clean": false,
+  "periods": {
+    "current": {
+      "b_vs_a": {
+        "repo_cases": 302,
+        "first_result_model_changes": 66,
+        "tie_member_set_changes": 72,
+        "answer_kind_changes": 4,
+        "answer_kind_or_member_set_changes": 72,
+        "http_changes": 0,
+        "status_changes": 2
+      },
+      "d_vs_a_supporting": {
+        "repo_cases": 302,
+        "first_result_model_changes": 0,
+        "tie_member_set_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "http_changes": 0,
+        "status_changes": 0
+      },
+      "memory": {
+        "steady_mib": 109.00010299682617,
+        "peak_mib": 109.82246780395508,
+        "limit_bytes": 120586240
+      },
+      "state_counts": {
+        "a": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 944
+        },
+        "b": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 933
+        },
+        "d": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 944
+        }
+      }
+    },
+    "successor": {
+      "b_vs_a": {
+        "repo_cases": 302,
+        "first_result_model_changes": 66,
+        "tie_member_set_changes": 71,
+        "answer_kind_changes": 2,
+        "answer_kind_or_member_set_changes": 72,
+        "http_changes": 0,
+        "status_changes": 2
+      },
+      "d_vs_a_supporting": {
+        "repo_cases": 302,
+        "first_result_model_changes": 0,
+        "tie_member_set_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "http_changes": 0,
+        "status_changes": 0
+      },
+      "memory": {
+        "steady_mib": 104.6016731262207,
+        "peak_mib": 105.42374038696289,
+        "limit_bytes": 120586240
+      },
+      "state_counts": {
+        "a": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 944
+        },
+        "b": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 933
+        },
+        "d": {
+          "repo_cases": 302,
+          "expectation_failures": 0,
+          "unique_benchmark_evidence_records": 944
+        }
+      }
+    }
+  }
+}

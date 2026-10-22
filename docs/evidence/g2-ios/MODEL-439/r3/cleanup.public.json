@@ -1,0 +1,16 @@
+{
+  "completed_at": "2026-10-21T20:16:06.032910+00:00",
+  "removed_paths": [
+    "/tmp/model-439-scratch/modelspec-data",
+    "/tmp/model-439-scratch/executor-r3",
+    "/tmp/model-439-scratch/contract-audit",
+    "/tmp/model-439-scratch/measurement-plan"
+  ],
+  "method": "Python shutil.rmtree on the four task-owned scratch directories only",
+  "remaining_owned_processes": 0,
+  "remaining_children_in_task_scratch": 0,
+  "final_runtime_hashes_match_measured_stage": true,
+  "runtime_files_checked": 101,
+  "data_remote_head_confirmed": "44fc4e4f6cb3dd75332c30e2f17741a9e1d5ea6e",
+  "verification_head": "bff61e9b733c06a80f6114b9a3d88861d6185355"
+}
