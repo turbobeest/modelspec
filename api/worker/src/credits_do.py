@@ -141,6 +141,9 @@ class CreditsObject(DurableObject):
         if self._get(_SEALED_KEY) != str(digest):
             raise ValueError("digest does not match the sealed ledger")
         self._set(MOVED, str(target), str(digest))
+        # It no longer holds the copy it took in earlier; a later copy with the
+        # same digest must be imported, not mistaken for a re-run.
+        self._put(_IMPORTED_KEY, "")
         return await self.handoff_status()
 
     async def abort_handoff(self) -> dict[str, Any]:
@@ -160,9 +163,9 @@ class CreditsObject(DurableObject):
         text, digest = str(text), str(digest)
         if state_digest(text) != digest:
             raise ValueError("digest does not match the document")
-        if self._get(_IMPORTED_KEY) == digest:
-            return await self.handoff_status()
         role = self._role()
+        if role == LIVE and self._get(_IMPORTED_KEY) == digest:
+            return await self.handoff_status()
         if role not in (STANDBY, MOVED):
             raise ValueError(f"a {role} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))

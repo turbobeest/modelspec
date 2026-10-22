@@ -124,9 +124,9 @@ async def handle(env: Any, path: str, method: str, authorization: str,
 async def _handoff(stub: Any, key: str, target: str,
                    post: Any) -> tuple[int, dict[str, Any]]:
     """Seal, copy, record. Imports are idempotent on the copy's digest, so a
-    re-run is always safe: an answer of 200 means the copy is there, a refusal
-    means it never landed (unseal and keep serving), and no answer means stay
-    sealed until the handoff is re-run."""
+    re-run is always safe: a live target holding this digest means the copy is
+    there, the target's own refusal means it never landed (unseal and keep
+    serving), and anything else means stay sealed until the handoff is re-run."""
     if not target.startswith("https://"):
         return _error(400, "invalid_request", "target must be an https:// origin")
     if post is None:
@@ -147,13 +147,15 @@ async def _handoff(stub: Any, key: str, target: str,
         return _error(502, "import_unknown",
                       f"no answer from the target ({type(exc).__name__}); "
                       "the ledger stays sealed; re-run the handoff")
-    if status == 200 and answer.get("imported_digest") == sealed["digest"]:
+    if (status == 200 and answer.get("role") == "live"
+            and answer.get("imported_digest") == sealed["digest"]):
         return 200, _plain(await stub.finish_handoff(target, sealed["digest"]))
-    if 400 <= status < 500:
+    error = answer.get("error") or {}
+    if status == 409 and error.get("code") == "import_refused":
+        # Only the target's own refusal proves the copy did not land.
         await stub.abort_handoff()
-        reason = (answer.get("error") or {}).get("message", "")
         return _error(409, "import_refused",
-                      f"the target refused the copy (HTTP {status}: {reason}); "
+                      f"the target refused the copy ({error.get('message', '')}); "
                       "the ledger is unsealed and serving")
     return _error(502, "import_unknown",
                   f"the target answered HTTP {status}; the ledger stays sealed; re-run the handoff")

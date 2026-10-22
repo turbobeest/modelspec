@@ -415,3 +415,27 @@ def test_a_handoff_goes_only_to_the_configured_target():
 
     assert (status, body["error"]["code"]) == (400, "invalid_request")
     assert _status(old)["role"] == "live"
+
+
+def test_handing_back_and_forth_with_no_writes_between_leaves_one_live_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    _handoff(old, net, NEW)
+    _handoff(new, net, OLD)
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [new]
+    assert _balance(old, net) == 10
+
+
+def test_a_target_without_the_bridge_keeps_the_source_sealed():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    net.envs[NEW] = Env(secret="", standby=True)
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["error"]["code"]) == (502, "import_unknown")
+    assert _status(old)["role"] == "moving"

@@ -743,7 +743,8 @@ async def _settle_and_credit(
         result = await ledger.credit(
             credit_holder, pid, bought_units, settled.transaction,
             expires_at=expires_at, source="x402")
-    except credits.StoreNotConfigured:
+    except (credits.StoreNotConfigured, credits.LedgerUnavailable):
+        # After settlement: the payer has paid, so a one-shot is still served.
         if holder is None:
             log.note("oneshot_unbound")
             return None, {}, True

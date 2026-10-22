@@ -256,8 +256,8 @@ the same commit.
 1. Dispatch `rank-api.yml` on main with `cloudflare_environment=cloudflare-modelspec`.
    The deploy creates the Worker and both DO classes, without routes. Its
    ledger starts in standby. Smoke tests run against `CF_RANK_HOST`. Keyed
-   calls there answer 503 until phase 7, so keep `MODELSPEC_SMOKE_API_KEY` out
-   of the environment until then. Then try one dispatch with `CF_ROUTES`
+   calls there answer 503 until phase 7, so the deploy drops the smoke key
+   while `CF_LEDGER_STANDBY=true`. Unset that variable after phase 7. Then try one dispatch with `CF_ROUTES`
    unset. If Wrangler attaches the routes to the Pending zone, keep it unset and
    skip `attach-routes` in phase 8. If it refuses, set `CF_ROUTES=off` again.
 2. **J** sets every Worker secret from the phase 2 list on the new
@@ -422,7 +422,16 @@ next staging deploy provisions staging's KV in the new account.
 - A key issued or rotated between the phase 4 copy and the phase 8 merge
   answers 401 on the new Worker until the merge runs.
 - From phase 7 to phase 8, ledger calls on the old Worker cross one extra
-  HTTPS hop. If the answer to a forwarded `reserve` is lost, those units stay
-  reserved, because the caller never learned the reservation id. Releasing
-  them takes a manual `release` call. Running phase 7 right before phase 8
-  keeps this window to minutes.
+  HTTPS hop, and a call whose answer is lost may still have been applied.
+  Running phase 7 right before phase 8 keeps this window to minutes. Two cases
+  need a hand fix:
+  - A forwarded `reserve` leaves units reserved, because the caller never
+    learned the reservation id. Fix it with a bridge `release` call.
+  - A key rotation whose forwarded `transfer` landed leaves the balance on a
+    new key that was never shown. The old key still works with a balance of 0.
+    Find the new key's `key:` record (same owner, created at that minute) and
+    transfer the balance back with a bridge `transfer` call.
+- After settlement, an x402 payment whose credit hits an unavailable ledger
+  is handled as an unbound ledger is today. A one-shot payer is still served.
+  A pack buyer gets a 503 naming the settlement, and the credit is
+  reconciled by hand from the Worker log's settlement record.

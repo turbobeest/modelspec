@@ -434,7 +434,8 @@ jobs:
 
       - name: Smoke-test api.modelspec.dev
         env:
-          MODELSPEC_SMOKE_API_KEY: ${{ secrets.MODELSPEC_SMOKE_API_KEY }}
+          # MODEL-441. A standby ledger answers keyed calls 503 until its handoff.
+          MODELSPEC_SMOKE_API_KEY: ${{ vars.CF_LEDGER_STANDBY != 'true' && secrets.MODELSPEC_SMOKE_API_KEY || '' }}
         run: |
           set -uo pipefail
           if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
