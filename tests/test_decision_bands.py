@@ -191,6 +191,22 @@ def test_on_coding_alone_the_leader_and_its_confidence_are_stated(budget_snapsho
     assert coding.p_best is not None and coding.p_runner_up is not None
 
 
+def test_a_new_snapshot_id_alone_does_not_reorder_the_best_band(budget_snapshot) -> None:
+    """MODEL-440: p_best was a sample seeded from the snapshot id, so near-ties swapped."""
+    original = budget_snapshot.snapshot_id
+    seen = []
+    try:
+        for snapshot_id in (original, "snap_0000000000000001", "snap_00000000000000ff"):
+            budget_snapshot.snapshot_id = snapshot_id
+            decision = _decide(budget_snapshot, {"weights": {
+                "software_engineering": 0.6, "-offering.cost_per_task": 0.4}})
+            seen.append([(entry.model, entry.p_best) for entry in decision.bands.best])
+    finally:
+        budget_snapshot.snapshot_id = original
+
+    assert seen == [[("lab/solid", 0.2976), ("lab/budget", 0.1184), ("lab/frontier", 0.0935)]] * 3
+
+
 def test_a_lexicographic_objective_has_no_bands(budget_snapshot) -> None:
     decision = _decide(budget_snapshot, {"lexicographic": [
         {"max": "software_engineering"}, {"min": "offering.cost_per_task"}]})

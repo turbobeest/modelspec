@@ -990,7 +990,7 @@ Each band entry:
 | `offering` | The model's best offering under the objective. |
 | `score` | The weighted score, rounded to 6 places. |
 | `score_interval` | The weighted interval, rounded to 6 places. |
-| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. It resamples the capability posteriors only, so a measured benchmark term's published interval widens `p_beats_leader` but not `p_best`. Null when the objective has no capability posterior. |
+| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. It integrates over the capability posteriors only, so a measured benchmark term's published interval widens `p_beats_leader` but not `p_best`. Null when the objective has no capability posterior. |
 | `p_beats_leader` | P(this score ≥ the leader's), to 4 places. Null for the leader, and for every entry when there is no leader. |
 | `cost_per_task` | The offering's cost per task, as in `results`. |
 | `estimates` | One per weighted capability, in objective order: the signed weight key as `dimension`, the estimate's `value`, its 80% `interval`, `benchmarks`, the distinct fitted benchmarks the model is measured on for it, and `direct_benchmarks`, how many of those are tagged direct for it. |
@@ -1015,7 +1015,7 @@ engineering alone, … leads".
 | `estimated` | `true` for a capability estimate, `false` for an exact value (cost, a fact, a preference, a measured benchmark). |
 | `leaders` | Who leads on this dimension alone. For a capability, the best point estimate among models with enough evidence on it. For an exact dimension, every model sharing the best value. |
 | `value` | The leaders' value on this dimension in its own unit: a capability estimate or a raw value such as dollars per task. |
-| `p_best` | Capability only: P(the leader is best on this dimension alone) among models with enough evidence, from the same deterministic posterior draws as `p_best` on a result. |
+| `p_best` | Capability only: P(the leader is best on this dimension alone) among models with enough evidence, computed the same way as `p_best` on a result. |
 | `runner_up` | Capability only: the second model by point estimate among models with enough evidence. |
 | `p_runner_up` | Capability only: P(the runner-up's estimate ≥ the leader's), to 4 places. |
 | `order` | Models with enough evidence, best first on this dimension alone. Each model is read at its best ranked offering for this dimension. |
@@ -1104,8 +1104,8 @@ requires a ModelSpec key and makes no router or vendor call.
 | `evidence` | For each requested `domain` in `capabilities`, the admitted evidence `items`, either machine-verified or explicitly cited. An objective named only through `optimize`, with no `capabilities`, leaves this list empty. Those records are on `contributions[].evidence` and, for each answer member, on `member_evidence`. |
 | `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
 | `refinement_estimates` | One per refinement key in `optimize.weights`, absent otherwise: the `key`, its parent `domain` (or `any`), the `refinement`, a `value` and an 80% `interval`, and `evidence_count`, the refinement-tagged measurements behind the adjustment. `evidence_count` 0 means no refinement evidence: the value is the parent's estimate and the interval is wider. Added in 2.4. |
-| `p_best` | The probability this model is best among the feasible models. For a weighted objective, the engine resamples each capability posterior, applies the objective's affine transform and weights, and keeps exact facets fixed. Null when the objective has no capability posterior. |
-| `top3_stability` | The share of those deterministic posterior resamples in which the model stays in the top three. Null when `p_best` is null. |
+| `p_best` | The probability this model is best among the feasible models. Each model's score is normal: each capability posterior goes through the objective's affine transform and weight, and exact facets stay fixed. Models are independent. The engine integrates P(every other model scores below this one) over this model's score at 80 fixed quantile nodes (64 equal-probability cells, the two end cells split finer), to four decimals. It uses no random draws, so the same estimates give the same value under any snapshot. Null when the objective has no capability posterior. |
+| `top3_stability` | The probability, computed the same way, that at most two other models score above this one. Null when `p_best` is null. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
 | `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. A refinement term's `dimension` is its signed parent domain, and `refinement` names the refinement (2.4). |
 | `warnings` | Codes about this result. |
@@ -2053,6 +2053,17 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **MODEL-440, under 2.19 without a version change:** `p_best` and
+  `top3_stability` are integrated at fixed quantile nodes instead of drawn
+  from 256 samples seeded with the snapshot id. A new snapshot id alone used
+  to reorder near-tied members of the `best` band: 47 to 55 of the 127
+  corpus decisions with more than one member changed order. Now none do. The
+  sample's error was up to 0.1; across the corpus `p_best` moves by a median
+  0.005 and at most 0.099, toward the exact probability, which the nodes
+  reach within 0.001. Band membership, `p_beats_leader` and every other field
+  are unchanged. Both fields keep their type and range, so `contract_version`
+  stays 2.19.
 
 - **2.19, MODEL-437:** Admits cited benchmark scores to decisions, with an
   optional `citation` on each evidence item and the existing

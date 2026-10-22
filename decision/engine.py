@@ -785,9 +785,6 @@ def _decide(
         key for key in shown_refinements
         if {directness for _, directness in snapshot.refinement_benchmarks(key)} == {"proxy"}
     }
-    probability_domain = (
-        objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
-    )
     probabilities = {}
     model_estimates = {}
     representative_rows = _representative_rows(ordered.results, citation_use, tie_cost)
@@ -801,10 +798,7 @@ def _decide(
             distribution = _score_distribution(row)
             if distribution is not None:
                 model_estimates[snapshot.model_of(row.candidate_id)] = distribution
-        probabilities = deterministic_probabilities(
-            model_estimates,
-            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain or 'weighted'}",
-        )
+        probabilities = deterministic_probabilities(model_estimates)
     if scalar and representative_rows and representative_rows[0].score_interval is not None:
         from decision.capability import deterministic_probabilities
 
@@ -823,10 +817,9 @@ def _decide(
             p_best,
         )
 
-        def dimension_p_best(dimension, spreads):
-            drawn = deterministic_probabilities(
-                spreads, seed_material=f"{snapshot.snapshot_id}:{digest}:{dimension}")
-            return {model_id: pair[0] for model_id, pair in drawn.items()}
+        def dimension_p_best(spreads):
+            return {model_id: pair[0] for model_id, pair
+                    in deterministic_probabilities(spreads).items()}
 
         blend = bands_module.blend(ordered.results, snapshot.model_of, dimension_p_best)
     answer = _answer(representative_rows, banded, citation_use, tie_cost)

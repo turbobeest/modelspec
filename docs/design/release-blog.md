@@ -280,8 +280,8 @@ uses in `_standings`. Move that selection to `release_blog/standing.py` and
 import it from both, so a social card and the post can never disagree about
 which spec a domain means.
 
-P(best) and top-3 stability come from `deterministic_probabilities`, seeded
-with `snapshot_id:spec_hash:domain`, so they reproduce exactly.
+P(best) and top-3 stability come from `deterministic_probabilities`, which
+integrates at fixed nodes with no seed, so they reproduce exactly.
 
 ### 3.5 Which template tiers and bands it changes
 
