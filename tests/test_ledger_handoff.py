@@ -319,16 +319,23 @@ def _abort(env, net, body=None):
                                     json.dumps(body or {}), post=net.post))
 
 
-def test_abort_unseals_only_when_the_target_answers_without_the_copy():
+def test_abort_fences_the_copy_so_a_late_import_cannot_make_a_second_live_ledger():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
     net.down.add(NEW)
     _handoff(old, net, NEW)
+    sealed = _status(old)["sealed_digest"]
+    state = old.CREDITS.obj._get("state")
 
     assert _abort(old, net)[1]["error"]["code"] == "target_unknown"
     net.down.clear()
     assert _abort(old, net)[1]["role"] == "live"
-    assert _abort(new, net)[0] == 409
+    late = run(ledger_bridge.handle(new, "/internal/ledger/import", "POST", "Bearer " + SECRET,
+                                    json.dumps({"state": json.dumps(json.loads(state), sort_keys=True,
+                                                                    separators=(",", ":")),
+                                                "digest": sealed})))
+    assert (late[0], late[1]["error"]["code"]) == (409, "import_refused")
+    assert "fenced off by an abort" in late[1]["error"]["message"]
     assert _live(old, new) == [old]
     assert _balance(old, net) == 5
 
@@ -346,14 +353,18 @@ def test_abort_after_a_landed_copy_finishes_the_move_instead_of_making_two_live_
     assert _live(old, new) == [new]
 
 
-def test_force_unseals_only_when_the_target_cannot_be_asked():
+def test_force_unseals_only_when_the_target_gives_no_answer():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
-    net.down.add(NEW)
+    net.lose_answer.add(NEW)
     _handoff(old, net, NEW)
+    net.lose_answer.clear()
+    new.LEDGER_BRIDGE_SECRET = "rotated"
 
+    assert _abort(old, net, {"force": True})[1]["error"]["code"] == "target_unknown"
+    assert _status(old)["role"] == "moving"
+    net.down.add(NEW)
     assert _abort(old, net, {"force": True})[1]["role"] == "live"
-    assert _balance(old, net) == 5
 
 
 def test_a_reservation_whose_forwarded_answer_was_lost_can_be_found_and_released():

@@ -35,6 +35,7 @@ _ROLE_KEY = "role"
 _TARGET_KEY = "target"
 _SEALED_KEY = "sealed_digest"
 _IMPORTED_KEY = "imported_digest"
+_FENCED_KEY = "fenced_digest"
 
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
 #: and waits for an import. `moving` is sealed and its copy is in flight to
@@ -169,6 +170,8 @@ class CreditsObject(DurableObject):
         role = self._role()
         if role == LIVE and self._get(_IMPORTED_KEY) == digest:
             return await self.handoff_status()
+        if self._get(_FENCED_KEY) == digest:
+            raise ValueError(f"{REFUSED_MARK}: this copy was fenced off by an abort")
         if role not in (STANDBY, MOVED):
             raise ValueError(f"{REFUSED_MARK}: a {role} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))
@@ -313,6 +316,16 @@ class CreditsObject(DurableObject):
         ok = state.release(holder, int(reservation_id))
         self._save(state)
         return ok
+
+    async def fence_import(self, digest: str) -> str:
+        """Settle an abort against an import that may still be in flight.
+        `landed` if that copy is live here; otherwise refuse it for good and
+        answer `fenced`, so the source can unseal knowing it never lands."""
+        digest = str(digest)
+        if self._role() == LIVE and self._get(_IMPORTED_KEY) == digest:
+            return "landed"
+        self._put(_FENCED_KEY, digest)
+        return "fenced"
 
     async def open_holds(self, holder: str) -> dict[str, Any]:
         """Reservations and taken reads not yet committed or released, so an

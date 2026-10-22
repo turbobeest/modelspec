@@ -110,6 +110,9 @@ async def handle(env: Any, path: str, method: str, authorization: str,
     if action == "abort":
         return await _abort(stub, key, target(env), payload.get("force") is True, post)
 
+    if action == "fence":
+        return 200, {"result": str(await stub.fence_import(str(payload.get("digest") or "")))}
+
     if action == "handoff":
         wanted = str(payload.get("target") or "").rstrip("/")
         if not wanted or wanted != target(env):
@@ -161,29 +164,31 @@ async def _handoff(stub: Any, key: str, target: str,
 
 async def _abort(stub: Any, key: str, peer: str, force: bool,
                  post: Any) -> tuple[int, dict[str, Any]]:
-    """Unseal a moving ledger only when its copy is known not to be live at
-    the target. `force` skips the check, and only when the target cannot be
-    asked at all: the last resort if the other account is gone."""
+    """Unseal a moving ledger only when its copy can never be live at the
+    target. The target fences the copy's digest inside its own object, so an
+    import still in flight is refused if it arrives later. `force` skips the
+    target only when it gives no answer or a 404: the other account is gone."""
     current = _plain(await stub.handoff_status())
     if current.get("role") != "moving":
         return _error(409, "abort_refused", "only a moving ledger can be unsealed")
+    sealed = str(current.get("sealed_digest") or "")
     if post is None:
         from x402_facilitator import worker_post as post
     try:
         status, answer = await post(
-            peer + PREFIX + "status", {},
+            peer + PREFIX + "fence", {"digest": sealed},
             {"authorization": "Bearer " + key, "content-type": "application/json"})
-    except Exception as exc:
-        status, answer = 0, {"error": {"message": type(exc).__name__}}
-    if status == 200:
-        if answer.get("role") == "live" and answer.get("imported_digest") == current.get("sealed_digest"):
-            return 200, _plain(await stub.finish_handoff(peer, current["sealed_digest"]))
+    except Exception:
+        status, answer = 0, {}
+    if status == 200 and answer.get("result") == "landed":
+        return 200, _plain(await stub.finish_handoff(peer, sealed))
+    if status == 200 and answer.get("result") == "fenced":
         return 200, _plain(await stub.abort_handoff())
-    if not force:
-        return _error(502, "target_unknown",
-                      f"the target did not answer its status (HTTP {status}); "
-                      "re-run the handoff, or abort with force only if the target is gone")
-    return 200, _plain(await stub.abort_handoff())
+    if force and status in (0, 404):
+        return 200, _plain(await stub.abort_handoff())
+    return _error(502, "target_unknown",
+                  f"the target did not settle the abort (HTTP {status}); the ledger stays "
+                  "sealed; re-run the handoff, or force only if the target account is gone")
 
 
 def _reason(exc: Exception) -> str:

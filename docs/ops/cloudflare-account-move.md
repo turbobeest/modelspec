@@ -109,10 +109,12 @@ the handoff is re-run. Only a `standby` ledger, or a `moved` one taking its
 ledger back, accepts a copy. A `live` or `moving` ledger never does, so a
 rollback can never overwrite real balances. Handing the ledger back is the
 same call in the other direction. `POST /internal/ledger/abort` asks the
-target for its status first. If the copy is live there, abort finishes the
-move. If the target answers without the copy, abort unseals the source. Only
-when the target cannot answer at all does `{"force": true}` unseal anyway: the
-last resort if the other account is gone.
+target to fence the sealed copy inside its own Durable Object. If the copy is
+already live there, abort finishes the move. Otherwise the target refuses that
+copy for good, even one still in flight, and abort unseals the source. Only
+when the target gives no answer or a 404 does `{"force": true}` unseal
+anyway: the last resort if the other account is gone. A 401 or 5xx means the
+target exists, so fix the cause and re-run instead.
 
 The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
 paths answer the ordinary 404. The secret is only ever sent to
@@ -442,9 +444,13 @@ next staging deploy provisions staging's KV in the new account.
     twice, a minute apart. Release each reservation present both times with
     a bridge `release` call.
   - A key rotation whose forwarded `transfer` landed leaves the balance on a
-    new key that was never shown. The old key still works with a balance of 0.
-    Find the new key's `key:` record (same owner, created at that minute) and
-    transfer the balance back with a bridge `transfer` call.
+    new key that was never shown, while the old key still works with a
+    balance of 0. If the caller has not retried, transfer the balance back to
+    the old key. If the caller retried, that retry revoked the old key and
+    showed a second new key with an empty balance: transfer the balance from
+    the unseen key to the key the retry showed. Both new keys' `key:` records
+    have the same owner and were created within minutes. Use a bridge
+    `transfer` call either way.
 - After settlement, an x402 payment whose credit hits an unavailable ledger
   is handled as an unbound ledger is today. A one-shot payer is still served.
   A pack buyer gets a 503 naming the settlement, and the credit is
