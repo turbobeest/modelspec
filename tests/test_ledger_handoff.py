@@ -314,57 +314,31 @@ def test_rerunning_a_finished_handoff_changes_nothing():
     assert _balance(new, net) == 501
 
 
-def _abort(env, net, body=None):
-    return run(ledger_bridge.handle(env, "/internal/ledger/abort", "POST", "Bearer " + SECRET,
-                                    json.dumps(body or {}), post=net.post))
+def test_there_is_no_remote_way_to_unseal_a_moving_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.down.add(NEW)
+    _handoff(old, net, NEW)
+
+    for body in ({}, {"force": True}):
+        answer = run(ledger_bridge.handle(old, "/internal/ledger/abort", "POST",
+                                          "Bearer " + SECRET, json.dumps(body)))
+        assert answer[0] == 404
+    assert _status(old)["role"] == "moving"
 
 
-def test_abort_fences_the_copy_so_a_late_import_cannot_make_a_second_live_ledger():
+def test_break_glass_unseals_only_the_exact_sealed_copy():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
     net.down.add(NEW)
     _handoff(old, net, NEW)
     sealed = _status(old)["sealed_digest"]
-    state = old.CREDITS.obj._get("state")
 
-    assert _abort(old, net)[1]["error"]["code"] == "target_unknown"
-    net.down.clear()
-    assert _abort(old, net)[1]["role"] == "live"
-    late = run(ledger_bridge.handle(new, "/internal/ledger/import", "POST", "Bearer " + SECRET,
-                                    json.dumps({"state": json.dumps(json.loads(state), sort_keys=True,
-                                                                    separators=(",", ":")),
-                                                "digest": sealed})))
-    assert (late[0], late[1]["error"]["code"]) == (409, "import_refused")
-    assert "fenced off by an abort" in late[1]["error"]["message"]
-    assert _live(old, new) == [old]
-    assert _balance(old, net) == 5
-
-
-def test_abort_after_a_landed_copy_finishes_the_move_instead_of_making_two_live_ledgers():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    net.lose_answer.add(NEW)
-    _handoff(old, net, NEW)
-    net.lose_answer.clear()
-
-    status, body = _abort(old, net, {"force": True})
-
-    assert (status, body["role"]) == (200, "moved")
-    assert _live(old, new) == [new]
-
-
-def test_force_unseals_only_when_the_target_gives_no_answer():
-    old, new, net = _accounts()
-    _credit(old, net, "pack:cs_1", 5)
-    net.lose_answer.add(NEW)
-    _handoff(old, net, NEW)
-    net.lose_answer.clear()
-    new.LEDGER_BRIDGE_SECRET = "rotated"
-
-    assert _abort(old, net, {"force": True})[1]["error"]["code"] == "target_unknown"
+    old.LEDGER_UNSEAL_DIGEST = "0" * 64
     assert _status(old)["role"] == "moving"
-    net.down.add(NEW)
-    assert _abort(old, net, {"force": True})[1]["role"] == "live"
+    old.LEDGER_UNSEAL_DIGEST = sealed
+    assert _status(old)["role"] == "live"
+    assert _balance(old, net) == 5
 
 
 def test_a_reservation_whose_forwarded_answer_was_lost_can_be_found_and_released():
@@ -523,3 +497,21 @@ def test_an_import_that_commits_but_loses_its_answer_never_unseals_the_source():
     assert _handoff(old, net, NEW)[1]["role"] == "moved"
     assert _live(old, new) == [new]
     assert _balance(new, net) == 10
+
+
+def test_a_rerun_racing_the_targets_own_hand_back_never_unseals_the_source():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.lose_answer.add(NEW)
+    _handoff(old, net, NEW)
+    net.lose_answer.clear()
+    sealed = run(new.CREDITS.obj.begin_handoff(OLD))
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["error"]["code"]) == (502, "import_unknown")
+    assert _status(old)["role"] == "moving"
+    run(new.CREDITS.obj.abort_handoff())
+    assert sealed["digest"] == _status(new)["imported_digest"]
+    assert _handoff(old, net, NEW)[1]["role"] == "moved"
+    assert _live(old, new) == [new]

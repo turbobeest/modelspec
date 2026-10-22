@@ -71,7 +71,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
     action = path[len(PREFIX):]
 
     if action == "status":
-        if method not in ("GET", "POST"):
+        if method != "GET":
             return _error(405, "method_not_allowed", "use GET")
         return 200, _plain(await stub.handoff_status())
     if method != "POST":
@@ -106,12 +106,6 @@ async def handle(env: Any, path: str, method: str, authorization: str,
             # source stays sealed and a re-run lands on the idempotent path.
             return _error(502, "import_unknown", _reason(exc))
         return 200, _plain(status)
-
-    if action == "abort":
-        return await _abort(stub, key, target(env), payload.get("force") is True, post)
-
-    if action == "fence":
-        return 200, {"result": str(await stub.fence_import(str(payload.get("digest") or "")))}
 
     if action == "handoff":
         wanted = str(payload.get("target") or "").rstrip("/")
@@ -160,35 +154,6 @@ async def _handoff(stub: Any, key: str, target: str,
                       "the ledger is unsealed and serving")
     return _error(502, "import_unknown",
                   f"the target answered HTTP {status}; the ledger stays sealed; re-run the handoff")
-
-
-async def _abort(stub: Any, key: str, peer: str, force: bool,
-                 post: Any) -> tuple[int, dict[str, Any]]:
-    """Unseal a moving ledger only when its copy can never be live at the
-    target. The target fences the copy's digest inside its own object, so an
-    import still in flight is refused if it arrives later. `force` skips the
-    target only when it gives no answer or a 404: the other account is gone."""
-    current = _plain(await stub.handoff_status())
-    if current.get("role") != "moving":
-        return _error(409, "abort_refused", "only a moving ledger can be unsealed")
-    sealed = str(current.get("sealed_digest") or "")
-    if post is None:
-        from x402_facilitator import worker_post as post
-    try:
-        status, answer = await post(
-            peer + PREFIX + "fence", {"digest": sealed},
-            {"authorization": "Bearer " + key, "content-type": "application/json"})
-    except Exception:
-        status, answer = 0, {}
-    if status == 200 and answer.get("result") == "landed":
-        return 200, _plain(await stub.finish_handoff(peer, sealed))
-    if status == 200 and answer.get("result") == "fenced":
-        return 200, _plain(await stub.abort_handoff())
-    if force and status in (0, 404):
-        return 200, _plain(await stub.abort_handoff())
-    return _error(502, "target_unknown",
-                  f"the target did not settle the abort (HTTP {status}); the ledger stays "
-                  "sealed; re-run the handoff, or force only if the target account is gone")
 
 
 def _reason(exc: Exception) -> str:

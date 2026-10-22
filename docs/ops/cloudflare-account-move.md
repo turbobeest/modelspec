@@ -103,18 +103,19 @@ duplicate after it. Calls that arrive mid-handoff retry for up to 5 seconds,
 then answer 503.
 
 Imports are idempotent on the copy's digest, so re-running a handoff is always
-safe. A 200 means the copy is there. A refusal means it never landed: the
-source unseals and keeps serving. No answer means the source stays sealed until
-the handoff is re-run. Only a `standby` ledger, or a `moved` one taking its
-ledger back, accepts a copy. A `live` or `moving` ledger never does, so a
-rollback can never overwrite real balances. Handing the ledger back is the
-same call in the other direction. `POST /internal/ledger/abort` asks the
-target to fence the sealed copy inside its own Durable Object. If the copy is
-already live there, abort finishes the move. Otherwise the target refuses that
-copy for good, even one still in flight, and abort unseals the source. Only
-when the target gives no answer or a 404 does `{"force": true}` unseal
-anyway: the last resort if the other account is gone. A 401 or 5xx means the
-target exists, so fix the cause and re-run instead.
+safe. A 200 means the copy is there. Only the target's own refusal, which
+proves the copy never landed, unseals the source. Any other answer, or none,
+keeps the source sealed until a re-run gets through. Only a `standby` ledger,
+or a `moved` one taking its ledger back, accepts a copy. A `live` or `moving`
+ledger never does, so a rollback can never overwrite real balances. Handing
+the ledger back is the same call in the other direction.
+
+There is no remote abort. Three attempts at one showed that nothing outside
+the target can prove a copy still in flight will not land, and a wrong guess
+makes two live ledgers. A stuck `moving` ledger is finished by re-running the
+handoff. If the target account is gone for good, **J** sets the Worker secret
+`LEDGER_UNSEAL_DIGEST` on the sealed Worker to the exact `sealed_digest` from
+its status. That one copy then unseals, and it is the only break-glass.
 
 The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
 paths answer the ordinary 404. The secret is only ever sent to
@@ -316,7 +317,8 @@ curl -sS -X POST https://api.modelspec.dev/internal/ledger/handoff \
    balance as before. It now crosses the bridge.
 3. On 502 `import_unknown`, run the same command again until it answers 200.
    On 409 `import_refused`, the copy never landed and the old ledger is
-   serving again: read the message and fix the cause before trying again.
+   serving again: read the message and fix the cause before trying again. If
+   the target can never answer again, use the break-glass above.
 
 Rollback: send the same request to `https://modelspec-rank.<sub>.workers.dev/internal/ledger/handoff`
 with target `https://api.modelspec.dev`. If the forward handoff is still

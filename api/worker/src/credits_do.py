@@ -35,7 +35,6 @@ _ROLE_KEY = "role"
 _TARGET_KEY = "target"
 _SEALED_KEY = "sealed_digest"
 _IMPORTED_KEY = "imported_digest"
-_FENCED_KEY = "fenced_digest"
 
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
 #: and waits for an import. `moving` is sealed and its copy is in flight to
@@ -94,8 +93,18 @@ class CreditsObject(DurableObject):
     def _role(self) -> str:
         """The stored role, else the deployment's starting role. Only a new
         account's Worker starts in standby (LEDGER_STANDBY), so the ledger that
-        already serves production is live without any stored role."""
+        already serves production is live without any stored role.
+
+        Break glass: a moving ledger whose target account is gone for good can
+        only be unsealed by a person setting the Worker secret
+        LEDGER_UNSEAL_DIGEST to its exact sealed digest. Nothing remote can do
+        it, because nothing remote can prove a copy in flight will not land."""
         role = self._get(_ROLE_KEY)
+        if role == MOVING:
+            unseal = str(getattr(self.env, "LEDGER_UNSEAL_DIGEST", "") or "")
+            if unseal and unseal == self._get(_SEALED_KEY):
+                self._set(LIVE)
+                return LIVE
         if role:
             return role
         flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
@@ -151,8 +160,9 @@ class CreditsObject(DurableObject):
         return await self.handoff_status()
 
     async def abort_handoff(self) -> dict[str, Any]:
-        """Unseal a ledger whose copy did not land. Only `moving`: a moved
-        ledger's copy is live elsewhere and comes back only by a hand-back."""
+        """Unseal a ledger after the target's own refusal proved its copy did
+        not land. Only `moving`: a moved ledger's copy is live elsewhere and
+        comes back only by a hand-back."""
         if self._role() != MOVING:
             raise ValueError("only a ledger that is moving can be unsealed")
         self._set(LIVE)
@@ -168,10 +178,12 @@ class CreditsObject(DurableObject):
         if state_digest(text) != digest:
             raise ValueError(f"{REFUSED_MARK}: digest does not match the document")
         role = self._role()
-        if role == LIVE and self._get(_IMPORTED_KEY) == digest:
-            return await self.handoff_status()
-        if self._get(_FENCED_KEY) == digest:
-            raise ValueError(f"{REFUSED_MARK}: this copy was fenced off by an abort")
+        if self._get(_IMPORTED_KEY) == digest:
+            if role == LIVE:
+                return await self.handoff_status()
+            # It landed here and is being handed on. Not a refusal: the
+            # source must stay sealed rather than unseal a second live copy.
+            raise ValueError(f"this copy landed here and is now {role}")
         if role not in (STANDBY, MOVED):
             raise ValueError(f"{REFUSED_MARK}: a {role} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))
@@ -316,16 +328,6 @@ class CreditsObject(DurableObject):
         ok = state.release(holder, int(reservation_id))
         self._save(state)
         return ok
-
-    async def fence_import(self, digest: str) -> str:
-        """Settle an abort against an import that may still be in flight.
-        `landed` if that copy is live here; otherwise refuse it for good and
-        answer `fenced`, so the source can unseal knowing it never lands."""
-        digest = str(digest)
-        if self._role() == LIVE and self._get(_IMPORTED_KEY) == digest:
-            return "landed"
-        self._put(_FENCED_KEY, digest)
-        return "fenced"
 
     async def open_holds(self, holder: str) -> dict[str, Any]:
         """Reservations and taken reads not yet committed or released, so an
