@@ -144,7 +144,7 @@ def test_absent_price_page_is_an_offering_gap_even_with_complete_model_facts(tmp
     assert not packet.offering["facts"]
 
 
-def test_cite_only_source_stores_metadata_and_never_admits_even_existing_fact(tmp_path):
+def test_held_cite_only_source_never_stores_or_admits_even_existing_fact(tmp_path):
     from decision.model import Source
     from decision.sources import fingerprint_bytes
 
@@ -177,8 +177,11 @@ def test_cite_only_source_stores_metadata_and_never_admits_even_existing_fact(tm
     assert any(g.facet == "model.context_window" and "cite-only" in g.reason for g in packet.gaps)
     assert packet.model_facts == []
     cache_files = [p for p in (tmp_path / "copies").rglob("*") if p.is_file()]
-    assert cache_files and all(p.name.endswith(".citation.json") for p in cache_files)
-    assert all("32K tokens" not in p.read_text() for p in cache_files)
+    assert cache_files == []
+    assert all(source["outcome"] == "cited" for source in packet.sources)
+    assert all("not fetched" in source["reason"] for source in packet.sources)
+    assert all("snapshot_ref" not in source and "retrieved_at" not in source
+               for source in packet.sources)
 
 
 def test_unregistered_restricted_and_third_party_sources_block_before_fetch(
@@ -517,14 +520,16 @@ def test_lineup_entry_carries_verified_class_and_review_clause(tmp_path):
     assert yaml.safe_load((root / "premier/slice-1.yaml").read_text())["models"][-1] == entry
 
 
-@pytest.mark.parametrize(('host', 'lab'), [
-    ('developers.openai.com', 'openai'),
-    ('claude.com', 'anthropic'),
-    ('platform.claude.com', 'anthropic'),
-    ('unlisted.openai.com', 'openai'),
-    ('sub.ai.google.dev', 'google'),
+@pytest.mark.parametrize(('host', 'lab', 'cited'), [
+    ('developers.openai.com', 'openai', True),
+    ('help.openai.com', 'openai', True),
+    ('docs.x.ai', 'xai', True),
+    ('claude.com', 'anthropic', False),
+    ('platform.claude.com', 'anthropic', False),
+    ('unlisted.openai.com', 'openai', False),
+    ('sub.ai.google.dev', 'google', False),
 ])
-def test_source_terms_hold_never_fetches_or_stores(tmp_path, monkeypatch, host, lab):
+def test_source_terms_hold_never_fetches_or_stores(tmp_path, monkeypatch, host, lab, cited):
     from decision.sources import FetchResult
     from scripts import admission_drafter as drafter
 
@@ -550,11 +555,36 @@ def test_source_terms_hold_never_fetches_or_stores(tmp_path, monkeypatch, host, 
     assert calls == []
     assert not list((tmp_path / 'copies').rglob('*'))
     assert packet.model_facts == []
+    outcome = 'cited' if cited else 'blocked'
+    reason = 'source-terms hold (MODEL-409)'
+    if cited:
+        reason += '; cited, not machine-verified; not fetched'
     assert packet.sources == [{
-        'url': url, 'source_id': 'held', 'outcome': 'blocked',
-        'reason': 'source-terms hold (MODEL-409)',
+        'url': url, 'source_id': 'held', 'outcome': outcome, 'reason': reason,
     }]
-    assert 'blocked; source-terms hold (MODEL-409)' in packet.markdown()
+    assert f'{outcome}; {reason}' in packet.markdown()
+
+
+@pytest.mark.parametrize(('host', 'lab'), [
+    ('developers.openai.com', 'openai'),
+    ('help.openai.com', 'openai'),
+    ('docs.x.ai', 'xai'),
+])
+def test_cite_only_fetcher_still_enforces_source_terms(tmp_path, host, lab):
+    from scripts.admission_drafter import AdmissionFetcher, SourceBlockedError
+
+    calls = []
+
+    def request(req):
+        calls.append(str(req.url))
+        return httpx.Response(200, text='held page bytes')
+
+    with httpx.Client(transport=httpx.MockTransport(request)) as client:
+        fetcher = AdmissionFetcher(client, lab=lab, terms={host: 'forbids'},
+                                   retries=0, min_host_interval=0)
+        with pytest.raises(SourceBlockedError, match='source-terms hold'):
+            fetcher.fetch(f'https://{host}/model')
+    assert calls == []
 
 
 @pytest.mark.parametrize('policy', [None, {}, {'ai.google.dev': 'permits-ish'}])

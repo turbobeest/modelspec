@@ -863,7 +863,7 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
                 facet=facet, value=fact.value,
                 unit=unit, record_id=fact.record_id,
                 citation=(checked_record(snapshot, fact.record_id).get("citation")
-                          if fact.record_id else None),
+                          if fact.record_id and (comparison or facet in named) else None),
                 source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
         for facet in COMPUTED_FACETS:
             if facet in HARDWARE_FACETS:

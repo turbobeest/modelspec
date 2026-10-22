@@ -54,6 +54,26 @@ def test_public_explain_budgets(service, public_snapshot, level, budget):
     assert len(service.serialise(body)) / 4 <= budget
 
 
+def test_full_display_facts_resolve_citations_through_source_ids(service, public_snapshot):
+    status, body = service.decide({**public_spec(), "explain": "full"}, public_snapshot)
+    assert status == 200
+    sources = {source["id"]: source for source in body["sources"]}
+    assert len(sources) == len(body["sources"])
+    cited_facts = [
+        fact for row in body["top"] for fact in row["facts"]
+        if fact["record_id"] and public_snapshot.record(fact["record_id"]).get("citation")
+    ]
+    assert cited_facts
+    assert "cite_only_not_machine_verified" in body["warnings"]
+    for fact in cited_facts:
+        record = public_snapshot.record(fact["record_id"])
+        assert set(fact["source_ids"]) == {ref["source_id"] for ref in record["sources"]}
+        assert all(sources[sid]["url"] == public_snapshot.source_url(sid)
+                   for sid in fact["source_ids"])
+        assert "citation" not in fact
+    contract.Decision.model_validate(body)
+
+
 def test_public_default_mcp_budget(service, public_snapshot):
     status, body = service.decide({**public_spec(), "fields": list(DEFAULT_FIELDS)}, public_snapshot)
     assert status == 200

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from datetime import UTC, datetime
 from threading import Barrier
 
 import httpx
@@ -156,13 +158,20 @@ def test_interrupted_request_still_has_readable_spend(ledger, paid_factory):
     assert spent == 1
 
 
-def test_successful_primary_never_uses_paid_fetch_or_ledger(tmp_path, paid_factory):
+@pytest.mark.parametrize('url', ['https://api.openai.com/model', URL])
+@pytest.mark.parametrize('retrieved_at', [None, datetime(2026, 10, 20, tzinfo=UTC)])
+def test_successful_primary_never_uses_paid_fetch_or_ledger(
+    tmp_path, paid_factory, url, retrieved_at,
+):
     factory, calls = paid_factory()
-    expected = FetchResult("ok", 200, body=BODY)
+    expected = FetchResult("ok", 200, body=BODY, retrieved_at=retrieved_at)
     result = AdmissionFallback(
         Primary(expected), tmp_path / "missing", month=MONTH, firecrawl_factory=factory
-    ).fetch(URL)
+    ).fetch(url)
+    if url == URL:
+        expected = replace(expected, body=b'', snapshot_ref=fingerprint_bytes(BODY))
     assert result == expected and calls == []
+    assert not (tmp_path / 'missing').exists()
 
 
 @pytest.mark.parametrize(
@@ -214,7 +223,8 @@ def test_cite_only_response_has_hash_and_no_page_bytes(ledger, paid_factory, pai
     restricted = "https://docs.x.ai/models/admission-fixture"
     factory, calls = paid_factory(redirects=(restricted,))
     primary = Primary() if paid else Primary(
-        FetchResult("ok", 200, body=BODY, resolved_urls=(restricted,))
+        FetchResult("ok", 200, body=BODY, resolved_urls=(restricted,),
+                    retrieved_at=datetime(2026, 10, 20, tzinfo=UTC))
     )
     result = AdmissionFallback(
         primary, ledger, month=MONTH, firecrawl_factory=factory

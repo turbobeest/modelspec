@@ -28,6 +28,7 @@ import httpx
 import yaml
 
 from decision.registry import default as default_registry
+from decision.retention import is_cite_only_restrictive
 from decision.sources import CopyStore, fingerprint_bytes, load_sources
 from decision.verify import Claim, StoredRegions
 from scripts.attribution import TypeSafeJudge, load_config
@@ -387,6 +388,8 @@ class FrozenExcerptStore(CopyStore):
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 raise ValueError(f"{fixture}: excerpts[{index}] is not an object")
+            if is_cite_only_restrictive(row["source_url"]):
+                continue
             snapshot_ref = str(row.get("snapshot_ref") or "")
             body = str(row.get("text") or "").encode()
             if fingerprint_bytes(body) != row.get("excerpt_ref"):
@@ -459,6 +462,11 @@ def blind_attribution_cases() -> list[Case]:
         mutation: dict[str, Any] | None = None,
     ) -> None:
         claim = claims[f"evidence:{target}"]
+        if any(
+            regions.cite_only(source["source_id"], source["snapshot_ref"])
+            for source in claim["sources"]
+        ):
+            return
         verification = latest[f"evidence:{target}"]
         state, source_url = _evidence_state(claim, regions, sources)
         state["source_target"] = target
@@ -537,6 +545,11 @@ def second_key_cases(labels: dict[str, Any]) -> list[Case]:
     cases = []
     for row in labels["second_key"]["cases"]:
         claim_data = claims[row["target"]]
+        if any(
+            regions.cite_only(source["source_id"], source["snapshot_ref"])
+            for source in claim_data["sources"]
+        ):
+            continue
         claim = Claim.from_dict(claim_data)
         cited = []
         urls = []

@@ -1673,6 +1673,12 @@ cite-only and other references as cited when verification cannot be
 attributed to either side. Its citation preserves every reference, and its
 retained record has `verification: null`. This uses the existing
 `CitationSource` fields without widening the contract.
+Full decisions include inline fact citations for facets the request names.
+Facts included only by the display set keep their `record_id` and `source_ids`,
+with each source listed once in `sources`. Their complete citation metadata is
+available in named-model comparison. Citation warnings still cover these display
+facts. This changes which optional citation details are populated, without
+changing any field's range or contract version.
 The ordinary `sources[].date` stays a verification date and is null when only
 cited records reference that source. A cited score whose latest outcome is
 `mismatch` or `unreachable` stays quarantined. Card-authored redirect URLs can
