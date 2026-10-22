@@ -123,7 +123,7 @@ def rehost_of(card: Any) -> str | None:
 def build_candidates(cards: list[Any], sink: CollectingSink, *,
                      cited_facts: dict[str, list[dict[str, Any]]] | None = None) -> list[Candidate]:
     """One ranking record per card, with capability tiers and hardware fit attached."""
-    from decision.retention import is_cite_only
+    from decision.retention import is_cite_only_restrictive
 
     tiers: dict[str, dict[str, str]] = {}
     fits: dict[str, dict[str, float]] = {}
@@ -153,11 +153,13 @@ def build_candidates(cards: list[Any], sink: CollectingSink, *,
         verified: set[str] = set()
         source = card.benchmarks.benchmark_source
         cited_benchmarks = ({key: {"status": "cited", "url": source} for key in scores}
-                            if is_cite_only(source) else {})
+                            if is_cite_only_restrictive(source) else {})
         for record in card.benchmarks.evidence:
+            cited = is_cite_only_restrictive(record.source_url)
+            if cited and record.benchmark_id in verified:
+                continue
             scores[record.benchmark_id] = float(record.score)
-            if is_cite_only(record.source_url):
-                verified.discard(record.benchmark_id)
+            if cited:
                 cited_benchmarks[record.benchmark_id] = {"status": "cited", "url": record.source_url}
             else:
                 verified.add(record.benchmark_id)

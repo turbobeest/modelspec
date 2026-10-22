@@ -15,7 +15,7 @@ never by its bytes:
   checkout's files; ``--data-git`` reads every data file in a repository's
   history, so refs a later commit replaced are still known.
 
-Each recorded URL goes through ``decision.retention.cite_only_origin``, the
+Each recorded URL goes through ``decision.retention.cite_only_origin_restrictive``, the
 #840 matcher (subdomains, case, trailing dot, port, redirect destinations).
 A byte file with no recorded URL is counted (``entries`` minus ``identified``)
 and left in place: name more data with ``--data-dir`` or ``--data-git``.
@@ -51,7 +51,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from decision.retention import cite_only_origin, is_cite_only, metadata_origins  # noqa: E402
+from decision.retention import cite_only_origin_restrictive, is_cite_only_restrictive, metadata_origins  # noqa: E402
 from decision.sources import CopyStore  # noqa: E402
 
 REF = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -414,9 +414,9 @@ def find_entries(roots: Iterable[Path], provenance: Provenance, errors: list[str
                 sidecar = ()
             origins = provenance.origins(ref)
             scan.identified += bool(sidecar or origins)
-            if sidecar and cite_only_origin(sidecar[0], sidecar[1:]):
+            if sidecar and cite_only_origin_restrictive(sidecar[0], sidecar[1:]):
                 matched, evidence = sidecar, "sidecar"
-            elif origins and cite_only_origin(origins[0], origins[1:]):
+            elif origins and cite_only_origin_restrictive(origins[0], origins[1:]):
                 matched, evidence = origins, "data"
             else:
                 continue
@@ -424,7 +424,7 @@ def find_entries(roots: Iterable[Path], provenance: Provenance, errors: list[str
                 errors.append(f"{path}: cite-only name but not a regular file; skipped")
                 continue
             scan.entries.append(Entry(root, ref, path,
-                                      tuple(u for u in matched if is_cite_only(u)), evidence,
+                                      tuple(u for u in matched if is_cite_only_restrictive(u)), evidence,
                                       root_id))
     return scan
 

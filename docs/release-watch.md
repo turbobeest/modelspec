@@ -44,11 +44,23 @@ two-key rules.
    [`registry/release-watch-baseline.json`](../registry/release-watch-baseline.json),
    it was created in the last 30 days (Hugging Face and OpenRouter only;
    pages carry no date), and it matches no exact catalogue alias.
-5. Each new model becomes one `release-discovery` v1 and is filed to one of
-   the [two sinks](#two-sinks). The signal ID is
-   `watch:<lab>:<model>`, normalised the way catalogue aliases are. A model
-   listed by the lab's page, Hugging Face and OpenRouter is therefore filed
-   once, from the first source in registry order. The labs' pages come first.
+5. `scripts/release_watch_filter.py` rejects whole artifact names such as
+   `docs`, `sdk`, or `<provider>-sdk`, plus the exact IBM forecasting example
+   repository. A token inside a model name, such as `Pixtral-Docs` or
+   `client-embed-1`, is retained. Every rejection appears in the run summary
+   under "Rejected (not filed)", with its reason, source and URL.
+   The filter then groups release aliases before either sink sees them.
+   Its `watch:<lab>:<model>` ID uses a canonical identity. Explicit
+   aliases cover differing spellings, known mirrors, packaging suffixes and
+   training endpoints of the same recipe. Sizes, base/tuned variants, named
+   minor versions and unknown dated revisions remain distinct. The first
+   source in registry order supplies the representative. Every accepted
+   observation stays attached to the group.
+6. Each group becomes one `release-discovery` v1. The JSON report keeps its
+   source references and a YAML-compatible draft-card stub. Unknown facts
+   stay null. New issues include those references and the stub. Queue POSTs
+   retain the existing six-field contract; their group attachments are in the
+   workflow artifact, joined by `signal_id`, rather than in Workers KV.
 
 The watcher re-files every uncatalogued discovery on every run. Each sink
 keeps its own permanent record of what it has seen, so every repeat is a
@@ -63,11 +75,112 @@ A model a watched lab lists is filed on the next run, at most 6 hours later.
 | `vars.SIGNALS_ENABLED` | Sink | Dedup |
 | --- | --- | --- |
 | `true` | `POST https://api.modelspec.dev/v1/signals/discovered`, into the MODEL-113 queue. The next hourly `release-signals.yml` run drafts the card, re-checks it at 1, 7 and 30 days, and opens the PR. | A permanent Workers KV marker per discovery ID. A repeat is `200 duplicate`, even after the pending row is acknowledged. |
-| anything else | One GitHub issue per discovery, labelled `release-discovery` and `new-model`, carrying the discovery JSON. A person or the research flow drafts the card. | One listing per run of every `release-discovery` issue, open or closed. A closed issue is never filed again. |
+| anything else | One GitHub issue per release group, labelled `release-discovery` and `new-model`, carrying the discovery JSON, source references and draft stub. | One listing per run of every `release-discovery` issue, open or closed. Legacy IDs are canonicalized before comparison. A closed issue is never filed again. |
 
 The issue sink uses the workflow's own `GITHUB_TOKEN` (`issues: write`). If
 the listing fails, nothing is created and the run alerts. A failed listing
 must not turn into a flood of duplicates.
+
+Existing issue bodies are not rewritten. Later observations remain in each
+run's artifact. Historical queue markers are exact IDs and are not migrated
+by this filter.
+
+## Offline replay and triage
+
+The workflow retains `watch.json` and `watch.md` for 45 days, including failed
+runs. They contain normalized observations, group membership, rejected items
+and reasons, source URLs and draft stubs. They contain no fetched page bytes.
+Source references are discovery evidence only, not verified catalogue facts.
+
+Replay one or more downloaded reports without a network request:
+
+```bash
+python scripts/release_watch.py --replay day-1/watch.json \
+  --replay day-2/watch.json --report replay.json --summary replay.md
+```
+
+Replay refuses `--post`, `--issues` and `--rebaseline`. It evaluates the
+recorded observations with the current registry and filter; it does not
+recreate past source outages, raw extraction or candidates the old watcher
+never emitted.
+
+For issue triage, obtain a single export, then run the offline classifier:
+
+```bash
+gh issue list -R turbobeest/modelspec --label release-discovery --state open \
+  --limit 300 --json number,title,body,createdAt,url > issues.json
+python scripts/triage_release_discoveries.py --issues issues.json \
+  --catalogue-root /path/to/private/modelspec-data \
+  --report triage.json --summary triage.md
+```
+
+The script has no apply mode or network operations. `duplicate` identifies
+the earliest open issue with the same release identity. `superseded` means
+that identity is already carded, not that a newer version exists. `noise`
+requires an explicit non-model rule. `real` means a candidate to retain for
+review, not a verified release. Malformed discovery payloads stay in `real`
+with a manual-review reason. Omit `--catalogue-root` to skip private catalogue
+comparison.
+
+The per-source fixture in `tests/fixtures/release_watch/precision-recall.json`
+covers all 74 registered sources with 542 labelled normalized observations.
+Most cases are synthetic. These measure regression precision and recall,
+not live-source accuracy. The MODEL-432 evidence records the incomplete
+historical replay and the independent card-addition comparison.
+
+### Compare a retained 30-day window with card additions
+
+On or after November 20, 2026, run this comparison with downloaded original
+`watch.json` artifacts and a local checkout of the catalogue with complete
+Git history. Nothing is scheduled. For `--recall-end 2026-11-20`, the window
+is October 21 at 00:00 UTC through November 20 at 00:00 UTC, excluding the
+end. Choose a later end date to measure another 30-day window.
+
+```python
+from pathlib import Path
+import subprocess
+import sys
+
+reports = sorted(Path("/path/to/downloaded-artifacts").rglob("watch.json"))
+if not reports:
+    raise SystemExit("No retained watch.json artifacts found")
+args = [arg for path in reports for arg in ("--replay", str(path))]
+raise SystemExit(subprocess.run([
+    sys.executable, "scripts/release_watch.py", *args,
+    "--recall-end", "2026-11-20",
+    "--catalogue-root", "/path/to/private/modelspec-data",
+    "--report", "/path/to/local-results/recall.json",
+    "--summary", "/path/to/local-results/recall.md",
+]).returncode)
+```
+
+Run the snippet from this repository using its Python environment. The
+output directory must already exist and be outside the catalogue checkout.
+The command is offline and refuses filing modes. It reads only original
+artifacts whose `observed_at` falls in the window, including their rejected
+observations, and applies the current registry and filter.
+
+Card-added dates are UTC committer dates of first additions on the
+catalogue's first-parent history at HEAD. Merge additions use the merge
+commit date. Renames and later edits do not count as additions. The report
+records the catalogue revision and each card's addition commit, and matches
+the card's name, version, model ID and filename at that commit against
+accepted canonical release IDs. Shallow history is refused.
+
+The denominator includes every card added in the window, including backfills
+and seed imports. It is a card-addition recall check, not a verified measure
+of new releases. Missing cards need review for backfills, baseline exclusions,
+unwatched sources, extraction misses or filtering. A missing card with a
+rejected observation includes that observation and its reason in the JSON.
+The summary lists every card and marks unmatched ones `MISSING`. Card bodies
+are not emitted; keep reports containing private catalogue identities local.
+
+Exit 1 means there are unmatched cards, days without retained artifacts, or
+source failures recorded in the selected artifacts. Exit 2 means invalid
+inputs. Exit 0 means none of those conditions were found. With no added
+cards, recall is null. One artifact per day does not prove all scheduled
+runs were retained, and retained observations cannot reconstruct raw
+extraction misses or observations suppressed during an outage or burst.
 
 ## Outages raise an alert
 
@@ -131,9 +244,10 @@ dry run that prints what it would file.
 - **A source changed shape** (`parse_failed` or `burst`). Look at the page,
   fix `pattern` or `exclude` if the IDs moved, then rebaseline that one
   source.
-- **Noise.** A doc slug that looks like a model ID becomes a discovery. The
-  pipeline resolves it as `uncertain` and opens an identity-review issue.
-  Add it to the source's `exclude`.
+- **Noise or aliases.** Add a labelled per-source regression before changing
+  the filter or a source's `exclude`. Use explicit aliases when a publisher
+  gives one release several names. Do not erase arbitrary numeric suffixes:
+  dated snapshots and minor versions can be distinct releases.
 
 The baseline was first taken on 2026-09-29 from live sources. The dry run
 right after it found 74 of 74 sources answering and 0 discoveries.

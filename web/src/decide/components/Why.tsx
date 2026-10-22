@@ -272,6 +272,7 @@ export function Why({
                         {Math.round((driver.estimate_weight ?? 0) * 100)}% influence ·{" "}
                         {driver.directness} · {driver.date}
                       </span>{" "}
+                      {driver.citation && <small>Cited, not machine-verified</small>}
                       <a href={driver.source} target="_blank" rel="noreferrer">
                         Source ↗
                       </a>
@@ -301,6 +302,7 @@ export function Why({
                   {decision.benchmarks[b.b]?.unit ?? "unit not recorded"} · effort{" "}
                   {b.effort} · {b.harness} · {b.date}
                 </small>
+                {b.cited && <small>Cited, not machine-verified</small>}
                 <button
                   className={"provenance " + (b.by === "lab" ? "note" : "")}
                   aria-label={`Provenance for ${vocab.benchName(b.b)} ${fmtB(b.b, b.v)}`}

@@ -11,6 +11,7 @@ from decision import bands as bands_module
 from decision import estate as estate_module
 from decision import plans as plans_module
 from decision import reading as reading_module
+from decision.citation import cited_records
 from decision.coverage import for_spec as coverage_for_spec
 from decision.by_model import build_by_model
 from decision.computed import with_computed
@@ -330,22 +331,22 @@ def _unique_extreme(values: Mapping[str, float | None], *, highest: bool) -> str
     return winners[0] if len(winners) == 1 else None
 
 
-def _independent_measurements(snapshot, model_id: str) -> int:
-    records = set()
+def _independent_measurements(snapshot, model_id: str) -> tuple:
+    records = {}
     for benchmark_id in snapshot.benchmark_ids():
         for row in snapshot.evidence(
             model_id, benchmark_id, measured_by=set(_INDEPENDENT_MEASURERS)
         ):
-            if row.verified and not row.quality_flags:
-                records.add(row.record_id or (
+            if row.admitted and not row.quality_flags:
+                records[row.record_id or (
                     row.benchmark_id,
                     row.version,
                     row.subcategory,
                     row.value,
                     row.effort,
                     row.harness,
-                ))
-    return len(records)
+                )] = row
+    return tuple(records.values())
 
 
 def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -> TieBreakers:
@@ -364,13 +365,18 @@ def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -
         if snapshot.fact(model_id, "model.weights_openness").value == "open_weights"
     )
     measurements = {
-        model_id: float(_independent_measurements(snapshot, model_id))
+        model_id: _independent_measurements(snapshot, model_id)
         for model_id in by_model
     }
+    most_measured = _unique_extreme(
+        {model_id: float(len(records)) for model_id, records in measurements.items()}, highest=True)
+    observe = getattr(snapshot, "observe_evidence", None)
+    if most_measured is not None and observe is not None:
+        observe(most_measured, measurements[most_measured])
     return TieBreakers(
         cheapest=_unique_extreme(costs, highest=False),
         open_weights=open_models[0] if len(open_models) == 1 else None,
-        most_independently_measured=_unique_extreme(measurements, highest=True),
+        most_independently_measured=most_measured,
         fastest=_unique_extreme(speeds, highest=True),
     )
 
@@ -469,28 +475,26 @@ def _plan_routes(cid: str, snapshot, access, reach) -> list:
                                          r.price_monthly_usd or 0, r.plan))
 
 
-def _has_cited_facts(snapshot, cid: str, reach=None) -> bool:
-    cited = getattr(snapshot, "cited_facts", None)
-    if cited is None:
-        return False
-    if cited(cid):
+def _has_cited_records(snapshot, cid: str, reach=None) -> bool:
+    if cited_records(snapshot, cid):
         return True
     if reach is None:
         return False
-    if any(cited(plan_id) for plan_id, _surface, _coverage in reach.routes.get(cid, ())):
+    if any(cited_records(snapshot, plan_id)
+           for plan_id, _surface, _coverage in reach.routes.get(cid, ())):
         return True
     kind, hold_id = reach.via.get(cid, (None, None))
-    return kind == "plan" and bool(cited(hold_id))
+    return kind == "plan" and bool(cited_records(snapshot, hold_id))
 
 
 class _CitationUse:
-    """Observe the facts used by filtering and ranking, without scanning the catalogue."""
+    """Observe cited facts and scores used by filtering and ranking."""
 
     def __init__(self, snapshot, reach=None):
         self.snapshot = snapshot
         self.reach = reach
-        self.used: set[str] = set()
-        self._cited = getattr(snapshot, "cited_facts", None)
+        self.facts_used: set[str] = set()
+        self.scores_used: set[str] = set()
         self._records: dict[str, frozenset[str]] = {}
 
     def __getattr__(self, name):
@@ -498,7 +502,7 @@ class _CitationUse:
 
     def records(self, cid):
         if cid not in self._records:
-            self._records[cid] = frozenset(() if self._cited is None else self._cited(cid))
+            self._records[cid] = frozenset(cited_records(self.snapshot, cid))
         return self._records[cid]
 
     def fact(self, cid, facet):
@@ -506,19 +510,54 @@ class _CitationUse:
         self.observe(cid, facet, found=found)
         return found
 
+    def observe_evidence(self, cid, rows, used_by=()):
+        owners = set(used_by or (cid,))
+        if not owners <= self.scores_used and any(row.record_id in self.records(cid) for row in rows):
+            self.scores_used.update(owners)
+
+    def capability_estimate(self, cid, domain):
+        found = self.snapshot.capability_estimate(cid, domain)
+        if found is not None:
+            self.observe_estimate(cid, domain)
+        return found
+
+    def refinement_estimate(self, cid, key):
+        found = self.snapshot.refinement_estimate(cid, key)
+        if found is not None:
+            self.observe_estimate(cid, key)
+        return found
+
+    def observe_estimate(self, cid, dimension, used_by=()):
+        owners = set(used_by or (cid,))
+        if owners <= self.scores_used:
+            return
+        lookup = getattr(self.snapshot, "estimate_cited_records", None)
+        if lookup is not None:
+            cited = lookup(cid, dimension)
+        else:
+            drivers = (self.snapshot.refinement_drivers(cid, dimension)
+                       if is_refinement_key(dimension)
+                       else self.snapshot.capability_drivers(cid, dimension))
+            cited = self.records(cid).intersection(driver.record_id for driver in drivers)
+        if cited:
+            self.scores_used.update(owners)
+
     def observe(self, cid, facet, used_by=(), *, found=None):
         owners = set(used_by or (cid,))
-        if owners <= self.used or self._cited is None:
+        if facet in self.snapshot.domain_ids():
+            self.observe_estimate(cid, facet, used_by)
+            return
+        if owners <= self.facts_used:
             return
         cited = self.records(cid)
         if cited:
             found = self.snapshot.fact(cid, facet) if found is None else found
             if found.record_id in cited:
-                self.used.update(owners)
+                self.facts_used.update(owners)
                 return
             computed = self.snapshot.computed(cid, facet)
             if computed is not None and cited.intersection(computed.records):
-                self.used.update(owners)
+                self.facts_used.update(owners)
                 return
             if facet == "offering.cost_per_task" and computed is None:
                 # A missing cited price can also remove a candidate from ranking.
@@ -530,7 +569,7 @@ class _CitationUse:
                     if self.snapshot.record(record).get("facet") in {
                         "offering.subscription.price", "offering.subscription.billing_period",
                     }:
-                        self.used.update(owners)
+                        self.facts_used.update(owners)
                         return
 
     def shown(self, decision, ordered):
@@ -541,22 +580,39 @@ class _CitationUse:
             row.candidate_id for row in ordered.results[:len(decision.results)]
         }
         models = {self.snapshot.model_of(cid) for cid in recommended}
-        if self.used.intersection(recommended | models):
-            return True
+        for row in ordered.results:
+            if row.candidate_id in recommended:
+                self.observe_evidence(row.candidate_id, (
+                    item for contribution in row.contributions for item in contribution.evidence
+                ))
+        kinds = set()
+        if self.facts_used.intersection(recommended | models):
+            kinds.add("facts")
+        if self.scores_used.intersection(recommended | models):
+            kinds.add("benchmark scores")
         if any(CITE_ONLY_NOTICE in plan.basis
                for result, row in zip(decision.results, ordered.results)
                if row.candidate_id in recommended for plan in result.plans):
-            return True
+            kinds.add("facts")
+        for result, row in zip(decision.results, ordered.results):
+            if row.candidate_id in recommended and any(
+                item.citation is not None
+                for group in result.evidence for item in group.items
+            ):
+                kinds.add("benchmark scores")
         for shown, row in zip(decision.top, ordered.results):
             if row.candidate_id not in recommended:
                 continue
             cited = self.records(row.candidate_id)
+            if any(item.citation is not None
+                   for group in shown.evidence for item in group.items):
+                kinds.add("benchmark scores")
             if any(fact.citation is not None or cited.intersection(fact.records)
                    for fact in shown.facts):
-                return True
+                kinds.add("facts")
             if any(cited.intersection(estimate.records) for estimate in shown.hardware_estimates):
-                return True
-        return False
+                kinds.add("facts")
+        return frozenset(kinds)
 
 
 def decide(
@@ -701,7 +757,8 @@ def _decide(
                 ),
             )
     citation_use = _CitationUse(snapshot, _reach)
-    filtered = apply(resolved, snapshot, _reach, fact_used=citation_use.observe)
+    filtered = apply(resolved, snapshot, _reach, fact_used=citation_use.observe,
+                     evidence_used=citation_use.observe_evidence)
     if _filter_trace is not None:
         _filter_trace(filtered)
     ordered, objective_unknown = split_missing(
@@ -728,9 +785,6 @@ def _decide(
         key for key in shown_refinements
         if {directness for _, directness in snapshot.refinement_benchmarks(key)} == {"proxy"}
     }
-    probability_domain = (
-        objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
-    )
     probabilities = {}
     model_estimates = {}
     representative_rows = _representative_rows(ordered.results, citation_use, tie_cost)
@@ -744,10 +798,7 @@ def _decide(
             distribution = _score_distribution(row)
             if distribution is not None:
                 model_estimates[snapshot.model_of(row.candidate_id)] = distribution
-        probabilities = deterministic_probabilities(
-            model_estimates,
-            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain or 'weighted'}",
-        )
+        probabilities = deterministic_probabilities(model_estimates)
     if scalar and representative_rows and representative_rows[0].score_interval is not None:
         from decision.capability import deterministic_probabilities
 
@@ -766,10 +817,9 @@ def _decide(
             p_best,
         )
 
-        def dimension_p_best(dimension, spreads):
-            drawn = deterministic_probabilities(
-                spreads, seed_material=f"{snapshot.snapshot_id}:{digest}:{dimension}")
-            return {model_id: pair[0] for model_id, pair in drawn.items()}
+        def dimension_p_best(spreads):
+            return {model_id: pair[0] for model_id, pair
+                    in deterministic_probabilities(spreads).items()}
 
         blend = bands_module.blend(ordered.results, snapshot.model_of, dimension_p_best)
     answer = _answer(representative_rows, banded, citation_use, tie_cost)
@@ -794,7 +844,7 @@ def _decide(
 
     def row_warnings(row, model_id):
         warnings = list(row.warnings)
-        if _has_cited_facts(snapshot, row.candidate_id, _reach):
+        if _has_cited_records(snapshot, row.candidate_id, _reach):
             warnings.append(CITE_ONLY_WARNING)
         if row.candidate_id in filtered.deprecated:
             warnings.append("deprecated")
@@ -916,7 +966,7 @@ def _decide(
                 model=snapshot.model_of(cid),
                 offering=offering_ref(snapshot, cid),
                 unknown=unknown,
-                warnings=[CITE_ONLY_WARNING] if _has_cited_facts(snapshot, cid, _reach) else [],
+                warnings=[CITE_ONLY_WARNING] if _has_cited_records(snapshot, cid, _reach) else [],
             )
             for cid, unknown in sorted(
                 [(m.candidate, list(m.unknown)) for m in filtered.may_qualify]
@@ -958,7 +1008,8 @@ def _decide(
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)
-    if citation_use.shown(decision, ordered):
+    decision._cited_record_kinds = citation_use.shown(decision, ordered)
+    if decision._cited_record_kinds:
         decision.warnings.append(CITE_ONLY_WARNING)
     if _capture_evidence is not None:
         from decision.explain import contributions, domain_evidence
@@ -979,7 +1030,7 @@ def _decide(
             contributions=[] if row is None else contributions(snapshot, cid, row.contributions, groups),
             unknown=unknown, warnings=(
                 row_warnings(row, model_id) if row is not None else
-                [CITE_ONLY_WARNING] if _has_cited_facts(snapshot, cid, _reach) else []
+                [CITE_ONLY_WARNING] if _has_cited_records(snapshot, cid, _reach) else []
             ),
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),

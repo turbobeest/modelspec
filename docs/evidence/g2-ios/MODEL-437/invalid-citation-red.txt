@@ -1,0 +1,100 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+______ test_invalid_cited_score_display_url_stays_out[https://x.ai:bad/] _______
+
+url = 'https://x.ai:bad/'
+
+    @pytest.mark.parametrize("url", ["https://x.ai:bad/", "https://reader@x.ai/", "http://["])
+    def test_invalid_cited_score_display_url_stays_out(url):
+        inputs = score_inputs()
+        inputs.evidence[0]["source_url"] = url
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:89: AssertionError
+_____ test_invalid_cited_score_display_url_stays_out[https://reader@x.ai/] _____
+
+url = 'https://reader@x.ai/'
+
+    @pytest.mark.parametrize("url", ["https://x.ai:bad/", "https://reader@x.ai/", "http://["])
+    def test_invalid_cited_score_display_url_stays_out(url):
+        inputs = score_inputs()
+        inputs.evidence[0]["source_url"] = url
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:89: AssertionError
+___________ test_invalid_cited_score_display_url_stays_out[http://[] ___________
+
+url = 'http://['
+
+    @pytest.mark.parametrize("url", ["https://x.ai:bad/", "https://reader@x.ai/", "http://["])
+    def test_invalid_cited_score_display_url_stays_out(url):
+        inputs = score_inputs()
+        inputs.evidence[0]["source_url"] = url
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:89: AssertionError
+_____________ test_invalid_cited_score_region_stays_out[regions0] ______________
+
+regions = ['']
+
+    @pytest.mark.parametrize("regions", [[""], [7], "not-a-list"])
+    def test_invalid_cited_score_region_stays_out(regions):
+        inputs = score_inputs()
+        inputs.evidence[0]["sources"][0]["cited_regions"] = regions
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:96: AssertionError
+_____________ test_invalid_cited_score_region_stays_out[regions1] ______________
+
+regions = [7]
+
+    @pytest.mark.parametrize("regions", [[""], [7], "not-a-list"])
+    def test_invalid_cited_score_region_stays_out(regions):
+        inputs = score_inputs()
+        inputs.evidence[0]["sources"][0]["cited_regions"] = regions
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:96: AssertionError
+____________ test_invalid_cited_score_region_stays_out[not-a-list] _____________
+
+regions = 'not-a-list'
+
+    @pytest.mark.parametrize("regions", [[""], [7], "not-a-list"])
+    def test_invalid_cited_score_region_stays_out(regions):
+        inputs = score_inputs()
+        inputs.evidence[0]["sources"][0]["cited_regions"] = regions
+>       assert load(inputs).evidence("lab/cited", BENCHMARK) == ()
+E       AssertionError: assert (EvidenceValu... cited=True),) == ()
+E
+E         Left contains one more item: EvidenceValue(benchmark_id='swe_bench_pro', version='1.0', subcategory=None, value=90.0, unit='percent', measured_by='...0000000000000000000000000000000000000000000000000000000000000000', interval=None, n=None, quality_flags=(), cited=True)
+E         Use -v to get more diff
+
+tests/test_cited_scores.py:96: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_display_url_stays_out[https://x.ai:bad/]
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_display_url_stays_out[https://reader@x.ai/]
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_display_url_stays_out[http://[]
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_region_stays_out[regions0]
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_region_stays_out[regions1]
+FAILED tests/test_cited_scores.py::test_invalid_cited_score_region_stays_out[not-a-list]
+6 failed, 18 deselected in 0.58s

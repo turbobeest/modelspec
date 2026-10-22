@@ -1,0 +1,22 @@
+{
+  "current": {
+    "diagnostic_only": true,
+    "original_mixed_guaranteed_facts": 202,
+    "raw_rule2_facts": 4,
+    "verified_to_cited_total": 101,
+    "among_original_mixed_facts": 0,
+    "among_raw_rule2_facts": 0,
+    "outside_original_mixed_facts": 101,
+    "deploy_export_accepted": false
+  },
+  "successor": {
+    "diagnostic_only": true,
+    "original_mixed_guaranteed_facts": 202,
+    "raw_rule2_facts": 4,
+    "verified_to_cited_total": 101,
+    "among_original_mixed_facts": 0,
+    "among_raw_rule2_facts": 0,
+    "outside_original_mixed_facts": 101,
+    "deploy_export_accepted": false
+  }
+}

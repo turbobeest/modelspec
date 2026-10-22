@@ -1,0 +1,134 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_verified_dated_price_requires_complete_schedule_and_stays_unchanged[dates0] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-130/test_verified_dated_price_requ0')
+dates = {'effective_from': '2026-10-01'}
+
+    @pytest.mark.parametrize("dates", [
+        {"effective_from": "2026-10-01"},
+        {"effective_until": "2026-10-31"},
+    ])
+    def test_verified_dated_price_requires_complete_schedule_and_stays_unchanged(tmp_path, dates):
+        root, cache, policy, card = setup_data(tmp_path)
+        row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+        subject = "sambanova/lab/alpha/global/standard"
+        row.update(
+            facet="offering.price.input", id=f"{subject}#offering.price.input",
+            subject={"kind": "offering", "id": subject}, value=3.5, **dates,
+        )
+        row["verification"]["target"].update(
+            id=row["id"], value_hash=value_hash(fact_verification_value(row)),
+        )
+        validated = Fact.model_validate(row)
+        claim = Claim.from_fact(
+            validated.model_copy(update={"sources": [validated.sources[0]]}),
+            names=("Alpha",), collector=validated.verification.collector,
+        )
+        queue = Queue(root / "verification")
+        queue.path.write_text("")
+        at = datetime(2026, 9, 20, tzinfo=UTC)
+        queue.file(claim, at=at)
+        queue.checked(Result(claim.target, "verified"), at=at)
+        (root / "verification/log.jsonl").write_text(json.dumps(row["verification"]) + "\n")
+        rewrite_card(card, lambda data: data.update(facts=[]))
+        offering = root / "offerings/sambanova/lab/alpha.yaml"
+        offering.parent.mkdir(parents=True)
+        offering.write_text(yaml.safe_dump([{
+            "model": "lab/alpha", "provider": "sambanova", "region": "global",
+            "tier": "standard", "facts": [row],
+        }]))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 390, in <module>
+E             raise SystemExit(main())
+E                              ~~~~^^
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 353, in main
+E             changes, originals, writes = plan(
+E                                          ~~~~^
+E                 args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
+E                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E             )
+E             ^
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 291, in plan
+E             compiler._add_facts(fact.subject.id, fact.subject.kind, [reduced])
+E             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/Users/terbeest/dev/worktrees/model-439/decision/snapshot.py", line 1024, in _add_facts
+E             if (self.subjects[sid]["kind"] != "offering"
+E                 ~~~~~~~~~~~~~^^^^^
+E         KeyError: 'sambanova/lab/alpha/global/standard'
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri....subjects[sid]["kind"] != "offering"\n        ~~~~~~~~~~~~~^^^^^\nKeyError: \'sambanova/lab/alpha/global/standard\'\n').returncode
+
+tests/test_refile_mixed_citations.py:410: AssertionError
+_ test_verified_dated_price_requires_complete_schedule_and_stays_unchanged[dates1] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-130/test_verified_dated_price_requ1')
+dates = {'effective_until': '2026-10-31'}
+
+    @pytest.mark.parametrize("dates", [
+        {"effective_from": "2026-10-01"},
+        {"effective_until": "2026-10-31"},
+    ])
+    def test_verified_dated_price_requires_complete_schedule_and_stays_unchanged(tmp_path, dates):
+        root, cache, policy, card = setup_data(tmp_path)
+        row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+        subject = "sambanova/lab/alpha/global/standard"
+        row.update(
+            facet="offering.price.input", id=f"{subject}#offering.price.input",
+            subject={"kind": "offering", "id": subject}, value=3.5, **dates,
+        )
+        row["verification"]["target"].update(
+            id=row["id"], value_hash=value_hash(fact_verification_value(row)),
+        )
+        validated = Fact.model_validate(row)
+        claim = Claim.from_fact(
+            validated.model_copy(update={"sources": [validated.sources[0]]}),
+            names=("Alpha",), collector=validated.verification.collector,
+        )
+        queue = Queue(root / "verification")
+        queue.path.write_text("")
+        at = datetime(2026, 9, 20, tzinfo=UTC)
+        queue.file(claim, at=at)
+        queue.checked(Result(claim.target, "verified"), at=at)
+        (root / "verification/log.jsonl").write_text(json.dumps(row["verification"]) + "\n")
+        rewrite_card(card, lambda data: data.update(facts=[]))
+        offering = root / "offerings/sambanova/lab/alpha.yaml"
+        offering.parent.mkdir(parents=True)
+        offering.write_text(yaml.safe_dump([{
+            "model": "lab/alpha", "provider": "sambanova", "region": "global",
+            "tier": "standard", "facts": [row],
+        }]))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 390, in <module>
+E             raise SystemExit(main())
+E                              ~~~~^^
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 353, in main
+E             changes, originals, writes = plan(
+E                                          ~~~~^
+E                 args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
+E                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E             )
+E             ^
+E           File "/Users/terbeest/dev/worktrees/model-439/scripts/refile_mixed_citations.py", line 291, in plan
+E             compiler._add_facts(fact.subject.id, fact.subject.kind, [reduced])
+E             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/Users/terbeest/dev/worktrees/model-439/decision/snapshot.py", line 1024, in _add_facts
+E             if (self.subjects[sid]["kind"] != "offering"
+E                 ~~~~~~~~~~~~~^^^^^
+E         KeyError: 'sambanova/lab/alpha/global/standard'
+E
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri....subjects[sid]["kind"] != "offering"\n        ~~~~~~~~~~~~~^^^^^\nKeyError: \'sambanova/lab/alpha/global/standard\'\n').returncode
+
+tests/test_refile_mixed_citations.py:410: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_verified_dated_price_requires_complete_schedule_and_stays_unchanged[dates0]
+FAILED tests/test_refile_mixed_citations.py::test_verified_dated_price_requires_complete_schedule_and_stays_unchanged[dates1]
+2 failed, 23 deselected in 1.39s

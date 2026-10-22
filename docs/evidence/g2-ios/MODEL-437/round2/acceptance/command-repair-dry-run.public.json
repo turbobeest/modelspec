@@ -1,0 +1,23 @@
+{
+  "label": "repair-dry-run",
+  "command": [
+    "env",
+    "PYTHONPATH=/tmp/model-437-scratch/acceptance/prepared/main",
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "/tmp/model-437-scratch/acceptance/refile_mixed_citations.py",
+    "--data-root",
+    "/tmp/model-437-scratch/acceptance/prepared/repaired-data",
+    "--policy",
+    "/tmp/model-437-scratch/acceptance/prepared/hosts-866.json",
+    "--source-cache",
+    "/tmp/model-437-scratch/acceptance/empty-copies",
+    "--as-of",
+    "2026-10-21"
+  ],
+  "cwd": "/private/tmp/model-437-scratch/acceptance",
+  "source_cache_configured": false,
+  "started": "2026-10-21T18:56:48.939091+00:00",
+  "finished": "2026-10-21T18:56:59.965967+00:00",
+  "exit": 0,
+  "private_log": "/private/tmp/model-437-scratch/acceptance/repair-dry-run.private.log"
+}

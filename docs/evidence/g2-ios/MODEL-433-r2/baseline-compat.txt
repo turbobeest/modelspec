@@ -1,0 +1,152 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_repository_subscription_offerings_validate_against_the_real_registry ___
+
+subscription_repository = PosixPath('/Users/terbeest/dev/worktrees/model-433')
+
+    def test_repository_subscription_offerings_validate_against_the_real_registry(
+        subscription_repository,
+    ):
+        from decision.model import load_subscription_offerings
+        from decision.registry import default
+        from tests.subscription_sources import json_record, source_subscriptions
+    
+        registry = default()
+        expected = source_subscriptions(subscription_repository, registry)
+        root = subscription_repository / "offerings/subscriptions"
+        vendors = {vendor.id for vendor in registry.vendors()}  # MODEL-205 pins its own
+        loaded = [
+            subscription
+            for path in sorted(root.glob("*.yaml"))
+            for subscription in load_subscription_offerings(path, registry=registry)
+            if subscription.provider not in vendors
+        ]
+    
+        assert [subscription.id for subscription in loaded] == list(expected)
+        for subscription in loaded:
+            raw = expected[subscription.id]
+            assert (subscription.kind, subscription.provider, subscription.plan, subscription.name) == (
+                raw["kind"], raw["provider"], raw["plan"], raw["name"],
+            )
+            assert len(subscription.facts) == len(raw["facts"])
+>           assert [
+                {key: fact.model_dump(mode="json")[key] for key in source}
+                for fact, source in zip(subscription.facts, raw["facts"], strict=True)
+            ] == json_record(raw["facts"])
+E           AssertionError: assert [{'id': 'alib...n', ...}, ...] == [{'id': 'alib...n', ...}, ...]
+E             
+E             At index 0 diff: {'id': 'alibaba-model-studio/subscription/coding-pro#offering.subscription.price', 'subject': {'kind': 'offering', 'id': 'alibaba-model-studio/subscription/coding-pro'}, 'facet': 'offering.subscription.price', 'state': 'known', 'value': 50, 'sources': [{'source_id': 'model-201-alibaba-coding-plan', 'snapshot_ref': 'sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf', 'cited_regions': ['page'], 'retrieved_at': None, 'resolved_urls': []}]} != {'id': 'alibaba-model-studio/subscription/coding-pro#offering.subscription.price', 'subject':...
+E             
+E             ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_decision_model.py:708: AssertionError
+_________________ test_schema_file_is_generated_from_the_types _________________
+
+    def test_schema_file_is_generated_from_the_types() -> None:
+>       expected = c.render_json_schema()
+                   ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_decision_contract.py:1114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+decision/contract.py:2849: in render_json_schema
+    return json.dumps(json_schema(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+                      ^^^^^^^^^^^^^
+decision/contract.py:2810: in json_schema
+    refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization"),
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:2406: in models_json_schema
+    json_schemas_map, definitions = instance.generate_definitions(inputs)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:361: in generate_definitions
+    self.generate_inner(schema)
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:565: in generate_inner
+    json_schema = current_handler(schema)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:493: in handler_func
+    json_schema = generate_for_schema_type(schema_or_field)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:1921: in definitions_schema
+    return self.generate_inner(schema['schema'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:565: in generate_inner
+    json_schema = current_handler(schema)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:540: in new_handler_func
+    json_schema = js_modify_function(schema_or_field, current_handler)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/main.py:728: in __get_pydantic_json_schema__
+    return handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:493: in handler_func
+    json_schema = generate_for_schema_type(schema_or_field)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:1070: in function_after_schema
+    return self.generate_inner(schema['schema'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:565: in generate_inner
+    json_schema = current_handler(schema)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:493: in handler_func
+    json_schema = generate_for_schema_type(schema_or_field)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:1483: in model_schema
+    json_schema = self.generate_inner(schema['schema'])
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:565: in generate_inner
+    json_schema = current_handler(schema)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:493: in handler_func
+    json_schema = generate_for_schema_type(schema_or_field)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:1597: in model_fields_schema
+    json_schema = self._named_required_fields_schema(named_required_fields)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:1387: in _named_required_fields_schema
+    field_json_schema = self.generate_inner(field).copy()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:565: in generate_inner
+    json_schema = current_handler(schema)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/_internal/_schema_generation_shared.py:38: in __call__
+    return self.handler(core_schema)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+schema_or_field = {'type': 'model-field', 'schema': {'type': 'default', 'schema': {'function': {'type': 'no-info', 'function': <bound me...actory_takes_data': False}, 'metadata': {'pydantic_js_extra': {'exclude_if': <function Spec.<lambda> at 0x10c1f9940>}}}
+current_handler = <pydantic._internal._schema_generation_shared.GenerateJsonSchemaHandler object at 0x10c5fa7e0>
+
+    def js_extra_handler_func(
+        schema_or_field: CoreSchemaOrField,
+        current_handler: GetJsonSchemaHandler = current_handler,
+    ) -> JsonSchemaValue:
+        json_schema = current_handler(schema_or_field)
+        if isinstance(js_extra, dict):
+>           json_schema.update(to_jsonable_python(js_extra))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           pydantic_core._pydantic_core.PydanticSerializationError: Unable to serialize unknown type: <class 'function'>
+
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/json_schema.py:525: PydanticSerializationError
+=============================== warnings summary ===============================
+tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: 45 warnings
+  /Users/terbeest/dev/worktrees/model-433/tmp/model-433-r2/venv/lib/python3.12/site-packages/pydantic/fields.py:1042: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'exclude_if'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.10/migration/
+    warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_decision_model.py::test_repository_subscription_offerings_validate_against_the_real_registry
+FAILED tests/test_decision_contract.py::test_schema_file_is_generated_from_the_types
+2 failed, 45 warnings in 0.98s

@@ -1,0 +1,13 @@
+
+> test
+> vitest run test/cite-only.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-439/mcp
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  15:57:31
+   Duration  169ms (transform 50%, import 45%, tests 4%, worker 1%)
+

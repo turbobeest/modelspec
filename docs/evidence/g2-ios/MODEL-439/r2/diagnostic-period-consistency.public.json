@@ -1,0 +1,9 @@
+{
+  "same_verified_to_cited_listing_both_periods": true,
+  "record_count_each_period": {
+    "current": 101,
+    "successor": 101
+  },
+  "diagnostic_only": true,
+  "deploy_export_accepted": false
+}

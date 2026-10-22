@@ -520,9 +520,9 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.18",
-  "decision_id": "dec_d51b7ffcd4ad2ca834167bc1",
-  "snapshot": "snap_71b689ca16c5a402",
+  "contract_version": "2.19",
+  "decision_id": "dec_eef4ca1e93cc4f7e40123208",
+  "snapshot": "snap_d8a4553ece23d74f",
   "signature_verified": false,
   "spec_hash": "sha256:c45b4c3d467f75fc67ef115bee03549c8db7f3c535644ed4f4b79c1e276dc860",
   "explain": "full",

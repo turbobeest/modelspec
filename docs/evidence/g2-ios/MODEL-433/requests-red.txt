@@ -1,0 +1,113 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_recipe_blocks_requests_from_controls_and_discards_the_capture[popup-navigation] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1681/test_recipe_blocks_requests_fr0')
+browser = <decision.sources.RenderedFetcher object at 0x10cd067b0>
+action = "window.open('/action')"
+
+    @pytest.mark.parametrize("action", [
+        pytest.param("window.open('/action')", id="popup-navigation"),
+        pytest.param("document.querySelector('#other').submit()", id="popup-form-post"),
+        pytest.param("fetch('/action', {method:'POST'}).catch(() => {})", id="background-post"),
+    ])
+    def test_recipe_blocks_requests_from_controls_and_discards_the_capture(
+            tmp_path, browser, action):
+        requests = []
+        html = f"""
+            <form id="other" action="/action" method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action}">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+        sources = registry(tmp_path, [{"action": "click", "selector": "#control"}, RECIPE[-1]])
+        result = browser.fetch("https://fixture.example/prices",
+                               prepare=rendered_preparation(sources, sources))
+    
+>       assert requests == [("GET", "https://fixture.example/prices")]
+E       AssertionError: assert [('GET', 'htt...mple/action')] == [('GET', 'htt...mple/prices')]
+E         
+E         Left contains one more item: ('GET', 'https://fixture.example/action')
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:159: AssertionError
+_ test_recipe_blocks_requests_from_controls_and_discards_the_capture[popup-form-post] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1681/test_recipe_blocks_requests_fr1')
+browser = <decision.sources.RenderedFetcher object at 0x10cb83750>
+action = "document.querySelector('#other').submit()"
+
+    @pytest.mark.parametrize("action", [
+        pytest.param("window.open('/action')", id="popup-navigation"),
+        pytest.param("document.querySelector('#other').submit()", id="popup-form-post"),
+        pytest.param("fetch('/action', {method:'POST'}).catch(() => {})", id="background-post"),
+    ])
+    def test_recipe_blocks_requests_from_controls_and_discards_the_capture(
+            tmp_path, browser, action):
+        requests = []
+        html = f"""
+            <form id="other" action="/action" method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action}">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+        sources = registry(tmp_path, [{"action": "click", "selector": "#control"}, RECIPE[-1]])
+        result = browser.fetch("https://fixture.example/prices",
+                               prepare=rendered_preparation(sources, sources))
+    
+>       assert requests == [("GET", "https://fixture.example/prices")]
+E       AssertionError: assert [('GET', 'htt...mple/action')] == [('GET', 'htt...mple/prices')]
+E         
+E         Left contains one more item: ('POST', 'https://fixture.example/action')
+E         Use -v to get more diff
+
+tests/test_rendered_interactions.py:159: AssertionError
+_ test_recipe_blocks_requests_from_controls_and_discards_the_capture[background-post] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-1681/test_recipe_blocks_requests_fr2')
+browser = <decision.sources.RenderedFetcher object at 0x10ca5b9d0>
+action = "fetch('/action', {method:'POST'}).catch(() => {})"
+
+    @pytest.mark.parametrize("action", [
+        pytest.param("window.open('/action')", id="popup-navigation"),
+        pytest.param("document.querySelector('#other').submit()", id="popup-form-post"),
+        pytest.param("fetch('/action', {method:'POST'}).catch(() => {})", id="background-post"),
+    ])
+    def test_recipe_blocks_requests_from_controls_and_discards_the_capture(
+            tmp_path, browser, action):
+        requests = []
+        html = f"""
+            <form id="other" action="/action" method="post" target="_blank"></form>
+            <button id="control" type="button" onclick="{action}">US East</button>
+            <div id="prices">Default region $4.00</div>"""
+    
+        def respond(route):
+            requests.append((route.request.method, route.request.url))
+            route.fulfill(body=html, content_type="text/html")
+    
+        browser._context.route("**/*", respond)
+        sources = registry(tmp_path, [{"action": "click", "selector": "#control"}, RECIPE[-1]])
+        result = browser.fetch("https://fixture.example/prices",
+                               prepare=rendered_preparation(sources, sources))
+    
+        assert requests == [("GET", "https://fixture.example/prices")]
+>       assert result.outcome == "unreachable"
+E       AssertionError: assert 'ok' == 'unreachable'
+E         
+E         - unreachable
+E         + ok
+
+tests/test_rendered_interactions.py:160: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_requests_from_controls_and_discards_the_capture[popup-navigation]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_requests_from_controls_and_discards_the_capture[popup-form-post]
+FAILED tests/test_rendered_interactions.py::test_recipe_blocks_requests_from_controls_and_discards_the_capture[background-post]
+3 failed, 24 deselected in 3.70s

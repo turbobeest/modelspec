@@ -58,6 +58,7 @@ def collect_models(
         measurements = []
         for benchmark in snapshot.benchmark_ids():
             for value in snapshot.evidence(cid, benchmark):
+                citation = snapshot.record(value.record_id).get("citation")
                 measurements.append(
                     {
                         "benchmark": benchmark,
@@ -73,6 +74,7 @@ def collect_models(
                         "subcategory": value.subcategory,
                         "interval": list(value.interval) if value.interval else None,
                         "n": value.n,
+                        **({"citation": citation} if citation is not None else {}),
                     }
                 )
         rows.append(

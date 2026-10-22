@@ -1,0 +1,164 @@
+FF.FF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_invalidated_or_misfiled_history_cannot_prove_retained_support[inline_mismatch] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-124/test_invalidated_or_misfiled_h0')
+damage = 'inline_mismatch'
+
+    @pytest.mark.parametrize("damage", ["inline_mismatch", "logged_mismatch", "same_family", "wrong_field", "wrong_subject"])
+    def test_invalidated_or_misfiled_history_cannot_prove_retained_support(tmp_path, damage):
+        root, cache, policy, card = setup_data(tmp_path)
+        log = root / "verification/log.jsonl"
+        record = json.loads(log.read_text())
+        if damage in {"inline_mismatch", "logged_mismatch"}:
+            failed = {**record, "date": "2026-10-01", "outcome": "mismatch", "diff": "value differs"}
+            if damage == "inline_mismatch":
+                rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+            else:
+                with log.open("a") as stream:
+                    stream.write(json.dumps(failed) + "\n")
+        elif damage == "same_family":
+            record["verifier"]["model_family"] = record["collector"]["model_family"]
+            log.write_text(json.dumps(record) + "\n")
+        else:
+            path = root / "verification/queue/events.jsonl"
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            events[0]["claim"]["field" if damage == "wrong_field" else "subject"] = (
+                "model.max_output_tokens" if damage == "wrong_field" else "lab/other"
+            )
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+        # The latest winner confirms the value, but does not identify its source.
+        rewrite_card(card, lambda data: data["facts"][0].update(verification=record))
+        append_mixed_verification(root, card)
+        if damage == "inline_mismatch":
+            rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["unresolved"] == 1
+E       assert 0 == 1
+
+tests/test_refile_mixed_citations.py:265: AssertionError
+_ test_invalidated_or_misfiled_history_cannot_prove_retained_support[logged_mismatch] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-124/test_invalidated_or_misfiled_h1')
+damage = 'logged_mismatch'
+
+    @pytest.mark.parametrize("damage", ["inline_mismatch", "logged_mismatch", "same_family", "wrong_field", "wrong_subject"])
+    def test_invalidated_or_misfiled_history_cannot_prove_retained_support(tmp_path, damage):
+        root, cache, policy, card = setup_data(tmp_path)
+        log = root / "verification/log.jsonl"
+        record = json.loads(log.read_text())
+        if damage in {"inline_mismatch", "logged_mismatch"}:
+            failed = {**record, "date": "2026-10-01", "outcome": "mismatch", "diff": "value differs"}
+            if damage == "inline_mismatch":
+                rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+            else:
+                with log.open("a") as stream:
+                    stream.write(json.dumps(failed) + "\n")
+        elif damage == "same_family":
+            record["verifier"]["model_family"] = record["collector"]["model_family"]
+            log.write_text(json.dumps(record) + "\n")
+        else:
+            path = root / "verification/queue/events.jsonl"
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            events[0]["claim"]["field" if damage == "wrong_field" else "subject"] = (
+                "model.max_output_tokens" if damage == "wrong_field" else "lab/other"
+            )
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+        # The latest winner confirms the value, but does not identify its source.
+        rewrite_card(card, lambda data: data["facts"][0].update(verification=record))
+        append_mixed_verification(root, card)
+        if damage == "inline_mismatch":
+            rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["unresolved"] == 1
+E       assert 0 == 1
+
+tests/test_refile_mixed_citations.py:265: AssertionError
+_ test_invalidated_or_misfiled_history_cannot_prove_retained_support[wrong_field] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-124/test_invalidated_or_misfiled_h3')
+damage = 'wrong_field'
+
+    @pytest.mark.parametrize("damage", ["inline_mismatch", "logged_mismatch", "same_family", "wrong_field", "wrong_subject"])
+    def test_invalidated_or_misfiled_history_cannot_prove_retained_support(tmp_path, damage):
+        root, cache, policy, card = setup_data(tmp_path)
+        log = root / "verification/log.jsonl"
+        record = json.loads(log.read_text())
+        if damage in {"inline_mismatch", "logged_mismatch"}:
+            failed = {**record, "date": "2026-10-01", "outcome": "mismatch", "diff": "value differs"}
+            if damage == "inline_mismatch":
+                rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+            else:
+                with log.open("a") as stream:
+                    stream.write(json.dumps(failed) + "\n")
+        elif damage == "same_family":
+            record["verifier"]["model_family"] = record["collector"]["model_family"]
+            log.write_text(json.dumps(record) + "\n")
+        else:
+            path = root / "verification/queue/events.jsonl"
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            events[0]["claim"]["field" if damage == "wrong_field" else "subject"] = (
+                "model.max_output_tokens" if damage == "wrong_field" else "lab/other"
+            )
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+        # The latest winner confirms the value, but does not identify its source.
+        rewrite_card(card, lambda data: data["facts"][0].update(verification=record))
+        append_mixed_verification(root, card)
+        if damage == "inline_mismatch":
+            rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["unresolved"] == 1
+E       assert 0 == 1
+
+tests/test_refile_mixed_citations.py:265: AssertionError
+_ test_invalidated_or_misfiled_history_cannot_prove_retained_support[wrong_subject] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-124/test_invalidated_or_misfiled_h4')
+damage = 'wrong_subject'
+
+    @pytest.mark.parametrize("damage", ["inline_mismatch", "logged_mismatch", "same_family", "wrong_field", "wrong_subject"])
+    def test_invalidated_or_misfiled_history_cannot_prove_retained_support(tmp_path, damage):
+        root, cache, policy, card = setup_data(tmp_path)
+        log = root / "verification/log.jsonl"
+        record = json.loads(log.read_text())
+        if damage in {"inline_mismatch", "logged_mismatch"}:
+            failed = {**record, "date": "2026-10-01", "outcome": "mismatch", "diff": "value differs"}
+            if damage == "inline_mismatch":
+                rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+            else:
+                with log.open("a") as stream:
+                    stream.write(json.dumps(failed) + "\n")
+        elif damage == "same_family":
+            record["verifier"]["model_family"] = record["collector"]["model_family"]
+            log.write_text(json.dumps(record) + "\n")
+        else:
+            path = root / "verification/queue/events.jsonl"
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            events[0]["claim"]["field" if damage == "wrong_field" else "subject"] = (
+                "model.max_output_tokens" if damage == "wrong_field" else "lab/other"
+            )
+            path.write_text("\n".join(json.dumps(event) for event in events) + "\n")
+        # The latest winner confirms the value, but does not identify its source.
+        rewrite_card(card, lambda data: data["facts"][0].update(verification=record))
+        append_mixed_verification(root, card)
+        if damage == "inline_mismatch":
+            rewrite_card(card, lambda data: data["facts"][0].update(verification=failed))
+        before = files(root)
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["unresolved"] == 1
+E       assert 0 == 1
+
+tests/test_refile_mixed_citations.py:265: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_invalidated_or_misfiled_history_cannot_prove_retained_support[inline_mismatch]
+FAILED tests/test_refile_mixed_citations.py::test_invalidated_or_misfiled_history_cannot_prove_retained_support[logged_mismatch]
+FAILED tests/test_refile_mixed_citations.py::test_invalidated_or_misfiled_history_cannot_prove_retained_support[wrong_field]
+FAILED tests/test_refile_mixed_citations.py::test_invalidated_or_misfiled_history_cannot_prove_retained_support[wrong_subject]
+4 failed, 1 passed, 13 deselected in 3.58s

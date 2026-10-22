@@ -86,9 +86,8 @@ def test_cited_facts_enter_without_a_verification_and_others_still_need_one(tmp_
             "offering.subscription.billing_period": FactValue("known", "monthly", ("cited",)),
             "offering.subscription.programmatic_or_agent_use": FactValue("known", "yes", ("open",)),
         },
-        "sambanova/subscription/pro": {
-            "offering.subscription.usage_allowance": FactValue("known", "most", ("open",)),
-        },
+        # A card's own redirect to a cite-only host never stands in for verification.
+        "sambanova/subscription/pro": {},
     }
     assert helper == snapshot
 
@@ -139,10 +138,14 @@ def _case(name):
             f["verification"] = verification("fact", f["id"], value=20)
         if name == "open_same_family_verified":
             f["verification"]["verifier"]["model_family"] = "family-a"
-    elif name == "redirected":
+    elif name.startswith("redirected"):
         ref.update(source_id="open", resolved_urls=["https://docs.x.ai/pricing"])
-    elif name == "mixed_sources":
+        if name == "redirected_verified":
+            f["verification"] = verification("fact", f["id"], value=20)
+    elif name.startswith("mixed_sources"):
         f["sources"].append({**ref, "source_id": "open"})
+        if name == "mixed_sources_verified":
+            f["verification"] = verification("fact", f["id"], value=20)
     elif name.startswith("latest_"):
         log = [verification("fact", f["id"], "verified", day="2026-10-01", value=20),
                verification("fact", f["id"], name.removeprefix("latest_"), day="2026-10-02",
@@ -156,7 +159,8 @@ def _case(name):
 CASES = ["cited", "unknown", "bad_hash", "empty_regions", "blank_region", "whitespace_region",
          "invalid_value", "no_sources", "unregistered_source", "mismatch", "unreachable",
          "verified", "open_unverified", "open_verified", "open_same_family_verified",
-         "redirected", "mixed_sources", "latest_mismatch", "latest_unreachable",
+         "redirected", "redirected_verified", "mixed_sources", "mixed_sources_verified",
+         "latest_mismatch", "latest_unreachable",
          "latest_verified", "same_day_log_wins"]
 
 
@@ -173,8 +177,29 @@ def test_parity_cases_cover_admission_and_exclusion(tmp_path):
     admitted = {name for name in CASES
                 if both(tmp_path / name, [subscription("sambanova", "plus", facts=[_case(name)[0]])],
                         _case(name)[1])[0]["sambanova/subscription/plus"]}
-    assert admitted == {"cited", "verified", "open_verified", "redirected", "mixed_sources",
-                        "latest_verified"}
+    assert admitted == {"cited", "verified", "open_verified", "redirected_verified",
+                        "mixed_sources", "mixed_sources_verified", "latest_verified"}
+
+
+@pytest.mark.parametrize("name", ["mixed_sources", "mixed_sources_verified"])
+def test_a_mixed_citation_fact_is_admitted_as_cited_with_every_ref(tmp_path, name):
+    """MODEL-439: a cited ref mixed with another enters as cited, never as verified."""
+    f, log = _case(name)
+    row = subscription("sambanova", "plus", facts=[f])
+
+    helper, snapshot = both(tmp_path, [row], log)
+
+    expected = {PRICE: FactValue("known", 20, ("cited", "open"))}
+    assert helper == {"sambanova/subscription/plus": expected}
+    assert snapshot == helper
+    index = load_built_snapshot(build_snapshot(
+        SnapshotInputs(subscriptions=[row], sources=URLS, verifications=list(log)),
+        registry=REGISTRY, as_of=DAY))
+    (offering,) = index.subscription_offerings()
+    record = index.record(offering["facts"][PRICE].record_id)
+    assert record["verification"] is None
+    assert record["citation"]["status"] == "cited"
+    assert [ref["source_id"] for ref in record["sources"]] == ["cited", "open"]
 
 
 def test_a_raw_cited_fact_without_id_or_subject_is_admitted_as_the_snapshot_admits_it(tmp_path):

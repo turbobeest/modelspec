@@ -29,7 +29,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch import resolve_key, scrape  # noqa: E402
-from decision.retention import citation_metadata, cite_only_origin, metadata_origins, open_retained_source  # noqa: E402
+from decision.retention import citation_metadata, cite_only_origin_restrictive, metadata_origins, open_retained_source  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 CENSUS = ROOT / "benchmarks" / "_census"
@@ -272,7 +272,7 @@ def retained_search_results(results: list[dict], *, retrieved_at: datetime | Non
     for result in results:
         url = result.get("url") or ""
         origins = (*metadata_origins(result), *metadata_origins(result.get("metadata") or {}))
-        if not cite_only_origin(url, origins):
+        if not cite_only_origin_restrictive(url, origins):
             retained.append(result)
         elif set(result) == {"url", "snapshot_ref", "retrieved_at", "resolved_urls"}:
             retained.append(result)
@@ -350,7 +350,7 @@ def src_aggregators() -> None:
         except Exception as e:
             print("scrape failed", url, e)
             continue
-        if cite_only_origin(url, metadata_origins(data.get("metadata") or {})):
+        if cite_only_origin_restrictive(url, metadata_origins(data.get("metadata") or {})):
             continue
         md = data.get("markdown") or ""
         for m in re.finditer(r"\[([^\]]{2,60})\]\((https?://[^)\s]+)\)", md):

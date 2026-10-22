@@ -1,0 +1,27 @@
+{
+  "engine_main": "a03c4d077acc03c2bc5dba526ff635fb708ccb94",
+  "host_policy": "82ebcf4627d255d7641303caff2d149e879cf359",
+  "repair_engine": "77a9566822f7a23e322d2647913c755ad3cb7ed8",
+  "baseline_data": "9d9de96f062ac031336ee483ae97c3b436bd3845",
+  "repaired_data": "f722d3fcb673b28bdff9fa1b5cac06c22cc61c38",
+  "repaired_file_count": 13,
+  "repair_files_match_branch": true,
+  "baseline_data_path": "/tmp/model-437-scratch/acceptance/modelspec-data",
+  "repaired_data_path": "/tmp/model-437-scratch/acceptance/prepared/repaired-data",
+  "baseline_engine_path": "/tmp/model-437-scratch/acceptance/prepared/main",
+  "policy_path": "/tmp/model-437-scratch/acceptance/prepared/hosts-866.json",
+  "private_research_copies": "not read; linked unchanged from required clone",
+  "phase": "gates-c",
+  "started": "2026-10-21T19:00:51.945769+00:00",
+  "candidate_head": "6b9695fc75748bf31d8f07955bbf8fea89fc57f0",
+  "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "packages": {
+    "pydantic": "2.13.5",
+    "PyYAML": "6.0.3",
+    "cryptography": "45.0.7",
+    "pypdf": "6.19.0"
+  },
+  "node": "v22.22.3",
+  "git": "git version 2.50.1",
+  "pyodide": "0.28.3"
+}

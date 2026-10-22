@@ -16,7 +16,7 @@ This module sorts the ranked models into three bands instead:
   than ``THIN_INTERVAL_WIDTH``. They are never in the leader's band.
 
 The probability that one score is at least another's is read from the same
-score posteriors ``p_best`` resamples: each model's score is normal, with the
+score posteriors ``p_best`` integrates over: each model's score is normal, with the
 capability terms' variance and exact terms fixed, and models are independent.
 The pairwise probability has a closed form, so it is computed exactly rather
 than estimated from a finite set of draws.
@@ -31,6 +31,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from math import erfc, sqrt
 
+from decision.citation import cited_records
 from decision.contract import (
     BandEntry,
     Bands,
@@ -182,7 +183,6 @@ def entries(
     def entry(row: OptimisedResult) -> BandEntry:
         model_id = snapshot.model_of(row.candidate_id)
         low, high = row.score_interval
-        cited = getattr(snapshot, "cited_facts", None)
         return BandEntry(
             model=model_id,
             offering=offering_ref(row.candidate_id),
@@ -191,7 +191,7 @@ def entries(
             p_best=p_best.get(model_id),
             p_beats_leader=None if row is banded.leader else banded.p_beats.get(model_id),
             cost_per_task=cost(row.candidate_id),
-            warnings=[CITE_ONLY_WARNING] if cited and cited(row.candidate_id) else [],
+            warnings=[CITE_ONLY_WARNING] if cited_records(snapshot, row.candidate_id) else [],
             estimates=[
                 DimensionEstimate(
                     dimension=contribution.dimension,
@@ -219,7 +219,7 @@ def entries(
 def blend(
     rows: Sequence[OptimisedResult],
     model_of: Callable[[str], str],
-    probabilities: Callable[[str, Mapping[str, Distribution]], Mapping[str, float]],
+    probabilities: Callable[[Mapping[str, Distribution]], Mapping[str, float]],
 ) -> list[BlendTerm]:
     """Each weighted dimension, heaviest first, its share, and the order on it alone.
 
@@ -263,7 +263,7 @@ def blend(
                         best[model_id][1].estimate.value, best[model_id][1].estimate.sd)
                     for model_id in order
                 }
-                p_leader = probabilities(first.dimension, spreads).get(leaders[0])
+                p_leader = probabilities(spreads).get(leaders[0])
                 if len(order) > 1:
                     runner_up = order[1]
                     p_runner_up = p_at_least(spreads[runner_up], spreads[leaders[0]])

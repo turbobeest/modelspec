@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "/Users/terbeest/dev/modelspec/.venv/bin/python",
+    "docs/evidence/g2-ios/MODEL-439/r3/audit_exports.py",
+    "--results",
+    "/tmp/model-439-scratch/executor-r3/results",
+    "--output",
+    "/tmp/model-439-scratch/measurement-plan/audit-fixed"
+  ],
+  "cwd": "/Users/terbeest/dev/worktrees/model-439",
+  "started_at": "2026-10-21T20:07:50.648960+00:00",
+  "finished_at": "2026-10-21T20:08:22.987058+00:00",
+  "python_version": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "exit_code": 0,
+  "output": "/tmp/model-439-scratch/measurement-plan/audit-fixed.private.log"
+}

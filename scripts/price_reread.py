@@ -102,7 +102,10 @@ from decision.verify import (
     verify,
 )
 
-from decision.retention import citation_metadata, cite_only_origin, is_cite_only
+from decision.retention import (
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, is_cite_only_restrictive,
+    record_origin_status,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 #: ``automerge.yml`` must never queue this branch (tests/test_price_reread.py).
@@ -169,7 +172,23 @@ class FactResult:
             "new_value": None if self.cited or self.status is Status.CITED else self.new_value,
             "reason": self.reason,
             "copies": {sid: {"old": old, "new": new} for sid, (old, new) in self.copies.items()},
+            **({"citations": self.citations()} if self.status is Status.CITED else {}),
         }
+
+    def citations(self) -> dict[str, dict[str, Any]]:
+        """Source ID -> the dated citation ``--write`` records on that reference.
+
+        These are the exact ``snapshot_ref``, ``retrieved_at`` and ``resolved_urls``
+        that ``rewrite_fact`` writes, so the data repository's guard can require
+        each written citation to be one this run recorded (MODEL-423).
+        """
+        if self.claim is None:
+            return {}
+        return {ref.source_id: {"snapshot_ref": ref.snapshot_ref,
+                                "retrieved_at": ref.retrieved_at.isoformat(),
+                                "resolved_urls": [str(url) for url in ref.resolved_urls]}
+                for ref in self.claim.sources
+                if ref.source_id in self.copies and ref.retrieved_at is not None}
 
 
 @dataclass
@@ -255,10 +274,14 @@ def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping,
     if value_hash(claim_verification_value(claim)) != value_hash(fact_verification_value(fact)):
         return "the fact differs from its filed claim"
     latest = log_latest.get(("fact", fact["id"]))
-    if sources is not None and any(
-            ref.source_id in sources and cite_only_origin(sources[ref.source_id].url,
-                                                         getattr(ref, "resolved_urls", ()))
-            for ref in claim.sources):
+    # Granting: a cite-only source puts the fact in scope without a verified
+    # result, so a malformed URL refuses (MODEL-420).
+    statuses = [] if sources is None else [
+        cite_only_origin_status(sources[ref.source_id].url, getattr(ref, "resolved_urls", ()))
+        for ref in claim.sources if ref.source_id in sources]
+    if None in statuses:
+        return "a source URL is malformed"
+    if any(statuses):
         if latest is not None and latest.outcome in {"mismatch", "unreachable"}:
             return "quarantined: latest source check failed"
         return None
@@ -305,7 +328,7 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     for url, ids in sorted(urls.items()):
         result = _fetch_rendered(rendered, url, ids, sources)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
-        restricted = cite_only_origin(url, result.resolved_urls)
+        restricted = cite_only_origin_restrictive(url, result.resolved_urls)
         if restricted:
             (directory / name).unlink(missing_ok=True)
         if result.outcome == "ok" and not restricted:
@@ -384,12 +407,13 @@ class RenderedReplayFetcher:
                 if (not isinstance(citation, dict) or citation.get("url") != url
                         or not isinstance(citation.get("snapshot_ref"), str)
                         or not re.fullmatch(r"sha256:[0-9a-f]{64}", citation["snapshot_ref"])
-                        or not cite_only_origin(url, citation.get("resolved_urls", ()))):
+                        or cite_only_origin_status(url, citation.get("resolved_urls", ()))
+                        is not True):
                     raise ValueError("invalid cite-only rendered citation")
                 datetime.fromisoformat(citation["retrieved_at"])
                 if path.exists() or path.is_symlink():
                     raise ValueError("cite-only rendered artifact must not contain page bytes")
-            elif is_cite_only(url) and entry["outcome"] == "ok":
+            elif is_cite_only_restrictive(url) and entry["outcome"] == "ok":
                 raise ValueError("cite-only rendered artifact requires hash-only citation")
             elif entry["outcome"] == "ok" or path.exists() or path.is_symlink():
                 _rendered_file(path, MAX_RENDERED_BODY_BYTES)
@@ -420,12 +444,22 @@ def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
     if isinstance(getattr(rendered, "primary", rendered), RenderedReplayFetcher):
         return rendered.fetch(url)
     source_ids = sorted(set(source_ids))
-    preparation = next((RENDERED_PREPARATIONS[sid] for sid in source_ids
-                        if sid in RENDERED_PREPARATIONS), None)
-    if preparation is None and sources is not None:
-        # Wait for the cited CSS regions a client-side app mounts late (MODEL-423).
-        preparation = rendered_preparation(source_ids, sources)
+    preparation = (rendered_preparation(source_ids, sources) if sources is not None else
+                   next((RENDERED_PREPARATIONS[sid] for sid in source_ids
+                         if sid in RENDERED_PREPARATIONS), None))
     return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
+
+
+def _valid_citation_record(store: CopyStore, ref: str) -> bool:
+    """Whether ``ref`` has a citation record; ValueError when that record is malformed.
+
+    A record whose stored origins fail ``record_origin_status`` never grants
+    the cited outcome (MODEL-420); the caller refuses the source instead.
+    """
+    record = store.citation(ref)
+    if record is not None and record_origin_status(record) is None:
+        raise ValueError("invalid citation record")
+    return record is not None
 
 
 def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher: Fetcher,
@@ -454,16 +488,25 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             result = fetcher.fetch(url)
         if result.outcome == "ok":
             retrieved_at = result.retrieved_at or datetime.now(UTC)
-            if result.snapshot_ref is not None:
-                if not cite_only_origin(url, result.resolved_urls):
-                    raise ValueError("a byte-free replay requires a cite-only origin")
-                ref = result.snapshot_ref
-                store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
-                                      resolved_urls=result.resolved_urls)
-            else:
-                ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
-                                resolved_urls=result.resolved_urls)
-            outcome = "cited" if store.citation(ref) is not None else "ok"
+            try:
+                if result.snapshot_ref is not None:
+                    if cite_only_origin_status(url, result.resolved_urls) is not True:
+                        raise ValueError("a byte-free replay requires a cite-only origin")
+                    ref = result.snapshot_ref
+                    _valid_citation_record(store, ref)  # never overwrite a damaged one
+                    store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
+                                          resolved_urls=result.resolved_urls)
+                else:
+                    ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
+                                    resolved_urls=result.resolved_urls)
+                # Granting: "cited" skips verification, so an existing record for
+                # this hash counts only once every origin it carries is valid.
+                outcome = "cited" if _valid_citation_record(store, ref) else "ok"
+            except ValueError:
+                # Fail closed for this source only (MODEL-420): no bytes, no
+                # citation, and the other sources still run.
+                fetched[sid] = SourceFetch(sid, url, "invalid_citation_metadata")
+                continue
             fetched[sid] = SourceFetch(sid, url, outcome, ref,
                                        error=None if outcome == "cited" else result.error,
                                        retrieved_at=retrieved_at, resolved_urls=result.resolved_urls)
@@ -604,7 +647,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         file=str(tracked.path.relative_to(root)),
         source_ids=tuple(s.source_id for s in old_sources),
         status=Status.NOT_REREAD, old_state=fact["state"], old_value=fact.get("value"),
-        cited=any(ref.source_id in regions.sources and cite_only_origin(
+        cited=any(ref.source_id in regions.sources and cite_only_origin_restrictive(
             regions.sources[ref.source_id].url, ref.resolved_urls) for ref in old_sources),
     )
     ok = {s.source_id: fetched[s.source_id] for s in old_sources
@@ -723,7 +766,7 @@ def _page_size(regions: StoredRegions, claim: Claim) -> str:
     sizes = []
     for source in claim.sources:
         found = regions.sources.get(source.source_id)
-        if found is None or is_cite_only(found.url) or not regions.store.has(source.snapshot_ref):
+        if found is None or is_cite_only_restrictive(found.url) or not regions.store.has(source.snapshot_ref):
             continue
         rules = NORMALISERS[found.normaliser]
         try:
@@ -773,7 +816,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                 tracked.fact["id"], tracked.fact["facet"], str(tracked.path.relative_to(root)),
                 tuple(s["source_id"] for s in tracked.fact["sources"]), Status.NOT_REREAD,
                 tracked.fact["state"], tracked.fact.get("value"), reason=reason,
-                cited=any(ref["source_id"] in sources and cite_only_origin(
+                cited=any(ref["source_id"] in sources and cite_only_origin_restrictive(
                     sources[ref["source_id"]].url, ref.get("resolved_urls", ()))
                     for ref in tracked.fact["sources"])))
 
@@ -829,7 +872,7 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
             wanted.setdefault(sid, set()).add(pair)
     diffs: dict[str, list[str]] = {}
     for sid, pairs in sorted(wanted.items()):
-        if is_cite_only(sources[sid].url) or any(
+        if is_cite_only_restrictive(sources[sid].url) or any(
                 store.citation(ref) is not None for pair in pairs for ref in pair):
             continue
         lines: list[str] = []

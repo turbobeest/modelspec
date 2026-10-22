@@ -85,6 +85,62 @@ recorded supersession can retire a mismatch read from a region the fact no
 longer cites ([design](cite-only-supersession.md)). Non-cite-only facts keep the existing
 value-hash-bound, independent verification gate (`decision/snapshot.py:750,804`).
 
+MODEL-420 decides cite-only status per source reference
+(`decision/citation.py`), and a card's own fields only ever make a record
+stricter:
+
+- A ref is *cited* when its registered source URL is on a cite-only host, or
+  when the fetcher's citation record for the ref's `snapshot_ref` (the
+  `CopyStore` the build opens only when `MODELSPEC_SOURCE_CACHE` names it)
+  names a cite-only redirect origin. Only a cited ref can stand in for
+  verification.
+- A ref is *restricted* when it is not cited but the card's `resolved_urls`
+  name a cite-only host, or the store holds a citation record for its hash.
+  Its bytes are never retained. When no ref is cited, benchmark evidence
+  citing it stays out and a fact citing it still needs a verified outcome.
+- A fact or benchmark evidence row that mixes a cited ref with other refs
+  is admitted as cited, with `verification: null` and every ref in its
+  citation payload. Historical verification cannot be attributed to either
+  side, and held source copies cannot be re-checked. MODEL-439 therefore
+  shows the record as cited, not machine-verified, instead of hiding it or
+  claiming verification. A data repair that proves retained-only support
+  can still remove the cite-only ref and preserve that verification.
+- The card's `resolved_urls` and any store record are validated in full
+  before anything is decided, including for a registered cite-only source.
+  An unreadable store entry (a directory, a dangling symlink, bad JSON, not a
+  JSON object), a record whose hash or source URL differs from the ref, or
+  malformed redirect metadata (`null`, `{}`, `false`, `""`, a non-HTTP or
+  unparseable URL) fails closed: the record is excluded as
+  `invalid_citation`, never read as "no redirect". Only a missing entry means
+  no record.
+- One canonical host decides both admission and restriction
+  (`decision/retention.py` `canonical_host`): the URL is parsed as the
+  repository's `HttpUrl` (WHATWG rules, IDNA), then a terminal dot is
+  dropped. Only `http` and `https` URLs can be cite-only. An HTTP(S) URL with
+  an invalid port or userinfo, or that does not parse, never yields a guessed
+  host. It fails closed for its own record only, and never aborts a build or
+  job:
+  - Restrictive call sites (retention, storage, display) use
+    `is_cite_only_restrictive` / `cite_only_origin_restrictive`, which read
+    it as cite-only: no bytes are kept, evidence stays out, scores and facts
+    are never counted as verified, and the score-source notice shows plain
+    text.
+  - Granting call sites use `cite_only_status` / `cite_only_origin_status`,
+    which return None for a malformed URL, and refuse. Granting means
+    cite-only status admits a fact as cited, skips verification (the
+    verifier's `cited` outcome; a malformed URL or unreadable record gives
+    `skipped`), supersedes a mismatch, dates an audit record by retrieval,
+    puts a fact in re-read scope, accepts a byte-free replay, or writes a
+    citation record (`CopyStore.put` refuses a malformed origin).
+  - A stored citation record grants only after every origin it carries
+    (`url`, `sourceURL`, `final_url`, `resolved_urls`) is validated
+    (`retention.record_origin_status`), in the snapshot, the verifier and
+    the re-check alike.
+  - The weekly re-check skips one source with malformed redirect metadata,
+    in the fetch or in its previous record, as `invalid_citation_metadata`,
+    leaves that record untouched, and goes on. The price re-read records the
+    same outcome for one source and goes on.
+
 Cite-only facts are admitted to the premier lineup, snapshot, and fact-based
 decision ranking through this explicit exception. The guaranteed-facet gate
 currently checks admitted presence (`decision/snapshot.py:1430`), so a cited
@@ -94,11 +150,14 @@ still required to claim verified; citation admission makes no such claim.
 Unknown facts remain unknown. A cite-only host is not a reason to manufacture
 an absent value or bypass registry/schema validation.
 
-This exception is for facts. Benchmark evidence in decision responses still
-requires independent verification. The legacy card/ranking path must stop
-counting evidence from a cite-only host as verified, retain its ordinary
-ranking policy, and disclose citation status separately. Ranking floors,
-class boundaries, and cost-to-correct policy do not change.
+MODEL-437 extends this exception to benchmark scores, following Jamie's
+2026-10-21 decision to count cited scores. Every reference must qualify as
+cited under the same origin rules as a fact. Latest mismatch and unreachable
+outcomes still exclude scores. Admitted scores retain `verification: null`
+and `citation.status: cited`; they contribute to ranking and capability fits.
+The legacy rank path continues to exclude them from verified counts and
+discloses their citation status. Ranking floors, class boundaries, and
+cost-to-correct policy do not change.
 
 ## Public representations
 
@@ -110,7 +169,7 @@ Keep all existing closed states and verification outcomes. Add citation
 metadata to exports and shown facts as needed, and use
 `cite_only_not_machine_verified` in decision and result warnings. Full,
 bounded, and explain-none decisions retain the decision warning only when a
-recommended model uses a cited fact: a displayed fact, a ranking or objective
+recommended model uses a cited fact or score: a displayed fact, a ranking or objective
 input, or a Must that admitted it. The recommendation includes all top or tied
 answer members, or the returned ranked results when there is no named answer.
 Rest, eliminated, screened-out and may-qualify rows carry their own warnings;
@@ -122,9 +181,9 @@ continue to mean verification dates (`decision/contract.py:1775` and
 null. Fetch dates and hashes belong to citation metadata. Verified-only API
 model identifiers must not be promoted from cite-only facts.
 
-The explanation guard currently accepts verified records only
-(`decision/explain.py:130`); add a narrow branch for validated cited fact
-records, never for benchmark evidence. Model pages show a citation notice
+The explanation guard accepts verified records and validated cited facts or
+scores. Evidence items carry citation metadata and a notice beside the score.
+Model pages show a citation notice
 beside affected facts. Both decide interfaces show the notice. The MCP
 forwards decision and result warnings (`mcp/src/server.ts:563,574`), so it uses
 the same assurance disclosure. CLI JSON preserves the response body.
@@ -133,7 +192,9 @@ For legacy rank results, add citation metadata/warnings while preserving the
 closed `evidence_basis` vocabulary in `docs/api.md:45`. A cited record is
 excluded from verified counts. Export additions leave
 `export_schema_version: 3.0` unchanged (`pipeline/export.py:28,218`). No public
-contract field widens, so this design requires no major version bump.
+contract field widens in those exports. MODEL-437 changes the snapshot format
+to major 2 because retained benchmark verification becomes nullable. Older
+snapshot readers must refuse these scores instead of calling them verified.
 
 ## Later reads and verification
 

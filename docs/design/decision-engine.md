@@ -197,7 +197,7 @@ One objective form per spec:
 - weighted over normalised facets, with the normalisation shown;
 - Pareto: return the non-dominated set.
 
-Soft-condition penalties apply here. **P(best)** and **top-3 stability** come from resampling estimates within their intervals.
+Soft-condition penalties apply here. **P(best)** and **top-3 stability** are integrated over the estimates' normal posteriors at fixed quantile nodes, with no random draws (MODEL-440).
 
 ### 6.5 Explain
 - **Why these won:** contributions per dimension, each with raw evidence (value, benchmark version, qualifiers, source, date, directness).

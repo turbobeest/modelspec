@@ -1,0 +1,15 @@
+{
+  "python": "3.14.4",
+  "pytest": "9.1.1",
+  "pydantic": "2.13.5",
+  "PyYAML": "6.0.3",
+  "cryptography": "45.0.7",
+  "git": {
+    "exit_code": 0,
+    "version": "git version 2.50.1"
+  },
+  "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node": {
+    "exit_code": 0,
+    "version": "v22.22.3"
+  }
+}

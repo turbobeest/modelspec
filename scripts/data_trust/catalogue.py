@@ -167,12 +167,13 @@ def registered_cite_only(c: Catalogue, ref: Any) -> bool:
     The audit decides this itself from the source registry and never from
     card-authored ``resolved_urls`` or a record's citation status.
     """
-    from decision.retention import is_cite_only
+    from decision.retention import cite_only_status
 
     if not isinstance(ref, dict):
         return False
     url = (c.sources.get(ref.get("source_id")) or {}).get("url")
-    return bool(url) and is_cite_only(url)
+    # A malformed URL is not cite-only here: its record must still be verified.
+    return bool(url) and cite_only_status(url) is True
 
 
 def only_cite_only_sources(c: Catalogue, f: dict) -> bool:

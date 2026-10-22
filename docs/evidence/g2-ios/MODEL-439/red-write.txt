@@ -1,0 +1,46 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_write_preserves_values_bytes_and_admission_and_is_idempotent[128000-1-open] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-95/test_write_preserves_values_by0')
+retained_value = 128000, rule = 1, source = 'open'
+
+    @pytest.mark.parametrize("retained_value,rule,source", [(128000, 1, "open"), (64000, 2, "cite")])
+    def test_write_preserves_values_bytes_and_admission_and_is_idempotent(tmp_path, retained_value, rule, source):
+        root, cache, policy, card = setup_data(tmp_path, retained_value=retained_value)
+        before = files(root)
+        original = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: usage: refile_mixed_citations.py [-h] --data-root DATA_ROOT --policy POLICY
+E                                          --source-cache SOURCE_CACHE --as-of AS_OF
+E         refile_mixed_citations.py: error: unrecognized arguments: --write
+E
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri...       --source-cache SOURCE_CACHE --as-of AS_OF\nrefile_mixed_citations.py: error: unrecognized arguments: --write\n').returncode
+
+tests/test_refile_mixed_citations.py:92: AssertionError
+_ test_write_preserves_values_bytes_and_admission_and_is_idempotent[64000-2-cite] _
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-95/test_write_preserves_values_by1')
+retained_value = 64000, rule = 2, source = 'cite'
+
+    @pytest.mark.parametrize("retained_value,rule,source", [(128000, 1, "open"), (64000, 2, "cite")])
+    def test_write_preserves_values_bytes_and_admission_and_is_idempotent(tmp_path, retained_value, rule, source):
+        root, cache, policy, card = setup_data(tmp_path, retained_value=retained_value)
+        before = files(root)
+        original = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+        result = invoke(root, cache, policy, "--write")
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: usage: refile_mixed_citations.py [-h] --data-root DATA_ROOT --policy POLICY
+E                                          --source-cache SOURCE_CACHE --as-of AS_OF
+E         refile_mixed_citations.py: error: unrecognized arguments: --write
+E
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['/Users/terbeest/dev/modelspec/.venv/bin/python', '/Users/terbeest/dev/worktrees/model-439/scri...       --source-cache SOURCE_CACHE --as-of AS_OF\nrefile_mixed_citations.py: error: unrecognized arguments: --write\n').returncode
+
+tests/test_refile_mixed_citations.py:92: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_write_preserves_values_bytes_and_admission_and_is_idempotent[128000-1-open]
+FAILED tests/test_refile_mixed_citations.py::test_write_preserves_values_bytes_and_admission_and_is_idempotent[64000-2-cite]
+2 failed, 1 deselected in 1.04s

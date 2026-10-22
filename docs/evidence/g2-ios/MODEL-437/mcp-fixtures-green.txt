@@ -1,0 +1,12 @@
+
+> test
+> vitest run decide-budget.test.ts server.test.ts
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-437/mcp
+
+
+ Test Files  2 passed (2)
+      Tests  106 passed (106)
+   Start at  13:24:46
+   Duration  566ms (tests 39%, transform 30%, import 29%, worker 1%)

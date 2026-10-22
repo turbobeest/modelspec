@@ -102,7 +102,7 @@ def deploy(entry, monkeypatch, utc_clock, primary, successor=None):
             snapshot = load_snapshot_bytes(raw, key=None, public_keys={})
             blobs[path] = json.dumps({
                 "snapshot": snapshot.snapshot_id,
-                "vocabulary_version": "1.0", "contract_version": "2.18",
+                "vocabulary_version": "1.0", "contract_version": "2.19",
                 "facets": [{"id": "offering.price.input", "has_data": True,
                             "values": [snapshot.fact(OFFERING, "offering.price.input").value]}],
             }).encode()
@@ -175,9 +175,9 @@ def test_keyed_decide_uses_the_correct_price_and_snapshot_at_the_boundary(
         assert body["results"][0]["cost_per_task"] == price
         if bounded:
             assert body["bounded_version"] == "1.5"
-            assert body["projects_contract"] == "2.18"
+            assert body["projects_contract"] == "2.19"
         else:
-            assert body["contract_version"] == "2.18"
+            assert body["contract_version"] == "2.19"
         held = module._decision_holder(worker.env.EXPORT_ORIGIN).snapshot
         assert held.fact(OFFERING, "offering.price.input").value == (2 if index == 0 else 4)
         assert held.fact(OFFERING, "offering.price.output").value == (10 if index == 0 else 20)

@@ -1,0 +1,106 @@
+{
+  "definitions": {
+    "a": "Prospective merge of main 36b2d184 and PR 889 head 33c705e1, main policy, repaired data",
+    "c": "candidate code, policy 866, the same repaired data",
+    "d": "candidate code, main policy, the same repaired data",
+    "first_result": "results[0].model, or null when absent",
+    "tie_set": "sorted answer.members for tied answers, otherwise []"
+  },
+  "deploy_export_accepted": true,
+  "periods": {
+    "current": {
+      "c_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 267,
+        "verified_to_cited_changes": 255,
+        "fact_assurance_transitions": {
+          "not_admitted_to_cited": 12,
+          "verified_to_cited": 255
+        }
+      },
+      "d_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 0,
+        "verified_to_cited_changes": 0,
+        "fact_assurance_transitions": {}
+      },
+      "control_passed": true,
+      "corpus_passed": true
+    },
+    "successor": {
+      "c_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 267,
+        "verified_to_cited_changes": 255,
+        "fact_assurance_transitions": {
+          "not_admitted_to_cited": 12,
+          "verified_to_cited": 255
+        }
+      },
+      "d_vs_a": {
+        "http_changes": 0,
+        "status_changes": 0,
+        "contract_changes": 0,
+        "first_result_model_changes": 0,
+        "answer_kind_changes": 0,
+        "answer_leader_changes": 0,
+        "answer_order_changes": 0,
+        "tie_breakers_changes": 0,
+        "ordered_result_models_changes": 0,
+        "answer_kind_or_member_set_changes": 0,
+        "tie_member_set_changes": 0,
+        "repo_cases": 302,
+        "first_result_changed_cases": [],
+        "answer_changed_cases": [],
+        "fact_assurance_changes": 0,
+        "verified_to_cited_changes": 0,
+        "fact_assurance_transitions": {}
+      },
+      "control_passed": true,
+      "corpus_passed": true
+    }
+  },
+  "comparison_passed": true,
+  "policy_changes_require_explanation": true,
+  "baseline_tree": "e27848539593d156507ae9fccb6fe52a324e1b66",
+  "pr889_pending_main_merge": true
+}

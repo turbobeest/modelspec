@@ -1,0 +1,173 @@
+
+> web@0.0.0 test
+> vitest run src/decide/__tests__/cited-score.test.tsx
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-437/web
+
+ ❯ src/decide/__tests__/cited-score.test.tsx (2 tests | 2 failed) 18ms
+   × accepts cited benchmark provenance without changing existing evidence fields 9ms
+   × labels cited benchmark evidence in the model explanation 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/decide/__tests__/cited-score.test.tsx > accepts cited benchmark provenance without changing existing evidence fields
+ZodError: [
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [],
+    "message": "Unrecognized key: \"citation\""
+  }
+]
+ ❯ src/decide/__tests__/cited-score.test.tsx:34:29
+     32|   const item = rawDecision.results[0]?.evidence[0]?.items[0];
+     33|   if (!item) throw new Error("Fixture requires benchmark evidence");
+     34|   expect(evidenceItemSchema.parse({ ...item, citation })).toHaveProper…
+       |                             ^
+     35|   expect(evidenceItemSchema.parse(item)).not.toHaveProperty("citation"…
+     36| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/decide/__tests__/cited-score.test.tsx > labels cited benchmark evidence in the model explanation
+ZodError: [
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "top",
+      0,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "top",
+      1,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "top",
+      2,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "top",
+      3,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "results",
+      0,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "results",
+      1,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "results",
+      2,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  },
+  {
+    "code": "unrecognized_keys",
+    "keys": [
+      "citation"
+    ],
+    "path": [
+      "results",
+      3,
+      "evidence",
+      0,
+      "items",
+      0
+    ],
+    "message": "Unrecognized key: \"citation\""
+  }
+]
+ ❯ citedDecision src/decide/__tests__/cited-score.test.tsx:16:25
+     14|
+     15| function citedDecision() {
+     16|   return decisionSchema.parse({
+       |                         ^
+     17|     ...rawDecision,
+     18|     results: rawDecision.results.map((result) => ({ ...result,
+ ❯ src/decide/__tests__/cited-score.test.tsx:39:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  13:04:40
+   Duration  933ms (environment 58%, transform 20%, setup 11%, import 8%, tests 2%)

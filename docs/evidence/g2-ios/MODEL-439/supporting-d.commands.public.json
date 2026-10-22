@@ -1,0 +1,42 @@
+[
+  {
+    "label": "supporting-d",
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/tmp/model-439-scratch/acceptance-review/compare_private.py",
+      "run",
+      "--main-root",
+      "/tmp/model-439-scratch/acceptance-review/prepared/main",
+      "--candidate-root",
+      "/tmp/model-439-scratch/acceptance-review/prepared/main",
+      "--host-policy",
+      "/tmp/model-439-scratch/acceptance-review/prepared/hosts-866.json",
+      "--baseline-data-dir",
+      "/tmp/model-439-scratch/acceptance-review/prepared/baseline-data",
+      "--data-dir",
+      "/tmp/model-439-scratch/modelspec-data",
+      "--output",
+      "/tmp/model-439-scratch/acceptance-review/results",
+      "--states",
+      "d"
+    ],
+    "cwd": "/Users/terbeest/dev/worktrees/model-439",
+    "recorded_at": "2026-10-21T18:26:11.575398+00:00",
+    "exit_code": 0
+  },
+  {
+    "label": "compare-abd",
+    "cwd": "/Users/terbeest/dev/worktrees/model-439",
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/tmp/model-439-scratch/acceptance-review/compare_private.py",
+      "compare",
+      "--output",
+      "/tmp/model-439-scratch/acceptance-review/results",
+      "--states",
+      "abd"
+    ],
+    "stdout_redirect": "/tmp/model-439-scratch/acceptance-review/comparison-abd.log",
+    "exit_code": 1
+  }
+]

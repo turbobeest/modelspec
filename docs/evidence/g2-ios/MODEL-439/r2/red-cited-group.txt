@@ -1,0 +1,29 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_repeated_cited_checks_preserve_unambiguous_winning_side _________
+
+tmp_path = PosixPath('/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-127/test_repeated_cited_checks_pre0')
+
+    def test_repeated_cited_checks_preserve_unambiguous_winning_side(tmp_path):
+        root, cache, policy, _ = setup_data(tmp_path, support="cite")
+        path = root / "verification/queue/events.jsonl"
+        events = [json.loads(line) for line in path.read_text().splitlines()]
+        older = json.loads(json.dumps(events))
+        older[0]["claim"]["sources"][0]["snapshot_ref"] = "sha256:" + "b" * 64
+        path.write_text("\n".join(json.dumps(event) for event in [*older, *events]) + "\n")
+        log = root / "verification/log.jsonl"
+        log.write_bytes(log.read_bytes() * 2)
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+>       assert json.loads(result.stdout)["counts"] == {"1": 0, "2": 1, "3": 0}
+E       AssertionError: assert {'1': 0, '2': 0, '3': 0} == {'1': 0, '2': 1, '3': 0}
+E
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'2': 0} != {'2': 1}
+E         Use -v to get more diff
+
+tests/test_refile_mixed_citations.py:288: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refile_mixed_citations.py::test_repeated_cited_checks_preserve_unambiguous_winning_side
+1 failed, 22 deselected in 0.96s

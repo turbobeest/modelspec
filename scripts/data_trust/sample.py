@@ -117,9 +117,9 @@ def reread(
             sid = raw_ref["source_id"] if raw_ref else f"audit-primary-{index}"
             if url not in fetched:
                 response = fetcher.fetch(url)
-                from decision.retention import cite_only_origin
+                from decision.retention import cite_only_origin_restrictive
 
-                if cite_only_origin(url, response.resolved_urls):
+                if cite_only_origin_restrictive(url, response.resolved_urls):
                     store.put(response.body, source_url=url,
                               retrieved_at=response.retrieved_at,
                               resolved_urls=response.resolved_urls)

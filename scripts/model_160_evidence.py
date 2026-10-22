@@ -429,7 +429,7 @@ class Registry:
     def fetch_rendered(self, url: str) -> tuple[str, str]:
         """The page as Firecrawl renders it to markdown (``FIRECRAWL_API_KEY``), retained."""
         from decision.retention import (
-            cite_only_origin, metadata_origins, open_retained_source, refuse_disk_scrape,
+            cite_only_origin_restrictive, metadata_origins, open_retained_source, refuse_disk_scrape,
         )
 
         refuse_disk_scrape(url)
@@ -450,7 +450,7 @@ class Registry:
                 data = json.load(response)["data"]
                 markdown = data["markdown"]
                 origins = metadata_origins(data.get("metadata") or {})
-            if cite_only_origin(url, origins):
+            if cite_only_origin_restrictive(url, origins):
                 raise ValueError("cite-only source cannot supply a retained board projection")
             if cache:
                 cache.parent.mkdir(parents=True, exist_ok=True)

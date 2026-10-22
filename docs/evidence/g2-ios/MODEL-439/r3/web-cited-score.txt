@@ -1,0 +1,13 @@
+
+> web@0.0.0 test
+> vitest run src/decide/__tests__/cited-score.test.tsx
+
+
+ RUN  v5.0.1 /Users/terbeest/dev/worktrees/model-439/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  15:57:12
+   Duration  613ms (environment 43%, transform 23%, tests 17%, setup 8%, import 8%)
+

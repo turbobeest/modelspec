@@ -1,0 +1,12 @@
+{
+  "base_sha": "44f3bdb5cbc96afa275ee1ca836703560d10c97b",
+  "private_data_sha": "a6f8fd798d7d6f40b35ed08320796b773f29df9a",
+  "as_of": "2026-10-21",
+  "gate_enabled": true,
+  "base_gap_count": 192,
+  "candidate_gap_count": 192,
+  "same_subject_facet_keys": true,
+  "same_subject_facet_reasons": true,
+  "candidate_only_gaps": 0,
+  "base_only_gaps": 0
+}

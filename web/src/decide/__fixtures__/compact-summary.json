@@ -23,9 +23,9 @@
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.18",
-  "decision_id": "dec_18b812054b953e2d9d3d1465",
-  "snapshot": "snap_0ba2c5bb156ee46b",
+  "contract_version": "2.19",
+  "decision_id": "dec_2967074605e9baf886133a0d",
+  "snapshot": "snap_9ca3efd177ef1a8d",
   "signature_verified": false,
   "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
   "explain": "summary",
@@ -651,7 +651,7 @@
     "kind": "out_of_coverage",
     "message": "The decision board cannot decide software_engineering from this snapshot. Covered classes: text-generator (4 models). Catalogue presence is not decision coverage.",
     "url": "https://modelspec.dev/api/coverage.json",
-    "snapshot": "snap_0ba2c5bb156ee46b",
+    "snapshot": "snap_9ca3efd177ef1a8d",
     "as_of": "2026-09-25",
     "classes": [
       {

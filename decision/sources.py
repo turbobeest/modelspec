@@ -27,6 +27,7 @@ import re
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -39,9 +40,13 @@ import yaml
 if TYPE_CHECKING:
     import httpx
 
+from decision.azure_pricing import wait_for_selected_prices
 from decision.model import CitedRegion as CitedRegion
-from decision.model import Source, SourceSnapshot
-from decision.retention import citation_metadata, cite_only_origin, require_source_url
+from decision.model import RenderedInteraction, Source, SourceSnapshot
+from decision.retention import (
+    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    record_origin_status, require_source_url,
+)
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -358,6 +363,10 @@ RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {
     "model-368-perplexity-pro-faq": prepare_pro_faq,
 }
 
+RENDERED_POSTCONDITIONS: Mapping[str, RenderedPreparation] = {
+    "azure-pricing": wait_for_selected_prices,
+}
+
 _REGION_HAS_TEXT = """selector => {
     const node = document.querySelector(selector);
     return node !== null && node.textContent.trim().length > 0;
@@ -395,6 +404,186 @@ class CitedRegionWait:
                 return
 
 
+class RenderedInteractionError(Exception):
+    """A recipe could not safely reach its required page state."""
+
+
+@contextmanager
+def _read_only_interactions(page: Any, prepare: RenderedInteractions, timeout: float):
+    from playwright.sync_api import Error
+
+    context = page.context
+    other_pages = set(context.pages) - {page}
+    opened_pages = {page}
+    pending_navigations = []
+    blocked = False
+
+    def navigation_page(request: Any) -> Any:
+        try:
+            return request.frame.page
+        except Error:
+            return None
+
+    def endpoint(url: str) -> tuple[str, str, str]:
+        parsed = urlsplit(url)
+        return parsed.scheme, parsed.netloc, parsed.path
+
+    telemetry = {
+        endpoint(str(step.url))
+        for recipe in prepare.recipes for step in recipe if step.action == "block_telemetry"
+    }
+
+    def read_only(route: Any) -> None:
+        nonlocal blocked
+        request = route.request
+        navigation = request.is_navigation_request()
+        known_telemetry = endpoint(request.url) in telemetry
+        if navigation or request.method not in {"GET", "HEAD"} or known_telemetry:
+            if navigation or not known_telemetry:
+                blocked = True
+            # A popup's first request can arrive before Playwright creates its Page.
+            if navigation and navigation_page(request) is None:
+                pending_navigations.append(request)
+            route.abort()
+        else:
+            route.fallback()
+
+    def close_opened_page(opened_page: Any) -> None:
+        opened_pages.add(opened_page)
+        opened_page.close()
+
+    # Context routes also intercept the first request of a new popup.
+    context.route("**/*", read_only)
+    context.on("page", close_opened_page)
+    try:
+        yield
+    finally:
+        try:
+            deadline = time.monotonic() + timeout
+            opened_pages.update(set(context.pages) - other_pages)
+            while opened_pages or pending_navigations:
+                while pending_navigations:
+                    request = pending_navigations.pop()
+                    target = navigation_page(request)
+                    if target is None:
+                        target = context.wait_for_event(
+                            "page", predicate=lambda candidate: navigation_page(request) == candidate,
+                            timeout=max(1.0, (deadline - time.monotonic()) * 1000))
+                    if target not in other_pages:
+                        opened_pages.add(target)
+                if opened_pages:
+                    opened_pages.pop().close()
+        except Error:
+            context.close()
+            raise
+        finally:
+            try:
+                context.unroute("**/*", read_only)
+            finally:
+                context.remove_listener("page", close_opened_page)
+    if blocked:
+        raise RenderedInteractionError("blocked interaction request")
+
+
+_SAFE_CONTROL = r"""(node, action) => {
+    const tag = node.tagName.toLowerCase();
+    const role = node.getAttribute('role');
+    const labels = [node.getAttribute('aria-label'), node.title,
+                    node.innerText, node.textContent, node.value,
+                    ...Array.from(node.querySelectorAll('img[alt]'), image => image.alt)]
+        .map(value => (value || '').trim()).filter(Boolean);
+    if (node.closest('form') || node.hasAttribute('form')) return false;
+    if (node.closest('a[href]') && !node.closest('a[href]').getAttribute('href').startsWith('#'))
+        return false;
+    const context = node.closest('[id*="cookie"],[id*="consent"],[class*="cookie"],[class*="consent"]');
+    if (action !== 'reject_consent' &&
+        (context || labels.some(label =>
+            /\b(cookie|consent|accept|agree|allow all)\b/i.test(label)))) return false;
+    if (labels.some(label =>
+        /\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b/i.test(label)))
+        return false;
+    if (action === 'select_option') return tag === 'select';
+    const control = tag === 'button' || ['tab', 'button', 'combobox', 'option'].includes(role);
+    if (!control) return false;
+    if (action === 'reject_consent') {
+        const reject = /^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$/i;
+        return labels.length > 0 && labels.every(label => reject.test(label));
+    }
+    if (/^(submit|reset)$/i.test(node.getAttribute('type') || '')) return false;
+    return true;
+}"""
+
+_TRANSACTION_NAME = re.compile(
+    r"\b(log.?in|sign.?in|sign.?up|register|submit|buy|purchase|checkout|subscribe)\b", re.I)
+_CONSENT_NAME = re.compile(r"\b(cookie|consent|accept|agree|allow all)\b", re.I)
+_REJECT_NAME = re.compile(
+    r"^(reject all( cookies)?|decline( all)?|deny all|only necessary cookies)$", re.I)
+
+_REGION_CONTAINS_TEXT = """({selector, text}) => {
+    const nodes = document.querySelectorAll(selector);
+    if (nodes.length !== 1) return false;
+    const node = nodes[0];
+    if (node.tagName === 'SELECT')
+        return Array.from(node.selectedOptions).some(option => option.label === text);
+    return node.innerText.includes(text);
+}"""
+
+
+@dataclass(frozen=True)
+class RenderedInteractions:
+    """Execute validated UI data within one deadline; never capture a failed recipe."""
+
+    recipes: tuple[tuple[RenderedInteraction, ...], ...]
+    postconditions: tuple[RenderedPreparation, ...] = ()
+
+    def __call__(self, page: Any, timeout: float) -> None:
+        from playwright.sync_api import Error, expect
+
+        if any(recipe != self.recipes[0] for recipe in self.recipes[1:]):
+            raise RenderedInteractionError("conflicting interaction recipes for one URL")
+        deadline = time.monotonic() + timeout
+
+        def remaining_ms() -> float:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RenderedInteractionError("interaction time budget exhausted")
+            return remaining * 1000
+
+        try:
+            for step in self.recipes[0]:
+                if step.action == "block_telemetry":
+                    continue
+                if step.action == "wait_text":
+                    page.wait_for_function(
+                        _REGION_CONTAINS_TEXT,
+                        arg={"selector": step.selector, "text": step.text},
+                        timeout=remaining_ms())
+                    continue
+                target = page.locator(step.selector)
+                if step.action == "scroll":
+                    target.scroll_into_view_if_needed(timeout=remaining_ms())
+                    continue
+                if not target.evaluate(_SAFE_CONTROL, step.action, timeout=remaining_ms()):
+                    raise RenderedInteractionError("unsafe interaction control")
+                # Playwright includes external labels and image alt text in the computed name.
+                expect(target).not_to_have_accessible_name(_TRANSACTION_NAME, timeout=remaining_ms())
+                if step.action == "reject_consent":
+                    expect(target).to_have_accessible_name(_REJECT_NAME, timeout=remaining_ms())
+                else:
+                    expect(target).not_to_have_accessible_name(_CONSENT_NAME, timeout=remaining_ms())
+                if step.action == "select_option":
+                    target.select_option(value=step.value, timeout=remaining_ms())
+                else:
+                    target.click(timeout=remaining_ms())
+            for postcondition in self.postconditions:
+                postcondition(page, remaining_ms() / 1000)
+            remaining_ms()
+        except AssertionError as exc:
+            raise RenderedInteractionError("unsafe interaction control") from exc
+        except Error as exc:
+            raise RenderedInteractionError(f"interaction failed: {exc}") from exc
+
+
 def rendered_preparation(source_ids: Iterable[str],
                          sources: Mapping[str, Source]) -> RenderedPreparation | None:
     """The preparation a live render of these sources' shared URL runs before capture.
@@ -403,6 +592,13 @@ def rendered_preparation(source_ids: Iterable[str],
     the render waits for every cited CSS region of every source at the URL.
     """
     ids = sorted(set(source_ids))
+    recipes = tuple(tuple(sources[sid].rendered_interactions)
+                    for sid in ids if sid in sources and sources[sid].rendered_interactions)
+    if recipes:
+        urls = {canonical_url(str(sources[sid].url)) for sid in ids if sid in sources}
+        postconditions = tuple(check for sid, check in RENDERED_POSTCONDITIONS.items()
+                               if sid in sources and canonical_url(str(sources[sid].url)) in urls)
+        return RenderedInteractions(recipes, postconditions)
     named = next((RENDERED_PREPARATIONS[sid] for sid in ids if sid in RENDERED_PREPARATIONS),
                  None)
     if named is not None:
@@ -421,8 +617,9 @@ class RenderedFetcher:
 
     Playwright is imported only when entering the context. Network idle is best
     effort: pages with persistent connections still yield their rendered HTML.
-    An optional preparation runs before capture, within one timeout budget. If
-    it fails, the HTML is still returned with an error for the caller to report.
+    An optional preparation runs before capture, within one timeout budget.
+    Registry recipe failures return no HTML. Legacy preparations retain their
+    partial HTML with an error for the caller to report.
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
@@ -441,6 +638,7 @@ class RenderedFetcher:
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
+                service_workers="block",
             )
         except Exception:
             self._playwright.stop()
@@ -469,23 +667,28 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            preparation_error = None
-            if prepare is not None:
-                try:
-                    prepare(page, self.timeout)
-                except Error as exc:
-                    preparation_error = f"rendered preparation failed: {exc}"
-            redirects = []
-            request = response.request
-            while request is not None:
-                redirects.append(str(request.url))
-                request = request.redirected_from
-            return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
-                               content_type="text/html", charset="utf-8",
-                               error=preparation_error,
-                               resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
-                                                    str(response.url), str(page.url)))),
-                               retrieved_at=datetime.now(UTC))
+            guard = (_read_only_interactions(page, prepare, self.timeout) if isinstance(prepare, RenderedInteractions)
+                     else nullcontext())
+            with guard:
+                preparation_error = None
+                if prepare is not None:
+                    try:
+                        prepare(page, self.timeout)
+                    except Error as exc:
+                        preparation_error = f"rendered preparation failed: {exc}"
+                redirects = []
+                request = response.request
+                while request is not None:
+                    redirects.append(str(request.url))
+                    request = request.redirected_from
+                return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
+                                   content_type="text/html", charset="utf-8",
+                                   error=preparation_error,
+                                   resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
+                                                        str(response.url), str(page.url)))),
+                                   retrieved_at=datetime.now(UTC))
+        except RenderedInteractionError as exc:
+            return FetchResult("unreachable", response.status, error=str(exc))
         except Error as exc:
             return FetchResult("unreachable", error=str(exc))
         finally:
@@ -523,8 +726,12 @@ class CopyStore:
             resolved_urls: Iterable[str] = ()) -> str:
         source_url = require_source_url(source_url)
         resolved_urls = tuple(resolved_urls)
+        cite_only = cite_only_origin_status(source_url, resolved_urls)
+        if cite_only is None:
+            # Neither bytes nor a citation record for a malformed origin (MODEL-420).
+            raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only_origin(source_url, resolved_urls):
+        if cite_only:
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
@@ -551,16 +758,29 @@ class CopyStore:
         os.replace(temporary, target)
 
     def citation(self, ref: str) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        """
         target = self.path(ref).with_suffix(".citation.json")
-        if not target.is_file():
+        if not os.path.lexists(target):
             return None
-        metadata = json.loads(target.read_text(encoding="utf-8"))
+        if not target.is_file():
+            raise ValueError("citation record is not a readable file")
+        try:
+            metadata = json.loads(target.read_text(encoding="utf-8"))
+        except OSError:
+            raise ValueError("citation record is not a readable file") from None
+        if not isinstance(metadata, dict):
+            raise ValueError("citation record is not a JSON object")
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
-        if self.citation(ref) is not None or source_url is not None and cite_only_origin(source_url):
+        if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
             raise ValueError("cite-only source has no readable retained copy")
         body = self.path(ref).read_bytes()
         if fingerprint_bytes(body) != ref:
@@ -568,8 +788,11 @@ class CopyStore:
         return body
 
     def has(self, ref: str) -> bool:
-        if self.citation(ref) is not None:
-            return False
+        try:
+            if self.citation(ref) is not None:
+                return False
+        except ValueError:
+            return False  # an unreadable citation record still withholds the copy
         target = self.path(ref)
         if not target.is_file() or target.is_symlink():
             return False
@@ -701,7 +924,11 @@ def recheck(
                         previous_fingerprint=result.previous,
                         current_fingerprint=result.current,
                         previous_copy_ref=previous.snapshot.copy_ref,
-                        current_copy_ref=current.copy_ref,
+                        current_copy_ref=(
+                            fingerprint_bytes(report.fetches[result.source_id].body)
+                            if report.fetches[result.source_id].outcome == "ok"
+                            else current.copy_ref
+                        ),
                     )
                 )
         elif result.status is RegionStatus.UNCHANGED and result.detail != "cite-only":
@@ -738,10 +965,23 @@ def _check_one(
     report.fetches[source.id] = result
     old = previous.region_fingerprints if previous else {}
 
-    previous_citation = store.citation(previous.copy_ref) if previous else None
-    resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
-                          *((previous_citation or {}).get("resolved_urls", ())))))
-    if (cite_only_origin(source.url, resolved_urls) or previous_citation is not None) \
+    try:
+        previous_citation = store.citation(previous.copy_ref) if previous else None
+        # Every origin of the previous record is validated before its presence
+        # grants the cite-only path (MODEL-420).
+        if previous_citation is not None and record_origin_status(previous_citation) is None:
+            raise ValueError("invalid previous citation record")
+        resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
+                              *((previous_citation or {}).get("resolved_urls", ())))))
+        cite_only = cite_only_origin_status(source.url, resolved_urls)
+        if cite_only is None:
+            raise ValueError("invalid redirect URL")
+    except (TypeError, ValueError):
+        # Fail closed for this source only (MODEL-420): keep nothing, change no
+        # snapshot or record, and go on to the next source.
+        report.skipped.append(Skipped(source.id, "invalid_citation_metadata"))
+        return replace(state, last_attempt_at=now)
+    if (cite_only or previous_citation is not None) \
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)
@@ -783,8 +1023,20 @@ def _check_one(
         return SourceState(source.id, previous, failures, failures >= grace, now)
 
     rules = NORMALISERS[source.normaliser]
+    if rules.content == "pdf":
+        from decision.pdf_templates import retention_approved
+
+        if not retention_approved(str(source.url), fingerprint_bytes(result.body)):
+            if previous is not None and previous.copy_ref != fingerprint_bytes(result.body):
+                for region in source.cited_regions:
+                    report.regions.append(RegionResult(
+                        source.id, region.id, RegionStatus.CHANGED,
+                        old.get(region.id), None, "pdf_unapproved_revision",
+                    ))
+            report.skipped.append(Skipped(source.id, "pdf_retention_not_approved"))
+            return replace(state, last_attempt_at=now)
     try:
-        if "pdf" in result.content_type.lower():
+        if "pdf" in result.content_type.lower() and rules.content != "pdf":
             raise UnsupportedContentError("pdf")
         doc = normalise_document(result.body, rules, charset=result.charset)
     except UnsupportedContentError as exc:

@@ -957,7 +957,7 @@ def test_use_case_pages_are_stable_and_index_groups_registry_kinds(
 def test_use_case_complete_and_bounded_contracts_stay_pinned():
     from decision.contract import BOUNDED_VERSION, CONTRACT_VERSION
 
-    assert CONTRACT_VERSION == "2.18"
+    assert CONTRACT_VERSION == "2.19"
     assert BOUNDED_VERSION == "1.5"
 
 

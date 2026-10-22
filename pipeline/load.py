@@ -16,6 +16,7 @@ worth surfacing.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -25,6 +26,8 @@ from typing import Any
 import yaml
 
 from schema import private_data, redacted_error
+
+logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FRONT_MATTER = re.compile(r"^---\n(.*?)\n---\n?(.*)\Z", re.S)
@@ -62,10 +65,10 @@ class Model:
 
     @property
     def cited_evidence(self) -> list[dict[str, Any]]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return [record for record in self.evidence
-                if is_cite_only(str(record.get("source_url") or ""))]
+                if is_cite_only_restrictive(str(record.get("source_url") or ""))]
 
     @property
     def slug(self) -> str:
@@ -115,10 +118,10 @@ class Model:
 
     @property
     def scores_citation(self) -> dict[str, str] | None:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         source = self.scores_source
-        if self.scores and source and is_cite_only(source):
+        if self.scores and source and is_cite_only_restrictive(source):
             return {"status": "cited", "url": source}
         return None
 
@@ -174,17 +177,17 @@ class Disposition:
 
     @property
     def cited_results(self) -> tuple[dict[str, Any], ...]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return tuple({**record, "citation": {"status": "cited", "url": record["source_url"]}}
-                     for record in self.results if is_cite_only(record.get("source_url") or ""))
+                     for record in self.results if is_cite_only_restrictive(record.get("source_url") or ""))
 
     @property
     def verified_results(self) -> tuple[dict[str, Any], ...]:
-        from decision.retention import is_cite_only
+        from decision.retention import is_cite_only_restrictive
 
         return tuple(record for record in self.results
-                     if not is_cite_only(record.get("source_url") or ""))
+                     if not is_cite_only_restrictive(record.get("source_url") or ""))
 
 
 @dataclass
@@ -222,7 +225,13 @@ def load_models(root: Path | None = None) -> list[Model]:
             continue
         cited = []
         for fact in front.get("facts") or []:
-            citation = fact_citation(fact, sources)
+            try:
+                citation = fact_citation(fact, sources)
+            except ValueError:
+                # Fail closed for this fact only (MODEL-420): never shown as
+                # verified, and one bad citation does not stop the build.
+                logger.warning("%s: a fact's citation is invalid; shown as cited", model_id)
+                citation = {"status": "cited", "sources": []}
             if citation:
                 cited.append({**fact, "verification": None, "citation": citation})
         out.append(Model(str(model_id), path, front, body, cited))

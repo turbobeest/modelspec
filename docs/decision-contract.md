@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.18**
+Contract version: **2.19**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.5**. It does not carry a 2.x `contract_version`. See
@@ -73,7 +73,7 @@ save_as: acme-rust-refactor
 | `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Express the task as `where` conditions on facets and `capabilities` on domains. |
 | `task_type` | closed set, below | none | What kind of task this is. **Not yet applied:** the engine does not read it, and a bounded answer reports it as not applied. |
 | `capabilities` | map of domain ID to `required` or `preferred` | none | The capabilities the task needs. |
-| `exclude_benchmarks` | list of benchmark IDs | `[]` | Verified evidence from these benchmarks cannot filter, answer an objective or contribute to a capability estimate. Unknown IDs are refused. |
+| `exclude_benchmarks` | list of benchmark IDs | `[]` | Admitted evidence from these benchmarks cannot filter, answer an objective or contribute to a capability estimate. Unknown IDs are refused. |
 | `task_tokens` | `{input, output}`, whole numbers ≥ 0 | `{input: 40000, output: 4000}` | Tokens one task takes. Prices `offering.cost_per_task`; see below. |
 | `where` | list of conditions | `[]` | Conditions, ANDed, applied in order. The order sets the order of the elimination funnel. |
 | `optimize` | objective | required | Exactly one objective form. |
@@ -91,7 +91,7 @@ A spec with a field not named here is refused. Nothing is silently ignored.
 benchmarks for one decision. The engine treats the list as a set, sorts it for
 the canonical spec hash, and removes those evidence rows before it filters,
 optimises or explains. It then refits the capability estimates from the
-snapshot's remaining verified evidence. No fixed replacement weights or
+snapshot's remaining admitted evidence. No fixed replacement weights or
 benchmark list are used.
 
 An omitted field and `exclude_benchmarks: []` have the same canonical JSON and
@@ -397,7 +397,7 @@ optimize:
 
 Qualifiers also work on weighted, Pareto, and lexicographic terms. Quote a
 qualified mapping key, for example
-`weights: {"swe_bench_pro @independent": 1}`. They select matching verified
+`weights: {"swe_bench_pro @independent": 1}`. They select matching admitted
 measurements before optimisation; they never add a score. Qualifiers on a
 non-evidence facet are refused.
 
@@ -683,7 +683,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.18",
+  "contract_version": "2.19",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -826,7 +826,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.18"`. |
+| `contract_version` | `"2.19"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -990,7 +990,7 @@ Each band entry:
 | `offering` | The model's best offering under the objective. |
 | `score` | The weighted score, rounded to 6 places. |
 | `score_interval` | The weighted interval, rounded to 6 places. |
-| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. It resamples the capability posteriors only, so a measured benchmark term's published interval widens `p_beats_leader` but not `p_best`. Null when the objective has no capability posterior. |
+| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. It integrates over the capability posteriors only, so a measured benchmark term's published interval widens `p_beats_leader` but not `p_best`. Null when the objective has no capability posterior. |
 | `p_beats_leader` | P(this score ≥ the leader's), to 4 places. Null for the leader, and for every entry when there is no leader. |
 | `cost_per_task` | The offering's cost per task, as in `results`. |
 | `estimates` | One per weighted capability, in objective order: the signed weight key as `dimension`, the estimate's `value`, its 80% `interval`, `benchmarks`, the distinct fitted benchmarks the model is measured on for it, and `direct_benchmarks`, how many of those are tagged direct for it. |
@@ -1015,7 +1015,7 @@ engineering alone, … leads".
 | `estimated` | `true` for a capability estimate, `false` for an exact value (cost, a fact, a preference, a measured benchmark). |
 | `leaders` | Who leads on this dimension alone. For a capability, the best point estimate among models with enough evidence on it. For an exact dimension, every model sharing the best value. |
 | `value` | The leaders' value on this dimension in its own unit: a capability estimate or a raw value such as dollars per task. |
-| `p_best` | Capability only: P(the leader is best on this dimension alone) among models with enough evidence, from the same deterministic posterior draws as `p_best` on a result. |
+| `p_best` | Capability only: P(the leader is best on this dimension alone) among models with enough evidence, computed the same way as `p_best` on a result. |
 | `runner_up` | Capability only: the second model by point estimate among models with enough evidence. |
 | `p_runner_up` | Capability only: P(the runner-up's estimate ≥ the leader's), to 4 places. |
 | `order` | Models with enough evidence, best first on this dimension alone. Each model is read at its best ranked offering for this dimension. |
@@ -1101,11 +1101,11 @@ requires a ModelSpec key and makes no router or vendor call.
 | `offering` | An offering reference with `model`, and when the result is an offering, its `provider`, `region` and `tier`. Optional `api_model_id` and `router_slug` carry verified identifiers as described above. |
 | `harness` | The harness the evidence and estimate apply to, or null. |
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
-| `evidence` | For each requested `domain` in `capabilities`, the verified evidence `items`. An objective named only through `optimize`, with no `capabilities`, leaves this list empty. Those records are on `contributions[].evidence` and, for each answer member, on `member_evidence`. |
+| `evidence` | For each requested `domain` in `capabilities`, the admitted evidence `items`, either machine-verified or explicitly cited. An objective named only through `optimize`, with no `capabilities`, leaves this list empty. Those records are on `contributions[].evidence` and, for each answer member, on `member_evidence`. |
 | `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
 | `refinement_estimates` | One per refinement key in `optimize.weights`, absent otherwise: the `key`, its parent `domain` (or `any`), the `refinement`, a `value` and an 80% `interval`, and `evidence_count`, the refinement-tagged measurements behind the adjustment. `evidence_count` 0 means no refinement evidence: the value is the parent's estimate and the interval is wider. Added in 2.4. |
-| `p_best` | The probability this model is best among the feasible models. For a weighted objective, the engine resamples each capability posterior, applies the objective's affine transform and weights, and keeps exact facets fixed. Null when the objective has no capability posterior. |
-| `top3_stability` | The share of those deterministic posterior resamples in which the model stays in the top three. Null when `p_best` is null. |
+| `p_best` | The probability this model is best among the feasible models. Each model's score is normal: each capability posterior goes through the objective's affine transform and weight, and exact facets stay fixed. Models are independent. The engine integrates P(every other model scores below this one) over this model's score at 80 fixed quantile nodes (64 equal-probability cells, the two end cells split finer), to four decimals. It uses no random draws, so the same estimates give the same value under any snapshot. Null when the objective has no capability posterior. |
+| `top3_stability` | The probability, computed the same way, that at most two other models score above this one. Null when `p_best` is null. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
 | `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. A refinement term's `dimension` is its signed parent domain, and `refinement` names the refinement (2.4). |
 | `warnings` | Codes about this result. |
@@ -1114,7 +1114,7 @@ requires a ModelSpec key and makes no router or vendor call.
 `unit`, `n` (a sample or vote count), `interval` (the source-published
 measurement interval, or null), `quality_flags`, `measured_by`, `effort`, `harness`,
 `harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
-from), `source_snapshot` (the content hash of the retained copy), and
+from), `source_snapshot` (the source content hash), and
 `directness`. Evidence used in a capability estimate also carries its
 directness `loading`, its `estimate_weight`, and its age-based
 `recency_weight`. Those three fields are null for unblended evidence.
@@ -1130,7 +1130,11 @@ directness `loading`, its `estimate_weight`, and its age-based
   `unregistered`, never as free text). Otherwise `harness_unregistered` is
   `false`.
 
-Only verified evidence reaches a decision; quarantined values never do.
+Evidence reaches a decision after machine verification or admission from a
+cite-only source. A cited item adds `citation` (`FactCitation`), with
+`status: cited` and its source metadata. Its source content hash identifies the
+citation; it does not imply a retained page copy or machine verification.
+Quarantined values never reach a decision.
 Evidence with a `deprecated` or `contamination_warning` quality flag remains
 visible in provenance but does not count as the direct answer to an objective.
 When every fitted benchmark for an estimate is tagged `proxy`, the result's
@@ -1201,13 +1205,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.18"`. Every field the bounded body does carry has that
+  currently `"2.19"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or only `fields: null`, receive complete contract 2.18
+Requests with only `limit`, or only `fields: null`, receive complete contract 2.19
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1240,7 +1244,7 @@ estate lists. A drill-down can remove exclusion records to fit its own budget.
 are shareable, and the link fits the existing byte budget. It is absent with
 the flag off and from complete decisions. Visibility and storage await Jamie's
 approval; see [the draft design](design/decision-link.md). Adding this optional
-field widens no existing field. Complete decisions are 2.18; the bounded
+field widens no existing field. Complete decisions are 2.19; the bounded
 representation is 1.5 after MODEL-384.
 
 `next_move` is optional and additive in bounded 1.2. It is present on
@@ -1375,7 +1379,7 @@ If needed, whole evidence records or contributions are omitted and counted in
 `explanation.omitted`. Provenance fields are never cut off. If reporting
 necessities alone exceed this budget, the call returns HTTP 400 `invalid_spec`
 with guidance to narrow the spec. An omission is not evidence of absence.
-Drill-down cites retained verification records even at `explain: none`. A
+Drill-down cites retained provenance records even at `explain: none`. A
 snapshot built before provenance retention cannot cite them, so `evidence_for`
 against it returns HTTP 503 `explanation_unavailable`; retry without
 `evidence_for`. Only a request that sends `evidence_for` can receive this code,
@@ -1548,7 +1552,7 @@ A spec that `--check` accepts is one `decide` accepts, and a spec it rejects,
 `decision_failed` for a resolve error such as an unloaded profile). The cached
 vocabulary is advisory. It adds "did you mean" suggestions to an unknown facet
 or benchmark, and it warns, without failing, when the spec names something the
-vocabulary lacks but the engine accepts: a benchmark with no verified evidence
+vocabulary lacks but the engine accepts: a benchmark with no admitted evidence
 in this snapshot, a parameterized facet family, an unknown provider value, or a
 capability domain with no coverage. Human output is `ok` plus one line with the
 Must count, Prefer count, and snapshot pin. JSON success includes `ok`,
@@ -1579,7 +1583,7 @@ contract version. Version 1.1 retains them.
   remains the feasible-set normalised value, never a capability estimate.
   `normalisation` states the observed minimum, maximum and direction.
 - Evidence adds `requested_domain` to make contribution directness explicit, and `record_id`, resolving to the snapshot's admitted evidence and
-  its winning verification record. Source dates and measurement qualifiers are
+  its verification or citation record. Source dates and measurement qualifiers are
   preserved. Snapshot date type `evaluated` is exposed as contract `observed`;
   `independent_evaluator` is exposed as `independent`.
 - `near_misses` lists models whose best offering fails exactly one hard
@@ -1640,14 +1644,16 @@ contract version. Version 1.1 retains them.
 - `sources` (1.4) lists every source the origins and shown facts cite, once:
   its `id`, `url`, `title` (null: the snapshot records no titles yet) and
   `date`, the latest date a record in this decision citing it was verified.
-  Source URLs and winning verification records resolve through
+  Source URLs and retained verification or citation records resolve through
   `snapshot.source_url()` and `snapshot.record()`.
 
 MODEL-411 admits facts from cite-only sources without claiming machine
-verification. Such facts keep their existing knowledge state, and complete
+verification. MODEL-437 admits benchmark scores on the same basis. Such facts
+keep their existing knowledge state, and complete
 and bounded answers carry `cite_only_not_machine_verified` in `warnings`
-when a recommended model relies on a cited fact: a shown fact, a ranking or
-objective input, or a Must that admitted it. This applies at every explanation
+when a recommended model relies on a cited fact or benchmark score: a shown
+value, a ranking or objective input, or a Must that admitted it. Capability and
+refinement estimates count their cited benchmark drivers. This applies at every explanation
 level. The recommendation includes every top or tied answer member, including
 members beyond the result limit; when there is no named answer, it includes
 the returned ranked results. The summary notice uses the same scope.
@@ -1661,11 +1667,24 @@ A shown fact may add `citation` (`FactCitation`). Its `status` is `cited`,
 and its nonempty `sources` list contains `CitationSource` objects with
 `source_id`, `url`, `snapshot_ref` as a SHA-256 content hash, and `retrieved_at`
 as a retrieval timestamp or null when none was recorded. An optional
-`resolved_urls` list records redirect destinations. No page copy is retained.
+`resolved_urls` list records redirect destinations. No page copy is retained
+for a cite-only source. MODEL-439 also admits a fact or score with mixed
+cite-only and other references as cited when verification cannot be
+attributed to either side. Its citation preserves every reference, and its
+retained record has `verification: null`. This uses the existing
+`CitationSource` fields without widening the contract.
 The ordinary `sources[].date` stays a verification date and is null when only
-cited facts reference that source. Benchmark evidence still requires machine
-verification. The additive citation field and open warning code keep the
-contract at 2.18 and the bounded representation at 1.5.
+cited records reference that source. A cited score whose latest outcome is
+`mismatch` or `unreachable` stays quarantined. Card-authored redirect URLs can
+restrict admission but cannot establish citation assurance.
+
+Evidence items and named-comparison evidence add the same optional citation
+field. No existing public response field becomes nullable or optional, and no
+closed value set widens. Complete decisions use 2.19 and named comparisons use
+1.1. The bounded representation remains 1.5 and projects complete contract 2.19.
+The snapshot format moves to 2 so older readers cannot label cited evidence as
+verified. The rank envelope remains 1.0 and the public export remains 3.0;
+both already carry cited benchmark scores.
 - An offering answers its model's evidence; an evidence row the offering and
   its model both return is listed once (1.4; before, it was listed twice).
 - `constraint_costs[].records` are the records behind the two values each gain
@@ -1815,18 +1834,18 @@ off. A browser visit token does not admit this endpoint. Existing access
 quotas and billing apply at the `decide.full` credit weight. The CLI's named
 comparison and MCP `compare_models` tool call this endpoint.
 
-The named comparison has its own contract, version **1.0**, identified by
+The named comparison has its own contract, version **1.1**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
-No Decision field changes range. The shared Decision contract is 2.18.
-The bounded projection is 1.5 with `projects_contract: "2.18"`.
+No Decision field changes range. The shared Decision contract is 2.19.
+The bounded projection is 1.5 with `projects_contract: "2.19"`.
 
 The success response is a `ModelComparison` with these fields:
 
 | Field | Meaning |
 |---|---|
-| `comparison_version` | `"1.0"`, the named comparison's own contract version. |
+| `comparison_version` | `"1.1"`, the named comparison's own contract version. |
 | `endpoint` | `"compare-models"`. |
 | `snapshot` | The verified snapshot ID. |
 | `models` | One row per requested model, in caller order. |
@@ -1846,10 +1865,13 @@ A `ComparisonFact` may add the same `citation` (`FactCitation`) metadata as a
 shown decision fact. `state` still describes whether the value is known;
 `citation.status: cited` means it is not machine-verified. Cited facts also carry
 `record_id` and `source_ids` when their state is `not_disclosed` or
-`requires_contract`. This optional field keeps `comparison_version` at 1.0.
+`requires_contract`. This optional field was added under comparison 1.0.
 
 An offering has `offering`, the existing `OfferingRef`, and its `facts`.
 Evidence has `benchmark`, `value`, `unit`, `record_id`, and `source_ids`.
+From comparison 1.1, cited benchmark evidence adds the same optional `citation`
+metadata. Its score remains usable, and the citation says it is not
+machine-verified.
 Available measurement qualifiers are `version`, `effort`, `harness`,
 `measured_by`, `date`, `subcategory`, `interval`, and `n`. `unit` may be null
 when the source does not state it. Different tasks, harnesses, and efforts
@@ -1897,9 +1919,9 @@ it instead of carrying its own list of facets or benchmarks. Built by
   names who measured it, the method and the sample. A facet with no measured
   value has no `measurement` key. Each measured value's median, IQR and 95%
   interval are in the fact's record, which a decision's `top` facts reference.
-- `benchmarks`: every benchmark with verified evidence in the snapshot, with
+- `benchmarks`: every benchmark with admitted evidence in the snapshot, with
   `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
-  verified row), `independent_models` (those with a row that `@independent`
+  admitted row), `independent_models` (those with a row that `@independent`
   admits), the `range` of those values, and its `domains` with `directness`.
 - `refinements`: every registered refinement, with its parent domain, kind,
   definition, benchmark tags, weight key, evidence state, and coverage as
@@ -1914,11 +1936,11 @@ it instead of carrying its own list of facets or benchmarks. Built by
   a stored estimate. `estimate_benchmarks` lists the benchmark drivers that
   contribute to stored lineup estimates for the domain. It can differ from
   `benchmarks`, which is the explicit measured-by drill-down. `direct_models`
-  counts distinct lineup models with verified direct evidence.
+  counts distinct lineup models with admitted direct evidence.
   `default_benchmark` is only the preselected
   explicit "Measured by" drill-down and is null when the registry preference
-  has no verified lineup evidence. It does not select the default ranking
-  basis. `benchmarks` puts that verified registry preference first, then
+  has no admitted lineup evidence. It does not select the default ranking
+  basis. `benchmarks` puts that admitted registry preference first, then
   orders the rest direct before proxy, by descending `models`, then by ID.
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
@@ -2031,6 +2053,24 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **MODEL-440, under 2.19 without a version change:** `p_best` and
+  `top3_stability` are integrated at fixed quantile nodes instead of drawn
+  from 256 samples seeded with the snapshot id. A new snapshot id alone used
+  to reorder near-tied members of the `best` band: 47 to 55 of the 127
+  corpus decisions with more than one member changed order. Now none do. The
+  sample's error was up to 0.1; across the corpus `p_best` moves by a median
+  0.005 and at most 0.099, toward the exact probability, which the nodes
+  reach within 0.001. Band membership, `p_beats_leader` and every other field
+  are unchanged. Both fields keep their type and range, so `contract_version`
+  stays 2.19.
+
+- **2.19, MODEL-437:** Admits cited benchmark scores to decisions, with an
+  optional `citation` on each evidence item and the existing
+  `cite_only_not_machine_verified` warning when a recommendation uses one.
+  Comparison 1.1 adds the same optional evidence citation. No existing response
+  field changes range. Bounded 1.5 projects 2.19. Snapshot format 2 prevents
+  an old reader from silently treating cited scores as verified.
 
 - **2.18, MODEL-384:** Adds sourced subscription availability. Closed-to-new
   plans route only for existing estate holders; retired plans never route.
