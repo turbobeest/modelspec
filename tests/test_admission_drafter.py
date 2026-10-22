@@ -374,8 +374,12 @@ def test_cite_only_fallback_keeps_original_fingerprint(tmp_path):
         today=TODAY, registry=small_registry(),
     )
     assert not packet.ready and packet.model_facts == []
-    [source] = [source for source in packet.sources if source["outcome"] == "cited"]
+    [source] = [source for source in packet.sources if source["url"] == model_url]
+    assert source["outcome"] == "cited"
     assert source["snapshot_ref"] == expected_ref
+    [price] = [source for source in packet.sources if source["url"] != model_url]
+    assert price["outcome"] == "unreachable"
+    assert "snapshot_ref" not in price and "retrieved_at" not in price
     assert store.citation(expected_ref)["retrieved_at"] == retrieved.isoformat()
     assert not store.has(expected_ref)
     assert not store.path(fingerprint_bytes(b"")).with_suffix(".citation.json").exists()
