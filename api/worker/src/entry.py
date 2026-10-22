@@ -85,7 +85,7 @@ import display_vocabulary
 import feedback_service
 import human_gate
 import kv_value
-import ledger_bridge
+import ledger_admin
 import policy_service
 import rank_service as service
 import signals_service
@@ -934,8 +934,8 @@ class Default(WorkerEntrypoint):
         try:
             response = await self._fetch(request)
         except credits.LedgerUnavailable as exc:
-            # MODEL-441: seconds while the ledger changes accounts. The
-            # documented ledger code, so the public contract does not widen.
+            # MODEL-441: the minutes the ledger is frozen while it changes
+            # accounts. The documented ledger code, so the contract does not widen.
             response = _json_response(503, {"error": {
                 "code": "credits_store_not_configured", "message": str(exc)}},
                 {"retry-after": "5"})
@@ -971,9 +971,9 @@ class Default(WorkerEntrypoint):
         if path == "/v1/decision-link" and decision_link.enabled(self.env):
             return await self._decision_link(request, method, origin, service_commit)
 
-        # MODEL-441. Without its secret the bridge does not exist: the generic 404 answers it.
-        if path.startswith(ledger_bridge.PREFIX) and ledger_bridge.secret(self.env):
-            status, body = await ledger_bridge.handle(
+        # MODEL-441. Without its secret this does not exist: the generic 404 answers it.
+        if path.startswith(ledger_admin.PREFIX) and ledger_admin.secret(self.env):
+            status, body = await ledger_admin.handle(
                 self.env, path, method, str(request.headers.get("authorization") or ""),
                 await request.text() if method == "POST" else "")
             return _json_response(status, body)

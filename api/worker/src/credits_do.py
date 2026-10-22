@@ -5,21 +5,18 @@ document so a mutation is one write, not a cross-key KV race. The class is
 imported from `entry.py` so Wrangler can find it by `class_name`.
 
 MODEL-441. A Durable Object cannot move between Cloudflare accounts, so the
-ledger moves by a one-way handoff between two objects with explicit roles.
-The target waits in standby; the source seals in one synchronous write under
-a random handoff id and returns its copy; the target imports it and becomes
-live; the source records itself moved and `credits.DurableLedger` forwards
-its calls. A ledger only ever accepts a copy in standby, so there is no
-hand-back: a rollback is a fresh one-way handoff into a new, empty object
-(`LEDGER_NAME`). Exactly one ledger is live at a time. See
-api/worker/src/ledger_bridge.py and docs/ops/cloudflare-account-move.md.
+ledger moves by export and import across a short write freeze. `export_state`
+seals this ledger in the same write that reads its copy, and from then on it
+refuses every call. The new account's ledger waits in standby until
+`import_state` makes it live. Exactly one ledger is live at a time, and none
+during the freeze. See api/worker/src/ledger_admin.py and
+docs/ops/cloudflare-account-move.md.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import secrets
 from typing import Any
 
 from credits import LedgerState
@@ -34,22 +31,17 @@ except Exception:  # CPython tests stub `workers` without this name
 
 
 _STATE_KEY = "state"
-#: One JSON row, so every role change is a single write: role, target, the
-#: sealed handoff (its random id and the copy's digest), the handoff this
-#: ledger was created from, and a target abandoned by a break glass.
-_META_KEY = "handoff"
+#: One JSON row, so every role change is a single write: the role, the digest
+#: this ledger was sealed with, and the digest it was imported from.
+_META_KEY = "move"
 
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
-#: and waits for its one import. `moving` is sealed and its copy is in flight
-#: to `target`. `moved` is sealed for good and its calls go to `target`.
-LIVE, STANDBY, MOVING, MOVED = "live", "standby", "moving", "moved"
+#: and waits for its import. `sealed` has been exported and serves nothing.
+LIVE, STANDBY, SEALED = "live", "standby", "sealed"
 
-#: The mark a sealed ledger's errors carry. Error text can echo caller input,
-#: so callers treat it as a hint and read `handoff_status` before acting.
+#: The mark a ledger that is not live puts on its errors. Error text can echo
+#: caller input, so callers treat it as a hint and read `move_status` first.
 SEALED_MARK = "ledger-sealed"
-#: An import this ledger refused before writing anything. Only this mark tells
-#: the source the copy did not land; any other failure may follow the writes.
-REFUSED_MARK = "ledger-import-refused"
 
 
 class LedgerSealed(RuntimeError):
@@ -93,38 +85,22 @@ class CreditsObject(DurableObject):
             return LedgerState()
         return LedgerState.from_json(json.loads(text))
 
-    def _meta(self, *, glass: bool = True) -> dict[str, str]:
-        """The handoff record. With no record, the deployment's starting role:
-        only a Worker deployed to receive a ledger starts in standby
+    def _meta(self) -> dict[str, str]:
+        """The move record. With none, the deployment's starting role: only a
+        Worker deployed to receive the ledger starts in standby
         (LEDGER_STANDBY), so the ledger that already serves is live with
-        nothing stored.
-
-        Break glass: a moving ledger whose target account is gone for good is
-        unsealed only by a person setting the Worker secret
-        LEDGER_UNSEAL_HANDOFF to its handoff id. The target is then recorded
-        as abandoned and never sealed for again, so a copy still in flight can
-        land there without a second seal racing it. Nothing remote can unseal,
-        because nothing remote can prove such a copy will not land."""
+        nothing stored."""
         text = self._get(_META_KEY)
         if text:
-            meta = {str(k): str(v) for k, v in json.loads(text).items()}
-        else:
-            flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
-            meta = {"role": STANDBY if flag in ("1", "true", "yes", "on") else LIVE}
-        unseal = str(getattr(self.env, "LEDGER_UNSEAL_HANDOFF", "") or "")
-        if glass and meta.get("role") == MOVING and unseal and unseal == meta.get("handoff"):
-            meta = {**meta, "role": LIVE, "abandoned": meta.get("target", "")}
-            self._write_meta(meta)
-        return meta
+            return {str(k): str(v) for k, v in json.loads(text).items()}
+        flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
+        return {"role": STANDBY if flag in ("1", "true", "yes", "on") else LIVE}
 
     def _write_meta(self, meta: dict[str, str]) -> None:
         self._put(_META_KEY, json.dumps(meta, sort_keys=True))
 
-    def _role(self) -> str:
-        return self._meta().get("role", LIVE)
-
     def _load(self) -> LedgerState:
-        role = self._role()
+        role = self._meta().get("role", LIVE)
         if role != LIVE:
             raise LedgerSealed(f"{SEALED_MARK}: {role}")
         return self._stored()
@@ -132,71 +108,51 @@ class CreditsObject(DurableObject):
     def _save(self, state: LedgerState) -> None:
         self._put(_STATE_KEY, json.dumps(state.to_json()))
 
-    async def handoff_status(self) -> dict[str, Any]:
+    async def move_status(self) -> dict[str, Any]:
         meta = self._meta()
-        return {"role": meta.get("role", LIVE), "target": meta.get("target", ""),
-                "digest": state_digest(canonical(self._stored())),
-                "handoff": meta.get("handoff", ""), "imported_handoff": meta.get("imported", "")}
+        state = self._stored()
+        return {"role": meta.get("role", LIVE), "digest": state_digest(canonical(state)),
+                "holders": len(state.accounts), "sealed": meta.get("sealed", ""),
+                "imported": meta.get("imported", "")}
 
-    async def begin_handoff(self, target: str) -> dict[str, Any]:
-        """Seal this live ledger for `target` and return its copy under a new
-        handoff id. Re-running for the same target returns the same copy and
-        id, so an interrupted handoff can be completed."""
-        target = str(target)
+    async def export_state(self) -> dict[str, Any]:
+        """Seal this ledger and return its copy, in one synchronous write, so
+        no call can land between the copy and the seal. Exporting again
+        returns the same copy."""
         meta = self._meta()
-        role = meta.get("role", LIVE)
-        if role == STANDBY:
-            raise ValueError("a standby ledger has nothing to hand off")
-        if role in (MOVING, MOVED):
-            if meta.get("target") != target:
-                raise ValueError("ledger is sealed for another target")
-        elif target == meta.get("abandoned"):
-            raise ValueError("that target was abandoned by a break glass")
-        else:
-            text = canonical(self._stored())
-            meta = {**meta, "role": MOVING, "target": target,
-                    "handoff": secrets.token_hex(16), "sealed": state_digest(text)}
-            self._write_meta(meta)
+        if meta.get("role") == STANDBY:
+            raise ValueError("a standby ledger has nothing to export")
         text = canonical(self._stored())
-        return {"state": text, "digest": state_digest(text), "handoff": meta["handoff"]}
+        if meta.get("role") == LIVE:
+            self._write_meta({**meta, "role": SEALED, "sealed": state_digest(text)})
+        return {"state": text, "digest": state_digest(text), **await self.move_status()}
 
-    async def finish_handoff(self, target: str, handoff: str) -> dict[str, Any]:
-        meta = self._meta(glass=False)
-        if meta.get("target") != str(target) or meta.get("handoff") != str(handoff):
-            raise ValueError("that is not the handoff this ledger sealed")
-        if meta.get("role") == MOVING:
-            self._write_meta({**meta, "role": MOVED})
-        elif meta.get("role") != MOVED:
-            raise ValueError("no handoff to this target is in progress")
-        return await self.handoff_status()
-
-    async def abort_handoff(self, handoff: str) -> dict[str, Any]:
-        """Unseal after the target's own refusal of this very handoff proved
-        its copy did not land."""
-        meta = self._meta(glass=False)
-        if meta.get("role") != MOVING or meta.get("handoff") != str(handoff):
-            raise ValueError("that handoff is not the one in progress")
-        self._write_meta({**meta, "role": LIVE})
-        return await self.handoff_status()
-
-    async def import_state(self, text: str, digest: str, handoff: str) -> dict[str, Any]:
-        """Take a handed-off copy. Only a ledger in standby accepts one, and
-        the handoff id it took is kept for good: a repeat of that handoff, in
-        any later role, answers with the record that proves it landed. The
-        state is written before the record that makes it live, so a restart
-        between the two leaves a re-run that simply imports again."""
-        text, digest, handoff = str(text), str(digest), str(handoff)
-        if state_digest(text) != digest or not handoff:
-            raise ValueError(f"{REFUSED_MARK}: the copy does not match its digest")
+    async def import_state(self, text: str, digest: str) -> dict[str, Any]:
+        """Take the exported copy. Only a standby ledger accepts one; importing
+        the same copy again is a no-op. The state is written before the record
+        that makes it live, so a restart between the two leaves a standby
+        ledger that simply imports again."""
+        text, digest = str(text), str(digest)
+        if state_digest(text) != digest:
+            raise ValueError("the copy does not match its digest")
         meta = self._meta()
-        if meta.get("imported") == handoff:
-            return await self.handoff_status()
-        role = meta.get("role", LIVE)
-        if role != STANDBY:
-            raise ValueError(f"{REFUSED_MARK}: a {role} ledger does not accept a copy")
+        if meta.get("imported") == digest:
+            return await self.move_status()
+        if meta.get("role") != STANDBY:
+            raise ValueError(f"a {meta.get('role')} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))
-        self._write_meta({"role": LIVE, "imported": handoff})
-        return await self.handoff_status()
+        self._write_meta({"role": LIVE, "imported": digest})
+        return await self.move_status()
+
+    async def unseal(self, digest: str) -> dict[str, Any]:
+        """Undo an export before the zone moves. Takes the digest it was sealed
+        with, so it cannot be done by accident; the runbook seals the new
+        ledger first and checks it took no writes."""
+        meta = self._meta()
+        if meta.get("role") != SEALED or meta.get("sealed") != str(digest):
+            raise ValueError("that is not the digest this ledger was sealed with")
+        self._write_meta({**meta, "role": LIVE})
+        return await self.move_status()
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
@@ -335,15 +291,6 @@ class CreditsObject(DurableObject):
         ok = state.release(holder, int(reservation_id))
         self._save(state)
         return ok
-
-    async def open_holds(self, holder: str) -> dict[str, Any]:
-        """Reservations and taken reads not yet committed or released, so an
-        operator can release one whose caller lost the answer (MODEL-441)."""
-        acc = self._load().accounts.get(str(holder))
-        if acc is None:
-            return {"reservations": {}, "taken_reads": []}
-        return {"reservations": {str(rid): r.units for rid, r in acc.reservations.items()},
-                "taken_reads": sorted(acc.taken_reads)}
 
     async def has_read_funding(self, holder: str, now: str = "") -> bool:
         return self._load().has_read_funding(holder, now=str(now or ""))

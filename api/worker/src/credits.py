@@ -170,24 +170,10 @@ class StoreNotConfigured(RuntimeError):
 
 
 class LedgerUnavailable(RuntimeError):
-    """The ledger is mid-handoff or its new home did not answer (MODEL-441).
+    """The ledger is frozen while it moves to a new account (MODEL-441).
     Deliberately not a StoreNotConfigured: several callers treat an unbound
     ledger as "carry on without credits", which here would lose a grant. It
     propagates instead, and the webhook and the Worker answer 503."""
-
-
-#: Wrangler secret shared by both accounts while the ledger moves (MODEL-441).
-LEDGER_BRIDGE_SECRET_VAR = "LEDGER_BRIDGE_SECRET"
-#: The other account's Worker origin. The only host the secret is ever sent to.
-LEDGER_BRIDGE_TARGET_VAR = "LEDGER_BRIDGE_TARGET"
-
-
-def ledger_name(env: Any) -> str:
-    """The ledger object's name. Only a rollback of the account move changes
-    it, to receive the ledger into a fresh, empty object (MODEL-441)."""
-    return str(getattr(env, "LEDGER_NAME", "") or "") or "ledger"
-_MOVING_RETRIES = 25
-_MOVING_WAIT_SECONDS = 0.2
 
 
 def _now_iso(moment: datetime | None = None) -> str:
@@ -1780,65 +1766,26 @@ class DurableLedger:
     order. See `credits_do.CreditsObject`.
     """
 
-    def __init__(self, namespace: Any, bridge_secret: str = "", post: Any = None,
-                 sleep: Any = None, bridge_target: str = "", name: str = "ledger") -> None:
-        self._stub = namespace.get(namespace.idFromName(name))
-        self._bridge_secret = bridge_secret
-        self._bridge_target = bridge_target.rstrip("/")
-        self._post = post
-        self._sleep = sleep or asyncio.sleep
+    def __init__(self, namespace: Any) -> None:
+        self._stub = namespace.get(namespace.idFromName("ledger"))
 
     async def _call(self, name: str, *args: Any) -> Any:
-        """One RPC to the ledger, following a handoff (MODEL-441).
-
-        A ledger that is not live fails with a mark, but error text can echo
-        caller input, so the mark is only a hint: the object's own handoff
-        status decides. Moving means retry shortly; moved means send the call
-        to the configured target, never to a host named in an error."""
-        for _ in range(_MOVING_RETRIES):
-            try:
-                return await getattr(self._stub, name)(*args)
-            except Exception as exc:
-                if "ledger-sealed" not in str(exc):
-                    raise
-                status = await self._stub.handoff_status()
-                to_py = getattr(status, "to_py", None)
-                status = dict(to_py() if callable(to_py) else status)
-                role = status.get("role")
-                if role == "moved":
-                    return await self._forward(str(status.get("target") or ""), name, args)
-                if role == "standby":
-                    raise LedgerUnavailable(
-                        "the credit ledger has not been handed over to this deployment yet"
-                    ) from None
-                if role != "moving":
-                    raise
-            await self._sleep(_MOVING_WAIT_SECONDS)
-        raise LedgerUnavailable("the credit ledger is being moved; retry shortly")
-
-    async def _forward(self, moved_to: str, name: str, args: tuple) -> Any:
-        target = self._bridge_target
-        if not self._bridge_secret or not target:
-            raise LedgerUnavailable(
-                "the credit ledger moved and this deployment has no bridge configured")
-        if moved_to.rstrip("/") != target:
-            raise LedgerUnavailable(
-                "the credit ledger moved to a host this deployment is not configured to reach")
-        post = self._post
-        if post is None:
-            from x402_facilitator import worker_post as post
+        """One RPC to the ledger. A ledger frozen for a move (MODEL-441) fails
+        with a mark, but error text can echo caller input, so the mark is only
+        a hint: the object's own status decides."""
         try:
-            status, body = await post(
-                target.rstrip("/") + "/internal/ledger/call",
-                {"method": name, "args": list(args)},
-                {"authorization": "Bearer " + self._bridge_secret,
-                 "content-type": "application/json"})
+            return await getattr(self._stub, name)(*args)
         except Exception as exc:
+            if "ledger-sealed" not in str(exc):
+                raise
+            status = await self._stub.move_status()
+            to_py = getattr(status, "to_py", None)
+            status = dict(to_py() if callable(to_py) else status)
+            if status.get("role") == "live":
+                raise
             raise LedgerUnavailable(
-                f"the moved credit ledger did not answer: {type(exc).__name__}") from exc
-        if status != 200 or "result" not in body:
-            raise LedgerUnavailable(f"the moved credit ledger answered HTTP {status}")
-        return body["result"]
+                "the credit ledger is frozen while it moves to a new account; retry shortly"
+            ) from None
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
@@ -1971,9 +1918,7 @@ def ledger_from_env(env: Any) -> Ledger:
         return UnboundLedger()
     if isinstance(binding, MemoryLedger):
         return binding
-    return DurableLedger(binding, str(getattr(env, LEDGER_BRIDGE_SECRET_VAR, "") or ""),
-                         bridge_target=str(getattr(env, LEDGER_BRIDGE_TARGET_VAR, "") or ""),
-                         name=ledger_name(env))
+    return DurableLedger(binding)
 
 
 def holder_from_fingerprint(fingerprint_hex: str) -> str:
