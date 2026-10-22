@@ -169,7 +169,7 @@ def test_balances_arrive_and_later_calls_on_the_old_worker_land_in_the_new_ledge
     status, body = _handoff(old, net, NEW)
 
     assert (status, body["role"], body["target"]) == (200, "moved", NEW)
-    assert _status(new)["imported_digest"] == body["sealed_digest"]
+    assert _status(new)["imported_handoff"] == body["handoff"]
     assert _balance(new, net) == 500
     assert run(_ledger(new, net).balance("key:b")).monthly == 4000
     _credit(old, net, "pack:cs_2", 250)
@@ -327,16 +327,16 @@ def test_there_is_no_remote_way_to_unseal_a_moving_ledger():
     assert _status(old)["role"] == "moving"
 
 
-def test_break_glass_unseals_only_the_exact_sealed_copy():
+def test_break_glass_unseals_only_the_named_handoff():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
     net.down.add(NEW)
     _handoff(old, net, NEW)
-    sealed = _status(old)["sealed_digest"]
+    handoff = _status(old)["handoff"]
 
-    old.LEDGER_UNSEAL_DIGEST = "0" * 64
+    old.LEDGER_UNSEAL_HANDOFF = "0" * 32
     assert _status(old)["role"] == "moving"
-    old.LEDGER_UNSEAL_DIGEST = sealed
+    old.LEDGER_UNSEAL_HANDOFF = handoff
     assert _status(old)["role"] == "live"
     assert _balance(old, net) == 5
 
@@ -505,13 +505,58 @@ def test_a_rerun_racing_the_targets_own_hand_back_never_unseals_the_source():
     net.lose_answer.add(NEW)
     _handoff(old, net, NEW)
     net.lose_answer.clear()
-    sealed = run(new.CREDITS.obj.begin_handoff(OLD))
+    run(new.CREDITS.obj.begin_handoff(OLD))
 
     status, body = _handoff(old, net, NEW)
 
     assert (status, body["error"]["code"]) == (502, "import_unknown")
     assert _status(old)["role"] == "moving"
     run(new.CREDITS.obj.abort_handoff())
-    assert sealed["digest"] == _status(new)["imported_digest"]
     assert _handoff(old, net, NEW)[1]["role"] == "moved"
     assert _live(old, new) == [new]
+
+
+def test_a_break_glass_secret_left_behind_never_touches_a_later_handoff():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.down.add(NEW)
+    _handoff(old, net, NEW)
+    old.LEDGER_UNSEAL_HANDOFF = _status(old)["handoff"]
+    assert _status(old)["role"] == "live"
+    net.down.clear()
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [new]
+    assert _balance(old, net) == 5
+
+
+def test_a_wrong_way_rerun_after_a_lost_hand_back_answer_cannot_deadlock_both_ledgers():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    _handoff(old, net, NEW)
+    net.lose_answer.add(OLD)
+    assert _handoff(new, net, OLD)[0] == 502
+    net.lose_answer.clear()
+
+    forward = _handoff(old, net, NEW)
+    back = _handoff(new, net, OLD)
+
+    assert (forward[0], forward[1]["error"]["code"]) == (409, "import_refused")
+    assert (back[0], back[1]["role"]) == (200, "moved")
+    assert _live(old, new) == [old]
+    assert _balance(old, net) == 5
+
+
+def test_a_restart_between_the_state_and_the_record_leaves_a_rerun_that_imports_again():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    sealed = run(old.CREDITS.obj.begin_handoff(NEW))
+    new.CREDITS.obj._save(credits.LedgerState.from_json(json.loads(sealed["state"])))
+
+    status, body = _handoff(old, net, NEW)
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [new]
+    assert _balance(new, net) == 5

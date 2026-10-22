@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import secrets
 from typing import Any
 
 from credits import LedgerState
@@ -31,10 +32,10 @@ except Exception:  # CPython tests stub `workers` without this name
 
 
 _STATE_KEY = "state"
-_ROLE_KEY = "role"
-_TARGET_KEY = "target"
-_SEALED_KEY = "sealed_digest"
-_IMPORTED_KEY = "imported_digest"
+#: One JSON row, so every role change is a single write: role, target, the
+#: sealed handoff (its random id and the copy's digest), and the handoff last
+#: imported.
+_META_KEY = "handoff"
 
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
 #: and waits for an import. `moving` is sealed and its copy is in flight to
@@ -90,30 +91,34 @@ class CreditsObject(DurableObject):
             return LedgerState()
         return LedgerState.from_json(json.loads(text))
 
+    def _meta(self, *, glass: bool = True) -> dict[str, str]:
+        """The handoff record. With no record, the deployment's starting role:
+        only a new account's Worker starts in standby (LEDGER_STANDBY), so the
+        ledger that already serves production is live with nothing stored.
+
+        Break glass: a moving ledger whose target account is gone for good is
+        unsealed only by a person setting the Worker secret
+        LEDGER_UNSEAL_HANDOFF to its handoff id. Each seal draws a new random
+        id, so a secret left set never matches a later handoff. Nothing remote
+        can unseal, because nothing remote can prove that a copy still in
+        flight will not land."""
+        text = self._get(_META_KEY)
+        if text:
+            meta = {str(k): str(v) for k, v in json.loads(text).items()}
+        else:
+            flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
+            meta = {"role": STANDBY if flag in ("1", "true", "yes", "on") else LIVE}
+        unseal = str(getattr(self.env, "LEDGER_UNSEAL_HANDOFF", "") or "")
+        if glass and meta.get("role") == MOVING and unseal and unseal == meta.get("handoff"):
+            meta = {**meta, "role": LIVE, "target": ""}
+            self._write_meta(meta)
+        return meta
+
+    def _write_meta(self, meta: dict[str, str]) -> None:
+        self._put(_META_KEY, json.dumps(meta, sort_keys=True))
+
     def _role(self) -> str:
-        """The stored role, else the deployment's starting role. Only a new
-        account's Worker starts in standby (LEDGER_STANDBY), so the ledger that
-        already serves production is live without any stored role.
-
-        Break glass: a moving ledger whose target account is gone for good can
-        only be unsealed by a person setting the Worker secret
-        LEDGER_UNSEAL_DIGEST to its exact sealed digest. Nothing remote can do
-        it, because nothing remote can prove a copy in flight will not land."""
-        role = self._get(_ROLE_KEY)
-        if role == MOVING:
-            unseal = str(getattr(self.env, "LEDGER_UNSEAL_DIGEST", "") or "")
-            if unseal and unseal == self._get(_SEALED_KEY):
-                self._set(LIVE)
-                return LIVE
-        if role:
-            return role
-        flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
-        return STANDBY if flag in ("1", "true", "yes", "on") else LIVE
-
-    def _set(self, role: str, target: str = "", sealed: str = "") -> None:
-        self._put(_ROLE_KEY, role)
-        self._put(_TARGET_KEY, target)
-        self._put(_SEALED_KEY, sealed)
+        return self._meta().get("role", LIVE)
 
     def _load(self) -> LedgerState:
         role = self._role()
@@ -125,60 +130,66 @@ class CreditsObject(DurableObject):
         self._put(_STATE_KEY, json.dumps(state.to_json()))
 
     async def handoff_status(self) -> dict[str, Any]:
-        return {"role": self._role(), "target": self._get(_TARGET_KEY),
+        meta = self._meta()
+        return {"role": meta.get("role", LIVE), "target": meta.get("target", ""),
                 "digest": state_digest(canonical(self._stored())),
-                "sealed_digest": self._get(_SEALED_KEY),
-                "imported_digest": self._get(_IMPORTED_KEY)}
+                "handoff": meta.get("handoff", ""), "sealed_digest": meta.get("sealed", ""),
+                "imported_handoff": meta.get("imported", "")}
 
     async def begin_handoff(self, target: str) -> dict[str, Any]:
-        """Seal this live ledger for `target` and return its copy. Re-running
-        for the same target returns the same copy, so an interrupted handoff
-        can be completed."""
+        """Seal this live ledger for `target` and return its copy under a new
+        handoff id. Re-running for the same target returns the same copy and
+        id, so an interrupted handoff can be completed."""
         target = str(target)
-        role = self._role()
-        if role in (MOVING, MOVED) and self._get(_TARGET_KEY) != target:
+        meta = self._meta()
+        role = meta.get("role", LIVE)
+        if role in (MOVING, MOVED) and meta.get("target") != target:
             raise ValueError("ledger is sealed for another target")
         if role == STANDBY:
             raise ValueError("a standby ledger has nothing to hand off")
         text = canonical(self._stored())
         if role == LIVE:
-            self._set(MOVING, target, state_digest(text))
-        return {"state": text, "digest": state_digest(text)}
+            meta = {**meta, "role": MOVING, "target": target,
+                    "handoff": secrets.token_hex(16), "sealed": state_digest(text)}
+            self._write_meta(meta)
+        return {"state": text, "digest": state_digest(text), "handoff": meta["handoff"]}
 
-    async def finish_handoff(self, target: str, digest: str) -> dict[str, Any]:
-        role = self._role()
-        if role == MOVED and self._get(_TARGET_KEY) == str(target):
+    async def finish_handoff(self, target: str, handoff: str) -> dict[str, Any]:
+        meta = self._meta(glass=False)
+        role = meta.get("role")
+        if role == MOVED and meta.get("target") == str(target):
             return await self.handoff_status()
-        if role != MOVING or self._get(_TARGET_KEY) != str(target):
+        if role != MOVING or meta.get("target") != str(target):
             raise ValueError("no handoff to this target is in progress")
-        if self._get(_SEALED_KEY) != str(digest):
-            raise ValueError("digest does not match the sealed ledger")
-        self._set(MOVED, str(target), str(digest))
-        # It no longer holds the copy it took in earlier; a later copy with the
-        # same digest must be imported, not mistaken for a re-run.
-        self._put(_IMPORTED_KEY, "")
+        if meta.get("handoff") != str(handoff):
+            raise ValueError("that is not the handoff this ledger sealed")
+        self._write_meta({**meta, "role": MOVED, "imported": ""})
         return await self.handoff_status()
 
     async def abort_handoff(self) -> dict[str, Any]:
         """Unseal a ledger after the target's own refusal proved its copy did
         not land. Only `moving`: a moved ledger's copy is live elsewhere and
         comes back only by a hand-back."""
-        if self._role() != MOVING:
+        meta = self._meta(glass=False)
+        if meta.get("role") != MOVING:
             raise ValueError("only a ledger that is moving can be unsealed")
-        self._set(LIVE)
+        self._write_meta({**meta, "role": LIVE, "target": ""})
         return await self.handoff_status()
 
-    async def import_state(self, text: str, digest: str) -> dict[str, Any]:
-        """Take a handed-off copy. Idempotent on the copy's digest, so a re-run
+    async def import_state(self, text: str, digest: str, handoff: str) -> dict[str, Any]:
+        """Take a handed-off copy. Idempotent on the handoff id, so a re-run
         after a lost answer succeeds even once the copy has taken writes.
         Otherwise accepted only by a ledger that holds no live state: one in
         standby, or one that handed its ledger away earlier (a hand-back).
-        Never by a live or moving ledger, whose state is still the real one."""
-        text, digest = str(text), str(digest)
-        if state_digest(text) != digest:
-            raise ValueError(f"{REFUSED_MARK}: digest does not match the document")
-        role = self._role()
-        if self._get(_IMPORTED_KEY) == digest:
+        Never by a live or moving ledger, whose state is still the real one.
+        The state is written before the record that makes it live, so a
+        restart between the two leaves a re-run that simply imports again."""
+        text, digest, handoff = str(text), str(digest), str(handoff)
+        if state_digest(text) != digest or not handoff:
+            raise ValueError(f"{REFUSED_MARK}: the copy does not match its digest")
+        meta = self._meta()
+        role = meta.get("role", LIVE)
+        if meta.get("imported") == handoff:
             if role == LIVE:
                 return await self.handoff_status()
             # It landed here and is being handed on. Not a refusal: the
@@ -187,8 +198,7 @@ class CreditsObject(DurableObject):
         if role not in (STANDBY, MOVED):
             raise ValueError(f"{REFUSED_MARK}: a {role} ledger does not accept a copy")
         self._save(LedgerState.from_json(json.loads(text)))
-        self._put(_IMPORTED_KEY, digest)
-        self._set(LIVE)
+        self._write_meta({"role": LIVE, "imported": handoff})
         return await self.handoff_status()
 
     async def credit(self, holder: str, payment_id: str, units: int,

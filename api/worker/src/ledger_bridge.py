@@ -98,7 +98,8 @@ async def handle(env: Any, path: str, method: str, authorization: str,
     if action == "import":
         try:
             status = await stub.import_state(str(payload.get("state") or ""),
-                                             str(payload.get("digest") or ""))
+                                             str(payload.get("digest") or ""),
+                                             str(payload.get("handoff") or ""))
         except Exception as exc:
             if "ledger-import-refused" in str(exc):
                 return _error(409, "import_refused", _reason(exc))
@@ -136,15 +137,19 @@ async def _handoff(stub: Any, key: str, target: str,
     try:
         status, answer = await post(
             target + PREFIX + "import",
-            {"state": sealed["state"], "digest": sealed["digest"]},
+            {"state": sealed["state"], "digest": sealed["digest"],
+             "handoff": sealed["handoff"]},
             {"authorization": "Bearer " + key, "content-type": "application/json"})
     except Exception as exc:
         return _error(502, "import_unknown",
                       f"no answer from the target ({type(exc).__name__}); "
                       "the ledger stays sealed; re-run the handoff")
     if (status == 200 and answer.get("role") == "live"
-            and answer.get("imported_digest") == sealed["digest"]):
-        return 200, _plain(await stub.finish_handoff(target, sealed["digest"]))
+            and answer.get("imported_handoff") == sealed["handoff"]):
+        try:
+            return 200, _plain(await stub.finish_handoff(target, sealed["handoff"]))
+        except Exception as exc:
+            return _error(502, "finish_failed", _reason(exc))
     error = answer.get("error") or {}
     if status == 409 and error.get("code") == "import_refused":
         # Only the target's own refusal proves the copy did not land.

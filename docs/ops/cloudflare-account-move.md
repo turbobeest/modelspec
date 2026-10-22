@@ -102,8 +102,8 @@ duplicates a balance, and a payment credited before the move is still a
 duplicate after it. Calls that arrive mid-handoff retry for up to 5 seconds,
 then answer 503.
 
-Imports are idempotent on the copy's digest, so re-running a handoff is always
-safe. A 200 means the copy is there. Only the target's own refusal, which
+Each seal draws a random handoff id. Imports are idempotent on that id, so
+re-running a handoff is always safe. A 200 means the copy is there. Only the target's own refusal, which
 proves the copy never landed, unseals the source. Any other answer, or none,
 keeps the source sealed until a re-run gets through. Only a `standby` ledger,
 or a `moved` one taking its ledger back, accepts a copy. A `live` or `moving`
@@ -114,8 +114,11 @@ There is no remote abort. Three attempts at one showed that nothing outside
 the target can prove a copy still in flight will not land, and a wrong guess
 makes two live ledgers. A stuck `moving` ledger is finished by re-running the
 handoff. If the target account is gone for good, **J** sets the Worker secret
-`LEDGER_UNSEAL_DIGEST` on the sealed Worker to the exact `sealed_digest` from
-its status. That one copy then unseals, and it is the only break-glass.
+`LEDGER_UNSEAL_HANDOFF` on the sealed Worker to the `handoff` id from its
+status. That one handoff then unseals. Every seal draws a new random id, so a
+secret left behind can never unseal a later handoff. Remove it anyway. It is
+the only break-glass, and it is only for a target that will never answer again:
+used while the target lives, it makes two live ledgers.
 
 The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
 paths answer the ordinary 404. The secret is only ever sent to
@@ -312,7 +315,7 @@ curl -sS -X POST https://api.modelspec.dev/internal/ledger/handoff \
 
 1. Expect HTTP 200 with `role: moved` and `target` set to the new origin.
    `GET /internal/ledger/status` on the new Worker must show `role: live` and
-   an `imported_digest` equal to the old Worker's `sealed_digest`.
+   an `imported_handoff` equal to the old Worker's `handoff`.
 2. A keyed `GET https://api.modelspec.dev/v1/credits` must answer with the same
    balance as before. It now crosses the bridge.
 3. On 502 `import_unknown`, run the same command again until it answers 200.
