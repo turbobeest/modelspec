@@ -71,8 +71,6 @@ jobs:
       group: mcp-deploy
       cancel-in-progress: false
     env:
-      # Before its zone moves, the new account answers on workers.dev only.
-      MCP_URL: ${{ vars.CF_MCP_URL || 'https://api.modelspec.dev/mcp' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
@@ -91,9 +89,16 @@ jobs:
       - name: Point the config at this environment's Cloudflare account
         # MODEL-441. Wrangler prefers the config's account_id over the secret.
         env:
+          CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
           CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
           CF_ROUTES: ${{ vars.CF_ROUTES }}
         run: python3 .github/scripts/cloudflare_target.py mcp/wrangler.jsonc
+
+      - name: Probe this environment's host
+        # MODEL-441. Before its zone moves, the new account answers on workers.dev only.
+        env:
+          CF_MCP_URL: ${{ vars.CF_MCP_URL }}
+        run: if [ -n "$CF_MCP_URL" ]; then echo "MCP_URL=$CF_MCP_URL" >> "$GITHUB_ENV"; fi
 
       - name: Deploy
         working-directory: mcp

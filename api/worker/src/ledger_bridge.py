@@ -30,7 +30,7 @@ CALLABLE = frozenset({
     "note_unreported", "open_backlog", "ack_backlog", "note_uncertain",
     "list_uncertain", "ack_uncertain", "age_uncertain", "open_meter_events",
     "unreconcile_uncertain", "release", "has_read_funding", "balance", "seen",
-    "expect", "payment", "refund", "hold", "end_hold",
+    "expect", "payment", "refund", "hold", "end_hold", "open_holds",
 })
 
 
@@ -71,7 +71,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
     action = path[len(PREFIX):]
 
     if action == "status":
-        if method != "GET":
+        if method not in ("GET", "POST"):
             return _error(405, "method_not_allowed", "use GET")
         return 200, _plain(await stub.handoff_status())
     if method != "POST":
@@ -108,13 +108,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         return 200, _plain(status)
 
     if action == "abort":
-        if payload.get("force") is not True:
-            return _error(400, "invalid_request",
-                          "re-run the handoff instead; abort only with force when the target is gone")
-        try:
-            return 200, _plain(await stub.abort_handoff())
-        except Exception as exc:
-            return _error(409, "abort_refused", _reason(exc))
+        return await _abort(stub, key, target(env), payload.get("force") is True, post)
 
     if action == "handoff":
         wanted = str(payload.get("target") or "").rstrip("/")
@@ -163,6 +157,33 @@ async def _handoff(stub: Any, key: str, target: str,
                       "the ledger is unsealed and serving")
     return _error(502, "import_unknown",
                   f"the target answered HTTP {status}; the ledger stays sealed; re-run the handoff")
+
+
+async def _abort(stub: Any, key: str, peer: str, force: bool,
+                 post: Any) -> tuple[int, dict[str, Any]]:
+    """Unseal a moving ledger only when its copy is known not to be live at
+    the target. `force` skips the check, and only when the target cannot be
+    asked at all: the last resort if the other account is gone."""
+    current = _plain(await stub.handoff_status())
+    if current.get("role") != "moving":
+        return _error(409, "abort_refused", "only a moving ledger can be unsealed")
+    if post is None:
+        from x402_facilitator import worker_post as post
+    try:
+        status, answer = await post(
+            peer + PREFIX + "status", {},
+            {"authorization": "Bearer " + key, "content-type": "application/json"})
+    except Exception as exc:
+        status, answer = 0, {"error": {"message": type(exc).__name__}}
+    if status == 200:
+        if answer.get("role") == "live" and answer.get("imported_digest") == current.get("sealed_digest"):
+            return 200, _plain(await stub.finish_handoff(peer, current["sealed_digest"]))
+        return 200, _plain(await stub.abort_handoff())
+    if not force:
+        return _error(502, "target_unknown",
+                      f"the target did not answer its status (HTTP {status}); "
+                      "re-run the handoff, or abort with force only if the target is gone")
+    return 200, _plain(await stub.abort_handoff())
 
 
 def _reason(exc: Exception) -> str:

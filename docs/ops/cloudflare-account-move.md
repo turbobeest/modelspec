@@ -4,7 +4,9 @@ This runbook moves every ModelSpec resource out of the shared Cloudflare
 account `43840d11…`, which dev-mux and personal sites also use, into a new
 ModelSpec-only account. The API at `api.modelspec.dev` keeps answering
 throughout, apart from a route gap of a few seconds at activation that phase 5
-may remove (below). The credit ledger never loses or double-counts a balance.
+may remove (below). The handoff itself never loses or double-counts a credit
+balance. The residual risks list the few hand fixes a lost network answer can
+need during the minutes the old Worker forwards ledger calls.
 Jamie's plan doc covers the account-level reasoning: "Cloudflare Account
 Separation: dev-mux & modelspec", <https://claude.ai/artifact/CmPqJyGpcDMY3T3iw2DQrC>.
 
@@ -95,9 +97,10 @@ so nothing can write to it before the handoff. The handoff runs like this:
 3. It records itself `moved`. From then on it forwards every ledger call to
    the new Worker's `/internal/ledger/call`.
 
-Exactly one ledger is live at every moment, so a balance is never lost or
-duplicated, and a payment credited before the move is still a duplicate after
-it. Calls that arrive mid-handoff retry for up to 5 seconds, then answer 503.
+Exactly one ledger is live at every moment, so the handoff never loses or
+duplicates a balance, and a payment credited before the move is still a
+duplicate after it. Calls that arrive mid-handoff retry for up to 5 seconds,
+then answer 503.
 
 Imports are idempotent on the copy's digest, so re-running a handoff is always
 safe. A 200 means the copy is there. A refusal means it never landed: the
@@ -105,8 +108,11 @@ source unseals and keeps serving. No answer means the source stays sealed until
 the handoff is re-run. Only a `standby` ledger, or a `moved` one taking its
 ledger back, accepts a copy. A `live` or `moving` ledger never does, so a
 rollback can never overwrite real balances. Handing the ledger back is the
-same call in the other direction. An `abort` with `{"force": true}` unseals a
-`moving` ledger. It is the last resort if the target account is gone.
+same call in the other direction. `POST /internal/ledger/abort` asks the
+target for its status first. If the copy is live there, abort finishes the
+move. If the target answers without the copy, abort unseals the source. Only
+when the target cannot answer at all does `{"force": true}` unseal anyway: the
+last resort if the other account is gone.
 
 The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
 paths answer the ordinary 404. The secret is only ever sent to
@@ -156,7 +162,9 @@ local wrangler commands still reach the right one. The Worker and Pages
 deploy workflows take a `cloudflare_environment` input, defaulting to
 `production`. A run with `cloudflare-modelspec` deploys the same commit into
 the new account, and its smoke tests probe the workers.dev hosts named by
-`CF_RANK_HOST` and `CF_MCP_URL`.
+`CF_RANK_HOST` and `CF_MCP_URL`. `CF_ROUTES` and `CF_LEDGER_STANDBY` stop any
+deploy to the `production` environment, so a variable set at the wrong scope
+cannot strip the serving Worker's routes or freeze its ledger.
 
 ## Phases
 
@@ -204,8 +212,9 @@ an agent session with the tokens Jamie hands it, never printing them.
 
 ### Phase 3. Build the new account (A with the migration token, J where marked)
 
-1. Create KV namespaces `ACCESS` and `DETERMINATIONS`. Set environment
-   variables `CF_KV_ACCESS` and `CF_KV_DETERMINATIONS` to their ids, and set
+1. Create KV namespaces `ACCESS` and `DETERMINATIONS`. In GitHub environment
+   `cloudflare-modelspec`, never at repository level, set variables
+   `CF_KV_ACCESS` and `CF_KV_DETERMINATIONS` to their ids, and set
    `CF_WORKERS_DEV=true`, `CF_ROUTES=off`, `CF_LEDGER_STANDBY=true`,
    `CF_RANK_HOST=modelspec-rank.<sub>.workers.dev` and
    `CF_MCP_URL=https://modelspec-mcp.<sub>.workers.dev/mcp`.
@@ -423,10 +432,15 @@ next staging deploy provisions staging's KV in the new account.
   answers 401 on the new Worker until the merge runs.
 - From phase 7 to phase 8, ledger calls on the old Worker cross one extra
   HTTPS hop, and a call whose answer is lost may still have been applied.
-  Running phase 7 right before phase 8 keeps this window to minutes. Two cases
-  need a hand fix:
+  Run phase 7 right before phase 8, in the quietest hour, to keep this window
+  to minutes. Three cases:
+  - A forwarded `commit` or `take_read` whose answer is lost has already
+    charged. A caller who retries the whole request pays one more credit.
+    Refund it with a bridge `credit` call naming a new payment id.
   - A forwarded `reserve` leaves units reserved, because the caller never
-    learned the reservation id. Fix it with a bridge `release` call.
+    learned the reservation id. List them with the bridge `open_holds` call
+    twice, a minute apart. Release each reservation present both times with
+    a bridge `release` call.
   - A key rotation whose forwarded `transfer` landed leaves the balance on a
     new key that was never shown. The old key still works with a balance of 0.
     Find the new key's `key:` record (same owner, created at that minute) and

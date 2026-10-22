@@ -20,6 +20,7 @@ MCP = (ROOT / "mcp/wrangler.jsonc").read_text(encoding="utf-8")
 NEW_ACCOUNT = "0123456789abcdef0123456789abcdef"
 NEW_ACCESS = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 NEW_DETERMINATIONS = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+NEW_ENV = {"CF_ENVIRONMENT": "cloudflare-modelspec"}
 
 
 def test_no_environment_leaves_the_committed_config_byte_for_byte():
@@ -60,8 +61,11 @@ def test_the_mcp_worker_takes_the_account_and_keeps_its_service_binding():
     ({"CLOUDFLARE_ACCOUNT_ID": "not-an-account"}, "CLOUDFLARE_ACCOUNT_ID is not a 32-hex account id"),
     ({"CF_KV_ACCESS": "ACCESS"}, "CF_KV_ACCESS is not a 32-hex namespace id"),
     ({"CF_WORKERS_DEV": "yes"}, "CF_WORKERS_DEV must be true or false"),
-    ({"CF_ROUTES": "on"}, "CF_ROUTES must be off or unset"),
-    ({"CF_LEDGER_STANDBY": "yes"}, "CF_LEDGER_STANDBY must be true or unset"),
+    ({"CF_ROUTES": "on", **NEW_ENV}, "CF_ROUTES must be off or unset"),
+    ({"CF_LEDGER_STANDBY": "yes", **NEW_ENV}, "CF_LEDGER_STANDBY must be true or unset"),
+    ({"CF_ROUTES": "off"}, "CF_ROUTES is set for the production environment"),
+    ({"CF_LEDGER_STANDBY": "true", "CF_ENVIRONMENT": "production"},
+     "CF_LEDGER_STANDBY is set for the production environment"),
 ])
 def test_malformed_values_stop_the_deploy_without_echoing_them(environ, message):
     with pytest.raises(ValueError) as caught:
@@ -81,7 +85,7 @@ def test_the_main_entry_rewrites_the_file_in_place(tmp_path, monkeypatch, capsys
 
 def test_routes_off_leaves_both_workers_without_routes_and_everything_else_alone():
     for committed in (RANK, MCP):
-        text, changes = cloudflare_target.retarget(committed, {"CF_ROUTES": "off"})
+        text, changes = cloudflare_target.retarget(committed, {"CF_ROUTES": "off", **NEW_ENV})
         config = parse_jsonc(text)
         before = parse_jsonc(committed)
 
@@ -92,7 +96,7 @@ def test_routes_off_leaves_both_workers_without_routes_and_everything_else_alone
 
 
 def test_ledger_standby_adds_one_top_level_var_and_leaves_staging_alone():
-    text, changes = cloudflare_target.retarget(RANK, {"CF_LEDGER_STANDBY": "true"})
+    text, changes = cloudflare_target.retarget(RANK, {"CF_LEDGER_STANDBY": "true", **NEW_ENV})
     config, before = parse_jsonc(text), parse_jsonc(RANK)
 
     assert changes == ["LEDGER_STANDBY"]

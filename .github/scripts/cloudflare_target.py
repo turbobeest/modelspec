@@ -16,6 +16,9 @@ the job's GitHub environment:
                          credit ledger refuses calls until it is handed over
 
 Unset or empty variables leave the committed value. Staging is never touched.
+CF_ROUTES and CF_LEDGER_STANDBY belong to the new account's environment only:
+with CF_ENVIRONMENT=production they stop the deploy, because on the serving
+Worker they would drop the live routes or freeze the live ledger.
 """
 from __future__ import annotations
 
@@ -31,9 +34,16 @@ from pipeline.worker_flags import parse_jsonc  # noqa: E402
 HEX_ID = re.compile(r"[0-9a-f]{32}")
 
 
+TRANSITION_ONLY = ("CF_ROUTES", "CF_LEDGER_STANDBY")
+
+
 def retarget(text: str, environ: dict[str, str]) -> tuple[str, list[str]]:
     config = parse_jsonc(text)
     changes: list[str] = []
+    if (environ.get("CF_ENVIRONMENT") or "production") == "production":
+        for name in TRANSITION_ONLY:
+            if (environ.get(name) or "").strip():
+                raise ValueError(f"{name} is set for the production environment")
     account = (environ.get("CLOUDFLARE_ACCOUNT_ID") or "").strip()
     if account and account != config.get("account_id"):
         if not HEX_ID.fullmatch(account):

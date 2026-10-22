@@ -314,6 +314,15 @@ class CreditsObject(DurableObject):
         self._save(state)
         return ok
 
+    async def open_holds(self, holder: str) -> dict[str, Any]:
+        """Reservations and taken reads not yet committed or released, so an
+        operator can release one whose caller lost the answer (MODEL-441)."""
+        acc = self._load().accounts.get(str(holder))
+        if acc is None:
+            return {"reservations": {}, "taken_reads": []}
+        return {"reservations": {str(rid): r.units for rid, r in acc.reservations.items()},
+                "taken_reads": sorted(acc.taken_reads)}
+
     async def has_read_funding(self, holder: str, now: str = "") -> bool:
         return self._load().has_read_funding(holder, now=str(now or ""))
 

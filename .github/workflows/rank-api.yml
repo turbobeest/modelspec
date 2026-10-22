@@ -327,8 +327,6 @@ jobs:
       group: rank-api-deploy
       cancel-in-progress: false
     env:
-      # Before its zone moves, the new account answers on workers.dev only.
-      RANK_HOST: ${{ vars.CF_RANK_HOST || 'api.modelspec.dev' }}
       # Scoped to Workers Scripts:Edit, Workers KV Storage:Edit and Workers
       # Routes:Edit on the modelspec.dev zone. No DNS, no R2, no Containers.
       # CLOUDFLARE_API_TOKEN (Pages) is a different credential and is not used here.
@@ -401,10 +399,19 @@ jobs:
         env:
           CF_KV_ACCESS: ${{ vars.CF_KV_ACCESS }}
           CF_KV_DETERMINATIONS: ${{ vars.CF_KV_DETERMINATIONS }}
+          CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
           CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
           CF_ROUTES: ${{ vars.CF_ROUTES }}
           CF_LEDGER_STANDBY: ${{ vars.CF_LEDGER_STANDBY }}
         run: python3 .github/scripts/cloudflare_target.py api/worker/wrangler.jsonc
+
+      - name: Probe this environment's host
+        # MODEL-441. Before its zone moves, the new account answers on
+        # workers.dev only. Set in a step: environment variables are certain
+        # to be readable there.
+        env:
+          CF_RANK_HOST: ${{ vars.CF_RANK_HOST }}
+        run: if [ -n "$CF_RANK_HOST" ]; then echo "RANK_HOST=$CF_RANK_HOST" >> "$GITHUB_ENV"; fi
 
       - name: Deploy
         working-directory: api/worker

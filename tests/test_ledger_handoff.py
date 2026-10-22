@@ -314,20 +314,63 @@ def test_rerunning_a_finished_handoff_changes_nothing():
     assert _balance(new, net) == 501
 
 
-def test_unsealing_takes_force_and_only_a_moving_ledger():
+def _abort(env, net, body=None):
+    return run(ledger_bridge.handle(env, "/internal/ledger/abort", "POST", "Bearer " + SECRET,
+                                    json.dumps(body or {}), post=net.post))
+
+
+def test_abort_unseals_only_when_the_target_answers_without_the_copy():
     old, new, net = _accounts()
     _credit(old, net, "pack:cs_1", 5)
     net.down.add(NEW)
     _handoff(old, net, NEW)
 
-    def abort(env, body):
-        return run(ledger_bridge.handle(env, "/internal/ledger/abort", "POST",
-                                        "Bearer " + SECRET, json.dumps(body)))
-
-    assert abort(old, {})[0] == 400
-    assert abort(old, {"force": True})[1]["role"] == "live"
-    assert abort(new, {"force": True})[0] == 409
+    assert _abort(old, net)[1]["error"]["code"] == "target_unknown"
+    net.down.clear()
+    assert _abort(old, net)[1]["role"] == "live"
+    assert _abort(new, net)[0] == 409
+    assert _live(old, new) == [old]
     assert _balance(old, net) == 5
+
+
+def test_abort_after_a_landed_copy_finishes_the_move_instead_of_making_two_live_ledgers():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.lose_answer.add(NEW)
+    _handoff(old, net, NEW)
+    net.lose_answer.clear()
+
+    status, body = _abort(old, net, {"force": True})
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [new]
+
+
+def test_force_unseals_only_when_the_target_cannot_be_asked():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.down.add(NEW)
+    _handoff(old, net, NEW)
+
+    assert _abort(old, net, {"force": True})[1]["role"] == "live"
+    assert _balance(old, net) == 5
+
+
+def test_a_reservation_whose_forwarded_answer_was_lost_can_be_found_and_released():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    _handoff(old, net, NEW)
+    net.lose_answer.add(NEW)
+    try:
+        run(_ledger(old, net).reserve("key:a", 3))
+    except credits.LedgerUnavailable:
+        pass
+    net.lose_answer.clear()
+
+    holds = run(_ledger(old, net)._call("open_holds", "key:a"))
+    assert holds == {"reservations": {"1": 3}, "taken_reads": []}
+    assert run(_ledger(old, net).release("key:a", 1)) is True
+    assert _balance(new, net) == 10
 
 
 def test_the_bridge_refuses_without_the_secret_and_names_only_ledger_methods():
