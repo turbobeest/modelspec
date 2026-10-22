@@ -221,17 +221,18 @@ def test_missing_credential_does_not_reserve_credits(ledger, paid_factory, monke
 @pytest.mark.parametrize("paid", [False, True])
 def test_cite_only_response_has_hash_and_no_page_bytes(ledger, paid_factory, paid):
     restricted = "https://docs.x.ai/models/admission-fixture"
+    retrieved_at = datetime(2026, 10, 20, tzinfo=UTC)
     factory, calls = paid_factory(redirects=(restricted,))
     primary = Primary() if paid else Primary(
         FetchResult("ok", 200, body=BODY, resolved_urls=(restricted,),
-                    retrieved_at=datetime(2026, 10, 20, tzinfo=UTC))
+                    retrieved_at=retrieved_at)
     )
     result = AdmissionFallback(
         primary, ledger, month=MONTH, firecrawl_factory=factory
     ).fetch(restricted)
     assert result.outcome == "ok" and result.body == b""
     assert result.snapshot_ref == fingerprint_bytes(BODY)
-    assert result.retrieved_at is not None
+    assert result.retrieved_at == (None if paid else retrieved_at)
     assert len(calls) == int(paid)
     assert all(BODY not in path.read_bytes() for path in ledger.rglob("*") if path.is_file())
     if paid:

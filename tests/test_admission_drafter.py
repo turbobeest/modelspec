@@ -347,6 +347,7 @@ def test_cite_only_fallback_keeps_original_fingerprint(tmp_path):
     from scripts.admission_drafter import draft_packet
 
     root = catalogue(tmp_path)
+    (root / "registry/source-terms.json").write_text(json.dumps({"docs.x.ai": "permits"}))
     model_id = "xai/fixture-model"
     model_url = "https://docs.x.ai/docs/models/fixture-model"
     original = root / "models" / f"{MODEL}.md"
