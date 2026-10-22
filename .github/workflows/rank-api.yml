@@ -403,6 +403,7 @@ jobs:
           CF_KV_DETERMINATIONS: ${{ vars.CF_KV_DETERMINATIONS }}
           CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
           CF_ROUTES: ${{ vars.CF_ROUTES }}
+          CF_LEDGER_STANDBY: ${{ vars.CF_LEDGER_STANDBY }}
         run: python3 .github/scripts/cloudflare_target.py api/worker/wrangler.jsonc
 
       - name: Deploy

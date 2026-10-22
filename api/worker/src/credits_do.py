@@ -5,12 +5,12 @@ document so a mutation is one write, not a cross-key KV race. The class is
 imported from `entry.py` so Wrangler can find it by `class_name`.
 
 MODEL-441. A Durable Object cannot move between Cloudflare accounts, so the
-ledger moves by handoff: `begin_handoff` seals this copy and returns it, the
-Worker imports it into the target account's ledger, and `finish_handoff`
-records where it went. A sealed ledger refuses every call with a message
-naming the target, and `credits.DurableLedger` forwards the call there. The
-seal is one synchronous SQL write, so no call can slip between the copy and
-the seal. See docs/ops/cloudflare-account-move.md.
+ledger moves by handoff between two objects with explicit roles (live,
+standby, moving, moved). `begin_handoff` seals the live ledger in one
+synchronous write and returns its copy; the target, in standby, imports it;
+`finish_handoff` marks the source moved, and `credits.DurableLedger` forwards
+its calls to the target from then on. Exactly one ledger is live at a time.
+See api/worker/src/ledger_bridge.py and docs/ops/cloudflare-account-move.md.
 """
 
 from __future__ import annotations
@@ -31,16 +31,23 @@ except Exception:  # CPython tests stub `workers` without this name
 
 
 _STATE_KEY = "state"
-_MOVING_KEY = "moving"
-_MOVED_KEY = "moved_to"
+_ROLE_KEY = "role"
+_TARGET_KEY = "target"
+_SEALED_KEY = "sealed_digest"
+_IMPORTED_KEY = "imported_digest"
 
-MOVED_MARK = "ledger-moved:"
-MOVING_MARK = "ledger-moving"
+#: A ledger's part in a move. `live` serves calls. `standby` has never served
+#: and waits for an import. `moving` is sealed and its copy is in flight to
+#: `target`. `moved` is sealed for good and its calls go to `target`.
+LIVE, STANDBY, MOVING, MOVED = "live", "standby", "moving", "moved"
+
+#: The mark a sealed ledger's errors carry. Error text can echo caller input,
+#: so callers treat it as a hint and read `handoff_status` before acting.
+SEALED_MARK = "ledger-sealed"
 
 
 class LedgerSealed(RuntimeError):
-    """This copy was handed off. The message carries the mark and target URL,
-    because only the message survives the RPC boundary."""
+    """This ledger does not serve calls in its current role."""
 
 
 def state_digest(text: str) -> str:
@@ -80,70 +87,87 @@ class CreditsObject(DurableObject):
             return LedgerState()
         return LedgerState.from_json(json.loads(text))
 
+    def _role(self) -> str:
+        """The stored role, else the deployment's starting role. Only a new
+        account's Worker starts in standby (LEDGER_STANDBY), so the ledger that
+        already serves production is live without any stored role."""
+        role = self._get(_ROLE_KEY)
+        if role:
+            return role
+        flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
+        return STANDBY if flag in ("1", "true", "yes", "on") else LIVE
+
+    def _set(self, role: str, target: str = "", sealed: str = "") -> None:
+        self._put(_ROLE_KEY, role)
+        self._put(_TARGET_KEY, target)
+        self._put(_SEALED_KEY, sealed)
+
     def _load(self) -> LedgerState:
-        moved_to = self._get(_MOVED_KEY)
-        if moved_to:
-            raise LedgerSealed(MOVED_MARK + moved_to)
-        if self._get(_MOVING_KEY):
-            raise LedgerSealed(MOVING_MARK)
+        role = self._role()
+        if role != LIVE:
+            raise LedgerSealed(f"{SEALED_MARK}: {role}")
         return self._stored()
 
     def _save(self, state: LedgerState) -> None:
         self._put(_STATE_KEY, json.dumps(state.to_json()))
 
     async def handoff_status(self) -> dict[str, Any]:
-        text = canonical(self._stored())
-        return {"digest": state_digest(text), "moving": self._get(_MOVING_KEY),
-                "moved_to": self._get(_MOVED_KEY)}
+        return {"role": self._role(), "target": self._get(_TARGET_KEY),
+                "digest": state_digest(canonical(self._stored())),
+                "sealed_digest": self._get(_SEALED_KEY),
+                "imported_digest": self._get(_IMPORTED_KEY)}
 
     async def begin_handoff(self, target: str) -> dict[str, Any]:
-        """Seal this copy for `target` and return it. Re-running for the same
-        target returns the same copy, so a handoff interrupted after the seal
+        """Seal this live ledger for `target` and return its copy. Re-running
+        for the same target returns the same copy, so an interrupted handoff
         can be completed."""
         target = str(target)
-        if not target:
-            raise ValueError("handoff needs a target")
-        current = self._get(_MOVED_KEY) or self._get(_MOVING_KEY)
-        if current and current != target:
-            raise ValueError("ledger is already sealed for another target")
-        if not current:
-            self._put(_MOVING_KEY, target)
+        role = self._role()
+        if role in (MOVING, MOVED) and self._get(_TARGET_KEY) != target:
+            raise ValueError("ledger is sealed for another target")
+        if role == STANDBY:
+            raise ValueError("a standby ledger has nothing to hand off")
         text = canonical(self._stored())
+        if role == LIVE:
+            self._set(MOVING, target, state_digest(text))
         return {"state": text, "digest": state_digest(text)}
 
     async def finish_handoff(self, target: str, digest: str) -> dict[str, Any]:
-        target = str(target)
-        if self._get(_MOVED_KEY) == target:
+        role = self._role()
+        if role == MOVED and self._get(_TARGET_KEY) == str(target):
             return await self.handoff_status()
-        if self._get(_MOVING_KEY) != target:
+        if role != MOVING or self._get(_TARGET_KEY) != str(target):
             raise ValueError("no handoff to this target is in progress")
-        if state_digest(canonical(self._stored())) != str(digest):
+        if self._get(_SEALED_KEY) != str(digest):
             raise ValueError("digest does not match the sealed ledger")
-        self._put(_MOVED_KEY, target)
-        self._put(_MOVING_KEY, "")
+        self._set(MOVED, str(target), str(digest))
         return await self.handoff_status()
 
     async def abort_handoff(self) -> dict[str, Any]:
-        if self._get(_MOVED_KEY):
-            raise ValueError("handoff already finished; hand the ledger back instead")
-        self._put(_MOVING_KEY, "")
+        """Unseal a ledger whose copy did not land. Only `moving`: a moved
+        ledger's copy is live elsewhere and comes back only by a hand-back."""
+        if self._role() != MOVING:
+            raise ValueError("only a ledger that is moving can be unsealed")
+        self._set(LIVE)
         return await self.handoff_status()
 
     async def import_state(self, text: str, digest: str) -> dict[str, Any]:
-        """Take a handed-off copy. Accepted into an empty or sealed ledger
-        (a sealed copy is stale by definition, which is what makes handing
-        back work), or when it is already this ledger's state."""
-        text = str(text)
-        if state_digest(text) != str(digest):
+        """Take a handed-off copy. Idempotent on the copy's digest, so a re-run
+        after a lost answer succeeds even once the copy has taken writes.
+        Otherwise accepted only by a ledger that holds no live state: one in
+        standby, or one that handed its ledger away earlier (a hand-back).
+        Never by a live or moving ledger, whose state is still the real one."""
+        text, digest = str(text), str(digest)
+        if state_digest(text) != digest:
             raise ValueError("digest does not match the document")
-        incoming = LedgerState.from_json(json.loads(text))
-        sealed = bool(self._get(_MOVED_KEY) or self._get(_MOVING_KEY))
-        local = canonical(self._stored())
-        if not sealed and local not in (canonical(LedgerState()), canonical(incoming)):
-            raise ValueError("ledger holds a different, live state")
-        self._save(incoming)
-        self._put(_MOVED_KEY, "")
-        self._put(_MOVING_KEY, "")
+        if self._get(_IMPORTED_KEY) == digest:
+            return await self.handoff_status()
+        role = self._role()
+        if role not in (STANDBY, MOVED):
+            raise ValueError(f"a {role} ledger does not accept a copy")
+        self._save(LedgerState.from_json(json.loads(text)))
+        self._put(_IMPORTED_KEY, digest)
+        self._set(LIVE)
         return await self.handoff_status()
 
     async def credit(self, holder: str, payment_id: str, units: int,

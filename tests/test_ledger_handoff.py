@@ -3,7 +3,8 @@
 Two in-memory "accounts", each with its own CreditsObject, joined by the
 bridge over a fake HTTPS hop. The properties under test are the ones the
 move must keep: every balance arrives, a payment credited before the move
-stays a duplicate after it, and exactly one copy accepts writes at a time.
+stays a duplicate after it, and exactly one copy accepts writes at a time,
+whatever answers are lost and whichever way the operator re-runs or rolls back.
 """
 
 from __future__ import annotations
@@ -67,10 +68,10 @@ class Stub:
 
 
 class Namespace:
-    def __init__(self):
+    def __init__(self, env=None):
         ctx = type("Ctx", (), {})()
         ctx.storage = type("Storage", (), {"sql": Sql()})()
-        self.obj = credits_do.CreditsObject(ctx, env=None)
+        self.obj = credits_do.CreditsObject(ctx, env=env)
 
     def idFromName(self, name):
         assert name == "ledger"
@@ -81,27 +82,33 @@ class Namespace:
 
 
 class Env:
-    def __init__(self, secret=SECRET, target=""):
-        self.CREDITS = Namespace()
+    def __init__(self, secret=SECRET, target="", standby=False):
         self.LEDGER_BRIDGE_SECRET = secret
         self.LEDGER_BRIDGE_TARGET = target
+        self.LEDGER_STANDBY = "true" if standby else ""
+        self.CREDITS = Namespace(self)
 
 
 class Network:
-    """HTTPS between the two Workers. `down` makes a host unreachable."""
+    """HTTPS between the two Workers. `down` makes a host unreachable before
+    the request lands; `lose_answer` lets the request land and loses the reply."""
 
     def __init__(self, envs: dict[str, Env]):
         self.envs = envs
         self.down: set[str] = set()
+        self.lose_answer: set[str] = set()
 
     async def post(self, url, payload, headers):
         origin = url.split("/internal/", 1)[0]
         if origin in self.down:
             raise ConnectionError("unreachable")
         path = "/internal/" + url.split("/internal/", 1)[1]
-        return await ledger_bridge.handle(
+        answer = await ledger_bridge.handle(
             self.envs[origin], path, "POST", headers["authorization"],
             json.dumps(payload), post=self.post)
+        if origin in self.lose_answer:
+            raise TimeoutError("answer lost")
+        return answer
 
 
 def run(coro):
@@ -109,7 +116,7 @@ def run(coro):
 
 
 def _accounts():
-    old, new = Env(target=NEW), Env(target=OLD)
+    old, new = Env(target=NEW), Env(target=OLD, standby=True)
     net = Network({OLD: old, NEW: new})
     return old, new, net
 
@@ -134,104 +141,197 @@ def _status(env):
                                     "Bearer " + SECRET, ""))[1]
 
 
+def _balance(env, net, holder="key:a"):
+    return run(_ledger(env, net).balance(holder)).available
+
+
+def _credit(env, net, payment, units, holder="key:a"):
+    return run(_ledger(env, net).credit(holder, payment, units, "tx-" + payment, source="pack"))
+
+
+def _refuses(env, net):
+    try:
+        _balance(env, net)
+    except credits.LedgerUnavailable:
+        return True
+    return False
+
+
+def _live(*envs):
+    return [e for e in envs if _status(e)["role"] == "live"]
+
+
 def test_balances_arrive_and_later_calls_on_the_old_worker_land_in_the_new_ledger():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     run(_ledger(old, net).set_monthly("key:b", 4000, "in_1", "Solo"))
 
     status, body = _handoff(old, net, NEW)
 
-    assert status == 200
-    assert body["moved_to"] == NEW
-    assert _status(new)["digest"] == body["digest"]
-    assert run(_ledger(new, net).balance("key:a")).available == 500
+    assert (status, body["role"], body["target"]) == (200, "moved", NEW)
+    assert _status(new)["imported_digest"] == body["sealed_digest"]
+    assert _balance(new, net) == 500
     assert run(_ledger(new, net).balance("key:b")).monthly == 4000
-
-    run(_ledger(old, net).credit("key:a", "pack:cs_2", 250, "pi_2", source="pack"))
-
-    assert run(_ledger(new, net).balance("key:a")).available == 750
-    assert run(_ledger(old, net).balance("key:a")).available == 750
-    assert json.loads(old.CREDITS.obj._get("state"))["accounts"]["key:a"] != \
-        json.loads(new.CREDITS.obj._get("state"))["accounts"]["key:a"]
+    _credit(old, net, "pack:cs_2", 250)
+    assert (_balance(new, net), _balance(old, net)) == (750, 750)
+    assert _live(old, new) == [new]
 
 
 def test_a_payment_credited_before_the_move_is_a_duplicate_after_it_on_either_worker():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     _handoff(old, net, NEW)
 
-    via_old = run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
-    via_new = run(_ledger(new, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    assert (_credit(old, net, "pack:cs_1", 500).credited,
+            _credit(new, net, "pack:cs_1", 500).credited) == (False, False)
+    assert _balance(new, net) == 500
 
-    assert (via_old.credited, via_new.credited) == (False, False)
-    assert run(_ledger(new, net).balance("key:a")).available == 500
+
+def test_a_new_account_ledger_serves_nothing_until_it_is_handed_over():
+    old, new, net = _accounts()
+
+    assert _refuses(new, net)
+    assert _status(new)["role"] == "standby"
+    assert _live(old, new) == [old]
 
 
 def test_a_refused_import_unseals_the_old_ledger_and_it_keeps_serving():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
-    run(_ledger(new, net).credit("key:z", "pack:cs_9", 1, "pi_9", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
+    live_target = Env(target=OLD)
+    net.envs[NEW] = live_target
+    _credit(live_target, net, "pack:cs_9", 1, holder="key:z")
 
     status, body = _handoff(old, net, NEW)
 
     assert (status, body["error"]["code"]) == (409, "import_refused")
-    assert _status(old)["moving"] == "" and _status(old)["moved_to"] == ""
-    run(_ledger(old, net).credit("key:a", "pack:cs_2", 1, "pi_2", source="pack"))
-    assert run(_ledger(old, net).balance("key:a")).available == 501
+    assert _status(old)["role"] == "live"
+    _credit(old, net, "pack:cs_2", 1)
+    assert _balance(old, net) == 501
 
 
-def test_an_unknown_import_outcome_keeps_the_seal_and_a_rerun_finishes():
+def test_an_unreachable_target_keeps_the_seal_and_a_rerun_finishes():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     net.down.add(NEW)
 
     status, body = _handoff(old, net, NEW)
 
     assert (status, body["error"]["code"]) == (502, "import_unknown")
-    assert _status(old)["moving"] == NEW
-    try:
-        run(_ledger(old, net).balance("key:a"))
-    except credits.LedgerUnavailable as exc:
-        assert "being moved" in str(exc)
-    else:
-        raise AssertionError("a sealed, unfinished ledger must refuse")
-
+    assert _status(old)["role"] == "moving"
+    assert _refuses(old, net)
     net.down.clear()
+    assert _handoff(old, net, NEW)[1]["role"] == "moved"
+    assert _balance(old, net) == 500
+    assert _live(old, new) == [new]
+
+
+def test_a_lost_answer_then_writes_on_the_target_then_a_rerun_leaves_one_live_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    net.lose_answer.add(NEW)
+    assert _handoff(old, net, NEW)[0] == 502
+    net.lose_answer.clear()
+    _credit(new, net, "pack:cs_2", 5)
+
     status, body = _handoff(old, net, NEW)
 
-    assert (status, body["moved_to"]) == (200, NEW)
-    assert run(_ledger(old, net).balance("key:a")).available == 500
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [new]
+    assert (_balance(old, net), _balance(new, net)) == (15, 15)
+
+
+def test_rolling_back_while_the_old_ledger_is_still_moving_never_wipes_it():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    net.down.add(NEW)
+    _handoff(old, net, NEW)
+    net.down.clear()
+
+    status, body = _handoff(new, net, OLD)
+
+    assert (status, body["error"]["code"]) == (409, "handoff_refused")
+    assert _status(old)["role"] == "moving"
+    assert _handoff(old, net, NEW)[0] == 200
+    assert _balance(new, net) == 10
+
+
+def test_rolling_back_after_a_lost_answer_keeps_every_balance_and_one_live_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 10)
+    net.lose_answer.add(NEW)
+    _handoff(old, net, NEW)
+    net.lose_answer.clear()
+
+    status, body = _handoff(new, net, OLD)
+
+    assert (status, body["error"]["code"]) == (409, "import_refused")
+    assert _live(old, new) == [new]
+    assert _handoff(old, net, NEW)[0] == 200
+    assert (_balance(old, net), _balance(new, net)) == (10, 10)
+    assert _live(old, new) == [new]
 
 
 def test_handing_the_ledger_back_restores_the_old_account_with_later_writes():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     _handoff(old, net, NEW)
-    run(_ledger(new, net).credit("key:a", "pack:cs_2", 100, "pi_2", source="pack"))
+    _credit(new, net, "pack:cs_2", 100)
 
     status, body = _handoff(new, net, OLD)
 
-    assert (status, body["moved_to"]) == (200, OLD)
-    assert _status(old)["moved_to"] == ""
-    assert run(_ledger(old, net).balance("key:a")).available == 600
-    assert run(_ledger(new, net).balance("key:a")).available == 600
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [old]
+    assert (_balance(old, net), _balance(new, net)) == (600, 600)
+
+
+def test_a_hand_back_whose_answer_is_lost_finishes_on_rerun_without_a_second_live_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 500)
+    _handoff(old, net, NEW)
+    net.lose_answer.add(OLD)
+    assert _handoff(new, net, OLD)[0] == 502
+    net.lose_answer.clear()
+    _credit(old, net, "pack:cs_2", 1)
+
+    status, body = _handoff(new, net, OLD)
+
+    assert (status, body["role"]) == (200, "moved")
+    assert _live(old, new) == [old]
+    assert _balance(new, net) == 501
 
 
 def test_rerunning_a_finished_handoff_changes_nothing():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     first = _handoff(old, net, NEW)
-    run(_ledger(old, net).credit("key:a", "pack:cs_2", 1, "pi_2", source="pack"))
+    _credit(old, net, "pack:cs_2", 1)
 
     again = _handoff(old, net, NEW)
 
     assert again == (200, _status(old))
-    assert first[1]["moved_to"] == again[1]["moved_to"] == NEW
-    assert run(_ledger(new, net).balance("key:a")).available == 501
+    assert first[1]["target"] == again[1]["target"] == NEW
+    assert _balance(new, net) == 501
+
+
+def test_unsealing_takes_force_and_only_a_moving_ledger():
+    old, new, net = _accounts()
+    _credit(old, net, "pack:cs_1", 5)
+    net.down.add(NEW)
+    _handoff(old, net, NEW)
+
+    def abort(env, body):
+        return run(ledger_bridge.handle(env, "/internal/ledger/abort", "POST",
+                                        "Bearer " + SECRET, json.dumps(body)))
+
+    assert abort(old, {})[0] == 400
+    assert abort(old, {"force": True})[1]["role"] == "live"
+    assert abort(new, {"force": True})[0] == 409
+    assert _balance(old, net) == 5
 
 
 def test_the_bridge_refuses_without_the_secret_and_names_only_ledger_methods():
-    env = Env()
+    env = Env(target=NEW)
     no_secret = Env(secret="")
 
     assert run(ledger_bridge.handle(no_secret, "/internal/ledger/status", "GET", "", ""))[0] == 404
@@ -239,29 +339,25 @@ def test_the_bridge_refuses_without_the_secret_and_names_only_ledger_methods():
     bad = run(ledger_bridge.handle(env, "/internal/ledger/call", "POST", "Bearer " + SECRET,
                                    json.dumps({"method": "begin_handoff", "args": [NEW]})))
     assert bad[0] == 400
-    assert _status(env)["moving"] == ""
-    plain = run(ledger_bridge.handle(env, "/internal/ledger/handoff", "POST", "Bearer " + SECRET,
-                                     json.dumps({"target": "http://insecure.example"})))
-    assert plain[0] == 400
+    assert _status(env)["role"] == "live"
 
 
-def test_a_moved_ledger_without_a_bridge_secret_refuses_instead_of_serving_stale_balances():
+def test_a_moved_ledger_without_a_bridge_refuses_instead_of_serving_stale_balances():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     _handoff(old, net, NEW)
     unbridged = credits.DurableLedger(old.CREDITS, "", post=net.post, sleep=_no_sleep)
 
     try:
         run(unbridged.balance("key:a"))
-    except credits.StoreNotConfigured as exc:
+    except credits.LedgerUnavailable as exc:
         assert "no bridge configured" in str(exc)
     else:
         raise AssertionError("a moved ledger must not answer from its stale copy")
 
 
 class EchoingStub(Stub):
-    """A ledger method whose error message echoes caller input, as a payment
-    id or holder in an exception text might."""
+    """A ledger method whose error message echoes caller input."""
 
     def __init__(self, obj, echoed):
         super().__init__(obj)
@@ -275,13 +371,7 @@ class EchoingStub(Stub):
         return super().__getattr__(name)
 
 
-def _echoing(env, echoed):
-    namespace = env.CREDITS
-    namespace.get = lambda _id: EchoingStub(namespace.obj, echoed)
-    return env
-
-
-def test_a_mark_echoed_in_an_error_never_sends_the_secret_or_forwards_a_live_ledgers_call():
+def test_a_seal_mark_echoed_in_an_error_never_forwards_a_live_ledgers_call():
     old, new, net = _accounts()
     sent = []
 
@@ -289,12 +379,13 @@ def test_a_mark_echoed_in_an_error_never_sends_the_secret_or_forwards_a_live_led
         sent.append(url)
         return await net.post(url, payload, headers)
 
-    _echoing(old, "ledger-moved:https://attacker.example")
-    ledger = credits.DurableLedger(old.CREDITS, SECRET, post=recording_post, sleep=_no_sleep,
+    namespace = old.CREDITS
+    namespace.get = lambda _id: EchoingStub(namespace.obj, "ledger-sealed: moved")
+    ledger = credits.DurableLedger(namespace, SECRET, post=recording_post, sleep=_no_sleep,
                                    bridge_target=NEW)
 
     try:
-        run(ledger.credit("key:a", "x402:ledger-moved:https://attacker.example", 1, "tx"))
+        run(ledger.credit("key:a", "x402:ledger-sealed: moved", 1, "tx"))
     except RuntimeError as exc:
         assert "bad payment id" in str(exc)
     else:
@@ -304,7 +395,7 @@ def test_a_mark_echoed_in_an_error_never_sends_the_secret_or_forwards_a_live_led
 
 def test_a_moved_ledger_forwards_only_to_the_configured_target():
     old, new, net = _accounts()
-    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _credit(old, net, "pack:cs_1", 500)
     _handoff(old, net, NEW)
     elsewhere = credits.DurableLedger(old.CREDITS, SECRET, post=net.post, sleep=_no_sleep,
                                       bridge_target="https://other.example.workers.dev")
@@ -323,4 +414,4 @@ def test_a_handoff_goes_only_to_the_configured_target():
     status, body = _handoff(old, net, "https://attacker.example")
 
     assert (status, body["error"]["code"]) == (400, "invalid_request")
-    assert _status(old)["moving"] == ""
+    assert _status(old)["role"] == "live"

@@ -61,6 +61,7 @@ def test_the_mcp_worker_takes_the_account_and_keeps_its_service_binding():
     ({"CF_KV_ACCESS": "ACCESS"}, "CF_KV_ACCESS is not a 32-hex namespace id"),
     ({"CF_WORKERS_DEV": "yes"}, "CF_WORKERS_DEV must be true or false"),
     ({"CF_ROUTES": "on"}, "CF_ROUTES must be off or unset"),
+    ({"CF_LEDGER_STANDBY": "yes"}, "CF_LEDGER_STANDBY must be true or unset"),
 ])
 def test_malformed_values_stop_the_deploy_without_echoing_them(environ, message):
     with pytest.raises(ValueError) as caught:
@@ -88,3 +89,12 @@ def test_routes_off_leaves_both_workers_without_routes_and_everything_else_alone
         assert config["routes"] == []
         assert {k: v for k, v in config.items() if k != "routes"} == \
             {k: v for k, v in before.items() if k != "routes"}
+
+
+def test_ledger_standby_adds_one_top_level_var_and_leaves_staging_alone():
+    text, changes = cloudflare_target.retarget(RANK, {"CF_LEDGER_STANDBY": "true"})
+    config, before = parse_jsonc(text), parse_jsonc(RANK)
+
+    assert changes == ["LEDGER_STANDBY"]
+    assert config["vars"] == {"LEDGER_STANDBY": "true", **before["vars"]}
+    assert config["env"] == before["env"]

@@ -931,7 +931,14 @@ class Default(WorkerEntrypoint):
         global _isolate_served
         cold = not _isolate_served
         _isolate_served = True
-        response = await self._fetch(request)
+        try:
+            response = await self._fetch(request)
+        except credits.LedgerUnavailable as exc:
+            # MODEL-441: seconds while the ledger changes accounts. The
+            # documented ledger code, so the public contract does not widen.
+            response = _json_response(503, {"error": {
+                "code": "credits_store_not_configured", "message": str(exc)}},
+                {"retry-after": "5"})
         headers = dict(response.headers.items())
         previous = next((value for key, value in headers.items()
                          if key.lower() == "server-timing"), "")

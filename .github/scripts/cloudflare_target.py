@@ -12,6 +12,8 @@ the job's GitHub environment:
   CF_ROUTES              "off" deploys without the top-level routes: Workers
                          routes need an active zone, and the moved zone is
                          Pending until the move (scripts/cf_move.py attach-routes)
+  CF_LEDGER_STANDBY      "true" adds the var LEDGER_STANDBY, so a new account's
+                         credit ledger refuses calls until it is handed over
 
 Unset or empty variables leave the committed value. Staging is never touched.
 """
@@ -74,7 +76,18 @@ def retarget(text: str, environ: dict[str, str]) -> tuple[str, list[str]]:
             if count != 1:
                 raise ValueError("no top-level routes block to clear")
             changes.append("routes=off")
+    standby = (environ.get("CF_LEDGER_STANDBY") or "").strip().lower()
+    if standby:
+        if standby != "true":
+            raise ValueError("CF_LEDGER_STANDBY must be true or unset")
+        text, count = re.subn(r'^(  "vars": \{\n)', '\\g<1>    "LEDGER_STANDBY": "true",\n',
+                              text, count=1, flags=re.MULTILINE)
+        if count != 1:
+            raise ValueError("no top-level vars block for LEDGER_STANDBY")
+        changes.append("LEDGER_STANDBY")
     after = parse_jsonc(text)
+    if standby and after.get("vars", {}).get("LEDGER_STANDBY") != "true":
+        raise ValueError("LEDGER_STANDBY was not added")
     if routes and after.get("routes"):
         raise ValueError("routes were not cleared")
     if after.get("env") != config.get("env"):

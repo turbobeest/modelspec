@@ -84,31 +84,47 @@ until the merge runs. Run the merge as soon as the old Worker goes quiet.
 
 **Credit ledger.** A Durable Object cannot move between accounts, so the
 ledger moves by handoff (`api/worker/src/ledger_bridge.py`,
-`credits_do.CreditsObject.begin_handoff`). The old Worker seals its ledger in
-one synchronous write, sends the sealed copy to the new Worker's
-`/internal/ledger/import` over HTTPS, and records the target. From then on,
-every ledger call the old Worker receives is forwarded to the new Worker's
-`/internal/ledger/call`. One ledger is live at every moment, before, during
-and after the zone moves, so a balance is never lost or duplicated, and a
-payment credited before the move is still a duplicate after it. Calls that
-arrive during the handoff wait and retry for up to 5 seconds. If the import
-is refused, the old ledger unseals and keeps serving. If the import's outcome
-is unknown, the old ledger stays sealed until the handoff is re-run, because
-the copy may have landed. Handing the ledger back is the same call in the
-other direction. The bridge exists only while `LEDGER_BRIDGE_SECRET` is set.
-Without it, its paths answer the ordinary 404. The secret is only ever sent to
-`LEDGER_BRIDGE_TARGET`, the other Worker's origin. Each Worker forwards or
-hands off to that origin and to no other. Error text that merely looks like a
-seal never triggers a forward: the adapter asks the Durable Object for its
+`api/worker/src/credits_do.py`). Each ledger has a role: `live` serves calls,
+`standby` has never served and waits for a copy, `moving` is sealed with its
+copy in flight, and `moved` is sealed for good. The new account's ledger
+starts in `standby` (`CF_LEDGER_STANDBY=true` adds the var `LEDGER_STANDBY`),
+so nothing can write to it before the handoff. The handoff runs like this:
+
+1. The old Worker seals its ledger in one synchronous write.
+2. It sends the copy to the new Worker's `/internal/ledger/import`.
+3. It records itself `moved`. From then on it forwards every ledger call to
+   the new Worker's `/internal/ledger/call`.
+
+Exactly one ledger is live at every moment, so a balance is never lost or
+duplicated, and a payment credited before the move is still a duplicate after
+it. Calls that arrive mid-handoff retry for up to 5 seconds, then answer 503.
+
+Imports are idempotent on the copy's digest, so re-running a handoff is always
+safe. A 200 means the copy is there. A refusal means it never landed: the
+source unseals and keeps serving. No answer means the source stays sealed until
+the handoff is re-run. Only a `standby` ledger, or a `moved` one taking its
+ledger back, accepts a copy. A `live` or `moving` ledger never does, so a
+rollback can never overwrite real balances. Handing the ledger back is the
+same call in the other direction. An `abort` with `{"force": true}` unseals a
+`moving` ledger. It is the last resort if the target account is gone.
+
+The bridge exists only while `LEDGER_BRIDGE_SECRET` is set. Without it, its
+paths answer the ordinary 404. The secret is only ever sent to
+`LEDGER_BRIDGE_TARGET`, the other Worker's origin. Error text that merely looks
+like a seal never triggers a forward: the adapter reads the Durable Object's
 handoff status first.
 
 **Stripe webhooks.** The endpoint URL, `https://api.modelspec.dev/v1/billing/stripe-webhook`,
 does not change, so Stripe needs no change. Both Workers carry the same
 `STRIPE_WEBHOOK_SECRET`, so whichever one Cloudflare routes an event to
 verifies it. Ledger writes go to the one live ledger. A ledger that is
-mid-handoff or unreachable raises `LedgerUnavailable`, a `StoreNotConfigured`,
-so the webhook refuses without remembering the event and Stripe retries it.
-KV writes from a webhook that the old Worker handled are carried by the merge.
+mid-handoff or unreachable raises `LedgerUnavailable`. That error is
+deliberately not a `StoreNotConfigured`, because several billing paths treat
+an unbound ledger as "carry on without credits". The webhook answers 503
+without remembering the event, and Stripe retries it. Every other path also
+answers 503 with `retry-after: 5`. A key rotation moves the balance before it
+revokes the old key, so a failed rotation leaves the old key working. KV
+writes from a webhook that the old Worker handled are carried by the merge.
 
 **Human gate.** Not migrated. Its state is one visitor-day of admissions.
 Starting empty gives a visitor at most one extra day's allowance on the day
@@ -190,7 +206,7 @@ an agent session with the tokens Jamie hands it, never printing them.
 
 1. Create KV namespaces `ACCESS` and `DETERMINATIONS`. Set environment
    variables `CF_KV_ACCESS` and `CF_KV_DETERMINATIONS` to their ids, and set
-   `CF_WORKERS_DEV=true`, `CF_ROUTES=off`,
+   `CF_WORKERS_DEV=true`, `CF_ROUTES=off`, `CF_LEDGER_STANDBY=true`,
    `CF_RANK_HOST=modelspec-rank.<sub>.workers.dev` and
    `CF_MCP_URL=https://modelspec-mcp.<sub>.workers.dev/mcp`.
 2. Add zones modelspec.dev and benchgraph.dev to the new account, on the plan
@@ -225,14 +241,23 @@ python3 scripts/cf_move.py kv-merge --base empty --src-account <old> --src-names
 
 Both must report 0 conflicts. Keep `access-base.json` until phase 10.
 
+Re-run the ACCESS merge with `--base ~/cf-move/access-base.json` (dry run,
+then `--apply`) daily until phase 8, and once more just before Jamie approves
+the move. Each run carries the old side's new keys, rotations and revocations
+across. Without it, a key revoked on the old Worker after this copy would
+still work on the new one. Repeated runs are safe: a key already carried
+matches on both sides and drops out of the plan.
+
 ### Phase 5. Deploy the Workers into the new account (A dispatches, J sets secrets)
 
 Freeze merges to main from here to the end of phase 9, so both accounts run
 the same commit.
 
 1. Dispatch `rank-api.yml` on main with `cloudflare_environment=cloudflare-modelspec`.
-   The deploy creates the Worker and both DO classes, without routes. Smoke
-   tests run against `CF_RANK_HOST`. Then try one dispatch with `CF_ROUTES`
+   The deploy creates the Worker and both DO classes, without routes. Its
+   ledger starts in standby. Smoke tests run against `CF_RANK_HOST`. Keyed
+   calls there answer 503 until phase 7, so keep `MODELSPEC_SMOKE_API_KEY` out
+   of the environment until then. Then try one dispatch with `CF_ROUTES`
    unset. If Wrangler attaches the routes to the Pending zone, keep it unset and
    skip `attach-routes` in phase 8. If it refuses, set `CF_ROUTES=off` again.
 2. **J** sets every Worker secret from the phase 2 list on the new
@@ -251,26 +276,7 @@ the same commit.
    the workers.dev hosts, and `GET /internal/ledger/status` on both Workers with
    the bridge secret.
 
-### Phase 6. Hand the ledger over (A, bridge secret; reversible)
-
-```bash
-curl -sS -X POST https://api.modelspec.dev/internal/ledger/handoff \
-  -H "authorization: Bearer $LEDGER_BRIDGE_SECRET" -H 'content-type: application/json' \
-  -d '{"target": "https://modelspec-rank.<sub>.workers.dev"}'
-```
-
-1. Expect HTTP 200 with `moved_to` set to the target. `GET /internal/ledger/status`
-   on the new Worker must show the same `digest`.
-2. A keyed `GET https://api.modelspec.dev/v1/credits` must answer with the same
-   balance as before. It now crosses the bridge.
-3. On 502 `import_unknown`, run the same command again. On 409
-   `import_refused`, the old ledger is already unsealed and serving: read the
-   message and fix the cause before trying again.
-
-Rollback: send the same request to `https://modelspec-rank.<sub>.workers.dev/internal/ledger/handoff`
-with target `https://api.modelspec.dev`.
-
-### Phase 7. Rehearse on benchgraph.dev (J requests and approves, A watches)
+### Phase 6. Rehearse on benchgraph.dev (J requests and approves, A watches)
 
 1. A starts a probe that logs status code, TLS issuer and Pages deployment id
    for `https://benchgraph.dev/` every 2 seconds.
@@ -280,11 +286,37 @@ with target `https://api.modelspec.dev`.
    or 5xx. If there was a gap without an Advanced certificate, phase 3 step 5
    is required for modelspec.dev. Otherwise it is insurance.
 
+### Phase 7. Hand the ledger over (A, bridge secret; reversible)
+
+Run this right before phase 8, not days ahead. While the old Worker forwards
+ledger calls, a lost HTTPS answer to a forwarded `reserve` leaves those units
+reserved until someone releases them by hand. Keep that window to minutes.
+
+```bash
+curl -sS -X POST https://api.modelspec.dev/internal/ledger/handoff \
+  -H "authorization: Bearer $LEDGER_BRIDGE_SECRET" -H 'content-type: application/json' \
+  -d '{"target": "https://modelspec-rank.<sub>.workers.dev"}'
+```
+
+1. Expect HTTP 200 with `role: moved` and `target` set to the new origin.
+   `GET /internal/ledger/status` on the new Worker must show `role: live` and
+   an `imported_digest` equal to the old Worker's `sealed_digest`.
+2. A keyed `GET https://api.modelspec.dev/v1/credits` must answer with the same
+   balance as before. It now crosses the bridge.
+3. On 502 `import_unknown`, run the same command again until it answers 200.
+   On 409 `import_refused`, the copy never landed and the old ledger is
+   serving again: read the message and fix the cause before trying again.
+
+Rollback: send the same request to `https://modelspec-rank.<sub>.workers.dev/internal/ledger/handoff`
+with target `https://api.modelspec.dev`. If the forward handoff is still
+`moving`, re-run it to completion first. A `moving` ledger accepts no copy,
+by design.
+
 ### Phase 8. Move modelspec.dev (J approves; the point of no return)
 
 Pre-flight (A posts the evidence on MODEL-441 before J approves): the new
-Workers pass smoke on workers.dev; the ledger handoff is done; KV is copied
-with 0 conflicts; `zone-diff` is clean; the Advanced certificate is waiting
+Workers pass smoke on workers.dev; the ledger handoff is done; the last ACCESS
+merge ran minutes ago with 0 conflicts; `zone-diff` is clean; the Advanced certificate is waiting
 for deployment; Email Routing destinations are verified; Pages custom domains
 are pending; the rehearsal showed no unexplained gap.
 
@@ -307,8 +339,8 @@ are pending; the rehearsal showed no unexplained gap.
    there, because the zone has left the old account, and that failure is
    expected.
 4. When the zone is Active: `GET https://api.modelspec.dev/internal/ledger/status`
-   with the bridge secret must show an empty `moved_to`, which means the new
-   Worker answered. Run decide, rank, policy-check, MCP and `/v1/credits`
+   with the bridge secret must show `role: live`, which means the new Worker
+   answered. Run decide, rank, policy-check, MCP and `/v1/credits`
    smoke against `api.modelspec.dev`, and load `/decide/` in a browser.
 5. Once the old `modelspec-rank` has had no requests for 2 minutes, wait 60
    seconds more for KV to settle, then run the ACCESS merge from the base:
@@ -370,8 +402,8 @@ next staging deploy provisions staging's KV in the new account.
 | After | Undo |
 | -- | -- |
 | Phases 0 to 5 | Nothing in production changed. Delete the new account's resources, or leave them. |
-| Phase 6 | Hand the ledger back (phase 6). |
-| Phase 7 | benchgraph.dev cannot move back for 30 days. Fix forward in the new account. Nothing else has moved. |
+| Phase 6 | benchgraph.dev cannot move back for 30 days. Fix forward in the new account. Nothing else has moved. |
+| Phase 7 | Hand the ledger back (phase 7). |
 | Phase 8 approval | No move back for 30 days. Fix forward: `wrangler rollback` the new Workers, re-run the KV merge, redeploy Pages. The old account cannot serve the zone again. |
 | Phase 9 | Revert PR-B and restore the old secrets only to recover CI. Production stays in the new account. |
 
@@ -389,5 +421,8 @@ next staging deploy provisions staging's KV in the new account.
   inter-account move. The benchgraph.dev rehearsal is the measurement.
 - A key issued or rotated between the phase 4 copy and the phase 8 merge
   answers 401 on the new Worker until the merge runs.
-- The first ledger call after a cold start of the old Worker pays one extra
-  HTTPS hop while the bridge forwards. This only lasts from phase 6 to phase 8.
+- From phase 7 to phase 8, ledger calls on the old Worker cross one extra
+  HTTPS hop. If the answer to a forwarded `reserve` is lost, those units stay
+  reserved, because the caller never learned the reservation id. Releasing
+  them takes a manual `release` call. Running phase 7 right before phase 8
+  keeps this window to minutes.

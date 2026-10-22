@@ -741,7 +741,8 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
         return await apply_event(event, kv=kv, policy=policy, now=now,
                                  service_commit=service_commit, ledger=ledger,
                                  env=env, alert_ctx=alert_ctx)
-    except StoreNotConfigured as exc:
+    except (StoreNotConfigured, credits.LedgerUnavailable) as exc:
+        # Not remembered: Stripe retries the event.
         return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
     except PolicyError as exc:

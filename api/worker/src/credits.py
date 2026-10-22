@@ -169,10 +169,11 @@ class StoreNotConfigured(RuntimeError):
     """No Durable Object binding. Parallel to access_kv.StoreNotConfigured."""
 
 
-class LedgerUnavailable(StoreNotConfigured):
+class LedgerUnavailable(RuntimeError):
     """The ledger is mid-handoff or its new home did not answer (MODEL-441).
-    A subclass so every caller refuses, and a webhook stays unremembered for
-    Stripe to retry, exactly as for an unbound ledger."""
+    Deliberately not a StoreNotConfigured: several callers treat an unbound
+    ledger as "carry on without credits", which here would lose a grant. It
+    propagates instead, and the webhook and the Worker answer 503."""
 
 
 #: Wrangler secret shared by both accounts while the ledger moves (MODEL-441).
@@ -1784,23 +1785,27 @@ class DurableLedger:
     async def _call(self, name: str, *args: Any) -> Any:
         """One RPC to the ledger, following a handoff (MODEL-441).
 
-        A sealed ledger's error carries a mark, but error text can echo caller
-        input, so the mark is only a hint: the object's own handoff status
-        decides. Moving means retry shortly; moved means send the call to the
-        configured target, never to a host named in the error."""
+        A ledger that is not live fails with a mark, but error text can echo
+        caller input, so the mark is only a hint: the object's own handoff
+        status decides. Moving means retry shortly; moved means send the call
+        to the configured target, never to a host named in an error."""
         for _ in range(_MOVING_RETRIES):
             try:
                 return await getattr(self._stub, name)(*args)
             except Exception as exc:
-                text = str(exc)
-                if "ledger-moved:" not in text and "ledger-moving" not in text:
+                if "ledger-sealed" not in str(exc):
                     raise
                 status = await self._stub.handoff_status()
                 to_py = getattr(status, "to_py", None)
                 status = dict(to_py() if callable(to_py) else status)
-                if status.get("moved_to"):
-                    return await self._forward(str(status["moved_to"]), name, args)
-                if not status.get("moving"):
+                role = status.get("role")
+                if role == "moved":
+                    return await self._forward(str(status.get("target") or ""), name, args)
+                if role == "standby":
+                    raise LedgerUnavailable(
+                        "the credit ledger has not been handed over to this deployment yet"
+                    ) from None
+                if role != "moving":
                     raise
             await self._sleep(_MOVING_WAIT_SECONDS)
         raise LedgerUnavailable("the credit ledger is being moved; retry shortly")

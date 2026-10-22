@@ -103,6 +103,15 @@ async def handle(env: Any, path: str, method: str, authorization: str,
             return _error(409, "import_refused", _reason(exc))
         return 200, _plain(status)
 
+    if action == "abort":
+        if payload.get("force") is not True:
+            return _error(400, "invalid_request",
+                          "re-run the handoff instead; abort only with force when the target is gone")
+        try:
+            return 200, _plain(await stub.abort_handoff())
+        except Exception as exc:
+            return _error(409, "abort_refused", _reason(exc))
+
     if action == "handoff":
         wanted = str(payload.get("target") or "").rstrip("/")
         if not wanted or wanted != target(env):
@@ -114,16 +123,16 @@ async def handle(env: Any, path: str, method: str, authorization: str,
 
 async def _handoff(stub: Any, key: str, target: str,
                    post: Any) -> tuple[int, dict[str, Any]]:
-    """Seal, copy, record. The import's outcome decides the seal: refused
-    means unseal and keep serving here; unknown (no answer) means stay sealed,
-    because the copy may have landed, and re-running finishes the job."""
-    target = target.rstrip("/")
+    """Seal, copy, record. Imports are idempotent on the copy's digest, so a
+    re-run is always safe: an answer of 200 means the copy is there, a refusal
+    means it never landed (unseal and keep serving), and no answer means stay
+    sealed until the handoff is re-run."""
     if not target.startswith("https://"):
         return _error(400, "invalid_request", "target must be an https:// origin")
     if post is None:
         from x402_facilitator import worker_post as post
     current = _plain(await stub.handoff_status())
-    if current.get("moved_to") == target:
+    if current.get("role") == "moved" and current.get("target") == target:
         return 200, current
     try:
         sealed = _plain(await stub.begin_handoff(target))
@@ -138,12 +147,14 @@ async def _handoff(stub: Any, key: str, target: str,
         return _error(502, "import_unknown",
                       f"no answer from the target ({type(exc).__name__}); "
                       "the ledger stays sealed; re-run the handoff")
-    if status == 200 and answer.get("digest") == sealed["digest"]:
+    if status == 200 and answer.get("imported_digest") == sealed["digest"]:
         return 200, _plain(await stub.finish_handoff(target, sealed["digest"]))
     if 400 <= status < 500:
         await stub.abort_handoff()
+        reason = (answer.get("error") or {}).get("message", "")
         return _error(409, "import_refused",
-                      f"the target refused the copy (HTTP {status}); the ledger is unsealed")
+                      f"the target refused the copy (HTTP {status}: {reason}); "
+                      "the ledger is unsealed and serving")
     return _error(502, "import_unknown",
                   f"the target answered HTTP {status}; the ledger stays sealed; re-run the handoff")
 

@@ -670,11 +670,8 @@ async def rotate(kv: Any, current_key: str, *, now: datetime,
     secret, issued = await keys.issue(
         kv, tier=record.tier, owner=owner, now=now, policy=policy, label=label)
     new_fp = keys.fingerprint(secret)
-    await keys.revoke(kv, current_key)
-    await _write_keyref(kv, new_fp, subscription_id)
-    if sub is not None:
-        await _write_sub(kv, replace(
-            sub, key_fingerprint=new_fp, key_id=issued.key_id, tier=record.tier))
+    # The balance moves before the old key is revoked: a ledger that cannot
+    # answer (MODEL-441) then fails the rotation with the old key still valid.
     if ledger is not None:
         try:
             await ledger.transfer(
@@ -682,6 +679,11 @@ async def rotate(kv: Any, current_key: str, *, now: datetime,
                 credits.holder_from_fingerprint(new_fp))
         except credits.StoreNotConfigured:
             pass
+    await keys.revoke(kv, current_key)
+    await _write_keyref(kv, new_fp, subscription_id)
+    if sub is not None:
+        await _write_sub(kv, replace(
+            sub, key_fingerprint=new_fp, key_id=issued.key_id, tier=record.tier))
     return secret, issued
 
 

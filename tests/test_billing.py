@@ -1654,3 +1654,46 @@ def test_the_claim_page_escapes_everything():
 def test_prefers_html_is_an_explicit_preference(accept, html):
     import billing_page
     assert billing_page.prefers_html(accept) is html
+
+
+class _MovingLedger:
+    """A ledger mid-handoff to a new Cloudflare account (MODEL-441)."""
+
+    def __getattr__(self, _name):
+        async def unavailable(*_args, **_kwargs):
+            raise credits.LedgerUnavailable("the credit ledger is being moved; retry shortly")
+        return unavailable
+
+
+def test_a_renewal_during_a_ledger_handoff_is_refused_unremembered_and_granted_on_retry(policy):
+    kv = MemoryKV()
+    ledger = credits.MemoryLedger()
+    run(apply(kv, policy, payload("checkout.session.completed", checkout_obj(), "evt_h1"),
+              ledger=ledger))
+    holder = _holder(_claim(kv, policy, ledger).body["key"])
+    reserved = run(ledger.reserve(holder, 100))
+    run(ledger.commit(holder, reserved.reservation_id))
+    renewal = payload("invoice.paid", invoice_obj(), "evt_h2")
+
+    refused = run(apply(kv, policy, renewal, ledger=_MovingLedger()))
+
+    assert refused.status == 503
+    assert run(ledger.balance(holder)).monthly == 3900
+    retried = run(apply(kv, policy, renewal, ledger=ledger))
+    assert retried.status == 200
+    assert run(ledger.balance(holder)).monthly == 4000
+
+
+def test_a_rotation_during_a_ledger_handoff_keeps_the_old_key_and_its_balance(policy):
+    kv = MemoryKV()
+    ledger = credits.MemoryLedger()
+    run(apply(kv, policy, payload("checkout.session.completed", checkout_obj(), "evt_h3"),
+              ledger=ledger))
+    key = _claim(kv, policy, ledger).body["key"]
+
+    with pytest.raises(credits.LedgerUnavailable):
+        run(billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                           service_commit=COMMIT, ledger=_MovingLedger()))
+
+    assert serve(key, kv, policy).tier == "paid"
+    assert run(ledger.balance(_holder(key))).monthly == 4000
