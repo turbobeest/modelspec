@@ -96,7 +96,11 @@ is refused, the old ledger unseals and keeps serving. If the import's outcome
 is unknown, the old ledger stays sealed until the handoff is re-run, because
 the copy may have landed. Handing the ledger back is the same call in the
 other direction. The bridge exists only while `LEDGER_BRIDGE_SECRET` is set.
-Without it, its paths answer the ordinary 404.
+Without it, its paths answer the ordinary 404. The secret is only ever sent to
+`LEDGER_BRIDGE_TARGET`, the other Worker's origin. Each Worker forwards or
+hands off to that origin and to no other. Error text that merely looks like a
+seal never triggers a forward: the adapter asks the Durable Object for its
+handoff status first.
 
 **Stripe webhooks.** The endpoint URL, `https://api.modelspec.dev/v1/billing/stripe-webhook`,
 does not change, so Stripe needs no change. Both Workers carry the same
@@ -237,6 +241,10 @@ the same commit.
    if he has them, `VISIT_TOKEN_HMAC_KEY` and `VISITOR_HMAC_KEY`. Prefer a new
    restricted Stripe key and new CDP keys over reusing old ones. Set one new
    random `LEDGER_BRIDGE_SECRET` on both the old and the new `modelspec-rank`.
+   Set `LEDGER_BRIDGE_TARGET` to `https://modelspec-rank.<sub>.workers.dev` on
+   the old Worker and to `https://api.modelspec.dev` on the new one. While the
+   old account still serves the zone, that origin is the old Worker, which is
+   what a hand-back needs.
 3. Dispatch `rank-api.yml` again, so smoke tests run with the secrets in place.
    Then dispatch `mcp.yml` with the same input.
 4. Check: `/v1/health`, decide, rank, policy-check and the MCP `tools/list` on
@@ -341,7 +349,7 @@ next staging deploy provisions staging's KV in the new account.
    `TURNSTILE_SECRET` on the Worker and repo variable `TURNSTILE_SITE_KEY`
    together, then main redeploys the sites. Pages still cached with the old
    site key fail verification once and recover on reload.
-2. Remove `LEDGER_BRIDGE_SECRET` from both Workers. Open the follow-up PR that
+2. Remove `LEDGER_BRIDGE_SECRET` and `LEDGER_BRIDGE_TARGET` from both Workers. Open the follow-up PR that
    deletes the bridge, the handoff methods and the `cloudflare_environment`
    input.
 3. When the Universal certificate is Active, cancel the Advanced certificate.

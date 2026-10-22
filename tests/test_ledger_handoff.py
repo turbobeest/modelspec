@@ -81,9 +81,10 @@ class Namespace:
 
 
 class Env:
-    def __init__(self, secret=SECRET):
+    def __init__(self, secret=SECRET, target=""):
         self.CREDITS = Namespace()
         self.LEDGER_BRIDGE_SECRET = secret
+        self.LEDGER_BRIDGE_TARGET = target
 
 
 class Network:
@@ -108,13 +109,14 @@ def run(coro):
 
 
 def _accounts():
-    old, new = Env(), Env()
+    old, new = Env(target=NEW), Env(target=OLD)
     net = Network({OLD: old, NEW: new})
     return old, new, net
 
 
 def _ledger(env, net):
-    return credits.DurableLedger(env.CREDITS, SECRET, post=net.post, sleep=_no_sleep)
+    return credits.DurableLedger(env.CREDITS, SECRET, post=net.post, sleep=_no_sleep,
+                                 bridge_target=env.LEDGER_BRIDGE_TARGET)
 
 
 async def _no_sleep(_seconds):
@@ -252,6 +254,73 @@ def test_a_moved_ledger_without_a_bridge_secret_refuses_instead_of_serving_stale
     try:
         run(unbridged.balance("key:a"))
     except credits.StoreNotConfigured as exc:
-        assert "no bridge secret" in str(exc)
+        assert "no bridge configured" in str(exc)
     else:
         raise AssertionError("a moved ledger must not answer from its stale copy")
+
+
+class EchoingStub(Stub):
+    """A ledger method whose error message echoes caller input, as a payment
+    id or holder in an exception text might."""
+
+    def __init__(self, obj, echoed):
+        super().__init__(obj)
+        self._echoed = echoed
+
+    def __getattr__(self, name):
+        if name == "credit":
+            async def call(*_args):
+                raise RuntimeError(f"PythonError: ValueError: bad payment id {self._echoed}")
+            return call
+        return super().__getattr__(name)
+
+
+def _echoing(env, echoed):
+    namespace = env.CREDITS
+    namespace.get = lambda _id: EchoingStub(namespace.obj, echoed)
+    return env
+
+
+def test_a_mark_echoed_in_an_error_never_sends_the_secret_or_forwards_a_live_ledgers_call():
+    old, new, net = _accounts()
+    sent = []
+
+    async def recording_post(url, payload, headers):
+        sent.append(url)
+        return await net.post(url, payload, headers)
+
+    _echoing(old, "ledger-moved:https://attacker.example")
+    ledger = credits.DurableLedger(old.CREDITS, SECRET, post=recording_post, sleep=_no_sleep,
+                                   bridge_target=NEW)
+
+    try:
+        run(ledger.credit("key:a", "x402:ledger-moved:https://attacker.example", 1, "tx"))
+    except RuntimeError as exc:
+        assert "bad payment id" in str(exc)
+    else:
+        raise AssertionError("the original error must surface")
+    assert sent == []
+
+
+def test_a_moved_ledger_forwards_only_to_the_configured_target():
+    old, new, net = _accounts()
+    run(_ledger(old, net).credit("key:a", "pack:cs_1", 500, "pi_1", source="pack"))
+    _handoff(old, net, NEW)
+    elsewhere = credits.DurableLedger(old.CREDITS, SECRET, post=net.post, sleep=_no_sleep,
+                                      bridge_target="https://other.example.workers.dev")
+
+    try:
+        run(elsewhere.balance("key:a"))
+    except credits.LedgerUnavailable as exc:
+        assert "not configured to reach" in str(exc)
+    else:
+        raise AssertionError("a target other than the configured one must be refused")
+
+
+def test_a_handoff_goes_only_to_the_configured_target():
+    old, new, net = _accounts()
+
+    status, body = _handoff(old, net, "https://attacker.example")
+
+    assert (status, body["error"]["code"]) == (400, "invalid_request")
+    assert _status(old)["moving"] == ""

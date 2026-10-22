@@ -7,8 +7,9 @@ forwarded here by `credits.DurableLedger`. There is one live ledger at every
 moment, so no balance is lost or counted twice while the zone moves.
 
 Every path needs `LEDGER_BRIDGE_SECRET`. Without it the paths do not exist:
-the Worker answers them with the same 404 as any unknown path. Runbook:
-docs/ops/cloudflare-account-move.md.
+the Worker answers them with the same 404 as any unknown path. The secret is
+only ever sent to `LEDGER_BRIDGE_TARGET`, the other account's Worker origin.
+Runbook: docs/ops/cloudflare-account-move.md.
 """
 
 from __future__ import annotations
@@ -35,6 +36,10 @@ CALLABLE = frozenset({
 
 def secret(env: Any) -> str:
     return str(getattr(env, credits.LEDGER_BRIDGE_SECRET_VAR, "") or "")
+
+
+def target(env: Any) -> str:
+    return str(getattr(env, credits.LEDGER_BRIDGE_TARGET_VAR, "") or "").rstrip("/")
 
 
 def _plain(value: Any) -> Any:
@@ -83,7 +88,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         args = payload.get("args")
         if name not in CALLABLE or not isinstance(args, list):
             return _error(400, "invalid_request", "unknown ledger method or bad args")
-        ledger = credits.DurableLedger(namespace, key, post=post)
+        ledger = credits.DurableLedger(namespace, key, post=post, bridge_target=target(env))
         try:
             result = await ledger._call(name, *args)
         except credits.LedgerUnavailable as exc:
@@ -99,7 +104,10 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         return 200, _plain(status)
 
     if action == "handoff":
-        return await _handoff(stub, key, str(payload.get("target") or ""), post)
+        wanted = str(payload.get("target") or "").rstrip("/")
+        if not wanted or wanted != target(env):
+            return _error(400, "invalid_request", "target must be this Worker's LEDGER_BRIDGE_TARGET")
+        return await _handoff(stub, key, wanted, post)
 
     return _error(404, "not_found", f"no endpoint at {path}")
 

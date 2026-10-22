@@ -33,7 +33,6 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
-import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -178,6 +177,8 @@ class LedgerUnavailable(StoreNotConfigured):
 
 #: Wrangler secret shared by both accounts while the ledger moves (MODEL-441).
 LEDGER_BRIDGE_SECRET_VAR = "LEDGER_BRIDGE_SECRET"
+#: The other account's Worker origin. The only host the secret is ever sent to.
+LEDGER_BRIDGE_TARGET_VAR = "LEDGER_BRIDGE_TARGET"
 _MOVING_RETRIES = 25
 _MOVING_WAIT_SECONDS = 0.2
 
@@ -1772,35 +1773,46 @@ class DurableLedger:
     order. See `credits_do.CreditsObject`.
     """
 
-    def __init__(self, namespace: Any, bridge_secret: str = "",
-                 post: Any = None, sleep: Any = None) -> None:
+    def __init__(self, namespace: Any, bridge_secret: str = "", post: Any = None,
+                 sleep: Any = None, bridge_target: str = "") -> None:
         self._stub = namespace.get(namespace.idFromName("ledger"))
         self._bridge_secret = bridge_secret
+        self._bridge_target = bridge_target.rstrip("/")
         self._post = post
         self._sleep = sleep or asyncio.sleep
 
     async def _call(self, name: str, *args: Any) -> Any:
         """One RPC to the ledger, following a handoff (MODEL-441).
 
-        A sealed ledger answers with a mark in the error message: moving means
-        retry shortly, moved means send the call to the target's bridge."""
+        A sealed ledger's error carries a mark, but error text can echo caller
+        input, so the mark is only a hint: the object's own handoff status
+        decides. Moving means retry shortly; moved means send the call to the
+        configured target, never to a host named in the error."""
         for _ in range(_MOVING_RETRIES):
             try:
                 return await getattr(self._stub, name)(*args)
             except Exception as exc:
                 text = str(exc)
-                moved = re.search(r"ledger-moved:(https://[^\s'\"]+)", text)
-                if moved:
-                    return await self._forward(moved.group(1), name, args)
-                if "ledger-moving" not in text:
+                if "ledger-moved:" not in text and "ledger-moving" not in text:
+                    raise
+                status = await self._stub.handoff_status()
+                to_py = getattr(status, "to_py", None)
+                status = dict(to_py() if callable(to_py) else status)
+                if status.get("moved_to"):
+                    return await self._forward(str(status["moved_to"]), name, args)
+                if not status.get("moving"):
                     raise
             await self._sleep(_MOVING_WAIT_SECONDS)
         raise LedgerUnavailable("the credit ledger is being moved; retry shortly")
 
-    async def _forward(self, target: str, name: str, args: tuple) -> Any:
-        if not self._bridge_secret:
+    async def _forward(self, moved_to: str, name: str, args: tuple) -> Any:
+        target = self._bridge_target
+        if not self._bridge_secret or not target:
             raise LedgerUnavailable(
-                "the credit ledger moved and this deployment has no bridge secret")
+                "the credit ledger moved and this deployment has no bridge configured")
+        if moved_to.rstrip("/") != target:
+            raise LedgerUnavailable(
+                "the credit ledger moved to a host this deployment is not configured to reach")
         post = self._post
         if post is None:
             from x402_facilitator import worker_post as post
@@ -1948,7 +1960,8 @@ def ledger_from_env(env: Any) -> Ledger:
         return UnboundLedger()
     if isinstance(binding, MemoryLedger):
         return binding
-    return DurableLedger(binding, str(getattr(env, LEDGER_BRIDGE_SECRET_VAR, "") or ""))
+    return DurableLedger(binding, str(getattr(env, LEDGER_BRIDGE_SECRET_VAR, "") or ""),
+                         bridge_target=str(getattr(env, LEDGER_BRIDGE_TARGET_VAR, "") or ""))
 
 
 def holder_from_fingerprint(fingerprint_hex: str) -> str:
