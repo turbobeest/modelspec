@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from decision.model import CitedRegion, Source
-from decision.retention import cite_only_hosts, is_cite_only
+from decision.retention import cite_only_hosts, cite_only_status
 from decision.sources import Citation, CopyStore, FactKind, Fetcher, FetchResult, fingerprint_bytes, recheck
 from scripts import fetch_pricing, price_reread
 from scripts.benchmarks import fetch as benchmark_fetch
@@ -50,13 +50,13 @@ def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
     "www.anthropic.com", "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
 ])
 def test_new_cite_only_hosts_require_a_label_boundary(host):
-    assert not is_cite_only(f"https://not{host}/models")
-    assert not is_cite_only(f"https://{host}.example/models")
+    assert cite_only_status(f"https://not{host}/models") is False
+    assert cite_only_status(f"https://{host}.example/models") is False
 
 
 @pytest.mark.parametrize("host", ["anthropic.com", "docs.anthropic.com", "openai.com", "api.openai.com"])
 def test_new_cite_only_hosts_do_not_include_parents_or_siblings(host):
-    assert not is_cite_only(f"https://{host}/models")
+    assert cite_only_status(f"https://{host}/models") is False
 
 
 def test_copy_store_requires_origin_and_preserves_unrestricted_hosts(tmp_path):

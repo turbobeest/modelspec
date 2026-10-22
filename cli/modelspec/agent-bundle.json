@@ -137,7 +137,7 @@
         },
         {
           "id": "engineering_stem",
-          "models": 26
+          "models": 28
         },
         {
           "id": "finance",
@@ -149,7 +149,7 @@
         },
         {
           "id": "maths",
-          "models": 31
+          "models": 32
         },
         {
           "id": "medical",
@@ -477,7 +477,7 @@
           "offerings": 2
         }
       ],
-      "snapshot": "snap_52cd9d32350ce919",
+      "snapshot": "snap_fe8ddebc7e3d6dff",
       "url": "https://modelspec.dev/api/coverage.json"
     }
   },
