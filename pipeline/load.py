@@ -26,6 +26,7 @@ from typing import Any
 import yaml
 
 from schema import private_data, redacted_error
+from schema.yaml_loader import load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def split_front_matter(text: str, *, path: Path | None = None) -> tuple[dict[str
     if not match:
         raise LoadError("no YAML front matter")
     try:
-        front = yaml.safe_load(match.group(1))
+        front = load_yaml(match.group(1))
     except yaml.YAMLError as exc:
         if private_data(path):
             raise LoadError(redacted_error(exc, path, line_offset=1)) from None

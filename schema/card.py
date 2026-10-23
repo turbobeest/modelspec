@@ -55,6 +55,7 @@ from .enums import (
     TrainingMethod,
     UsePermission,
 )
+from .yaml_loader import load_yaml
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1026,7 +1027,7 @@ class ModelCard(BaseModel):
             yaml_str = content
             prose = ""
 
-        data = yaml.safe_load(yaml_str) or {}
+        data = load_yaml(yaml_str) or {}
 
         # Map flat YAML to nested Pydantic structure
         identity_data = {
