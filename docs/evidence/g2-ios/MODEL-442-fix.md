@@ -1,3 +1,351 @@
+# MODEL-442 round 3: accelerate catalogue YAML parsing
+
+**Implementation ready for independent review.** The 13-test private-serving module
+fell from 643.62s to 139.39s locally (4.62× faster), with unchanged output bytes.
+The broader CI completion time has not been observed after this change.
+
+Base SHA: `5ebdc45eb474c0d09d30b1136f504fe0529d19bf`.
+Final implementation SHA: `79e91d01c7893160efe6e8cf8608720f4abb481c`.
+The following evidence-only commit records verification; its final branch-head
+SHA is reported in the executor completion line and by `git rev-parse HEAD`.
+Worktree: `/Users/terbeest/dev/worktrees/model-442`; branch:
+`model-442-ci-wall-time`. [PR #897](https://github.com/turbobeest/modelspec/pull/897)
+remains draft; no PR operation was performed. This section supplements the earlier
+rounds below; it does not replace their observations or unsuccessful predictions.
+
+## Observed baseline
+
+The supplied CI log identifies three private-serving tests as the bottleneck.
+The unchanged local run passed all 13 tests in **643.62 seconds**. After the fix,
+the same module passed all 13 in **139.39 seconds**, a **78.3% reduction**.
+Test call times and the separately charged module fixture setup are:
+
+| Phase | Supplied CI seconds | Local before seconds | Local after seconds |
+| --- | ---: | ---: | ---: |
+| Public leak check, full/holding/live | 1116.66 | 171.46 | 39.40 |
+| Private Worker bundle | 358.33 | 106.28 | 17.63 |
+| Policy and neutrality, split off/on | 1518.94 | 339.72 | 76.80 |
+| Private fixture setup | 81.22 | 24.83 | 4.36 |
+| Complete 13-test module | 3078.67 | 643.62 | 139.39 |
+
+At historical checkout `36b2d184`, the same module passed all 13 tests in
+**744.67 seconds**: public call 275.83, private bundle 105.37, policy calls
+337.34, and fixture setup 24.84 seconds. The private and policy phases were
+already comparably slow before the recent changes named in the spec. The older
+public call was slower, but cache state was uncontrolled; no causal explanation
+is established for that difference. These runs do not attribute the bottleneck
+to a particular recent merge.
+
+## Profiled cause
+
+The parent cProfile file is `/tmp/model-442-scratch/ps.prof`. The private vendor
+starts a separate export process, profiled in
+`/tmp/model-442-scratch/executor/export-7140.prof`. The parent spends 316.980
+seconds blocked in `poll` while that child runs. Counting both would duplicate
+the private export cost. Correct combined accounting is:
+
+```text
+1899.018 parent seconds - 316.980 blocking seconds + 316.697 child seconds
+= 1898.736 profiled seconds
+```
+
+Across both processes, `yaml.safe_load` accounts for **1780.267 seconds,
+93.761%** of that total. Its direct calls from `pipeline.load.split_front_matter`
+and `schema.card.ModelCard._parse_yaml_string` account for **1758.621 seconds,
+92.621%**. In the private export child alone, those two readers account for
+**306.213 of 316.697 seconds, 96.690%**.
+
+The large full-catalogue builds repeatedly use PyYAML's Python scanner and
+parser. The measured alternatives are much smaller: `deterministic_probabilities`
+takes 0.194 seconds in the parent and 0.094 in the child; `ref_state` takes
+1.132 and 0.200 seconds. These cumulative function times can overlap with
+their callers and must not be summed as independent costs.
+
+`/tmp/model-442-scratch/review/profile-summary.txt` records the leading calls
+and every direct `safe_load` caller. cProfile overhead is substantial, so
+the before/after speed comparison uses unprofiled pytest runs.
+
+## Regression and change
+
+Before changing production code, the new tests produced **2 failed, 12 passed
+in 3.23 seconds**. Both failures were
+`test_large_catalogue_card_uses_less_than_half_python_parser_cpu`, parameterized
+for the two real readers. The front-matter reader used 0.237 seconds against
+0.241 for Python `safe_load`, ratio **0.98**. The model-card reader used 0.239
+against 0.235, ratio **1.02**. Both failed the required ratio below **0.50**.
+The other assertions already passed, including safe tags and diagnostics.
+
+The fix adds `schema.yaml_loader.load_yaml` and changes only those two readers
+to call it. It selects PyYAML's `CSafeLoader` when available, with `SafeLoader`
+as the fallback. Both loaders use `SafeConstructor` and `Resolver`. The helper
+does not cache parsed mappings, so aliases and fresh mutable results keep their
+existing behavior. On a YAML error it retries with the original Python safe
+loader after leaving the exception handler, preserving public diagnostics
+without chaining the discarded C parser exception. Private error boundaries
+remain responsible for redacting values.
+
+The tests check dates, booleans, numeric values, nulls, aliases, repeated-read
+isolation, rejection of Python-specific YAML tags, and exact public diagnostic
+type, message, position, and exception context. They cover missing libyaml too.
+The two timing cases use process CPU time with GC paused and repeated samples.
+Their `perf` marker selects the existing serial CI timing job and excludes them
+from parallel shards. The new test module passed **14 tests in 1.83 seconds**.
+
+## Output and Worker verification
+
+Before/after private-serving artifacts use the same build commit, timestamp,
+and source data. The comparison covers every file in public, holding, live,
+split-off, and split-on trees, plus decoded private Worker exports and successor
+metadata. All **19,672 artifacts**, including **2,618 JSON artifacts**, were
+byte-identical, comparison exit 0. Counts were bundle 6, holding 80, live 225,
+split-off 8,135, split-on 5,613, and public 5,613. No files were added or removed.
+These exports contain no `p_best` fields, so they cannot establish probability
+precision on their own. A separate before/after replay of four engine decisions
+on the synthetic banded page snapshot compared **64 non-null `p_best` and
+`top3_stability` fields at four decimals**, plus serialized page-fixture response hashes.
+The captures were identical, `cmp` exit 0, and the stored banded fixture matched.
+
+The focused broader selection passed **366 tests in 29.63 seconds**, exit 0.
+It includes decide-page fixtures, the decision contract, reader/schema/private
+diagnostics, probability and bands tests, and the Worker import audit. Fixtures
+were checked without regeneration. The same run passed the existing **100 ms
+snapshot-load gate** and the fresh-snapshot Worker decision latency gate.
+
+The changed readers and helper are build-time code absent from the Worker
+vendor source list. Actual private data was nevertheless vendored with a
+throwaway signing key for deployment-shaped Pyodide 0.28.3 measurements.
+The complete deployment bundle matched across all **163 files**, including runtime
+code and private exports. Before/after measurements were:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Current steady memory | 104.6480 MiB | 104.6489 MiB |
+| Successor steady memory | 104.6487 MiB | 104.6486 MiB |
+| Current memory-probe wall time | 2.47s | 2.50s |
+| Successor memory-probe wall time | 2.52s | 2.51s |
+| Worker cold imports | 1564.85ms | 1532.82ms |
+| First full decision | 103.06ms | 102.68ms |
+| Actual private-data vendor wall time | 163.79s | 29.15s |
+
+Both periods passed the **115 MiB** limit. Cold imports and the first decision
+were slightly lower in the after sample; these are single-run timings, not a
+statistical speed claim. The first full decision is a different measurement
+from the existing 100 ms snapshot-load gate, which passed unchanged. Response
+hashes for `none`, `summary`, and `full` explanations also matched exactly.
+The public Worker bundle was restored and its embedded private data file was
+confirmed absent. The private checkout, private comparison bundle, and older
+comparison worktree were deleted after verification.
+
+## Expected CI time and limits
+
+Applying each local phase's measured after/before ratio to its corresponding
+supplied CI phase projects the private-serving pytest module at
+**677.21 seconds, about 11m17s**, versus 3078.67 seconds, a **78.0% reduction**.
+The calculation preserves 3.52 seconds for the remaining tests and overhead.
+It excludes job setup before pytest, runner queues, and unmeasured changes to
+other jobs. It is a conditional projection, not an observed CI improvement.
+
+The saved eight-shard run has no final times for social cards, ordinary shards
+6-8, or the site build. Those test shards had already exceeded 23 minutes in
+the prior observation. The historical ordinary-shard replay, 1157.724,
+928.438, 959.006, and 941.499 seconds before setup, did not establish the earlier
+20-minute target. No private-test ratio is applied to those other jobs.
+The overall new CI wall time therefore remains **unobserved**; this run measures
+and projects the removal of the known private-serving bottleneck.
+
+## Commands and environment
+
+Environment: macOS arm64, Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3
+with libyaml available, pydantic 2.13.5, Ruff 0.16.6, Node 22.22.3.
+The pinned probe used Pyodide 0.28.3 / Python 3.13.2, with its packaged
+pydantic 2.10.6 and PyYAML 6.0.2. Local pytest used Python 3.14.4;
+pytest CI uses Python 3.11. Worker build and probe runtimes are separate.
+No GitHub CLI/API requests or vendor-model API calls were made in this round.
+The full local suite was not run; all pytest commands below were serial.
+
+The commands below use these path abbreviations; their expanded arguments are
+the commands recorded in the session. Logs are under `$S/executor/` unless
+otherwise specified. Exit codes were checked directly, without a pipe.
+
+```bash
+PY=/Users/terbeest/dev/modelspec/.venv/bin/python
+NODE=/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node
+S=/tmp/model-442-scratch
+I=$S/executor/instrumentation
+```
+
+Baseline and historical comparison (both exit 0):
+
+```bash
+env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider \
+  tests/test_private_serving.py --durations=0 > "$S/executor/private-before.log" 2>&1
+git worktree add --detach "$S/older-main" 36b2d184
+# The following command ran with cwd=$S/older-main.
+env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider \
+  tests/test_private_serving.py --durations=0 > "$S/executor/private-older.log" 2>&1
+# All remaining commands ran in the ticket worktree.
+```
+
+The scratch `sitecustomize.py` replaces `pipeline.export.make_build` with a
+`Build` using commit `5ebdc45eb474c0d09d30b1136f504fe0529d19bf`, built_at
+`2026-10-23T07:00:00+00:00`, and the unchanged catalogue `as_of`. With
+`MODEL442_PROFILE_CHILD=1`, it profiles only processes whose argv contains
+`--export-data` and registers an `atexit` profile dump named `export-<pid>.prof`.
+These are verification-only changes outside the repository.
+
+```bash
+env PYTHONPATH=$I:$PWD MODEL442_FIXED_BUILD=1 MODEL442_PROFILE_CHILD=1 \
+  MODEL442_PROFILE_PARENT=1 "$PY" -m cProfile -o "$S/ps.prof" -m pytest \
+  -q -p no:cacheprovider -p timing_plugin tests/test_private_serving.py \
+  --durations=0 --basetemp="$S/executor/profile-before" \
+  > "$S/executor/private-profile.log" 2>&1
+"$PY" -c 'import pstats; pstats.Stats("/tmp/model-442-scratch/ps.prof").strip_dirs().sort_stats("cumulative").print_stats(35)'
+```
+
+The complete profile run passed 13 tests in 1900.06s, exit 0. An earlier
+profiling attempt was interrupted before completing a test and is excluded
+from all successful-run claims. The optional checkpoint plugin could not
+retrieve cProfile through `sys.getprofile()` on Python 3.14; it made no
+checkpoints. The completed parent and child profile files supplied the totals.
+
+Red and green (same command, production code changed between runs):
+
+```bash
+env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py
+# yaml-red-final.log: exit 1, 2 failed / 12 passed in 3.23s.
+# yaml-green.log: exit 0, 14 passed in 1.83s.
+env PYTHONPATH=$I:$PWD MODEL442_FIXED_BUILD=1 "$PY" -m pytest -q \
+  -p no:cacheprovider tests/test_private_serving.py --durations=0 \
+  --basetemp="$S/executor/private-after" > "$S/executor/private-after.log" 2>&1
+# Exit 0, 13 passed in 139.39s.
+env -u MODELSPEC_WRITE_FIXTURES PYTHONPATH=$PWD "$PY" -m pytest -q \
+  -p no:cacheprovider tests/test_pipeline.py tests/test_schema.py \
+  tests/test_card_yaml_roundtrip.py tests/test_private_data_errors.py \
+  tests/test_decide_page_fixtures.py tests/test_decision_contract.py \
+  tests/test_decision_latency.py tests/test_decision_bands.py \
+  tests/test_decision_snapshot.py::test_a_thirty_model_snapshot_is_small_and_loads_fast \
+  tests/test_decide_worker.py::test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget \
+  tests/test_worker_vendor_imports.py --durations=10 \
+  > "$S/executor/focused-green.log" 2>&1
+# Exit 0, 366 passed in 29.63s.
+```
+
+The scratch artifact comparer inventories all files in each completed test
+scenario, including decoded `BLOBS` and canonical `SNAPSHOTS` metadata. It
+compares path sets, byte lengths and SHA256 hashes, and inventories probability
+fields in JSON. The probability script calls the existing page test service
+on `_banded_snapshot()` with the stored banded objective, coding-only,
+coding-heavy and cost-heavy objectives. It records each complete page-response
+hash and every non-null `p_best`/`top3_stability` at four decimals. It also
+checks the stored banded fixture bytes directly.
+
+```bash
+"$PY" "$S/review/compare_artifacts.py" record \
+  --basetemp "$S/executor/profile-before" --manifest "$S/review/artifacts-before.json"
+"$PY" "$S/review/compare_artifacts.py" compare \
+  --basetemp "$S/executor/private-after" --manifest "$S/review/artifacts-before.json"
+env PYTHONPATH=$PWD "$PY" "$S/profile-context/capture_probabilities.py" \
+  "$S/profile-context/probabilities-before.json"
+env PYTHONPATH=$PWD "$PY" "$S/profile-context/capture_probabilities.py" \
+  "$S/profile-context/probabilities-after.json"
+cmp "$S/profile-context/probabilities-before.json" "$S/profile-context/probabilities-after.json"
+"$PY" "$S/review/project_ci.py" --public 39.40 --private 17.63 --policy 76.80 --setup 4.36
+# All exit 0. The baseline record/capture preceded the production edit.
+```
+
+Actual private-data probes used private data commit
+`c26a2d7b67039dd0ed2490cd740766680c9e454d`. Only synthetic signing material was
+supplied; the Ed25519 signing environment was explicitly removed. The baseline
+custom output directory received the 32 tracked, hand-written top-level Worker
+Python files, using `git ls-files api/worker/src` and `shutil.copyfile`. This
+matches the deploy's complete runtime source tree without replacing exports.
+
+```bash
+git clone --depth 1 https://github.com/turbobeest/modelspec-data.git "$S/executor/private-data"
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH \
+  npm install --prefix "$S/executor/memory" --no-save pyodide@0.28.3
+env -u MODELSPEC_SNAPSHOT_ED25519_KEY PYTHONPATH=$I:$PWD MODEL442_FIXED_BUILD=1 \
+  MODELSPEC_SNAPSHOT_KEY=model442-memory-fixture-key /usr/bin/time -p "$PY" \
+  api/worker/vendor.py --data-dir "$S/executor/private-data" \
+  --out "$S/executor/private-before-bundle"
+env -u MODELSPEC_SNAPSHOT_ED25519_KEY PYTHONPATH=$I:$PWD MODEL442_FIXED_BUILD=1 \
+  MODELSPEC_SNAPSHOT_KEY=model442-memory-fixture-key /usr/bin/time -p "$PY" \
+  api/worker/vendor.py --data-dir "$S/executor/private-data"
+"$PY" "$S/executor/compare_private_bundle.py"
+# All exit 0; bundle comparison: all 163 file paths and SHA256 hashes equal.
+```
+
+For each row below the command was `/usr/bin/time -p` around the indicated
+Node invocation, with `NODE_PATH=$S/executor/memory/node_modules` and
+`MODELSPEC_SNAPSHOT_KEY=model442-memory-fixture-key`. Memory commands included
+`node --expose-gc api/worker/measure_memory.cjs`, and every one exited 0.
+
+| Bundle | Additional arguments | Log |
+| --- | --- | --- |
+| `$S/executor/private-before-bundle` | `--limit-mib 115 --output $S/executor/memory-before.json` | `memory-before.log` |
+| `$S/executor/private-before-bundle` | `--successor --limit-mib 115 --output $S/executor/memory-before-successor.json` | `memory-before-successor.log` |
+| `api/worker/src` | `--limit-mib 115 --baseline $S/executor/memory-before.json --output $S/executor/memory-after.json` | `memory-after.log` |
+| `api/worker/src` | `--successor --limit-mib 115 --baseline $S/executor/memory-before-successor.json --output $S/executor/memory-after-successor.json` | `memory-after-successor.log` |
+
+Cold/warm timing commands used the same environment plus `PROFILE_RUNS=20`:
+
+```bash
+/usr/bin/time -p "$NODE" api/worker/profile_decide.cjs \
+  "$S/executor/private-before-bundle" "$S/executor/private-timing-before.json"
+/usr/bin/time -p "$NODE" api/worker/profile_decide.cjs \
+  api/worker/src "$S/executor/private-timing-after.json"
+# Both exit 0. SHA256 hashes match at all three explanation levels.
+env -u MODELSPEC_SNAPSHOT_ED25519_KEY -u MODELSPEC_SNAPSHOT_KEY PYTHONPATH=$PWD \
+  "$PY" api/worker/vendor.py
+# Exit 0; restored public bundle, with no bundled_data.py remaining.
+```
+
+After the comparisons, `shutil.rmtree` deleted exactly
+`$S/executor/private-data` and `$S/executor/private-before-bundle`; absence was
+asserted. `git worktree remove $S/older-main` exited 0. Private data and bundles
+were never staged. Only non-content measurement logs remain from those probes.
+
+Final guards and delivery are recorded below.
+
+```bash
+env PYTHONPATH=$PWD \
+  MODELSPEC_DIST=$S/executor/private-after/test_policy_bytes_and_neutrali0/off \
+  "$PY" -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+# Exit 0, 47 passed in 66.25s, including the built-artifact scan.
+"$PY" -m ruff check schema/yaml_loader.py tests/test_yaml_loading.py
+# Exit 0. Two new-test formatting findings were corrected before this pass.
+git diff --cached --check
+# Exit 0 before the implementation commit.
+git commit -m 'MODEL-442: accelerate safe catalogue YAML parsing' \
+  -m 'Use libyaml in the two profiled catalogue readers while preserving Python parser diagnostics, safe construction, and fresh parsed values. Add behavior and CPU regression coverage.' \
+  -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+# Exit 0, implementation SHA recorded above.
+```
+
+The green implementation checks total **440 passing tests**, with no skips.
+The evidence-only change is checked again by the tracked-file source guard and
+`git diff --cached --check`. Delivery uses these commands, with the final head
+and push outcome reported in the executor completion:
+
+```bash
+env PYTHONPATH=$PWD "$PY" -m pytest -q -p no:cacheprovider \
+  tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source
+git diff --cached --check
+git commit -m 'MODEL-442: record profiling and validation evidence' \
+  -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+"$PY" scripts/data_freeze_guard.py --base 5ebdc45eb474c0d09d30b1136f504fe0529d19bf \
+  --head HEAD --branch model-442-ci-wall-time
+CI_LOCAL_SKIP=1 git push -u origin model-442-ci-wall-time
+git rev-parse HEAD
+git status --short
+```
+
+No post-push CI result, production deployment, or new overall CI wall time was
+observed. The implementation preserves the existing private-serving assertions,
+ranking logic, stored fixtures, frozen data, published contracts, and switches.
+
+---
+
 # MODEL-442 round 2
 
 **BLOCKED: the approximately 20-minute CI target is still unmet.** The two
