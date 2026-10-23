@@ -11,16 +11,16 @@ log = <decision.verify.VerificationLog object at 0x10758b8c0>
         current = replace(old, value=123)
         queue.file(current, at=datetime.fromisoformat("2026-10-19T23:30:00-04:00"))
         queue.file(old, at=datetime(2026, 10, 20, 2))
-    
+
 >       assert queue.pending() == ([current], [])
                ^^^^^^^^^^^^^^^
 
-tests/test_decision_verify.py:2266: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_decision_verify.py:2266:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 decision/verify.py:7018: in pending
     for key, entry in self._state().items():
                       ^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <decision.verify.Queue object at 0x10758ba10>
 

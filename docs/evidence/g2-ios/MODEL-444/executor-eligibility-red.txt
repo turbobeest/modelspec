@@ -4,21 +4,21 @@ ___ test_reread_eligibility_uses_snapshot_value_and_verdict[newer_mismatch] ____
 .github/scripts/tests/test_rendered_reread.py:794: in test_reread_eligibility_uses_snapshot_value_and_verdict
     assert reader.verified_claims(queue, log) == expected
 E   AssertionError: assert [Claim(target...e_model=None)] == []
-E     
+E
 E     Left contains one more item: Claim(target=TargetRef(kind='fact', id='fixture#price'), subject='provider/subscription/pro', names=('Pro',), field='o...e'], retrieved_at=None, resolved_urls=[]),), unit='usd_per_billing_period', label=None, conditions={}, base_model=None)
 E     Use -v to get more diff
 _____ test_reread_eligibility_uses_snapshot_value_and_verdict[dated_price] _____
 .github/scripts/tests/test_rendered_reread.py:794: in test_reread_eligibility_uses_snapshot_value_and_verdict
     assert reader.verified_claims(queue, log) == expected
 E   AssertionError: assert [] == [Claim(target...e_model=None)]
-E     
+E
 E     Right contains one more item: Claim(target=TargetRef(kind='fact', id='fixture#price'), subject='provider/subscription/pro', names=('Pro',), field='o...ed_urls=[]),), unit='usd_per_billing_period', label=None, conditions={'effective_from': '2026-10-01'}, base_model=None)
 E     Use -v to get more diff
 ____ test_reread_eligibility_uses_snapshot_value_and_verdict[unordered_set] ____
 .github/scripts/tests/test_rendered_reread.py:794: in test_reread_eligibility_uses_snapshot_value_and_verdict
     assert reader.verified_claims(queue, log) == expected
 E   AssertionError: assert [] == [Claim(target...e_model=None)]
-E     
+E
 E     Right contains one more item: Claim(target=TargetRef(kind='fact', id='fixture#price'), subject='provider/subscription/pro', names=('Pro',), field='o...e'], retrieved_at=None, resolved_urls=[]),), unit='usd_per_billing_period', label=None, conditions={}, base_model=None)
 E     Use -v to get more diff
 =========================== short test summary info ============================

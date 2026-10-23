@@ -22,7 +22,7 @@ The replacement also inherits MODEL-443's reviewed source-terms cleanup. Hash-ch
 | Four chronological queue regressions | Four failures and one existing same-time pass | All pass |
 | `test_queue_treats_legacy_naive_event_times_as_utc` | `TypeError: can't compare offset-naive and offset-aware datetimes` | Passes with UTC normalization |
 
-Raw red output and focused green output are in [MODEL-444](MODEL-444/). No existing assertion was deleted to hide a failure. Tests that explicitly expected the superseded behavior now assert preservation of accepted verifications and curation requests. The existing seeded engine fixture now uses its fixed timestamp for checks as well as collection, rather than mixing fixed September events with wall-clock checks.
+Raw red output and focused green output are in [MODEL-444](MODEL-444/). Where pytest emits trailing whitespace, a `.log.gz` archive preserves its exact bytes and the adjacent `.txt` copy removes only that whitespace for review. No existing assertion was deleted to hide a failure. Tests that explicitly expected the superseded behavior now assert preservation of accepted verifications and curation requests. The existing seeded engine fixture now uses its fixed timestamp for checks as well as collection, rather than mixing fixed September events with wall-clock checks.
 
 | Production-path acceptance | Current, 2026-10-23 | Successor, 2027-01-01 |
 | --- | ---: | ---: |

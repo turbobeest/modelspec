@@ -4,13 +4,13 @@ _ test_failed_recheck_is_an_attempt_and_preserves_verified_value[unreachable] __
 .github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
     assert log.path.read_bytes() == before
 E   assert b'{"target":{...diff":null}\n' == b'{"target":{...diff":null}\n'
-E     
+E
 E     Use -v to get more diff
 ___ test_failed_recheck_is_an_attempt_and_preserves_verified_value[mismatch] ___
 .github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
     assert log.path.read_bytes() == before
 E   assert b'{"target":{...\"40\\"}]"}\n' == b'{"target":{...diff":null}\n'
-E     
+E
 E     Use -v to get more diff
 _ test_failed_recheck_is_an_attempt_and_preserves_verified_value[reader_error] _
 .github/scripts/tests/test_rendered_reread.py:752: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
@@ -27,7 +27,7 @@ _ test_failed_recheck_is_an_attempt_and_preserves_verified_value[missing_value] 
 .github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
     assert log.path.read_bytes() == before
 E   assert b'{"target":{...": null}]"}\n' == b'{"target":{...diff":null}\n'
-E     
+E
 E     Use -v to get more diff
 ____ test_failed_recheck_is_an_attempt_and_preserves_verified_value[cited] _____
 .github/scripts/tests/test_rendered_reread.py:752: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
