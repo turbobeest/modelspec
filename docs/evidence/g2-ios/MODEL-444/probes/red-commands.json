@@ -1,0 +1,23 @@
+{
+  "vendor": {
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/tmp/model-444-scratch/probes/engine-base/api/worker/vendor.py",
+      "--data-dir",
+      "/tmp/model-444-scratch/probes/raw103",
+      "--out",
+      "/tmp/model-444-scratch/probes/red/bundle"
+    ],
+    "exit_code": 2
+  },
+  "gate": {
+    "command": [
+      "/Users/terbeest/dev/modelspec/.venv/bin/python",
+      "/tmp/model-444-scratch/probes/gate.py",
+      "/tmp/model-444-scratch/probes/engine-base",
+      "/tmp/model-444-scratch/probes/raw103",
+      "/tmp/model-444-scratch/probes/red"
+    ],
+    "exit_code": 1
+  }
+}

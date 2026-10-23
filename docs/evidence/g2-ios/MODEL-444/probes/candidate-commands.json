@@ -1,0 +1,155 @@
+{
+  "engine": "/Users/terbeest/dev/worktrees/model-444",
+  "data_head": "ba03e11651513aa108f4031e56622717cf419acf",
+  "engine_head": "8d380496de7f1acad555485b896083879b7a6f32",
+  "engine_source_sha256": {
+    "decision/__init__.py": "889dea88c1fe70e04d1a6726202a12ea2232e3c46a75fcd24ff0052e4f1f1bfb",
+    "decision/azure_pricing.py": "1fc2e808bb06a2a9e8025588542ca8d6138214033d652b525d5d4f7f5a64c037",
+    "decision/bands.py": "d7d5f883c66240a5d3972aaf00688eeabb2c244b59577a523fb4e2b138bd731a",
+    "decision/bounded.py": "472ec5ece4c14a5064d7b4876bad76f33cf7efd22baad5baffe9c21c50667315",
+    "decision/by_model.py": "db8e6c5673e122b2e18b31a6718f5038edfdd7855fe3468a6bb9c224eaea567c",
+    "decision/capability.py": "810d95141279d02f093022579003ee296fc30fbdb0626e97efebcb4a01c6e7f2",
+    "decision/citation.py": "fa315e0b92e645272ef7ad38555875d8721103e804707e7a81a61b3756f20337",
+    "decision/compare.py": "14a2aa604dc4d534db239be6836be8e7746917c3bc03882625ef3850f8cd1a69",
+    "decision/computed.py": "20c925c66afdc5944ba6c3059086fe42e87132ea021836c2fcd1517a7cb82b14",
+    "decision/contract.py": "8105332c1e351b94b34172164598979cb70054b05cca52939ff5b87cd5d20684",
+    "decision/coverage.py": "0b07fc3fd728272a702bf1362d981c31a7b8895346e3a8b2242870062bfd937c",
+    "decision/dated_prices.py": "405b75ff852ef4325a84bc068104cb6251f72b9eda1abf564d6c702361d73824",
+    "decision/engine.py": "3eacfabdd3161a94e5feb4d64888bdb2f7941714da003159ff3e25b95d50b1c9",
+    "decision/estate.py": "34ce6e8fe5e6f602646064397be2e5aed28373002f8c99165963a4851fe7e515",
+    "decision/excluded.py": "7e212383b7afbeb046f7fb8e02d991bdf77736d67e2e16fce29a2a9f5314de33",
+    "decision/explain.py": "92d0b157d7d508d89974f56174d4f42323381b81556cd0c8f7a14e1b6fb571d7",
+    "decision/filter.py": "4105b2a6fd3e388ea253c5007cc7afda36f57c95e0def967cbb7e66d1ebb6fc2",
+    "decision/firecrawl.py": "90e5ed04176329bf5d20f83f7fa87db0f21e2961f9fc98f6275ad104c7c0b3a5",
+    "decision/hardware.py": "1ece4ecdedd5b9be84143e9b3d7aaa1b67efb2bbe1beab908a9e50583abcaced",
+    "decision/hardware_fit.py": "d8bf36ec8b11e5a30f73818619860bb68be03083e0be957b49c1f192b32928fa",
+    "decision/json_stream.py": "844be96f7c2ca182d03763e33a828f1ec87de5d78a9a75ac5bc0a7717a9e75f8",
+    "decision/labs.py": "961cac97db870ae8d309de1e0c5c3059c1ea656b7481f4886006ac96b2494cda",
+    "decision/licence_rules.py": "72e387ed702a3f0bf3fc3b96e426a5c9bbbedc0680b39ee25c4c7d5328b1108c",
+    "decision/model.py": "0ae4975e8835467a9143886402515fa5f8d0a84f9946f8e6e446bf38d7ed7ace",
+    "decision/model_comparison.py": "d978d550c938e71b74791c3a36865242918b652293ba842f24b1ebcbdc0b9e41",
+    "decision/next_move.py": "41424e4a47ff2ef3c294f24cabeb1d6e7322bbd3a43177c06cf5cb95a0cab4bb",
+    "decision/normalise.py": "97dbfa06dbbfe0afe2ba1967b5e9e7ad9f328cd889d95af8ffcbff3571d1c7be",
+    "decision/optimise.py": "c8667d47fc0b3259f6cafd7f77aa6ce7dca8d58cbe1ffceb6a103c2be920a171",
+    "decision/pdf_sources.py": "15bb4b8024f7d579039d7788fcf44c1f98742de177ff641f3541a2159bba0d37",
+    "decision/pdf_templates.py": "ef8b41d1bd73e8302c11060770b8b4d2d243b506c3c4a3b86db175985e73f2f7",
+    "decision/perplexity_faq.py": "82af4be6d436bca2c446bb185927e93fc21a020992e05fafd4c6fb72c924663c",
+    "decision/plans.py": "de568e8dd5c35f581490c41a304cb5b89ffbb5183c64cbeaf60ab64b54f167d8",
+    "decision/reading.py": "607f1a21509cf3fbddce1b33e95f50f2bb87935e4867edd58d6a71a11cf44854",
+    "decision/recovery.py": "506afeefc77ef2130f3ee18c1c8008fab6328fcd0b7ce51d5d6279639e5195a9",
+    "decision/refinements.py": "54fd4d76604cbb6cd1268193cf8d8d16cb9ea6d9443c350876a22b251b701af2",
+    "decision/regions.py": "c76c1ebfa95769d81a4aa6d7c5fd7d8af2e17d8657e9c96c629d59276b384a86",
+    "decision/registry.py": "7ccc405a7fd1d11a40f1a6d1f395325db8ee70b05fcb53667a5a7db83972fd0b",
+    "decision/relax.py": "e4eaa423502bfb57eaccfe4be9afead41a3a55a28e0cf6e83356abf5ebabdcab",
+    "decision/resolve.py": "965936aa884a988e999048d79c4187fb469006269f06b04a45e18934f786628c",
+    "decision/retention.py": "81fbfc4c2c52d26657f99ed130b5a364faa85fb8938685cc7b6e77daaa128776",
+    "decision/router_config.py": "4dabe3af9d57cf3d02404d02c1065206ae71f3b35c62e685f7edaf9f7726c48e",
+    "decision/schema.py": "835bb705b138f8e2fcf84ae37a80ebedb8bbb5b6a5633f009ca1a1fc46849591",
+    "decision/snapshot.py": "281d86d5942dc5a29eff7046440eacf345a917012e5fd7484294710275f0376a",
+    "decision/sources.py": "a92a4be14c2009a2ee040ea042c682a33fa57254806ff6a700edec34b2393704",
+    "decision/summary.py": "390ac9824015742888f3b5cd2aa3e05abfa11eda750a467fd5d3843670872bef",
+    "decision/supersession.py": "2b6a1e61046d51e8945c391d13c7ad72a081400fdfd4056777e00974e3ff0c0f",
+    "decision/templates.py": "5eb35632b8038296a843e8005a4246f44a8aa3f2f41d5a99049ba6b9292a79e3",
+    "decision/units.py": "ad4dbeea131d18dc6ff4ff1e6a4a7641f656b81c1ee7f07d52c4f36285f9fde8",
+    "decision/verify.py": "83cfbd7961ff3170b7e4cf3f12edc6a446391107afa91472a85f5359dbb82adf",
+    "decision/vocabulary.py": "b55a8660ac5578f80fc520b0a2c5614c8ab8cbab84e3d0a49b018fad88579248",
+    "decision/why_not.py": "d7d02716dab28ae8921d3aad0e8e12d7247b9f904f2d0223e21edb01c95069cd",
+    "decision/wording.py": "af4d1d38ff51d14b5c2952a5fe792abce741d8fbe5c35801f088120f5564de19",
+    "decision/xai_matrix.py": "1e7dc44fd81ad4c2ef0d0aa2ebfb8207f021f7530c828c9c5b02e7c0296c7410"
+  },
+  "environment_overrides": {
+    "MODELSPEC_SNAPSHOT_KEY": "model439-private-proof-throwaway-key",
+    "MODELSPEC_REQUIRE_DATA_DIR": "1",
+    "DATA_SPLIT_ENABLED": "false",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/Users/terbeest/dev/worktrees/model-444",
+    "TMPDIR": "/tmp/model-444-scratch/probes/candidate/tmp",
+    "NODE_PATH": "/tmp/model-444-scratch/probes/runtime/node_modules"
+  },
+  "environment_unset": [
+    "MODELSPEC_SOURCE_CACHE",
+    "MODELSPEC_DATA_DIR"
+  ],
+  "commands": {
+    "vendor.private": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "/Users/terbeest/dev/worktrees/model-444/api/worker/vendor.py",
+        "--data-dir",
+        "/private/tmp/model-444-scratch/data",
+        "--out",
+        "/tmp/model-444-scratch/probes/candidate/bundle"
+      ],
+      "exit_code": 0
+    },
+    "memory.current": {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--expose-gc",
+        "/Users/terbeest/dev/worktrees/model-444/api/worker/measure_memory.cjs",
+        "/tmp/model-444-scratch/probes/candidate/bundle",
+        "--limit-mib",
+        "115",
+        "--output",
+        "/tmp/model-444-scratch/probes/candidate/current.memory.json"
+      ],
+      "exit_code": 0
+    },
+    "memory.successor": {
+      "command": [
+        "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node",
+        "--expose-gc",
+        "/Users/terbeest/dev/worktrees/model-444/api/worker/measure_memory.cjs",
+        "/tmp/model-444-scratch/probes/candidate/bundle",
+        "--limit-mib",
+        "115",
+        "--output",
+        "/tmp/model-444-scratch/probes/candidate/successor.memory.json",
+        "--successor"
+      ],
+      "exit_code": 0
+    },
+    "corpus": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "/Users/terbeest/dev/worktrees/model-444/docs/evidence/g2-ios/MODEL-439/r2/compare_private.py",
+        "state",
+        "--root",
+        "/Users/terbeest/dev/worktrees/model-444",
+        "--data-dir",
+        "/private/tmp/model-444-scratch/data",
+        "--output",
+        "/tmp/model-444-scratch/probes/candidate",
+        "--reuse-exports"
+      ],
+      "exit_code": 0
+    },
+    "vendor.public": {
+      "command": [
+        "/Users/terbeest/dev/modelspec/.venv/bin/python",
+        "/Users/terbeest/dev/worktrees/model-444/api/worker/vendor.py",
+        "--out",
+        "/tmp/model-444-scratch/probes/candidate/public-bundle"
+      ],
+      "exit_code": 0
+    }
+  },
+  "production_completeness_gate": {
+    "enabled": true,
+    "gap_count": 0,
+    "current_and_successor_exported": true
+  },
+  "memory": {
+    "current": {
+      "steady_mib": 104.6467399597168,
+      "peak_mib": 107.84250259399414,
+      "period": "current"
+    },
+    "successor": {
+      "steady_mib": 104.64628982543945,
+      "peak_mib": 105.49174880981445,
+      "period": "successor"
+    }
+  },
+  "public_bundled_data_absent": true
+}
