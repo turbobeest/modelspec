@@ -158,7 +158,7 @@ def _seeded_run(store, regions, log, **kwargs) -> verify.RunReport:
     for entry in SPEC["claims"]:
         queue.file(_claim(entry, store), at=NOW)
     return verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
-                      **kwargs)
+                      at=NOW, **kwargs)
 
 
 # --- the seeded error fixture ------------------------------------------------------------------
@@ -2186,6 +2186,97 @@ def test_module_level_quarantine_helpers_read_a_directory(log) -> None:
 
 
 # --- triggers: change detection re-queues, --changed-only ---------------------------------------
+
+
+def test_queue_stale_append_preserves_newer_claim_and_success(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    old = _claim(SPEC["claims"][0], store)
+    current = replace(old, value=123)
+    newer = datetime(2026, 10, 20, tzinfo=UTC)
+    queue.file(current, at=newer)
+    queue.checked(verify.Result(current.target, "verified"), at=newer)
+    queue.file(old, at=NOW)
+    queue.checked(verify.Result(old.target, "mismatch"), at=NOW)
+    before = queue.path.read_bytes()
+
+    assert queue.filed() == {(current.target.kind, current.target.id): current}
+    assert queue.pending() == ([], [])
+    assert queue.recrawl_requests() == []
+    assert queue.path.read_bytes() == before
+
+
+def test_queue_stale_check_does_not_clear_a_newer_pending_claim(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    claim = _claim(SPEC["claims"][0], store)
+    queue.file(claim, at=datetime(2026, 10, 20, tzinfo=UTC))
+    queue.checked(verify.Result(claim.target, "verified"), at=NOW)
+
+    assert queue.pending() == ([claim], [])
+    assert queue.recrawl_requests() == []
+
+
+def test_queue_replays_copy_changes_in_time_order(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    original = _claim(SPEC["claims"][0], store)
+    first = original.sources[0]
+    second = first.model_copy(update={"source_id": "second-source"})
+    claim = replace(original, sources=(first, second))
+    queue.file(claim, at=NOW)
+    queue.checked(verify.Result(claim.target, "verified"), at=NOW)
+
+    def changed(source_id, copy_digit, day):
+        at = datetime(2026, 10, day, tzinfo=UTC)
+        state = SourceState(source_id, SourceSnapshot(
+            source_id=source_id, retrieved_at=at,
+            page_fingerprint="sha256:" + copy_digit * 64,
+            region_fingerprints={}, copy_ref="sha256:" + copy_digit * 64,
+        ))
+        queue.requeue(RecheckReport(
+            requeue=[f"{claim.target.kind}:{claim.target.id}"], states={source_id: state},
+        ), at=at)
+
+    changed(first.source_id, "a", 20)
+    changed(second.source_id, "b", 18)
+    changed(first.source_id, "c", 19)
+
+    [pending], unknown = queue.pending(changed_only=True)
+    assert unknown == []
+    assert [source.snapshot_ref for source in pending.sources] == [
+        "sha256:" + "a" * 64, "sha256:" + "b" * 64,
+    ]
+
+
+def test_queue_compares_event_instants_across_offsets(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    old = _claim(SPEC["claims"][0], store)
+    current = replace(old, value=123)
+    queue.file(current, at=datetime.fromisoformat("2026-10-19T23:30:00-04:00"))
+    queue.file(old, at=datetime.fromisoformat("2026-10-20T02:00:00+00:00"))
+
+    assert queue.pending() == ([current], [])
+
+
+def test_queue_treats_legacy_naive_event_times_as_utc(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    old = _claim(SPEC["claims"][0], store)
+    current = replace(old, value=123)
+    queue.file(current, at=datetime.fromisoformat("2026-10-19T23:30:00-04:00"))
+    queue.file(old, at=datetime(2026, 10, 20, 2))
+
+    assert queue.pending() == ([current], [])
+
+
+def test_queue_same_time_preserves_append_order(store, log) -> None:
+    queue = verify.Queue(log.directory)
+    claim = _claim(SPEC["claims"][0], store)
+    queue.file(claim, at=NOW)
+    queue.checked(verify.Result(claim.target, "mismatch"), at=NOW)
+    assert queue.pending() == ([], [])
+    assert queue.recrawl_requests() == [(claim.target, "mismatch")]
+
+    queue.file(claim, at=NOW)
+    assert queue.pending() == ([claim], [])
+    assert queue.recrawl_requests() == []
 
 
 def test_changed_regions_are_reverified_against_the_new_copy(store, regions, log) -> None:

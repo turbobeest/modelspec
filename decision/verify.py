@@ -6993,10 +6993,16 @@ class Queue:
         state: dict[tuple[str, str], _Pending] = {}
         if not self.path.is_file():
             return state
-        for line in self.path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            event = json.loads(line)
+        events = [json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines()
+                  if line.strip()]
+
+        def event_time(event: dict[str, Any]) -> datetime:
+            at = datetime.fromisoformat(event["at"])
+            return at if at.tzinfo is not None else at.replace(tzinfo=UTC)
+
+        # Appended history can predate current state; equal instants keep line order.
+        events.sort(key=event_time)
+        for event in events:
             if event["event"] == "collected":
                 claim = Claim.from_dict(event["claim"])
                 state[_key(claim.target)] = _Pending(claim, "new", {}, event)
