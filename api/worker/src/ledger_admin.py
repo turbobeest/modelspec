@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import hmac
 import json
+import re
 from typing import Any
 
 PREFIX = "/internal/ledger/"
+#: The only holders a repair may name: an API key's ledger account.
+KEY_HOLDER = re.compile(r"key:[0-9a-f]{64}")
 SECRET_VAR = "LEDGER_ADMIN_SECRET"
 
 
@@ -84,7 +87,12 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         if action == "transfer":
             # The repair for a key rotation that outlived its lease: the
             # balance went to a key nobody was shown (runbook, residual risks).
-            moved = await stub.transfer(str(payload.get("src") or ""), str(payload.get("dst") or ""))
+            src, dst = payload.get("src"), payload.get("dst")
+            if not (isinstance(src, str) and isinstance(dst, str) and src != dst
+                    and KEY_HOLDER.fullmatch(src) and KEY_HOLDER.fullmatch(dst)):
+                return _error(400, "invalid_request",
+                              "src and dst must be two different key:<64 hex> holders")
+            moved = await stub.transfer(src, dst)
             return 200, {"moved": bool(_plain(moved))}
         return 200, _plain(await stub.unseal(str(payload.get("digest") or "")))
     except Exception as exc:

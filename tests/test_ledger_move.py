@@ -515,19 +515,32 @@ def test_a_rotation_that_outlives_its_lease_cannot_revoke_after_the_copy(monkeyp
 
 
 
+UNSEEN = "key:" + "a" * 64
+OLD_KEY = "key:" + "b" * 64
+
+
 def test_the_admin_transfer_moves_a_stranded_balance_on_a_live_ledger_only():
     env = Env()
-    _credit(env, "pack:cs_1", 5, holder="key:unseen")
+    _credit(env, "pack:cs_1", 5, holder=UNSEEN)
 
-    moved = _admin(env, "transfer", {"src": "key:unseen", "dst": "key:old"})
+    moved = _admin(env, "transfer", {"src": UNSEEN, "dst": OLD_KEY})
     _admin(env, "export")
-    frozen = _admin(env, "transfer", {"src": "key:old", "dst": "key:unseen"})
+    frozen = _admin(env, "transfer", {"src": OLD_KEY, "dst": UNSEEN})
 
     assert moved == (200, {"moved": True})
     assert frozen[0] == 409
     state = credits.LedgerState.from_json(json.loads(env.CREDITS.obj._get("state")))
-    assert state.balance("key:old").available == 5
+    assert state.balance(OLD_KEY).available == 5
 
+
+def test_a_malformed_repair_request_moves_nothing():
+    env = Env()
+    _credit(env, "pack:cs_1", 5, holder=UNSEEN)
+
+    for body in ({"src": UNSEEN}, {"src": UNSEEN, "dst": ""}, {"src": UNSEEN, "dst": None},
+                 {"src": UNSEEN, "dst": UNSEEN}, {"src": UNSEEN, "dst": "payer:0xabc"}):
+        assert _admin(env, "transfer", body)[0] == 400
+    assert _balance(env, UNSEEN) == 5
 
 
 def test_a_stream_of_requests_cannot_hold_off_the_export(monkeypatch):
