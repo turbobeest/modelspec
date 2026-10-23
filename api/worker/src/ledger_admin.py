@@ -64,7 +64,7 @@ async def handle(env: Any, path: str, method: str, authorization: str,
         if method != "GET":
             return _error(405, "method_not_allowed", "use GET")
         return 200, _plain(await stub.move_status())
-    if action not in ("export", "import", "unseal"):
+    if action not in ("export", "import", "unseal", "transfer"):
         return _error(404, "not_found", f"no endpoint at {path}")
     if method != "POST":
         return _error(405, "method_not_allowed", "use POST")
@@ -81,6 +81,11 @@ async def handle(env: Any, path: str, method: str, authorization: str,
             return 200, _plain(await stub.import_state(
                 str(payload.get("state") or ""), str(payload.get("digest") or ""),
                 str(payload.get("generation") or "")))
+        if action == "transfer":
+            # The repair for a key rotation that outlived its lease: the
+            # balance went to a key nobody was shown (runbook, residual risks).
+            moved = await stub.transfer(str(payload.get("src") or ""), str(payload.get("dst") or ""))
+            return 200, {"moved": bool(_plain(moved))}
         return 200, _plain(await stub.unseal(str(payload.get("digest") or "")))
     except Exception as exc:
         return _error(409, f"{action}_refused", _reason(exc))

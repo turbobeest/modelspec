@@ -181,9 +181,8 @@ def test_only_a_standby_ledger_accepts_a_copy():
     _credit(other, "pack:cs_9", 1)
     exported = _admin(old, "export")[1]
 
-    status, body = _admin(other, "import", {"state": exported["state"],
-                                            "digest": exported["digest"]})
-    tampered = _admin(Env(standby=True), "import", {"state": exported["state"], "digest": "0" * 64})
+    status, body = _admin(other, "import", _copy(exported))
+    tampered = _admin(Env(standby=True), "import", {**_copy(exported), "digest": "0" * 64})
 
     assert (status, body["error"]["code"]) == (409, "import_refused")
     assert (tampered[0], tampered[1]["error"]["code"]) == (409, "import_refused")
@@ -197,8 +196,7 @@ def test_a_restart_between_the_state_and_the_record_leaves_a_ledger_that_imports
     new.CREDITS.obj._save(credits.LedgerState.from_json(json.loads(exported["state"])))
 
     assert _status(new)["role"] == "standby"
-    assert _admin(new, "import", {"state": exported["state"],
-                                  "digest": exported["digest"]})[1]["role"] == "live"
+    assert _admin(new, "import", _copy(exported))[1]["role"] == "live"
     assert _balance(new) == 5
 
 
@@ -289,7 +287,7 @@ def test_a_standby_ledger_that_already_holds_balances_refuses_a_copy():
     new.LEDGER_STANDBY = "true"
     exported = _admin(old, "export")[1]
 
-    status, body = _admin(new, "import", {"state": exported["state"], "digest": exported["digest"]})
+    status, body = _admin(new, "import", _copy(exported))
 
     assert (status, body["error"]["code"]) == (409, "import_refused")
     new.LEDGER_STANDBY = ""
@@ -391,7 +389,7 @@ def test_a_destination_that_took_writes_after_its_import_never_takes_another_cop
     _credit(other, "pack:cs_3", 3)
     exported = _admin(other, "export")[1]
 
-    status, body = _admin(new, "import", {"state": exported["state"], "digest": exported["digest"]})
+    status, body = _admin(new, "import", _copy(exported))
 
     assert (status, body["error"]["code"]) == (409, "import_refused")
 
@@ -423,3 +421,109 @@ def test_an_unchanged_ledger_exported_again_after_a_rollback_still_moves():
     assert again["digest"] == first["digest"] and again["generation"] != first["generation"]
     assert (status, imported["role"]) == (200, "live")
     assert _balance(new) == 5
+
+
+# ── Codex review REV-895-r2 ──────────────────────────────────────────────────
+
+def test_an_archived_export_never_revives_a_destination_rolled_back_twice():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 5)
+    first, _ = _move(old, new)
+    _admin(new, "export")
+    _admin(old, "unseal", {"digest": first["digest"]})
+    _credit(old, "pack:cs_2", 2)
+    second, _ = _move(old, new)
+    resealed = _admin(new, "export")[1]
+    _admin(old, "unseal", {"digest": resealed["digest"]})
+
+    replay = _admin(new, "import", _copy(first))
+    unnumbered = _admin(new, "import", {"state": first["state"], "digest": first["digest"]})
+
+    assert (replay[0], unnumbered[0]) == (409, 409)
+    assert _frozen(new)
+    assert _balance(old) == 7
+
+
+class PausingKV(MemoryKV):
+    """KV whose first read waits for the test to let it continue."""
+
+    def __init__(self):
+        super().__init__()
+        self.reading = asyncio.Event()
+        self.go_on = asyncio.Event()
+
+    async def get(self, name):
+        if not self.reading.is_set():
+            self.reading.set()
+            await self.go_on.wait()
+        return await super().get(name)
+
+
+def test_export_waits_for_a_webhook_already_admitted_so_its_writes_are_in_the_copy():
+    policy = access_config.load_policy()
+    env = Env()
+    kv = PausingKV()
+    body = tb.payload("checkout.session.completed", tb.checkout_obj(), "evt_inflight")
+
+    async def scenario():
+        hook = asyncio.ensure_future(tb.apply(kv, policy, body, ledger=_ledger(env)))
+        await kv.reading.wait()
+        early = await ledger_admin.handle(env, ledger_admin.PREFIX + "export", "POST",
+                                          "Bearer " + SECRET, "{}")
+        kv.go_on.set()
+        outcome = await hook
+        late = await ledger_admin.handle(env, ledger_admin.PREFIX + "export", "POST",
+                                         "Bearer " + SECRET, "{}")
+        return early, outcome, late
+
+    early, outcome, late = run(scenario())
+
+    assert (early[0], early[1]["error"]["code"]) == (409, "export_refused")
+    assert outcome.status == 200
+    assert late[1]["role"] == "sealed"
+    assert "event:evt_inflight" in kv.data
+
+
+def test_a_rotation_that_outlives_its_lease_cannot_revoke_after_the_copy(monkeypatch):
+    policy = access_config.load_policy()
+    env = Env()
+    kv = MemoryKV()
+    tb.run(tb.apply(kv, policy, tb.payload("checkout.session.completed", tb.checkout_obj(),
+                                           "evt_rot"), ledger=_ledger(env)))
+    key = run(billing.claim(session_id=tb.SESSION, kv=kv, policy=policy, now=tb.T0,
+                            service_commit=tb.COMMIT, ledger=_ledger(env))).body["key"]
+    clock = [1_000_000.0]
+    monkeypatch.setattr(credits_do, "_clock", lambda: clock[0])
+    ledger = _ledger(env)
+    real_transfer = ledger.transfer
+
+    async def slow_transfer(src, dst):
+        moved = await real_transfer(src, dst)
+        clock[0] += credits_do.LEASE_SECONDS + 1
+        await ledger_admin.handle(env, ledger_admin.PREFIX + "export", "POST",
+                                  "Bearer " + SECRET, "{}")
+        return moved
+
+    ledger.transfer = slow_transfer
+
+    outcome = run(billing.rotate(api_key=key, kv=kv, policy=policy, now=tb.T0,
+                                 service_commit=tb.COMMIT, ledger=ledger))
+
+    assert outcome.status == 503
+    assert _status(env)["role"] == "sealed"
+    assert run(access_keys.lookup(kv, key)).active is True
+
+
+
+def test_the_admin_transfer_moves_a_stranded_balance_on_a_live_ledger_only():
+    env = Env()
+    _credit(env, "pack:cs_1", 5, holder="key:unseen")
+
+    moved = _admin(env, "transfer", {"src": "key:unseen", "dst": "key:old"})
+    _admin(env, "export")
+    frozen = _admin(env, "transfer", {"src": "key:old", "dst": "key:unseen"})
+
+    assert moved == (200, {"moved": True})
+    assert frozen[0] == 409
+    state = credits.LedgerState.from_json(json.loads(env.CREDITS.obj._get("state")))
+    assert state.balance("key:old").available == 5

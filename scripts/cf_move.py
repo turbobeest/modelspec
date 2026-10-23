@@ -560,6 +560,36 @@ def destination_frozen(origin: str, secret: str, request: Request = urllib_reque
     return role
 
 
+#: How long the final merge waits after the source ledger was sealed. Export
+#: only seals once every billing lease has ended or expired, and a write under
+#: an expired lease is refused, so the last admitted write lands within KV's
+#: own latency of the seal; this covers that and KV's 60-second read lag.
+FINAL_SETTLE_SECONDS = 120
+
+
+def _ledger_status(origin: str, secret: str, request: Request) -> dict:
+    status, raw = request("GET", origin.rstrip("/") + "/internal/ledger/status",
+                          {"Authorization": f"Bearer {secret}"}, None)
+    try:
+        return json.loads(raw) if status == 200 else {}
+    except ValueError:
+        return {}
+
+
+def source_settled(origin: str, secret: str, request: Request = urllib_request,
+                   now: float | None = None) -> None:
+    """The final merge reads the source only once its ledger has been sealed
+    for FINAL_SETTLE_SECONDS (MODEL-441)."""
+    found = _ledger_status(origin, secret, request)
+    sealed_at = str(found.get("sealed_at") or "")
+    if found.get("role") != "sealed" or not sealed_at.isdigit():
+        raise UsageError(f"the source ledger at {origin} is not sealed: export it first")
+    waited = (time.time() if now is None else now) - int(sealed_at)
+    if waited < FINAL_SETTLE_SECONDS:
+        raise UsageError(f"the source ledger was sealed {int(waited)}s ago; run the final "
+                         f"merge after {FINAL_SETTLE_SECONDS}s")
+
+
 def _cmd_kv_merge(args: argparse.Namespace) -> int:
     save_src = check_out_path(args.save_src) if args.save_src else None
     src_token, dst_token = _token("CF_SRC_API_TOKEN"), _token("CF_DST_API_TOKEN")
@@ -567,6 +597,10 @@ def _cmd_kv_merge(args: argparse.Namespace) -> int:
         if not args.dst_worker:
             raise UsageError("--apply needs --dst-worker, the destination Worker's origin")
         destination_frozen(args.dst_worker, _token("LEDGER_ADMIN_SECRET"), urllib_request)
+    if args.final:
+        if not args.src_worker:
+            raise UsageError("--final needs --src-worker, the source Worker's origin")
+        source_settled(args.src_worker, _token("LEDGER_ADMIN_SECRET"), urllib_request, args.now)
     if args.base in EMPTY_BASE:
         base: dict[str, Entry] = {}
     else:
@@ -646,6 +680,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-prefix", action="append", help="key prefix to leave alone (default: count:)"
     )
     merge.add_argument("--apply", action="store_true", help="write; default is a dry run")
+    merge.add_argument(
+        "--final", action="store_true",
+        help="the last merge before import: the source ledger must be sealed and settled")
+    merge.add_argument("--src-worker", help="source Worker origin, for --final")
     merge.add_argument(
         "--dst-worker",
         help="destination Worker origin; with --apply its ledger must be frozen (LEDGER_ADMIN_SECRET)")

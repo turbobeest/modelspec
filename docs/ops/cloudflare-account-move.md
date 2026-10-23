@@ -107,8 +107,14 @@ ledger starts in `standby` (`CF_LEDGER_STANDBY=true` adds the var
 
 The final ACCESS merge runs between the two (phase 8). Neither ledger is live
 then, so neither Worker writes key records, and the merge cannot overwrite a
-revocation or rotation it did not see. `kv-merge --apply` checks the
-destination's ledger is frozen before and after it writes. Only a standby
+revocation or rotation it did not see. Requests already running when the
+freeze begins are covered by leases. Every billing mutation (webhook, claim,
+rotation) takes a 120-second lease on the live ledger before it writes, and
+each of its KV writes re-checks that lease. Export refuses while a lease is
+open, so it waits for admitted requests to finish, and a request that
+outlives its lease has its writes refused. `kv-merge --final` reads the
+source only after it has been sealed for 120 seconds, and `kv-merge --apply`
+checks the destination's ledger is frozen before and after it writes. Only a standby
 ledger that holds no balances accepts a copy, or a rolled-back one that took
 no writes. Each export carries a generation number, so a rolled-back
 destination takes a fresh export but never a replay of the copy it was rolled
@@ -339,7 +345,9 @@ until the zone is active.
    ```
 
 2. Export the old ledger. That seals it, and releases any hold a request left
-   in flight (those requests fail with 503 and are not charged). From here on
+   in flight (those requests fail with 503 and are not charged). If it
+   answers 409 with "billing write(s) in flight", run it again after the
+   seconds it names. From here on
    the old Worker refuses billing writes before they touch KV, and Stripe
    retries its webhooks. Run no key script (`scripts/issue_api_key.py`,
    `scripts/revoke_api_key.py`) until step 7: they write KV directly.
@@ -350,13 +358,15 @@ until the zone is active.
    curl -sS -X POST https://api.modelspec.dev/internal/ledger/export -H "$H" > ~/cf-move/ledger.json
    ```
 
-3. Wait 60 seconds for KV to settle, then run the final ACCESS merge. Both
-   ledgers are frozen, so no Worker writes key records on either side:
+3. Run the final ACCESS merge. It refuses until the old ledger has been
+   sealed for 120 seconds, so every write admitted before the freeze has
+   landed. Both ledgers are frozen, so no Worker writes key records on either
+   side:
 
    ```bash
-   python3 scripts/cf_move.py kv-merge --base ~/cf-move/access-base.json --src-account <old> \
+   python3 scripts/cf_move.py kv-merge --final --base ~/cf-move/access-base.json --src-account <old> \
      --src-namespace ef86b7ce138d4891b3eb630cdd2ba4e5 --dst-account <new> --dst-namespace <new ACCESS> \
-     --dst-worker $NEW --apply
+     --src-worker https://api.modelspec.dev --dst-worker $NEW --apply
    ```
 
    Re-run it until it reports `0 put, 0 delete`. Resolve each conflict key by
@@ -470,6 +480,12 @@ next staging deploy provisions staging's KV in the new account.
   active, which is minutes when the registrar move is approved straight
   away. Keyed and paid API calls fail during that time, Stripe retries its
   webhooks, and the free decide page is unaffected.
+- A billing request that runs longer than its 120-second lease has its later
+  KV writes refused and answers 503. For a key rotation caught this way, the
+  balance has already moved to a new key that was never shown. Find that
+  key's `key:` record (same owner, created at that minute) and move the
+  balance back with `POST /internal/ledger/transfer` and
+  `{"src": "key:<unseen fingerprint>", "dst": "key:<old fingerprint>"}`.
 - A pack bought through x402 whose ledger freezes between settlement and the
   credit gets a 503 naming the settlement, and the credit is reconciled by
   hand from the Worker log's settlement record. A one-shot is credited and

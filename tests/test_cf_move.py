@@ -454,3 +454,19 @@ def test_the_route_probe_proves_write_access_and_leaves_no_route_behind():
 
     assert done == ["probe ok: this token can write routes on modelspec.dev (pending)"]
     assert [w[0] for w in api.writes] == ["POST", "DELETE"]
+
+
+def test_the_final_merge_waits_until_the_source_has_been_sealed_long_enough(monkeypatch):
+    def status_of(role, sealed_at):
+        def request(method, url, headers, body):
+            assert url == "https://old.example/internal/ledger/status"
+            return 200, json.dumps({"role": role, "sealed_at": sealed_at}).encode()
+        return request
+
+    with pytest.raises(cf_move.UsageError, match="not sealed"):
+        cf_move.source_settled("https://old.example", "s", status_of("live", ""), now=NOW)
+    with pytest.raises(cf_move.UsageError, match="sealed 30s ago"):
+        cf_move.source_settled("https://old.example", "s", status_of("sealed", str(NOW - 30)),
+                               now=NOW)
+    cf_move.source_settled("https://old.example", "s",
+                           status_of("sealed", str(NOW - cf_move.FINAL_SETTLE_SECONDS)), now=NOW)
