@@ -428,10 +428,54 @@ def test_every_frozen_template_card_has_clean_chromium_layout(
         )
         jobs.append({"source": str(source), "output": str(tmp_path / preview.filename)})
     reports = social_cards._render_jobs(jobs)
+    failures = []
     for preview, report in zip(previews, reports, strict=True):
-        _assert_clean_layout(report)
-        assert _png_size(tmp_path / preview.filename) == (1200, 630)
+        try:
+            _assert_clean_layout(report)
+            assert _png_size(tmp_path / preview.filename) == (1200, 630)
+        except AssertionError as error:
+            failures.append(f"{preview.id} ({preview.name}): {error}")
+    assert not failures, "\n".join(failures)
     assert renderer_runs == 1, "render all frozen template cards in one browser process"
+
+
+def test_template_card_failures_name_every_broken_template(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    previews = tuple(
+        social_cards.TemplatePreview(
+            id=template_id, name=name, tradeoff="Test layout and PNG checks.",
+            as_of="2026-10-13", models=("Example",), unavailable_reason=None,
+        )
+        for template_id, name in (
+            ("outside-frame", "Outside the frame"),
+            ("clean-card", "Clean card"),
+            ("wrong-size", "Wrong image size"),
+            ("invalid-png", "Invalid PNG signature"),
+        )
+    )
+    frame = {"left": 0, "top": 0, "right": 1200, "bottom": 630}
+    reports = [
+        {"frame": frame, "blocks": [{**frame, "left": -1}], "text": []},
+        *({"frame": frame, "blocks": [], "text": []} for _ in previews[1:]),
+    ]
+
+    def render_jobs(jobs):
+        for preview, job in zip(previews, jobs, strict=True):
+            width = 1 if preview.id == "wrong-size" else 1200
+            signature = b"invalid!" if preview.id == "invalid-png" else b"\x89PNG\r\n\x1a\n"
+            Path(job["output"]).write_bytes(signature + bytes(8) + struct.pack(">II", width, 630))
+        return reports
+
+    monkeypatch.setattr(social_cards, "build_template_previews", lambda *args: previews)
+    monkeypatch.setattr(social_cards, "_render_jobs", render_jobs)
+    with pytest.raises(AssertionError) as failure:
+        test_every_frozen_template_card_has_clean_chromium_layout(tmp_path, monkeypatch)
+    message = str(failure.value)
+    for preview in (previews[0], *previews[2:]):
+        assert preview.id in message
+        assert preview.name in message
+    assert previews[1].name not in message
 
 
 def test_template_preview_ignores_an_ambient_private_registry(tmp_path: Path) -> None:
