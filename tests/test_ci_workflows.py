@@ -146,6 +146,78 @@ def test_timing_tests_run_serially_exactly_once() -> None:
     assert any(step.get("run") == perf_command for step in perf_job["steps"])
 
 
+def test_shard_timings_cover_the_current_suite_and_browser_modules() -> None:
+    from scripts.pytest_shards import DEFAULT_DURATIONS_PATH, load_durations, test_files
+
+    durations = load_durations(REPO_ROOT / DEFAULT_DURATIONS_PATH)
+    discovered = {path.relative_to(REPO_ROOT).as_posix() for path in test_files(REPO_ROOT)}
+    measured = discovered & durations.keys()
+    assert len(measured) >= 0.95 * len(discovered), (
+        f"only {len(measured)}/{len(discovered)} test modules have measured timings"
+    )
+    browser_modules = {
+        "tests/test_rendered_interactions.py",
+        "tests/test_landing.py",
+        "tests/test_social_cards.py",
+    }
+    assert all(durations.get(path, 0) > 0 for path in browser_modules), (
+        "all browser modules need measured timings for shard balancing"
+    )
+
+
+def test_pytest_shards_have_a_bounded_job_timeout() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    timeout = workflow["jobs"]["pytest-shards"].get("timeout-minutes")
+    assert isinstance(timeout, int) and 0 < timeout <= 120, (
+        "pytest shards must stop within the measured CI time budget"
+    )
+
+
+@pytest.mark.parametrize("files, python_browser, node_browser", [
+    (["tests/test_ci_workflows.py"], False, False),
+    (["tests/test_rendered_interactions.py"], True, False),
+    (["tests/test_landing.py"], False, True),
+    (["tests/test_social_cards.py"], False, True),
+    (["tests/test_rendered_interactions.py", "tests/test_landing.py"], True, True),
+], ids=["no-browser", "python", "landing", "social-cards", "both"])
+def test_browser_dependencies_follow_the_selected_shard_files(
+    tmp_path: Path, files: list[str], python_browser: bool, node_browser: bool,
+) -> None:
+    import json
+    import subprocess
+    import sys
+
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["pytest-shards"]["steps"]
+    selector = next((step for step in steps if step.get("id") == "browsers"), None)
+    assert selector is not None, "the shard must select browser dependencies before installing them"
+    (tmp_path / "shard-files.txt").write_text("\n".join(files) + "\n", encoding="utf-8")
+    (tmp_path / "web").mkdir()
+    lockfile = (REPO_ROOT / "web" / "package-lock.json").read_text(encoding="utf-8")
+    (tmp_path / "web" / "package-lock.json").write_text(lockfile, encoding="utf-8")
+    output = tmp_path / "github-output.txt"
+    completed = subprocess.run(
+        ["bash", "-e", "-o", "pipefail", "-c", selector["run"]],
+        cwd=tmp_path, env={
+            **os.environ,
+            "GITHUB_OUTPUT": str(output),
+            "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"],
+        },
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert output.is_file(), "browser selection did not publish its results"
+    selected = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert selected["python"] == str(python_browser).lower()
+    assert selected["node"] == str(node_browser).lower()
+    expected_version = json.loads(lockfile)["packages"]["node_modules/playwright"]["version"]
+    assert selected["node-version"] == expected_version
+
+
 def test_file_splitter_uses_pytest_default_patterns_from_the_repo_root(tmp_path: Path) -> None:
     from scripts.pytest_shards import test_files
 

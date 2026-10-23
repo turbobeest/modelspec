@@ -16,6 +16,10 @@ jobs:
   pytest-shards:
     name: pytest shard ${{ matrix.label }}
     runs-on: ubuntu-latest
+    # The largest measured module takes 47 minutes; allow ~2x plus setup.
+    timeout-minutes: 100
+    env:
+      PYTHON_PLAYWRIGHT_VERSION: '1.63.0'
     strategy:
       fail-fast: false
       matrix:
@@ -60,26 +64,47 @@ jobs:
             --shard-index ${{ matrix.index }} > shard-files.txt
           python -m pytest --collect-only -q -m "not perf" \
             $(< shard-files.txt) > shard-${{ matrix.index }}-collection.txt
+      - name: Select browser dependencies
+        id: browsers
+        run: |
+          python_browser=false
+          node_browser=false
+          if grep -qx 'tests/test_rendered_interactions.py' shard-files.txt; then
+            python_browser=true
+          fi
+          if grep -qxE 'tests/test_(landing|social_cards)\.py' shard-files.txt; then
+            node_browser=true
+          fi
+          node_version=$(python -c 'import json; print(json.load(open("web/package-lock.json"))["packages"]["node_modules/playwright"]["version"])')
+          printf 'python=%s\nnode=%s\nnode-version=%s\n' \
+            "$python_browser" "$node_browser" "$node_version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Cache Chromium for the selected browser runtimes
+        if: steps.browsers.outputs.python == 'true' || steps.browsers.outputs.node == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-${{ runner.arch }}-playwright-python-${{ env.PYTHON_PLAYWRIGHT_VERSION }}-node-${{ steps.browsers.outputs.node-version }}
       - name: Install Python Playwright on the interaction recipe shard
+        if: steps.browsers.outputs.python == 'true'
+        # Cached browser binaries still need the runner's system libraries.
         run: |
-          if grep -qx 'tests/test_rendered_interactions.py' shard-files.txt; then
-            python -m pip install "playwright==1.63.0"
-            python -m playwright install --with-deps chromium
-          fi
+          python -m pip install "playwright==$PYTHON_PLAYWRIGHT_VERSION"
+          python -m playwright install --with-deps chromium
       - name: Install the browser and build the app on the Chromium pytest shard
+        if: steps.browsers.outputs.node == 'true'
         # test_landing.py serves the built decide app at /decide/, and
-        # test_social_cards.py renders cards in Chromium. They share a shard's
-        # install; every other shard builds the site without rendering cards.
+        # test_social_cards.py renders cards in Chromium. File selection keeps
+        # installation correct when refreshed timings move either module.
         run: |
-          if grep -qxE 'tests/test_(landing|social_cards)\.py' shard-files.txt; then
-            cd web
-            npm ci
-            npm run build
-            npx playwright install --with-deps chromium
-          fi
+          cd web
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
       - name: Run test shard
         # -n auto uses the four cores on ubuntu-latest. --dist loadfile also
         # keeps each module together for shared module and process state.
