@@ -4,7 +4,7 @@ The weekly rendered re-read now separates re-check attempts from verification de
 
 The public engine change replays verification queue events by their timestamps. Legacy naive timestamps mean UTC; equal instants retain append order. Reading the queue does not rewrite its history. The private workflow restores completed checks only, diverts historical failed verifications to the attempt stream, and never restores unfinished failed-copy changes. The live writer also avoids an intermediate changed event, so an interrupted write cannot leave a failed copy pending for generic verification.
 
-The engine base is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the final engine implementation is `8d380496de7f1acad555485b896083879b7a6f32`. Subsequent public commits contain only this evidence. The final public HEAD is recorded in the PR body and executor completion line. Private data main is `ba03e11651513aa108f4031e56622717cf419acf`, and the captured data#103 head is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. The replacement data head is `be7c5acd4e866cb1e95eb39372ea5739d6161183`, published as draft [data#120](https://github.com/turbobeest/modelspec-data/pull/120). Its `.engine-pin` is the existing main commit `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the private job also passes against that pin.
+The engine base is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the final engine implementation is `8d380496de7f1acad555485b896083879b7a6f32`. Subsequent public commits contain only this evidence. The final public HEAD is recorded in the PR body and executor completion line. Private data main is `ba03e11651513aa108f4031e56622717cf419acf`, and the captured data#103 head is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. The replacement data head is `e326341aea1ce91c41df55d108f0dd4d0b585d13`, published as draft [data#120](https://github.com/turbobeest/modelspec-data/pull/120). Its `.engine-pin` is the existing main commit `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the private job also passes against that pin.
 
 The replacement starts from data main. Offline replay uses only the captured report, Git records and current source policies. Of 287 captured results, 223 concern derived copies and 35 require interaction recipes, so 258 are recorded as not reread. The other 29 are cite-only under the current retention policy and source-terms hold. None supplies a new verification. The private receipt maps every one of the 269 captured verification additions and 554 queue events to its captured report row and SHA256. All eight existing main JSONL streams remain byte-identical; the new attempt stream has 287 rows. Eight stale queue events affect four newer claim states. The old restore path also left 16 unfinished checks pending; the new checked-only restore closes that path.
 
@@ -47,7 +47,6 @@ Commands used from the engine worktree:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py -k test_queue_
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py -k test_queue_treats_legacy_naive_event_times_as_utc
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py tests/test_refile_mixed_citations.py
-env PYTHONPATH=$PWD MODEL444_DATA_DIR=/tmp/model-444-scratch/data /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider docs/evidence/g2-ios/MODEL-444/replay_checks.py docs/evidence/g2-ios/MODEL-444/retention_checks.py
 ```
 
 The final queue suite passes 427 tests. All 73 private job and workflow tests also pass against the unmodified main engine pin. The portable replay and retention checks pass seven tests. The final private job, workflow and retention suite passes 84 tests. An earlier run with the replay checks passes 86 tests; the final two interrupted-read regressions also pass in the 84-test run. The public source guard passes 46 tests with one expected skip for the built site because `MODELSPEC_DIST` is unset. Its exact command is `env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py --tb=short`. After adding the raw regression output as tracked text files, `env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source --tb=short` also passes. No full local suite ran.
@@ -68,9 +67,6 @@ env PYTHONPATH=/tmp/model-444-scratch/probes/engine-base /Users/terbeest/dev/mod
 Replay and cleanup commands used the scripts preserved beside this report:
 
 ```sh
-env PYTHONPATH=/Users/terbeest/dev/worktrees/model-444 /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-444-scratch/review/replay_rendered.py --repo /tmp/model-444-scratch/data --target /tmp/model-444-scratch/data --job-script /tmp/model-444-scratch/data/.github/scripts/rendered_reread.py --receipt /tmp/model-444-scratch/review/replay-applied.json --apply
-/Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-444-scratch/review/inherit_retention_cleanup.py --repo /tmp/model-444-scratch/data --target /tmp/model-444-scratch/data --apply
-/Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-444-scratch/review/inherit_retention_cleanup.py --repo /tmp/model-444-scratch/data --target /tmp/model-444-scratch/data --check
 ```
 
 These results establish local behavior and compatibility with the captured private data. No fresh source accuracy, production deployment, CI result or independent cross-model approval was observed. No provider API call, Firecrawl call, Linear write, main push, force push or merge occurred. Draft PRs require review. The old data#103 branch remains historical and must be replaced by the corrected draft; this task does not approve it for merge.
@@ -80,3 +76,8 @@ The replacement data commit was pushed with `CI_LOCAL_SKIP=1 git push -u origin 
 Private scratch clones, replay metadata, generated exports, bundles, predictions and the temporary runtime have been deleted. No matching private replay fixtures remain in pytest temporary directories. Every started test, probe and child process completed. Aggregate evidence and reproduction scripts remain beside this report.
 
 Executed by ChatGPT Codex (GPT-6 Astra); cross-model review by Claude pending.
+
+
+## Orchestrator note (2026-10-23)
+
+The replacement data PR first carried a cleanup that deleted 81 source copies already committed on data main. Purging committed copies is held for Jamie and counsel (MODEL-409), so commit `e326341` restored them, and the cleanup and replay helper scripts were removed from this public PR. data#120 merged with zero deletions against data main.
