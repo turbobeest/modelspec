@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm",
+    "install",
+    "--prefix",
+    "/tmp/model-444-scratch/probes/runtime",
+    "--no-save",
+    "pyodide@0.28.3"
+  ],
+  "exit_code": 0
+}

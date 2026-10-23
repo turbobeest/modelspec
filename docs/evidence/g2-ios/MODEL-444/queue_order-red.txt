@@ -1,0 +1,110 @@
+FFFF.                                                                    [100%]
+=================================== FAILURES ===================================
+__________ test_queue_stale_append_preserves_newer_claim_and_success ___________
+
+store = <decision.sources.CopyStore object at 0x108263620>
+log = <decision.verify.VerificationLog object at 0x1082638c0>
+
+    def test_queue_stale_append_preserves_newer_claim_and_success(store, log) -> None:
+        queue = verify.Queue(log.directory)
+        old = _claim(SPEC["claims"][0], store)
+        current = replace(old, value=123)
+        newer = datetime(2026, 10, 20, tzinfo=UTC)
+        queue.file(current, at=newer)
+        queue.checked(verify.Result(current.target, "verified"), at=newer)
+        queue.file(old, at=NOW)
+        queue.checked(verify.Result(old.target, "mismatch"), at=NOW)
+        before = queue.path.read_bytes()
+
+>       assert queue.filed() == {(current.target.kind, current.target.id): current}
+E       AssertionError: assert {('evidence',...e_model=None)} == {('evidence',...e_model=None)}
+E
+E         Differing items:
+E         {('evidence', 'sol-default'): Claim(target=TargetRef(kind='evidence', id='sol-default'), subject='openai/gpt-6-sol', n...', label='Score', conditions={'date': '2026-08-14', 'effort': 'default', 'harness': 'codex-cli@1.4'}, base_model=None)} != {('evidence', 'sol-default'): Claim(target=TargetRef(kind='evidence', id='sol-default'), subject='openai/gpt-6-sol', n...', label='Score', conditions={'effort': 'default', 'harness': 'codex-cli@1.4', 'date': '2026-08-14'}, base_model=None)}
+E         Use -v to get more diff
+
+tests/test_decision_verify.py:2202: AssertionError
+_________ test_queue_stale_check_does_not_clear_a_newer_pending_claim __________
+
+store = <decision.sources.CopyStore object at 0x10811d310>
+log = <decision.verify.VerificationLog object at 0x10811d6d0>
+
+    def test_queue_stale_check_does_not_clear_a_newer_pending_claim(store, log) -> None:
+        queue = verify.Queue(log.directory)
+        claim = _claim(SPEC["claims"][0], store)
+        queue.file(claim, at=datetime(2026, 10, 20, tzinfo=UTC))
+        queue.checked(verify.Result(claim.target, "verified"), at=NOW)
+
+>       assert queue.pending() == ([claim], [])
+E       AssertionError: assert ([], []) == ([Claim(targe...el=None)], [])
+E
+E         At index 0 diff: [] != [Claim(target=TargetRef(kind='evidence', id='sol-default'), subject='openai/gpt-6-sol', names=('GPT-6 Sol',), field='seeded-coding', value=64.0, collector=VerificationActor(agent='grok-build', model_family='grok', method='firecrawl-scrape+llm-extract'), sources=(SourceRef(source_id='seeded-leaderboard', snapshot_ref='sha256:bc009bc2e7c081146730eec6baac67310cc3d60c7e90b13d7d2a6254e868d691', cited_regions=['results'], retrieved_at=None, resolved_urls=[]),), unit='percent', label='Score', conditions={'effort': 'default', 'harness': 'codex-cli@1.4', 'date': '2026-08-14'}, base_model=None)]
+E         Use -v to get more diff
+
+tests/test_decision_verify.py:2214: AssertionError
+________________ test_queue_replays_copy_changes_in_time_order _________________
+
+store = <decision.sources.CopyStore object at 0x10811e350>
+log = <decision.verify.VerificationLog object at 0x10811e5d0>
+
+    def test_queue_replays_copy_changes_in_time_order(store, log) -> None:
+        queue = verify.Queue(log.directory)
+        original = _claim(SPEC["claims"][0], store)
+        first = original.sources[0]
+        second = first.model_copy(update={"source_id": "second-source"})
+        claim = replace(original, sources=(first, second))
+        queue.file(claim, at=NOW)
+        queue.checked(verify.Result(claim.target, "verified"), at=NOW)
+
+        def changed(source_id, copy_digit, day):
+            at = datetime(2026, 10, day, tzinfo=UTC)
+            state = SourceState(source_id, SourceSnapshot(
+                source_id=source_id, retrieved_at=at,
+                page_fingerprint="sha256:" + copy_digit * 64,
+                region_fingerprints={}, copy_ref="sha256:" + copy_digit * 64,
+            ))
+            queue.requeue(RecheckReport(
+                requeue=[f"{claim.target.kind}:{claim.target.id}"], states={source_id: state},
+            ), at=at)
+
+        changed(first.source_id, "a", 20)
+        changed(second.source_id, "b", 18)
+        changed(first.source_id, "c", 19)
+
+        [pending], unknown = queue.pending(changed_only=True)
+        assert unknown == []
+>       assert [source.snapshot_ref for source in pending.sources] == [
+            "sha256:" + "a" * 64, "sha256:" + "b" * 64,
+        ]
+E       AssertionError: assert ['sha256:cccc...bbbbbbbbbbbb'] == ['sha256:aaaa...bbbbbbbbbbbb']
+E
+E         At index 0 diff: 'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc' != 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+E         Use -v to get more diff
+
+tests/test_decision_verify.py:2244: AssertionError
+______________ test_queue_compares_event_instants_across_offsets _______________
+
+store = <decision.sources.CopyStore object at 0x108440770>
+log = <decision.verify.VerificationLog object at 0x108441220>
+
+    def test_queue_compares_event_instants_across_offsets(store, log) -> None:
+        queue = verify.Queue(log.directory)
+        old = _claim(SPEC["claims"][0], store)
+        current = replace(old, value=123)
+        queue.file(current, at=datetime.fromisoformat("2026-10-19T23:30:00-04:00"))
+        queue.file(old, at=datetime.fromisoformat("2026-10-20T02:00:00+00:00"))
+
+>       assert queue.pending() == ([current], [])
+E       AssertionError: assert ([Claim(targe...el=None)], []) == ([Claim(targe...el=None)], [])
+E
+E         At index 0 diff: [Claim(target=TargetRef(kind='evidence', id='sol-default'), subject='openai/gpt-6-sol', names=('GPT-6 Sol',), field='seeded-coding', value=64.0, collector=VerificationActor(agent='grok-build', model_family='grok', method='firecrawl-scrape+llm-extract'), sources=(SourceRef(source_id='seeded-leaderboard', snapshot_ref='sha256:bc009bc2e7c081146730eec6baac67310cc3d60c7e90b13d7d2a6254e868d691', cited_regions=['results'], retrieved_at=None, resolved_urls=[]),), unit='percent', label='Score', conditions={'date': '2026-08-14', 'effort': 'default', 'harness': 'c...
+E
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_decision_verify.py:2256: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_decision_verify.py::test_queue_stale_append_preserves_newer_claim_and_success
+FAILED tests/test_decision_verify.py::test_queue_stale_check_does_not_clear_a_newer_pending_claim
+FAILED tests/test_decision_verify.py::test_queue_replays_copy_changes_in_time_order
+FAILED tests/test_decision_verify.py::test_queue_compares_event_instants_across_offsets
+4 failed, 1 passed, 395 deselected in 2.33s

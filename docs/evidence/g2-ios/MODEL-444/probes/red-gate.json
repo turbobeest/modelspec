@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "gap_count": 113,
+  "by_facet": {
+    "offering.price.batch_input": 3,
+    "offering.price.batch_output": 3,
+    "offering.price.cached_input": 3,
+    "offering.price.input": 3,
+    "offering.price.output": 3,
+    "feature.batch": 7,
+    "feature.effort_controls": 7,
+    "feature.structured_output": 7,
+    "feature.tool_calling": 7,
+    "licence.commercial_use": 1,
+    "licence.fine_tuning": 3,
+    "licence.output_training": 1,
+    "licence.user_cap": 3,
+    "model.context_window": 7,
+    "model.input_modalities": 7,
+    "model.output_modalities": 7,
+    "model.release_date": 7,
+    "model.weights_openness": 7,
+    "origin.base_lineage": 5,
+    "origin.weights_hosting": 5,
+    "feature.streaming": 4,
+    "model.max_output_tokens": 4,
+    "origin.lab_jurisdiction": 5,
+    "model.class": 2,
+    "model.lifecycle": 2
+  },
+  "by_reason": {
+    "quarantined (unreachable)": 15,
+    "quarantined (mismatch)": 93,
+    "unknown (no fact)": 5
+  }
+}
