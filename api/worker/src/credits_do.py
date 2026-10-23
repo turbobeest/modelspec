@@ -51,6 +51,10 @@ _clock = time.time
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
 #: and waits for its import. `sealed` has been exported and serves nothing.
 LIVE, STANDBY, SEALED = "live", "standby", "sealed"
+#: Between the first export call and the seal: ledger calls still run, but no
+#: new billing lease is granted, so the open ones drain within LEASE_SECONDS
+#: however many requests arrive.
+DRAINING = "draining"
 
 #: The mark a ledger that is not live puts on its errors. Error text can echo
 #: caller input, so callers treat it as a hint and read `move_status` first.
@@ -114,7 +118,7 @@ class CreditsObject(DurableObject):
 
     def _load(self) -> LedgerState:
         role = self._meta().get("role", LIVE)
-        if role != LIVE:
+        if role not in (LIVE, DRAINING):
             raise LedgerSealed(f"{SEALED_MARK}: {role}")
         return self._stored()
 
@@ -139,7 +143,9 @@ class CreditsObject(DurableObject):
 
     async def admit(self) -> str:
         """A lease for one billing mutation on this live ledger (MODEL-441)."""
-        self._load()
+        role = self._meta().get("role", LIVE)
+        if role != LIVE:
+            raise LedgerSealed(f"{SEALED_MARK}: {role}")
         leases = self._leases()
         lease = secrets.token_hex(8)
         leases[lease] = _clock() + LEASE_SECONDS
@@ -147,7 +153,7 @@ class CreditsObject(DurableObject):
         return lease
 
     async def lease_ok(self, lease: str) -> bool:
-        return (self._meta().get("role", LIVE) == LIVE
+        return (self._meta().get("role", LIVE) in (LIVE, DRAINING)
                 and self._leases().get(str(lease), 0.0) > _clock())
 
     async def release_lease(self, lease: str) -> None:
@@ -157,18 +163,23 @@ class CreditsObject(DurableObject):
 
     async def export_state(self) -> dict[str, Any]:
         """Seal this ledger and return its copy, in one synchronous write, so
-        no call can land between the copy and the seal. Open reservations and
-        taken reads are released first: their requests can no longer commit,
-        so they fail with a 503 and are not charged, and no hold is stranded
-        in the copy. Exporting again returns the same copy."""
+        no call can land between the copy and the seal. The first call stops
+        new billing leases (draining); the seal waits for the open ones to end
+        or expire, so it comes within LEASE_SECONDS whatever the traffic. Open
+        reservations and taken reads are released at the seal: their requests
+        can no longer commit, so they fail with a 503 and are not charged, and
+        no hold is stranded in the copy. Exporting again returns the same copy."""
         meta = self._meta()
         if meta.get("role") == STANDBY:
             raise ValueError("a standby ledger has nothing to export")
         if meta.get("role") == LIVE:
+            meta = {**meta, "role": DRAINING}
+            self._write_meta(meta)
+        if meta.get("role") == DRAINING:
             open_leases = self._leases()
             if open_leases:
                 wait = int(max(open_leases.values()) - _clock()) + 1
-                raise ValueError(f"{len(open_leases)} billing write(s) in flight; "
+                raise ValueError(f"draining: {len(open_leases)} billing write(s) in flight; "
                                  f"export again in at most {wait}s")
             state = self._stored()
             for holder, acc in state.accounts.items():
@@ -225,6 +236,10 @@ class CreditsObject(DurableObject):
         with, so it cannot be done by accident; the runbook seals the new
         ledger first and checks it took no writes."""
         meta = self._meta()
+        if meta.get("role") == DRAINING:
+            # Nothing has been copied yet: cancel the drain.
+            self._write_meta({**meta, "role": LIVE})
+            return await self.move_status()
         if meta.get("role") != SEALED or meta.get("sealed") != str(digest):
             raise ValueError("that is not the digest this ledger was sealed with")
         self._write_meta({**meta, "role": LIVE})

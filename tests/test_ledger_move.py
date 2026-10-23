@@ -527,3 +527,34 @@ def test_the_admin_transfer_moves_a_stranded_balance_on_a_live_ledger_only():
     assert frozen[0] == 409
     state = credits.LedgerState.from_json(json.loads(env.CREDITS.obj._get("state")))
     assert state.balance("key:old").available == 5
+
+
+
+def test_a_stream_of_requests_cannot_hold_off_the_export(monkeypatch):
+    policy = access_config.load_policy()
+    env = Env()
+    clock = [1_000_000.0]
+    monkeypatch.setattr(credits_do, "_clock", lambda: clock[0])
+    held = run(env.CREDITS.obj.admit())
+
+    first = _admin(env, "export")
+    late_claim = run(billing.claim(session_id="cs_spam", kv=MemoryKV(), policy=policy,
+                                   now=tb.T0, service_commit=tb.COMMIT, ledger=_ledger(env)))
+    still_writing = run(env.CREDITS.obj.lease_ok(held))
+    clock[0] += credits_do.LEASE_SECONDS + 1
+    second = _admin(env, "export")
+
+    assert (first[0], "draining" in first[1]["error"]["message"]) == (409, True)
+    assert late_claim.status == 503
+    assert still_writing is True
+    assert second[1]["role"] == "sealed"
+
+
+def test_a_drain_can_be_cancelled_before_anything_is_copied():
+    env = Env()
+    _credit(env, "pack:cs_1", 5)
+    run(env.CREDITS.obj.admit())
+    _admin(env, "export")
+
+    assert _admin(env, "unseal", {})[1]["role"] == "live"
+    assert _balance(env) == 5

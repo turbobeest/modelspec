@@ -110,9 +110,10 @@ then, so neither Worker writes key records, and the merge cannot overwrite a
 revocation or rotation it did not see. Requests already running when the
 freeze begins are covered by leases. Every billing mutation (webhook, claim,
 rotation) takes a 120-second lease on the live ledger before it writes, and
-each of its KV writes re-checks that lease. Export refuses while a lease is
-open, so it waits for admitted requests to finish, and a request that
-outlives its lease has its writes refused. `kv-merge --final` reads the
+each of its KV writes re-checks that lease. The first export call moves the
+ledger to `draining`: no new lease is granted, so the open ones end within
+120 seconds however much traffic arrives, and the seal follows once they
+have. A request that outlives its lease has its writes refused. `kv-merge --final` reads the
 source only after it has been sealed for 120 seconds, and `kv-merge --apply`
 checks the destination's ledger is frozen before and after it writes. Only a standby
 ledger that holds no balances accepts a copy, or a rolled-back one that took
@@ -346,8 +347,9 @@ until the zone is active.
 
 2. Export the old ledger. That seals it, and releases any hold a request left
    in flight (those requests fail with 503 and are not charged). If it
-   answers 409 with "billing write(s) in flight", run it again after the
-   seconds it names. From here on
+   answers 409 with "draining", new billing requests are already refused and
+   the ones in flight are finishing: run it again after the seconds it names,
+   at most 120. `POST /internal/ledger/unseal` with `{}` cancels a drain. From here on
    the old Worker refuses billing writes before they touch KV, and Stripe
    retries its webhooks. Run no key script (`scripts/issue_api_key.py`,
    `scripts/revoke_api_key.py`) until step 7: they write KV directly.
