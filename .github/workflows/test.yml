@@ -88,7 +88,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-${{ runner.arch }}-playwright-python-${{ env.PYTHON_PLAYWRIGHT_VERSION }}-node-${{ steps.browsers.outputs.node-version }}
+          # Separate runtime selections so an immutable cache contains every
+          # required browser even if Python and Node versions later diverge.
+          key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ env.PYTHON_PLAYWRIGHT_VERSION }}-${{ steps.browsers.outputs.node-version }}-${{ steps.browsers.outputs.python }}-${{ steps.browsers.outputs.node }}
       - name: Install Python Playwright on the interaction recipe shard
         if: steps.browsers.outputs.python == 'true'
         # Cached browser binaries still need the runner's system libraries.

@@ -404,11 +404,34 @@ def test_template_card_does_not_invent_a_model_when_no_leader_is_known(reason) -
     assert "template-models" not in card.content
 
 
-def test_every_frozen_template_card_has_clean_chromium_layout(tmp_path: Path) -> None:
+def test_every_frozen_template_card_has_clean_chromium_layout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run = subprocess.run
+    renderer = str(ROOT / "web" / "scripts" / "render-social-cards.mjs")
+    renderer_runs = 0
+
+    def count_renderer_runs(command, *args, **kwargs):
+        nonlocal renderer_runs
+        if isinstance(command, (list, tuple)) and renderer in command:
+            renderer_runs += 1
+        return run(command, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", count_renderer_runs)
     previews = social_cards.build_template_previews(ROOT, date.today())
+    assert previews
+    jobs = []
     for preview in previews:
-        report = social_cards.render_card(social_cards.template_card(preview), tmp_path / preview.filename)
+        source = tmp_path / f"{preview.id}.html"
+        source.write_text(
+            social_cards.render_card_html(social_cards.template_card(preview)), encoding="utf-8",
+        )
+        jobs.append({"source": str(source), "output": str(tmp_path / preview.filename)})
+    reports = social_cards._render_jobs(jobs)
+    for preview, report in zip(previews, reports, strict=True):
         _assert_clean_layout(report)
+        assert _png_size(tmp_path / preview.filename) == (1200, 630)
+    assert renderer_runs == 1, "render all frozen template cards in one browser process"
 
 
 def test_template_preview_ignores_an_ambient_private_registry(tmp_path: Path) -> None:
