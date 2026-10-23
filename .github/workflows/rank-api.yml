@@ -20,6 +20,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      cloudflare_environment:
+        # MODEL-441. The GitHub environment whose secrets and variables name the
+        # target Cloudflare account. Only the account move uses another one.
+        description: 'GitHub environment of the target Cloudflare account'
+        required: false
+        default: production
   schedule:
     - cron: "17 */6 * * *"
 
@@ -223,7 +230,7 @@ jobs:
   deploy-staging:
     name: Deploy the staging rank Worker
     needs: bundle
-    if: github.event_name == 'workflow_dispatch' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' && (inputs.cloudflare_environment || 'production') == 'production' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -289,6 +296,10 @@ jobs:
           uv sync --project api/worker --frozen
           npm install --prefix api/worker --no-save "wrangler@${WRANGLER_VERSION}"
 
+      - name: Point the config at the secret's Cloudflare account
+        # MODEL-441. Wrangler prefers the config's account_id over the secret.
+        run: python3 .github/scripts/cloudflare_target.py api/worker/wrangler.jsonc
+
       - name: Deploy staging
         working-directory: api/worker
         run: uv run --project . pywrangler deploy --env staging --var "BUILD_COMMIT:${GITHUB_SHA}"
@@ -308,6 +319,8 @@ jobs:
     needs: bundle
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || vars.DATA_SPLIT_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # MODEL-441. Secrets and variables of the target account; see the input.
+    environment: ${{ inputs.cloudflare_environment || 'production' }}
     permissions:
       contents: read
     concurrency:
@@ -381,6 +394,26 @@ jobs:
         # same pin as the bundle job).
         run: python -m pip install "PyYAML==6.0.3" "pydantic==2.13.5"
 
+      - name: Point the config at this environment's Cloudflare account
+        # MODEL-441. Wrangler prefers the config's account_id over the secret.
+        env:
+          CF_KV_ACCESS: ${{ vars.CF_KV_ACCESS }}
+          CF_KV_DETERMINATIONS: ${{ vars.CF_KV_DETERMINATIONS }}
+          CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
+          CF_TARGET_ACCOUNT_ID: ${{ vars.CF_TARGET_ACCOUNT_ID }}
+          CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
+          CF_ROUTES: ${{ vars.CF_ROUTES }}
+          CF_LEDGER_STANDBY: ${{ vars.CF_LEDGER_STANDBY }}
+        run: python3 .github/scripts/cloudflare_target.py api/worker/wrangler.jsonc
+
+      - name: Probe this environment's host
+        # MODEL-441. Before its zone moves, the new account answers on
+        # workers.dev only. Set in a step: environment variables are certain
+        # to be readable there.
+        env:
+          CF_RANK_HOST: ${{ vars.CF_RANK_HOST }}
+        run: if [ -n "$CF_RANK_HOST" ]; then echo "RANK_HOST=$CF_RANK_HOST" >> "$GITHUB_ENV"; fi
+
       - name: Deploy
         working-directory: api/worker
         # BUILD_COMMIT is what makes the smoke test meaningful: the script
@@ -409,7 +442,8 @@ jobs:
 
       - name: Smoke-test api.modelspec.dev
         env:
-          MODELSPEC_SMOKE_API_KEY: ${{ secrets.MODELSPEC_SMOKE_API_KEY }}
+          # MODEL-441. A standby ledger answers keyed calls 503 until its handoff.
+          MODELSPEC_SMOKE_API_KEY: ${{ vars.CF_LEDGER_STANDBY != 'true' && secrets.MODELSPEC_SMOKE_API_KEY || '' }}
         run: |
           set -uo pipefail
           if [ "$DATA_SPLIT_ENABLED" = "true" ]; then

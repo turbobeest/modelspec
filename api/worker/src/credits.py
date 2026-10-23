@@ -169,6 +169,13 @@ class StoreNotConfigured(RuntimeError):
     """No Durable Object binding. Parallel to access_kv.StoreNotConfigured."""
 
 
+class LedgerUnavailable(RuntimeError):
+    """The ledger is frozen while it moves to a new account (MODEL-441).
+    Deliberately not a StoreNotConfigured: several callers treat an unbound
+    ledger as "carry on without credits", which here would lose a grant. It
+    propagates instead, and the webhook and the Worker answer 503."""
+
+
 def _now_iso(moment: datetime | None = None) -> str:
     clock = moment or datetime.now(UTC)
     if clock.tzinfo is None:
@@ -1020,6 +1027,20 @@ class LedgerState:
         acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
+    def spend_paid(self, holder: str, payment_id: str, units: int, tx: str,
+                   expires_at: str = "") -> CreditResult:
+        """An x402 one-shot: credit the payment and spend it in one step, so a
+        ledger frozen between the two (MODEL-441) cannot leave a paid unit
+        stranded under a holder nobody can reach."""
+        result = self.credit(holder, payment_id, units, tx, expires_at=expires_at,
+                             source="x402")
+        if not result.credited and result.reason == "conflict":
+            return result
+        burned = self.reserve(holder, units)
+        if burned.ok and burned.reservation_id is not None:
+            self.commit(holder, burned.reservation_id)
+        return result
+
     def commit(self, holder: str, reservation_id: int, *,
                record_meter: bool = True) -> CommitResult:
         acc = self.accounts.get(holder)
@@ -1447,6 +1468,9 @@ class Ledger(Protocol):
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult: ...
 
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult: ...
+
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult: ...
 
@@ -1526,6 +1550,11 @@ class MemoryLedger:
         async with self._lock:
             return self.state.credit(holder, payment_id, units, tx,
                                      expires_at=expires_at, source=source)
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        async with self._lock:
+            return self.state.spend_paid(holder, payment_id, units, tx, expires_at)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
@@ -1658,6 +1687,10 @@ class UnboundLedger:
                      source: str = "x402") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -1762,61 +1795,90 @@ class DurableLedger:
     def __init__(self, namespace: Any) -> None:
         self._stub = namespace.get(namespace.idFromName("ledger"))
 
+    async def _call(self, name: str, *args: Any) -> Any:
+        """One RPC to the ledger. A ledger frozen for a move (MODEL-441) fails
+        with a mark, but error text can echo caller input, so the mark is only
+        a hint: the object's own status decides."""
+        try:
+            return await getattr(self._stub, name)(*args)
+        except Exception as exc:
+            if "ledger-sealed" not in str(exc):
+                raise
+            status = await self._stub.move_status()
+            to_py = getattr(status, "to_py", None)
+            status = dict(to_py() if callable(to_py) else status)
+            if status.get("role") == "live":
+                raise
+            raise LedgerUnavailable(
+                "the credit ledger is frozen while it moves to a new account; retry shortly"
+            ) from None
+
+    async def admit(self) -> str:
+        return str(await self._call("admit"))
+
+    async def lease_ok(self, lease: str) -> bool:
+        return bool(await self._stub.lease_ok(lease))
+
+    async def release_lease(self, lease: str) -> None:
+        await self._stub.release_lease(lease)
+
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult:
-        data = await self._stub.credit(
-            holder, payment_id, int(units), tx, expires_at, source)
+        data = await self._call("credit", holder, payment_id, int(units), tx, expires_at, source)
+        return CreditResult.from_json(dict(data))
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        data = await self._call("spend_paid", holder, payment_id, int(units), tx, expires_at)
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
-        data = await self._stub.set_monthly(
-            holder, int(units), invoice_id, plan, customer_id)
+        data = await self._call("set_monthly", holder, int(units), invoice_id, plan, customer_id)
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str) -> CreditResult:
-        data = await self._stub.clear_monthly(holder)
+        data = await self._call("clear_monthly", holder)
         return CreditResult.from_json(dict(data))
 
     async def transfer(self, src: str, dst: str) -> bool:
-        return bool(await self._stub.transfer(src, dst))
+        return bool(await self._call("transfer", src, dst))
 
     async def reserve(self, holder: str, units: int = 1, now: str = "",
                       overage_cap: int = 0) -> ReserveResult:
-        data = await self._stub.reserve(holder, int(units), now, int(overage_cap))
+        data = await self._call("reserve", holder, int(units), now, int(overage_cap))
         return ReserveResult.from_json(dict(data))
 
     async def commit(self, holder: str, reservation_id: int) -> CommitResult:
-        data = await self._stub.commit(holder, int(reservation_id))
+        data = await self._call("commit", holder, int(reservation_id))
         return CommitResult.from_json(data)
 
     async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
                         burst_limit: int, now: str = "",
                         overage_cap: int = 0) -> ReadResult:
-        data = await self._stub.take_read(
-            holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
+        data = await self._call(
+            "take_read", holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
             now, int(overage_cap))
         return ReadResult.from_json(dict(data))
 
     async def release_read(self, holder: str, token: int) -> bool:
-        return bool(await self._stub.release_read(holder, int(token)))
+        return bool(await self._call("release_read", holder, int(token)))
 
     async def keep_read(self, holder: str, token: int) -> bool:
-        return bool(await self._stub.keep_read(holder, int(token)))
+        return bool(await self._call("keep_read", holder, int(token)))
 
     async def meter_identifier(self, holder: str, kind: str,
                                counter: str | int) -> str:
-        return str(await self._stub.meter_identifier(
-            holder, str(kind), str(counter)) or "")
+        return str(await self._call("meter_identifier", holder, str(kind), str(counter)) or "")
 
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
-        return bool(await self._stub.note_unreported(
-            holder, int(units), identifier, customer_id, event_name))
+        return bool(await self._call(
+            "note_unreported", holder, int(units), identifier, customer_id, event_name))
 
     async def open_backlog(self, holder: str) -> tuple[int, int, str]:
-        data = await self._stub.open_backlog(holder)
+        data = await self._call("open_backlog", holder)
         to_py = getattr(data, "to_py", None)
         row = to_py() if callable(to_py) else data
         units, seq, ident = row
@@ -1824,51 +1886,51 @@ class DurableLedger:
 
     async def ack_backlog(self, holder: str, units: int, n: int,
                           identifier: str = "") -> bool:
-        return bool(await self._stub.ack_backlog(holder, int(units), int(n), identifier))
+        return bool(await self._call("ack_backlog", holder, int(units), int(n), identifier))
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
-        return bool(await self._stub.note_uncertain(
-            holder, int(units), identifier, int(created_at or 0)))
+        return bool(await self._call(
+            "note_uncertain", holder, int(units), identifier, int(created_at or 0)))
 
     async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
-        data = await self._stub.list_uncertain(holder)
+        data = await self._call("list_uncertain", holder)
         return _uncertain_wire(data)
 
     async def ack_uncertain(self, holder: str, identifier: str) -> bool:
-        return bool(await self._stub.ack_uncertain(holder, identifier))
+        return bool(await self._call("ack_uncertain", holder, identifier))
 
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
-        data = await self._stub.age_uncertain(holder, int(now or 0))
+        data = await self._call("age_uncertain", holder, int(now or 0))
         return _uncertain_wire(data)
 
     async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
-        data = await self._stub.open_meter_events(holder, int(now or 0))
+        data = await self._call("open_meter_events", holder, int(now or 0))
         return _meter_events_wire(data)
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
-        return bool(await self._stub.unreconcile_uncertain(holder, identifier))
+        return bool(await self._call("unreconcile_uncertain", holder, identifier))
 
     async def release(self, holder: str, reservation_id: int) -> bool:
-        return bool(await self._stub.release(holder, int(reservation_id)))
+        return bool(await self._call("release", holder, int(reservation_id)))
 
     async def has_read_funding(self, holder: str, now: str = "") -> bool:
-        return bool(await self._stub.has_read_funding(holder, now))
+        return bool(await self._call("has_read_funding", holder, now))
 
     async def balance(self, holder: str, now: str = "") -> Balance:
-        data = await self._stub.balance(holder, now)
+        data = await self._call("balance", holder, now)
         return Balance.from_json(dict(data))
 
     async def seen(self, payment_id: str) -> bool:
-        return bool(await self._stub.seen(payment_id))
+        return bool(await self._call("seen", payment_id))
 
     async def expect(self, payment_id: str, units: int, tx: str,
                      source: str = "pack") -> CreditResult:
-        data = await self._stub.expect(payment_id, int(units), tx, source)
+        data = await self._call("expect", payment_id, int(units), tx, source)
         return CreditResult.from_json(dict(data))
 
     async def payment(self, payment_id: str) -> dict[str, Any] | None:
-        data = await self._stub.payment(payment_id)
+        data = await self._call("payment", payment_id)
         if not data:
             return None
         to_py = getattr(data, "to_py", None)
@@ -1876,18 +1938,74 @@ class DurableLedger:
 
     async def refund(self, tx: str, amount: int, amount_refunded: int,
                      full: bool, now: str = "") -> ReversalResult:
-        data = await self._stub.refund(tx, int(amount), int(amount_refunded),
+        data = await self._call("refund", tx, int(amount), int(amount_refunded),
                                        bool(full), now)
         return ReversalResult.from_json(dict(data))
 
     async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
-        data = await self._stub.hold(tx, dispute_id, now)
+        data = await self._call("hold", tx, dispute_id, now)
         return ReversalResult.from_json(dict(data))
 
     async def end_hold(self, tx: str, dispute_id: str, restore: bool,
                        now: str = "") -> ReversalResult:
-        data = await self._stub.end_hold(tx, dispute_id, bool(restore), now)
+        data = await self._call("end_hold", tx, dispute_id, bool(restore), now)
         return ReversalResult.from_json(dict(data))
+
+
+class Admission:
+    """A billing mutation's lease on a live ledger (MODEL-441).
+
+    Entering raises LedgerUnavailable while the ledger is frozen for an
+    account move. The ledger will not export while a lease is open, and every
+    KV write made through `wrap(kv)` re-checks the lease, so a mutation that
+    outlives its lease is refused instead of writing after the copy. Ledgers
+    that cannot be frozen (memory, unbound) admit everything."""
+
+    def __init__(self, ledger: Any) -> None:
+        self._ledger = ledger
+        self._lease = ""
+
+    async def __aenter__(self) -> Admission:
+        admit = getattr(self._ledger, "admit", None)
+        if callable(admit):
+            self._lease = await admit()
+        return self
+
+    async def __aexit__(self, *_exc: Any) -> bool:
+        if self._lease:
+            try:
+                await self._ledger.release_lease(self._lease)
+            except Exception:
+                pass  # the lease expires on its own
+        return False
+
+    def wrap(self, kv: Any) -> Any:
+        return GuardedKV(kv, self._ledger, self._lease) if self._lease else kv
+
+
+class GuardedKV:
+    """KV whose writes need the caller's ledger lease to still hold."""
+
+    def __init__(self, kv: Any, ledger: Any, lease: str) -> None:
+        self._kv = kv
+        self._ledger = ledger
+        self._lease = lease
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._kv, name)
+
+    async def _check(self) -> None:
+        if not await self._ledger.lease_ok(self._lease):
+            raise LedgerUnavailable(
+                "the credit ledger froze for an account move during this request; retry shortly")
+
+    async def put(self, name: str, value: str, **options: Any) -> None:
+        await self._check()
+        await self._kv.put(name, value, **options)
+
+    async def delete(self, name: str) -> None:
+        await self._check()
+        await self._kv.delete(name)
 
 
 def ledger_from_env(env: Any) -> Ledger:

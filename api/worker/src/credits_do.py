@@ -3,11 +3,22 @@
 Bound as `CREDITS`. One instance, id `ledger`. SQLite holds a single JSON
 document so a mutation is one write, not a cross-key KV race. The class is
 imported from `entry.py` so Wrangler can find it by `class_name`.
+
+MODEL-441. A Durable Object cannot move between Cloudflare accounts, so the
+ledger moves by export and import across a short write freeze. `export_state`
+seals this ledger in the same write that reads its copy, and from then on it
+refuses every call. The new account's ledger waits in standby until
+`import_state` makes it live. Exactly one ledger is live at a time, and none
+during the freeze. See api/worker/src/ledger_admin.py and
+docs/ops/cloudflare-account-move.md.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import secrets
+import time
 from typing import Any
 
 from credits import LedgerState
@@ -22,6 +33,44 @@ except Exception:  # CPython tests stub `workers` without this name
 
 
 _STATE_KEY = "state"
+#: One JSON row, so every role change is a single write: the role, the digest
+#: this ledger was sealed with and how many times it has been exported, and
+#: the digest and export it was imported from.
+_META_KEY = "move"
+
+_LEASES_KEY = "leases"
+
+#: How long a billing mutation's lease on a live ledger lasts. Export waits
+#: for every lease to end or expire, and a write under an expired lease is
+#: refused, so no billing write can land after the ledger is copied.
+LEASE_SECONDS = 120
+
+#: The clock, swapped in tests.
+_clock = time.time
+
+#: A ledger's part in a move. `live` serves calls. `standby` has never served
+#: and waits for its import. `sealed` has been exported and serves nothing.
+LIVE, STANDBY, SEALED = "live", "standby", "sealed"
+#: Between the first export call and the seal: ledger calls still run, but no
+#: new billing lease is granted, so the open ones drain within LEASE_SECONDS
+#: however many requests arrive.
+DRAINING = "draining"
+
+#: The mark a ledger that is not live puts on its errors. Error text can echo
+#: caller input, so callers treat it as a hint and read `move_status` first.
+SEALED_MARK = "ledger-sealed"
+
+
+class LedgerSealed(RuntimeError):
+    """This ledger does not serve calls in its current role."""
+
+
+def state_digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def canonical(state: LedgerState) -> str:
+    return json.dumps(state.to_json(), sort_keys=True, separators=(",", ":"))
 
 
 class CreditsObject(DurableObject):
@@ -36,24 +85,165 @@ class CreditsObject(DurableObject):
         self.ctx.storage.sql.exec(
             "CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)")
 
-    def _load(self) -> LedgerState:
+    def _get(self, key: str) -> str:
         self._ensure()
-        cursor = self.ctx.storage.sql.exec(
-            "SELECT v FROM kv WHERE k = ?", _STATE_KEY)
-        row = _one_row(cursor)
-        if row is None:
-            return LedgerState()
-        text = _cell(row, "v")
-        if not text:
-            return LedgerState()
-        return LedgerState.from_json(json.loads(str(text)))
+        row = _one_row(self.ctx.storage.sql.exec(
+            "SELECT v FROM kv WHERE k = ?", key))
+        return "" if row is None else str(_cell(row, "v") or "")
 
-    def _save(self, state: LedgerState) -> None:
+    def _put(self, key: str, value: str) -> None:
         self._ensure()
         self.ctx.storage.sql.exec(
-            "INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)",
-            _STATE_KEY, json.dumps(state.to_json()),
-        )
+            "INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)", key, value)
+
+    def _stored(self) -> LedgerState:
+        text = self._get(_STATE_KEY)
+        if not text:
+            return LedgerState()
+        return LedgerState.from_json(json.loads(text))
+
+    def _meta(self) -> dict[str, str]:
+        """The move record. With none, the deployment's starting role: only a
+        Worker deployed to receive the ledger starts in standby
+        (LEDGER_STANDBY), so the ledger that already serves is live with
+        nothing stored."""
+        text = self._get(_META_KEY)
+        if text:
+            return {str(k): str(v) for k, v in json.loads(text).items()}
+        flag = str(getattr(self.env, "LEDGER_STANDBY", "") or "").strip().lower()
+        return {"role": STANDBY if flag in ("1", "true", "yes", "on") else LIVE}
+
+    def _write_meta(self, meta: dict[str, str]) -> None:
+        self._put(_META_KEY, json.dumps(meta, sort_keys=True))
+
+    def _load(self) -> LedgerState:
+        role = self._meta().get("role", LIVE)
+        if role not in (LIVE, DRAINING):
+            raise LedgerSealed(f"{SEALED_MARK}: {role}")
+        return self._stored()
+
+    def _save(self, state: LedgerState) -> None:
+        self._put(_STATE_KEY, json.dumps(state.to_json()))
+
+    async def move_status(self) -> dict[str, Any]:
+        meta = self._meta()
+        state = self._stored()
+        return {"role": meta.get("role", LIVE), "digest": state_digest(canonical(state)),
+                "holders": len(state.accounts), "sealed": meta.get("sealed", ""),
+                "generation": meta.get("exports", ""), "sealed_at": meta.get("sealed_at", ""),
+                "imported": meta.get("imported", ""),
+                "imported_generation": meta.get("imported_generation", ""),
+                "open_leases": len(self._leases())}
+
+    def _leases(self) -> dict[str, float]:
+        text = self._get(_LEASES_KEY)
+        now = _clock()
+        held = {str(k): float(v) for k, v in (json.loads(text) if text else {}).items()}
+        return {k: v for k, v in held.items() if v > now}
+
+    async def admit(self) -> str:
+        """A lease for one billing mutation on this live ledger (MODEL-441)."""
+        role = self._meta().get("role", LIVE)
+        if role != LIVE:
+            raise LedgerSealed(f"{SEALED_MARK}: {role}")
+        leases = self._leases()
+        lease = secrets.token_hex(8)
+        leases[lease] = _clock() + LEASE_SECONDS
+        self._put(_LEASES_KEY, json.dumps(leases))
+        return lease
+
+    async def lease_ok(self, lease: str) -> bool:
+        return (self._meta().get("role", LIVE) in (LIVE, DRAINING)
+                and self._leases().get(str(lease), 0.0) > _clock())
+
+    async def release_lease(self, lease: str) -> None:
+        leases = self._leases()
+        if leases.pop(str(lease), None) is not None:
+            self._put(_LEASES_KEY, json.dumps(leases))
+
+    async def export_state(self) -> dict[str, Any]:
+        """Seal this ledger and return its copy, in one synchronous write, so
+        no call can land between the copy and the seal. The first call stops
+        new billing leases (draining); the seal waits for the open ones to end
+        or expire, so it comes within LEASE_SECONDS whatever the traffic. Open
+        reservations and taken reads are released at the seal: their requests
+        can no longer commit, so they fail with a 503 and are not charged, and
+        no hold is stranded in the copy. Exporting again returns the same copy."""
+        meta = self._meta()
+        if meta.get("role") == STANDBY:
+            raise ValueError("a standby ledger has nothing to export")
+        if meta.get("role") == LIVE:
+            meta = {**meta, "role": DRAINING}
+            self._write_meta(meta)
+        if meta.get("role") == DRAINING:
+            open_leases = self._leases()
+            if open_leases:
+                wait = int(max(open_leases.values()) - _clock()) + 1
+                raise ValueError(f"draining: {len(open_leases)} billing write(s) in flight; "
+                                 f"export again in at most {wait}s")
+            state = self._stored()
+            for holder, acc in state.accounts.items():
+                for rid in list(acc.reservations):
+                    state.release(holder, rid)
+                for token in list(acc.taken_reads):
+                    state.release_read(holder, token)
+            self._save(state)
+            self._write_meta({**meta, "role": SEALED,
+                              "sealed": state_digest(canonical(state)),
+                              "exports": str(int(meta.get("exports") or 0) + 1),
+                              "sealed_at": str(int(_clock()))})
+        text = canonical(self._stored())
+        return {"state": text, "digest": state_digest(text), **await self.move_status()}
+
+    async def import_state(self, text: str, digest: str, generation: str = "") -> dict[str, Any]:
+        """Take the exported copy. Only a standby ledger accepts one; importing
+        the same copy again is a no-op. The state is written before the record
+        that makes it live, so a restart between the two leaves a standby
+        ledger that simply imports again."""
+        text, digest, generation = str(text), str(digest), str(generation)
+        if state_digest(text) != digest:
+            raise ValueError("the copy does not match its digest")
+        if not generation.isdigit() or int(generation) < 1:
+            raise ValueError("the copy carries no export generation")
+        meta = self._meta()
+        same_copy = (meta.get("imported") == digest
+                     and meta.get("imported_generation", "") == generation)
+        if same_copy and meta.get("role") == LIVE:
+            return await self.move_status()
+        # A rolled-back destination: imported, then sealed with no write in
+        # between, so it holds only a stale copy and may take a fresh export:
+        # one with a strictly newer generation. Any earlier export, including
+        # the one it was rolled back from, predates the source's unseal, so
+        # taking it would make a second live ledger.
+        rolled_back = (meta.get("role") == SEALED and meta.get("imported")
+                       and meta.get("imported") == meta.get("sealed")
+                       and int(generation) > int(meta.get("imported_generation") or 0))
+        if meta.get("role") != STANDBY and not rolled_back:
+            raise ValueError(f"a {meta.get('role')} ledger does not accept a copy")
+        held = canonical(self._stored())
+        if not rolled_back and held not in (
+                canonical(LedgerState()), canonical(LedgerState.from_json(json.loads(text)))):
+            # Standby comes from the deployment when nothing is recorded, so a
+            # ledger that already holds balances must refuse rather than lose them.
+            raise ValueError("this standby ledger already holds other balances")
+        self._save(LedgerState.from_json(json.loads(text)))
+        self._write_meta({"role": LIVE, "imported": digest, "imported_generation": generation,
+                          "exports": meta.get("exports", "")})
+        return await self.move_status()
+
+    async def unseal(self, digest: str) -> dict[str, Any]:
+        """Undo an export before the zone moves. Takes the digest it was sealed
+        with, so it cannot be done by accident; the runbook seals the new
+        ledger first and checks it took no writes."""
+        meta = self._meta()
+        if meta.get("role") == DRAINING:
+            # Nothing has been copied yet: cancel the drain.
+            self._write_meta({**meta, "role": LIVE})
+            return await self.move_status()
+        if meta.get("role") != SEALED or meta.get("sealed") != str(digest):
+            raise ValueError("that is not the digest this ledger was sealed with")
+        self._write_meta({**meta, "role": LIVE})
+        return await self.move_status()
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
@@ -62,6 +252,14 @@ class CreditsObject(DurableObject):
         result = state.credit(holder, payment_id, int(units), tx,
                               expires_at=str(expires_at or ""),
                               source=str(source or "x402"))
+        self._save(state)
+        return result.to_json()
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.spend_paid(holder, payment_id, int(units), tx,
+                                  expires_at=str(expires_at or ""))
         self._save(state)
         return result.to_json()
 

@@ -27,6 +27,13 @@ on:
   # (docs-only PR #34). Deploy still runs only on main, below.
   pull_request: {}
   workflow_dispatch:
+    inputs:
+      cloudflare_environment:
+        # MODEL-441. The GitHub environment whose secrets and variables name the
+        # target Cloudflare account. Only the account move uses another one.
+        description: 'GitHub environment of the target Cloudflare account'
+        required: false
+        default: production
 
 permissions:
   contents: read
@@ -451,7 +458,8 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    environment: production
+    # MODEL-441. Secrets of the target account; see the input.
+    environment: ${{ inputs.cloudflare_environment || 'production' }}
     outputs:
       deployed: ${{ steps.creds.outputs.ready }}
     steps:

@@ -11,6 +11,10 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-18",
   "compatibility_flags": ["nodejs_compat"],
+  // The account operators' local wrangler commands reach. Wrangler prefers
+  // this value over CLOUDFLARE_ACCOUNT_ID, so deploy jobs rewrite it from
+  // their GitHub environment first (.github/scripts/cloudflare_target.py,
+  // MODEL-441). See docs/ops/cloudflare-account-move.md.
   "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,
   // More specific than the rank Worker's api.modelspec.dev/* ; Cloudflare

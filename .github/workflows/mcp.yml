@@ -9,6 +9,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      cloudflare_environment:
+        # MODEL-441. The GitHub environment whose secrets and variables name the
+        # target Cloudflare account. Only the account move uses another one.
+        description: 'GitHub environment of the target Cloudflare account'
+        required: false
+        default: production
 
 permissions:
   contents: read
@@ -56,6 +63,8 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || vars.DATA_SPLIT_ENABLED == 'true' && github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    # MODEL-441. Secrets and variables of the target account; see the input.
+    environment: ${{ inputs.cloudflare_environment || 'production' }}
     permissions:
       contents: read
     concurrency:
@@ -76,6 +85,21 @@ jobs:
       - name: Install
         working-directory: mcp
         run: npm ci
+
+      - name: Point the config at this environment's Cloudflare account
+        # MODEL-441. Wrangler prefers the config's account_id over the secret.
+        env:
+          CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
+          CF_TARGET_ACCOUNT_ID: ${{ vars.CF_TARGET_ACCOUNT_ID }}
+          CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
+          CF_ROUTES: ${{ vars.CF_ROUTES }}
+        run: python3 .github/scripts/cloudflare_target.py mcp/wrangler.jsonc
+
+      - name: Probe this environment's host
+        # MODEL-441. Before its zone moves, the new account answers on workers.dev only.
+        env:
+          CF_MCP_URL: ${{ vars.CF_MCP_URL }}
+        run: if [ -n "$CF_MCP_URL" ]; then echo "MCP_URL=$CF_MCP_URL" >> "$GITHUB_ENV"; fi
 
       - name: Deploy
         working-directory: mcp

@@ -729,19 +729,25 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
         return _refusal(INVALID_REQUEST, "the Stripe event must be a JSON object",
                         service_commit=service_commit, endpoint=endpoint)
     try:
-        friends_configured = (policy.billing.friends_price_ids
-                              or policy.billing.friends_promotion_code_prefix)
-        if friends_configured and not await store.seen(kv, str(event.get("id") or "")):
-            try:
-                event = await _resolve_friends_event(
-                    event, policy=policy, secret=stripe_secret, http=http)
-            except (RuntimeError, OSError, ValueError) as exc:
-                return _refusal(STRIPE_UNAVAILABLE, str(exc),
-                                service_commit=service_commit, endpoint=endpoint)
-        return await apply_event(event, kv=kv, policy=policy, now=now,
-                                 service_commit=service_commit, ledger=ledger,
-                                 env=env, alert_ctx=alert_ctx)
-    except StoreNotConfigured as exc:
+        # MODEL-441: the event holds a lease on a live ledger for every KV
+        # write it makes. A frozen ledger refuses it unremembered, and Stripe
+        # retries it once the ledger is live again.
+        async with credits.Admission(ledger) as admission:
+            kv = admission.wrap(kv)
+            friends_configured = (policy.billing.friends_price_ids
+                                  or policy.billing.friends_promotion_code_prefix)
+            if friends_configured and not await store.seen(kv, str(event.get("id") or "")):
+                try:
+                    event = await _resolve_friends_event(
+                        event, policy=policy, secret=stripe_secret, http=http)
+                except (RuntimeError, OSError, ValueError) as exc:
+                    return _refusal(STRIPE_UNAVAILABLE, str(exc),
+                                    service_commit=service_commit, endpoint=endpoint)
+            return await apply_event(event, kv=kv, policy=policy, now=now,
+                                     service_commit=service_commit, ledger=ledger,
+                                     env=env, alert_ctx=alert_ctx)
+    except (StoreNotConfigured, credits.LedgerUnavailable) as exc:
+        # Not remembered: Stripe retries the event.
         return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
     except PolicyError as exc:
@@ -776,9 +782,10 @@ async def claim(*, session_id: str, kv: Any, policy: AccessPolicy,
             "send the Checkout session id as session_id (query or JSON body)",
             service_commit=service_commit, endpoint=endpoint)
     try:
-        result = await store.consume_claim(
-            kv, session_id, now=now, policy=policy, ledger=_ledger(ledger))
-    except StoreNotConfigured as exc:
+        async with credits.Admission(ledger) as admission:
+            result = await store.consume_claim(
+                admission.wrap(kv), session_id, now=now, policy=policy, ledger=_ledger(ledger))
+    except (StoreNotConfigured, credits.LedgerUnavailable) as exc:
         return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
     except PolicyError as exc:
@@ -861,8 +868,13 @@ async def rotate(*, api_key: str | None, kv: Any, policy: AccessPolicy,
     if not record.active:
         return _refusal(REVOKED_KEY, "that API key has been revoked",
                         service_commit=service_commit, endpoint=endpoint)
-    rotated = await store.rotate(
-        kv, key, now=now, policy=policy, ledger=_ledger(ledger))
+    try:
+        async with credits.Admission(ledger) as admission:
+            rotated = await store.rotate(
+                admission.wrap(kv), key, now=now, policy=policy, ledger=_ledger(ledger))
+    except credits.LedgerUnavailable as exc:
+        return _refusal(STORE_NOT_CONFIGURED, str(exc),
+                        service_commit=service_commit, endpoint=endpoint)
     if rotated is None:
         return _refusal(INVALID_KEY, "that API key is not recognised",
                         service_commit=service_commit, endpoint=endpoint)
