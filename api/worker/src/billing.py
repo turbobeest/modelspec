@@ -729,6 +729,9 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
         return _refusal(INVALID_REQUEST, "the Stripe event must be a JSON object",
                         service_commit=service_commit, endpoint=endpoint)
     try:
+        # MODEL-441: a frozen ledger refuses the event before any KV write,
+        # unremembered, and Stripe retries it once the ledger is live again.
+        await credits.require_live(ledger)
         friends_configured = (policy.billing.friends_price_ids
                               or policy.billing.friends_promotion_code_prefix)
         if friends_configured and not await store.seen(kv, str(event.get("id") or "")):
@@ -776,6 +779,11 @@ async def claim(*, session_id: str, kv: Any, policy: AccessPolicy,
             INVALID_REQUEST,
             "send the Checkout session id as session_id (query or JSON body)",
             service_commit=service_commit, endpoint=endpoint)
+    try:
+        await credits.require_live(ledger)
+    except credits.LedgerUnavailable as exc:
+        return _refusal(STORE_NOT_CONFIGURED, str(exc),
+                        service_commit=service_commit, endpoint=endpoint)
     try:
         result = await store.consume_claim(
             kv, session_id, now=now, policy=policy, ledger=_ledger(ledger))
@@ -861,6 +869,11 @@ async def rotate(*, api_key: str | None, kv: Any, policy: AccessPolicy,
                         service_commit=service_commit, endpoint=endpoint)
     if not record.active:
         return _refusal(REVOKED_KEY, "that API key has been revoked",
+                        service_commit=service_commit, endpoint=endpoint)
+    try:
+        await credits.require_live(ledger)
+    except credits.LedgerUnavailable as exc:
+        return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
     rotated = await store.rotate(
         kv, key, now=now, policy=policy, ledger=_ledger(ledger))

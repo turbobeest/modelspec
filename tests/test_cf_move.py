@@ -333,8 +333,8 @@ class ZoneApi:
             return 200, json.dumps({"success": True, "result": {"id": "z1", "status": status}}).encode()
         if path == "/zones/z1/workers/routes" and method == "GET":
             return 200, json.dumps({"success": True, "result": self.routes}).encode()
-        self.writes.append((method, path, json.loads(body)))
-        return 200, json.dumps({"success": True, "result": {}}).encode()
+        self.writes.append((method, path, None if body is None else json.loads(body)))
+        return 200, json.dumps({"success": True, "result": {"id": "route-new"}}).encode()
 
 
 def test_attach_routes_waits_for_the_zone_then_adds_moves_and_keeps_routes():
@@ -373,3 +373,84 @@ def test_route_specs_split_on_the_last_equals_sign():
     assert cf_move.parse_route("api.modelspec.dev/*=modelspec-rank") == ("api.modelspec.dev/*", "modelspec-rank")
     with pytest.raises(cf_move.UsageError):
         cf_move.parse_route("api.modelspec.dev/*")
+
+
+
+def test_zone_diff_reports_a_change_to_the_managed_ruleset_a_rule_executes():
+    def dump(target, version):
+        return {"rulesets": [{"id": "zone-entrypoint-a", "phase": "http_request_firewall_managed",
+                              "version": "7", "rules": [{
+                                  "id": "rule-1", "action": "execute",
+                                  "expression": "true",
+                                  "action_parameters": {"id": target, "version": version}}]}]}
+
+    assert cf_move.zone_diff(dump("managed-a", "latest"), dump("managed-a", "latest")) == []
+    assert cf_move.zone_diff(dump("managed-a", "latest"), dump("managed-b", "latest")) != []
+    assert cf_move.zone_diff(dump("managed-a", "latest"), dump("managed-a", "12")) != []
+
+
+class FrozenOrNot(FakeCF):
+    """FakeCF plus the destination Worker's ledger status, role by role."""
+
+    def __init__(self, routes, roles):
+        super().__init__(routes)
+        self.roles = list(roles)
+
+    def __call__(self, method, url, headers, body):
+        if url.endswith("/internal/ledger/status"):
+            self.calls.append((method, url, headers, None))
+            return 200, json.dumps({"role": self.roles.pop(0)}).encode()
+        return super().__call__(method, url, headers, body)
+
+
+def _merge_routes():
+    src_ns = "/accounts/old/storage/kv/namespaces/n1"
+    dst_ns = "/accounts/new/storage/kv/namespaces/n2"
+    return {
+        ("GET", f"{src_ns}/keys?limit=1000"): ok([{"name": "key:a"}], cursor=""),
+        ("GET", f"{src_ns}/values/key%3Aa"): (200, b"a"),
+        ("GET", f"{dst_ns}/keys?limit=1000"): ok([], cursor=""),
+        ("PUT", f"{dst_ns}/bulk"): ok({"unsuccessful_keys": []}),
+    }
+
+
+def _apply(monkeypatch, fake, *extra):
+    monkeypatch.setattr(cf_move, "urllib_request", fake)
+    monkeypatch.setenv("CF_SRC_API_TOKEN", "src-tok")
+    monkeypatch.setenv("CF_DST_API_TOKEN", "dst-tok")
+    monkeypatch.setenv("LEDGER_ADMIN_SECRET", "admin-tok")
+    return cf_move.main(["kv-merge", "--base", "empty", "--now", str(NOW),
+                         "--src-account", "old", "--src-namespace", "n1",
+                         "--dst-account", "new", "--dst-namespace", "n2", "--apply", *extra])
+
+
+def _puts(fake):
+    return [c for c in fake.calls if c[0] == "PUT"]
+
+
+def test_a_merge_never_writes_while_the_destination_worker_can_write_key_records(monkeypatch):
+    live = FrozenOrNot(_merge_routes(), ["live"])
+    unnamed = FrozenOrNot(_merge_routes(), [])
+
+    assert _apply(monkeypatch, live, "--dst-worker", "https://new.example") == 2
+    assert _apply(monkeypatch, unnamed) == 2
+    assert _puts(live) == _puts(unnamed) == []
+
+
+def test_a_merge_writes_into_a_frozen_destination_and_checks_it_stayed_frozen(monkeypatch):
+    frozen = FrozenOrNot(_merge_routes(), ["standby", "standby"])
+    thawed = FrozenOrNot(_merge_routes(), ["standby", "live"])
+
+    assert _apply(monkeypatch, frozen, "--dst-worker", "https://new.example") == 0
+    assert len(_puts(frozen)) == 1
+    assert _apply(monkeypatch, thawed, "--dst-worker", "https://new.example") == 2
+
+
+def test_the_route_probe_proves_write_access_and_leaves_no_route_behind():
+    api = ZoneApi(5, [])
+
+    done = cf_move.attach_routes("acct", "modelspec.dev", [], TOKEN, api, probe=True,
+                                 clock=lambda: 1.0)
+
+    assert done == ["probe ok: this token can write routes on modelspec.dev (pending)"]
+    assert [w[0] for w in api.writes] == ["POST", "DELETE"]

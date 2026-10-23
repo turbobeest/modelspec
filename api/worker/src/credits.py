@@ -1027,6 +1027,20 @@ class LedgerState:
         acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
+    def spend_paid(self, holder: str, payment_id: str, units: int, tx: str,
+                   expires_at: str = "") -> CreditResult:
+        """An x402 one-shot: credit the payment and spend it in one step, so a
+        ledger frozen between the two (MODEL-441) cannot leave a paid unit
+        stranded under a holder nobody can reach."""
+        result = self.credit(holder, payment_id, units, tx, expires_at=expires_at,
+                             source="x402")
+        if not result.credited and result.reason == "conflict":
+            return result
+        burned = self.reserve(holder, units)
+        if burned.ok and burned.reservation_id is not None:
+            self.commit(holder, burned.reservation_id)
+        return result
+
     def commit(self, holder: str, reservation_id: int, *,
                record_meter: bool = True) -> CommitResult:
         acc = self.accounts.get(holder)
@@ -1454,6 +1468,9 @@ class Ledger(Protocol):
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult: ...
 
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult: ...
+
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult: ...
 
@@ -1533,6 +1550,11 @@ class MemoryLedger:
         async with self._lock:
             return self.state.credit(holder, payment_id, units, tx,
                                      expires_at=expires_at, source=source)
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        async with self._lock:
+            return self.state.spend_paid(holder, payment_id, units, tx, expires_at)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
@@ -1665,6 +1687,10 @@ class UnboundLedger:
                      source: str = "x402") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -1787,10 +1813,24 @@ class DurableLedger:
                 "the credit ledger is frozen while it moves to a new account; retry shortly"
             ) from None
 
+    async def require_live(self) -> None:
+        """Refuse before any other write while the ledger is frozen for a move
+        (MODEL-441), so a refused request leaves nothing behind in KV."""
+        status = await self._stub.move_status()
+        to_py = getattr(status, "to_py", None)
+        if dict(to_py() if callable(to_py) else status).get("role") != "live":
+            raise LedgerUnavailable(
+                "the credit ledger is frozen while it moves to a new account; retry shortly")
+
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult:
         data = await self._call("credit", holder, payment_id, int(units), tx, expires_at, source)
+        return CreditResult.from_json(dict(data))
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> CreditResult:
+        data = await self._call("spend_paid", holder, payment_id, int(units), tx, expires_at)
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
@@ -1910,6 +1950,14 @@ class DurableLedger:
                        now: str = "") -> ReversalResult:
         data = await self._call("end_hold", tx, dispute_id, bool(restore), now)
         return ReversalResult.from_json(dict(data))
+
+
+async def require_live(ledger: Any) -> None:
+    """Raise LedgerUnavailable if `ledger` is frozen for an account move.
+    Ledgers that cannot be frozen (memory, unbound) always pass."""
+    check = getattr(ledger, "require_live", None)
+    if callable(check):
+        await check()
 
 
 def ledger_from_env(env: Any) -> Ledger:

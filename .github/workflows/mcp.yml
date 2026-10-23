@@ -90,6 +90,7 @@ jobs:
         # MODEL-441. Wrangler prefers the config's account_id over the secret.
         env:
           CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
+          CF_TARGET_ACCOUNT_ID: ${{ vars.CF_TARGET_ACCOUNT_ID }}
           CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
           CF_ROUTES: ${{ vars.CF_ROUTES }}
         run: python3 .github/scripts/cloudflare_target.py mcp/wrangler.jsonc

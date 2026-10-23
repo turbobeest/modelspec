@@ -1691,9 +1691,10 @@ def test_a_rotation_during_a_ledger_handoff_keeps_the_old_key_and_its_balance(po
               ledger=ledger))
     key = _claim(kv, policy, ledger).body["key"]
 
-    with pytest.raises(credits.LedgerUnavailable):
-        run(billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
-                           service_commit=COMMIT, ledger=_MovingLedger()))
+    refused = run(billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=_MovingLedger()))
+
+    assert refused.status == 503
 
     assert serve(key, kv, policy).tier == "paid"
     assert run(ledger.balance(_holder(key))).monthly == 4000

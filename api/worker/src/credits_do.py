@@ -32,7 +32,8 @@ except Exception:  # CPython tests stub `workers` without this name
 
 _STATE_KEY = "state"
 #: One JSON row, so every role change is a single write: the role, the digest
-#: this ledger was sealed with, and the digest it was imported from.
+#: this ledger was sealed with and how many times it has been exported, and
+#: the digest and export it was imported from.
 _META_KEY = "move"
 
 #: A ledger's part in a move. `live` serves calls. `standby` has never served
@@ -113,7 +114,8 @@ class CreditsObject(DurableObject):
         state = self._stored()
         return {"role": meta.get("role", LIVE), "digest": state_digest(canonical(state)),
                 "holders": len(state.accounts), "sealed": meta.get("sealed", ""),
-                "imported": meta.get("imported", "")}
+                "generation": meta.get("exports", ""), "imported": meta.get("imported", ""),
+                "imported_generation": meta.get("imported_generation", "")}
 
     async def export_state(self) -> dict[str, Any]:
         """Seal this ledger and return its copy, in one synchronous write, so
@@ -133,25 +135,41 @@ class CreditsObject(DurableObject):
                     state.release_read(holder, token)
             self._save(state)
             self._write_meta({**meta, "role": SEALED,
-                              "sealed": state_digest(canonical(state))})
+                              "sealed": state_digest(canonical(state)),
+                              "exports": str(int(meta.get("exports") or 0) + 1)})
         text = canonical(self._stored())
         return {"state": text, "digest": state_digest(text), **await self.move_status()}
 
-    async def import_state(self, text: str, digest: str) -> dict[str, Any]:
+    async def import_state(self, text: str, digest: str, generation: str = "") -> dict[str, Any]:
         """Take the exported copy. Only a standby ledger accepts one; importing
         the same copy again is a no-op. The state is written before the record
         that makes it live, so a restart between the two leaves a standby
         ledger that simply imports again."""
-        text, digest = str(text), str(digest)
+        text, digest, generation = str(text), str(digest), str(generation)
         if state_digest(text) != digest:
             raise ValueError("the copy does not match its digest")
         meta = self._meta()
-        if meta.get("imported") == digest:
+        same_copy = (meta.get("imported") == digest
+                     and meta.get("imported_generation", "") == generation)
+        if same_copy and meta.get("role") == LIVE:
             return await self.move_status()
-        if meta.get("role") != STANDBY:
+        # A rolled-back destination: imported, then sealed with no write in
+        # between, so it holds only a stale copy and may take a fresh export.
+        # Never the copy it already took: the source was unsealed after it, so
+        # a replay of that copy would make a second live ledger.
+        rolled_back = (meta.get("role") == SEALED and meta.get("imported")
+                       and meta.get("imported") == meta.get("sealed") and not same_copy)
+        if meta.get("role") != STANDBY and not rolled_back:
             raise ValueError(f"a {meta.get('role')} ledger does not accept a copy")
+        held = canonical(self._stored())
+        if not rolled_back and held not in (
+                canonical(LedgerState()), canonical(LedgerState.from_json(json.loads(text)))):
+            # Standby comes from the deployment when nothing is recorded, so a
+            # ledger that already holds balances must refuse rather than lose them.
+            raise ValueError("this standby ledger already holds other balances")
         self._save(LedgerState.from_json(json.loads(text)))
-        self._write_meta({"role": LIVE, "imported": digest})
+        self._write_meta({"role": LIVE, "imported": digest, "imported_generation": generation,
+                          "exports": meta.get("exports", "")})
         return await self.move_status()
 
     async def unseal(self, digest: str) -> dict[str, Any]:
@@ -171,6 +189,14 @@ class CreditsObject(DurableObject):
         result = state.credit(holder, payment_id, int(units), tx,
                               expires_at=str(expires_at or ""),
                               source=str(source or "x402"))
+        self._save(state)
+        return result.to_json()
+
+    async def spend_paid(self, holder: str, payment_id: str, units: int,
+                         tx: str, expires_at: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.spend_paid(holder, payment_id, int(units), tx,
+                                  expires_at=str(expires_at or ""))
         self._save(state)
         return result.to_json()
 

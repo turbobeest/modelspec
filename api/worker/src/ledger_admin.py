@@ -79,7 +79,8 @@ async def handle(env: Any, path: str, method: str, authorization: str,
             return 200, _plain(await stub.export_state())
         if action == "import":
             return 200, _plain(await stub.import_state(
-                str(payload.get("state") or ""), str(payload.get("digest") or "")))
+                str(payload.get("state") or ""), str(payload.get("digest") or ""),
+                str(payload.get("generation") or "")))
         return 200, _plain(await stub.unseal(str(payload.get("digest") or "")))
     except Exception as exc:
         return _error(409, f"{action}_refused", _reason(exc))

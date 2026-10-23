@@ -105,6 +105,15 @@ ledger starts in `standby` (`CF_LEDGER_STANDBY=true` adds the var
    standby ledger, which turns live.
 3. The digests and holder counts must match.
 
+The final ACCESS merge runs between the two (phase 8). Neither ledger is live
+then, so neither Worker writes key records, and the merge cannot overwrite a
+revocation or rotation it did not see. `kv-merge --apply` checks the
+destination's ledger is frozen before and after it writes. Only a standby
+ledger that holds no balances accepts a copy, or a rolled-back one that took
+no writes. Each export carries a generation number, so a rolled-back
+destination takes a fresh export but never a replay of the copy it was rolled
+back from.
+
 At most one ledger is live at any moment, and none during the freeze, so no
 balance is lost or counted twice. Export and import can be repeated safely:
 export returns the same copy, and the copy lands once.
@@ -119,15 +128,18 @@ through the operator's machine.
 **Stripe webhooks.** The endpoint URL, `https://api.modelspec.dev/v1/billing/stripe-webhook`,
 does not change, so Stripe needs no change. Both Workers carry the same
 `STRIPE_WEBHOOK_SECRET`, so whichever one Cloudflare routes an event to
-verifies it. During the freeze, a webhook that needs the ledger answers 503
-without remembering the event, and Stripe retries it, for up to three days,
-until it reaches the new Worker. `LedgerUnavailable` is deliberately not a
+verifies it. During the freeze, every webhook answers 503 before it writes
+anything, unremembered, and Stripe retries it, for up to three days, until it
+reaches the new Worker. Claims and key rotations are refused the same way. `LedgerUnavailable` is deliberately not a
 `StoreNotConfigured`, because several billing paths treat an unbound ledger
 as "carry on without credits". A key rotation moves the balance before it
 revokes the old key, so a rotation refused by the freeze leaves the old key
 working. x402 checks the ledger before it settles a payment, so a frozen
-ledger refuses the payment instead of taking it. KV writes from a webhook
-that the old Worker handled are carried by the merge.
+ledger refuses the payment instead of taking it, and a one-shot's credit and
+spend are one ledger step. An event the old Worker was processing when the
+freeze began may have written KV before its ledger call failed. The final
+merge carries those writes, and Stripe's retry applies the event again on the
+new Worker.
 
 **Human gate.** Not migrated. Its state is one visitor-day of admissions.
 Starting empty gives a visitor at most one extra day's allowance on the day
@@ -187,7 +199,8 @@ an agent session with the tokens Jamie hands it, never printing them.
    - **migration** (new account, delete it after phase 10): Workers KV Storage
      Edit, Zone Edit, DNS Edit, Zone Settings Edit, SSL and Certificates Edit,
      Email Routing Rules Edit, Account Rulesets Edit, Turnstile Edit, Cloudflare
-     Pages Edit.
+     Pages Edit, and Workers Routes Edit on modelspec.dev and benchgraph.dev
+     (phases 7 and 8 attach the API routes with it).
    - **read** (old account, delete it after phase 10): Account Settings Read,
      Workers Scripts Read, Workers KV Storage Read, Pages Read, Zone Read, DNS
      Read, Zone Settings Read, SSL and Certificates Read, Email Routing Rules
@@ -211,7 +224,8 @@ an agent session with the tokens Jamie hands it, never printing them.
 
 1. Create KV namespaces `ACCESS` and `DETERMINATIONS`. In GitHub environment
    `cloudflare-modelspec`, never at repository level, set variables
-   `CF_KV_ACCESS` and `CF_KV_DETERMINATIONS` to their ids, and set
+   `CF_TARGET_ACCOUNT_ID` to the new account's id, `CF_KV_ACCESS` and
+   `CF_KV_DETERMINATIONS` to the namespace ids, and set
    `CF_WORKERS_DEV=true`, `CF_ROUTES=off`, `CF_LEDGER_STANDBY=true`,
    `CF_RANK_HOST=modelspec-rank.<sub>.workers.dev` and
    `CF_MCP_URL=https://modelspec-mcp.<sub>.workers.dev/mcp`.
@@ -235,37 +249,18 @@ an agent session with the tokens Jamie hands it, never printing them.
    `modelspec.dev`, `www.modelspec.dev` and `benchgraph.dev`. They stay pending
    until their zones activate. Note the new `*.pages.dev` subdomains.
 
-### Phase 4. Copy KV (A, read token on the old side, migration token on the new)
-
-```bash
-export CF_SRC_API_TOKEN=… CF_DST_API_TOKEN=…   # from the password manager, never echoed
-python3 scripts/cf_move.py kv-merge --base empty --src-account <old> --src-namespace a73f33d391f74c3e88e45f47d8e50814 \
-  --dst-account <new> --dst-namespace <new DETERMINATIONS> --apply
-python3 scripts/cf_move.py kv-merge --base empty --src-account <old> --src-namespace ef86b7ce138d4891b3eb630cdd2ba4e5 \
-  --dst-account <new> --dst-namespace <new ACCESS> --save-src ~/cf-move/access-base.json --apply
-```
-
-Both must report 0 conflicts. Keep `access-base.json` until phase 10.
-
-Re-run the ACCESS merge with `--base ~/cf-move/access-base.json` (dry run,
-then `--apply`) daily until phase 8, and once more just before Jamie approves
-the move. Each run carries the old side's new keys, rotations and revocations
-across. Without it, a key revoked on the old Worker after this copy would
-still work on the new one. Repeated runs are safe: a key already carried
-matches on both sides and drops out of the plan.
-
-### Phase 5. Deploy the Workers into the new account (A dispatches, J sets secrets)
+### Phase 4. Deploy the Workers into the new account (A dispatches, J sets secrets)
 
 Freeze merges to main from here to the end of phase 9, so both accounts run
 the same commit.
 
 1. Dispatch `rank-api.yml` on main with `cloudflare_environment=cloudflare-modelspec`.
    The deploy creates the Worker and both DO classes, without routes. Its
-   ledger starts in standby. Smoke tests run against `CF_RANK_HOST`. Keyed
-   calls there answer 503 until phase 7, so the deploy drops the smoke key
-   while `CF_LEDGER_STANDBY=true`. Unset that variable after phase 7. Then try one dispatch with `CF_ROUTES`
-   unset. If Wrangler attaches the routes to the Pending zone, keep it unset and
-   skip `attach-routes` in phase 8. If it refuses, set `CF_ROUTES=off` again.
+   ledger starts in standby and stays there until phase 8, so keyed calls on
+   the workers.dev host answer 503 and the deploy drops the smoke key. Then
+   try one dispatch with `CF_ROUTES` unset. If Wrangler attaches the routes to
+   the Pending zone, keep it unset and skip `attach-routes` in phase 8. If it
+   refuses, set `CF_ROUTES=off` again.
 2. **J** sets every Worker secret from the phase 2 list on the new
    `modelspec-rank`. Use the same values for `STRIPE_WEBHOOK_SECRET` (shown in
    the Stripe dashboard), `TURNSTILE_SECRET` (the old widget's, for now) and,
@@ -278,6 +273,30 @@ the same commit.
    the workers.dev hosts, and `GET /internal/ledger/status` on both Workers with
    the admin secret: old `live`, new `standby`.
 
+### Phase 5. Copy KV (A, read token on the old side, migration token on the new)
+
+```bash
+export CF_SRC_API_TOKEN=… CF_DST_API_TOKEN=… LEDGER_ADMIN_SECRET=…   # never echoed
+NEW=https://modelspec-rank.<sub>.workers.dev
+python3 scripts/cf_move.py kv-merge --base empty --src-account <old> --src-namespace a73f33d391f74c3e88e45f47d8e50814 \
+  --dst-account <new> --dst-namespace <new DETERMINATIONS> --dst-worker $NEW --apply
+python3 scripts/cf_move.py kv-merge --base empty --src-account <old> --src-namespace ef86b7ce138d4891b3eb630cdd2ba4e5 \
+  --dst-account <new> --dst-namespace <new ACCESS> --dst-worker $NEW --save-src ~/cf-move/access-base.json --apply
+```
+
+Both must report 0 conflicts. Keep `access-base.json` until phase 10.
+
+`--apply` refuses unless the destination Worker's ledger is frozen (standby
+or sealed) both before it reads and after it writes. A frozen ledger makes
+the Worker refuse every write to key records, so nothing on the destination
+can change a key between the merge's read and its write. The source may keep
+changing: each run carries what changed there since the base.
+
+Re-run the ACCESS merge with `--base ~/cf-move/access-base.json` (dry run,
+then `--apply`) daily until phase 8. Each run carries the old side's new keys,
+rotations and revocations across. Repeated runs are safe: a key already
+carried matches on both sides and drops out of the plan.
+
 ### Phase 6. Rehearse on benchgraph.dev (J requests and approves, A watches)
 
 1. A starts a probe that logs status code, TLS issuer and Pages deployment id
@@ -288,51 +307,25 @@ the same commit.
    or 5xx. If there was a gap without an Advanced certificate, phase 3 step 5
    is required for modelspec.dev. Otherwise it is insurance.
 
-### Phase 7. Freeze and move the ledger (A, admin secret; reversible until phase 8)
-
-Run this immediately before phase 8, in the quietest hour. Credit operations
-answer 503 from step 1 until phase 8 finishes.
+### Phase 7. Prove the route token (A, migration token)
 
 ```bash
-H='authorization: Bearer '"$LEDGER_ADMIN_SECRET"
-curl -sS -X POST https://api.modelspec.dev/internal/ledger/export -H "$H" > ~/cf-move/ledger.json
-jq '{state, digest}' ~/cf-move/ledger.json | curl -sS -X POST \
-  https://modelspec-rank.<sub>.workers.dev/internal/ledger/import -H "$H" \
-  -H 'content-type: application/json' --data-binary @-
+CF_API_TOKEN=… python3 scripts/cf_move.py attach-routes --account <new> --zone modelspec.dev --probe
 ```
 
-1. The export must answer `role: sealed`, and the import `role: live`, with
-   the same `digest` and `holders`. Post the holder count on MODEL-441. That
-   is the number of balances that moved. The export released any reservation
-   held by a request in flight, so those requests failed with 503 and were not
-   charged.
-2. `GET /internal/ledger/status`: the old Worker says `sealed` and the new one
-   `live`, with equal `digest`.
-3. Call nothing on the new workers.dev host until phase 8. Keep
-   `~/cf-move/ledger.json` (mode 0600) until phase 10.
+It creates a throwaway route with no Worker on the Pending zone and deletes
+it at once. Only `probe ok` lets phase 8 start. Without it, phase 8 would
+leave `api.modelspec.dev` without its Workers after the irreversible move.
 
-Rollback, before phase 8 only. Always seal the new ledger before unsealing
-the old one:
+### Phase 8. Move the ledger, then modelspec.dev (J approves; the point of no return)
 
-1. `GET /internal/ledger/status` on the new Worker.
-   - `standby`: the import never landed. Go to step 3.
-   - `live`: `POST /internal/ledger/export` on it, which seals it.
-2. Compare that export's `digest` with the one in `~/cf-move/ledger.json`.
-   - Equal: the new ledger took no writes. Go to step 3.
-   - Different: the new ledger took writes, and it is now the real one.
-     `POST /internal/ledger/unseal` on the new Worker with its new digest,
-     stop the rollback, and fix forward. Never unseal the old one in this
-     case.
-3. `POST /internal/ledger/unseal` on the old Worker with
-   `{"digest": "<digest from ledger.json>"}`.
-
-### Phase 8. Move modelspec.dev (J approves; the point of no return)
-
-Pre-flight (A posts the evidence on MODEL-441 before J approves): the new
-Workers pass smoke on workers.dev; the ledger has moved (phase 7); the last ACCESS
-merge ran minutes ago with 0 conflicts; `zone-diff` is clean; the Advanced certificate is waiting
-for deployment; Email Routing destinations are verified; Pages custom domains
-are pending; the rehearsal showed no unexplained gap.
+Pre-flight (A posts the evidence on MODEL-441 before step 2): the new Workers
+pass smoke on workers.dev; the new ledger is `standby`; `zone-diff` is clean;
+the route probe passed; the Advanced certificate is waiting for deployment;
+Email Routing destinations are verified; Pages custom domains are pending; the
+rehearsal showed no unexplained gap. Run steps 2 to 5 in the quietest hour,
+with Jamie ready to approve at once: credit operations answer 503 from step 2
+until the zone is active.
 
 1. A starts probes on `https://api.modelspec.dev/v1/health`, `https://modelspec.dev/`
    and `https://api.modelspec.dev/mcp`, and starts the route watcher with the
@@ -345,28 +338,67 @@ are pending; the rehearsal showed no unexplained gap.
      --route 'api.modelspec.dev/.well-known/mcp/server-card.json=modelspec-mcp'
    ```
 
-2. **J** requests the move and approves it.
-3. Unset `CF_ROUTES` in environment `cloudflare-modelspec` straight away.
+2. Export the old ledger. That seals it, and releases any hold a request left
+   in flight (those requests fail with 503 and are not charged). From here on
+   the old Worker refuses billing writes before they touch KV, and Stripe
+   retries its webhooks. Run no key script (`scripts/issue_api_key.py`,
+   `scripts/revoke_api_key.py`) until step 7: they write KV directly.
+
+   ```bash
+   H='authorization: Bearer '"$LEDGER_ADMIN_SECRET"
+   NEW=https://modelspec-rank.<sub>.workers.dev
+   curl -sS -X POST https://api.modelspec.dev/internal/ledger/export -H "$H" > ~/cf-move/ledger.json
+   ```
+
+3. Wait 60 seconds for KV to settle, then run the final ACCESS merge. Both
+   ledgers are frozen, so no Worker writes key records on either side:
+
+   ```bash
+   python3 scripts/cf_move.py kv-merge --base ~/cf-move/access-base.json --src-account <old> \
+     --src-namespace ef86b7ce138d4891b3eb630cdd2ba4e5 --dst-account <new> --dst-namespace <new ACCESS> \
+     --dst-worker $NEW --apply
+   ```
+
+   Re-run it until it reports `0 put, 0 delete`. Resolve each conflict key by
+   hand, and read both sides first.
+4. Import the ledger into the new Worker:
+
+   ```bash
+   jq '{state, digest, generation}' ~/cf-move/ledger.json | curl -sS -X POST "$NEW/internal/ledger/import" \
+     -H "$H" -H 'content-type: application/json' --data-binary @-
+   ```
+
+   The export said `role: sealed` and the import says `role: live`, with the
+   same `digest` and `holders`. Post the holder count on MODEL-441. That is
+   the number of balances that moved. Call nothing else on `$NEW`.
+5. **J** requests the move and approves it.
+6. Unset `CF_ROUTES` in environment `cloudflare-modelspec` straight away.
    Wrangler replaces a Worker's whole route set on deploy, so a dispatch with
    `CF_ROUTES=off` would now remove the live routes. The 6-hourly scheduled
    `rank-api.yml` run still targets the old account until phase 9. It fails
    there, because the zone has left the old account, and that failure is
    expected.
-4. When the zone is Active: `GET https://api.modelspec.dev/internal/ledger/status`
+7. When the zone is Active: `GET https://api.modelspec.dev/internal/ledger/status`
    with the admin secret must show `role: live`, which means the new Worker
-   answered. Run decide, rank, policy-check, MCP and `/v1/credits`
-   smoke against `api.modelspec.dev`, and load `/decide/` in a browser.
-5. Once the old `modelspec-rank` has had no requests for 2 minutes, wait 60
-   seconds more for KV to settle, then run the ACCESS merge from the base:
+   answered. Run decide, rank, policy-check, MCP and `/v1/credits` smoke
+   against `api.modelspec.dev`, and load `/decide/` in a browser.
+8. Send a test email to `sales@modelspec.dev`.
 
-   ```bash
-   python3 scripts/cf_move.py kv-merge --base ~/cf-move/access-base.json --src-account <old> \
-     --src-namespace ef86b7ce138d4891b3eb630cdd2ba4e5 --dst-account <new> --dst-namespace <new ACCESS> --apply
-   ```
+Rollback, before step 5 only. Always seal the new ledger before unsealing the
+old one:
 
-   Re-run it until it reports `0 put, 0 delete`. Resolve each conflict key by
-   hand, and read both sides first.
-6. Send a test email to `sales@modelspec.dev`.
+1. `GET $NEW/internal/ledger/status`.
+   - `standby`: the import never landed. Go to step 3.
+   - `live`: `POST $NEW/internal/ledger/export`, which seals it.
+2. Compare that export's `digest` with the one in `~/cf-move/ledger.json`.
+   - Equal: the new ledger took no writes. Go to step 3.
+   - Different: the new ledger took writes, and it is now the real one.
+     `POST $NEW/internal/ledger/unseal` with its new digest, stop the
+     rollback, and fix forward. Never unseal the old one in this case.
+3. `POST https://api.modelspec.dev/internal/ledger/unseal` with
+   `{"digest": "<digest from ledger.json>"}`. The old ledger serves again.
+
+The KV merge needs no undo: the old namespace was only read.
 
 ### Phase 9. Point main at the new account (J switches secrets, A writes PR-B)
 
@@ -417,7 +449,8 @@ next staging deploy provisions staging's KV in the new account.
 | -- | -- |
 | Phases 0 to 5 | Nothing in production changed. Delete the new account's resources, or leave them. |
 | Phase 6 | benchgraph.dev cannot move back for 30 days. Fix forward in the new account. Nothing else has moved. |
-| Phase 7 | Seal the new ledger and unseal the old one (phase 7 rollback). |
+| Phase 7 | Nothing to undo: the probe route is deleted at once. |
+| Phase 8, before step 5 | Seal the new ledger, check it took no writes, unseal the old one (phase 8 rollback). |
 | Phase 8 approval | No move back for 30 days. Fix forward: `wrangler rollback` the new Workers, re-run the KV merge, redeploy Pages. The old account cannot serve the zone again. |
 | Phase 9 | Revert PR-B and restore the old secrets only to recover CI. Production stays in the new account. |
 
@@ -433,13 +466,11 @@ next staging deploy provisions staging's KV in the new account.
 
 - Cloudflare does not document how traffic switches at a Registrar
   inter-account move. The benchgraph.dev rehearsal is the measurement.
-- A key issued or rotated between the phase 4 copy and the phase 8 merge
-  answers 401 on the new Worker until the merge runs.
-- Credit operations answer 503 from the phase 7 export until phase 8
-  finishes, which is minutes when the registrar move is approved straight
+- Credit operations answer 503 from the phase 8 export until the zone is
+  active, which is minutes when the registrar move is approved straight
   away. Keyed and paid API calls fail during that time, Stripe retries its
   webhooks, and the free decide page is unaffected.
-- After settlement, an x402 payment whose credit hits an unavailable ledger
-  is handled as an unbound ledger is today. A one-shot payer is still served.
-  A pack buyer gets a 503 naming the settlement, and the credit is
-  reconciled by hand from the Worker log's settlement record.
+- A pack bought through x402 whose ledger freezes between settlement and the
+  credit gets a 503 naming the settlement, and the credit is reconciled by
+  hand from the Worker log's settlement record. A one-shot is credited and
+  spent in one step, so it is either served normally or served unrecorded.

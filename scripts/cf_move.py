@@ -359,6 +359,7 @@ def attach_routes(
     request: Request = urllib_request,
     *,
     wait_active: bool = False,
+    probe: bool = False,
     poll_seconds: float = 1.0,
     timeout_seconds: float = 0,
     sleep: Callable[[float], None] = time.sleep,
@@ -374,11 +375,18 @@ def attach_routes(
     zone_path = f"/zones/{zones[0]['id']}"
     status = zones[0].get("status")
     deadline = clock() + timeout_seconds if timeout_seconds else None
-    while wait_active and status != "active":
+    while wait_active and not probe and status != "active":
         if deadline is not None and clock() >= deadline:
             raise CFError(f"zone {zone_name} is still {status}")
         sleep(poll_seconds)
         status = api.result(zone_path).get("status")
+    if probe:
+        # Proves the token can write routes on this zone before anything
+        # depends on it: a throwaway route with no Worker, deleted at once.
+        made = api.json("POST", f"{zone_path}/workers/routes",
+                        {"pattern": f"{zone_name}/__cf-move-probe-{int(clock() * 1000)}*"})
+        api.json("DELETE", f"{zone_path}/workers/routes/{made['result']['id']}")
+        return [f"probe ok: this token can write routes on {zone_name} ({status})"]
     if status != "active":
         raise CFError(f"zone {zone_name} is {status}; routes need an active zone")
     # https://developers.cloudflare.com/api/resources/workers/subresources/routes/methods/create/
@@ -432,21 +440,24 @@ VOLATILE_FIELDS = (
 )
 # Lists under these keys run in order (ruleset rules), so their order is kept.
 ORDERED_LISTS = ("rules",)
+# Inside these, an `id` or `version` is what runs (the managed ruleset a rule
+# executes, and its version), not an identity, so nothing below them is dropped.
+SEMANTIC_SUBTREES = ("action_parameters",)
 
 
 def _canon(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def _strip(value: object, ordered: bool = False) -> object:
+def _strip(value: object, ordered: bool = False, keep: bool = False) -> object:
     if isinstance(value, dict):
         return {
-            k: _strip(v, k in ORDERED_LISTS)
+            k: _strip(v, k in ORDERED_LISTS, keep or k in SEMANTIC_SUBTREES)
             for k, v in sorted(value.items())
-            if k not in VOLATILE_FIELDS
+            if keep or k not in VOLATILE_FIELDS
         }
     if isinstance(value, list):
-        items = [_strip(v) for v in value]
+        items = [_strip(v, keep=keep) for v in value]
         return items if ordered else sorted(items, key=_canon)
     return value
 
@@ -529,9 +540,33 @@ def _cmd_kv_snapshot(args: argparse.Namespace) -> int:
     return 0
 
 
+def destination_frozen(origin: str, secret: str, request: Request = urllib_request) -> str:
+    """The destination Worker's ledger role, which must not be `live` while
+    the merge writes (MODEL-441). A frozen ledger makes the Worker refuse every
+    write to key records, so the destination snapshot cannot go stale between
+    the read and the write. Raises UsageError otherwise."""
+    status, raw = request("GET", origin.rstrip("/") + "/internal/ledger/status",
+                          {"Authorization": f"Bearer {secret}"}, None)
+    role = ""
+    if status == 200:
+        try:
+            role = str(json.loads(raw).get("role") or "")
+        except ValueError:
+            role = ""
+    if role not in ("standby", "sealed"):
+        raise UsageError(
+            f"the destination ledger at {origin} is not frozen (HTTP {status}, role {role or '?'}): "
+            "its Worker may write key records, so a merge could overwrite them")
+    return role
+
+
 def _cmd_kv_merge(args: argparse.Namespace) -> int:
     save_src = check_out_path(args.save_src) if args.save_src else None
     src_token, dst_token = _token("CF_SRC_API_TOKEN"), _token("CF_DST_API_TOKEN")
+    if args.apply:
+        if not args.dst_worker:
+            raise UsageError("--apply needs --dst-worker, the destination Worker's origin")
+        destination_frozen(args.dst_worker, _token("LEDGER_ADMIN_SECRET"), urllib_request)
     if args.base in EMPTY_BASE:
         base: dict[str, Entry] = {}
     else:
@@ -552,6 +587,7 @@ def _cmd_kv_merge(args: argparse.Namespace) -> int:
     print(("apply: " if args.apply else "dry run: ") + "\n".join(summarize(plan)))
     if args.apply:
         failed = dst_client.apply(plan)
+        destination_frozen(args.dst_worker, _token("LEDGER_ADMIN_SECRET"), urllib_request)
         if failed:
             print("\n".join(f"unwritten {k}" for k in failed), file=sys.stderr)
             return 2
@@ -576,10 +612,13 @@ def _cmd_zone_diff(args: argparse.Namespace) -> int:
 
 
 def _cmd_attach_routes(args: argparse.Namespace) -> int:
-    routes = [parse_route(spec) for spec in args.route]
+    routes = [parse_route(spec) for spec in args.route or []]
+    if not routes and not args.probe:
+        raise UsageError("give at least one --route, or --probe")
     for line in attach_routes(
         args.account, args.zone, routes, _token("CF_API_TOKEN"), urllib_request,
-        wait_active=args.wait_active, poll_seconds=args.poll, timeout_seconds=args.timeout,
+        wait_active=args.wait_active, probe=args.probe, poll_seconds=args.poll,
+        timeout_seconds=args.timeout,
     ):
         print(line)
     return 0
@@ -607,6 +646,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-prefix", action="append", help="key prefix to leave alone (default: count:)"
     )
     merge.add_argument("--apply", action="store_true", help="write; default is a dry run")
+    merge.add_argument(
+        "--dst-worker",
+        help="destination Worker origin; with --apply its ledger must be frozen (LEDGER_ADMIN_SECRET)")
     merge.add_argument("--now", type=int, help="epoch seconds; default: now")
     merge.add_argument(
         "--save-src", type=Path, help="write the source snapshot this merge used (the next base)"
@@ -629,7 +671,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     attach.add_argument("--account", required=True)
     attach.add_argument("--zone", required=True)
-    attach.add_argument("--route", action="append", required=True, help="PATTERN=SCRIPT")
+    attach.add_argument("--route", action="append", help="PATTERN=SCRIPT")
+    attach.add_argument("--probe", action="store_true",
+                        help="only prove this token can write routes on the zone")
     attach.add_argument("--wait-active", action="store_true", help="poll until the zone is active")
     attach.add_argument("--poll", type=float, default=1.0, help="seconds between polls")
     attach.add_argument("--timeout", type=float, default=0, help="seconds; 0 waits forever")

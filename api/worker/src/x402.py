@@ -740,9 +740,16 @@ async def _settle_and_credit(
         "payer:" + _norm_addr(str(_authorization(payload).get("from") or "unknown")))
     expires_at = pack_expires_at(now or datetime.now(UTC), pack_expiry_days)
     try:
-        result = await ledger.credit(
-            credit_holder, pid, bought_units, settled.transaction,
-            expires_at=expires_at, source="x402")
+        if holder is None:
+            # One step for a one-shot, so a freeze cannot fall between the
+            # credit and the spend (MODEL-441).
+            result = await ledger.spend_paid(
+                credit_holder, pid, bought_units, settled.transaction,
+                expires_at=expires_at)
+        else:
+            result = await ledger.credit(
+                credit_holder, pid, bought_units, settled.transaction,
+                expires_at=expires_at, source="x402")
     except (credits.StoreNotConfigured, credits.LedgerUnavailable):
         # After settlement: the payer has paid, so a one-shot is still served.
         if holder is None:
@@ -770,9 +777,6 @@ async def _settle_and_credit(
             amount_usd=amount, ref=str(settled.transaction or ""))
 
     if holder is None:
-        burned = await ledger.reserve(credit_holder, bought_units)
-        if burned.ok and burned.reservation_id is not None:
-            await ledger.commit(credit_holder, burned.reservation_id)
         log.note("oneshot")
         return None, {}, True
 

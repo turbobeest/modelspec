@@ -400,6 +400,7 @@ jobs:
           CF_KV_ACCESS: ${{ vars.CF_KV_ACCESS }}
           CF_KV_DETERMINATIONS: ${{ vars.CF_KV_DETERMINATIONS }}
           CF_ENVIRONMENT: ${{ inputs.cloudflare_environment || 'production' }}
+          CF_TARGET_ACCOUNT_ID: ${{ vars.CF_TARGET_ACCOUNT_ID }}
           CF_WORKERS_DEV: ${{ vars.CF_WORKERS_DEV }}
           CF_ROUTES: ${{ vars.CF_ROUTES }}
           CF_LEDGER_STANDBY: ${{ vars.CF_LEDGER_STANDBY }}

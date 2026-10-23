@@ -16,9 +16,13 @@ the job's GitHub environment:
                          credit ledger refuses calls until it is handed over
 
 Unset or empty variables leave the committed value. Staging is never touched.
-CF_ROUTES and CF_LEDGER_STANDBY belong to the new account's environment only:
-with CF_ENVIRONMENT=production they stop the deploy, because on the serving
-Worker they would drop the live routes or freeze the live ledger.
+CF_ROUTES, CF_LEDGER_STANDBY and CF_WORKERS_DEV belong to the new account only:
+on the serving Worker they would drop the live routes, freeze the live ledger
+or expose it on workers.dev. So they stop the deploy unless the job targets
+another account, named twice: by CLOUDFLARE_ACCOUNT_ID, which differs from the
+committed account, and by CF_TARGET_ACCOUNT_ID, a variable of the new
+account's environment. A missing environment secret falls back to the
+repository's, which names the serving account and so fails this check.
 """
 from __future__ import annotations
 
@@ -34,17 +38,23 @@ from pipeline.worker_flags import parse_jsonc  # noqa: E402
 HEX_ID = re.compile(r"[0-9a-f]{32}")
 
 
-TRANSITION_ONLY = ("CF_ROUTES", "CF_LEDGER_STANDBY")
+TRANSITION_ONLY = ("CF_ROUTES", "CF_LEDGER_STANDBY", "CF_WORKERS_DEV")
 
 
 def retarget(text: str, environ: dict[str, str]) -> tuple[str, list[str]]:
     config = parse_jsonc(text)
     changes: list[str] = []
-    if (environ.get("CF_ENVIRONMENT") or "production") == "production":
-        for name in TRANSITION_ONLY:
-            if (environ.get(name) or "").strip():
-                raise ValueError(f"{name} is set for the production environment")
     account = (environ.get("CLOUDFLARE_ACCOUNT_ID") or "").strip()
+    transition = [n for n in TRANSITION_ONLY if (environ.get(n) or "").strip()]
+    if transition:
+        name = transition[0]
+        if (environ.get("CF_ENVIRONMENT") or "production") == "production":
+            raise ValueError(f"{name} is set for the production environment")
+        target = (environ.get("CF_TARGET_ACCOUNT_ID") or "").strip()
+        if not account or account == config.get("account_id"):
+            raise ValueError(f"{name} needs a CLOUDFLARE_ACCOUNT_ID other than the serving account")
+        if account != target:
+            raise ValueError(f"{name} needs CF_TARGET_ACCOUNT_ID to name the same account")
     if account and account != config.get("account_id"):
         if not HEX_ID.fullmatch(account):
             raise ValueError("CLOUDFLARE_ACCOUNT_ID is not a 32-hex account id")

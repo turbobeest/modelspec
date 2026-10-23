@@ -121,10 +121,13 @@ def _frozen(env):
     return False
 
 
+def _copy(exported):
+    return {k: exported[k] for k in ("state", "digest", "generation")}
+
+
 def _move(old, new):
     exported = _admin(old, "export")[1]
-    return exported, _admin(new, "import", {"state": exported["state"],
-                                             "digest": exported["digest"]})
+    return exported, _admin(new, "import", _copy(exported))
 
 
 def test_every_balance_arrives_and_the_old_ledger_freezes():
@@ -263,3 +266,160 @@ def test_a_request_in_flight_at_the_export_is_not_charged_and_strands_nothing():
         raise AssertionError("a frozen ledger must refuse the commit")
     assert run(_ledger(new).balance("key:a")).reserved == 0
     assert _balance(new) == 10
+
+
+# ── Codex review REV-895: the freeze holds on every path ─────────────────────
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import access_config  # noqa: E402
+import access_keys  # noqa: E402
+import billing  # noqa: E402
+import test_billing as tb  # noqa: E402
+from access_kv import MemoryKV  # noqa: E402
+
+
+def _webhook(kv, policy, body, ledger):
+    return run(tb.apply(kv, policy, body, ledger=ledger))
+
+
+def test_a_standby_ledger_that_already_holds_balances_refuses_a_copy():
+    old, new = Env(), Env()
+    _credit(old, "pack:cs_1", 5)
+    _credit(new, "pack:cs_9", 777)
+    new.LEDGER_STANDBY = "true"
+    exported = _admin(old, "export")[1]
+
+    status, body = _admin(new, "import", {"state": exported["state"], "digest": exported["digest"]})
+
+    assert (status, body["error"]["code"]) == (409, "import_refused")
+    new.LEDGER_STANDBY = ""
+    assert _balance(new) == 777
+
+
+def test_a_webhook_during_the_freeze_writes_nothing_and_is_not_remembered():
+    policy = access_config.load_policy()
+    kv = MemoryKV()
+    frozen = Env()
+    _admin(frozen, "export")
+    body = tb.payload("checkout.session.completed", tb.checkout_obj(), "evt_frozen_1")
+
+    outcome = _webhook(kv, policy, body, _ledger(frozen))
+
+    assert outcome.status == 503
+    assert kv.data == {}
+
+
+def test_a_cancellation_during_the_freeze_keeps_the_key_and_its_subscription():
+    policy = access_config.load_policy()
+    kv = MemoryKV()
+    env = Env()
+    _webhook(kv, policy, tb.payload("checkout.session.completed", tb.checkout_obj(), "evt_c1"),
+             _ledger(env))
+    key = run(billing.claim(session_id=tb.SESSION, kv=kv, policy=policy, now=tb.T0,
+                            service_commit=tb.COMMIT, ledger=_ledger(env))).body["key"]
+    before = dict(kv.data)
+    _admin(env, "export")
+    cancel = tb.payload("customer.subscription.deleted",
+                        {"id": tb.SUB, "object": "subscription", "customer": tb.CUS,
+                         "status": "canceled"}, "evt_c2")
+
+    outcome = _webhook(kv, policy, cancel, _ledger(env))
+
+    assert outcome.status == 503
+    assert kv.data == before
+    assert tb.serve(key, kv, policy).tier == "paid"
+
+
+def test_claim_and_rotate_during_the_freeze_write_nothing():
+    policy = access_config.load_policy()
+    kv = MemoryKV()
+    env = Env()
+    _webhook(kv, policy, tb.payload("checkout.session.completed", tb.checkout_obj(), "evt_r1"),
+             _ledger(env))
+    key = run(billing.claim(session_id=tb.SESSION, kv=kv, policy=policy, now=tb.T0,
+                            service_commit=tb.COMMIT, ledger=_ledger(env))).body["key"]
+    _admin(env, "export")
+    before = dict(kv.data)
+
+    rotated = run(billing.rotate(api_key=key, kv=kv, policy=policy, now=tb.T0,
+                                 service_commit=tb.COMMIT, ledger=_ledger(env)))
+    claimed = run(billing.claim(session_id="cs_other", kv=kv, policy=policy, now=tb.T0,
+                                service_commit=tb.COMMIT, ledger=_ledger(env)))
+
+    assert (rotated.status, claimed.status) == (503, 503)
+    assert kv.data == before
+    assert run(access_keys.lookup(kv, key)).active is True
+
+
+def test_a_one_shot_payment_is_credited_and_spent_in_one_step():
+    env = Env()
+
+    result = run(_ledger(env).spend_paid("payer:0xabc", "x402:n1", 1, "0xtx"))
+    _admin(env, "export")
+
+    assert result.credited is True
+    assert run(env.CREDITS.obj.move_status())["holders"] == 1
+    state = credits.LedgerState.from_json(json.loads(env.CREDITS.obj._get("state")))
+    assert state.balance("payer:0xabc").available == 0
+    assert state.seen("x402:n1") is True
+
+
+
+def test_after_a_rollback_the_move_can_be_tried_again_with_the_later_balances():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 5)
+    first, _ = _move(old, new)
+    resealed = _admin(new, "export")[1]
+    _admin(old, "unseal", {"digest": first["digest"]})
+    assert resealed["digest"] == first["digest"]
+    _credit(old, "pack:cs_2", 2)
+
+    again, (status, imported) = _move(old, new)
+
+    assert status == 200 and imported["role"] == "live"
+    assert imported["digest"] == again["digest"] != first["digest"]
+    assert _balance(new) == 7
+
+
+def test_a_destination_that_took_writes_after_its_import_never_takes_another_copy():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 5)
+    _move(old, new)
+    _credit(new, "pack:cs_9", 1)
+    _admin(new, "export")
+    other = Env()
+    _credit(other, "pack:cs_3", 3)
+    exported = _admin(other, "export")[1]
+
+    status, body = _admin(new, "import", {"state": exported["state"], "digest": exported["digest"]})
+
+    assert (status, body["error"]["code"]) == (409, "import_refused")
+
+
+
+def test_a_stale_copy_replayed_after_a_rollback_never_makes_a_second_live_ledger():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 5)
+    stale, _ = _move(old, new)
+    _admin(new, "export")
+    _admin(old, "unseal", {"digest": stale["digest"]})
+
+    status, body = _admin(new, "import", _copy(stale))
+
+    assert (status, body["error"]["code"]) == (409, "import_refused")
+    assert _frozen(new)
+    assert _balance(old) == 5
+
+
+def test_an_unchanged_ledger_exported_again_after_a_rollback_still_moves():
+    old, new = Env(), Env(standby=True)
+    _credit(old, "pack:cs_1", 5)
+    first, _ = _move(old, new)
+    _admin(new, "export")
+    _admin(old, "unseal", {"digest": first["digest"]})
+
+    again, (status, imported) = _move(old, new)
+
+    assert again["digest"] == first["digest"] and again["generation"] != first["generation"]
+    assert (status, imported["role"]) == (200, "live")
+    assert _balance(new) == 5
