@@ -1,0 +1,49 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_failed_recheck_is_an_attempt_and_preserves_verified_value[unreachable] __
+.github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    assert log.path.read_bytes() == before
+E   assert b'{"target":{...diff":null}\n' == b'{"target":{...diff":null}\n'
+E     
+E     Use -v to get more diff
+___ test_failed_recheck_is_an_attempt_and_preserves_verified_value[mismatch] ___
+.github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    assert log.path.read_bytes() == before
+E   assert b'{"target":{...\"40\\"}]"}\n' == b'{"target":{...diff":null}\n'
+E     
+E     Use -v to get more diff
+_ test_failed_recheck_is_an_attempt_and_preserves_verified_value[reader_error] _
+.github/scripts/tests/test_rendered_reread.py:752: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    (tmp_path / "verification/rendered-reread-attempts.jsonl").read_text().splitlines()]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-229/test_failed_recheck_is_an_atte2/verification/rendered-reread-attempts.jsonl'
+_ test_failed_recheck_is_an_attempt_and_preserves_verified_value[missing_value] _
+.github/scripts/tests/test_rendered_reread.py:748: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    assert log.path.read_bytes() == before
+E   assert b'{"target":{...": null}]"}\n' == b'{"target":{...diff":null}\n'
+E     
+E     Use -v to get more diff
+____ test_failed_recheck_is_an_attempt_and_preserves_verified_value[cited] _____
+.github/scripts/tests/test_rendered_reread.py:752: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    (tmp_path / "verification/rendered-reread-attempts.jsonl").read_text().splitlines()]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-229/test_failed_recheck_is_an_atte4/verification/rendered-reread-attempts.jsonl'
+=========================== short test summary info ============================
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[unreachable]
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[mismatch]
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[reader_error]
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[missing_value]
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[cited]
+5 failed, 48 deselected in 0.51s

@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____________ test_skipped_recheck_does_not_queue_its_failed_copy ______________
+.github/scripts/tests/test_rendered_reread.py:400: in test_skipped_recheck_does_not_queue_its_failed_copy
+    assert queue.pending() == ([], [])
+E   AssertionError: assert ([Claim(targe...el=None)], []) == ([], [])
+E     
+E     At index 0 diff: [Claim(target=TargetRef(kind='fact', id='fixture#context'), subject='openai/gpt-6-sol', names=('GPT-6 Sol',), field='model.context_window', value=400000, collector=VerificationActor(agent='fixture-collector', model_family='openai', method='fixture@1'), sources=(SourceRef(source_id='s00', snapshot_ref='sha256:d97aaa6fa4fd08c74ca431d47de2ce08fbe338162b707229e9e4ceb85ab12eae', cited_regions=['page'], retrieved_at=None, resolved_urls=[]),), unit='tokens', label='context window', conditions={}, base_model=None)] != []
+E     Use -v to get more diff
+_ test_failed_recheck_is_an_attempt_and_preserves_verified_value[reader_error] _
+.github/scripts/tests/test_rendered_reread.py:761: in test_failed_recheck_is_an_attempt_and_preserves_verified_value
+    assert verify.Queue(tmp_path / "verification").pending() == ([], [])
+E   AssertionError: assert ([Claim(targe...el=None)], []) == ([], [])
+E     
+E     At index 0 diff: [Claim(target=TargetRef(kind='fact', id='fixture#price'), subject='provider/subscription/pro', names=('Pro',), field='offering.subscription.price', value=20, collector=VerificationActor(agent='fixture-collector', model_family='openai', method='fixture@1'), sources=(SourceRef(source_id='s00', snapshot_ref='sha256:34d6f7b11ef0a044bbf8c9be49e815e89d748082eb3d274b0ea426922cb72095', cited_regions=['page'], retrieved_at=None, resolved_urls=[]),), unit='usd_per_billing_period', label=None, conditions={}, base_model=None)] != []
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED .github/scripts/tests/test_rendered_reread.py::test_skipped_recheck_does_not_queue_its_failed_copy
+FAILED .github/scripts/tests/test_rendered_reread.py::test_failed_recheck_is_an_attempt_and_preserves_verified_value[reader_error]
+2 failed, 56 deselected in 0.51s

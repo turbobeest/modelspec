@@ -1,0 +1,18 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_interrupted_recheck_does_not_queue_a_failed_copy _____________
+.github/scripts/tests/test_rendered_reread.py:813: in test_interrupted_recheck_does_not_queue_a_failed_copy
+    assert queue.path.read_bytes() == before
+E   assert b'{"at": "202...": "fact"}}\n' == b'{"at": "202...": "fact"}}\n'
+E     
+E     Use -v to get more diff
+__________ test_pending_incomplete_recheck_never_restores_failed_copy __________
+.github/scripts/tests/test_rendered_reread_workflow.py:344: in test_pending_incomplete_recheck_never_restores_failed_copy
+    assert restored.path.read_bytes() == original
+E   assert b'{"at": "202...": "fact"}}\n' == b'{"at": "202...": "fact"}}\n'
+E     
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED .github/scripts/tests/test_rendered_reread.py::test_interrupted_recheck_does_not_queue_a_failed_copy
+FAILED .github/scripts/tests/test_rendered_reread_workflow.py::test_pending_incomplete_recheck_never_restores_failed_copy
+2 failed, 71 deselected in 20.45s

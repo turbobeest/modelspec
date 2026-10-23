@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________________ test_state_restore_reads_only_allowlisted_data ________________
+.github/scripts/tests/test_rendered_reread_workflow.py:96: in test_state_restore_reads_only_allowlisted_data
+    assert path in restore
+E   AssertionError: assert 'verification/rendered-reread-attempts.jsonl' in 'set -euo pipefail\nbranch=refs/heads/data/weekly-rendered-reread\nref=refs/remotes/origin/weekly-rendered-reread-stat...ate.json\nverification/log.jsonl\nverification/queue/events.jsonl\ndocs/evidence/g2-ios/MODEL-336-reread.json\nPATHS\n'
+__________ test_pending_failed_verification_restores_as_attempt_only ___________
+.github/scripts/tests/test_rendered_reread_workflow.py:316: in test_pending_failed_verification_restores_as_attempt_only
+    assert (checkout / "verification/log.jsonl").read_bytes() == original.encode()
+E   assert b'{"target": ...reachable"}\n' == b'{"target": ..."verified"}\n'
+E     
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED .github/scripts/tests/test_rendered_reread_workflow.py::test_state_restore_reads_only_allowlisted_data
+FAILED .github/scripts/tests/test_rendered_reread_workflow.py::test_pending_failed_verification_restores_as_attempt_only
+2 failed, 11 deselected in 12.37s

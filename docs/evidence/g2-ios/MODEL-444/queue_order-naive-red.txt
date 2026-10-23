@@ -1,0 +1,40 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______________ test_queue_treats_legacy_naive_event_times_as_utc _______________
+
+store = <decision.sources.CopyStore object at 0x10758b620>
+log = <decision.verify.VerificationLog object at 0x10758b8c0>
+
+    def test_queue_treats_legacy_naive_event_times_as_utc(store, log) -> None:
+        queue = verify.Queue(log.directory)
+        old = _claim(SPEC["claims"][0], store)
+        current = replace(old, value=123)
+        queue.file(current, at=datetime.fromisoformat("2026-10-19T23:30:00-04:00"))
+        queue.file(old, at=datetime(2026, 10, 20, 2))
+    
+>       assert queue.pending() == ([current], [])
+               ^^^^^^^^^^^^^^^
+
+tests/test_decision_verify.py:2266: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+decision/verify.py:7018: in pending
+    for key, entry in self._state().items():
+                      ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <decision.verify.Queue object at 0x10758ba10>
+
+    def _state(self) -> dict[tuple[str, str], _Pending]:
+        state: dict[tuple[str, str], _Pending] = {}
+        if not self.path.is_file():
+            return state
+        events = [json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines()
+                  if line.strip()]
+        # Appended history can predate current state; equal instants keep line order.
+>       events.sort(key=lambda event: datetime.fromisoformat(event["at"]))
+E       TypeError: can't compare offset-naive and offset-aware datetimes
+
+decision/verify.py:6999: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_decision_verify.py::test_queue_treats_legacy_naive_event_times_as_utc
+1 failed, 400 deselected in 0.81s
