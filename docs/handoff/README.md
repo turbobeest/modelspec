@@ -59,16 +59,25 @@ Learned expensively during 2026-09-09/10.
 
 ## Pytest CI shards
 
-The required `Run pytest` check aggregates four file-level jobs. The splitter
-uses stable longest-processing-time packing with the measured per-file weights
-in `tests/shard_durations.json`. It never divides a module because several
-modules share process-wide fixtures. The splitter estimates a new file from its
-byte-size share of the measured suite. Inspect the predicted balance after
-adding tests with:
+The required `Run pytest` check aggregates eight file-level jobs. Private
+serving, social cards, agent readiness and landing each run alone and serially.
+Four other jobs use stable longest-processing-time packing with the measured
+per-file weights in `tests/shard_durations.json`. They keep the longest files
+first with xdist's `--no-loadscope-reorder`, preserving each module's fixtures.
+The splitter estimates a new file from its byte-size share of the measured
+suite. Inspect the predicted balance after adding tests with:
 
 ```bash
-python scripts/pytest_shards.py --shard-count 4 --summary
+python scripts/pytest_shards.py --shard-count 8 \
+  --isolate tests/test_private_serving.py \
+  --isolate tests/test_social_cards.py \
+  --isolate tests/test_agent_ready.py \
+  --isolate tests/test_landing.py --summary
 ```
+
+The summary reports summed testcase seconds, not predicted wall time. Each
+ordinary shard uses four workers, while isolated shards have one process.
+Every shard logs its 25 slowest test phases and has an 80-minute timeout.
 
 The workflow compares the combined shard node IDs with an unsharded
 `pytest --collect-only -q -m "not perf"` collection. The required check fails

@@ -12,7 +12,7 @@ import tomllib
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
-DEFAULT_SHARD_COUNT = 4
+DEFAULT_SHARD_COUNT = 8
 DEFAULT_DURATIONS_PATH = Path("tests/shard_durations.json")
 DEFAULT_PYTHON_FILES = ("test_*.py", "*_test.py")
 DEFAULT_NORECURSEDIRS = (
@@ -138,24 +138,36 @@ def partition_files(
     *,
     root: Path | None = None,
     durations: dict[str, float] | None = None,
+    isolated_files: Sequence[Path] = (),
 ) -> list[list[Path]]:
-    """Use longest-processing-time packing with stable tie-breaking."""
+    """Reserve isolated shards, then pack and order remaining files by duration."""
     if shard_count < 1:
         raise ValueError("shard_count must be positive")
     paths = list(files)
+    isolated = set(isolated_files)
+    if len(isolated) != len(isolated_files) or not isolated.issubset(paths):
+        raise ValueError("isolated files must be distinct members of the test suite")
+    if len(isolated_files) >= shard_count:
+        raise ValueError("at least one shard must remain for non-isolated files")
     if root is None:
         common = Path(os.path.commonpath(paths)) if paths else Path.cwd()
         root = common if common.is_dir() else common.parent
     weights = file_weights(paths, root, durations or {})
-    shards: list[list[Path]] = [[] for _ in range(shard_count)]
+    shards = [[path] for path in isolated_files] + [
+        [] for _ in range(shard_count - len(isolated_files))
+    ]
     totals = [0.0] * shard_count
-    weighted = sorted(paths, key=lambda path: (-weights[path], path.as_posix()))
+    weighted = sorted(
+        (path for path in paths if path not in isolated),
+        key=lambda path: (-weights[path], path.as_posix()),
+    )
     for path in weighted:
-        shard_index = min(range(shard_count), key=lambda index: (totals[index], index))
+        shard_index = min(
+            range(len(isolated_files), shard_count),
+            key=lambda index: (totals[index], index),
+        )
         shards[shard_index].append(path)
         totals[shard_index] += weights[path]
-    for shard in shards:
-        shard.sort()
     return shards
 
 
@@ -163,6 +175,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard-count", type=int, default=DEFAULT_SHARD_COUNT)
     parser.add_argument("--shard-index", type=int)
+    parser.add_argument("--isolate", action="append", default=[], metavar="TEST_FILE")
     parser.add_argument("--summary", action="store_true")
     return parser
 
@@ -173,7 +186,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     files = test_files(root)
     durations = load_durations(root / DEFAULT_DURATIONS_PATH)
     weights = file_weights(files, root, durations)
-    shards = partition_files(files, args.shard_count, root=root, durations=durations)
+    try:
+        shards = partition_files(
+            files, args.shard_count, root=root, durations=durations,
+            isolated_files=[root / path for path in args.isolate],
+        )
+    except ValueError as exc:
+        _parser().error(str(exc))
     if args.summary:
         for index, shard in enumerate(shards, start=1):
             shard_seconds = sum(weights[path] for path in shard)

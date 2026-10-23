@@ -35,7 +35,7 @@ def _on_block(workflow_text: str) -> str:
 def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
 
-    assert "python -m pytest -q -n auto --dist loadfile" in workflow
+    assert "python -m pytest -q -n ${{ matrix.workers }} --dist loadfile" in workflow
     assert "continue-on-error" not in workflow
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow
@@ -117,13 +117,21 @@ def test_pytest_matrix_matches_the_file_splitter() -> None:
     workflow_text = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
     workflow = yaml.safe_load(workflow_text)
     matrix = workflow["jobs"]["pytest-shards"]["strategy"]["matrix"]["include"]
+    assert DEFAULT_SHARD_COUNT == 8
     assert len(matrix) == DEFAULT_SHARD_COUNT
     assert [entry["index"] for entry in matrix] == list(range(DEFAULT_SHARD_COUNT))
     assert [entry["label"] for entry in matrix] == [f"{i}/{DEFAULT_SHARD_COUNT}"
-                                                     for i in range(1, 5)]
+                                                     for i in range(1, DEFAULT_SHARD_COUNT + 1)]
+    assert [entry["workers"] for entry in matrix] == [0, 0, 0, 0, "auto", "auto", "auto", "auto"]
     assert f"--shard-count {DEFAULT_SHARD_COUNT}" in workflow_text
     assert "--shard-index ${{ matrix.index }}" in workflow_text
-    assert 'pytest -q -n auto --dist loadfile -m "not perf"' in workflow_text
+    assert '--isolate tests/test_private_serving.py' in workflow_text
+    assert '--isolate tests/test_social_cards.py' in workflow_text
+    assert '--isolate tests/test_agent_ready.py' in workflow_text
+    assert '--isolate tests/test_landing.py' in workflow_text
+    assert 'pytest -q -n ${{ matrix.workers }} --dist loadfile' in workflow_text
+    assert '--no-loadscope-reorder -m "not perf"' in workflow_text
+    assert '--durations=25' in workflow_text
     assert "--junitxml=shard-${{ matrix.index }}-junit.xml" in workflow_text
     shard_steps = workflow["jobs"]["pytest-shards"]["steps"]
     timing_upload = next(step for step in shard_steps
@@ -144,6 +152,123 @@ def test_timing_tests_run_serially_exactly_once() -> None:
     assert workflow_text.count("name: Run timing tests serially") == 1
     assert workflow_text.count(perf_command) == 1
     assert any(step.get("run") == perf_command for step in perf_job["steps"])
+
+
+def test_workflow_shard_selection_covers_the_suite_once() -> None:
+    import shlex
+    import subprocess
+    import sys
+
+    import yaml
+
+    from scripts.pytest_shards import test_files
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    job = workflow["jobs"]["pytest-shards"]
+    selection = next(step["run"] for step in job["steps"]
+                     if step.get("name") == "Select test files and collect node ids")
+    command = selection.split(" > shard-files.txt", 1)[0].replace("\\\n", "")
+    shards = []
+    for entry in job["strategy"]["matrix"]["include"]:
+        argv = shlex.split(command.replace("${{ matrix.index }}", str(entry["index"])))
+        completed = subprocess.run(
+            [sys.executable, *argv[1:]], cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+        shards.append(completed.stdout.splitlines())
+    assert shards[:4] == [[f"tests/test_{name}.py"] for name in (
+        "private_serving", "social_cards", "agent_ready", "landing",
+    )]
+    assigned = [path for shard in shards for path in shard]
+    assert len(assigned) == len(set(assigned))
+    assert set(assigned) == {path.relative_to(REPO_ROOT).as_posix() for path in test_files(REPO_ROOT)}
+
+
+def test_shard_timings_cover_the_current_suite_and_browser_modules() -> None:
+    from scripts.pytest_shards import DEFAULT_DURATIONS_PATH, load_durations, test_files
+
+    durations = load_durations(REPO_ROOT / DEFAULT_DURATIONS_PATH)
+    discovered = {path.relative_to(REPO_ROOT).as_posix() for path in test_files(REPO_ROOT)}
+    measured = discovered & durations.keys()
+    assert len(measured) >= 0.95 * len(discovered), (
+        f"only {len(measured)}/{len(discovered)} test modules have measured timings"
+    )
+    browser_modules = {
+        "tests/test_rendered_interactions.py",
+        "tests/test_landing.py",
+        "tests/test_social_cards.py",
+    }
+    assert all(durations.get(path, 0) > 0 for path in browser_modules), (
+        "all browser modules need measured timings for shard balancing"
+    )
+
+
+def test_pytest_shards_have_a_bounded_job_timeout() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    timeout = workflow["jobs"]["pytest-shards"].get("timeout-minutes")
+    assert timeout == 80, (
+        "pytest shards must stop at the adopted 80-minute cap"
+    )
+
+
+@pytest.mark.parametrize("files, python_browser, node_browser, app", [
+    (["tests/test_ci_workflows.py"], False, False, False),
+    (["tests/test_rendered_interactions.py"], True, False, False),
+    (["tests/test_landing.py"], False, True, True),
+    (["tests/test_social_cards.py"], False, True, False),
+    (["tests/test_rendered_interactions.py", "tests/test_landing.py"], True, True, True),
+], ids=["no-browser", "python", "landing", "social-cards", "both"])
+def test_browser_dependencies_follow_the_selected_shard_files(
+    tmp_path: Path, files: list[str], python_browser: bool, node_browser: bool, app: bool,
+) -> None:
+    import json
+    import subprocess
+    import sys
+
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["pytest-shards"]["steps"]
+    selector = next((step for step in steps if step.get("id") == "browsers"), None)
+    assert selector is not None, "the shard must select browser dependencies before installing them"
+    (tmp_path / "shard-files.txt").write_text("\n".join(files) + "\n", encoding="utf-8")
+    (tmp_path / "web").mkdir()
+    lockfile = (REPO_ROOT / "web" / "package-lock.json").read_text(encoding="utf-8")
+    (tmp_path / "web" / "package-lock.json").write_text(lockfile, encoding="utf-8")
+    output = tmp_path / "github-output.txt"
+    completed = subprocess.run(
+        ["bash", "-e", "-o", "pipefail", "-c", selector["run"]],
+        cwd=tmp_path, env={
+            **os.environ,
+            "GITHUB_OUTPUT": str(output),
+            "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"],
+        },
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert output.is_file(), "browser selection did not publish its results"
+    selected = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert selected["python"] == str(python_browser).lower()
+    assert selected["node"] == str(node_browser).lower()
+    assert selected["app"] == str(app).lower()
+    expected_version = json.loads(lockfile)["packages"]["node_modules/playwright"]["version"]
+    assert selected["node-version"] == expected_version
+
+
+def test_only_landing_browser_tests_build_the_react_app() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["pytest-shards"]["steps"]
+    builds = [step for step in steps if "npm run build" in step.get("run", "")]
+    assert len(builds) == 1
+    assert builds[0]["if"] == "steps.browsers.outputs.app == 'true'"
+    installs = [step for step in steps if "npm ci" in step.get("run", "")]
+    assert len(installs) == 1
+    assert installs[0]["if"] == "steps.browsers.outputs.node == 'true'"
+    assert "playwright install --with-deps chromium" in installs[0]["run"]
 
 
 def test_file_splitter_uses_pytest_default_patterns_from_the_repo_root(tmp_path: Path) -> None:
@@ -260,6 +385,50 @@ def test_file_missing_from_durations_is_still_assigned(tmp_path: Path) -> None:
     )
 
     assert {path for shard in assigned for path in shard} == {known, unknown}
+
+
+def test_shard_files_start_with_the_longest_measured_module(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    files = [tmp_path / name for name in ("test_a.py", "test_b.py", "test_c.py")]
+    for path in files:
+        path.write_text("", encoding="utf-8")
+    durations = {"test_a.py": 1.0, "test_b.py": 10.0, "test_c.py": 4.0}
+
+    assert partition_files(files, 1, root=tmp_path, durations=durations) == [
+        [files[1], files[2], files[0]]
+    ]
+
+
+def test_expensive_modules_get_dedicated_shards_without_losing_other_files(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    files = [tmp_path / f"test_{index}.py" for index in range(5)]
+    for path in files:
+        path.write_text("", encoding="utf-8")
+    durations = {path.name: seconds for path, seconds in zip(files, (30, 20, 9, 5, 4))}
+    shards = partition_files(
+        files, 4, root=tmp_path, durations=durations, isolated_files=files[:2],
+    )
+
+    assert shards == [[files[0]], [files[1]], [files[2]], [files[3], files[4]]]
+    assert partition_files(
+        reversed(files), 4, root=tmp_path, durations=durations, isolated_files=files[:2],
+    ) == shards
+
+
+@pytest.mark.parametrize("isolated, count", [([0, 0], 3), ([3], 3), ([0, 1], 2)])
+def test_invalid_isolated_shards_fail_instead_of_dropping_tests(tmp_path: Path, isolated, count) -> None:
+    from scripts.pytest_shards import partition_files
+
+    files = [tmp_path / f"test_{index}.py" for index in range(3)]
+    for path in files:
+        path.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError):
+        partition_files(
+            files, count, root=tmp_path,
+            isolated_files=[tmp_path / f"test_{index}.py" for index in isolated],
+        )
 
 
 def test_junit_refresh_sums_testcases_by_file(tmp_path: Path) -> None:
