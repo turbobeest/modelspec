@@ -1,0 +1,232 @@
+# MODEL-442 CI wall time
+
+Base SHA: `7e3d8ba6c95eac6f03e438366686c5299499b6bc`.
+Final implementation SHA: `d085cd8638188cebb45de72e5d90847cd949399d`.
+The following commit records this evidence only. Its final branch-head SHA is
+reported in the executor completion line and can be resolved with `git rev-parse HEAD`.
+Worktree: `/Users/terbeest/dev/worktrees/model-442`.
+Branch: `model-442-ci-wall-time`.
+
+The base's successful Test suite run [39729025428](https://github.com/turbobeest/modelspec/actions/runs/39729025428)
+took 66m 37s. Shard 1 spent 63m 37s executing pytest and 39s installing
+Node dependencies, building the app and installing Chromium. The interaction
+module took 69.161s of summed JUnit testcase time. Browser installation was
+not the dominant cost.
+
+The committed timing file covered 121 of 342 discovered modules. Refreshing
+it from all four base-run JUnit artifacts gives 339 measured modules. The
+existing deterministic file allocator now spreads approximately 5,886 seconds
+of measured/estimated work to each shard. No allocator or discovery rules changed.
+
+| Shard | Base job wall time | Base pytest step | Base summed testcase time | New predicted summed time |
+| --- | ---: | ---: | ---: | ---: |
+| 1/4 | 66m 21s | 63m 37s | 10,574.769s | 5,885.977s |
+| 2/4 | 16m 24s | 15m 48s | 2,960.952s | 5,885.976s |
+| 3/4 | 33m 05s | 32m 26s | 6,292.768s | 5,885.976s |
+| 4/4 | 20m 38s | 19m 29s | 3,678.304s | 5,885.976s |
+
+The last column is an allocator prediction, not an observed CI wall time.
+Each job uses four xdist workers and keeps a module together. Large modules
+therefore still bound its wall time. This PR's own CI after measurement is
+**pending**. No after-CI speedup is claimed.
+
+| Other base job | Wall time | Significant steps |
+| --- | ---: | --- |
+| pytest perf and collection | 8m 39s | Serial timing tests 6m 56s; collection 1m 16s |
+| Package smoke test | 20s | Install/run built wheel 8s |
+| Run pytest | 10s | Required result gate and full/shard collection comparison |
+
+| Base shard setup step | 1/4 | 2/4 | 3/4 | 4/4 |
+| --- | ---: | ---: | ---: | ---: |
+| Checkout | 7s | 7s | 6s | 6s |
+| Python setup | 2s | 1s | 2s | 2s |
+| Pip install | 14s | 12s | 11s | 8s |
+| File selection and collection | 94s | 10s | 13s | 9s |
+| Node setup | 0s | 1s | 0s | 0s |
+| Python Playwright and Chromium | 0s | 0s | 0s | 23s |
+| Node packages, build and Chromium | 39s | 0s | 0s | 16s |
+
+The largest modules were social cards at 2,844.964s, private serving at
+2,384.930s, holding at 1,819.775s and agent readiness at 1,354.976s. Within
+social cards, three real full-site builds consumed 2,284.039s. Those integration
+tests and their full public corpus remain intact. The frozen-template layout
+test was 210.836s in CI and launched a separate browser for each of 40 cards.
+It now sends all cards through one renderer manifest, retains every layout
+assertion and adds nonempty-input, report-count and PNG-dimension checks.
+
+Local red/green measurements of that test were 70.48s and 57.38s respectively,
+an 18.6% reduction in testcase wall time. The process count fell from 40 to 1.
+These are single serial runs on macOS, not Linux CI measurements. The unchanged
+snapshot/template calculation still accounts for much of this test's time.
+
+The workflow caches npm using `web/package-lock.json`. Its browser cache key
+contains the OS, architecture, Python Playwright pin, actual Node Playwright
+lockfile version and the runtimes selected for the shard. Runtime selection
+prevents an immutable cache populated by one runtime from remaining incomplete
+if the two versions later differ. Each selected installer still uses
+`--with-deps`, so a restored browser cache does not omit system libraries.
+Pip caching was already present and remains enabled. Browser selection follows
+the allocated filenames after every timing refresh. The matrix job has a
+100-minute timeout, approximately twice the largest measured module's 47.4
+minutes plus setup. The required check names and gates remain unchanged.
+
+The history sample contains the latest ten successful/failed runs on each side
+of 2026-10-21 00:00 UTC from one 100-run response. Cancelled runs are excluded
+because their duration does not measure completion. Among successful runs,
+the pre-cutoff median was 55.17 minutes, p90 65.82 minutes, n=9. The post-cutoff
+median was 54.64 minutes, p90 78.02 minutes, n=8. P90 uses the nearest rank.
+These data do not establish an onset on October 21 or attribute the slowdown
+to the Playwright installation change.
+
+| Run | Created UTC | Conclusion | Wall minutes |
+| --- | --- | --- | ---: |
+| 39420792556 | 2026-10-20 12:14:46 | success | 61.77 |
+| 39416342541 | 2026-10-20 11:38:04 | success | 49.32 |
+| 39416274536 | 2026-10-20 11:37:29 | success | 61.65 |
+| 39414078198 | 2026-10-20 11:19:02 | success | 54.25 |
+| 39412629912 | 2026-10-20 11:06:41 | failure | 50.67 |
+| 39411794726 | 2026-10-20 10:59:36 | success | 55.93 |
+| 39409516910 | 2026-10-20 10:39:50 | success | 55.17 |
+| 39408928965 | 2026-10-20 10:34:45 | success | 53.57 |
+| 39408058080 | 2026-10-20 10:27:23 | success | 65.82 |
+| 39407237824 | 2026-10-20 10:20:26 | success | 54.53 |
+| 39824706573 | 2026-10-22 17:40:06 | success | 56.57 |
+| 39804070856 | 2026-10-22 15:21:31 | failure | 0.52 |
+| 39729025428 | 2026-10-22 05:36:50 | success | 66.62 |
+| 39721626348 | 2026-10-22 04:18:18 | success | 78.02 |
+| 39713246358 | 2026-10-22 02:46:48 | failure | 57.85 |
+| 39709406587 | 2026-10-22 02:05:11 | success | 51.43 |
+| 39704556149 | 2026-10-22 01:14:46 | success | 38.12 |
+| 39703972594 | 2026-10-22 01:08:49 | success | 56.08 |
+| 39683361343 | 2026-10-21 22:01:18 | success | 53.20 |
+| 39681678651 | 2026-10-21 21:48:07 | success | 49.72 |
+
+The attempt to collect all 20 runs' job and step details failed twice with
+GitHub HTTP 502, exit 1. The second request reduced connection sizes. Within
+the six-call limit, the fallback retrieved the base run's complete job/step
+breakdown and all four timing artifacts. The 20-run per-job/per-step comparison
+was therefore **not observed**. There were no polling loops. The sixth CLI call
+creates the draft PR; there is no remaining call for its CI status.
+Raw responses and local test logs are in
+`/tmp/model-442-scratch/root/` on the executor machine.
+
+The GitHub calls, in order, were:
+
+```sh
+gh api 'repos/turbobeest/modelspec/actions/workflows/test.yml/runs?per_page=100&created=2026-10-18..2026-10-23' > /tmp/model-442-scratch/root/runs.json
+gh api graphql --input /tmp/model-442-scratch/root/measurement-query.json > /tmp/model-442-scratch/root/jobs-and-steps.json
+gh api graphql --input /tmp/model-442-scratch/root/measurement-query.json > /tmp/model-442-scratch/root/jobs-and-steps.json
+gh run download 39729025428 -R turbobeest/modelspec -p 'pytest-shard-*-junit' -D /tmp/model-442-scratch/root/junit
+gh api 'repos/turbobeest/modelspec/actions/runs/39729025428/jobs?per_page=100' > /tmp/model-442-scratch/root/base-jobs.json
+```
+
+The request file was generated with this Python code. The first request used
+`first:30` for check runs and `first:40` for steps. The second used 8 and 25.
+
+```python
+import json
+from pathlib import Path
+p = Path('/tmp/model-442-scratch/root')
+runs = json.loads((p / 'runs.json').read_text())['workflow_runs']
+selected = []
+for before in (True, False):
+    selected += [r for r in runs
+                 if (r['created_at'] < '2026-10-21') == before
+                 and r['conclusion'] in ('success', 'failure')][:10]
+query = 'query($ids:[ID!]!){nodes(ids:$ids){... on WorkflowRun{id url createdAt checkSuite{checkRuns(first:30){totalCount nodes{name detailsUrl startedAt completedAt conclusion steps(first:40){totalCount nodes{name number startedAt completedAt secondsToCompletion conclusion}}}}}}} rateLimit{cost remaining}}'
+(p / 'measurement-query.json').write_text(json.dumps({
+    'query': query, 'variables': {'ids': [r['node_id'] for r in selected]}
+}) + '\n')
+```
+
+The REST response was inspected with:
+
+```sh
+jq -r '.jobs[] | .name as $job | ([$job,"JOB",.started_at,.completed_at] | @tsv), (.steps[] | [$job,.name,.started_at,.completed_at] | @tsv)' /tmp/model-442-scratch/root/base-jobs.json
+```
+
+Elapsed seconds are `completed_at - started_at` for jobs/steps. Run history uses
+`updated_at - run_started_at`. Testcase durations come from each JUnit `time`
+attribute. The existing refresh script sums those values by module.
+
+Red-first results, before the corresponding fixes:
+
+| Test | Red output | Green output |
+| --- | --- | --- |
+| `test_shard_timings_cover_the_current_suite_and_browser_modules` | `AssertionError: only 121/342 test modules have measured timings` | Passed with 339/342 measured |
+| `test_pytest_shards_have_a_bounded_job_timeout` | `isinstance(None, int)` failed | Passed with 100-minute matrix timeout |
+| `test_browser_dependencies_follow_the_selected_shard_files` | All five cases failed because no selection output existed | All five real shell executions passed |
+| `test_every_frozen_template_card_has_clean_chromium_layout` | `assert 40 == 1`; 1 failed in 70.87s, exit 1 | 1 passed in 57.59s, exit 0 |
+
+The five browser selector cases cover no browser, Python only, landing, social
+cards, and both runtimes. They execute the workflow shell against temporary
+shard-file lists and the real lockfile. The layout test wraps the real process
+boundary to count launches; it does not stub browser output.
+
+Commands were run from the worktree unless a different directory is stated:
+
+```sh
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py -k 'shard_timings_cover or bounded_job_timeout or browser_dependencies_follow'
+# Red: 7 failed, 53 deselected in 0.48s; exit 1.
+
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/refresh_shard_durations.py /tmp/model-442-scratch/root/junit
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 4 --summary
+# 339 measurements; all four predicted totals 5885.978s.
+
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py
+# Green: 60 passed in 0.85s; exit 0.
+
+# In web/:
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH ./node_modules/.bin/playwright install chromium
+
+# Back in the worktree root:
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout --durations=5
+# Red result above.
+env CI=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout --durations=5
+# Green result above.
+
+actionlint -shellcheck= .github/workflows/test.yml
+git diff --check
+# Both exit 0.
+
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base 7e3d8ba6c95eac6f03e438366686c5299499b6bc --head HEAD --branch model-442-ci-wall-time
+# data freeze: ok; exit 0.
+```
+
+Broader focused verification ran serially and completed with exit 0:
+
+```sh
+env CI=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py tests/test_social_cards.py tests/test_removed_sources.py --durations=10
+# 133 passed, 1 skipped in 863.56s. The existing optional artifact scan
+# requires MODELSPEC_DIST. Run it separately against the just-built site:
+env CI=1 MODELSPEC_DIST=/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-220/test_build_emits_every_templat0/dist PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py::test_a_built_dist_carries_no_removed_value
+# 1 passed in 16.30s; exit 0. No focused test remains unexecuted.
+```
+
+The artifact's two site trees and 40 template PNGs were verified to exist
+before reporting the scan result. The broader run's layout test took 56.53s.
+Its three unchanged full-site build tests all passed. All 342 discovered
+files remain assigned exactly once across four shards. A separate read-only
+review checked the final changes and reproduced the report's history and
+base-run timing calculations from the saved responses.
+
+Publication commands, with the sixth and final `gh` invocation run in `/tmp`:
+
+```sh
+CI_LOCAL_SKIP=1 git push -u origin model-442-ci-wall-time
+# In /tmp:
+gh pr create -R turbobeest/modelspec --draft --base main --head model-442-ci-wall-time --title 'MODEL-442: rebalance CI shards and cache Chromium' --body-file /tmp/model-442-scratch/root/pr-body.md
+```
+
+Tool versions: Python 3.14.4, pytest 9.1.1, pytest-xdist 3.8.0, PyYAML 6.0.3,
+Node v22.22.3, npm 10.9.8, Playwright 1.63.0, actionlint 1.7.12, jq 1.7.1-apple,
+Git 2.50.1 and GitHub CLI 2.102.0. The CLI version was read from its resolved
+Homebrew executable path without using another `gh` call. CI retains Python
+3.11 and its existing dependency pins.
+
+The full local suite was not run, as required by the ticket. No tests were
+skipped, removed or marked xfail by this change. No production source, public
+data image, ranking rule, Worker export, production switch, required-check
+name or Linear issue was changed. Cache-hit wall-time savings, Linux runner
+after timings and a causal date for the original slowdown remain unobserved.
