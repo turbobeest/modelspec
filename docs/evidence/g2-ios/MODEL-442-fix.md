@@ -1,4 +1,232 @@
-# MODEL-442 CI wall time
+# MODEL-442 round 2
+
+**BLOCKED: the approximately 20-minute CI target is still unmet.** The two
+review fixes are complete and all 221 focused local tests pass. The last
+permitted GitHub snapshot showed five shards still running after more than
+23 minutes. Further CI timing/log retrieval would exceed the six-call cap.
+The scheduling predictions below did not establish the required outcome.
+
+Base: `52c3147d19d39876aa5900497d39030601260678`.
+Final implementation: `0d82d53229e08a043ff276d2a8028d9dd81bc51a`.
+The following evidence-only commit records verification. Its branch-head SHA
+is reported in the executor completion line and by `git rev-parse HEAD`.
+Worktree `/Users/terbeest/dev/worktrees/model-442`, branch
+`model-442-ci-wall-time`. [PR #897](https://github.com/turbobeest/modelspec/pull/897)
+was verified draft. Its existing executor footer already names GPT-6 Astra.
+
+## Measured before
+
+The round-1 implementation's [run 39887101830](https://github.com/turbobeest/modelspec/actions/runs/39887101830)
+finished successfully in **59m36s**, from workflow creation at 01:59:43 UTC
+to `Run pytest` completing at 02:59:19 UTC on 2026-10-23. All four downloaded
+JUnit artifacts measured 339 of 342 discovered files. Unmeasured files still
+receive estimated weights and remain assigned.
+The creation time was observed in the first `gh run list` invocation recorded
+below; the saved PR check response supplies the completion time.
+
+| Shard | Job wall | Pytest JUnit elapsed | Before pytest starts |
+| --- | ---: | ---: | ---: |
+| 1/4 | 34m37s | 1801.914s | 267.953s |
+| 2/4 | 59m19s | 3419.541s | 132.930s |
+| 3/4 | 27m46s | 1094.477s | 561.352s |
+| 4/4 | 32m02s | 1849.699s | 64.792s |
+
+Job timestamps come from the PR checks. JUnit supplies suite timestamps and
+elapsed time. The last column combines setup and collection; it does not
+separate npm, pip, browser installation or imports. The separate perf and
+collection job took 9m52s.
+
+| Module | Summed testcase time | Largest testcase, including fixture setup |
+| --- | ---: | --- |
+| Private serving | 2484.917s | Policy comparison across two builds, 1119.891s |
+| Social cards | 1659.460s | Build without the render flag, 679.094s |
+| Agent readiness | 1399.913s | Full-site fixture charged to the robots test, 1327.628s |
+| Blog | 956.790s | Public-root blog build, 956.273s |
+| Holding | 898.141s | Full-site fixture and guide decision, 719.358s |
+| Coverage | 886.937s | Snapshot/catalogue counts, 315.040s |
+| Landing | 655.735s | Snapshot-derived figures, 181.271s |
+
+Social cards' three full builds total 1297.520s. Private serving also includes
+a 1005.177s public-leak build and a 357.775s private-bundle build. These remain
+real full-corpus builds with their existing assertions.
+
+The pinned xdist 3.8.0 loadfile scheduler orders modules by testcase count
+unless `--no-loadscope-reorder` is passed. That delays costly modules with few
+tests. Coverage and landing initialization also use filesystem locks, so
+testcase times can include waiting for another worker. JUnit cannot separate
+that waiting from computation.
+
+## Changes and predictions
+
+Eight shards replace four. Private serving, social cards, agent readiness and
+landing each run serially on a dedicated runner. Four ordinary shards retain
+`-n auto --dist loadfile`, preserving measured longest-first file order with
+`--no-loadscope-reorder`. Module fixtures and within-file order stay intact.
+Unknown, duplicate or overallocated isolation requests fail explicitly.
+
+Six shards were considered. Two isolated files leave the measured 23.3-minute
+agent-readiness module in an ordinary shard. Three isolated files plus four
+ordinary shards still leave landing's app build on an ordinary shard. The
+landing job previously spent 9.4 minutes before pytest. Isolating all four
+costly paths preserves four ordinary shards and avoids that combination.
+
+Only landing now runs `npm run build`. Social cards still install Node
+dependencies and Chromium but render their own HTML; they do not use
+`web/dist`. Python browser installation still follows the interaction module.
+Cache keys and permissions are unchanged. All shards have an **80-minute**
+timeout and log their 25 slowest phases. `Run pytest` and the exact comparison
+of full and sharded collection remain unchanged.
+
+The eight shards contain 1, 1, 1, 1, 85, 85, 85 and 83 files. The ordinary
+shards total about 3704.785 summed testcase seconds each. Dividing that by
+four is only a lower bound, not a wall-time prediction.
+
+A replay of the pinned scheduler, including whole-file prefetch when at most
+two testcases remain, predicts ordinary shard times of **1157.724s, 928.438s,
+959.006s and 941.499s** before setup. With 64.8s setup, the slowest is about
+20m23s. These are estimates, not observed CI improvements. The replay reuses
+old testcase times, including old contention and cache waits; it excludes
+setup, collection and scheduler overhead. Unmeasured files use the existing
+size estimate. Isolated serial durations require separate observation.
+
+Replay inputs, script and results remain on the operator machine. Reproduce:
+
+```sh
+/Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-442-scratch/timing_diagnosis/replay_xdist.py --root /Users/terbeest/dev/worktrees/model-442 --junit /tmp/model-442-scratch/root-r2/junit --ordinary-shards 4 --isolate tests/test_private_serving.py --isolate tests/test_social_cards.py --isolate tests/test_agent_ready.py --isolate tests/test_landing.py
+```
+
+## Red and green
+
+| Regression | Before implementation | After implementation |
+| --- | --- | --- |
+| `test_template_card_failures_name_every_broken_template` | Missing `outside-frame` in the geometry assertion; 1 failed in 0.26s, exit 1 | 1 passed in 0.37s, exit 0 |
+| `test_pytest_shards_have_a_bounded_job_timeout` | `assert 100 == 80` | Passes at 80 |
+| `test_shard_files_start_with_the_longest_measured_module` | Alphabetical instead of measured-duration order | Passes |
+| `test_expensive_modules_get_dedicated_shards_without_losing_other_files` | No isolation argument | Passes, including reversed input order |
+| `test_invalid_isolated_shards_fail_instead_of_dropping_tests` | No isolation argument | All three invalid configurations fail explicitly |
+| `test_workflow_shard_selection_covers_the_suite_once` | Four mixed shards instead of dedicated modules | Executes all eight selection commands and proves exact coverage |
+| Browser selection, app-build and matrix checks | No app output, app built for every Node shard, four-job matrix | All cases pass |
+
+The workflow suite went from **15 failed, 52 passed in 2.69s**, exit 1, to
+**67 passed in 1.42s**, exit 0. Existing failure-masking and required-check
+tests remain active. The template regression injects a layout failure, wrong
+PNG dimensions, an invalid PNG signature and a clean card. It requires every
+broken template's ID and display name in the message. The real batch retains
+all layout, report-count, PNG and one-renderer checks. The focused browser and
+naming tests passed in 56.68s; the real browser batch itself took 56.37s.
+
+## Local after measurements
+
+Serial private serving passed **13 tests in 648.33s**, exit 0. Its policy
+comparison took 344.37s; the public-leak call took 168.28s plus 24.97s setup;
+the private bundle took 109.45s. This supports isolation but compares macOS
+with local caches against Linux CI, not a controlled before/after experiment.
+The app build also passed. The broader serial suite passed **161 tests in
+1003.17s**, exit 0, with no skips. Local JUnit module totals were 615.373s for
+social cards, 185.755s for agent readiness, 200.250s for landing and 1.305s for
+workflow checks. The three social builds took 168.76s, 166.52s and 164.19s;
+the real Chromium batch took 56.03s. Agent readiness's full-build fixture
+took 166.75s. These are observed local after values, not Linux CI results.
+The excluded-source suite then passed **47 tests in 132.38s**, exit 0, using
+the just-built site through `MODELSPEC_DIST`. Its optional artifact check ran
+and passed in 16.28s. Across these three focused invocations, all 221 tests
+passed with no skips. The final CI snapshot is recorded below.
+
+## Observed CI after
+
+The sixth and final GitHub call observed implementation
+`0d82d53229e08a043ff276d2a8028d9dd81bc51a` in
+[run 39894184868](https://github.com/turbobeest/modelspec/actions/runs/39894184868).
+The response was saved at 2026-10-23 03:40:22 UTC. PR #897 was still draft.
+This was one status snapshot, not a polling loop.
+
+| Shard | Assignment | Observed result | Completed job wall |
+| --- | --- | --- | ---: |
+| 1/8 | Private serving, serial | Still running after 23 minutes | Unknown |
+| 2/8 | Social cards, serial | Still running after 23 minutes | Unknown |
+| 3/8 | Agent readiness, serial | Success | 11m23s |
+| 4/8 | Landing, serial | Success | 14m54s |
+| 5/8 | Ordinary files, parallel | Success | 17m36s |
+| 6/8 | Ordinary files, parallel | Still running after 23 minutes | Unknown |
+| 7/8 | Ordinary files, parallel | Still running after 23 minutes | Unknown |
+| 8/8 | Ordinary files, parallel | Still running after 23 minutes | Unknown |
+
+Perf and collection passed in 10m31s; package smoke passed in 26s. The required
+aggregate had not completed. These observations disprove an under-20-minute
+full run at this implementation. They do not identify the remaining tests'
+individual durations. The completed agent-readiness and landing jobs are
+under target, but the overall performance work remains open. No further
+unmeasured scheduling changes were made after this result. The evidence-only
+push creates a fresh CI run at the final branch head; its outcome is unobserved.
+
+## Commands
+
+Commands ran in the assigned worktree unless stated otherwise. Logs and
+artifacts are in `/tmp/model-442-scratch/root-r2/`; the naming worker used
+`/tmp/model-442-scratch/layout_names/` for scratch work.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py::test_template_card_failures_name_every_broken_template
+# Red exit 1; green exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_private_serving.py --durations=15
+# 13 passed; exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py
+# Red 15 failed, 52 passed, exit 1; green 67 passed, exit 0.
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/refresh_shard_durations.py /tmp/model-442-scratch/root-r2/junit
+# 339 measurements from four XML files; exit 0.
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 8 --isolate tests/test_private_serving.py --isolate tests/test_social_cards.py --isolate tests/test_agent_ready.py --isolate tests/test_landing.py --summary
+# All 342 discovered files assigned; exit 0.
+env CI=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout tests/test_social_cards.py::test_template_card_failures_name_every_broken_template --durations=5
+# 2 passed in 56.68s; exit 0.
+actionlint -shellcheck= .github/workflows/test.yml
+git diff --check
+# Each checked directly; exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base 52c3147d19d39876aa5900497d39030601260678 --head HEAD --branch model-442-ci-wall-time
+# data freeze: ok; exit 0.
+
+# In web/:
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=/Users/terbeest/dev/worktrees/model-442 npm run build
+# Exit 0.
+
+# Back in the worktree:
+env CI=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py tests/test_social_cards.py tests/test_agent_ready.py tests/test_landing.py --durations=20 --junitxml=/tmp/model-442-scratch/root-r2/focused.xml --basetemp=/tmp/model-442-scratch/root-r2/focused-tmp
+# 161 passed in 1003.17s; exit 0.
+env CI=1 MODELSPEC_DIST=/tmp/model-442-scratch/root-r2/focused-tmp/test_build_emits_every_templat0/dist PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py --durations=10
+# 47 passed in 132.38s; exit 0, including the built-artifact scan.
+CI_LOCAL_SKIP=1 git push -u origin model-442-ci-wall-time
+```
+
+GitHub calls, in invocation order:
+
+```sh
+gh run list -R turbobeest/modelspec --branch model-442-ci-wall-time --workflow test.yml --limit 3 --json databaseId,headSha,status,conclusion,createdAt,url
+gh run view 39887101830 -R turbobeest/modelspec --json jobs,status,conclusion,headSha
+gh run download 39887101830 -R turbobeest/modelspec -p 'pytest-shard-*-junit' -D /tmp/model-442-scratch/root/junit
+# Exit 1: the round-1 directory already contained the artifact files.
+gh run download 39887101830 -R turbobeest/modelspec -p 'pytest-shard-*-junit' -D /tmp/model-442-scratch/root-r2/junit
+# Exit 0: all four artifacts downloaded into a fresh directory.
+gh pr view 897 -R turbobeest/modelspec --json number,isDraft,headRefName,baseRefName,url,body,statusCheckRollup > /tmp/model-442-scratch/root-r2/pr-before.json
+gh pr view 897 -R turbobeest/modelspec --json number,isDraft,headRefOid,url,statusCheckRollup > /tmp/model-442-scratch/root-r2/pr-after.json
+```
+
+Other listed GitHub calls exited 0. No polling loop was used. Tool versions
+remain Python 3.14.4, pytest 9.1.1, pytest-xdist 3.8.0, PyYAML 6.0.3, Node
+v22.22.3, npm 10.9.8, Playwright 1.63.0, actionlint 1.7.12, Git 2.50.1 and
+GitHub CLI 2.102.0. The CLI version was read from its executable path without
+another invocation. CI retains Python 3.11 and the existing dependency pins.
+
+## Limits
+
+The full local suite was not run, as instructed. No test was removed, skipped
+or marked xfail by the changes. No production code, frozen data, Worker export,
+ranking floor, legal text, production switch or Linear issue changed. Private
+serving uses its existing synthetic overlay of the public image. No private
+repository was cloned and no vendor API was called. Exact CPU contention,
+lock-wait time and cache-hit savings were not measured. The observed Linux run
+exceeded the approximately 20-minute target. Its final duration and the final
+evidence-commit CI result were not observed within the six-call budget.
+
+# Round 1 record at 52c3147d
 
 Base SHA: `7e3d8ba6c95eac6f03e438366686c5299499b6bc`.
 Final implementation SHA: `d085cd8638188cebb45de72e5d90847cd949399d`.
