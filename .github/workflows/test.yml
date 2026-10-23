@@ -16,18 +16,22 @@ jobs:
   pytest-shards:
     name: pytest shard ${{ matrix.label }}
     runs-on: ubuntu-latest
-    # The largest measured module takes 47 minutes; allow ~2x plus setup.
-    timeout-minutes: 100
+    timeout-minutes: 80
     env:
       PYTHON_PLAYWRIGHT_VERSION: '1.63.0'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {index: 0, label: 1/4}
-          - {index: 1, label: 2/4}
-          - {index: 2, label: 3/4}
-          - {index: 3, label: 4/4}
+          # Full-build modules run alone, without competing xdist workers.
+          - {index: 0, label: 1/8, workers: 0}
+          - {index: 1, label: 2/8, workers: 0}
+          - {index: 2, label: 3/8, workers: 0}
+          - {index: 3, label: 4/8, workers: 0}
+          - {index: 4, label: 5/8, workers: auto}
+          - {index: 5, label: 6/8, workers: auto}
+          - {index: 6, label: 7/8, workers: auto}
+          - {index: 7, label: 8/8, workers: auto}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +64,11 @@ jobs:
             -e ".[dev,verify]"
       - name: Select test files and collect node ids
         run: |
-          python scripts/pytest_shards.py --shard-count 4 \
+          python scripts/pytest_shards.py --shard-count 8 \
+            --isolate tests/test_private_serving.py \
+            --isolate tests/test_social_cards.py \
+            --isolate tests/test_agent_ready.py \
+            --isolate tests/test_landing.py \
             --shard-index ${{ matrix.index }} > shard-files.txt
           python -m pytest --collect-only -q -m "not perf" \
             $(< shard-files.txt) > shard-${{ matrix.index }}-collection.txt
@@ -69,15 +77,19 @@ jobs:
         run: |
           python_browser=false
           node_browser=false
+          app=false
           if grep -qx 'tests/test_rendered_interactions.py' shard-files.txt; then
             python_browser=true
           fi
           if grep -qxE 'tests/test_(landing|social_cards)\.py' shard-files.txt; then
             node_browser=true
           fi
+          if grep -qx 'tests/test_landing.py' shard-files.txt; then
+            app=true
+          fi
           node_version=$(python -c 'import json; print(json.load(open("web/package-lock.json"))["packages"]["node_modules/playwright"]["version"])')
-          printf 'python=%s\nnode=%s\nnode-version=%s\n' \
-            "$python_browser" "$node_browser" "$node_version" >> "$GITHUB_OUTPUT"
+          printf 'python=%s\nnode=%s\nnode-version=%s\napp=%s\n' \
+            "$python_browser" "$node_browser" "$node_version" "$app" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -97,21 +109,21 @@ jobs:
         run: |
           python -m pip install "playwright==$PYTHON_PLAYWRIGHT_VERSION"
           python -m playwright install --with-deps chromium
-      - name: Install the browser and build the app on the Chromium pytest shard
+      - name: Install Node dependencies and Chromium
         if: steps.browsers.outputs.node == 'true'
-        # test_landing.py serves the built decide app at /decide/, and
-        # test_social_cards.py renders cards in Chromium. File selection keeps
-        # installation correct when refreshed timings move either module.
         run: |
           cd web
           npm ci
-          npm run build
           npx playwright install --with-deps chromium
+      - name: Build the app for landing browser tests
+        if: steps.browsers.outputs.app == 'true'
+        run: cd web && npm run build
       - name: Run test shard
-        # -n auto uses the four cores on ubuntu-latest. --dist loadfile also
-        # keeps each module together for shared module and process state.
+        # Keep module fixtures together. Preserve the splitters' longest-first
+        # order instead of xdist's default ordering by test count.
         run: >-
-          python -m pytest -q -n auto --dist loadfile -m "not perf"
+          python -m pytest -q -n ${{ matrix.workers }} --dist loadfile
+          --no-loadscope-reorder -m "not perf" --durations=25
           --junitxml=shard-${{ matrix.index }}-junit.xml $(< shard-files.txt)
       - name: Upload collected node ids
         if: always()
