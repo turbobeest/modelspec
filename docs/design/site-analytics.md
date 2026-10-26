@@ -4,9 +4,11 @@ MODEL-220. Proposal for Jamie, 2026-10-26. Reviewed against repository commit
 `d326a69bb46f9d573f28c6988aef95d412d01d9a` and privacy statement **1.14**, effective
 2026-10-13. This is a source and documentation review, not a production capture.
 
-Retain the existing Cloudflare Web Analytics for page views, referrers and
-performance. For actual template use and completed decisions, propose two
-first-party event counters aggregated in the existing API Worker, with a
+The first option is to change nothing. Cloudflare Web Analytics is live and
+already disclosed in privacy v1.14. It covers page views, referrers and load
+times, with page-view proxies for template interest and `/decide` reach.
+If actual template applications and completed answers are needed, the second
+option adds two first-party event counters in the existing API Worker, with a
 dedicated D1 database. Those counters need new privacy wording. **This PR stops
 at the proposal**, as the ticket requires: it adds no collector, binding, switch
 or browser event. The proposed legal diff below is for adoption by Jamie.
@@ -58,6 +60,23 @@ Repository evidence agrees with those boundaries:
 
 ## The alternatives
 
+### Option A: change nothing
+
+Keep Cloudflare Web Analytics alone. It is live and privacy v1.14 already
+discloses its page views, referrers and load times. Views of
+`/decide/templates/<id>/` give a free proxy for template interest; views of
+`/decide/` and `/decide/details/` give a free proxy for `/decide` reach.
+These proxies cannot measure in-app template application or completed answers.
+An application changes local state, and a page view does not establish that an
+answer rendered. This option needs no privacy revision, collector or new store.
+
+### Option B: add aggregate interaction counts
+
+Keep the existing dashboard and add the two counters described below only if
+the proxies are insufficient. This requires a privacy revision, D1 database,
+cleanup job, production switch and browser emitter. The comparison includes
+server-side page counts to explain why they do not replace interaction events.
+
 | Question | Cloudflare Web Analytics, already disclosed | Server-side aggregate counts in Pages or the Worker |
 | --- | --- | --- |
 | What is collected? | A browser beacon reports page and referrer addresses, a per-load id, browser/OS and performance information. The statement specifies no query or fragment. Reports group counts by page, referrer, country, browser, OS and device. | A proposed handler maps inputs to a finite set of approved categories and immediately increments a daily total. Store only day, counter kind, approved category and count. No raw event rows, URLs, referrer strings, identifiers, IPs or user agents. |
@@ -98,10 +117,11 @@ functions. The [deployment](../../.github/workflows/deploy-sites.yml) uploads
 in that upload and constrain its routes; adding a source middleware file alone
 would not establish deployed coverage. The site remains on Cloudflare Pages.
 
-## Recommended measurement and storage
+## Measurement and storage for option B
 
-Use the current Cloudflare dashboard for pages, referrers and performance.
-Add only the missing interaction totals later, through a small endpoint in the
+If option A's proxies are sufficient, no implementation is needed. Otherwise,
+use the current Cloudflare dashboard for pages, referrers and performance and
+add only the missing interaction totals through a small endpoint in the
 existing API Worker. This avoids a new function invocation on every static page
 and lets the new payload omit page addresses and referrers entirely. Keep both
 reports separate. Do not calculate a joined visitor funnel or combine these
@@ -135,6 +155,10 @@ Proposed definitions and safeguards, to implement only after adoption:
   no valid token; do not start a new verification just for analytics. Only the
   authorization layer handles the token's pseudonymous visitor id and derives
   the existing daily HMAC from the address transiently to check its binding.
+  This is validation only. An analytics POST must not renew the visit token's
+  30-minute window, consume the daily or per-minute gate allowance, or ever
+  write to `HUMAN_GATE`. Do not run the admission/metering or token-renewal path;
+  return no renewed token. Enforce the analytics cap separately in D1.
   Pass neither the token nor its visitor id to aggregation and add no identity
   records. This use of the token must be disclosed before implementation.
 - Require the exact production site Origin and permit only POST for ingestion.
@@ -205,7 +229,8 @@ not a $0 guarantee or a measured CPU/storage estimate. If requests and those
 request/write charges alone would be $0.03 plus $0.10. Compute and other
 database operations are additional. The build, tests and maintenance are the
 main new work; using the existing dashboard alone costs no new engineering
-integration but leaves the two interaction questions unanswered.
+integration and provides the proxies in option A, but cannot count actual
+template applications or completed answers.
 
 ## Proposed privacy-statement diff, for Jamie
 
@@ -213,10 +238,21 @@ This is an exact patch against the v1.14 file at the base commit. It is a
 proposal only and has not been applied. The proposed 1.15 version and
 2026-10-26 adoption date must be rebased if another legal revision or a later
 adoption comes first. It discloses planned collection as **not built or enabled**.
-Before a later implementation binds D1 or activates collection, Jamie must
-adopt the corresponding live-state wording and update the store inventory and
-API-path exception together with the legal guards. This draft grants no
-permission to deploy or change a production switch.
+Adopting v1.15 now is optional. Recommend deferring adoption unless Jamie wants
+the commitment public first. The proposal can be folded into a single privacy
+revision when the feature goes live, published before D1 is bound or collection
+is enabled. That revision must describe the live behavior and update the store
+inventory, cross-request state and API-path exception together. If Jamie adopts
+the planned wording now, a later live-state revision is still required.
+
+Any adoption PR must bump both privacy version/date expectations in
+`tests/test_legal.py`: line 298 in
+`test_the_x402_legal_revision_is_effective_on_the_flip_date`, and line 906,
+`IN_FORCE["privacy"]`, used by `test_every_document_is_adopted_and_versioned`.
+For this draft they would become ``Version `1.15`, effective 2026-10-26.``;
+use the actually adopted version and date if adoption is deferred. This PR
+changes neither assertion. This draft grants no permission to deploy or change
+a production switch.
 
 ```diff
 --- a/docs/legal/privacy.md
@@ -241,7 +277,7 @@ permission to deploy or change a production switch.
 
  ## What a request contains
 
-@@ -605,6 +610,65 @@
+@@ -605,6 +610,71 @@
    refused, not treated as human. No network-operator or headless score is
    stored. ModelSpec sets no cookie for this and does not enable Turnstile
    pre-clearance; we do not say that Cloudflare sets none of its own.
@@ -272,7 +308,10 @@ permission to deploy or change a production switch.
 +  user-agent. Event requests would omit cookies, API keys and referrers. They
 +  would carry the existing in-memory visit token for authorization, under the
 +  visit gate's origin, expiry and daily visitor-binding checks. Without a
-+  valid token, no event would be counted. Authorization would handle the
++  valid token, no event would be counted. An analytics POST would not renew
++  the visit token's 30-minute window, consume the daily or per-minute gate
++  allowance, or ever write to `HUMAN_GATE`. It would return no renewed token.
++  Authorization would handle the
 +  token's pseudonymous daily visitor id separately and transiently derive
 +  the existing daily HMAC from the address to validate its binding. Neither
 +  the token nor the visitor id would reach aggregation, and no identity
@@ -280,7 +319,10 @@ permission to deploy or change a production switch.
 +  collection would set no cookie, use no browser storage, create no visitor
 +  identifier and perform no fingerprinting or cross-site tracking. Cloudflare
 +  would still receive network request metadata under *What Cloudflare
-+  records*.
++  records*. The existing *The visit token* paragraph explains that the token
++  travels in request and response headers which Workers observability may
++  record in invocation logs. The token header on these analytics requests
++  would be subject to that same logging.
 +
 +  A daily cleanup would delete counters once their UTC day is 30 days old;
 +  older days would be excluded from reports even if cleanup failed. A failed
@@ -307,7 +349,7 @@ permission to deploy or change a production switch.
  - **Outcome logging by the service.** Not built. The service does not receive or
    record what you chose, whether a recommendation worked, or anything about the
    result of acting on one. The CLI keeps no log of outcomes. The feedback
-@@ -629,6 +693,10 @@
+@@ -629,6 +699,10 @@
 
  A change to what the service records is a change to this statement, and it is
  published here before the change ships. The version above is the one in force.
@@ -332,7 +374,8 @@ If Jamie adopts the design, the implementation must first demonstrate failing
 tests for off/missing/invalid switches, exact payload rejection, finite
 categories, concurrent increments and the global cap, deletion and restore
 behavior, missing/invalid/expired visit-token refusal, no token/referrer/body
-logging, and duplicate UI renders. The
+logging by application code, no token renewal, no gate-allowance consumption,
+no `HUMAN_GATE` writes, and duplicate UI renders. The
 browser tests must distinguish one primary answer from default, retry, stale,
 plot, detail and estate responses. Test that analytics failures never fail a
 decision, and that no machine data path becomes keyless. Then run those focused
