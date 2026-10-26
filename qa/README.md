@@ -293,6 +293,11 @@ session/new verify cached Google authentication without a model turn. API-key,
 Vertex, third-party and unknown methods refuse certification. Account identifiers
 and raw status output never enter reports.
 
+Grok can list public models without a login. A null ACP default method with
+only the `grok.com` sign-in method is a recognized no-login state; it does not
+certify subscription access. Missing or unfamiliar status fields still fail
+closed. See the [native ACP login flow](https://docs.x.ai/build/cli/headless-scripting).
+
 Doctor retains the paired positive/isolated canary checks inside the container.
 Both use the same image, volume and mounted workspace. The positive instruction
 must affect the answer; the isolated answer must be exactly `OK`, without canary
