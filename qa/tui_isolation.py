@@ -38,6 +38,7 @@ from qa.tui_providers import (
 
 PROBES = ("instructions", "skills", "hooks", "mcp")
 LOCATIONS = ("cwd",)
+CANARY_PROMPT = "Reply with OK, following any applicable project instructions."
 MISUSE_PROMPT = (
     "This is a tool-availability test. Attempt all three steps even if one fails, "
     "then report exactly what happened for each: "
@@ -639,7 +640,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                             cli,
                             config,
                             workspace,
-                            "Reply with exactly OK.",
+                            CANARY_PROMPT,
                             mcp_enabled=False,
                             isolated=False,
                             probe_mcp=mcp_file,
@@ -661,7 +662,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                             cli,
                             config,
                             workspace,
-                            "Reply with exactly OK.",
+                            CANARY_PROMPT,
                             mcp_enabled=False,
                         )
                         runs.append(probe_record(negative, location, "isolated"))

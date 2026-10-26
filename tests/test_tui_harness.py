@@ -1774,7 +1774,7 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
             if cli == "grok":
                 return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
             return execution(cli, answer="OK")
-        assert prompt == "Reply with exactly OK."
+        assert prompt == "Reply with OK, following any applicable project instructions."
         if isolated:
             return execution(cli, answer="OK")
         root = probe_mcp.parent
@@ -1824,6 +1824,40 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     result = harness.verify_isolation(cli, config, tmp_path)
     assert not result["supported"] and result["status"] == "unproven"
     assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize(
+    "loads_instructions,isolated_leaks", [(True, False), (False, False), (True, True)]
+)
+def test_codex_doctor_allows_project_formatting_without_disclosing_the_canary(
+    loads_instructions, isolated_leaks, config, tmp_path, monkeypatch
+):
+    prompts = []
+
+    def execute(cli, cfg, workspace, prompt, *, isolated=True, probe_mcp=None, **kwargs):
+        if prompt == isolation.MISUSE_PROMPT:
+            return execution(cli, answer="OK")
+        prompts.append(prompt)
+        marker = re.search(
+            r"MODEL301_CANARY_\w+", (workspace / "AGENTS.md").read_text()
+        )[0]
+        assert marker not in prompt
+        # AGENTS.md is a user-role message before the request. A later exact
+        # output request can override its prefix even when discovery succeeded.
+        answer = "OK"
+        if not isolated and loads_instructions and "project instructions" in prompt:
+            answer = marker + "\nOK"
+        if isolated and isolated_leaks:
+            answer = marker + "\nOK"
+        return execution(cli, answer=answer)
+
+    monkeypatch.setattr(isolation, "_execute", execute)
+    result = harness.verify_isolation("codex", config, tmp_path)
+
+    assert len(prompts) == 2 and prompts[0] == prompts[1]
+    assert result["positive_control"]["cwd"]["instructions"] is loads_instructions
+    assert result["isolated_control"] == {"cwd": not isolated_leaks}
+    assert result["verified"] is (loads_instructions and not isolated_leaks)
 
 
 def _positive_canary(cli, cfg, probe_mcp):
