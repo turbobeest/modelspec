@@ -293,10 +293,20 @@ session/new verify cached Google authentication without a model turn. API-key,
 Vertex, third-party and unknown methods refuse certification. Account identifiers
 and raw status output never enter reports.
 
+Grok can list public models without a login. A null ACP default method with
+only the `grok.com` sign-in method is a recognized no-login state; it does not
+certify subscription access. Missing or unfamiliar status fields still fail
+closed. See the [native ACP login flow](https://docs.x.ai/build/cli/headless-scripting).
+
 Doctor retains the paired positive/isolated canary checks inside the container.
 Both use the same image, volume and mounted workspace. The positive instruction
 must affect the answer; the isolated answer must be exactly `OK`, without canary
-hooks, servers or instructions. Claude must also prove positive skill, hook and
+hooks, servers or instructions. Both receive `Reply with OK, following any
+applicable project instructions.` The request leaves the planted prefix in
+force when instructions load, and never includes the random marker itself.
+Codex includes `AGENTS.md` before the request as user-role instructions, so a
+later request for an exact answer can override that prefix despite discovery.
+Claude must also prove positive skill, hook and
 MCP discovery. Grok's positive control disables the folder-trust gate for that
 process, without using the persistent `--trust` grant. Its isolated control
 enables the gate, uses a generated gitignore for instructions, and requires
