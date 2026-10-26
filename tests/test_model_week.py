@@ -523,7 +523,8 @@ def test_default_category_caps_keep_full_counts_and_separate_appendix(tmp_path, 
     assert len(category_entries(summary, "Models added")) == 10
     assert summary.count("and 2 more") == 4
     appendix = (out / "public-appendix.md").read_text()
-    for category in ("Models added", "Benchmark movers", "Price and plan changes", "Lineup changes"):
+    for category in ("Models added", "Benchmark movers",
+                     "Price and plan changes", "Lineup changes"):
         assert len(category_entries(summary, category)) == 10
         assert len(category_entries(appendix, category)) == 12
     assert '"lab/m09"' in summary
@@ -549,7 +550,8 @@ def test_cli_category_caps_are_independent(tmp_path, busy_repository, monkeypatc
         "Price and plan changes": 12, "Lineup changes": 12,
     }
     text = (out / "public.md").read_text()
-    assert [json.loads(line.split("`", 2)[1]) for line in category_entries(text, "Models added")] == [
+    assert [json.loads(line.split("`", 2)[1])
+            for line in category_entries(text, "Models added")] == [
         "lab/m00", "lab/m01",
     ]
     assert [json.loads(line.split("`", 2)[1]).split(" context ")[0]
@@ -574,6 +576,35 @@ def test_invalid_category_limits_refuse_without_output(tmp_path, limits):
     out = tmp_path / "draft"
     with pytest.raises(DraftError):
         generate("2026-10-13", repo, out, category_limits=limits)
+    assert not out.exists()
+
+
+def test_exact_limit_has_no_overflow_and_other_categories_keep_defaults(tmp_path, busy_repository):
+    from scripts.model_week import generate
+
+    out = tmp_path / "draft"
+    generate("2026-10-13", busy_repository, out, category_limits={"Models added": 12})
+    text = (out / "public.md").read_text()
+    assert len(category_entries(text, "Models added")) == 12
+    assert len(category_entries(text, "Benchmark movers")) == 10
+    assert text.count("and 2 more") == 3
+    assert "and 0 more" not in text
+
+
+@pytest.mark.parametrize("limit", ["Models added=-1", "Models added=1.5", "Unknown=2", "2"])
+def test_cli_invalid_limits_refuse_without_writing(tmp_path, monkeypatch, capsys, limit):
+    from scripts import model_week
+
+    repo = repository(tmp_path / "public", "lab/public")
+    monkeypatch.setattr(model_week, "PUBLIC_REPO", repo)
+    out = tmp_path / "draft"
+    assert model_week.main([
+        "--week", "2026-10-13", "--out-dir", str(out), "--limit", limit,
+    ]) == 2
+    assert capsys.readouterr().out == (
+        "Draft refused: check the date, complete catalogue history including origin/main, "
+        "category limits, and external output path.\n"
+    )
     assert not out.exists()
 
 
