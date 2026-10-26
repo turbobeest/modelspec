@@ -74,8 +74,10 @@ visitors. Its [RUM documentation](https://developers.cloudflare.com/speed/observ
 describes the per-page identifier, timing and performance fields, and receipt
 and disposal of the source IP at the edge. This RUM-specific handling does not
 remove the platform metadata disclosed by ModelSpec. "No personal data" here
-means no personal data in the proposed application analytics payload or store;
-it cannot mean that a hosting network never receives an IP address.
+means no personal data in the proposed JSON event body or aggregate store.
+The hosting network receives an IP address, and the proposed admission check
+transiently processes the existing pseudonymous visit token. Those are security
+processing, disclosed separately below; the whole HTTP request is not anonymous.
 
 The [metric definitions](https://developers.cloudflare.com/web-analytics/data-metrics/high-level-metrics/),
 [dimensions](https://developers.cloudflare.com/web-analytics/data-metrics/dimensions/)
@@ -116,7 +118,7 @@ Proposed definitions and safeguards, to implement only after adoption:
   action's answer once. Exclude automatic initial answers and auxiliary
   requests. This means the interface answered, not that a person read, chose
   or acted on a recommendation. There is no "unique users" claim.
-- Accept exactly `{event: "template_applied", template: <approved-id>}` or
+- Accept a JSON event body of exactly `{event: "template_applied", template: <approved-id>}` or
   `{event: "decide_completed"}`. The completion event has no template field;
   no per-template completion funnel is proposed. Reject unknown fields and
   values, oversized bodies and content types other than JSON. Choose a small
@@ -131,15 +133,16 @@ Proposed definitions and safeguards, to implement only after adoption:
   admission, checked under the existing visit gate's origin, expiry and daily
   visitor-binding rules before the collector runs. Drop the event if there is
   no valid token; do not start a new verification just for analytics. Only the
-  authorization layer handles the token and transient network metadata. Pass
-  neither the token nor its visitor id to aggregation and add no identity
+  authorization layer handles the token's pseudonymous visitor id and derives
+  the existing daily HMAC from the address transiently to check its binding.
+  Pass neither the token nor its visitor id to aggregation and add no identity
   records. This use of the token must be disclosed before implementation.
 - Require the exact production site Origin and permit only POST for ingestion.
   Origin alone is not authentication: a script can forge it. Missing, invalid
   and expired visit tokens must be refused; API-key machine callers have no
-  analytics-ingestion path. Do not fingerprint a browser, read browser storage
-  or hash an address for analytics. Bound accepted events by a global daily
-  cap enforced atomically, keep the
+  analytics-ingestion path. The collector must not fingerprint a browser,
+  read browser storage, hash an address or receive authorization identifiers.
+  Bound accepted events by a global daily cap enforced atomically, keep the
   dimension set finite and fail without affecting decisions. Do not add
   per-address abuse records. Counts remain approximate and susceptible to
   forged or lost events; stronger identity tracking is outside this proposal.
@@ -169,8 +172,9 @@ database, query behavior or capacity has been tested in this proposal.
 
 The stored totals contain no visitor identifier. Small day/template counts can
 still reveal activity in a known group, which is another reason to keep reports
-operator-only and prohibit joins. Without an identifier, the server cannot
-deduplicate a forged or repeated POST or measure a person's journey. Page-memory
+operator-only and prohibit joins. The aggregation layer has no event
+identifiers or individual event records, so it cannot deduplicate a repeated
+POST or measure a person's journey. Page-memory
 guards prevent routine UI duplicates, not malicious ones. These limits are
 acceptable for coarse product planning, not billing or statistical claims about
 individual conversion.
@@ -237,7 +241,7 @@ permission to deploy or change a production switch.
 
  ## What a request contains
 
-@@ -605,6 +610,63 @@
+@@ -605,6 +610,65 @@
    refused, not treated as human. No network-operator or headless score is
    stored. ModelSpec sets no cookie for this and does not enable Turnstile
    pre-clearance; we do not say that Cloudflare sets none of its own.
@@ -262,15 +266,17 @@ permission to deploy or change a production switch.
 +  The proposed Worker collector would keep only the UTC day, event kind,
 +  approved template id for a template event, and a count, in a dedicated D1
 +  database. It would generate the day itself and immediately increment an
-+  aggregate, without keeping an individual event or time of day. The payload
-+  and counter store would contain no page address, referrer, question, answer,
++  aggregate, without keeping an individual event or time of day. The JSON
++  event body and counter store would contain no page address, referrer, question, answer,
 +  estate, free text, decision id, visit or intent id, API key, IP address or
 +  user-agent. Event requests would omit cookies, API keys and referrers. They
 +  would carry the existing in-memory visit token for authorization, under the
 +  visit gate's origin, expiry and daily visitor-binding checks. Without a
 +  valid token, no event would be counted. Authorization would handle the
-+  token and transient network metadata separately, passing neither a token
-+  nor a visitor id to aggregation and adding no identity record. This
++  token's pseudonymous daily visitor id separately and transiently derive
++  the existing daily HMAC from the address to validate its binding. Neither
++  the token nor the visitor id would reach aggregation, and no identity
++  record would be added. This
 +  collection would set no cookie, use no browser storage, create no visitor
 +  identifier and perform no fingerprinting or cross-site tracking. Cloudflare
 +  would still receive network request metadata under *What Cloudflare
@@ -301,7 +307,7 @@ permission to deploy or change a production switch.
  - **Outcome logging by the service.** Not built. The service does not receive or
    record what you chose, whether a recommendation worked, or anything about the
    result of acting on one. The CLI keeps no log of outcomes. The feedback
-@@ -629,6 +691,10 @@
+@@ -629,6 +693,10 @@
 
  A change to what the service records is a change to this statement, and it is
  published here before the change ships. The version above is the one in force.
