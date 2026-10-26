@@ -278,3 +278,112 @@ Worker memory probe does not apply. No source pages were fetched or newly
 retained. No vendor API spend, production switch change, deployment, blog
 publication, social post or Linear write occurred. Catalogue claims were not
 independently verified. No background process was left running.
+
+## Round 2: catalogue path exclusions
+
+Base SHA: `5a683b78cecfd2d1331f281ea29fea9d9b2717f8`.
+Red-test commit: `0a51b683`.
+Final implementation SHA: `1e63a50908091122fd488c1a624c52dcf4ef225d`.
+The subsequent evidence-only commit is the final head. Resolve its full SHA
+with `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-434-fix.md`;
+the executor completion line also records it.
+
+The review found that a publisher name appearing only in a catalogue path
+could enter both public files through a GitHub blob link. `_allowed` now
+includes `record.path` in its existing `excluded_in` walk.
+
+`test_excluded_publishers_in_paths_are_withheld` uses real Git history and
+calls `generate`. Its four cases cover two excluded publisher spellings and
+both `public.md` and `public-appendix.md`. Each fixture has a model and an
+offering whose only excluded spelling is in the path. Both outputs must omit
+that spelling and both affected subjects while retaining links to a clean
+model and offering. The returned counts must contain one eligible change per
+category and four withheld changes. Publisher literals are split in the test
+source so the repository guard can scan it.
+
+### Red and green
+
+Run before changing the generator, then repeated after the one-line fix:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_model_week.py -k excluded_publishers_in_paths --tb=short
+```
+
+Red exit code: 1. All four cases failed at line 516,
+`assert publisher not in text`. The failure showed the publisher spelling in
+the generated model blob link. The assertion payload is omitted here because
+the tracked-file guard forbids those spellings in evidence documents.
+The unaltered failure summary was:
+
+```text
+FAILED tests/test_model_week.py::test_excluded_publishers_in_paths_are_withheld[public.md-publisher-one]
+FAILED tests/test_model_week.py::test_excluded_publishers_in_paths_are_withheld[public.md-publisher-two]
+FAILED tests/test_model_week.py::test_excluded_publishers_in_paths_are_withheld[public-appendix.md-publisher-one]
+FAILED tests/test_model_week.py::test_excluded_publishers_in_paths_are_withheld[public-appendix.md-publisher-two]
+4 failed, 45 deselected in 0.72s
+```
+
+Green exit code: 0.
+
+```text
+4 passed, 45 deselected in 0.71s
+```
+
+### Focused verification and delivery
+
+All commands ran in `/Users/terbeest/dev/worktrees/model-434-c` on
+`model-434-codex-1026`. Versions reported by `python --version`,
+`python -m pytest --version`, `git --version`, and `gh --version` were
+Python 3.14.4, pytest 9.1.1, Git 2.50.1 and GitHub CLI 2.102.0.
+Python commands used `/Users/terbeest/dev/modelspec/.venv/bin/python`.
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_model_week.py tests/test_removed_sources.py
+```
+
+Exit code: 0. Output: `95 passed, 1 skipped in 55.98s`. The optional built-site
+scan skipped because `MODELSPEC_DIST` is unset.
+
+After completing this report, the tracked-file guard was repeated:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source
+git diff --check
+```
+
+The repeated guard exited 0 with `1 passed in 31.99s`.
+The final diff check also exited 0.
+
+Delivery commands:
+
+```bash
+git add docs/evidence/g2-ios/MODEL-434-fix.md
+git commit -m 'MODEL-434: record path exclusion regression evidence' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+CI_LOCAL_SKIP=1 git push -u origin model-434-codex-1026
+git status --short
+git rev-parse HEAD
+```
+
+`git diff --check` exited 0 before the implementation commit. The red-test and
+implementation commits used these commands:
+
+```bash
+git add tests/test_model_week.py
+git commit -m 'wip: MODEL-434 reproduce publisher leaks through catalogue paths' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+git add scripts/model_week.py
+git commit -m 'MODEL-434: exclude publisher names in catalogue citation paths' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+git rev-parse HEAD
+gh pr view 914 --repo turbobeest/modelspec --json number,isDraft,headRefName,body,url
+```
+
+The PR read exited 0 and confirmed draft PR #914 targets this branch. Its body
+already ends with the required executor attribution. No new PR or PR-body
+edit is needed.
+
+### Round 2 observation limits
+
+No full suite, site build, built-site scan, live catalogue generation, private
+data clone, upstream fetch, or Worker memory probe ran in this round. Only
+the draft generator, its regression test and this report changed. No Worker
+exports or frozen data changed. CI and independent review results were not
+observed. No background service was started.
