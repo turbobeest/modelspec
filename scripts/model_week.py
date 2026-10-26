@@ -216,7 +216,7 @@ def _records(documents: dict[str, Any]) -> dict[str, Record]:
 def _allowed(record: Record) -> bool:
     if record.needs_source and not record.urls:
         return False
-    if excluded_in([record.label, record.value, record.urls]) or removed_text_hit(record.label):
+    if excluded_in([record.label, record.value, record.urls, record.path]) or removed_text_hit(record.label):
         return False
     if record.benchmark_id and excluded_sources().benchmark(record.benchmark_id):
         return False
