@@ -56,15 +56,25 @@ def _schedule(env: Any, ctx: Any, *, channel: str, product: str,
     if not key or key in _seen:
         return
     _seen.add(key)
-    body = urlencode({
+    body = urlencode(build_payload(
+        token=token, user=user, channel=channel, product=product,
+        amount_usd=amount_usd, ref=key,
+        ttl=getattr(env, "SALE_ALERT_TTL_SECONDS", None),
+    ))
+    _handoff(ctx, _deliver(body))
+
+
+def build_payload(*, token: str, user: str, channel: str, product: str,
+                  amount_usd: Any, ref: str, ttl: Any = None) -> dict[str, str]:
+    """Build the Pushover form shared by confirmed sales and the local dry run."""
+    return {
         "token": token,
         "user": user,
         "title": "ModelSpec sale",
-        "message": _message(channel, product, amount_usd, key),
-        "ttl": str(_ttl(getattr(env, "SALE_ALERT_TTL_SECONDS", None))),
+        "message": _message(channel, product, amount_usd, ref),
+        "ttl": str(_ttl(ttl)),
         "priority": "0",
-    })
-    _handoff(ctx, _deliver(body))
+    }
 
 
 def _message(channel: str, product: str, amount_usd: Any, ref: str) -> str:
