@@ -493,6 +493,38 @@ def test_unsafe_card_links_are_withheld_from_summary_and_appendix(tmp_path, url)
         assert "lab/unsafe" not in text and url not in text
 
 
+@pytest.mark.parametrize("publisher", ["zap" "ier", "artificial" "-analysis"],
+                         ids=["publisher-one", "publisher-two"])
+@pytest.mark.parametrize("output_name", ["public.md", "public-appendix.md"])
+def test_excluded_publishers_in_paths_are_withheld(tmp_path, publisher, output_name):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    write(repo, f"models/{publisher}-bot.md", model("lab/path-only"))
+    blocked_price = fact("offering.subscription.price", 30)
+    blocked_price["subject"]["id"] = "lab/subscription/path-only"
+    write(repo, f"offerings/{publisher}/prices.yaml", [{"facts": [blocked_price]}])
+    write(repo, "models/lab/clean.md", model("lab/clean"))
+    clean_price = fact("offering.subscription.price", 25)
+    clean_price["subject"]["id"] = "lab/subscription/clean"
+    write(repo, "offerings/lab/clean.yaml", [{"facts": [clean_price]}])
+    commit(repo, "2026-10-14T12:00:00Z")
+    out = tmp_path / "draft"
+
+    counts = generate("2026-10-13", repo, out)
+    text = (out / output_name).read_text()
+    assert publisher not in text
+    assert "lab/path-only" not in text
+    assert "lab/subscription/path-only" not in text
+    assert "models/lab/clean.md" in text
+    assert "offerings/lab/clean.yaml" in text
+    assert counts["public"] == {
+        "changes": {"Models added": 1, "Benchmark movers": 1,
+                    "Price and plan changes": 1, "Lineup changes": 1},
+        "withheld": 4,
+    }
+
+
 @pytest.fixture
 def busy_repository(tmp_path):
     repo = repository(tmp_path / "public", "lab/public")
