@@ -161,3 +161,90 @@ action and no polling loop.
   was needed. CI remains the broader gate. No Worker exports changed.
 - No production switches, Linear records, shared sessions or private-data files
   were changed. No background server or other persistent process was started.
+
+## Round 2 review edits, 2026-10-26
+
+Round 2 base SHA: `c308f2eeaabe222abd9df1629d9b05b37a3bf629`.
+Final revised proposal SHA: `9a1c69905a8e8e56b46897cd49bac84e9df94a36`.
+The following evidence-only commit is the delivery commit; its final SHA is
+reported in `CODEX_EXEC_DONE` and resolves with `git rev-parse HEAD`.
+This section supersedes the earlier recommendation and delivery instructions.
+
+Applied all four edits from the supplied review of PR #915:
+
+1. Option A now explicitly says to change nothing. Existing page views give
+   proxies for template interest and decide reach, but cannot count in-app
+   template applications or completed answers. Option B is conditional on
+   needing those counts.
+2. The design and embedded privacy diff prohibit analytics POSTs from renewing
+   the visit-token window, consuming either gate allowance or writing to
+   `HUMAN_GATE`. The design specifies validation without admission/metering or
+   renewal, no renewed token response, and a separate D1 analytics cap.
+3. The embedded privacy text points to the existing *The visit token*
+   paragraph about token headers in Workers observability invocation logs.
+4. Adoption of the planned v1.15 is optional and can wait for the single
+   live-state revision. The proposal names the two version/date expectations
+   in `tests/test_legal.py`, at lines 298 and 906, that adoption must update.
+
+Before editing, direct inspection confirmed that the proposal had no explicit
+change-nothing option, no analytics gate-side-effect limits, no pointer from
+its proposed text to the token-header logging disclosure, and no optional
+single-revision adoption path or named test assertions. These are documentation
+omissions. The round 2 spec lists no failing tests and requires docs only.
+No runtime red/green result is claimed, and no tests were added or weakened.
+
+Validation commands, run from the designated worktree:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider -rs tests/test_legal.py tests/test_removed_sources.py tests/test_security_headers.py
+```
+
+The document-check Python command in the earlier section was rerun with
+`c308f2eeaabe222abd9df1629d9b05b37a3bf629` as the unchanged-file comparison base.
+It returned exit 0 with:
+
+```text
+Embedded privacy diff check: 0
+Legal/runtime/tests/deployment unchanged: 0
+All proposal local links resolve.
+```
+
+`git diff --check` also returned exit 0. The embedded diff's hunk lengths were
+updated for the added disclosure. The patch was checked without applying it.
+Versions were checked again with the commands in *Tools and delivery* and are
+unchanged: Python 3.14.4, pytest 9.1.1, git 2.50.1, gh 2.102.0.
+
+The proposal commit used:
+
+```bash
+git add docs/design/site-analytics.md
+git commit -m 'MODEL-220: apply analytics proposal review edits' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+```
+
+Delivery uses an evidence-only commit with the same coauthor trailer, then:
+
+```bash
+CI_LOCAL_SKIP=1 git push -u origin model-220-codex-1026
+gh pr view 915 --json number,isDraft,headRefName,headRefOid,url
+```
+
+PR #915 already exists on this branch and was confirmed draft before editing.
+It is updated by pushing; no duplicate PR is created and its body is not
+edited. Its existing body already ends with the required Astra attribution.
+No Linear write, merge or ready action is part of this run.
+
+The live-beacon observation comes from the supplied review; this executor did
+not repeat a production capture or fetch external sources. No new runtime,
+privacy adoption, deployment, private data, paid calls, full local suite or
+site build was involved. The focused tests validate the existing repository,
+not a future analytics implementation. No background server was started.
+
+The round 2 focused run completed with exit 0:
+
+```text
+SKIPPED [1] tests/test_removed_sources.py:463: set MODELSPEC_DIST to a built dist/
+140 passed, 1 skipped in 51.35s
+```
+
+The distribution-dependent check was skipped because this docs-only run did not
+build a site. CI remains the broader gate; no CI result is claimed here.
