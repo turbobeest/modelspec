@@ -30,9 +30,11 @@ def write(root: Path, path: str, value: object) -> None:
     target.write_text(f"---\n{text}---\n" if path.endswith(".md") else text)
 
 
-def commit(root: Path, day: str) -> str:
+def commit(root: Path, day: str, *, published: bool = True) -> str:
     git(root, "add", ".")
     git(root, "commit", "--allow-empty", "-qm", "fixture", day=day)
+    if published:
+        git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
     return git(root, "rev-parse", "HEAD")
 
 
@@ -372,3 +374,231 @@ def test_cite_only_sources_remain_links_and_plan_quotes_are_never_copied(tmp_pat
     assert "https://docs.x.ai/pricing" in text
     assert '"value": 30' in text
     assert "PAGE-BYTES-DO-NOT-COPY" not in text
+
+
+def test_public_history_ignores_local_only_commits(tmp_path):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    write(repo, "models/lab/published.md", model("lab/published"))
+    published = commit(repo, "2026-10-14T12:00:00Z")
+    write(repo, "models/secret/local-only.md", model("secret/local-only", 987654321))
+    local = commit(repo, "2026-10-15T12:00:00Z", published=False)
+    out = tmp_path / "draft"
+    counts = generate("2026-10-13", repo, out)
+
+    assert counts["public"]["changes"] == {
+        "Models added": 1, "Benchmark movers": 1,
+        "Price and plan changes": 0, "Lineup changes": 1,
+    }
+    for name in ("public.md", "public-appendix.md"):
+        text = (out / name).read_text()
+        assert "lab/published" in text and published in text
+        assert "secret/local-only" not in text
+        assert "987654321" not in text and local not in text
+
+
+def test_public_history_uses_origin_main_when_head_is_behind(tmp_path):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    baseline = git(repo, "rev-parse", "HEAD")
+    write(repo, "models/lab/published.md", model("lab/published"))
+    commit(repo, "2026-10-14T12:00:00Z")
+    git(repo, "checkout", "--detach", baseline)
+    out = tmp_path / "draft"
+    counts = generate("2026-10-13", repo, out)
+    assert counts["public"]["changes"]["Models added"] == 1
+    assert "lab/published" in (out / "public.md").read_text()
+
+
+def test_missing_origin_main_refuses_before_writing(tmp_path):
+    from scripts.model_week import DraftError, generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    git(repo, "update-ref", "-d", "refs/remotes/origin/main")
+    out = tmp_path / "draft"
+    with pytest.raises(DraftError):
+        generate("2026-10-13", repo, out)
+    assert not out.exists()
+
+
+def test_model_and_status_changes_cite_the_card_announcement(tmp_path):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    updated = model("lab/public")
+    updated["status"] = "retired"
+    updated["sources"] = {"provider_docs_url": "https://lab.example/public-release"}
+    added = model("lab/added")
+    added["sources"] = {"provider_docs_url": "https://lab.example/added-release"}
+    write(repo, "models/lab/public.md", updated)
+    write(repo, "models/lab/added.md", added)
+    commit(repo, "2026-10-14T12:00:00Z")
+    out = tmp_path / "draft"
+    generate("2026-10-13", repo, out)
+    lines = (out / "public.md").read_text().splitlines()
+    added_line, = [line for line in lines if line.startswith('- `"lab/added"`:')]
+    status_line, = [line for line in lines
+                   if line.startswith('- `"lab/public catalogue status"`:')]
+    assert "[upstream source](https://lab.example/added-release)" in added_line
+    assert "[upstream source](https://lab.example/public-release)" in status_line
+
+
+@pytest.mark.parametrize("removal", [False, True])
+def test_premier_only_changes_cite_unchanged_member_cards(tmp_path, removal):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    card = model("lab/public")
+    card["sources"] = {"provider_docs_url": "https://lab.example/public-release"}
+    write(repo, "models/lab/public.md", card)
+    members = [{"model_id": "lab/public"}]
+    write(repo, "premier/slice-1.yaml", {"models": members if removal else []})
+    commit(repo, "2026-10-12T18:00:00Z")
+    write(repo, "premier/slice-1.yaml", {"models": [] if removal else members})
+    commit(repo, "2026-10-14T12:00:00Z")
+    out = tmp_path / "draft"
+    counts = generate("2026-10-13", repo, out)
+    assert counts["public"]["changes"] == {
+        "Models added": 0, "Benchmark movers": 0,
+        "Price and plan changes": 0, "Lineup changes": 1,
+    }
+    line, = [line for line in (out / "public.md").read_text().splitlines()
+             if line.startswith("- ")]
+    assert '"lab/public premier membership"' in line
+    assert "[upstream source](https://lab.example/public-release)" in line
+
+
+@pytest.mark.parametrize("url", [
+    "https://artificial" "analysis.ai/release", "https://zap" "ier.com/release",
+    "https://news.zap" "ier.com/release", "https://x.com/release",
+    "javascript:alert(1)",
+])
+def test_unsafe_card_links_are_withheld_from_summary_and_appendix(tmp_path, url):
+    from scripts.model_week import generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    card = model("lab/unsafe")
+    card["sources"] = {"provider_docs_url": url}
+    card["benchmarks"] = {}
+    write(repo, "models/lab/unsafe.md", card)
+    write(repo, "premier/slice-1.yaml", {"models": [{"model_id": "lab/unsafe"}]})
+    commit(repo, "2026-10-14T12:00:00Z")
+    out = tmp_path / "draft"
+    counts = generate("2026-10-13", repo, out)
+    assert counts["public"]["withheld"] == 3
+    for name in ("public.md", "public-appendix.md"):
+        text = (out / name).read_text()
+        assert "lab/unsafe" not in text and url not in text
+
+
+@pytest.fixture
+def busy_repository(tmp_path):
+    repo = repository(tmp_path / "public", "lab/public")
+    for i in range(12):
+        write(repo, f"models/lab/m{i:02}.md", model(f"lab/m{i:02}"))
+        price = fact("offering.subscription.price", 30)
+        price["subject"]["id"] = f"lab/subscription/plan{i:02}"
+        write(repo, f"offerings/subscriptions/plan{i:02}.yaml", [{"facts": [price]}])
+    commit(repo, "2026-10-14T12:00:00Z")
+    return repo
+
+
+def category_entries(text, category):
+    section = text.split(f"### {category}\n\n", 1)[1].split("\n### ", 1)[0]
+    return [line for line in section.splitlines() if line.startswith("- ")]
+
+
+def test_default_category_caps_keep_full_counts_and_separate_appendix(tmp_path, busy_repository):
+    from scripts.model_week import generate
+
+    out = tmp_path / "draft"
+    counts = generate("2026-10-13", busy_repository, out)
+    summary = (out / "public.md").read_text()
+    assert counts["public"]["changes"] == {
+        "Models added": 12, "Benchmark movers": 12,
+        "Price and plan changes": 12, "Lineup changes": 12,
+    }
+    assert len(category_entries(summary, "Models added")) == 10
+    assert summary.count("and 2 more") == 4
+    appendix = (out / "public-appendix.md").read_text()
+    for category in ("Models added", "Benchmark movers", "Price and plan changes", "Lineup changes"):
+        assert len(category_entries(summary, category)) == 10
+        assert len(category_entries(appendix, category)) == 12
+    assert '"lab/m09"' in summary
+    assert '"lab/m10"' not in summary and '"lab/m11"' not in summary
+    assert '"lab/m10"' in appendix and '"lab/m11"' in appendix
+    assert "[Full list](public-appendix.md)" in summary
+    assert "and 2 more" not in appendix
+
+
+def test_cli_category_caps_are_independent(tmp_path, busy_repository, monkeypatch, capsys):
+    from scripts import model_week
+
+    monkeypatch.setattr(model_week, "PUBLIC_REPO", busy_repository)
+    out = tmp_path / "draft"
+    status = model_week.main([
+        "--week", "2026-10-13", "--out-dir", str(out),
+        "--limit", "Models added=2", "--limit", "Benchmark movers=3",
+        "--limit", "Price and plan changes=1", "--limit", "Lineup changes=0",
+    ])
+    assert status == 0
+    assert json.loads(capsys.readouterr().out)["public"]["changes"] == {
+        "Models added": 12, "Benchmark movers": 12,
+        "Price and plan changes": 12, "Lineup changes": 12,
+    }
+    text = (out / "public.md").read_text()
+    assert [json.loads(line.split("`", 2)[1]) for line in category_entries(text, "Models added")] == [
+        "lab/m00", "lab/m01",
+    ]
+    assert [json.loads(line.split("`", 2)[1]).split(" context ")[0]
+            for line in category_entries(text, "Benchmark movers")] == [
+        "lab/m00 example_bench", "lab/m01 example_bench", "lab/m02 example_bench",
+    ]
+    assert [json.loads(line.split("`", 2)[1])
+            for line in category_entries(text, "Price and plan changes")] == [
+        "lab/subscription/plan00 offering.subscription.price",
+    ]
+    assert category_entries(text, "Lineup changes") == []
+    for notice in ("and 10 more", "and 9 more", "and 11 more", "and 12 more"):
+        assert notice in text
+
+
+@pytest.mark.parametrize("limits", [{"Models added": -1}, {"Models added": 1.5},
+                                    {"Models added": True}, {"Unknown": 2}])
+def test_invalid_category_limits_refuse_without_output(tmp_path, limits):
+    from scripts.model_week import DraftError, generate
+
+    repo = repository(tmp_path / "public", "lab/public")
+    out = tmp_path / "draft"
+    with pytest.raises(DraftError):
+        generate("2026-10-13", repo, out, category_limits=limits)
+    assert not out.exists()
+
+
+def test_appendices_preserve_private_separation_and_permissions(tmp_path):
+    from scripts.model_week import generate
+
+    public = repository(tmp_path / "public", "lab/public")
+    private = repository(tmp_path / "private", "secret/private")
+    write(public, "models/lab/added.md", model("lab/added"))
+    commit(public, "2026-10-14T12:00:00Z")
+    write(private, "models/secret/added.md", model("secret/added", 987654321))
+    commit(private, "2026-10-14T12:00:00Z", published=False)
+    alone = tmp_path / "alone"
+    combined = tmp_path / "combined"
+    generate("2026-10-13", public, alone)
+    generate("2026-10-13", public, combined, private_repo=private)
+    assert sorted(path.name for path in combined.iterdir()) == [
+        "private-appendix.md", "private.md", "public-appendix.md", "public.md",
+    ]
+    for name in ("public.md", "public-appendix.md"):
+        assert (alone / name).read_bytes() == (combined / name).read_bytes()
+        assert "secret" not in (combined / name).read_text()
+    for name in ("private.md", "private-appendix.md"):
+        text = (combined / name).read_text()
+        assert "## PRIVATE" in text and "987654321" in text
+    assert combined.stat().st_mode & 0o777 == 0o700
+    for path in combined.iterdir():
+        assert path.stat().st_mode & 0o777 == 0o600
