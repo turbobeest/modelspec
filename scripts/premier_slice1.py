@@ -89,6 +89,7 @@ MAJOR_PLATFORMS = (
     "nvidia_nim",
 )
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
+VISION_DOMAINS = {"vision", "vision_documents"}
 
 EFFORT = {
     "max",
@@ -695,7 +696,7 @@ def bucket_for(card: dict, domains: set[str]) -> str:
         return "embedding"
     if class_id == "orderer":
         return "rerank"
-    if card["model_type"] == "vlm" and domains == {"vision"}:
+    if card["model_type"] == "vlm" and domains and domains <= VISION_DOMAINS:
         return "vision"
     if card["open_weights"]:
         return "open-weights-generation"
@@ -879,7 +880,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
     for model_id, entry in by_model.items():
         if entry["card"]["status"] == "sunset" or 1 not in entry["clauses"]:
             continue
-        vision = [item for item in entry["evidence"] if item["domain"] == "vision"]
+        vision = [item for item in entry["evidence"] if item["domain"] in VISION_DOMAINS]
         if vision:
             vision_leaders.append((min(item["rank"] for item in vision), model_id))
     vision_leaders.sort()
@@ -1003,7 +1004,10 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
                 {
                     "clause": 3,
                     "providers": card["platforms"],
-                    "note": "At least three recorded major providers on the card.",
+                    "note": (
+                        "At least three major providers have recorded offerings."
+                        if data_dir else "At least three recorded major providers on the card."
+                    ),
                 }
             )
         if 4 in entry["clauses"]:

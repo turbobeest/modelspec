@@ -227,3 +227,13 @@ def test_live_board_respects_direction_versions_and_model_identity(tmp_path):
     assert "lab/model-00" in ids and "other/model-00" in ids
     assert "lab/model-10" not in ids
     assert len(ids) == 11
+
+
+def test_live_vision_domain_keeps_the_existing_vision_quota(tmp_path):
+    root = catalogue(tmp_path)
+    path = root / "benchmarks/quality.md"
+    path.write_text(path.read_text().replace("software_engineering", "vision_documents"))
+    write_card(root, "lab/vision-leader", rows=[evidence("lab/vision-leader", "quality", 90)])
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["models"][0]["slice1_group"] == "vision"
+    assert document["models"][0]["clauses"][0]["domain"] == "vision_documents"

@@ -135,7 +135,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
                 "rows": [],
             })
             board["rows"].append({
-                "name": model_id,
+                "name": record.get("model_id_as_evaluated") or model_id,
                 "model_id": model_id,
                 "score": evidence.value,
                 "date": evidence.date.isoformat(),
