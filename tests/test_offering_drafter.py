@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, date, datetime
 
+import pytest
 import yaml
 
 from decision.sources import CopyStore, FetchResult
@@ -173,3 +174,54 @@ def test_disagreeing_first_party_prices_do_not_enter_offering(tmp_path):
     }
     assert any(g.facet == "offering.price.input" and "conflicting" in g.reason
                for g in packet.gaps)
+
+
+@pytest.mark.parametrize("row_name", ["Fixture Model Ultra", "Mini Fixture Model"])
+@pytest.mark.parametrize("grouped", [False, True], ids=["flat", "grouped"])
+def test_substring_model_row_leaves_prices_unwritten(tmp_path, row_name, grouped):
+    root = catalogue(tmp_path)
+    if grouped:
+        body = (b"<table><tr><th>Model</th><th>Base tokens</th></tr>"
+                b"<tr><th>Name</th><th>Input</th><th>Output</th></tr>"
+                b"<tr><td>Fixture Model</td><td>$2</td><td>$8</td></tr></table>")
+    else:
+        body = PRICES
+    body = body.replace(b"Fixture Model", row_name.encode()).replace(b"$2", b"$5").replace(b"$8", b"$9")
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering is None
+    assert not list(root.glob("offerings/**/*.yaml"))
+    assert {g.facet for g in packet.gaps} >= {"offering.price.input", "offering.price.output"}
+    assert all(g.reason for g in packet.gaps)
+
+
+@pytest.mark.parametrize("other_first", [False, True])
+def test_price_table_with_both_models_keeps_only_the_exact_row(tmp_path, other_first):
+    root = catalogue(tmp_path)
+    other = b"<tr><td>Fixture Model Ultra</td><td>$5</td><td>$9</td></tr>"
+    body = (PRICES.replace(b"<tr><td>", other + b"<tr><td>", 1) if other_first
+            else PRICES.replace(b"</table>", other + b"</table>"))
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    assert {fact["facet"]: fact["value"] for fact in offering["facts"]} == {
+        "offering.price.input": 2, "offering.price.output": 8,
+    }
+
+
+@pytest.mark.parametrize("row_name", ["FIXTURE MODEL", "fixture-model", "Fixture.Model"])
+def test_normalized_exact_model_row_still_writes_verified_prices(tmp_path, row_name):
+    from decision.verify import VerificationLog
+
+    root = catalogue(tmp_path)
+    packet = draft(root, tmp_path, Pages({URL: PRICES.replace(b"Fixture Model", row_name.encode())}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    assert {fact["facet"]: fact["value"] for fact in offering["facts"]} == {
+        "offering.price.input": 2, "offering.price.output": 8,
+    }
+    receipts = VerificationLog(root / "verification").latest()
+    assert len(receipts) == 2
+    assert all(record.independent and record.outcome == "verified" for record in receipts.values())

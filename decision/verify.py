@@ -613,11 +613,10 @@ class OfferingPriceExtractor:
         if wanted == claim.field:
             raise ExtractorError("not an offering price")
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        scoped_subject = next((name for name in claim.names
-                               if normalise_name(name) in normalise_name(text)), None)
+        claim_names = {normalise_name(name): name for name in claim.names}
         simple_label = {"input": "input", "output": "output",
                         "cached_input": "cached input"}.get(wanted)
-        if scoped_subject and simple_label:
+        if simple_label:
             markdown = False
             table_subject = None
             # The Markdown headings open above each table. A table counts only under
@@ -625,17 +624,15 @@ class OfferingPriceExtractor:
             # above it names the model, and no heading above it may name another
             # (MODEL-426). A page without Markdown headings has an empty path.
             path: tuple[tuple[int, str], ...] = ()
-            claim_names = {normalise_name(name): name for name in claim.names}
             for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
                     heading = lines[i - 1].lstrip("#").strip() if i else ""
                     declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
-                    names = {normalise_name(n.rstrip("."))
-                             for n in declared.split(",")}
-                    own = normalise_name(scoped_subject) in names and (
-                        not path or MetricPriceTable._under([h for _, h in path], claim_names))
-                    table_subject = scoped_subject if own else None
+                    table_subject = next((name.strip().rstrip(".") for name in declared.split(",")
+                                          if normalise_name(name) in claim_names), None)
+                    if path and not MetricPriceTable._under([h for _, h in path], claim_names):
+                        table_subject = None
                 path = _heading_path(path, line) or path
                 if table_subject is None:
                     continue
@@ -648,22 +645,21 @@ class OfferingPriceExtractor:
                 if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
                     if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
                         return [Reading(table_subject, match.group(0), claim.unit)]
-        if scoped_subject and "price per btok per mtok" in normalise_name(text):
-            if wanted == "input":
-                match = re.search(r"(?im)^\|?\s*Price \(per Btok / per Mtok\).*?"
-                                  r"\\?\$[0-9.]+\s*/\s*(\\?\$[0-9.]+)", text)
-                if match:
-                    return [Reading(scoped_subject, match.group(1), claim.unit)]
-            if wanted == "output" and "output tokens are free" in text.casefold():
-                return [Reading(scoped_subject, "0", claim.unit)]
-        if scoped_subject and wanted == "cached_input":
-            name = re.escape(scoped_subject)
-            # The name must end there: "Claude Opus 5" is not "Claude Opus 5.5".
-            pattern = (rf"(?is){name}(?![\w.]).{{0,160}}?"
+                if len(cells) >= 2 and normalise_name(cells[0]) == "price per btok per mtok":
+                    if wanted == "input":
+                        match = re.search(r"\\?\$[0-9.]+\s*/\s*(\\?\$[0-9.]+)", cells[1])
+                        if match:
+                            return [Reading(table_subject, match.group(1), claim.unit)]
+                    if wanted == "output" and i + 1 < len(lines) \
+                            and normalise_name(lines[i + 1]) == "output tokens are free":
+                        return [Reading(table_subject, "0", claim.unit)]
+        if wanted == "cached_input":
+            pattern = (r"(?im)^([^\n|]+?)\s+caching\b[^\n]{0,160}?"
                        r"\((\\?\$[0-9.]+)\s+USD per million tokens\)")
-            match = re.search(pattern, text)
-            if match:
-                return [Reading(scoped_subject, match.group(1), claim.unit)]
+            for match in re.finditer(pattern, text):
+                subject = match.group(1).strip()
+                if normalise_name(subject) in claim_names:
+                    return [Reading(subject, match.group(2), claim.unit)]
         named_readings: list[Reading] = []
         label = {
             "input": "input price", "output": "output price",
@@ -696,7 +692,7 @@ class OfferingPriceExtractor:
         if len(rows) < 2:
             raise ExtractorError("no pricing table")
         headers = [normalise_name(cell) for cell in rows[0]]
-        names = [normalise_name(name) for name in claim.names]
+        names = {normalise_name(name) for name in claim.names}
         # A band-tiered table lists the token range beside the amount. The range
         # header contains "input tokens", so the column-header scan below would
         # read the range. The price column is the amount. The model's first row
@@ -712,11 +708,8 @@ class OfferingPriceExtractor:
             if row[0]:
                 current_subject = row[0]
             subject = current_subject
-            matched_name = next((claim.names[i] for i, name in enumerate(names)
-                                 if subject and name in normalise_name(subject)), None)
-            if matched_name is None:
+            if not subject or normalise_name(subject) not in names:
                 continue
-            subject = matched_name
 
             # Azure-style cells contain several labelled prices. Batch prices
             # live in the column whose header names the Batch API.
@@ -873,11 +866,9 @@ def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading
     Anthropic's pricing tables put column groups ("Model | Base tokens | Prompt
     caching", "Model | Batch tokens") above the column names ("Name | Input |
     Output | … | Hits and refreshes"), and each row's first cell is the model's
-    name, sometimes followed by a description. Each table is read on its own: a
-    group row naming batch makes it the batch table. A row is the subject's only
-    when its first cell starts with one of the subject's names and the name is
-    not followed by a digit or a dot, so "Claude Sonnet 5" never reads the
-    "Claude Sonnet 5.5" row.
+    name. Each table is read on its own: a group row naming batch makes it the
+    batch table. The first cell must exactly match a normalized claim name;
+    descriptions and serving qualifiers need an explicit alias in the claim.
     """
     def cells(line: str) -> list[str]:
         return [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -906,6 +897,7 @@ def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading
 
     column = {"input": "input", "output": "output", "cached_input": "hits",
               "batch_input": "input", "batch_output": "output"}[wanted]
+    names = {normalise_name(name) for name in claim.names}
     readings: list[Reading] = []
     for rows in tables:
         if len(rows) < 3 or len(rows[1]) <= len(rows[0]) \
@@ -925,10 +917,8 @@ def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading
         for row in rows[2:]:
             if len(row) != len(headers):
                 continue
-            name = next((n for n in claim.names
-                         if re.match(rf"(?i){re.escape(n)}(?![\w.])", row[0])), None)
-            if name and (match := _PRICE_CELL.search(row[index])):
-                readings.append(Reading(name, match.group(0), claim.unit))
+            if normalise_name(row[0]) in names and (match := _PRICE_CELL.search(row[index])):
+                readings.append(Reading(row[0], match.group(0), claim.unit))
     return readings
 
 

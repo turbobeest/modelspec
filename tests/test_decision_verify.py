@@ -243,11 +243,12 @@ def test_currency_with_mtok_header_is_a_per_million_token_price() -> None:
     assert (quantity.number, quantity.unit) == (4, "usd_per_1m_tokens")
 
 
-def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6") -> verify.Claim:
+def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6",
+                 aliases: tuple[str, ...] = ()) -> verify.Claim:
     return verify.Claim(
         target=verify.TargetRef(kind="fact", id=f"offering#{field}"),
         subject="provider/lab/model/global/standard",
-        names=(name,),
+        names=(name, *aliases),
         field=f"offering.price.{field}",
         label=field.replace("_", " ").title(),
         value=value,
@@ -256,6 +257,92 @@ def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6") -> 
         sources=(verify.SourceRef(source_id="pricing", snapshot_ref="sha256:" + "0" * 64,
                                   cited_regions=["prices"]),),
     )
+
+
+def _attribution_price_table(subject: str, *, grouped: bool) -> str:
+    header = ("Model | Base tokens\nName | Input | Output" if grouped
+              else "Model | Input tokens | Output tokens")
+    return f"{header}\n{subject} | $5 | $9\n"
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model",
+                                    "Fixture Model Global", "Fixture Model context caching discount"])
+def test_offering_price_rows_require_an_exact_registered_name(grouped, subject):
+    claim = _price_claim("input", 5, name="Fixture Model")
+    assert verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table(subject, grouped=grouped)) == []
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+def test_offering_price_row_preserves_its_normalized_exact_subject(grouped):
+    claim = _price_claim("input", 5, name="Fixture Model")
+    readings = verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table("FIXTURE--Model", grouped=grouped))
+    assert readings == [verify.Reading("FIXTURE--Model", "$5", "usd_per_1m_tokens")]
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+def test_offering_price_row_uses_an_explicit_alias_without_rewriting_it(grouped):
+    claim = replace(_price_claim("input", 5, name="Fixture Model"),
+                    names=("Fixture Model", "Fixture Model Global"))
+    readings = verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table("Fixture Model Global", grouped=grouped))
+    assert readings == [verify.Reading("Fixture Model Global", "$5", "usd_per_1m_tokens")]
+    assert verify.compare(claim, readings) == []
+
+
+def _verify_scoped_price(store, text, field, value, *, aliases=()):
+    source = Source(
+        id="scoped-pricing", url="https://fixture.example/pricing",
+        kind="provider_documentation", normaliser="text-default",
+        cited_regions=[CitedRegion(id="prices", locator={"kind": "page"})],
+    )
+    ref = store.put(text.encode(), source_url=str(source.url))
+    claim = replace(_price_claim(field, value, name="Fixture Model", aliases=aliases), sources=(
+        SourceRef(source_id=source.id, snapshot_ref=ref, cited_regions=["prices"]),
+    ))
+    return verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+                         verify.deterministic_extractors(), today=TODAY)
+
+
+@pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
+@pytest.mark.parametrize("heading", ["Fixture Model Ultra", "Ultra Fixture Model",
+                                      "# Fixture Model\n\n# Fixture Model Ultra"])
+def test_scoped_btok_price_never_verifies_another_models_heading(store, field, value, heading):
+    text = f"{heading}\nPrice (per Btok / per Mtok) | $5000 / $5\nOutput tokens are free.\n"
+    assert _verify_scoped_price(store, text, field, value).outcome != "verified"
+
+
+@pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
+@pytest.mark.parametrize(("heading", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_scoped_btok_price_verifies_its_exact_name_or_explicit_alias(
+        store, field, value, heading, aliases):
+    text = f"{heading}\nPrice (per Btok / per Mtok) | $5000 / $5\nOutput tokens are free.\n"
+    result = _verify_scoped_price(store, text, field, value, aliases=aliases)
+    assert result.outcome == "verified"
+    assert result.verification.method == "offering-price-table@1"
+
+
+@pytest.mark.parametrize("published", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_cached_price_prose_never_verifies_an_extended_model_name(store, published):
+    text = (f"{published} caching is billed at a lower rate ($0.20 USD per million tokens).\n"
+            "Usage | Price\nInput | $9\n")
+    assert _verify_scoped_price(store, text, "cached_input", .2).outcome != "verified"
+
+
+@pytest.mark.parametrize(("published", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_cached_price_prose_verifies_its_exact_name_or_explicit_alias(store, published, aliases):
+    text = (f"{published} caching is billed at a lower rate ($0.20 USD per million tokens).\n"
+            "Usage | Price\nInput | $9\n")
+    result = _verify_scoped_price(store, text, "cached_input", .2, aliases=aliases)
+    assert result.outcome == "verified"
+    assert result.verification.method == "offering-price-table@1"
 
 
 def test_offering_price_reader_carries_models_across_continuation_rows() -> None:
@@ -281,8 +368,10 @@ GPT-5.4 Global | Input: $2.50 Cached Input: $0.25 Output: $15 | Input: $1.25 Out
     extractor = verify.OfferingPriceExtractor()
     for field, value in (("input", 2.5), ("output", 15), ("cached_input", .25),
                          ("batch_input", 1.25), ("batch_output", 7.5)):
-        claim = _price_claim(field, value, name="GPT-5.4")
-        assert verify.compare(claim, extractor.extract(claim, text)) == []
+        claim = _price_claim(field, value, name="GPT-5.4", aliases=("GPT-5.4 Global",))
+        readings = extractor.extract(claim, text)
+        assert all(reading.subject == "GPT-5.4 Global" for reading in readings)
+        assert verify.compare(claim, readings) == []
 
 
 def _deepseek_price_text(layout: str) -> str:
@@ -508,8 +597,13 @@ def test_grouped_header_section_keeps_standard_and_batch_prices_separate(
 ])
 def test_grouped_header_price_tables_are_read(name: str, field: str, value: float) -> None:
     """MODEL-235: Anthropic's two-row headers, read table by table."""
-    claim = _price_claim(field, value, name=name)
+    published = {
+        "Claude Opus 5.5": "Claude Opus 5.5 For agentic coding",
+        "Claude Sonnet 5.5": "Claude Sonnet 5.5 The best mix",
+    }.get(name, name)
+    claim = _price_claim(field, value, name=name, aliases=(published,))
     readings = verify.OfferingPriceExtractor().extract(claim, ANTHROPIC_TABLES)
+    assert [reading.subject for reading in readings] == [published]
     assert verify.compare(claim, readings) == []
 
 
@@ -585,15 +679,19 @@ def test_band_tiered_table_reads_the_price_column_of_the_lowest_band() -> None:
         ("qwen3-max", "output", 6, "$6"),
     )
     for name, field, number, published in cases:
-        claim = _price_claim(field, number, name=name)
+        alias = f"{name} context caching discount"
+        claim = _price_claim(field, number, name=name, aliases=(alias,))
         readings = extractor.extract(claim, text)
+        assert [reading.subject for reading in readings] == [alias]
         assert [reading.value for reading in readings] == [published]
         assert verify.compare(claim, readings) == []
 
-    higher = _price_claim("input", 2.4, name="qwen3-max")
+    higher = _price_claim("input", 2.4, name="qwen3-max",
+                          aliases=("qwen3-max context caching discount",))
     assert verify.compare(higher, extractor.extract(higher, text)) != []
     for field in ("cached_input", "batch_input", "batch_output"):
-        claim = _price_claim(field, 2, name="qwen3.8-max-0902")
+        claim = _price_claim(field, 2, name="qwen3.8-max-0902",
+                             aliases=("qwen3.8-max-0902 context caching discount",))
         assert extractor.extract(claim, text) == []
 
 
