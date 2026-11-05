@@ -1,5 +1,179 @@
 # MODEL-449 verification
 
+## Round 3: exact subjects across the reader chain
+
+Base `706d1cb002a1e4733a65ce106af642ad7a623c92`. Merged fetched main
+`468dd44c` first in `57c85022b4021d2b30eb1cbe1dabdf51bf11c467`, including the
+clock-test correction. Final implementation `4867fe5b8fe638e4e5bdb56e6b5dd4ba545138dd`; the evidence-inclusive
+submitted head is in `.pr-commit.txt` and the executor completion line.
+PR #972 remains a draft. The existing data workflow draft #128 is unchanged.
+
+The review's three-line sibling table reproduced through both `verify()` and
+`draft_offering`. One shared `_published_subject` now compares complete normalized
+names or registered aliases and returns the published spelling. Semantic `+`
+stays part of identity. The audit covered all 18 deterministic readers and the
+injected LLM and licence readers, including shared helpers and final comparison.
+The [reader census](MODEL-449-r3-audit.md) records every reader and the explicit
+provider-wide, exact-template, metadata-binding, quote-validation and
+rejection-only boundary cases. No accepted identity comes from a substring or
+prefix match in those audited paths.
+
+Model sections own their values, including inverse amount/label layouts after
+HTML normalization. A sibling title cannot inherit an earlier model's prices,
+context limits or feature statements. The fixes also cover plan cards, scoped
+retention, parameter counts, effort captions, licence bindings, and LLM replies
+that rename a sibling source. Marketing suffixes, family names and numeric plan
+aliases must be registered explicitly. Positive fixtures retain literal values
+and negative assertions; changed expectations record actual source spelling.
+
+### Reproductions and focused validation
+
+Python 3.14.4, pytest 9.1.1, git 2.50.1. Every pytest command used the mandated
+interpreter, serial execution, `PYTHONPATH=$PWD`, and `-q -p no:cacheprovider`.
+Source fixtures and LLM replies are synthetic; actual paid calls and credits: 0.
+
+| Regression boundary | Observed red result, exit 1 |
+| --- | --- |
+| Three-line drafter rows, both row orders, headings, cached prose | 8 failed, 5 passed; `drafter/red.log` |
+| Full verifier sibling price and inherited heading | 3 failed, 1 passed; `root/initial-red.log` |
+| Full verifier other model facets and Mistral sections against base source | 15 failed, 3 passed; `root/baseline-boundary-red.log` |
+| Mixed exact/sibling rows against base source | 4 failed; `root/mixed-rows-red.log` |
+| Scoped retention | 2 failed; `root/retention-red.log` |
+| Plan identity and licence binding | 9 failed, 1 passed; `drafter/systemic-red.log` |
+| Inferred plan aliases, plus-card collision, sibling card search | 5, 1 and 3 failed respectively; `drafter/implicit-alias-red.log`, `plus-card-red.log`, `card-scope-red.log` |
+| Parameter and effort identity | 12 failed, 6 passed; additional alias, qualifier and heading reds: 2, 3 and 3 failures; `memory/*-red.log` |
+| Normalized inverse labels, Priority pricing, metadata ownership | 9 failed, 12 passed; `private/scope-red.log` |
+| Sibling feature prose and exact Introduction section | 3 failed; `root/feature-red.log` |
+| Missing or renamed LLM subject | 2 missing-subject, 6 source-binding, 1 plain-section failure; `root/llm-subject-red.log`, `drafter/llm-red.log`, `llm-plain-red.log` |
+
+All log paths above are under `.scratch/model-449-r3/`. Exact red commands are
+in the local subtask handoffs and audit. The baseline-source runs execute
+`git show 706d1cb0:decision/verify.py` in the imported verifier module before
+`pytest.main`, without changing the working file. Individual failing tests are
+committed in `test_decision_verify.py`, `test_offering_drafter.py`,
+`test_model_396_readers.py` and the four new subject-attribution test modules.
+
+Final integrated command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py tests/test_offering_drafter.py tests/test_subject_attribution.py tests/test_subject_reader_guards.py tests/test_subject_scopes.py tests/test_llm_subject_attribution.py tests/test_metric_price_tables.py tests/test_price_reread.py tests/test_price_reread_fallback.py tests/test_admission_drafter.py tests/test_admission_fallback.py tests/test_architecture_extractors.py tests/test_architecture_facts.py tests/test_model_348_architecture.py tests/test_model_390_licence_readers.py tests/test_model_393_licence_binding.py tests/test_model_396_readers.py tests/test_licence_rules.py tests/test_model380_licence_metadata.py tests/test_model380_subscription_quotes.py tests/test_model380_subscription_types.py tests/test_subscription_availability_reader.py tests/test_subscription_jobs.py tests/test_subscription_sources.py tests/test_subscription_source_expectations.py tests/test_engine_pin.py
+```
+
+Exit 0: **2,177 passed in 27.17s**, including MODEL-426 and the merged engine-pin
+clock tests. Output: `.scratch/model-449-r3/root/final-focused.log`.
+The required staged-content source guard also passed:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+```
+
+Exit 0: **46 passed, 1 skipped in 50.59s**. The skipped check needs a built
+`MODELSPEC_DIST`; no full site build was run. Output:
+`.scratch/model-449-r3/root/removed-sources.log`. `git diff --check` also exited 0.
+
+### Private blast radius, including non-price facts
+
+The [read-only replay program](MODEL-449-r3-replay.py) disables network access,
+reads only hash-matched committed bytes, refuses source writes, and checks every
+tracked file and git status before/after. It replays current values/references
+with filed aliases and collector metadata, including lab facts and evidence.
+
+```sh
+git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/replay-data
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/private/replay_all.py --engine $PWD --data /tmp/model-449-scratch/replay-data --revision 706d1cb0 --output /tmp/model-449-scratch/all-before.json
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/private/replay_all.py --engine $PWD --data /tmp/model-449-scratch/replay-data --output /tmp/model-449-scratch/all-after.json --compare /tmp/model-449-scratch/all-before.json
+```
+
+All exit 0. Private main `8ce0b5b56a2cdbbc84449bf6150c436124203dc1`.
+The tracked reproduction script is byte-identical to the executed scratch copy.
+Final verifier SHA-256:
+`701cb208cb99a961b0584b4337de46dad4684adba2f91229af763774700d94bc`.
+A repeated baseline control produced zero changed records.
+
+| Outcome | Before | After |
+| --- | ---: | ---: |
+| Verified | 333 | 202 |
+| Mismatch | 85 | 216 |
+| Cited | 375 | 375 |
+| Unreachable | 4,954 | 4,954 |
+| Skipped | 1 | 1 |
+
+Attempted all **5,748 eligible current targets**: 1,926 facts and 3,822 evidence
+records. **131 facts changed from verified to mismatch**, all also carrying a
+current authored verified verdict. One existing mismatch changed method/diff;
+132 records changed in total. Evidence outcomes did not change. These are replay
+results; no authored data, verification receipt or manifest was rewritten.
+
+Every changed target is listed with its exact identifier, old/new outcome and
+reader, literal claim, aliases, diffs, and source URL/hash/original copy path in
+`.scratch/model-449-r3/private-results/changes.md`. Full before/after JSON is in
+that same ignored local directory. It includes all 132 records and 48 distinct
+source-copy references. Allowed page text is included; held sources have only
+references and normalized hashes. These reports contain private data and are
+intentionally not committed or placed in the public PR body.
+
+The changes are **not a finding that all 131 facts are false**. Many lose an
+implicit family, extended title or model-page association. Ten leading metadata
+blocks and two feature blocks still exceed the conservative section parser's
+supported shapes. Their source evidence is in the private report for the
+orchestrator to judge; this task does not rewrite facts or add aliases to data.
+
+Coverage limits: only 78 of 563 requested non-cite-only hashes exist in the clone;
+427 targets have readable retained regions. Thus unchanged evidence outcomes
+mostly mean unavailable snapshots, not successful evidence re-verification.
+Excluded from attempts: 313 unknown facts, 13 generated facts without sources,
+and 3,628 legacy evidence rows without source references. Forty-two facts and one
+evidence record lack a filed claim; their same-subject catalogue metadata is
+explicitly marked. The queue also contains 237 fact and 624 evidence targets no
+longer in the authored catalogue; these are counted separately. All 4,679 tracked
+private files remained byte-identical. No sources were fetched.
+
+Private report SHA-256 values:
+`all-before.json`: `9142da5cb88de8bf891b3b3213c8721f56821bcaf58c8cfea8532db81097d43f`;
+`all-after.json`: `7c5920edb2b593f4b583cd4f749c04b6ed09acf72f044a9112ca48308a4e3851`.
+
+### Worker memory and public vendor
+
+Executed the deploy's private `vendor.py --data-dir` and real
+`api/worker/measure_memory.cjs` path with a random throwaway HMAC key, inherited
+Ed25519 signing key removed, pinned Pyodide 0.28.3 and Node 22.22.3. No real secret
+or production endpoint was used. Host dependencies match the deploy pins;
+host Python is 3.14.4, while CI uses 3.13.
+
+```sh
+git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/memory-data
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm install --prefix .scratch/model-449-r3/memory/runtime --no-save pyodide@0.28.3
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/memory/run_probe.py
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/memory/run_public_vendor.py
+```
+
+All exit 0. The first runner invokes `api/worker/vendor.py --data-dir
+/tmp/model-449-scratch/memory-data --out /tmp/model-449-scratch/memory-bundle`,
+copies tracked handwritten Worker modules, then runs Node with `--expose-gc
+api/worker/measure_memory.cjs /tmp/model-449-scratch/memory-bundle --limit-mib 115`,
+once normally and once with `--successor`. Both runs exercise decide, vocabulary,
+rank and policy-check, assert HTTP 200 and validate the loaded corpus/snapshot.
+
+| Period | Steady MiB | Peak MiB | Limit MiB |
+| --- | ---: | ---: | ---: |
+| Current | 104.6633 | 105.4685 | 115 |
+| Successor | 104.6927 | 105.8379 | 115 |
+
+Public re-vendoring and its import check passed; a separate frozen-public
+`--data-dir` export also passed. All 129 generated public source files are
+byte-identical to HEAD, so there is no bundle diff to commit. The measured
+private bundle's 62 generated public sources and 33 handwritten modules also
+match the final implementation byte-for-byte. Later verifier-only edits do not
+change that measured bundle. `verify.py` itself is not in `vendor.SOURCES`;
+exports consume existing receipts, which this task left unchanged.
+
+Not observed: the full local suite, Linux CI, a deployed Worker, production
+requests, live paid extraction, or successful re-verification of unavailable
+private snapshots. Both private clones were clean before deletion. The entire authorized
+`/tmp/model-449-scratch` was deleted after final reports were compared byte-for-byte
+with their ignored local copies. Every started process exited. The final draft-head
+check is recorded in the executor handoff. Remote CI and independent review remain pending.
+
 ## Round 2: exact price attribution
 
 Round-two base: `489eab5e3124e82e4de96402086068ebce949acb`.
