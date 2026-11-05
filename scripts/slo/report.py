@@ -28,6 +28,12 @@ TARGETS_PATH = Path(__file__).with_name("targets.yaml")
 REPO = "turbobeest/modelspec"
 PRICE_PREFIX = "offering.price."
 SPEED_FACETS = ("offering.speed.throughput", "offering.speed.time_to_first_token")
+RELEASE_STAGES = {
+    "release-card-lag": "card_at",
+    "release-price-lag": "price_at",
+    "release-score-lag": "score_at",
+    "release-decidable-lag": "decidable_at",
+}
 
 Status = Literal["met", "breach", "error", "not_in_force"]
 
@@ -187,6 +193,7 @@ class Report:
     snapshot_id: str | None
     results: tuple[Result, ...]
     run_url: str | None = None
+    release_coverage: Mapping[str, Any] | None = None
 
     @property
     def status(self) -> Literal["met", "breach"]:
@@ -212,7 +219,155 @@ class Report:
                  "findings": [{"subject": f.subject, "detail": f.detail} for f in r.findings]}
                 for r in self.results
             ],
+            **({"release_coverage": self.release_coverage}
+               if self.release_coverage is not None else {}),
         }
+
+
+@dataclass(frozen=True)
+class Release:
+    model_id: str
+    discovered_at: datetime
+    discovery_source: str = "release_date"
+    card_at: datetime | None = None
+    price_at: datetime | None = None
+    score_at: datetime | None = None
+    decidable_at: datetime | None = None
+    premier_eligible: bool = False
+    unknown_stages: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ReleaseHistory:
+    releases: tuple[Release, ...] = ()
+    errors: tuple[str, ...] = ()
+    snapshot_history: bool = False
+    snapshot_observed_at: datetime | None = None
+
+
+def _percentile(values: Sequence[float], fraction: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * fraction
+    lo = int(position)
+    hi = min(lo + 1, len(ordered) - 1)
+    return round(ordered[lo] + (ordered[hi] - ordered[lo]) * (position - lo), 6)
+
+
+def release_report(history: ReleaseHistory, config: Config, *, now: datetime,
+                   counts_only: bool = True, last: int | None = None) -> Report:
+    """Measure elapsed days, including pending work, in each stage's rolling window.
+
+    A pending lag is a lower bound, not a completion. Missing snapshot history
+    cannot establish either completion or absence. Private output contains
+    counts only; even percentile timings and raw errors stay in private detail.
+    """
+    releases = sorted((r for r in history.releases if r.discovered_at <= now),
+                      key=lambda r: (r.discovered_at, r.model_id), reverse=True)
+    if last is not None:
+        releases = releases[:last]
+    results, summaries, rows = [], {}, {}
+    for target_id, attr in RELEASE_STAGES.items():
+        target = config.target(target_id)
+        oldest = now - timedelta(days=int(target.params["window_days"]))
+        selected = [r for r in releases if r.discovered_at >= oldest
+                    and (attr != "decidable_at" or r.premier_eligible)]
+        errors = list(history.errors)
+        lags, findings = [], []
+        completed = pending = unknown = 0
+        for release in selected:
+            unknown_stage = target_id in release.unknown_stages
+            stamp = getattr(release, attr)
+            stamp = stamp if stamp is not None and stamp <= now else None
+            pending_at = now
+            if attr == "decidable_at" and stamp is None:
+                observed_at = history.snapshot_observed_at
+                unknown_stage = unknown_stage or not history.snapshot_history
+                if observed_at is not None:
+                    unknown_stage = unknown_stage or not (
+                        release.discovered_at <= observed_at <= now
+                        and observed_at.astimezone(UTC).date() == now.astimezone(UTC).date())
+                    pending_at = observed_at
+            lag = None if unknown_stage else max(
+                0.0, ((stamp or pending_at) - release.discovered_at).total_seconds() / 86400)
+            late = lag is not None and lag > float(target.params["max_lag_days"])
+            if lag is not None:
+                lags.append(lag)
+                completed += stamp is not None
+                pending += stamp is None
+            else:
+                unknown += 1
+            if late:
+                findings.append(Finding(
+                    release.model_id,
+                    f"{'completed in' if stamp else 'pending for at least'} {lag:.6g} days; "
+                    f"limit {target.params['max_lag_days']} days"))
+            if not counts_only:
+                row = rows.setdefault(release.model_id, {
+                    "model_id": release.model_id,
+                    "discovered_at": release.discovered_at.isoformat(),
+                    "discovery_source": release.discovery_source,
+                    "premier_eligible": release.premier_eligible, "stages": {},
+                })
+                row["stages"][target_id] = {
+                    "completed_at": stamp.isoformat() if stamp else None,
+                    "lag_days": round(lag, 6) if lag is not None else None,
+                    "state": "unknown" if unknown_stage else "complete" if stamp else "pending",
+                    "late": late,
+                }
+        if unknown:
+            errors.append(f"{unknown} release(s) have no current snapshot observation or "
+                          "first inclusion timestamp" if attr == "decidable_at" else
+                          f"{unknown} release(s) have no first stage timestamp before the import")
+        summaries[target_id] = {
+            "measured": len(lags), "completed": completed, "pending": pending,
+            "unknown": unknown, "late": len(findings),
+            "errors": len(errors),
+            **({"p50_days": _percentile(lags, .5), "p90_days": _percentile(lags, .9)}
+               if not counts_only else {}),
+        }
+        if counts_only:
+            findings = ([Finding("modelspec-data", f"{len(findings)} of {len(selected)} "
+                                 "release(s) late; details in the private repository")]
+                        if findings else [])
+            errors = [f"{len(errors)} release history input error(s)"] if errors else []
+        results.append(settle(target, Check(len(lags), tuple(findings), tuple(errors))))
+    coverage = {"counts_only": counts_only, "stages": summaries,
+                **({"releases": list(rows.values())} if not counts_only else {})}
+    return Report(now.date(), now, None, None, tuple(results), release_coverage=coverage)
+
+
+def public_release_report(data: Mapping[str, Any], config: Config, *, now: datetime) -> Report:
+    """Accept only today's numeric counts across the private/public job boundary."""
+    if data.get("as_of") != now.date().isoformat():
+        raise ValueError("release counts must be from the current UTC day")
+    summaries, results = {}, []
+    try:
+        if data["release_coverage"]["counts_only"] is not True:
+            raise ValueError("release counts must come from a counts-only report")
+        for target_id in RELEASE_STAGES:
+            source = data["release_coverage"]["stages"][target_id]
+            counts = {k: source[k] for k in
+                      ("measured", "completed", "pending", "unknown", "late", "errors")}
+            if (any(type(v) is not int or v < 0 for v in counts.values())
+                    or counts["completed"] + counts["pending"] != counts["measured"]
+                    or counts["late"] > counts["measured"]):
+                raise ValueError("release counts are inconsistent")
+            findings = (Finding("modelspec-data", f"{counts['late']} of {counts['measured']} "
+                                "release(s) late; details in the private repository"),
+                        ) if counts["late"] else ()
+            errors = (f"{counts['errors']} release history input error(s)",
+                      ) if counts["errors"] else ()
+            if counts["unknown"] and not errors:
+                errors = (f"{counts['unknown']} release(s) have unknown stage timestamps",)
+            results.append(settle(config.target(target_id), Check(counts["measured"],
+                                                                 findings, errors)))
+            summaries[target_id] = counts
+    except (KeyError, TypeError):
+        raise ValueError("release counts are incomplete") from None
+    return Report(now.date(), now, None, None, tuple(results),
+                  release_coverage={"counts_only": True, "stages": summaries})
 
 
 # ── the lineup, as a premier build sees it ─────────────────────────────────
@@ -809,6 +964,7 @@ class Inputs:
     #: Private repository -> the result of the job that checked it.
     private_results: Mapping[str, str] = field(default_factory=dict)
     extra_findings: Mapping[str, Sequence[Finding]] = field(default_factory=dict)
+    release_history: ReleaseHistory | None = None
 
 
 def authored_facts(snapshot_inputs: Any) -> dict[str, list[str]]:
@@ -924,6 +1080,10 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
             inputs.refresh_prs, t("refresh-pr-merged").params["branches"], now,
             float(t("refresh-pr-merged").params["max_open_days"])),
     }
+    releases = release_report(
+        inputs.release_history or ReleaseHistory(errors=("release history was not supplied",)),
+        config, now=now)
+    checks.update({r.target: Check(r.measured, r.findings, r.errors) for r in releases.results})
     missing = {x.id for x in config.targets} ^ set(checks)
     if missing:
         raise ValueError(f"targets and checks disagree: {sorted(missing)}")
@@ -936,7 +1096,7 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
         results.append(settle(target, check))
     return Report(as_of=as_of, generated_at=now, commit=commit,
                   snapshot_id=audit.snapshot.snapshot_id, results=tuple(results),
-                  run_url=run_url)
+                  run_url=run_url, release_coverage=releases.release_coverage)
 
 
 def report_from_json(data: Mapping[str, Any]) -> Report:
@@ -947,6 +1107,7 @@ def report_from_json(data: Mapping[str, Any]) -> Report:
         commit=data.get("commit"),
         snapshot_id=data.get("snapshot_id"),
         run_url=data.get("run_url"),
+        release_coverage=data.get("release_coverage"),
         results=tuple(
             Result(t["id"], t["title"], t["status"], int(t["measured"]),
                    tuple(Finding(f["subject"], f["detail"]) for f in t["findings"]),

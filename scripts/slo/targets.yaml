@@ -22,6 +22,30 @@ targets:
     grace_days: 1
     window_days: 30
 
+  - id: release-card-lag
+    title: A discovered release has a merged card within 1 day
+    in_force: true
+    max_lag_days: 1
+    window_days: 28
+
+  - id: release-price-lag
+    title: A discovered release has a verified offering price within 2 days
+    in_force: true
+    max_lag_days: 2
+    window_days: 28
+
+  - id: release-score-lag
+    title: A discovered release has a score row within 2 days
+    in_force: true
+    max_lag_days: 2
+    window_days: 28
+
+  - id: release-decidable-lag
+    title: A release from a premier-eligible lab enters a decision snapshot within 3 days
+    in_force: true
+    max_lag_days: 3
+    window_days: 28
+
   - id: lab-release-feeds
     title: Every lab with a lineup model has a release feed
     in_force: true

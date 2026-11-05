@@ -822,3 +822,111 @@ def test_unclassified_evidence_names_each_model_with_a_row_kept_out() -> None:
     assert clean.findings == () and clean.measured == 10
     assert settle(CONFIG.target("unclassified-evidence"), clean).status == "met"
     assert settle(CONFIG.target("unclassified-evidence"), check).status == "breach"
+
+
+# ── MODEL-450: one alert per release and late stage ────────────────────────
+
+
+def _stage_report(*results: Result) -> Report:
+    return Report(AS_OF, NOW, None, None, results)
+
+
+def test_release_stage_alerts_keep_each_release_separate_and_deduplicate() -> None:
+    report = _stage_report(
+        Result("release-card-lag", "Card lag", "met", 2, ()),
+        Result("release-price-lag", "Price lag", "breach", 2, (
+            Finding("acme/first", "3 days; limit 2 days"),
+            Finding("acme/second", "4 days; limit 2 days"),
+            Finding("acme/first", "3 days; limit 2 days"))),
+        Result("release-score-lag", "Score lag", "breach", 2, (
+            Finding("acme/first", "5 days; limit 2 days"),)),
+        Result("release-decidable-lag", "Decidable lag", "met", 2, ()),
+    )
+    actions = alerts.plan(report, CONFIG, [], NOW)
+    assert [(a.kind, a.title) for a in actions] == [
+        ("create", "Coverage SLO breach: release-price-lag: acme/first"),
+        ("create", "Coverage SLO breach: release-price-lag: acme/second"),
+        ("create", "Coverage SLO breach: release-score-lag: acme/first"),
+    ]
+    issues = [alerts.Issue(i, a.title, a.body) for i, a in enumerate(actions, 1)]
+    assert alerts.plan(report, CONFIG, issues, NOW) == []
+    calls = []
+
+    def gh(args, stdin=None):
+        calls.append((args, stdin))
+        return ""
+
+    alerts.apply(actions, gh, CONFIG.issue_label, repo="turbobeest/modelspec-data")
+    assert sum(args[:2] == ["issue", "create"] for args, _ in calls) == 3
+    assert all(args[args.index("--repo") + 1] == "turbobeest/modelspec-data"
+               for args, _ in calls)
+
+
+def test_release_stage_alerts_close_only_resolved_releases_and_keep_unreadable_ones() -> None:
+    report = _stage_report(Result("release-price-lag", "Price lag", "breach", 2, (
+        Finding("acme/first", "3 days; limit 2 days"),
+        Finding("acme/second", "4 days; limit 2 days"),
+    )))
+    created = alerts.plan(report, CONFIG, [], NOW)
+    issues = [alerts.Issue(i, a.title, a.body) for i, a in enumerate(created, 1)]
+    later = _stage_report(Result("release-price-lag", "Price lag", "breach", 2, (
+        Finding("acme/second", "4 days; limit 2 days"),
+    )))
+    assert [(a.kind, a.issue) for a in alerts.plan(later, CONFIG, issues, NOW)] == [
+        ("comment", 1), ("close", 1)]
+    unreadable = _stage_report(Result("release-price-lag", "Price lag", "error", 0,
+                                      (), ("history could not be read",)))
+    actions = alerts.plan(unreadable, CONFIG, issues, NOW)
+    assert [(a.kind, a.issue, a.title) for a in actions] == [
+        ("create", None, "Coverage SLO breach: release-price-lag")]
+    assert alerts.plan(_stage_report(), CONFIG, issues, NOW) == []
+
+
+def test_release_stage_alerts_deduplicate_and_escalate_each_release_once() -> None:
+    report = _stage_report(Result("release-price-lag", "Price lag", "breach", 2, (
+        Finding("acme/first", "3 days; limit 2 days"),
+        Finding("acme/second", "4 days; limit 2 days"),
+    )))
+    since = NOW - timedelta(hours=25)
+    created = alerts.plan(report, CONFIG, [], since)
+    issues = [alerts.Issue(i, a.title, a.body) for i, a in enumerate(created, 1)]
+    issues.append(alerts.Issue(3, created[0].title, created[0].body))
+    actions = alerts.plan(report, CONFIG, issues, NOW)
+    assert [(a.kind, a.issue) for a in actions] == [
+        ("comment", 3), ("close", 3), ("edit", 1), ("comment", 1),
+        ("edit", 2), ("comment", 2)]
+    updated = [alerts.Issue(a.issue, "", a.body) for a in actions if a.kind == "edit"]
+    assert alerts.plan(report, CONFIG, updated, NOW) == []
+    assert alerts.plan(report, CONFIG, [], NOW, only=["release-card-lag"]) == []
+
+
+def test_release_stage_alerts_refuse_counts_only_reports() -> None:
+    from dataclasses import replace
+
+    detailed = _stage_report(Result("release-price-lag", "Price lag", "breach", 1, (
+        Finding("acme/first", "3 days; limit 2 days"),
+    )))
+    created = alerts.plan(detailed, CONFIG, [], NOW)
+    issues = [alerts.Issue(i, a.title, a.body) for i, a in enumerate(created, 1)]
+    public = replace(detailed, release_coverage={"counts_only": True})
+    assert alerts.plan(public, CONFIG, issues, NOW) == []
+    assert alerts.plan(public, CONFIG, [], NOW) == []
+
+
+def test_release_stage_alert_marker_round_trips_reserved_characters() -> None:
+    report = _stage_report(Result("release-score-lag", "Score lag", "breach", 1, (
+        Finding("acme/model with % unusual -> chars", "3 days; limit 2 days"),
+    )))
+    [created] = alerts.plan(report, CONFIG, [], NOW)
+    assert "release=acme%2Fmodel%20with%20%25%20unusual%20-%3E%20chars" in created.body
+    assert alerts.plan(report, CONFIG, [alerts.Issue(1, created.title, created.body)], NOW) == []
+
+
+def test_release_stage_alerts_refuse_an_incomplete_issue_listing() -> None:
+    def gh(args, stdin=None):
+        limit = int(args[args.index("--limit") + 1])
+        return json.dumps([{"number": i, "title": "Breach", "body": ""}
+                           for i in range(limit)])
+
+    with pytest.raises(ValueError, match="issue listing reached its 1000-issue limit"):
+        alerts.open_issues(gh, CONFIG.issue_label)

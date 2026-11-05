@@ -33,14 +33,17 @@ from pathlib import Path
 
 from scripts.slo import alerts, health_issue, render
 from scripts.slo.report import (
+    RELEASE_STAGES,
     Finding,
     check_workflows,
     gh_cli,
     load_config,
     measure,
     now_utc,
+    public_release_report,
     read_repo,
     read_workflow_health,
+    release_report,
     report_from_json,
     settle,
 )
@@ -48,6 +51,7 @@ from scripts.slo.report import (
 ROOT = Path(__file__).resolve().parents[2]
 STAGED = Finding("staged-breach", "a synthetic finding that proves the alert path "
                                   "(MODEL-215); not a real breach")
+DATA_REPO = "turbobeest/modelspec-data"
 
 
 def _now(value: str | None) -> datetime:
@@ -161,6 +165,15 @@ def cmd_report(args: argparse.Namespace) -> int:
     inputs.extra_findings = {t: (STAGED,) for t in args.stage_breach}
     report = measure(inputs, config, as_of=as_of, now=now,
                      commit=os.environ.get("GITHUB_SHA"), run_url=_run_url())
+    if args.release_report:
+        try:
+            releases = public_release_report(
+                json.loads(Path(args.release_report).read_text(encoding="utf-8")), config, now=now)
+        except (ValueError, OSError):
+            sys.exit("release counts could not be read or are not current")
+        by_id = {r.target: r for r in releases.results}
+        report = replace(report, results=tuple(by_id.get(r.target, r) for r in report.results),
+                         release_coverage=releases.release_coverage)
     render.write(report, Path(args.out), config.report_url)
     print(render.markdown(report, config.report_url))
     return 0
@@ -169,12 +182,69 @@ def cmd_report(args: argparse.Namespace) -> int:
 def cmd_alert(args: argparse.Namespace) -> int:
     config = load_config()
     report = report_from_json(json.loads(Path(args.report).read_text(encoding="utf-8")))
-    issues = alerts.open_issues(gh_cli, config.issue_label)
+    repo = "turbobeest/modelspec"
+    coverage = report.release_coverage
+    if coverage and not coverage["counts_only"]:
+        _private_release_context()
+        if coverage.get("repository") != DATA_REPO:
+            sys.exit("private release report must name its private repository")
+        repo = DATA_REPO
+    if args.issues_json:
+        if args.apply:
+            sys.exit("--issues-json is for a dry run only; --apply must read current issues")
+        issues = [alerts.Issue(int(r["number"]), r["title"], r["body"])
+                  for r in json.loads(Path(args.issues_json).read_text(encoding="utf-8"))]
+    else:
+        issues = alerts.open_issues(gh_cli, config.issue_label, repo=repo)
     actions = alerts.plan(report, config, issues, _now(args.now), only=args.only or None)
     print(alerts.describe(actions))
     if args.apply:
-        alerts.apply(actions, gh_cli, config.issue_label)
+        alerts.apply(actions, gh_cli, config.issue_label, repo=repo)
     return 0
+
+
+def _private_release_context() -> None:
+    here = os.environ.get("GITHUB_REPOSITORY")
+    if here is not None and here != DATA_REPO:
+        sys.exit("private release detail is refused outside the private repository's run")
+
+
+def cmd_releases(args: argparse.Namespace) -> int:
+    from scripts.slo.releases import read_release_history
+
+    if args.private_detail:
+        _private_release_context()
+    if set(args.stage_breach) - set(RELEASE_STAGES):
+        sys.exit("--stage-breach must name a release stage")
+    config = load_config()
+    if args.window_days:
+        config = replace(config, targets=tuple(
+            replace(t, params={**t.params, "window_days": args.window_days})
+            if t.id in RELEASE_STAGES else t for t in config.targets))
+    history = read_release_history(
+        Path(args.data_dir), ref=args.ref,
+        discovery_paths=tuple(Path(p) for p in args.discovery),
+        snapshot_paths=tuple(Path(p) for p in args.snapshot))
+    report = release_report(history, config, now=_now(args.now),
+                            counts_only=not args.private_detail, last=args.last)
+    if args.private_detail:
+        report = replace(report, release_coverage={**report.release_coverage,
+                                                   "repository": DATA_REPO})
+    if args.stage_breach:
+        report = replace(report, results=tuple(
+            replace(r, status="breach", findings=r.findings + (STAGED,), errors=(),
+                    measured=r.measured or 1) if r.target in args.stage_breach else r
+            for r in report.results))
+    render.write(report, Path(args.out), config.report_url)
+    print(render.markdown(report, config.report_url))
+    return 0
+
+
+def _positive(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return number
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -186,10 +256,26 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--as-of", help="YYYY-MM-DD; default today (UTC)")
     rep.add_argument("--now", help="ISO time for workflow ages; default now (UTC)")
     rep.add_argument("--models-dev", help="read this models.dev payload instead of fetching")
+    rep.add_argument("--release-report", help="today's counts-only coverage.json from `releases`")
     rep.add_argument("--stage-breach", action="append", default=[], metavar="TARGET")
     rep.add_argument("--workflow-dir", action="append", default=[], metavar="REPO=PATH",
                      help="read OWNER/REPO's workflow files from this checkout")
     rep.set_defaults(func=cmd_report)
+    rel = sub.add_parser("releases", help="measure release stages from local main history")
+    rel.add_argument("--data-dir", required=True, help="local catalogue checkout, complete history")
+    rel.add_argument("--ref", default="HEAD", help="main history tip in that checkout")
+    rel.add_argument("--out", required=True)
+    rel.add_argument("--now", help="ISO time; default now (UTC)")
+    rel.add_argument("--last", type=_positive, help="limit to the newest N discoveries")
+    rel.add_argument("--window-days", type=_positive, help="override the rolling window for an audit")
+    rel.add_argument("--discovery", action="append", default=[], metavar="PATH",
+                     help="retained release-watch or signal artifact (repeatable)")
+    rel.add_argument("--snapshot", action="append", default=[], metavar="PATH",
+                     help="retained dated decision snapshot (repeatable)")
+    rel.add_argument("--private-detail", action="store_true",
+                     help="include names and timings; local or private repository runs only")
+    rel.add_argument("--stage-breach", action="append", default=[], metavar="TARGET")
+    rel.set_defaults(func=cmd_releases)
     wf = sub.add_parser("workflows", help="measure only workflow-health and print it")
     wf.add_argument("--now", help="ISO time for workflow ages; default now (UTC)")
     wf.add_argument("--workflow-dir", action="append", default=[], metavar="REPO=PATH",
@@ -208,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     al = sub.add_parser("alert", help="open, update, escalate and close breach issues")
     al.add_argument("--report", required=True, help="coverage.json from `report`")
     al.add_argument("--apply", action="store_true", help="make the changes on GitHub")
+    al.add_argument("--issues-json", help="read an issue list for an offline dry run")
     al.add_argument("--now", help="ISO time for escalation; default now (UTC)")
     al.add_argument("--only", action="append", default=[], metavar="TARGET",
                     help="touch only these targets' issues")
