@@ -235,6 +235,7 @@ class Release:
     decidable_at: datetime | None = None
     premier_eligible: bool = False
     unknown_stages: tuple[str, ...] = ()
+    identity_unknown: bool = False
 
 
 @dataclass(frozen=True)
@@ -272,16 +273,16 @@ def release_report(history: ReleaseHistory, config: Config, *, now: datetime,
         target = config.target(target_id)
         oldest = now - timedelta(days=int(target.params["window_days"]))
         selected = [r for r in releases if r.discovered_at >= oldest
-                    and (attr != "decidable_at" or r.premier_eligible)]
+                    and (attr != "decidable_at" or r.premier_eligible or r.identity_unknown)]
         errors = list(history.errors)
         lags, findings = [], []
-        completed = pending = unknown = 0
+        completed = pending = unknown = missing_history = 0
         for release in selected:
-            unknown_stage = target_id in release.unknown_stages
-            stamp = getattr(release, attr)
+            unknown_stage = release.identity_unknown or target_id in release.unknown_stages
+            stamp = None if release.identity_unknown else getattr(release, attr)
             stamp = stamp if stamp is not None and stamp <= now else None
             pending_at = now
-            if attr == "decidable_at" and stamp is None:
+            if attr == "decidable_at" and stamp is None and not release.identity_unknown:
                 observed_at = history.snapshot_observed_at
                 unknown_stage = unknown_stage or not history.snapshot_history
                 if observed_at is not None:
@@ -298,6 +299,7 @@ def release_report(history: ReleaseHistory, config: Config, *, now: datetime,
                 pending += stamp is None
             else:
                 unknown += 1
+                missing_history += not release.identity_unknown
             if late:
                 findings.append(Finding(
                     release.model_id,
@@ -308,6 +310,7 @@ def release_report(history: ReleaseHistory, config: Config, *, now: datetime,
                     "model_id": release.model_id,
                     "discovered_at": release.discovered_at.isoformat(),
                     "discovery_source": release.discovery_source,
+                    "identity_state": "unknown" if release.identity_unknown else "resolved",
                     "premier_eligible": release.premier_eligible, "stages": {},
                 })
                 row["stages"][target_id] = {
@@ -316,10 +319,11 @@ def release_report(history: ReleaseHistory, config: Config, *, now: datetime,
                     "state": "unknown" if unknown_stage else "complete" if stamp else "pending",
                     "late": late,
                 }
-        if unknown:
-            errors.append(f"{unknown} release(s) have no current snapshot observation or "
+        if missing_history:
+            errors.append(f"{missing_history} release(s) have no current snapshot observation or "
                           "first inclusion timestamp" if attr == "decidable_at" else
-                          f"{unknown} release(s) have no first stage timestamp before the import")
+                          f"{missing_history} release(s) have no first stage timestamp "
+                          "before the import")
         summaries[target_id] = {
             "measured": len(lags), "completed": completed, "pending": pending,
             "unknown": unknown, "late": len(findings),
@@ -359,8 +363,6 @@ def public_release_report(data: Mapping[str, Any], config: Config, *, now: datet
                         ) if counts["late"] else ()
             errors = (f"{counts['errors']} release history input error(s)",
                       ) if counts["errors"] else ()
-            if counts["unknown"] and not errors:
-                errors = (f"{counts['unknown']} release(s) have unknown stage timestamps",)
             results.append(settle(config.target(target_id), Check(counts["measured"],
                                                                  findings, errors)))
             summaries[target_id] = counts

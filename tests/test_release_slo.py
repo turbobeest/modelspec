@@ -199,3 +199,81 @@ def test_observed_decidable_completion_stays_measured_when_other_snapshots_are_s
     summary = report.release_coverage["stages"][result.target]
     assert (summary["completed"], summary["pending"], summary["unknown"]) == (1, 0, 0)
     assert summary["p90_days"] == 1
+
+
+def test_ambiguous_identity_is_unknown_without_poisoning_other_release_measurements():
+    start = datetime(2026, 11, 1, 12, tzinfo=UTC)
+    history = slo.ReleaseHistory(releases=(
+        slo.Release("lab/complete", start, card_at=start, price_at=start, score_at=start,
+                    decidable_at=start, premier_eligible=True),
+        slo.Release("unresolved/example", start, card_at=start, price_at=start,
+                    score_at=start, decidable_at=start, identity_unknown=True),
+    ))
+    report = slo.release_report(history, slo.load_config(), now=NOW, counts_only=False)
+
+    assert [result.status for result in report.results] == ["met"] * 4
+    assert all(not result.errors and not result.findings for result in report.results)
+    for summary in report.release_coverage["stages"].values():
+        assert summary == {"measured": 1, "completed": 1, "pending": 0,
+                           "unknown": 1, "late": 0, "errors": 0,
+                           "p50_days": 0, "p90_days": 0}
+    rows = {row["model_id"]: row for row in report.release_coverage["releases"]}
+    assert rows["unresolved/example"]["identity_state"] == "unknown"
+    assert rows["lab/complete"]["identity_state"] == "resolved"
+    assert len(rows["unresolved/example"]["stages"]) == 4
+    for stage in rows["unresolved/example"]["stages"].values():
+        assert stage == {"completed_at": None, "lag_days": None,
+                         "state": "unknown", "late": False}
+
+
+def test_public_counts_preserve_ambiguity_without_changing_measured_stage_status():
+    data = {"as_of": NOW.date().isoformat(), "release_coverage": {
+        "counts_only": True, "stages": {
+            target: {"measured": 1, "completed": 1, "pending": 0,
+                     "unknown": 1, "late": 0, "errors": 0}
+            for target in slo.RELEASE_STAGES}}}
+
+    report = slo.public_release_report(data, slo.load_config(), now=NOW)
+
+    assert [result.status for result in report.results] == ["met"] * 4
+    assert all(not result.errors for result in report.results)
+    assert report.release_coverage == data["release_coverage"]
+
+
+@pytest.mark.parametrize("counts_only", [True, False])
+def test_only_ambiguous_identities_never_establish_success(counts_only):
+    history = slo.ReleaseHistory(releases=(
+        slo.Release("unresolved/example", datetime(2026, 11, 1, tzinfo=UTC),
+                    identity_unknown=True),
+    ))
+    report = slo.release_report(history, slo.load_config(), now=NOW, counts_only=counts_only)
+
+    assert [result.status for result in report.results] == ["error"] * 4
+    assert all(result.measured == 0 and not result.findings for result in report.results)
+    for summary in report.release_coverage["stages"].values():
+        assert (summary["unknown"], summary["errors"], summary["late"]) == (1, 0, 0)
+    if counts_only:
+        public = slo.public_release_report(report.to_json(), slo.load_config(), now=NOW)
+        assert [result.status for result in public.results] == ["error"] * 4
+
+
+def test_ambiguity_does_not_hide_other_releases_missing_stage_history():
+    start = datetime(2026, 11, 1, 12, tzinfo=UTC)
+    history = slo.ReleaseHistory(releases=(
+        slo.Release("lab/imported", start, price_at=start, score_at=start,
+                    premier_eligible=True, unknown_stages=("release-card-lag",)),
+        slo.Release("unresolved/example", start, identity_unknown=True),
+    ))
+    report = slo.release_report(history, slo.load_config(), now=NOW, counts_only=False)
+    results = {result.target: result for result in report.results}
+
+    assert {target: result.status for target, result in results.items()} == {
+        "release-card-lag": "error", "release-price-lag": "met",
+        "release-score-lag": "met", "release-decidable-lag": "error"}
+    assert results["release-card-lag"].errors == (
+        "1 release(s) have no first stage timestamp before the import",)
+    assert results["release-decidable-lag"].errors == (
+        "1 release(s) have no current snapshot observation or first inclusion timestamp",)
+    for target in ("release-card-lag", "release-decidable-lag"):
+        summary = report.release_coverage["stages"][target]
+        assert (summary["unknown"], summary["errors"]) == (2, 1)

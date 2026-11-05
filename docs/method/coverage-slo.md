@@ -129,10 +129,18 @@ issue per target.
 MODEL-450 adds four clocks. Each starts at the earliest retained release-watch
 or signal observation matched to that release. Without a matching artifact,
 the card's release date, at midnight UTC, is the fallback. The detailed table
-states which clock source was used. Uncarded discoveries use the release
-pipeline's provider and model-slug rules. Provider aliases must resolve to
-one catalogue lab; ambiguous providers or model aliases become input errors.
-Artifacts may also supply an explicit catalogue `model_id`.
+states which clock source was used. Discoveries use the release pipeline's
+`resolve_signal` against the selected revision's model cards and
+`scripts/models_dev_known_identities.yaml`, including its provider-directory
+matching and model-slug rules. The reader copies those files into a temporary
+catalogue and removes it after resolution; working-tree changes cannot affect
+the result. Artifacts may also supply an explicit catalogue `model_id`.
+
+Ambiguous providers or model aliases remain separate unresolved discoveries,
+identified by a stable `unresolved/` digest of the supplied provider and name.
+Their private rows have `identity_state: unknown` and unknown stages, including
+decidable because eligibility is unresolved. They increment unknown counts but
+do not add history errors, contribute lags, or change other releases' clocks.
 
 The history reader accepts a complete checkout and a ref on main's
 first-parent history. A change on an unmerged branch does not stop a clock.
@@ -163,8 +171,10 @@ The detailed report shows p50 and p90 in fractional days, with linear
 interpolation between ordered observations. Completed lags remain fixed;
 pending work contributes its elapsed age as a lower bound. Pending snapshot
 absence must have been observed that UTC day and uses the observation time.
-Unknown times do not enter percentiles. Their count makes the affected target
-an error, including when other releases were measured. Exactly 1, 2, or 3
+Unknown times do not enter percentiles. Missing milestone history makes the
+affected target an error, including when other releases were measured.
+An unresolved identity alone does not change other releases' stage results;
+a target with nothing measured still cannot be met. Exactly 1, 2, or 3
 days meets the corresponding limit. A later completion remains a historical
 breach until that release leaves the window. A stage already complete when
 discovery occurs has zero lag.

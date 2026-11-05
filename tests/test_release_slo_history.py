@@ -6,7 +6,9 @@ import os
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
 import yaml
 
 from decision.model import value_hash
@@ -234,7 +236,7 @@ def test_real_watch_signal_tracks_uncarded_release_and_later_merged_card(tmp_pat
     assert joined.card_at == datetime(2026, 1, 6, 12, tzinfo=UTC)
 
 
-def test_unknown_provider_and_ambiguous_aliases_report_unmatched_counts(tmp_path):
+def test_unknown_provider_and_ambiguous_aliases_stay_per_release_unknown(tmp_path):
     from scripts.slo.releases import read_release_history
 
     root = repo(tmp_path)
@@ -249,5 +251,119 @@ def test_unknown_provider_and_ambiguous_aliases_report_unmatched_counts(tmp_path
             {"provider": "Shared Lab", "model_name": "New Model"},
             {"provider": "lab", "model_name": "Example"}]})
     history = read_release_history(root, discovery_paths=[discovery])
-    assert history.errors == ("3 discoveries could not resolve to one catalogue identity",)
-    assert len(history.releases) == 3
+    assert not history.errors
+    assert len(history.releases) == 6
+    unresolved = [row for row in history.releases if row.identity_unknown]
+    assert len(unresolved) == 3
+    assert len({row.model_id for row in unresolved}) == 3
+    assert all(row.discovered_at == datetime(2026, 1, 4, tzinfo=UTC) for row in unresolved)
+    assert all(row.discovery_source == "release_date" for row in history.releases
+               if not row.identity_unknown)
+
+
+@pytest.mark.parametrize(("provider", "name", "expected"), [
+    ("meta", "Llama 3.1 8B", "meta/llama-3-1-8b"),
+    ("deepseek", "DeepSeek V4 Flash 0731", "deepseek/deepseek-v4-flash-0731"),
+    ("meta", "Org/New Model 2.0", "meta/new-model-2-0"),
+])
+def test_discovery_identity_matches_release_pipeline(tmp_path, provider, name, expected):
+    from release_signals.pipeline import resolve_signal
+    from scripts.slo.releases import read_release_history
+
+    root = repo(tmp_path)
+    for mid, lab, display in (
+        ("meta/llama-3-1-8b", "meta", "Llama 3.1 8B"),
+        ("cerebras/llama3-1-8b", "meta", "Llama 3.1 8B"),
+        ("deepseek/older", "deepseek", "Older"),
+        ("qwen/deepseek-v4-flash-0731", "deepseek", "DeepSeek V4 Flash 0731"),
+    ):
+        write(root, f"models/{mid}.md", {
+            **card(), "model_id": mid, "provider": lab, "display_name": display})
+    commit(root, "2026-01-03")
+    discovery = write(tmp_path, "watch.json", {
+        "observed_at": "2026-01-04T00:00:00Z",
+        "discoveries": [{"provider": provider, "model_name": name}]})
+
+    signal = SimpleNamespace(provider=provider, model_name=name)
+    assert resolve_signal(signal, root).model_id == expected
+    history = read_release_history(root, discovery_paths=[discovery])
+    assert not history.errors
+    observed = [row for row in history.releases if row.discovery_source == "release-watch"]
+    assert [row.model_id for row in observed] == [expected]
+    assert observed[0].discovered_at == datetime(2026, 1, 4, tzinfo=UTC)
+
+
+def test_discovery_uses_known_identity_registry_at_selected_main_revision(tmp_path):
+    from release_signals.pipeline import resolve_signal
+    from scripts.slo.releases import read_release_history
+
+    root = repo(tmp_path)
+    write(root, "models/lab/example.md", card())
+    write(root, "scripts/models_dev_known_identities.yaml", {"identities": [
+        {"models_dev": "lab/listed-name", "canonical": "lab/example"}]})
+    commit(root, "2026-01-03")
+    discovery = write(tmp_path, "watch.json", {
+        "observed_at": "2026-01-04T00:00:00Z",
+        "discoveries": [{"provider": "lab", "model_name": "Listed Name"}]})
+    signal = SimpleNamespace(provider="lab", model_name="Listed Name")
+    assert resolve_signal(signal, root).model_id == "lab/example"
+    history = read_release_history(root, discovery_paths=[discovery])
+    assert not history.errors
+    observed = [row.model_id for row in history.releases if row.discovery_source == "release-watch"]
+    assert observed == ["lab/example"]
+
+    git(root, "checkout", "-b", "proposal")
+    write(root, "models/lab/uncarded.md", {**card(), "model_id": "lab/uncarded",
+                                        "display_name": "Listed Name"})
+    write(root, "scripts/models_dev_known_identities.yaml", {"identities": [
+        {"models_dev": "lab/listed-name", "canonical": "lab/uncarded"}]})
+    commit(root, "2026-01-05")
+    assert resolve_signal(signal, root).model_id == "lab/uncarded"
+    assert read_release_history(root, ref="main", discovery_paths=[discovery]) == history
+
+
+def test_ambiguous_discovery_does_not_error_unrelated_release_stages(tmp_path):
+    from scripts.slo.releases import read_release_history
+    from scripts.slo.report import (
+        RELEASE_STAGES,
+        load_config,
+        public_release_report,
+        release_report,
+    )
+
+    root = repo(tmp_path)
+    for slug in ("example", "duplicate", "healthy"):
+        write(root, f"models/lab/{slug}.md", {**card(), "model_id": f"lab/{slug}",
+            "display_name": "Healthy" if slug == "healthy" else "Example",
+            "benchmarks": {"evidence": [{"score": 1}]}})
+    write(root, "premier/slice-1.yaml", {"models": [
+        {"model_id": "lab/healthy", "lab": "lab", "clauses": [{"clause": 1}]}]})
+    commit(root, "2026-01-02")
+    discovery = write(tmp_path, "watch.json", {
+        "observed_at": "2026-01-02T00:00:00Z",
+        "discoveries": [{"provider": "lab", "model_name": "Example"}]})
+    snapshot = write(tmp_path, "snapshot.json", {"observed_at": "2026-01-02T18:00:00Z",
+        "content": {"lineup": {"candidates": [
+            {"kind": "model", "id": f"lab/{slug}"}
+            for slug in ("example", "duplicate", "healthy")]}}})
+    history = read_release_history(root, discovery_paths=[discovery], snapshot_paths=[snapshot])
+    assert not history.errors
+    now = datetime(2026, 1, 2, 18, tzinfo=UTC)
+    config = load_config()
+    report = release_report(history, config, now=now, counts_only=False)
+    assert {result.target: result.status for result in report.results} == {
+        target: "met" for target in RELEASE_STAGES}
+    rows = report.release_coverage["releases"]
+    unresolved = [row for row in rows if row["model_id"].startswith("unresolved/")]
+    assert len(unresolved) == 1
+    assert set(unresolved[0]["stages"]) == set(RELEASE_STAGES)
+    assert all(stage["state"] == "unknown" and stage["lag_days"] is None
+               for stage in unresolved[0]["stages"].values())
+    healthy = next(row for row in rows if row["model_id"] == "lab/healthy")
+    assert [stage["state"] for stage in healthy["stages"].values()] == [
+        "complete", "pending", "complete", "complete"]
+    counts = release_report(history, config, now=now).to_json()
+    public = public_release_report(counts, config, now=now)
+    assert all(result.status == "met" for result in public.results)
+    assert all(stage["unknown"] == 1 and stage["errors"] == 0
+               for stage in public.release_coverage["stages"].values())

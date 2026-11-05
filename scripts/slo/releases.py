@@ -11,16 +11,19 @@ import json
 import os
 import subprocess
 from collections.abc import Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from typing import Any
 
 import yaml
 
 from decision.model import Verification, fact_verification_value, value_hash
-from scripts.attribution import normalise
-from scripts.seed_models_dev import slugify
+from release_signals.pipeline import resolve_signal
 from scripts.slo.report import Release, ReleaseHistory
 
 _PATHS = ("models", "offerings", "verification/log.jsonl", "premier/slice-1.yaml")
@@ -46,20 +49,29 @@ def _instant(value: object, *, date_only: bool = False) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def _documents(root: Path, sha: str, paths: Sequence[str]) -> dict[str, Any]:
+def _blobs(root: Path, sha: str, paths: Sequence[str]):
     stream = io.BytesIO(_git(root, "cat-file", "--batch",
                            data="".join(f"{sha}:{p}\n" for p in paths).encode()))
-    docs = {}
     for path in paths:
         header = stream.readline().decode().strip()
         if header.endswith(" missing"):
-            docs[path] = None
+            yield path, None
             continue
         _, kind, size = header.split()
         if kind != "blob":
             raise ValueError("release history expected a file")
-        text = stream.read(int(size)).decode()
+        content = stream.read(int(size))
         stream.read(1)
+        yield path, content
+
+
+def _documents(root: Path, sha: str, paths: Sequence[str]) -> dict[str, Any]:
+    docs = {}
+    for path, content in _blobs(root, sha, paths):
+        if content is None:
+            docs[path] = None
+            continue
+        text = content.decode()
         if path.endswith(".jsonl"):
             docs[path] = [json.loads(line) for line in text.splitlines() if line.strip()]
         elif path.endswith(".md"):
@@ -68,6 +80,24 @@ def _documents(root: Path, sha: str, paths: Sequence[str]) -> dict[str, Any]:
         else:
             docs[path] = yaml.load(text, Loader=_LOADER)
     return docs
+
+
+@contextmanager
+def _identity_catalogue(root: Path, sha: str):
+    """Give the pipeline its exact files at the measured ref, never the checkout."""
+    known = "scripts/models_dev_known_identities.yaml"
+    paths = _git(root, "ls-tree", "-r", "--name-only", sha, "--", "models", known)
+    selected = [p for p in paths.decode().splitlines()
+                if p == known or (p.endswith(".md") and len(Path(p).parts) == 3)]
+    with TemporaryDirectory(prefix="modelspec-release-identity-") as directory:
+        catalogue = Path(directory)
+        for path, content in _blobs(root, sha, selected):
+            if content is None:
+                raise ValueError("release identity catalogue could not be read")
+            dest = catalogue / path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(content)
+        yield catalogue
 
 
 def _priced(offerings: Mapping[str, Any], verification: Sequence[dict],
@@ -115,20 +145,9 @@ def _discovery_rows(payload: object) -> tuple[str, Sequence[dict]]:
     raise ValueError("discovery artifact needs discoveries or signals")
 
 
-def _observations(paths: Sequence[Path], cards: Mapping[str, dict],
-                  releases: dict[str, Release], eligible: set[str]) -> int:
-    providers: dict[str, set[str]] = {}
-    aliases: dict[tuple[str, str], set[str]] = {}
-    for mid, card in cards.items():
-        provider = str(card.get("provider") or mid.split("/")[0])
-        for name in {provider, str(card.get("provider_display") or ""), mid.split("/")[0]} - {""}:
-            providers.setdefault(normalise(name), set()).add(provider)
-        names = {mid, mid.rsplit("/", 1)[-1], str(card.get("display_name") or ""),
-                 str(card.get("version") or "")}
-        for name in names - {""}:
-            aliases.setdefault((provider, normalise(name)), set()).add(mid)
-    found: dict[str, tuple[datetime, str, str]] = {}
-    unmatched = 0
+def _observations(paths: Sequence[Path], catalogue: Path,
+                  releases: dict[str, Release]) -> None:
+    found: dict[str, Release] = {}
     for path in paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         source, rows = _discovery_rows(payload)
@@ -140,33 +159,32 @@ def _observations(paths: Sequence[Path], cards: Mapping[str, dict],
                 raise ValueError("queued signal must be an object")
             provider = str(row.get("provider") or "")
             mid = row.get("model_id")
+            identity_unknown = False
             if not mid:
-                labs = providers.get(normalise(provider), set())
                 name = str(row.get("model_name") or "")
-                if len(labs) != 1 or not normalise(name):
-                    unmatched += 1
-                    continue
-                provider = next(iter(labs))
-                ids = aliases.get((provider, normalise(name)), set())
-                if len(ids) > 1:
-                    unmatched += 1
-                    continue
-                mid = next(iter(ids)) if ids else f"{provider}/{slugify(name)}"
+                if not provider.strip() or not name.strip():
+                    raise ValueError("discovery needs a provider and model name")
+                resolution = resolve_signal(SimpleNamespace(provider=provider, model_name=name),
+                                            catalogue)
+                mid = resolution.model_id
+                if resolution.status == "uncertain":
+                    identity_unknown = True
+                    key = json.dumps([provider, name], separators=(",", ":")).encode()
+                    mid = f"unresolved/{sha256(key).hexdigest()}"
             if not isinstance(mid, str) or "/" not in mid:
                 raise ValueError("discovery identity must be a catalogue model ID")
             stamp = (row.get("first_seen_at") or row.get("received_at")
                      or row.get("timestamp") or raw.get("received_at")
                      or payload.get("observed_at"))
             at = _instant(stamp)
-            if mid not in found or at < found[mid][0]:
-                found[mid] = (at, source, provider or mid.split("/")[0].casefold())
-    for mid, (at, source, provider) in found.items():
+            if mid not in found or at < found[mid].discovered_at:
+                found[mid] = Release(mid, at, source, identity_unknown=identity_unknown)
+    for mid, observation in found.items():
         if mid in releases:
-            releases[mid] = replace(releases[mid], discovered_at=at, discovery_source=source)
+            releases[mid] = replace(releases[mid], discovered_at=observation.discovered_at,
+                                    discovery_source=observation.discovery_source)
         else:
-            releases[mid] = Release(mid, at, source,
-                                    premier_eligible=provider.casefold() in eligible)
-    return unmatched
+            releases[mid] = observation
 
 
 def _snapshots(paths: Sequence[Path], releases: dict[str, Release]) -> datetime | None:
@@ -196,10 +214,10 @@ def read_release_history(root: Path, *, ref: str = "HEAD",
     """Observe first milestones on main; errors contain no input names or values.
 
     Date-only card releases mean midnight UTC. Discovery rows use their first
-    recorded timestamp and exact catalogue aliases. An uncarded name uses the
-    release pipeline's slug only when its provider resolves to one known lab.
-    Ambiguous discoveries produce a count-only error. Snapshot files contain ``content.lineup`` and
-    ``observed_at``, ``built_at`` or ``generated_at`` timestamp with an offset.
+    recorded timestamp and the release pipeline's resolver at the selected ref.
+    Ambiguous discoveries remain individual unknown releases. Snapshot files
+    contain ``content.lineup`` and an ``observed_at``, ``built_at`` or
+    ``generated_at`` timestamp with an offset.
     """
     releases: dict[str, Release] = {}
     try:
@@ -260,7 +278,9 @@ def read_release_history(root: Path, *, ref: str = "HEAD",
             except ValueError:
                 continue
             releases[mid] = Release(mid, discovered)
-        unmatched = _observations(discovery_paths, cards, releases, eligible)
+        if discovery_paths:
+            with _identity_catalogue(root, sha) as catalogue:
+                _observations(discovery_paths, catalogue, releases)
         for mid, release in releases.items():
             card = cards.get(mid, {})
             labs = {str(card.get("provider") or "").casefold(),
@@ -276,8 +296,6 @@ def read_release_history(root: Path, *, ref: str = "HEAD",
         undated = len(cards.keys() - releases.keys())
         errors = ((f"{undated} cards lack a usable release date or discovery timestamp",)
                   if undated else ())
-        if unmatched:
-            errors += (f"{unmatched} discoveries could not resolve to one catalogue identity",)
         ordered = tuple(sorted(releases.values(), key=lambda r: (r.discovered_at, r.model_id)))
         return ReleaseHistory(ordered,
                               errors=errors, snapshot_history=observed is not None,
