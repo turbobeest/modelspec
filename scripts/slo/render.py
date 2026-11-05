@@ -45,7 +45,41 @@ def markdown(report: Report, report_url: str) -> str:
     for r in report.results:
         if r.status != "met":
             parts += [f"## {r.target}", "", target_markdown(r)]
+    for title, headers, rows in release_tables(report):
+        parts += [f"## {title}", "", "| " + " | ".join(headers) + " |",
+                  "| " + " | ".join("---" for _ in headers) + " |"]
+        parts.extend("| " + " | ".join(html.escape(c).replace("|", "&#124;")
+                                       for c in row) + " |" for row in rows)
+        parts.append("")
     return "\n".join(parts)
+
+
+def release_tables(report: Report) -> list[tuple[str, list[str], list[list[str]]]]:
+    coverage = report.release_coverage
+    if not coverage:
+        return []
+    private = coverage["counts_only"]
+    headers = ["Stage", "Measured", "Completed", "Pending", "Unknown", "Late"]
+    if not private:
+        headers += ["p50 days", "p90 days"]
+    rows = []
+    for stage, summary in coverage["stages"].items():
+        row = [stage] + [str(summary[k]) for k in
+                         ("measured", "completed", "pending", "unknown", "late")]
+        if not private:
+            row += [str(summary[k]) if summary[k] is not None else "unmeasured"
+                    for k in ("p50_days", "p90_days")]
+        rows.append(row)
+    tables = [("Release coverage, counts only" if private else
+               "Release coverage, elapsed days including pending work", headers, rows)]
+    if not private:
+        rows = [[r["model_id"], r["discovered_at"], r["discovery_source"], stage,
+                 value["completed_at"] or value["state"],
+                 str(value["lag_days"]) if value["lag_days"] is not None else "unmeasured"]
+                for r in coverage["releases"] for stage, value in r["stages"].items()]
+        tables.append(("Per-release stages", ["Release", "Discovered", "Clock source",
+                                              "Stage", "Completed at / state", "Days"], rows))
+    return tables
 
 
 _CSS = """
@@ -76,6 +110,13 @@ def page(report: Report, report_url: str) -> str:
         sections.append(f"<h2 id='{e(r.target)}'>{e(r.title)} "
                         f"<span class='{r.status}'>({e(LABEL[r.status])})</span></h2>{body}")
     run = f" · <a href='{e(report.run_url)}'>workflow run</a>" if report.run_url else ""
+    for title, headers, values in release_tables(report):
+        sections.append(f"<h2>{e(title)}</h2><table><thead><tr>"
+                        + "".join(f"<th>{e(h)}</th>" for h in headers)
+                        + "</tr></thead><tbody>"
+                        + "".join("<tr>" + "".join(f"<td>{e(c)}</td>" for c in row)
+                                  + "</tr>" for row in values)
+                        + "</tbody></table>")
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width,initial-scale=1'>"
