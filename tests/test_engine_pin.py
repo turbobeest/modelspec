@@ -250,6 +250,37 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
             assert HEX40.fullmatch(str(ref)) is None
 
 
+def test_release_coverage_verifies_the_pin_before_running_the_engine() -> None:
+    document = _document("release-coverage")
+    assert document["permissions"] == {"contents": "read", "issues": "write"}
+    job = _engine_job(document)
+    steps = job["steps"]
+    data = _index(steps, lambda step: (step.get("with") or {}).get("path") == "data")
+    pin = _index(steps, lambda step: step.get("id") == "engine_pin")
+    engine = _index(steps, lambda step: (step.get("with") or {}).get("repository") ==
+                    ENGINE_REPOSITORY)
+    assert (data, pin, engine) == (0, 1, 2)
+    assert str(steps[data]["uses"]).startswith("actions/checkout@")
+    assert steps[data]["with"] == {
+        "ref": "main", "path": "data", "fetch-depth": 0, "persist-credentials": False,
+    }
+    assert steps[pin]["env"] == {
+        "ENGINE_REPO": "https://github.com/turbobeest/modelspec.git",
+        "GIT_NO_LAZY_FETCH": "1",
+    }
+    assert str(steps[engine]["uses"]).startswith("actions/checkout@")
+    assert steps[engine]["with"] == {
+        "repository": ENGINE_REPOSITORY, "ref": PIN_REF,
+        "path": "engine", "persist-credentials": False,
+    }
+    assert not job.get("defaults")
+    for step in steps[:engine + 1]:
+        assert not step.get("if")
+        assert not step.get("continue-on-error")
+        assert not step.get("working-directory")
+
+
+@pytest.mark.parametrize("writer", [NAMES[0], "release-coverage"])
 @pytest.mark.parametrize(
     "case",
     [
@@ -269,9 +300,9 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     ],
 )
 def test_the_pin_script_accepts_only_a_commit_on_main(
-    case: str, tmp_path: Path, local_engine: LocalEngine
+    writer: str, case: str, tmp_path: Path, local_engine: LocalEngine
 ) -> None:
-    script = _pin_step()["run"]
+    script = _pin_step(writer)["run"]
     ancestor = local_engine.ancestor
     tip = local_engine.tip
     url = local_engine.url
@@ -317,8 +348,12 @@ def test_the_pin_script_accepts_only_a_commit_on_main(
         assert output == f"sha={expect_sha}\n"
 
 
+@pytest.mark.parametrize(("writer", "check_directory", "error"), [
+    (NAMES[0], "engine-pin-check", "not a commit on modelspec main"),
+    ("release-coverage", "release-engine-pin-check", "must name a commit on modelspec main"),
+])
 def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
-    tmp_path: Path, local_engine: LocalEngine
+    writer: str, check_directory: str, error: str, tmp_path: Path, local_engine: LocalEngine
 ) -> None:
     # GitHub serves any commit in the fork network by SHA. Model that with
     # lazy fetch on, so the side commit reaches the clone and only
@@ -327,9 +362,9 @@ def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
     _git(source, "config", "uploadpack.allowAnySHA1InWant", "true")
     try:
         completed, output = _run_pin(
-            _pin_step()["run"], tmp_path, local_engine.url, local_engine.side + "\n", True
+            _pin_step(writer)["run"], tmp_path, local_engine.url, local_engine.side + "\n", True
         )
-        clone = tmp_path / "runner" / "engine-pin-check"
+        clone = tmp_path / "runner" / check_directory
         fetched = subprocess.run(
             ["git", "-C", str(clone), "cat-file", "-e", local_engine.side + "^{commit}"],
             env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
@@ -338,7 +373,7 @@ def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
         _git(source, "config", "--unset", "uploadpack.allowAnySHA1InWant")
     assert fetched.returncode == 0, "the side commit never reached the clone"
     assert completed.returncode != 0
-    assert "not a commit on modelspec main" in completed.stdout
+    assert error in completed.stdout
     assert output == ""
 
 

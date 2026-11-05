@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shlex
@@ -1120,6 +1121,76 @@ def _job_problems(
 @pytest.mark.parametrize("name", NAMES)
 def test_writer_workflows_keep_the_data_checkout_off_the_import_path(name: str) -> None:
     assert isolation_problems(_text(name), workflow_file=f"{name}.yml") == []
+
+
+@pytest.mark.parametrize("subcommand", ["releases", "alert"])
+def test_release_coverage_runs_from_engine_with_private_history_only_as_input(
+    subcommand: str, tmp_path: Path,
+) -> None:
+    document = _document(_text("release-coverage"))
+    assert not document.get("env")
+    assert not document.get("defaults")
+    assert list(document["jobs"]) == ["measure"]
+    job = document["jobs"]["measure"]
+    assert not job.get("env")
+    assert not job.get("defaults")
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+    assert "prepare_data_writer" not in runs
+    assert "PYTHONPATH" not in runs
+    assert all(step.get("name") != LINK_NAME for step in job["steps"])
+    commands = {}
+    for step in job["steps"]:
+        if "run" not in step or "python" not in step["run"]:
+            continue
+        assert step["working-directory"] == "engine"
+        assert not step.get("shell")
+        assert set(step.get("env", {})) <= {"GH_TOKEN"}
+        for command in _commands(step["run"]):
+            assert len(command) >= 4
+            assert command[:2] == ["python", "-m"]
+            assert command[2] in {"pip", "scripts.slo"}
+            if command[2] == "pip":
+                assert command == ["python", "-m", "pip", "install", "-e", ".",
+                                   "pydantic==2.13.5"]
+            else:
+                assert command[3] not in commands
+                commands[command[3]] = command
+    assert set(commands) == {"releases", "alert"}
+
+    engine = tmp_path / "engine"
+    data = tmp_path / "data"
+    for root in (engine, data):
+        (root / "scripts/slo").mkdir(parents=True)
+        (root / "scripts/__init__.py").write_text("")
+        (root / "scripts/slo/__init__.py").write_text("")
+    (engine / "scripts/slo/__main__.py").write_text(
+        "import json, sys\n"
+        "print(json.dumps({'module': __file__, 'path': sys.path, 'args': sys.argv[1:]}))\n"
+    )
+    (data / "scripts/slo/__main__.py").write_text("raise RuntimeError('private code ran')\n")
+    marker = tmp_path / "private-startup-ran"
+    (data / "sitecustomize.py").write_text(
+        f"from pathlib import Path; Path({str(marker)!r}).touch()\n"
+    )
+    argv = [sys.executable, *(arg.replace("$GITHUB_WORKSPACE", str(tmp_path))
+                             .replace("$RUNNER_TEMP", str(tmp_path / "runner"))
+                             for arg in commands[subcommand][1:])]
+    env = {key: value for key, value in os.environ.items() if not key.startswith("PYTHON")}
+    completed = subprocess.run(argv, cwd=engine, env=env, capture_output=True,
+                               text=True, check=False)
+    assert completed.returncode == 0, completed.stderr
+    observed = json.loads(completed.stdout)
+    assert Path(observed["module"]) == engine / "scripts/slo/__main__.py"
+    assert str(data) not in observed["path"]
+    assert not marker.exists()
+    args = observed["args"]
+    if subcommand == "releases":
+        assert args == ["releases", "--data-dir", str(data), "--ref", "origin/main",
+                        "--private-detail", "--out", str(tmp_path / "runner/release-detail"),
+                        "--counts-out", str(tmp_path / "runner/release-counts/coverage.json")]
+    else:
+        assert args == ["alert", "--report", str(tmp_path / "runner/release-detail/coverage.json"),
+                        "--apply"]
 
 
 @pytest.mark.parametrize("change", [
