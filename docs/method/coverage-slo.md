@@ -1,8 +1,9 @@
 # Coverage targets
 
 MODEL-215. These targets define "every model is up to date and covered". A
-daily report measures each target and states every breach. One GitHub issue
-per breached target raises the alarm.
+daily report measures each target and states every breach. Release-stage
+alerts keep one issue per late release and stage. Other targets keep one
+issue per target.
 
 - **Report page:** <https://coverage.modelspec-7np.pages.dev/> (a preview branch
   of the modelspec Pages project; no page on the site links to it, and it is
@@ -32,6 +33,10 @@ per breached target raises the alarm.
 | id | Target | Threshold | In force |
 | --- | --- | --- | --- |
 | `new-model-cards` | A model a tracked lab lists on its models.dev page has a card within 24 hours of release | 1 day grace, 30-day look-back | yes |
+| `release-card-lag` | First discovery to first merged card | 1 day, rolling 28 days | yes |
+| `release-price-lag` | First discovery to first verified offering price | 2 days, rolling 28 days | yes |
+| `release-score-lag` | First discovery to first score row | 2 days, rolling 28 days | yes |
+| `release-decidable-lag` | First discovery to first decision snapshot inclusion, for premier-eligible labs | 3 days, rolling 28 days | yes |
 | `lab-release-feeds` | Every lab with a lineup model is a tracked lab | none | yes |
 | `lineup-domain-evidence` | Every lineup model has admitted evidence in each domain its premier clauses claim | none | yes |
 | `live-reading-age` | Every live board reading on a lineup model was re-read within 30 days | 30 days | yes |
@@ -88,8 +93,8 @@ per breached target raises the alarm.
   This report, its log, its page and its issues are public, so
   `modelspec-data` never appears in them by workflow name, run URL, date or
   error text, and no raw `gh` stderr is kept for any repository. On GitHub the
-  private repository is checked in a separate job, `private-health`. It is the
-  only job holding `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
+  private repository is checked in a separate job, `private-health`, with
+  `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
   It reads the private workflow files and runs through the API with no
   checkout, prints nothing, and uploads or caches nothing. It hands on only
   pass or fail, as its job result. The report job has no private access. It
@@ -118,6 +123,154 @@ per breached target raises the alarm.
   that blocked #337. Three days gives a blocked refresh one working day before
   the alert, and the alert plus its 24-hour escalation still land before the
   next weekly run replaces the PR.
+
+## Release-stage coverage
+
+MODEL-450 adds four clocks. Each starts at the earliest retained release-watch
+or signal observation matched to that release. Without a matching artifact,
+the card's release date, at midnight UTC, is the fallback. The detailed table
+states which clock source was used. Discoveries use the release pipeline's
+`resolve_signal` against the selected revision's model cards and
+`scripts/models_dev_known_identities.yaml`, including its provider-directory
+matching and model-slug rules. The reader copies those files into a temporary
+catalogue and removes it after resolution; working-tree changes cannot affect
+the result. Artifacts may also supply an explicit catalogue `model_id`.
+
+Ambiguous providers or model aliases remain separate unresolved discoveries,
+identified by a stable `unresolved/` digest of the supplied provider and name.
+Their private rows have `identity_state: unknown` and unknown stages, including
+decidable because eligibility is unresolved. They increment unknown counts but
+do not add history errors, contribute lags, or change other releases' clocks.
+
+The history reader accepts a complete checkout and a ref on main's
+first-parent history. A change on an unmerged branch does not stop a clock.
+It observes these milestones:
+
+- Card: the first main commit containing the card.
+- Price: the first main commit containing an offering price with a counting,
+  independent verification of that exact fact and value. A source date or an
+  unverified price does not stop this clock.
+- Score: the first main commit containing a non-null benchmark evidence score
+  row. Legacy flat scores do not count. This stage measures row arrival;
+  snapshot admission remains a separate stage.
+- Decidable: the first retained snapshot observation whose `content.lineup`
+  contains the model or its offering. Premier selection is not snapshot
+  inclusion. Labs qualify when their current premier entry has a clause-1
+  model, including newer releases from those labs that have not joined the
+  lineup yet.
+
+The root commit of a data import cannot establish the original merge time.
+Stages already present there are unknown. Missing or stale snapshot history
+also means unknown, never a successful decidable target. Cards with no usable
+release date or matching discovery timestamp are counted as input errors.
+The reader does not fetch source pages, contact vendors, or rebuild historical
+snapshots as a substitute for observations.
+
+Each target uses a rolling 28-day discovery window ending at the report time.
+The detailed report shows p50 and p90 in fractional days, with linear
+interpolation between ordered observations. Completed lags remain fixed;
+pending work contributes its elapsed age as a lower bound. Pending snapshot
+absence must have been observed that UTC day and uses the observation time.
+Unknown times do not enter percentiles. Missing milestone history makes the
+affected target an error, including when other releases were measured.
+An unresolved identity alone does not change other releases' stage results;
+a target with nothing measured still cannot be met. Exactly 1, 2, or 3
+days meets the corresponding limit. A later completion remains a historical
+breach until that release leaves the window. A stage already complete when
+discovery occurs has zero lag.
+
+The epic's four consecutive weeks of p90 time-to-decidable at most 3 days
+requires four weeks of complete observations. A single report, empty cohort,
+or report with unknown times cannot establish that result.
+
+### Private detail and public counts
+
+Run against the private data checkout locally, or inside modelspec-data's own
+job. `releases` defaults to counts only in JSON, Markdown, HTML and stdout.
+`--private-detail` adds release names, first timestamps, percentiles and the
+per-release table. It refuses to run in another repository's Actions context.
+Keep that output in the private repository, alongside workflow-health detail.
+
+```bash
+python -m scripts.slo releases --data-dir /path/to/modelspec-data --ref origin/main \
+  --discovery /path/to/watch.json --snapshot /path/to/observed-snapshot.json \
+  --private-detail --out /private/path/release-detail
+python -m scripts.slo alert --report /private/path/release-detail/coverage.json
+```
+
+Both artifact flags are repeatable file paths. A watcher file has an
+`observed_at` timestamp and `discoveries`; a signal export has `signals` with
+`first_seen_at`, `received_at`, or `timestamp`. Snapshot observation files have
+`content.lineup.candidates` and a timezone-bearing `observed_at`, `built_at`, or
+`generated_at`. These are retained observations, not new source copies.
+
+The alert command routes a detailed release report to modelspec-data, including
+when `--apply` is supplied. Each late release/stage has its own marker and
+issue. Repeated runs edit that issue, and the existing 24-hour escalation
+applies. An unreadable stage preserves existing release issues and opens a
+stage-level measurement-error issue. A measured stage closes issues for
+releases no longer in breach, including those outside the rolling window.
+Public counts never open named release issues.
+
+Use `--counts-out /path/to/counts/coverage.json` with the private command to
+write public counts from the same history and report time. The full report accepts it with
+`report --release-report /path/to/counts/coverage.json --out /tmp/coverage`.
+The importer copies only validated numeric counts for the four stages and
+requires the current UTC day. It discards input titles, names, errors and
+timings. Without release inputs, the full report marks these targets
+unmeasured.
+
+The private `release-coverage.yml` workflow runs daily at 09:07 UTC, before the
+public report at 09:37. It checks out complete data history on main and the
+public engine at `.engine-pin`, after verifying that pin belongs to public
+main. It writes private detail and counts together, uploads only the counts
+file as `release-coverage-counts`, and then applies the private breach issues.
+An issue-writing failure does not discard the measurement. The workflow needs
+`contents: read` and `issues: write`; `.engine-pin` must include public PR #970.
+MODEL-446/data#127 owns that pin update.
+
+The public workflow's separate `release-counts` job has the read token and
+fetches the dedicated artifact from the latest main run of that private
+workflow. It accepts scheduled and manually dispatched runs. It reads the ZIP
+in memory, accepts only `coverage.json`, and validates the date and every
+count. Artifact download requires Actions read permission, already used by
+the private-health token. The storage redirect receives no GitHub token.
+See [GitHub's artifact API](https://docs.github.com/en/rest/actions/artifacts).
+
+Only the current report date, fixed stage names, a `counts_only` flag, and six
+integer counts per stage cross the job boundary. Each count is between zero
+and 1,000,000. The reader caps JSON at 16 KiB, the ZIP at 64 KiB and API
+responses at 128 KiB. The privacy guard allows only the exact audited CLI
+writer for this job output; arbitrary private outputs remain forbidden.
+Private responses, metadata, errors and names never enter public logs,
+artifacts, summaries or caches.
+
+The report job receives `PRIVATE_RELEASE_COUNTS` without the private token.
+`release-counts --from-env --out release-counts.json` validates it again before
+`report --release-report release-counts.json` renders the public files. A missing
+token, failed producer, absent artifact, old date, malformed input or failed
+handoff becomes fixed error counts for all four stages. It never reuses an
+older successful run. Missing historical discoveries or snapshots remain
+unknown; the daily workflow does not invent observations to fill those gaps.
+
+### Offline alert proof and historical audit
+
+This dry run reads local history and a local empty issue list. It makes no
+GitHub requests or writes:
+
+```bash
+python -m scripts.slo releases --data-dir /path/to/modelspec-data \
+  --private-detail --stage-breach release-price-lag --out /private/path/staged
+printf '[]\n' > /private/path/issues.json
+python -m scripts.slo alert --report /private/path/staged/coverage.json \
+  --issues-json /private/path/issues.json --only release-price-lag
+```
+
+`--issues-json` cannot be combined with `--apply`. Synthetic findings name
+`staged-breach` and say that they are not real. For an audit of the latest ten
+releases, use `releases --last 10 --window-days 3650`. That explicit wider
+window is an audit override; production targets remain at 28 days. Publish
+the default counts-only output, and retain no private clone after the audit.
 
 ## Statuses
 
