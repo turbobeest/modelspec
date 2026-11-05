@@ -157,3 +157,143 @@ No live dispatch, hosted CI or scheduled PR update was observed. No full local
 suite, site build, provider call, source fetch or Worker export was run.
 Human merges must coordinate this mirror with the private workflow because
 private recall compares against public main. Both PRs remain drafts.
+
+
+## Round 3: install the pinned engine dependencies
+
+Public base: `1de613b202258bf244a9427aafd722bcd71b7662`.
+Final public implementation SHA: `d2570968e7b0259001086746b7fdc9617ddcd134`.
+Private base: `b2f7176b13bc4c7186f9b36f66f0e644df65dcb6`.
+Final private implementation SHA: `27625a7dbb8e4ea152f5bf712aa828ff0ed69c4b`.
+The final pushed revisions including evidence are recorded in each worktree's
+untracked `.pr-commit.txt` hand-off.
+
+The first live run reported an import failure because Model Week installed
+only PyYAML. Importing `decision.excluded` executes `decision/__init__.py`,
+which imports `decision.contract` and requires pydantic. The existing developer
+venv already contained it. The fix copies admission-drafter's exact
+`Install the pinned engine` step, `python -I -m pip install -e
+"$GITHUB_WORKSPACE/engine[dev]"`. Both use Python 3.11 without a shared cache.
+The pin verification, checkout, confirmation and generator commands stay intact.
+
+### Regression results
+
+From the public worktree:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py -k 'dependencies or dependency_guard'
+```
+
+Before changing the workflow, exit 1: `1 failed, 20 passed, 264 deselected in
+0.21s`. `test_model_week_installs_the_same_engine_dependencies_as_admission`
+failed with `AssertionError: Model Week must install the pinned engine's
+dependencies`. After the two-line workflow change, exit 0: `21 passed, 264
+deselected in 0.20s`.
+
+The all-writer guard checks each job separately and rejects a missing, late,
+conditional, comment-only, failure-tolerant, other-job or superseded install.
+The Model Week parity test also checks dependency completeness against the
+admission step; ordering alone would accept the old PyYAML-only install.
+
+Three inline-import cases were added before tightening the guard. The command
+below initially exited 1, `3 failed in 0.13s`, because the guard returned `[]`
+instead of `draft: Inline engine runs before dependencies`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py::test_dependency_guard_requires_installs_for_inline_engine_imports
+```
+
+The guard now checks engine references in stdin programs and `-c` commands.
+The final targeted command above using `-k` exited 0: `24 passed, 264 deselected
+in 0.20s`.
+
+Focused public checks, exit 0, `382 passed in 17.57s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_model_week.py
+```
+
+Focused private checks from the data worktree, exit 0, `50 passed in 6.96s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests/test_model_week_workflow.py .github/scripts/tests/test_writer_mirrors.py .github/scripts/tests/test_admission_drafter_workflow.py
+```
+
+Source guard after staging this evidence:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/test_removed_sources.py
+```
+
+Exit 0: `46 passed, 1 skipped in 51.76s`. The skip requires a built site
+export through `MODELSPEC_DIST`; no export changed in this round.
+
+From the public worktree, both commands exited 0:
+
+```sh
+cmp .github/private-writers/model-week.yml /Users/terbeest/dev/worktrees/data-model-448-deps/.github/workflows/model-week.yml
+/Users/terbeest/dev/modelspec/.venv/bin/python -I /Users/terbeest/dev/worktrees/data-model-448-deps/.github/scripts/check_writer_mirrors.py --mirrors .github/private-writers --workflows /Users/terbeest/dev/worktrees/data-model-448-deps/.github/workflows
+```
+
+Output: `13 public writer mirror(s) match private workflows.`
+From the data worktree, `actionlint .github/workflows/model-week.yml` exited 0.
+`git diff --check` exited 0 in both worktrees.
+
+### Clean Python 3.11 reproduction
+
+Setup commands, all exit 0:
+
+```sh
+/Users/terbeest/.local/bin/python3.11 -m venv /tmp/m448venv
+/tmp/m448venv/bin/python -I -m pip install 'PyYAML>=6.0'
+git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-448-scratch/r3-repro/data
+git clone --quiet https://github.com/turbobeest/modelspec.git /tmp/model-448-scratch/r3-repro/engine
+git -C /tmp/model-448-scratch/r3-repro/data checkout --quiet --detach b2f7176b13bc4c7186f9b36f66f0e644df65dcb6
+git -C /tmp/model-448-scratch/r3-repro/engine checkout --quiet --detach d7d5082b9ead230782f58533224ac901b55d4e81
+```
+
+The same driver ran before and after the dependency fix:
+`/tmp/m448venv/bin/python -I /tmp/model-448-scratch/r3-repro/run_step.py`.
+To reproduce that driver:
+
+```python
+import os
+from pathlib import Path
+import subprocess
+import sys
+import yaml
+
+root = Path('/tmp/model-448-scratch/r3-repro')
+data = root / 'data'
+workflow = yaml.load((data / '.github/workflows/model-week.yml').read_text(), Loader=yaml.BaseLoader)
+step = next(step for step in workflow['jobs']['draft']['steps'] if step.get('name') == 'Draft Model Week')
+env = {**os.environ, 'PATH': '/tmp/m448venv/bin:' + os.environ['PATH'],
+       'GITHUB_WORKSPACE': str(root), 'RUNNER_TEMP': str(root / 'runner'),
+       'MONDAY': '2026-10-26'}
+result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', step['run']], cwd=data, env=env)
+print(f'Draft Model Week: exit {result.returncode}', flush=True)
+sys.exit(result.returncode)
+```
+
+Red: exit 1, `ModuleNotFoundError: No module named 'pydantic'`, through
+`scripts/model_week.py:19`, `decision/__init__.py:7`, `decision/contract.py:27`.
+From the scratch data directory, installed the exact admission command:
+
+```sh
+env GITHUB_WORKSPACE=/tmp/model-448-scratch/r3-repro PATH="/tmp/m448venv/bin:$PATH" bash -e -o pipefail -c 'python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]"'
+```
+
+Install exit 0. The unchanged driver then exited 0. Verified all four generated
+files, their date bounds and section labels, then executed the actual
+`Stage the weekly digest` block with `ISO_WEEK=2026-W44`. Staging exited 0 and
+produced a 5,632-byte digest with valid links and byte-identical appendices.
+The engine remained clean at the pin. No private report content entered either
+branch. The private scratch clone and clean venv were removed after verification.
+
+Tools: reproduction Python 3.11.15, pip 24.0, PyYAML 6.0.3, pydantic 2.14.2,
+modelspec-dev 1.0.0; tests Python 3.14.4, pytest 9.1.1; Git 2.50.1,
+Bash 5.3.9, actionlint 1.7.12.
+
+Both PRs are drafts. Merge the public mirror/test PR first, then the private
+workflow PR. No live dispatch, hosted CI, full local suite, site build, source
+fetch or provider call was performed in this round. No Worker export changed.
