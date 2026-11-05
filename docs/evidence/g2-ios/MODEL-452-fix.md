@@ -6,8 +6,8 @@ Card validation reports list/flag disagreements as warnings in both directions.
 
 Base SHA: `187117e902c266b3c63b5861af1f57189cf4f30a`.
 Final implementation SHA: `b540f612c78c4a5a132133152d70b8e43f641772`.
-The subsequent evidence-only commit is the delivery revision, recorded in the
-PR and executor completion line. Resolve it with
+Round-two base SHA: `8046a1f4f30ba18d8e0993e436bec37703bcf5e6`.
+The latest evidence-only commit is the delivery revision. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-452-fix.md`.
 
 Worktree: `/Users/terbeest/dev/worktrees/model-452`.
@@ -204,13 +204,11 @@ collection. The full local suite was not run, as required by the ticket.
 
 ## Pre-rule private-main audit
 
-Audited `modelspec-data` main at
-`b2f7176b13bc4c7186f9b36f66f0e644df65dcb6` before enabling the rule.
+Audited a scratch clone of private data main before enabling the rule.
 The scan found **114 contradictory fields across 108 of 1,385 cards**.
-All 114 flags were explicit; no additional contradictions came from defaults.
-112 disagreements were listed/false and two were unlisted/true.
 There were no card parsing errors. The rule therefore ships as a **warning**.
-The PR lists every affected card path and field.
+Public audit results are limited to aggregate counts and field names.
+The per-card audit records remain only in local private scratch.
 
 | Flag | Count |
 |---|---:|
@@ -224,139 +222,20 @@ The PR lists every affected card path and field.
 Image input uses `vision.supported`; image output uses
 `image_generation.supported`. These are existing schema fields.
 No `modalities.image` fields were introduced. The audit includes effective
-schema defaults. `models/LICENSE.md` is the only non-card Markdown file;
-an initial recursive scan reported that file as a parse error and exited 1.
-The final scan uses the provider/card directory layout and exits 0.
-
-Exact successful clone and audit commands:
-
-```bash
-mkdir -p /tmp/model-452-scratch/audit
-git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://github.com/turbobeest/modelspec-data.git /tmp/model-452-scratch/audit/modelspec-data
-git -C /tmp/model-452-scratch/audit/modelspec-data sparse-checkout set models
-git -C /tmp/model-452-scratch/audit/modelspec-data rev-parse HEAD
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-452-scratch/audit/audit_modalities.py /tmp/model-452-scratch/audit/modelspec-data > /tmp/model-452-scratch/audit/audit.json
-git -C /tmp/model-452-scratch/audit/modelspec-data status --porcelain
-```
-
-The audit script, saved at the path above, was:
-
-```python
-"""Read-only MODEL-452 audit; run with public repo on PYTHONPATH."""
-import json
-from collections import Counter
-from pathlib import Path
-import subprocess
-import sys
-
-import yaml
-from schema.card import Modalities
-
-root = Path(sys.argv[1])
-fields = (
-    ("video", "input", "video", "input_supported"),
-    ("video", "output", "video", "output_supported"),
-    ("audio", "input", "audio", "input_supported"),
-    ("audio", "output", "audio", "output_supported"),
-    ("image", "input", "vision", "supported"),
-    ("image", "output", "image_generation", "supported"),
-)
-rows = []
-errors = []
-cards = sorted(root.glob("models/*/*.md"))
-for path in cards:
-    try:
-        parts = path.read_text().split("---", 2)
-        if len(parts) != 3 or parts[0].strip():
-            raise ValueError("card has no YAML frontmatter")
-        raw = yaml.load(parts[1], Loader=yaml.CSafeLoader)
-        raw_modalities = raw.get("modalities", {})
-        modalities = Modalities.model_validate(raw_modalities)
-        for kind, direction, detail, flag in fields:
-            listed = kind in getattr(modalities, direction)
-            supported = getattr(getattr(modalities, detail), flag)
-            explicit = flag in raw_modalities.get(detail, {})
-            if listed != supported:
-                rows.append({
-                    "path": str(path.relative_to(root)),
-                    "model_id": raw.get("model_id"),
-                    "list": f"modalities.{direction}",
-                    "kind": kind,
-                    "listed": listed,
-                    "field": f"modalities.{detail}.{flag}",
-                    "supported": supported,
-                    "explicit_flag": explicit,
-                })
-    except Exception as exc:
-        errors.append({"path": str(path.relative_to(root)), "error": str(exc)})
-
-result = {
-    "data_main_sha": subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip(),
-    "card_count": len(cards),
-    "contradicting_card_count": len({row["path"] for row in rows}),
-    "contradiction_count": len(rows),
-    "explicit_contradiction_count": sum(row["explicit_flag"] for row in rows),
-    "defaulted_contradiction_count": sum(not row["explicit_flag"] for row in rows),
-    "field_counts": dict(sorted(Counter(row["field"] for row in rows).items())),
-    "errors": errors,
-    "contradictions": rows,
-}
-print(json.dumps(result, indent=2))
-raise SystemExit(bool(errors))
-```
+schema defaults. The initial recursive scan included one non-card document
+and exited 1. The final scan uses the provider/card directory layout and
+exits 0. Detailed reproduction records are held in local private scratch.
 
 ## Verification against private main
 
-After implementation, the real validator processed the same checkout with
-this command and exited 0:
+After implementation, the real validator processed the same scratch clone
+and exited 0. It reported 1,385 valid cards, zero invalid cards, and 114
+modality warnings across 108 cards. Comparison with the independent pre-rule
+audit found zero extra or missing warnings.
 
-```bash
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - /tmp/model-452-scratch/audit/modelspec-data > /tmp/model-452-scratch/executor/private-validation.json <<'PY'
-import sys
-from pathlib import Path
-from scripts import validate_pr
-validate_pr.REPO_ROOT = Path(sys.argv[1])
-sys.argv = ['validate_pr.py', '--all']
-validate_pr.main()
-PY
-```
-
-This independent comparison also exited 0:
-
-```bash
-/Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
-import json
-from pathlib import Path
-scratch = Path('/tmp/model-452-scratch')
-audit = json.loads((scratch / 'audit/audit.json').read_text())
-validated = json.loads((scratch / 'executor/private-validation.json').read_text())
-expected = {(row['path'], row['field']) for row in audit['contradictions']}
-observed = {
-    (row['file'], warning.split(' is ', 1)[0])
-    for row in validated['results']
-    for warning in row.get('warnings', [])
-    if warning.startswith('modalities.')
-}
-assert validated['total'] == 1385, validated['total']
-assert validated['valid'] == 1385, validated['invalid']
-assert observed == expected, (observed - expected, expected - observed)
-assert len(observed) == 114
-assert len({path for path, _ in observed}) == 108
-print('Private-data validator: 1385 valid, 0 invalid; 114 modality warnings across 108 cards.')
-print('Every warning path and field matches the independent pre-rule audit; no extra or missing warnings.')
-PY
-```
-
-Output:
-
-```text
-Private-data validator: 1385 valid, 0 invalid; 114 modality warnings across 108 cards.
-Every warning path and field matches the independent pre-rule audit; no extra or missing warnings.
-```
-
-The private checkout remained clean. Only model cards were checked out;
-source archives were not checked out. No data files were changed or committed
-into this repository. The scratch clone is removed before delivery.
+The private checkout remained clean and was removed after verification.
+No private card files were committed to this repository. All values in the
+regression fixtures and their red/green output above are synthetic.
 
 ## Tool versions and limits
 
@@ -379,3 +258,77 @@ No production deploy, live seeder ingestion, CI result, full local suite,
 or live provider capability claim was observed. There were no paid-provider
 calls or source-page downloads. The warnings identify inconsistent data;
 they do not establish which side is factually correct.
+
+## Round two: public-text correction
+
+REV-979 passed the implementation, regression tests and private-main audit.
+Its requested changes concern public text. This revision removes the private
+clone URL, private revision identifier, detailed audit script and membership
+breakdown from this report. The local saved PR body now contains aggregate
+counts and field names only. The per-card table remains in private scratch.
+No implementation or test fixture changed in this revision.
+
+The saved body was located at
+`/tmp/model-452-scratch/executor/pr-body.md`; a matching `.pr-body.md` record
+is kept in that same local directory. Neither file is tracked. The live PR
+body was already sanitized by the orchestrator and was not changed here.
+
+A local privacy check reproduced the public-text defects before editing.
+It checks the evidence and saved body for private revision identifiers,
+clone URLs, per-card identifiers and membership/flag detail, and reviews
+additions in all five committed ticket files for private audit material.
+It prints only categories of findings, not the private values.
+
+```bash
+/Users/terbeest/dev/modelspec/.venv/bin/python /tmp/model-452-scratch/r2/check_public_text.py
+```
+
+Red output, exit 1:
+
+```text
+evidence: private revision identifier
+evidence: private clone URL
+evidence: private membership/flag detail
+pr-body.md: private revision identifier
+pr-body.md: private per-card identifiers
+pr-body.md: private membership/flag detail
+```
+
+Green output, exit 0:
+
+```text
+PASS: public audit text contains aggregate counts and field names only.
+PASS: all 5 ticket files checked; no additional private audit detail or per-card identifiers introduced.
+```
+
+The implementation and fixtures were also inspected. The new cases use
+`fixture`, `fixture/model`, and `fixture/video` with synthetic data.
+Existing real-card references predate this ticket's changes.
+
+No GitHub CLI calls, fresh private-data retrieval, live PR verification,
+CI polling, deployment or full local suite were performed in this revision.
+The branch remains intended for draft PR #979.
+
+Focused source-guard suite, exit 0:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py -rs
+```
+
+```text
+..............................................s                          [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_removed_sources.py:463: set MODELSPEC_DIST to a built dist/
+46 passed, 1 skipped in 52.12s
+```
+
+Round-two versions were read locally: Python 3.14.4, pytest 9.1.1,
+Pydantic 2.13.5 and PyYAML 6.0.3. No GitHub CLI version call was made.
+`git diff --check` passed.
+
+The broader tracked-tree scan found the private revision identifier in
+`docs/evidence/g2-ios/MODEL-450-fix.md`. That file is byte-for-byte identical
+to the original MODEL-452 base and remains outside this revision. The scan
+found no copy of the private per-card audit table header in tracked files.
+The privacy check passes for all five files changed by MODEL-452 and the
+sanitized local PR-body records; it does not certify unrelated earlier work.
