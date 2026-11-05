@@ -90,14 +90,34 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
-      - name: Compose engine code with private data
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Refuse code and symlinks in linked data paths
+        working-directory: .
+        run: python -I data/.github/scripts/check_linked_data.py --engine engine --data data
+      - name: Compose engine code with private data
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
       - name: Install engine dependencies
         run: python -m pip install -e '.[dev]'
+      - name: Check public writer mirrors
+        working-directory: .
+        run: |
+          set -euo pipefail
+          mirrors="$RUNNER_TEMP/public-writer-mirrors"
+          git clone --quiet --depth 1 --filter=blob:none --sparse --single-branch --branch main --no-tags \
+            https://github.com/turbobeest/modelspec.git "$mirrors"
+          git -C "$mirrors" sparse-checkout set .github/private-writers
+          python -I data/.github/scripts/check_writer_mirrors.py \
+            --mirrors "$mirrors/.github/private-writers" --workflows data/.github/workflows
+      - name: Run broader data tests
+        run: |
+          python -m pytest -q .github/scripts/tests \
+            tests/test_decision_sources.py tests/test_decision_verify.py \
+            tests/test_decision_model.py tests/test_decision_snapshot.py \
+            tests/test_subscription_availability.py \
+            tests/test_subscription_availability_reader.py tests/test_slice1_offerings.py
       - name: Load the private merge-base baseline
         if: github.event_name == 'pull_request'
         env:
