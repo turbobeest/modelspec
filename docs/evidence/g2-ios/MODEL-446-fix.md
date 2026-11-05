@@ -1,84 +1,80 @@
 # MODEL-446 execution evidence
 
-Status: blocked pending scope approval for the public isolation-test compatibility update.
+Local focused checks pass. Independent cross-model review and live CI remain pending. The round-2 spec authorized the additional test changes that blocked round 1.
 
-Public base: `6815544116839f991c10904772e7357f12d5b566`.
-Private base: `c26a2d7b67039dd0ed2490cd740766680c9e454d`.
-Public implementation: `c81f05cc46930d443cb7b87fcd4869016aed61e0`.
-Private implementation: `09c3af2e241b782bfc0a7dcd8d1a401e6e7b9754`.
-Final PR head SHAs are recorded in each worktree's untracked `.pr-commit.txt` after the evidence-only commits.
+| Revision | Public | Private |
+| --- | --- | --- |
+| Original base | `6815544116839f991c10904772e7357f12d5b566` | `c26a2d7b67039dd0ed2490cd740766680c9e454d` |
+| Round-2 base | `f470342cd088ec9b90d092088ae5b844ac802caf` | `1e945519c022860520d3dc4ed1e383604c7f5d21` |
+| Final implementation | `a4618bc20c826a5e286c3b85d641c3ca47c0dc48` | `2c08853d9110538db755faeddff101a47c04d5c4` |
 
-## Changes
+Evidence-only commits follow these implementation commits. Each worktree's untracked `.pr-commit.txt` records its final PR head SHA. Draft PRs: [public #969](https://github.com/turbobeest/modelspec/pull/969), [private #127](https://github.com/turbobeest/modelspec-data/pull/127). Merge public first, then private, after human review. The private check intentionally compares with public main independently of the engine pin.
 
-Admission now reads `.engine-pin`, uses the same main-ancestry verification as the other writers, and confirms its checkout HEAD. Workflow health gains the same confirmation. The private pin is `6815544116839f991c10904772e7357f12d5b566`. Public pin tests cover eleven writers, including two newly published mirrors. Rendered re-read retains its existing restoration-before-pin order; assertions for the original eight writers are unchanged.
+## Implementation and preserved checks
 
-The private recall PR workflow separately clones public `main` with a sparse checkout of `.github/private-writers`. Its checker compares bytes inside private CI and prints filenames only. It discovers expected mirrors from private engine checkouts and includes every public mirror, so deletions and extra mirrors cannot silently disappear from comparison. Malformed inputs fail without printing YAML contents. Comparing public main separately keeps the check independent of historical mirrors at the engine pin. Merge the public PR before the private PR. Both require human review and merge.
+Admission reads `.engine-pin`, verifies main ancestry, and confirms the checkout HEAD. Workflow health has the same confirmation. The pin is `6815544116839f991c10904772e7357f12d5b566`; `git merge-base --is-ancestor f61c3d6a930248786a8d3303c75d38317281cfb5 6815544116839f991c10904772e7357f12d5b566` exited 0, proving it includes #914. Public tests cover all eleven writer mirrors.
 
-No new secret names were found against the mirrors at the public base. No data files, retained source copies, published contracts, production switches, or Worker exports were changed.
+The private recall PR workflow compares mirror bytes with a separate sparse checkout of public main. The checker includes every public mirror and discovers private engine writers, so missing mirrors fail. Only filenames appear in mismatch output; malformed YAML produces a generic error. No new secret names appeared in the public mirrors.
 
-## Red-first evidence
+Round 2 changes only tests and evidence:
 
-- Public `test_the_engine_pin_step_is_identical_in_every_writer` and `test_the_pin_is_verified_before_the_engine_checkout[admission-drafter]` / `[workflow-health]`: `3 failed, 37 passed`, exit 1, before the workflow changes. The failures exposed different pin blocks, admission's checkout confirmation path, and workflow health's missing confirmation.
-- Private `test_engine_pin_and_private_data_are_isolated` and `test_engine_pin_accepts_only_main_history[True]`: `2 failed, 21 passed`, exit 1. A valid `.engine-pin` with an unrelated `ENGINE_SHA` failed under the original workflow. After the change: `23 passed`, exit 0.
-- New private `.github/scripts/tests/test_writer_mirrors.py`: `9 failed`, exit 1 before the checker and CI step existed; `9 passed`, exit 0 afterward. The final private run includes all ten mirror tests, including malformed YAML privacy coverage.
-- The new checker against the unsynchronized working trees exited 1 and named `daily-research.yml`, `price-reread.yml`, and `recall-private.yml` as mismatches. After synchronization: `11 public writer mirror(s) match private workflows.`, exit 0.
-- A temporary copy of the synchronized public mirrors had `# fabricated MODEL-446 mismatch` appended to `admission-drafter.yml`. The same CLI exited 1 with `::error::admission-drafter.yml: public mirror differs from private workflow`.
+- `_canonical_link()` now selects the unchanged inline guard in price re-read. Every original executable rejection assertion remains: planted code, symlinks, required directories, empty paths, paths outside the checkout, and planted `sitecustomize`/import-path isolation.
+- Daily research must identify its filename, workflow, and job, then run the exact isolated private guard immediately before the exact link step. Tests reject removing, moving, conditioning, changing, or tolerating failure of the guard, and inserting restoration between guard and link.
+- The price reconfirmation exception requires its exact filename, workflow, job, step, condition, command, and data working directory. Other private script commands remain rejected.
+- Rendered re-read may receive its scraper credential only in the exact existing step, under the scheduled-main-first-attempt gate, existing permissions, environment, and data working directory. Mutations of these constraints and reuse in another file fail. Existing price and curation constraints remain.
+- Known-workflow mutation tests now supply their filenames. `_with_command()` first asserts the unchanged daily workflow passes, preventing unrelated private-guard errors from satisfying a mutation assertion. The positive restore-before-link test supplies the daily filename too. The generic no-Python test remains independent of workflow identity.
+- `test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses` monkeypatches `price_reread.datetime` with a subclass returning October 15, 2026 from `now()`. Its October fixture and all accounting/redaction/no-write assertions are unchanged; inherited datetime parsing remains available. No production clock API changed.
+- Nine additional private guard cases execute the real CLI against root symlinks, missing required directories, empty/invalid path lists, and planted `sitecustomize` with data as both cwd and `PYTHONPATH`.
 
-## Commands and results
+The original inline outside-checkout test remains against price. The private guard confines paths to its resolved `--data` argument rather than reading `GITHUB_WORKSPACE`; its tests prove that actual boundary. Daily's exact workspace-root guard/link steps bind normal Actions execution. No claim is made that the two guards handle a forged workspace environment identically.
 
-Tools: Python 3.14.4, pytest 9.1.1, Git 2.50.1, Bash 5.3.9, GitHub CLI 2.102.0. Tests ran serially using the existing Python environment. The workflow uses Python 3.11; that interpreter was not exercised locally.
+## Red and green results
 
-Public working directory: `/Users/terbeest/dev/worktrees/model-446`.
-Private working directory: `/Users/terbeest/dev/worktrees/data-model-446`.
-Scratch clone: `/tmp/model-446-scratch/private-baseline`.
+| Check | Red evidence | Green evidence |
+| --- | --- | --- |
+| Original public pin suite | 3 failed, 37 passed, exit 1 | 40 passed, exit 0 |
+| Original private admission suite | `test_engine_pin_and_private_data_are_isolated` and `test_engine_pin_accepts_only_main_history[True]`: 2 failed, 21 passed, exit 1 | 23 passed, exit 0 |
+| New private mirror checker | 9 failed before checker/CI step existed, exit 1 | All 10 mirror cases pass in private focused checks |
+| Real mirror drift | daily, price, and recall mismatches, exit 1 | All 11 match, exit 0 |
+| Fabricated mirror edit | Appending `# fabricated MODEL-446 mismatch` to a temporary admission mirror made the CLI exit 1 and name only `admission-drafter.yml` | Unmodified mirrors exit 0 |
+| Round-2 unchanged isolation plus clock test | 17 failed, 205 passed, exit 1 | Touched files: 411 passed, exit 0 |
+| Daily/rendered regression cases | 26 failed against the old guard expectations, exit 1 | Included in 583 passing public tests |
+| Price reconfirmation regression cases | 10 failed against the old private-command rejection, exit 1 | Included in 583 passing public tests |
+| Full focused public writer/pin set | Round 1 had 17 failures | 583 passed, exit 0 |
+| Private guard and workflow set | Additional cases cover already-correct guard behavior | 130 passed, exit 0 |
+| Final source-exclusion check | Round 1 also passed | 46 passed, 1 skipped, exit 0 |
+
+Before the original pin bump, the private CI-equivalent tests had `1095 passed, 18 skipped`, exit 0. Recall had 16 pass, 4 partial, 0 fail and no regressions against the unchanged private baseline. After round-1 implementation, the same CI-equivalent suite had `1105 passed, 18 skipped`, exit 0. No data files were changed for validation.
+
+## Reproduction commands
+
+Tools: Python 3.14.4, pytest 9.1.1, Git 2.50.1, Bash 5.3.9. Public cwd is `/Users/terbeest/dev/worktrees/model-446`; private cwd is `/Users/terbeest/dev/worktrees/data-model-446`. Test commands ran serially. Exit statuses were captured directly, without a pipeline.
 
 ```bash
-git ls-remote origin refs/heads/main
-git log --all --format='%H %s' --grep='#914' -n 3
-git merge-base --is-ancestor f61c3d6a930248786a8d3303c75d38317281cfb5 6815544116839f991c10904772e7357f12d5b566
-```
+# Round-2 reproduction, before edits, public cwd: exit 1.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py tests/test_price_reread_fallback.py::test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses
+# New regression cases before updating the guard: exit 1 for each command.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py -k 'daily_research_requires or only_daily_research or rendered_secret_requires'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py -k 'price_reconfirmation_allows'
+# Touched files after fixes: 411 passed, exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py tests/test_price_reread_fallback.py
+# Broader focused public set after supplying known filenames: 583 passed, exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_writer_artifacts.py tests/test_prepare_data_writer.py tests/test_research_workflow.py tests/test_research_failure_safety.py tests/test_price_reread.py tests/test_price_reread_fallback.py
+# After restoring the generic no-Python case's original call: 1 passed, exit 0.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py::test_a_job_that_runs_no_python_needs_no_link_step
+# Final source-exclusion check after staging evidence:
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
 
-All exited 0. Public main was the requested pin. Commit `f61c3d6a930248786a8d3303c75d38317281cfb5` is #914 and is an ancestor of the new pin.
-
-```bash
+# Disposable private setup, each command exit 0:
 git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-446-scratch/private-baseline
-# From the private worktree:
-/Users/terbeest/dev/modelspec/.venv/bin/python -I .github/scripts/check_linked_data.py --engine /Users/terbeest/dev/worktrees/model-446 --data /tmp/model-446-scratch/private-baseline
-/Users/terbeest/dev/modelspec/.venv/bin/python /Users/terbeest/dev/worktrees/model-446/scripts/prepare_data_writer.py --engine /Users/terbeest/dev/worktrees/model-446 --data /tmp/model-446-scratch/private-baseline
-# From the scratch clone, before bumping .engine-pin:
-env PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_DATA_DIR=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests tests/test_decision_sources.py tests/test_decision_verify.py tests/test_decision_model.py tests/test_decision_snapshot.py tests/test_subscription_availability.py tests/test_subscription_availability_reader.py tests/test_slice1_offerings.py
-env PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_DATA_DIR=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/recall_run.py --root "$PWD" --output-dir /tmp/model-446-scratch/root/private-recall
-/Users/terbeest/dev/modelspec/.venv/bin/python reports/recall/check.py --report-dir /tmp/model-446-scratch/root/private-recall --baseline reports/recall/baseline.json --approved-baseline reports/recall/baseline.json --summary /tmp/model-446-scratch/root/recall-summary.txt
-```
-
-All exited 0. The linked-data guard covered 14 paths. Pre-bump tests: `1095 passed, 18 skipped`. Recall: 16 pass, 4 partial, 0 fail, no regression question IDs. The private clone had the unchanged data at the private base and engine code from the requested public pin. After implementation, only the changed workflow, checker, test, and pin files were copied into that clone for the final repeat of the same CI-equivalent test command.
-
-```bash
-# Public red-first and final pin checks:
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py
-# Private red-first and focused green checks:
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests/test_admission_drafter_workflow.py
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests/test_writer_mirrors.py
-# Private drift check, run before and after mirror synchronization:
+/Users/terbeest/dev/modelspec/.venv/bin/python scripts/prepare_data_writer.py --engine "$PWD" --data /tmp/model-446-scratch/private-baseline
+# Copy only branch changes under .github/ and .engine-pin into the clone.
+# Run from the composed clone: 130 passed, exit 0.
+env PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_DATA_DIR=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests/test_linked_data_guard.py .github/scripts/tests/test_price_reread_guard.py .github/scripts/tests/test_rendered_reread_workflow.py .github/scripts/tests/test_writer_mirrors.py .github/scripts/tests/test_admission_drafter_workflow.py
+# Private cwd, mirror parity:
 /Users/terbeest/dev/modelspec/.venv/bin/python -I .github/scripts/check_writer_mirrors.py --mirrors /Users/terbeest/dev/worktrees/model-446/.github/private-writers --workflows .github/workflows
-# Fabricated mismatch, from public worktree:
-/Users/terbeest/dev/modelspec/.venv/bin/python -I /Users/terbeest/dev/worktrees/data-model-446/.github/scripts/check_writer_mirrors.py --mirrors /tmp/model-446-scratch/root/mutated-mirrors --workflows /Users/terbeest/dev/worktrees/data-model-446/.github/workflows
-# Broader public focused run:
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_writer_artifacts.py tests/test_prepare_data_writer.py tests/test_research_workflow.py tests/test_research_failure_safety.py tests/test_price_reread.py tests/test_price_reread_fallback.py tests/test_removed_sources.py
 ```
 
-Final public pin suite: `40 passed`, exit 0. The final `tests/test_removed_sources.py` run, after staging both new mirrors and this evidence, passed with `46 passed, 1 skipped`, exit 0. Final private CI-equivalent suite: `1105 passed, 18 skipped`, exit 0.
+## Limits and handoff
 
-The broader public run exited 1: `17 failed, 575 passed, 1 skipped`. Sixteen failures are in unchanged `tests/test_writer_isolation.py`. Synchronizing daily research replaces its inline validation with a separately tested private guard, while this public suite uses daily's link step as its shared executable validation fixture. Adding the existing rendered workflow also exposes its bounded scraper step to the public secret allowlist. These tests require a focused compatibility update that retains their executable code/symlink rejection coverage and constrains the existing rendered step. Scope approval for that additional test file was requested and has not arrived.
-
-The remaining failure is unchanged `tests/test_price_reread_fallback.py::test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses`: expected prior known spend 7, observed 0. Its fixture fixes the ledger month at `2026-10`; the CLI uses the current month, November, and rejects that historical ledger. No relevant source or test changed:
-
-```bash
-git diff --exit-code 6815544116839f991c10904772e7357f12d5b566 -- tests/test_price_reread_fallback.py scripts/price_reread.py scripts/price_reread_fallback.py
-```
-
-Exit 0. No existing tests were skipped, weakened, or removed to hide these failures.
-
-## Limits
-
-The full local suite, deployed Actions runs, production admission execution, and Python 3.11 runtime were not observed. No paid providers or scrape services were called. The Worker memory probe does not apply because no export fields or serving bundle changed. Independent cross-model review remains pending. Scratch private data is deleted after verification. Final draft links and push results are recorded in the worktree handoffs and executor report.
+The full local suite, deployed Actions runs, production admission execution, and Python 3.11 runtime were not observed. No paid providers or scrape services were called. No data files, retained source copies, contracts, production switches, or Worker exports changed. No memory probe is needed for these test-only changes. Scratch private data is deleted after verification. Both PRs remain drafts. Updated, cross-linked descriptions are in `.pr-body.md`; the execution brief prohibits `gh pr edit`, so the orchestrator must apply those handoffs to the live descriptions.
