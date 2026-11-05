@@ -87,9 +87,9 @@ def test_effort_for_a_sibling_does_not_qualify_this_models_score(name, position)
 
 
 @pytest.mark.parametrize("published,expected", [("Alpha (max effort)", "verified"),
-                                                  ("Alpha Ultra (max effort)", "mismatch"),
-                                                  ("Alpha+ (max effort)", "mismatch"),
-                                                  ("Alpha (thinking)", "mismatch")])
+                                                  ("Alpha Ultra (max effort)", "skipped"),
+                                                  ("Alpha+ (max effort)", "skipped"),
+                                                  ("Alpha (thinking)", "skipped")])
 def test_structured_rows_keep_effort_qualifiers_separate_from_model_identity(published, expected):
     text = json.dumps([{"model": published, "Accuracy": 71.2, "effort": "max"}])
     claim = _claim("accuracy", 71.2, names=("Alpha",), label="Accuracy", conditions={"effort": "max"})

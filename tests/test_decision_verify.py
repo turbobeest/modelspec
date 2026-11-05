@@ -311,7 +311,9 @@ def _verify_scoped_price(store, text, field, value, *, aliases=()):
 def test_full_verifier_cannot_fall_through_to_a_sibling_price(store, subject):
     text = (f"Model | Input | Output\n{subject} | $5 | $9\n"
             "Prices are listed per million tokens.\n")
-    assert _verify_scoped_price(store, text, "input", 5).outcome == "mismatch"
+    result = _verify_scoped_price(store, text, "input", 5)
+    assert result.outcome == "skipped"
+    assert result.verification is None
 
 
 @pytest.mark.parametrize("exact_first", [False, True])
@@ -360,7 +362,8 @@ def _verify_subject_fact(store, text, field, value, *, name="Fixture Model", ali
 def test_full_verifier_does_not_attribute_other_facets_to_a_sibling(
         store, subject, field, value, label, body):
     result = _verify_subject_fact(store, f"# {subject}\n{body}\n", field, value, label=label)
-    assert result.outcome == "mismatch"
+    assert result.verification is None
+    assert result.outcome == "skipped"
 
 
 @pytest.mark.parametrize("published", ["Fixture Model Ultra", "Ultra Fixture Model"])
@@ -368,7 +371,8 @@ def test_full_verifier_retention_scope_names_the_whole_model(store, published):
     text = (f"For models requiring review (currently {published}): "
             "prompts are retained for 30 days.\n")
     result = _verify_subject_fact(store, text, "offering.data.retention", 30, unit="days")
-    assert result.outcome == "mismatch"
+    assert result.verification is None
+    assert result.outcome == "skipped"
 
 
 @pytest.mark.parametrize("missing_value", [False, True])
@@ -385,7 +389,8 @@ def test_full_verifier_never_supplies_a_missing_llm_subject(missing_value):
             return page
 
     result = verify.verify(claim, Regions(), [reader], today=TODAY)
-    assert result.outcome == "mismatch"
+    assert result.verification is None
+    assert result.outcome == "skipped"
 
 
 @pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
@@ -1628,8 +1633,8 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
     before = log.path.read_text()
     report = verify.run(verify.Queue(log.directory), log, regions,
                         verify.deterministic_extractors(), today=TODAY)
-    # Only the skipped claim is still pending: it was never verified.
-    assert [r.target.id for r in report.results] == ["sol-prose-no-extractor"]
+    # Unreadable and unbound claims remain pending, with no fabricated receipt.
+    assert [r.target.id for r in report.results] == ["orion-absent", "sol-prose-no-extractor"]
     assert log.path.read_text() == before
 
 
@@ -2642,7 +2647,9 @@ def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store
                               "target": verify.TargetRef(kind="fact", id="luna#context")})
 
     assert verify.verify(claim, regions, [extractor], today=TODAY).outcome == "verified"
-    assert verify.verify(sibling, regions, [extractor], today=TODAY).outcome == "mismatch"
+    unbound = verify.verify(sibling, regions, [extractor], today=TODAY)
+    assert unbound.outcome == "skipped"
+    assert unbound.verification is None
     assert len(seen) == 2 and "GPT-6 Luna" in seen[1]
 
 
@@ -3496,8 +3503,9 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE,))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch"
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert result.diffs == ()
 
     cited = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     named_only = "Nimbus 3 weights are in this repository.\n"
@@ -3507,8 +3515,9 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
         {"nimbus-licence": "https://example.test/LICENSE"},
     )
     result = verify.verify(cited, unbound, [reader], today=TODAY)
-    assert result.outcome == "mismatch"
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert result.diffs == ()
 
     linked = "license_link: https://example.test/LICENSE\nNimbus 3\n"
     bound = _KindRegions(
@@ -3530,8 +3539,9 @@ def test_a_raw_page_url_does_not_bind_a_licence() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert [(diff.field, diff.found) for diff in result.diffs] == [("model", None)]
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_deterministic_extractors_do_not_claim_a_licence_region() -> None:
@@ -3726,8 +3736,9 @@ def test_license_other_does_not_bind_the_apache_text() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_sibling_readme_does_not_bind_the_licence() -> None:
@@ -3748,8 +3759,9 @@ def test_a_sibling_readme_does_not_bind_the_licence() -> None:
         sources=(_LICENCE, _README),
     )
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_apache_2_0_binds_the_apache_org_text() -> None:
@@ -3880,8 +3892,9 @@ def test_a_conflicting_license_link_does_not_bind_the_local_mit_file() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_matching_license_link_binds_across_raw_and_blob() -> None:
@@ -3905,8 +3918,9 @@ def test_license_mit_does_not_bind_a_local_file_whose_text_is_apache() -> None:
         quote=APACHE_QUOTE,
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_mit_binds_a_local_mit_file() -> None:
@@ -3940,8 +3954,9 @@ def test_a_readme_or_config_registered_as_licence_text_does_not_bind_by_location
             page_url=page_url,
         )
         assert rule is None, name
-        assert result.outcome == "mismatch", (name, result)
-        assert result.diffs[0].field == "model"
+        assert result.outcome == "skipped", (name, result)
+        assert result.verification is None
+        assert result.diffs == ()
 
 
 def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
@@ -3951,8 +3966,9 @@ def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 _GEMMA_TERMS = (
@@ -4058,11 +4074,13 @@ def test_verify_uses_base_model_and_ignores_an_unrelated_model() -> None:
     bound = verify.verify(claim(_GEMMA_BASE), regions, [reader], today=TODAY)
     assert bound.outcome == "verified", bound
     missing = verify.verify(claim(None), regions, [reader], today=TODAY)
-    assert missing.outcome == "mismatch", missing
-    assert missing.diffs[0].field == "model"
+    assert missing.outcome == "skipped", missing
+    assert missing.verification is None
+    assert missing.diffs == ()
     other = verify.verify(claim("meta/llama-3", subject="lab/unrelated"), regions, [reader], today=TODAY)
-    assert other.outcome == "mismatch", other
-    assert other.diffs[0].field == "model"
+    assert other.outcome == "skipped", other
+    assert other.verification is None
+    assert other.diffs == ()
 
 
 def _bound_gemma_page(page: str, text: str = _GEMMA_TERMS) -> str | None:
@@ -4229,8 +4247,9 @@ def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_other_and_the_apache_text_still_do_not_bind() -> None:
@@ -4240,8 +4259,9 @@ def test_license_other_and_the_apache_text_still_do_not_bind() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_sibling_repo_readme_still_does_not_bind() -> None:
@@ -4253,8 +4273,9 @@ def test_a_sibling_repo_readme_still_does_not_bind() -> None:
         subject="google/gemma-4-e2b-it",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_the_readme_repo_name_names_querit_4b() -> None:
@@ -4280,8 +4301,9 @@ def test_querit_does_not_match_querit_4b() -> None:
         subject="querit/querit",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
     bare = "license: apache-2.0\nWeights are in this repository.\n"
     assert "querit" not in bare.casefold()
@@ -4293,8 +4315,9 @@ def test_querit_does_not_match_querit_4b() -> None:
         subject="querit/querit",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_querit_4b_does_not_match_querit_4b_pro() -> None:
@@ -4306,8 +4329,9 @@ def test_querit_4b_does_not_match_querit_4b_pro() -> None:
         subject="querit/querit-4b",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
     bare = "license: apache-2.0\nWeights are in this repository.\n"
     rule, result = _bound_readme(
@@ -4318,8 +4342,9 @@ def test_querit_4b_does_not_match_querit_4b_pro() -> None:
         subject="querit/querit-4b",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_querit_and_querit_4b_still_match_their_own_names() -> None:
@@ -4814,8 +4839,9 @@ def test_canonical_mit_without_a_binding_page_does_not_verify() -> None:
     )
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE,))
     result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_permitted_with_conditions_on_canonical_mit_is_a_mismatch() -> None:
