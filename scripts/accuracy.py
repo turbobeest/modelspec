@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
-The PR profile runs deterministic correctness, freshness, frozen-image engine
-recall, and output parity. The nightly profile re-reads verified values, compares
-domain leaders with permitted independent boards, and reports recall changes
-without gating on them.
+The PR profile runs deterministic correctness, frozen-image engine recall, and
+output parity. The nightly profile gates current-data freshness, re-reads verified
+values, compares domain leaders with permitted independent boards, and reports
+recall changes without gating on them.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import random
 import subprocess
@@ -31,8 +32,8 @@ DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
-    "pr": ("deterministic_correctness", "freshness", "frozen_image_engine_recall", "output_parity"),
-    "nightly": ("data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
+    "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
+    "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
@@ -621,6 +622,37 @@ def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date):
         return load_snapshot(snapshot_file, key=None, include_archive=False)
     built = build_from_repo(root, premier=root / "premier" / "slice-1.yaml", as_of=as_of)
     return load_built_snapshot(built, include_archive=False, source="accuracy build")
+
+
+def check_private_freshness(
+    root: Path, *, as_of: date, config: FreshnessConfig,
+) -> LayerResult:
+    """Check current data without publishing private records or parse errors."""
+    from decision.sources import load_sources
+    from pipeline.load import LoadError
+
+    data_loggers = [logging.getLogger(name) for name in ("pipeline.load", "decision.snapshot")]
+    logging_state = [logger.disabled for logger in data_loggers]
+    for logger in data_loggers:
+        logger.disabled = True
+    try:
+        if not all((root / directory).is_dir() for directory in ("models", "benchmarks")):
+            raise ValueError("missing data directories")
+        if not (root / "verification" / "log.jsonl").is_file():
+            raise ValueError("missing verification log")
+        sources = load_sources(root / "registry" / "sources.yaml")
+        if not sources:
+            raise ValueError("empty source registry")
+        snapshot = _load_snapshot(root, None, as_of)
+        result = check_freshness(snapshot, as_of=as_of, config=config, sources=sources)
+        if not result.counts["lineup_models"]:
+            raise ValueError("empty lineup")
+    except (OSError, ValueError, KeyError, TypeError, LoadError, yaml.YAMLError):
+        raise ValueError("private freshness inputs could not be read") from None
+    finally:
+        for logger, disabled in zip(data_loggers, logging_state):
+            logger.disabled = disabled
+    return replace(result, summary="Private data: " + result.summary, details=[])
 
 
 def _recall_update_command(as_of: date) -> str:
@@ -1662,9 +1694,20 @@ def run_profile(
         if layer == "deterministic_correctness":
             results.append(deterministic_correctness(root, config.deterministic))
         elif layer == "freshness":
-            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
-            results.append(check_freshness(snapshot, as_of=as_of, config=config.freshness))
+            if private_data_root is not None:
+                results.append(check_private_freshness(
+                    Path(private_data_root), as_of=as_of, config=config.freshness,
+                ))
+            else:
+                from decision.sources import load_sources
+
+                snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
+                results.append(check_freshness(
+                    snapshot, as_of=as_of, config=config.freshness,
+                    sources=load_sources(root / "registry" / "sources.yaml"),
+                ))
         elif layer == "frozen_image_engine_recall":
+            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
             results.append(
                 run_golden(
                     root,
@@ -1723,7 +1766,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--snapshot-file", type=Path)
     parser.add_argument(
         "--private-data-root", type=Path,
-        help="Read newer verified corrections without replacing the public data image.",
+        help="Check private freshness and newer verified corrections without replacing the public image.",
     )
     parser.add_argument(
         "--approved-recall-baseline",
