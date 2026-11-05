@@ -129,8 +129,10 @@ issue per target.
 MODEL-450 adds four clocks. Each starts at the earliest retained release-watch
 or signal observation matched to that release. Without a matching artifact,
 the card's release date, at midnight UTC, is the fallback. The detailed table
-states which clock source was used. An uncarded discovery needs an explicit
-catalogue `model_id`; a name match must identify exactly one existing card.
+states which clock source was used. Uncarded discoveries use the release
+pipeline's provider and model-slug rules. Provider aliases must resolve to
+one catalogue lab; ambiguous providers or model aliases become input errors.
+Artifacts may also supply an explicit catalogue `model_id`.
 
 The history reader accepts a complete checkout and a ref on main's
 first-parent history. A change on an unmerged branch does not stop a clock.
@@ -164,7 +166,8 @@ absence must have been observed that UTC day and uses the observation time.
 Unknown times do not enter percentiles. Their count makes the affected target
 an error, including when other releases were measured. Exactly 1, 2, or 3
 days meets the corresponding limit. A later completion remains a historical
-breach until that release leaves the window.
+breach until that release leaves the window. A stage already complete when
+discovery occurs has zero lag.
 
 The epic's four consecutive weeks of p90 time-to-decidable at most 3 days
 requires four weeks of complete observations. A single report, empty cohort,

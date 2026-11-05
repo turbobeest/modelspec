@@ -1,13 +1,13 @@
 """MODEL-450: elapsed release coverage, privacy, and the offline CLI."""
 
 import json
-from dataclasses import replace
 from datetime import UTC, datetime
 
-from scripts.slo import alerts, render, report as slo
-from scripts.slo import __main__ as cli
 import pytest
 
+from scripts.slo import __main__ as cli
+from scripts.slo import alerts, render
+from scripts.slo import report as slo
 
 NOW = datetime(2026, 11, 4, 12, tzinfo=UTC)
 
@@ -167,7 +167,8 @@ def test_stale_or_future_snapshot_cannot_establish_a_pending_decidable_breach(ob
     result = next(r for r in report.results if r.target == "release-decidable-lag")
     assert result.status == "error" and not result.findings
     summary = report.release_coverage["stages"][result.target]
-    assert (summary["measured"], summary["pending"], summary["unknown"], summary["late"]) == (0, 0, 1, 0)
+    assert (summary["measured"], summary["pending"], summary["unknown"], summary["late"]) == (
+        0, 0, 1, 0)
     assert summary["p90_days"] is None and summary["errors"] == 1
 
 
@@ -179,7 +180,8 @@ def test_fresh_snapshot_bounds_pending_decidable_lag_at_observation_time():
     result = next(r for r in report.results if r.target == "release-decidable-lag")
     assert result.status == "breach"
     summary = report.release_coverage["stages"][result.target]
-    assert (summary["measured"], summary["pending"], summary["unknown"], summary["late"]) == (1, 1, 0, 1)
+    assert (summary["measured"], summary["pending"], summary["unknown"], summary["late"]) == (
+        1, 1, 0, 1)
     assert summary["p50_days"] == summary["p90_days"] == 3.75
     assert report.release_coverage["releases"][0]["stages"][result.target]["lag_days"] == 3.75
 

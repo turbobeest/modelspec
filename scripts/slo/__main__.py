@@ -262,12 +262,14 @@ def main(argv: list[str] | None = None) -> int:
                      help="read OWNER/REPO's workflow files from this checkout")
     rep.set_defaults(func=cmd_report)
     rel = sub.add_parser("releases", help="measure release stages from local main history")
-    rel.add_argument("--data-dir", required=True, help="local catalogue checkout, complete history")
+    rel.add_argument("--data-dir", required=True,
+                     help="local catalogue checkout, complete history")
     rel.add_argument("--ref", default="HEAD", help="main history tip in that checkout")
     rel.add_argument("--out", required=True)
     rel.add_argument("--now", help="ISO time; default now (UTC)")
     rel.add_argument("--last", type=_positive, help="limit to the newest N discoveries")
-    rel.add_argument("--window-days", type=_positive, help="override the rolling window for an audit")
+    rel.add_argument("--window-days", type=_positive,
+                     help="override the rolling window for an audit")
     rel.add_argument("--discovery", action="append", default=[], metavar="PATH",
                      help="retained release-watch or signal artifact (repeatable)")
     rel.add_argument("--snapshot", action="append", default=[], metavar="PATH",
