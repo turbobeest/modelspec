@@ -355,21 +355,35 @@ def test_the_private_repo_is_read_with_its_own_token_and_no_checkout() -> None:
     assert CONFIG.private_repos == frozenset({PRIVATE})
 
 
-def test_only_the_pass_fail_job_holds_the_private_token() -> None:
+def test_public_report_waits_for_private_health_and_validated_counts_without_a_token() -> None:
     import yaml
 
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "coverage-slo.yml").read_text())
     jobs = workflow["jobs"]
     private, report = jobs["private-health"], jobs["report"]
+    counts = jobs["release-counts"]
     # A checkout prints the private repository's commit subject into this public log.
     assert "repository: turbobeest/modelspec-data" not in json.dumps(workflow)
     assert "MODELSPEC_DATA" in json.dumps(private)
+    assert "MODELSPEC_DATA" in json.dumps(counts)
     assert "MODELSPEC_DATA" not in json.dumps(report)
     assert "outputs" not in private
     assert private["steps"][-1]["run"].rstrip().endswith(
         "python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet")
-    assert report["needs"] == "private-health" and report["if"] == "${{ !cancelled() }}"
+    assert report["needs"] == ["private-health", "release-counts"]
+    assert report["if"] == "${{ !cancelled() }}"
     assert report["env"]["PRIVATE_WORKFLOW_HEALTH"] == "${{ needs.private-health.result }}"
+    assert report["env"]["PRIVATE_RELEASE_COUNTS"] == "${{ needs.release-counts.outputs.counts }}"
+    assert counts["outputs"] == {"counts": "${{ steps.counts.outputs.counts }}"}
+    assert counts["permissions"] == {"contents": "read"}
+    assert counts["steps"][0]["with"]["persist-credentials"] is False
+    [writer] = [step for step in counts["steps"] if step.get("id") == "counts"]
+    assert writer["run"] == "python -m scripts.slo release-counts --github-output"
+    assert writer["env"] == {"MODELSPEC_DATA_TOKEN": "${{ secrets.MODELSPEC_DATA_TOKEN }}"}
+    report_commands = "\n".join(step.get("run", "") for step in report["steps"])
+    import_command = "python -m scripts.slo release-counts --from-env --out release-counts.json"
+    measure_command = "python -m scripts.slo report --release-report release-counts.json"
+    assert report_commands.index(import_command) < report_commands.index(measure_command)
 
 
 @pytest.mark.parametrize(("result", "status", "text"), [

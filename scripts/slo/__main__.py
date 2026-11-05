@@ -225,8 +225,17 @@ def cmd_releases(args: argparse.Namespace) -> int:
         Path(args.data_dir), ref=args.ref,
         discovery_paths=tuple(Path(p) for p in args.discovery),
         snapshot_paths=tuple(Path(p) for p in args.snapshot))
-    report = release_report(history, config, now=_now(args.now),
+    now = _now(args.now)
+    report = release_report(history, config, now=now,
                             counts_only=not args.private_detail, last=args.last)
+    if args.counts_out:
+        from scripts.slo.release_counts import counts_payload
+
+        counts = release_report(history, config, now=now, last=args.last)
+        path = Path(args.counts_out)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(counts_payload(counts.to_json(), now=now)) + "\n",
+                        encoding="utf-8")
     if args.private_detail:
         report = replace(report, release_coverage={**report.release_coverage,
                                                    "repository": DATA_REPO})
@@ -237,6 +246,30 @@ def cmd_releases(args: argparse.Namespace) -> int:
             for r in report.results))
     render.write(report, Path(args.out), config.report_url)
     print(render.markdown(report, config.report_url))
+    return 0
+
+
+def cmd_release_counts(args: argparse.Namespace) -> int:
+    import httpx
+
+    from scripts.slo.release_counts import fetch_counts, read_counts
+
+    now = _now(args.now)
+    if args.github_output:
+        output = os.environ.get("GITHUB_OUTPUT")
+        if not output:
+            sys.exit("--github-output requires GITHUB_OUTPUT")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with httpx.Client(timeout=30) as client:
+                data = fetch_counts(os.environ.get("MODELSPEC_DATA_TOKEN", ""), now=now,
+                                    client=client)
+        with Path(output).open("a", encoding="utf-8") as stream:
+            stream.write("counts=" + json.dumps(data, separators=(",", ":")) + "\n")
+    else:
+        if not args.out:
+            sys.exit("--from-env requires --out")
+        data = read_counts(os.environ.get("PRIVATE_RELEASE_COUNTS", ""), now=now)
+        Path(args.out).write_text(json.dumps(data) + "\n", encoding="utf-8")
     return 0
 
 
@@ -266,6 +299,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="local catalogue checkout, complete history")
     rel.add_argument("--ref", default="HEAD", help="main history tip in that checkout")
     rel.add_argument("--out", required=True)
+    rel.add_argument("--counts-out", help="write a separate bounded counts-only JSON file")
     rel.add_argument("--now", help="ISO time; default now (UTC)")
     rel.add_argument("--last", type=_positive, help="limit to the newest N discoveries")
     rel.add_argument("--window-days", type=_positive,
@@ -278,6 +312,15 @@ def main(argv: list[str] | None = None) -> int:
                      help="include names and timings; local or private repository runs only")
     rel.add_argument("--stage-breach", action="append", default=[], metavar="TARGET")
     rel.set_defaults(func=cmd_releases)
+    counts = sub.add_parser("release-counts", help="transfer validated private release counts")
+    source = counts.add_mutually_exclusive_group(required=True)
+    source.add_argument("--github-output", action="store_true",
+                        help="quietly fetch private counts and write the audited job output")
+    source.add_argument("--from-env", action="store_true",
+                        help="read the counts-only PRIVATE_RELEASE_COUNTS handoff")
+    counts.add_argument("--out", help="file to write with --from-env")
+    counts.add_argument("--now", help="ISO time; default now (UTC)")
+    counts.set_defaults(func=cmd_release_counts)
     wf = sub.add_parser("workflows", help="measure only workflow-health and print it")
     wf.add_argument("--now", help="ISO time for workflow ages; default now (UTC)")
     wf.add_argument("--workflow-dir", action="append", default=[], metavar="REPO=PATH",
