@@ -2301,7 +2301,10 @@ GROK_CANCELLED = {
         ({"type": "result", "subtype": "cancelled", "status": "cancelled", "result": "OK"}, False),
         ({**GROK_SUCCESS, "stop_reason": "cancelled"}, False),
         ({**GROK_SUCCESS, "subtype": "error_max_turns"}, False),
-        ({k: v for k, v in GROK_SUCCESS.items() if k != "is_error"}, False),
+        *(
+            ({k: v for k, v in GROK_SUCCESS.items() if k != missing}, False)
+            for missing in ("subtype", "is_error", "stop_reason")
+        ),
         ({"type": "end", "result": "OK"}, False),
     ],
 )
@@ -2328,19 +2331,27 @@ def test_grok_only_a_successful_terminal_completes_the_isolated_canary(
     assert passed is completed
 
 
-def test_doctor_writes_no_verified_receipt_after_a_cancelled_isolated_canary(
-    config, tmp_path, monkeypatch
+@pytest.mark.parametrize(
+    "terminal",
+    [
+        {"type": "result", "subtype": "cancelled", "status": "cancelled", "result": "OK"},
+        *({k: v for k, v in GROK_SUCCESS.items() if k != missing}
+          for missing in ("subtype", "is_error", "stop_reason")),
+    ],
+    ids=["cancelled", "no-subtype", "no-is_error", "no-stop_reason"],
+)
+def test_doctor_writes_no_verified_receipt_after_a_non_success_isolated_terminal(
+    terminal, config, tmp_path, monkeypatch
 ):
     real_execute = providers._execute
     monkeypatch.setattr(
         inventory, "inspect_inventory", lambda *a, **k: native_inventory("grok", mcp_enabled=False)
     )
-    cancelled = {"type": "result", "subtype": "cancelled", "status": "cancelled", "result": "OK"}
     monkeypatch.setattr(
         providers.subprocess,
         "run",
         lambda command, **_: subprocess.CompletedProcess(
-            command, 0, text([GROK_INIT, cancelled]), ""
+            command, 0, text([GROK_INIT, terminal]), ""
         ),
     )
 

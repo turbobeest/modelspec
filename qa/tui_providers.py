@@ -427,15 +427,16 @@ GROK_TERMINAL_KEYS = ("type", "subtype", "is_error", "status", "stop_reason")
 def _grok_success(event: dict) -> bool:
     """The only Grok terminal accepted as success, recorded live 2026-11-04 (1.0.46).
 
-    Cancelled (error_during_execution, stop_reason cancelled) and any other or
-    unknown shape fail closed.
+    subtype, is_error and stop_reason must all be present and exact. Cancelled
+    (error_during_execution, stop_reason cancelled), a missing field and any
+    other shape fail closed.
     """
     return (
         event.get("type") == "result"
         and event.get("subtype") == "success"
         and event.get("is_error") is False
+        and event.get("stop_reason") == "end_turn"
         and event.get("status", "success") == "success"
-        and event.get("stop_reason", "end_turn") == "end_turn"
     )
 
 
