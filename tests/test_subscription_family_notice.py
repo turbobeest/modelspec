@@ -95,3 +95,23 @@ Plus | Ultra
 """
     result = verify_availability(text, "Other Plan Ultra", aliases=("other-ultra",))
     assert result.outcome != "verified", result
+
+
+@pytest.mark.parametrize("published,expected", [("FIXTURE--Plan", "mismatch"),
+                                                ("Fixture Plan Ultra", "skipped")])
+def test_missing_coverage_wording_requires_the_exact_plan_before_it_mismatches(published, expected):
+    claim = Claim(
+        target=TargetRef(kind="fact", id="fixture#offering.subscription.coverage_quote"),
+        subject="fixture/subscription/plan", names=("Fixture Plan",),
+        field="offering.subscription.coverage_quote", value="The previous coverage wording.",
+        collector=VerificationActor(agent="collector", model_family="human", method="manual@1"),
+        sources=(SourceRef(source_id="notice", snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=["page"]),),
+    )
+    result = verify(claim, Page(f"{published} $20/month\nThe current features are listed here."),
+                    deterministic_extractors(), today=date(2026, 11, 5))
+    assert result.outcome == expected, result
+    if expected == "mismatch":
+        assert result.diffs[0].field == "value"
+    else:
+        assert result.verification is None

@@ -571,7 +571,7 @@ class TableExtractor:
 
 
 class TransposedTableExtractor:
-    """Read benchmark rows under exact model-name column headers."""
+    """Read labelled rows under exact model-name column headers."""
 
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
                               method="transposed-table-label-match@1")
@@ -579,14 +579,34 @@ class TransposedTableExtractor:
     def accepts(self, text: str) -> bool:
         return " | " in text
 
+    @staticmethod
+    def _ambiguous_row(cells: Sequence[str]) -> bool:
+        """Unknown text may be a new HTML table's header after normalisation."""
+        if any((quantity := parse_quantity(cell)) is not None
+               and (quantity.unit is None or quantity.unit in UNITS
+                    or quantity.unit in _MAGNITUDE or quantity.unit == "usd"
+                    or re.fullmatch(r"[kmgt]i?b|bytes?|gigabytes?", quantity.unit))
+               for cell in cells):
+            return False
+        known = {"", "yes", "no", "true", "false", "supported", "not supported",
+                 "available", "unavailable", "unknown", "not disclosed", "n a", "na",
+                 "dense", "moe", "mixture of experts", "mixture of experts moe", "hybrid"}
+        modalities = {"text", "image", "images", "audio", "video", "and"}
+        return not all((name := normalise_name(cell)) in known
+                       or set(name.split()) <= modalities for cell in cells)
+
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         # Caption conditions need the evidence reader that binds them to scores.
-        if claim.target.kind == "evidence" and _EFFORT_IN_PHRASE.search(text.casefold()):
+        if claim.target.kind == "evidence" and any(
+                level in EFFORT_LEVELS or level in _EFFORT_ALIASES
+                for level in _EFFORT_IN_PHRASE.findall(text.casefold())):
             return []
         lines = text.splitlines()
         rows = [[cell.strip() for cell in line.strip().split("|")]
                 for line in lines]
-        label_headers = {"", "property", "metric", "benchmark", "feature", "capability", "model"}
+        label_headers = {"", "property", "properties", "metric", "metrics", "benchmark",
+                         "benchmarks", "feature", "features", "capability", "capabilities",
+                         "model", "models", "specification", "specifications", "comparison"}
         readings = []
         for i, header in enumerate(rows):
             markdown = i + 1 < len(lines) and _SEPARATOR.fullmatch(lines[i + 1].strip())
@@ -597,6 +617,8 @@ class TransposedTableExtractor:
                 continue
             columns = [(j, name) for j, cell in enumerate(header)
                        if j and (name := _published_subject(cell, claim.names))]
+            if not columns:
+                continue
             for k in range(i + 2 if markdown else i + 1, len(rows)):
                 row = rows[k]
                 if markdown:
@@ -604,13 +626,71 @@ class TransposedTableExtractor:
                     row = row[:-1] if lines[k].rstrip().endswith("|") else row
                 if len(row) != len(header):
                     break
+                if normalise_name(row[0]) == _label(claim):
+                    readings.extend(Reading(subject=name, value=row[j] or None)
+                                    for j, name in columns)
+                    continue
                 if normalise_name(row[0]) in label_headers:
                     break
-                if normalise_name(row[0]) != _label(claim):
-                    continue
-                readings.extend(Reading(subject=name, value=row[j] or None)
-                                for j, name in columns)
+                # HTML normalisation joins adjacent tables without a blank line.
+                # An unfamiliar text row cannot preserve the preceding columns.
+                if self._ambiguous_row(row[1:]):
+                    break
         return readings
+
+
+def _literal_doc_tables(text: str) -> list[str]:
+    """Read literal DocTable props without executing JSX or JavaScript.
+
+    Text normalisation can drop punctuation-only closing lines. Column objects
+    and row arrays still have to be complete, independent literal records.
+    """
+    tables = []
+    quoted = r'"(?:\\.|[^"\\])*"'
+    column = re.compile(rf'\{{\s*title:\s*({quoted})(?:,\s*width:\s*{quoted})?\s*\}},?')
+    for component in re.split(r"<DocTable\b", text)[1:]:
+        headers: list[str] = []
+        rows: list[list[str]] = []
+        phase = None
+        for raw in component.splitlines():
+            line = raw.strip()
+            if not line or re.fullmatch(r"[\]}/>,\s]+", line):
+                continue
+            if line == "columns={[":
+                phase = "columns"
+                continue
+            if phase == "columns" and line == "rows={[":
+                phase = "rows"
+                continue
+            if phase == "columns":
+                match = column.fullmatch(line)
+                if match is None:
+                    headers = []
+                    break
+                try:
+                    headers.append(json.loads(match.group(1)))
+                except json.JSONDecodeError:
+                    headers = []
+                    break
+            elif phase == "rows":
+                if not line.startswith("["):
+                    break
+                try:
+                    row = json.loads(line.removesuffix(","))
+                except json.JSONDecodeError:
+                    rows = []
+                    break
+                if not isinstance(row, list) or len(row) != len(headers) \
+                        or not all(isinstance(cell, str) for cell in row):
+                    rows = []
+                    break
+                rows.append(row)
+            else:
+                break
+        if headers and normalise_name(headers[0]) == "model" and rows \
+                and not any("|" in cell or "\n" in cell for row in [headers, *rows] for cell in row):
+            tables.append("\n".join(" | ".join(row) for row in [headers, *rows]))
+    return tables
 
 
 class OfferingPriceExtractor:
@@ -620,7 +700,8 @@ class OfferingPriceExtractor:
                               method="offering-price-table@1")
 
     def accepts(self, text: str) -> bool:
-        return " | " in text and bool(re.search(r"(?i)\b(price|pricing|input|output)\b", text))
+        return (" | " in text or "<DocTable" in text) \
+            and bool(re.search(r"(?i)\b(price|pricing|input|output)\b", text))
 
     @staticmethod
     def _wanted(field: str) -> str:
@@ -648,6 +729,8 @@ class OfferingPriceExtractor:
         wanted = self._wanted(claim.field)
         if wanted == claim.field:
             raise ExtractorError("not an offering price")
+        if tables := _literal_doc_tables(text):
+            return [reading for table in tables for reading in self.extract(claim, table)]
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         simple_label = {"input": "input", "output": "output",
                         "cached_input": "cached input"}.get(wanted)
@@ -740,9 +823,13 @@ class OfferingPriceExtractor:
             if subject and _batch_subject(subject, claim.names):
                 if wanted.startswith("batch_"):
                     kind = wanted.removeprefix("batch_")
-                    index = next((i for i, header in enumerate(headers)
-                                  if kind in header and "price" in header
-                                  and ("cache" not in header or "miss" in header)), None)
+                    columns = [i for i, header in enumerate(headers)
+                               if kind in header and "price" in header
+                               and ("cache" not in header or "miss" in header)
+                               and not re.search(r"\b(?:standard|priority|flex|fast|training|"
+                                                 r"fine tuning)\b", header)]
+                    batch_columns = [i for i in columns if "batch" in headers[i].split()]
+                    index = next(iter(batch_columns or columns), None)
                     if index is not None and _PRICE_CELL.search(row[index]):
                         readings.append(Reading(subject, row[index], claim.unit))
                 continue
@@ -963,10 +1050,14 @@ _SUBJECT_KEYS = frozenset({"model", "model name", "name"})
 _DATE_KEYS = frozenset({"date", "as of", "evaluated", "updated", "last updated"})
 
 
-def _model_title(title: str) -> str:
+def _model_title(title: str, names: Sequence[str]) -> str:
+    if _published_subject(title, names):
+        return title
     title = re.sub(r"(?i)^Model Card for\s+", "", title)
     title = re.sub(r"(?i)\s+Model Card$", "", title)
-    return title.split(":", 1)[0].strip()
+    if _published_subject(title, names):
+        return title
+    return re.split(r":\s+", title, maxsplit=1)[0].strip()
 
 
 def _metadata_prefix_length(lines: Sequence[str]) -> int:
@@ -1010,21 +1101,19 @@ def _subject_sections(claim: Claim, text: str, *, page_url: str | None = None
               "reasoning effort", "thinking", "batch api", "batch api price",
               "standard", "batch", "flex", "priority"}
     metadata_end = _metadata_prefix_length(lines)
-    initial_subject = (_hf_bound_subject(claim, text, page_url)
-                       if page_url and urlsplit(page_url).path.endswith("/README.md") else None)
+    initial_subject = None
+    if page_url and urlsplit(page_url).path.endswith("/README.md"):
+        repository_claim = claim
+        if claim.subject in claim.names and claim.subject in _catalogue_ids():
+            aliases = tuple(name for name in claim.names if name != claim.subject)
+            if aliases:
+                repository_claim = replace(claim, names=aliases)
+        initial_subject = _hf_bound_subject(repository_claim, text, page_url)
     generic_words = (_SECTION_WORDS | {"features", "capabilities", "specifications", "specs",
-                                      "modalities", "introduction", "description"})
-    # A repository address cannot attach leading metadata to a contradictory title.
-    for line in lines[metadata_end:]:
-        first_title = re.fullmatch(r"#\s+(.+)", line)
-        first_declaration = re.fullmatch(r"(?i)(?:model|model name|name)\s*[:|]\s*(.+)", line)
-        if first_title or first_declaration:
-            candidate = _model_title((first_title or first_declaration).group(1))
-            if not _published_subject(candidate, claim.names) \
-                    and not set(normalise_name(candidate).split()) <= generic_words:
-                initial_subject = None
-            break
+                                      "modalities", "introduction", "description", "tokenizer",
+                                      "chat", "template", "encoding", "core"})
     sections: list[tuple[str | None, list[str]]] = []
+    heading_owners: list[tuple[int, str | None]] = []
     subject = initial_subject
     block: list[str] = []
     for i, line in enumerate(lines):
@@ -1032,12 +1121,17 @@ def _subject_sections(claim: Claim, text: str, *, page_url: str | None = None
         heading = re.fullmatch(r"#{1,6}\s+(.+)", line)
         declaration = re.fullmatch(r"(?i)(?:model|model name|name)\s*[:|]\s*(.+)", line)
         named_feature = re.match(r"(?i)^([^:]+):\s*(?:supports?|offers?|provides?|includes?)\b", line)
+        feature_list = re.fullmatch(
+            r"(?i)(.+?)\s+(?:includes|offers|provides|has)\s+the following\s+"
+            r"(?:capabilities|features|architectural choices)\s*:", line)
         if heading:
-            title = _model_title(heading.group(1))
+            title = _model_title(heading.group(1), claim.names)
         elif declaration:
             title = declaration.group(1)
         elif named_feature:
             title = named_feature.group(1)
+        elif feature_list:
+            title = feature_list.group(1)
         published = _published_subject(title, claim.names)
         next_line = lines[i + 1] if i + 1 < len(lines) else ""
         inverse_label = any(normalise_name(next_line).endswith(" " + label)
@@ -1046,6 +1140,7 @@ def _subject_sections(claim: Claim, text: str, *, page_url: str | None = None
         plain_title = (i >= metadata_end and "|" not in line and ":" not in line
                        and not line.startswith(("<", "- ", "* "))
                        and not next_line.startswith("<")
+                       and re.search(r"[.!?](?:\s|$)", line) is None
                        and (normalise_name(next_line) in labels or _KEY_VALUE.match(next_line)
                             or inverse_label)
                        and normalise_name(line) not in labels
@@ -1053,15 +1148,28 @@ def _subject_sections(claim: Claim, text: str, *, page_url: str | None = None
                        and parse_quantity(line) is None)
         price_tier = (claim.field.startswith("offering.price.")
                       and re.fullmatch(r"(?i)priority|flex|fine[- ]tuning|training|fast", title))
-        if published or heading or declaration or named_feature or plain_title or price_tier:
+        if published or heading or declaration or named_feature or feature_list or plain_title or price_tier:
             generic_label = normalise_name(title)
-            generic = not declaration and (
+            generic = not (declaration or named_feature or feature_list) and (
                 set(generic_label.split()) <= generic_words
                 or generic_label in {"chat completions", "built in tools"}
+                or (not claim.field.startswith("offering.price.")
+                    and generic_label in {"sale price", "m tokens"})
                 or re.fullmatch(r"(?:(?:cached|batch) )?(?:input|output)(?: price| m tokens)?",
                                 generic_label) is not None)
             if claim.field.startswith("offering.price.") and _OTHER_TIER.search(title):
                 generic = False
+            if heading:
+                depth = len(line) - len(line.lstrip("#"))
+                while heading_owners and heading_owners[-1][0] >= depth:
+                    heading_owners.pop()
+                inherited = heading_owners[-1][1] if heading_owners else initial_subject
+                owner = published or (inherited if generic else None)
+                heading_owners.append((depth, owner))
+                if generic and subject != owner:
+                    if block:
+                        sections.append((subject, block))
+                    subject, block = owner, []
             if published or not generic:
                 owns_metadata = (published and heading and not sections and subject is None
                                  and metadata_end == i and i > 0
@@ -1289,8 +1397,14 @@ class SubscriptionPageExtractor:
         if _HTML_TAG.search(text.replace("<API Key>", "")):
             return []
         if claim.field == "offering.subscription.coverage_quote":
-            return [r for r in self.quote_candidates(claim, text)
-                    if normalise_name(r.value) == normalise_name(str(claim.value))]
+            matching = [r for r in self.quote_candidates(claim, text)
+                        if normalise_name(r.value) == normalise_name(str(claim.value))]
+            if matching or claim.value is None:
+                return matching
+            # Missing old wording is a value mismatch only on this plan's page.
+            priced = replace(claim, field="offering.subscription.price")
+            return [Reading(r.subject, None) for r in self._page_layouts(priced, text)
+                    if r.subject and _published_subject(r.subject, claim.names)]
         if re.search(r"\bteams?\b", claim.subject.rsplit("/", 1)[-1]):
             names = tuple(name for name in claim.names
                           if len(normalise_name(name).split()) >= 2
@@ -2454,18 +2568,24 @@ class ModelPageExtractor:
                 "feature.tool_calling": ("function calling", "tool calling"),
                 "feature.structured_output": ("structured output", "json mode", "json schema"),
                 "feature.effort_controls": ("reasoning effort", "default effort", "thinking"),
-                "feature.batch": ("v1/batch", "batch api", "batch inference"),
+                "feature.batch": ("v1/batch", "batch api", "batch inference", "batching"),
                 "feature.streaming": ("streaming", "stream response"),
             }[claim.field]
             def own_feature(line: str) -> bool:
-                if not any(normalise_name(phrase) in normalise_name(line) for phrase in phrases):
-                    return False
-                stated = re.match(r"(?i)^(.+?)\s+(?:supports?|offers?|provides?|has|includes?|can|is|uses?)\b",
-                                  line)
-                if stated is None:
+                plain = line.replace("**", "").replace("`", "").lstrip("-* ")
+                label = plain.split(":", 1)[0]
+                if ":" in plain and normalise_name(label) in {*phrases, "smarter tool calling"}:
                     return True
-                return (normalise_name(stated.group(1)) in {"it", "this model", "the model", *phrases}
-                        or _published_subject(stated.group(1), claim.names) is not None)
+                for sentence in re.split(r"(?<=[.!?])\s+", plain):
+                    if not any(normalise_name(phrase) in normalise_name(sentence) for phrase in phrases):
+                        continue
+                    stated = re.match(r"(?i)^(.+?)\s+(?:supports|offers?|provides?|has|includes?|can|is|uses?)\b",
+                                      sentence)
+                    if stated is None or normalise_name(stated.group(1)) in {
+                        "it", "this model", "the model", *phrases,
+                    } or _published_subject(stated.group(1), claim.names) is not None:
+                        return True
+                return False
 
             if any(own_feature(line) for line in lines):
                 readings.append(Reading(subject=subject, value="supported"))
@@ -2797,10 +2917,12 @@ class MistralOutputModalitiesExtractor:
         subject = sections[0][0]
         lines = [line for _, section in sections for line in section]
         blocks: list[set[str]] = []
+        published: list[str] = []
         for i, line in enumerate(lines):
             value = self._output_value(line)
             if value is None:
                 continue
+            published.append(line)
             if not value:
                 following = []
                 for other in lines[i + 1:]:
@@ -2809,15 +2931,17 @@ class MistralOutputModalitiesExtractor:
                         break
                     following.append(other)
                 value = ", ".join(following)
+                published.extend(following)
             blocks.append({item.strip().casefold()
                            for item in re.split(r",|;|\band\b", value, flags=re.IGNORECASE)
                            if item.strip()})
-        if not blocks or any(block != blocks[0] for block in blocks[1:]):
+        if not blocks:
             return []
+        if any(block != blocks[0] for block in blocks[1:]):
+            # Retain the contradictory owned statements instead of claiming absence
+            # or selecting one set that a later comparison could accept.
+            return [Reading(subject, "\n".join(published))]
         outputs = blocks[0] - {"reasoning"}
-        allowed = default_registry().facet("model.output_modalities").value_type.values
-        if not outputs.intersection(allowed):
-            return []
         return [Reading(subject, ", ".join(sorted(outputs)))]
 
 
@@ -6200,6 +6324,62 @@ def _catalogue_model_id(published: str) -> str | None:
     return next(iter(matches)) if len(matches) == 1 else None
 
 
+@cache
+def _catalogue_readme_repositories() -> Mapping[str, str]:
+    repositories: dict[str, str] = {}
+    for path in (REPO_ROOT / "models").rglob("*.md"):
+        model_id = url = None
+        in_sources = False
+        with path.open(encoding="utf-8", errors="replace") as card:
+            if next(card, "").strip() != "---":
+                continue
+            for line in card:
+                if line.strip() == "---":
+                    break
+                if line.startswith("model_id:"):
+                    model_id = line.split(":", 1)[1].strip().strip("'\"")
+                if line and not line[0].isspace():
+                    in_sources = line.strip() == "sources:"
+                if in_sources and (match := re.match(r"\s+huggingface_url:\s*(.+)", line)):
+                    url = match.group(1).strip().strip("'\"")
+        if not model_id or not url:
+            continue
+        parsed = urlsplit(url)
+        repo = parsed.path.strip("/").split("/")
+        if parsed.hostname == "huggingface.co" and len(repo) == 2 and all(repo):
+            repositories[model_id] = "/".join(repo)
+    return repositories
+
+
+def _registered_readme_claim(claim: Claim, source_url: str | None) -> Claim:
+    """Expose a card's registered repository identity only at that exact README."""
+    if not source_url or not urlsplit(source_url).path.endswith("/README.md"):
+        return claim
+    repo = _hf_architecture_repo(source_url)
+    if repo is None:
+        return claim
+    registered = _catalogue_readme_repositories()
+    subjects = {claim.subject} if claim.subject in registered else set()
+    if not subjects:
+        for name in claim.names:
+            identity = normalise_name(name.replace("+", " plus "))
+            matches = _catalogue_model_aliases().get(identity, frozenset())
+            if len(matches) > 1:
+                display = _catalogue_display_names().get(identity, frozenset())
+                matches = display if len(display) == 1 else matches
+            if len(matches) == 1:
+                subjects.update(matches)
+        subjects &= registered.keys()
+        if len(subjects) != 1:
+            return claim
+    repository = _published_subject("/".join(repo), tuple(
+        registered[subject] for subject in subjects if subject in registered))
+    if repository is None:
+        return claim
+    names = tuple(dict.fromkeys((*claim.names, repository, repo[1])))
+    return replace(claim, names=names)
+
+
 def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     expected, value = _show(claim), claim.value
     if reading.value is None:
@@ -7021,7 +7201,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             reachable = True
             source_url = url_of(source.source_id) if callable(url_of) else None
-            accepting = _readers_for(ordered, claim, text, kind, source_url=source_url)
+            read_claim = _registered_readme_claim(claim, source_url)
+            accepting = _readers_for(ordered, read_claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
                 if _binding_page(claim, regions, kind):
@@ -7049,7 +7230,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             claim, regions, source.source_id, region_id,
                         )
                         readings = extractor.extract(
-                            claim,
+                            read_claim,
                             text,
                             cache_key=(source.snapshot_ref, region_id, claim.field),
                             bindings=pages,
@@ -7058,10 +7239,10 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         )
                     elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
-                            claim,
+                            read_claim,
                             read,
                             cache_key=(source.snapshot_ref, region_id, claim.field,
-                                       *claim.names),
+                                       *read_claim.names),
                         )
                     elif isinstance(extractor, PerplexityFaqExtractor):
                         reader = getattr(regions, "page_html", None)
@@ -7069,19 +7250,19 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                                 if callable(reader) else None)
                         if not html:
                             raise ExtractorError("template drifted")
-                        readings = extractor.extract(claim, html)
+                        readings = extractor.extract(read_claim, html)
                     elif isinstance(extractor, (KeyValueExtractor, ModelPageExtractor)):
-                        readings = extractor.extract(claim, read, page_url=source_url)
+                        readings = extractor.extract(read_claim, read, page_url=source_url)
                     else:
-                        readings = extractor.extract(claim, read)
+                        readings = extractor.extract(read_claim, read)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
                 if not any(reading.subject and _reading_subject_matches(
-                        reading.subject, claim.names, field=claim.field) for reading in readings):
+                        reading.subject, read_claim.names, field=claim.field) for reading in readings):
                     reasons.append(f"no_reading:{where}: {extractor.actor.method}")
                     continue
-                diffs = compare(claim, readings)
+                diffs = compare(read_claim, readings)
                 if not diffs:
                     blocked = _absence_block(claim, regions, source.source_id)
                     if blocked:

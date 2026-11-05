@@ -193,3 +193,38 @@ def test_transposed_column_ownership_ends_at_the_next_table_header():
     reader = verify.TransposedTableExtractor()
     assert read(text, claim(9000), readers=[reader]).outcome == "mismatch"
     assert reader.extract(claim(), text) == [verify.Reading("Fixture Model", "4200")]
+
+
+@pytest.mark.parametrize("description", [
+    "Fixture Model is a model for general tasks. It has a multimodal architecture.",
+    "Our model handles text and images (with a separate encoder).",
+])
+@pytest.mark.parametrize("field,value,label", [
+    ("model.input_modalities", ["text", "image"], "Input"),
+    ("model.release_date", "2026-10-01", "Release date"),
+])
+def test_a_description_before_metadata_does_not_rename_the_model(description, field, value, label):
+    text = (f"# Fixture Model\n{description}\n- API names: `fixture-model`, `fixture-latest`\n"
+            "- Release date: 2026-10-01\n- Input: text, image\n")
+    assert read(text, claim(value, field=field, label=label)).outcome == "verified"
+
+
+@pytest.mark.parametrize("body", [
+    "Features\nBatching\nAgents & Conversations",
+    "- Features: Chat Completions, Function Calling, Batching",
+])
+def test_batching_is_a_named_capability_of_its_exact_model(body):
+    text = f"# Fixture Model\n{body}\nModel documentation.\n"
+    assert read(text, claim(True, field="feature.batch", label="Batch interface")).outcome == "verified"
+
+
+def test_a_siblings_batching_capability_does_not_describe_this_model():
+    text = "# Fixture Model\n# Fixture Model Ultra\nFeatures\nBatching\nAgents & Conversations"
+    assert read(text, claim(True, field="feature.batch", label="Batch interface")).outcome != "verified"
+
+
+def test_price_display_labels_do_not_rename_a_models_capability_section():
+    text = ("Fixture Model\nInput\nSale price\nOriginal price: $1.00Sale price: $0.50\n"
+            "M Tokens\nOriginal price: $2.00Sale price: $1.00\nM Tokens\nFeatures\n"
+            "Batching\nAgents & Conversations\n")
+    assert read(text, claim(True, field="feature.batch", label="Batch interface")).outcome == "verified"

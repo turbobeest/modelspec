@@ -18,10 +18,11 @@ class Page:
         return self.url
 
 
-def read(text, field="model.weights_openness", value="open_weights", *, url=None):
+def read(text, field="model.weights_openness", value="open_weights", *, url=None,
+         names=("Fixture Model",), subject="fixture/model"):
     claim = verify.Claim(
-        target=TargetRef(kind="fact", id=f"fixture#{field}"), subject="fixture/model",
-        names=("Fixture Model",), field=field, label=field.removeprefix("model.").replace("_", " "),
+        target=TargetRef(kind="fact", id=f"fixture#{field}"), subject=subject,
+        names=names, field=field, label=field.removeprefix("model.").replace("_", " "),
         value=value,
         collector=VerificationActor(agent="collector", model_family="human", method="manual@1"),
         sources=(SourceRef(source_id="page", snapshot_ref="sha256:" + "a" * 64,
@@ -52,10 +53,11 @@ def test_model_absence_does_not_override_a_later_owned_value():
     assert read(text, "model.context_window", None).outcome != "verified"
 
 
-def test_repository_owner_does_not_inherit_foreign_leading_metadata():
-    text = "license: mit\n# Fixture Model Ultra\nModel documentation."
+def test_repository_metadata_and_foreign_body_have_separate_owners():
+    text = "license: mit\n# Fixture Model Ultra\nContext window: 4200\nModel documentation."
     url = "https://huggingface.co/lab/Fixture-Model/raw/main/README.md"
-    assert read(text, url=url).outcome != "verified"
+    assert read(text, url=url).outcome == "verified"
+    assert read(text, "model.context_window", 4200, url=url).outcome != "verified"
 
 
 @pytest.mark.parametrize("file", ["config.json", "metadata.json"])
@@ -132,4 +134,109 @@ def test_owned_feature_paragraphs_read_their_local_subject(paragraph):
 
 def test_later_sibling_sentence_does_not_describe_the_page_model():
     text = "# Fixture Model\nTraining follows several steps. Fixture Model Ultra supports reasoning effort.\nModel details."
+    assert read(text, "feature.effort_controls", True).outcome != "verified"
+
+
+@pytest.fixture
+def model_catalogue(tmp_path, monkeypatch):
+    models = tmp_path / "models" / "fixture"
+    models.mkdir(parents=True)
+    (models / "model.md").write_text(
+        "---\nmodel_id: fixture/fixture-model\ndisplay_name: Fixture Model\n"
+        "sources:\n  huggingface_url: https://huggingface.co/lab/Fixture-Repository\n---\n")
+    monkeypatch.setattr(verify, "REPO_ROOT", tmp_path)
+    cached = (verify._catalogue_ids, verify._catalogue_model_aliases,
+              verify._catalogue_display_names, verify._catalogue_model_index,
+              verify._catalogue_readme_repositories)
+    for function in cached:
+        function.cache_clear()
+    yield
+    for function in cached:
+        function.cache_clear()
+
+
+def test_internal_catalogue_id_is_not_an_asserted_repository_namespace(model_catalogue):
+    text = "license: mit\nlibrary_name: transformers\nModel documentation."
+    url = "https://huggingface.co/lab/fixture-model/raw/main/README.md"
+    assert read(text, url=url, names=("Fixture Model", "fixture/fixture-model"),
+                subject="fixture/fixture-model").outcome == "verified"
+
+
+def test_explicit_repository_alias_keeps_its_owner_constraint(model_catalogue):
+    text = "license: mit\nlibrary_name: transformers\nModel documentation."
+    url = "https://huggingface.co/wrong/fixture-model/raw/main/README.md"
+    assert read(text, url=url, names=("Fixture Model", "fixture/fixture-model", "lab/fixture-model"),
+                subject="fixture/fixture-model").outcome != "verified"
+
+
+def test_feature_support_noun_is_not_parsed_as_a_foreign_subject():
+    text = ("# Fixture Model\n## Introduction\n"
+            "* **Coding capabilities** - Achieves improvements with native function-calling support.")
+    assert read(text, "feature.tool_calling", True).outcome == "verified"
+
+
+def test_generic_sibling_section_resumes_its_exact_parent_model():
+    text = ("# Fixture Model\n## Fixture Model Ultra\nContext window: 9000\n"
+            "## Prompt Encoding\nThis model supports tool calling.\n")
+    assert read(text, "feature.tool_calling", True).outcome == "verified"
+    assert read(text, "model.context_window", 9000).outcome != "verified"
+
+
+def test_generic_child_section_stays_with_its_foreign_parent():
+    text = ("# Fixture Model\n## Fixture Model Ultra\n"
+            "### Prompt Encoding\nThis model supports tool calling.\n")
+    assert read(text, "feature.tool_calling", True).outcome != "verified"
+
+
+@pytest.mark.parametrize("subject,names", [
+    ("fixture/fixture-model", ("Fixture Model", "fixture/fixture-model")),
+    ("fixture/model-latest", ("Latest Model", "Fixture Model")),
+])
+def test_registered_repository_url_supplies_the_exact_source_identity(model_catalogue, subject, names):
+    text = "license: mit\nlibrary_name: transformers\n# Fixture Repository\nModel documentation."
+    url = "https://huggingface.co/lab/Fixture-Repository/raw/main/README.md"
+    assert read(text, url=url, subject=subject, names=names).outcome == "verified"
+
+
+@pytest.mark.parametrize("repository", ["lab/Fixture-Repository-Ultra", "wrong/Fixture-Repository"])
+def test_registered_repository_does_not_bind_a_sibling_or_wrong_owner(model_catalogue, repository):
+    text = "license: mit\nlibrary_name: transformers\nModel documentation."
+    url = f"https://huggingface.co/{repository}/raw/main/README.md"
+    assert read(text, url=url, subject="fixture/fixture-model").outcome != "verified"
+
+
+@pytest.mark.parametrize("name", ["Fixture:Model", "Fixture Model: Special"])
+def test_complete_registered_heading_identity_precedes_subtitle_grammar(name):
+    text = f"# {name}\nContext window: 4200\nModel documentation."
+    assert read(text, "model.context_window", 4200, names=(name,)).outcome == "verified"
+
+
+def test_colon_inside_a_model_identifier_is_not_a_subtitle():
+    text = "# Fixture Model:Ultra\nContext window: 4200\nModel documentation."
+    assert read(text, "model.context_window", 4200).outcome != "verified"
+
+
+def test_canonical_repository_is_not_replaced_by_another_cards_alias(model_catalogue, tmp_path):
+    (tmp_path / "models/fixture/other.md").write_text(
+        "---\nmodel_id: fixture/other-model\ndisplay_name: Other Model\n"
+        "sources:\n  huggingface_url: https://huggingface.co/lab/Other-Repository\n---\n")
+    text = "license: mit\nlibrary_name: transformers\nModel documentation."
+    url = "https://huggingface.co/lab/Other-Repository/raw/main/README.md"
+    assert read(text, url=url, subject="fixture/fixture-model",
+                names=("Fixture Model", "Other Model")).outcome != "verified"
+
+
+@pytest.mark.parametrize("verb", ["includes", "offers"])
+def test_an_exact_named_declaration_owns_its_following_feature_list(verb):
+    text = ("# Fixture Series\n"
+            f"Fixture Model {verb} the following capabilities:\n"
+            "- Reasoning effort is configurable per request.\n")
+    assert read(text, "feature.effort_controls", True).outcome == "verified"
+
+
+def test_a_sibling_named_declaration_closes_the_previous_feature_list():
+    text = ("# Fixture Model\nFixture Model includes the following capabilities:\n"
+            "- Function calling is supported.\n"
+            "Fixture Model Ultra offers the following capabilities:\n"
+            "- Reasoning effort is configurable per request.\n")
     assert read(text, "feature.effort_controls", True).outcome != "verified"
