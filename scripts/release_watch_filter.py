@@ -12,11 +12,12 @@ import subprocess
 from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yaml
 
 from release_signals.contract import ReleaseSignal
-from release_signals.watch import Registry, Seen, SourceRun, signal_id
+from release_signals.watch import Catalogue, Registry, Seen, SourceRun, signal_id
 
 PROVIDERS = {
     "qwen": "alibaba-qwen-team", "alibaba": "alibaba-qwen-team",
@@ -43,19 +44,48 @@ NON_MODEL = {
     "guide", "readme", "changelog", "release-notes", "tutorial", "example", "examples",
 }
 
+# Rules apply to source organizations, before mirror-to-lab canonicalization.
+# Mixed publishers such as BAAI, Cohere and Prime Intellect stay eligible.
+ORG_RULES = {
+    "reupload/quant organization": frozenset({
+        "unsloth", "mlx-community", "bartowski", "thebloke", "lmstudio-community",
+    }),
+    "embedding-only organization": frozenset({"sentence-transformers", "intfloat"}),
+}
+NAME_RULES = (
+    ("dated checkpoint", frozenset({"rwkv"}),
+     re.compile(r"-20\d{2}-?(?:0[1-9]|1[0-2])-?(?:0[1-9]|[12]\d|3[01])$")),
+    ("packaging variant", None,
+     re.compile(r"-(?:gguf|awq|gptq|mlx|exl2|onnx|[48]bit|int[48]|fp[48]|nvfp4|"
+                r"mxfp4|w4a16|w8a8|w4a4|bnb|dspark|dflash\d*|amdnpu-medusa)$")),
+    ("image serving variant", frozenset({"openai"}),
+     re.compile(r"^gpt-image-\d+(?:-\d+)*-(?:flare|sunburst)$")),
+)
+
 
 def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
 
 
-def rejection_reason(provider: str, model_name: str) -> str | None:
-    """Reject explicit non-model names; unknown names stay visible for review."""
+def rejection_reason(provider: str, model_name: str, *, source_url: str = "") -> str | None:
+    """Reject named noise rules; unknown names stay visible for review."""
     name = _slug(model_name)
     lab = _slug(provider)
+    url = urlsplit(source_url)
+    organization = (
+        _slug(url.path.strip("/").split("/")[0])
+        if url.hostname == "huggingface.co" else lab
+    )
     if any(name in {token, f"{lab}-{token}", f"{token}-{lab}"} for token in NON_MODEL):
         return "non-model documentation, blog or software item"
     if _slug(provider) == "ibm" and name == "ensemble-forecasting-with-ibm-granite-time-series":
         return "forecasting example repository"
+    for reason, organizations in ORG_RULES.items():
+        if organization in organizations or lab in organizations:
+            return reason
+    for reason, organizations, pattern in NAME_RULES:
+        if (organizations is None or lab in organizations) and pattern.search(name):
+            return reason
     return None
 
 
@@ -94,6 +124,24 @@ def canonical_signal_id(identifier: str) -> str:
     return signal_id(*canonical_release(parts[1], parts[2]))
 
 
+def card_identity(provider: str, model_name: str) -> tuple[str, str]:
+    """Match card spellings without changing persisted discovery IDs."""
+    lab, name = canonical_release(provider, model_name)
+    # The Gemini page emits 25 for 2.5. Do not collapse numeric boundaries
+    # globally: 2.10 and 21.0 are different model versions.
+    if lab == "google":
+        name = re.sub(r"^gemini-2-5(?=-|$)", "gemini-25", name)
+    return lab, name
+
+
+def catalogue_identities(catalogue: Catalogue) -> set[tuple[str, str]]:
+    return {
+        card_identity(provider, name)
+        for provider, aliases in catalogue.aliases.items()
+        for name in aliases
+    }
+
+
 def draft_card(signal: ReleaseSignal, evidence: list[dict]) -> dict:
     """A review stub, deliberately without inferred dates, sizes or scores."""
     return {
@@ -108,12 +156,15 @@ def draft_card(signal: ReleaseSignal, evidence: list[dict]) -> dict:
     }
 
 
-def filter_releases(runs: Iterable[SourceRun], now: datetime) -> dict:
+def filter_releases(
+    runs: Iterable[SourceRun], now: datetime, *, catalogue: Catalogue | None = None,
+) -> dict:
     """Group successful source observations in registry order, without I/O."""
     stamp = now.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     groups: dict[str, dict] = {}
     rejected = []
     observations = []
+    carded = catalogue_identities(catalogue) if catalogue is not None else set()
     for run in runs:
         if run.status != "ok":
             continue
@@ -125,7 +176,9 @@ def filter_releases(runs: Iterable[SourceRun], now: datetime) -> dict:
                 "confidence": run.source.confidence,
             }
             observations.append(evidence)
-            reason = rejection_reason(seen.provider, seen.model_name)
+            reason = rejection_reason(seen.provider, seen.model_name, source_url=seen.url)
+            if reason is None and card_identity(seen.provider, seen.model_name) in carded:
+                reason = "already carded (normalized release or alias)"
             if reason:
                 rejected.append({**evidence, "reason": reason})
                 continue

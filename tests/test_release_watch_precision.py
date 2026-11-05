@@ -59,8 +59,8 @@ def test_each_source_precision_recall_and_release_identity(fixture: dict) -> Non
     false_negatives = sum(
         predictions.get(key) != identifier for key, identifier in expected.items()
     )
-    precision = true_positives / len(predictions) if predictions else 0.0
-    recall = true_positives / len(expected)
+    precision = true_positives / len(predictions) if predictions else None
+    recall = true_positives / len(expected) if expected else None
 
     assert {
         "true_positives": true_positives,
@@ -72,8 +72,8 @@ def test_each_source_precision_recall_and_release_identity(fixture: dict) -> Non
         "true_positives": len(expected),
         "false_positives": 0,
         "false_negatives": 0,
-        "precision": 1.0,
-        "recall": 1.0,
+        "precision": 1.0 if expected else None,
+        "recall": 1.0 if expected else None,
     }, {"expected": expected, "predicted": predictions}
     assert sorted(signal.signal_id for signal in result["signals"]) == sorted(
         set(expected.values())
@@ -107,7 +107,7 @@ def test_combined_sources_keep_every_labelled_candidate_under_one_release() -> N
     assert sorted(signal.signal_id for signal in result["signals"]) == sorted(expected)
 
 
-def test_fixture_covers_every_source_with_positive_and_negative_labels() -> None:
+def test_fixture_covers_eligible_sources_and_every_denied_organization() -> None:
     fixtures = FIXTURE["sources"]
     assert len({fixture["source_id"] for fixture in fixtures}) == len(fixtures)
     assert {fixture["source_id"] for fixture in fixtures} == set(SOURCES)
@@ -116,6 +116,9 @@ def test_fixture_covers_every_source_with_positive_and_negative_labels() -> None
             "synthetic",
             "synthetic_and_public_issue_metadata",
         }
-        assert any(case["expected_signal_id"] is not None for case in fixture["cases"])
+        if fixture["source_id"] in {"hf-unsloth", "hf-sentence-transformers", "hf-intfloat"}:
+            assert all(case["expected_signal_id"] is None for case in fixture["cases"])
+        else:
+            assert any(case["expected_signal_id"] is not None for case in fixture["cases"])
         assert any(case["expected_signal_id"] is None for case in fixture["cases"])
         assert len({case["key"] for case in fixture["cases"]}) == len(fixture["cases"])
