@@ -179,7 +179,7 @@ def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
                 "value": 7_000_000_000,
                 "unit": "parameters",
             },
-            "model",
+            None,
         ),
         (
             {
@@ -203,7 +203,7 @@ def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
     ids=("sibling-model", "different-value", "different-unit"),
 )
 def test_local_projection_verifier_rejects_sibling_and_value_mismatches(
-    row: dict, expected_diff: str
+    row: dict, expected_diff: str | None
 ) -> None:
     projection = json.dumps({"projection": "local-fact-v1", "rows": [row]})
 
@@ -237,8 +237,14 @@ def test_local_projection_verifier_rejects_sibling_and_value_mismatches(
         today=date(2026, 9, 27),
     )
 
-    assert result.outcome == "mismatch"
-    assert expected_diff in {diff.field for diff in result.diffs}
+    if expected_diff is None:
+        # A sibling supplies no reading for this model and earns no receipt.
+        assert result.outcome == "skipped"
+        assert result.verification is None
+        assert result.diffs == ()
+    else:
+        assert result.outcome == "mismatch"
+        assert expected_diff in {diff.field for diff in result.diffs}
 
 
 @pytest.mark.parametrize(

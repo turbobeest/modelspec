@@ -4,6 +4,7 @@ from datetime import date
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from release_signals.contract import ReleaseSignal
@@ -125,7 +126,7 @@ def test_release_workflow_stages_offering_sources_and_receipts(tmp_path):
     assert set(staged) == set(files)
 
 
-def test_release_workflow_retains_price_sources_and_installs_local_chromium():
+def test_release_workflow_retains_price_sources_without_browser_install_in_writer():
     import os
 
     workflow_path = Path(os.environ.get(
@@ -142,21 +143,24 @@ def test_release_workflow_retains_price_sources_and_installs_local_chromium():
     verify = next(step for step in steps
                   if step.get("name") == "Validate cards and run two-key verification")
     assert verify["env"]["MODELSPEC_SOURCE_CACHE"] == "${{ runner.temp }}/source-copies"
-    assert any("playwright install --with-deps --only-shell chromium" in step.get("run", "")
-               for step in steps)
-    assert any("--require-hashes --no-deps" in step.get("run", "")
-               and "price-reread-render.requirements.txt" in step.get("run", "")
-               for step in steps)
+    install = next(step for step in steps
+                   if step.get("name") == "Install pipeline dependencies")
+    assert install["run"].strip() == (
+        'python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow'
+    )
+    assert all("playwright" not in step.get("run", "") for step in steps)
 
 
+@pytest.mark.parametrize("prices", [True, False], ids=["http-prices", "browser-unavailable"])
 def test_signal_process_persists_offering_and_price_report_with_production_fetcher(
-    tmp_path, monkeypatch,
+    tmp_path, monkeypatch, prices,
 ):
     import httpx
 
     from scripts import process_release_signals as processor
+    from scripts import offering_fetch
 
-    signal, fetch = release_catalogue(tmp_path, prices=True)
+    signal, fetch = release_catalogue(tmp_path, prices=prices)
     pending = tmp_path / "pending.json"
     result_path = tmp_path / "result.json"
     pending.write_text(json.dumps({"signals": [{
@@ -180,17 +184,34 @@ def test_signal_process_persists_offering_and_price_report_with_production_fetch
     monkeypatch.setattr(processor.refresh_leaderboards, "run", lambda **_: (
         processor.refresh_leaderboards.RefreshReport()))
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(tmp_path / "source-copies"))
+    browser_attempts = []
+
+    def browser_unavailable(self):
+        browser_attempts.append(True)
+        raise RuntimeError("Chromium is not installed in this writer")
+
+    monkeypatch.setattr(offering_fetch.RenderedFetcher, "__enter__", browser_unavailable)
 
     result = processor.process(pending, result_path, root=tmp_path)
 
     assert result["status"] == "new"
-    assert result["offering"] == "offerings/google-gemini-api/google/fixture-model.yaml"
-    assert (tmp_path / result["offering"]).is_file()
+    if prices:
+        assert result["offering"] == "offerings/google-gemini-api/google/fixture-model.yaml"
+        assert (tmp_path / result["offering"]).is_file()
+        assert not browser_attempts
+        assert not {"offering.price.input", "offering.price.output"} & {
+            gap["facet"] for gap in result["price_gaps"]
+        }
+    else:
+        assert browser_attempts
+        assert result["offering"] is None
+        assert not list((tmp_path / "offerings").rglob("*.yaml"))
+        for facet in ("offering.price.input", "offering.price.output"):
+            gap = next(item for item in result["price_gaps"] if item["facet"] == facet)
+            assert "local Chromium is unavailable" in gap["reason"]
+            assert "paid fallback is disabled" in gap["reason"]
     assert result["price_gaps"]
     assert all(gap["reason"] for gap in result["price_gaps"])
-    assert not {"offering.price.input", "offering.price.output"} & {
-        gap["facet"] for gap in result["price_gaps"]
-    }
     assert result["price_sources"]
     assert all("url" in source and "outcome" in source for source in result["price_sources"])
     assert result["firecrawl_credits"] == 0

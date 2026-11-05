@@ -278,10 +278,8 @@ jobs:
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install pipeline dependencies
-        run: |
-          python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow
-          python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"
-          python -I -m playwright install --with-deps --only-shell chromium
+        # Browsers belong in read-only jobs. Unreadable HTTP prices remain explicit gaps here.
+        run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow
       - name: Prepare the private review label
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
