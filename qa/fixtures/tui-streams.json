@@ -413,6 +413,7 @@
         "type": "result",
         "subtype": "success",
         "is_error": false,
+        "stop_reason": "end_turn",
         "result": "Fixture answer",
         "num_turns": 2,
         "usage": {
