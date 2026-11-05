@@ -36,6 +36,9 @@ jobs:
     name: Check every scheduled workflow here
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: data
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +47,7 @@ jobs:
 
       - name: Verify the engine pin is on modelspec main
         id: engine_pin
+        working-directory: .
         env:
           ENGINE_REPO: https://github.com/turbobeest/modelspec.git
           GIT_NO_LAZY_FETCH: '1'
@@ -72,6 +76,11 @@ jobs:
           ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
+
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
 
       - uses: actions/setup-python@v5
         with:

@@ -1,0 +1,148 @@
+name: Draft a model admission packet
+
+'on':
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Canonical lab/model ID, such as anthropic/claude-haiku-5-5
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admission-drafter-${{ inputs.model }}
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    name: Draft one release for human review
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+    steps:
+      - name: Validate the release ID
+        working-directory: .
+        id: input
+        env:
+          MODEL_ID: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$MODEL_ID" =~ ^[a-z0-9][a-z0-9.-]*/[a-z0-9][a-z0-9.-]*$ ]] \
+            || [[ "$MODEL_ID" == *..* ]] || [ "${#MODEL_ID}" -gt 128 ]; then
+            echo '::error::Use a lowercase lab/model ID with no .. segments, at most 128 characters.'
+            exit 2
+          fi
+          printf 'model_id=%s\n' "$MODEL_ID" >> "$GITHUB_OUTPUT"
+          printf 'lab=%s\nslug=%s\n' "${MODEL_ID%%/*}" "${MODEL_ID#*/}" >> "$GITHUB_OUTPUT"
+      - name: Check out private data
+        uses: actions/checkout@v4
+        with:
+          path: data
+          ref: main
+          persist-credentials: false
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Refuse code and symlinks in data paths
+        working-directory: .
+        run: python -I data/.github/scripts/check_linked_data.py --engine engine --data data
+      - name: Install the pinned engine
+        run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]"
+      - name: Draft the admission packet
+        env:
+          MODEL_ID: ${{ steps.input.outputs.model_id }}
+          MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/admission-sources
+        run: |
+          set -euo pipefail
+          python -I -c 'import runpy,sys; sys.path.insert(0, sys.argv.pop(1)); runpy.run_module("scripts.admission_drafter", run_name="__main__")' \
+            "$GITHUB_WORKSPACE/engine" \
+            --data-dir "$GITHUB_WORKSPACE/data" \
+            --model "$MODEL_ID" \
+            --write \
+            --report "$GITHUB_WORKSPACE/data/reports/admission/$MODEL_ID.json" \
+            --body "$GITHUB_WORKSPACE/data/reports/admission/$MODEL_ID.md" \
+            --manifest "$GITHUB_WORKSPACE/data/reports/admission/$MODEL_ID.manifest.json" \
+            --cache-dir "$RUNNER_TEMP/admission-sources"
+      - name: Retain packet and source manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admission-packet-${{ steps.input.outputs.lab }}-${{ steps.input.outputs.slug }}
+          path: |
+            ${{ github.workspace }}/data/reports/admission/${{ steps.input.outputs.model_id }}.json
+            ${{ github.workspace }}/data/reports/admission/${{ steps.input.outputs.model_id }}.manifest.json
+          retention-days: 35
+          if-no-files-found: ignore
+      - name: Open the admission draft pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          path: data
+          base: main
+          branch: admission/${{ steps.input.outputs.model_id }}
+          draft: true
+          add-paths: |
+            reports/admission/${{ steps.input.outputs.model_id }}.json
+            reports/admission/${{ steps.input.outputs.model_id }}.md
+            reports/admission/${{ steps.input.outputs.model_id }}.manifest.json
+            models/${{ steps.input.outputs.model_id }}.md
+            offerings/*/${{ steps.input.outputs.model_id }}.yaml
+            registry/sources.yaml
+            verification/queue/events.jsonl
+            verification/log.jsonl
+            premier/slice-1.yaml
+          signoff: true
+          commit-message: |-
+            data: draft ${{ steps.input.outputs.model_id }} admission (MODEL-428)
+
+            Co-Authored-By: ChatGPT Codex <noreply@openai.com>
+          title: 'data: draft ${{ steps.input.outputs.model_id }} admission (MODEL-428)'
+          body-path: ${{ github.workspace }}/data/reports/admission/${{ steps.input.outputs.model_id }}.md
