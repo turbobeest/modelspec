@@ -93,8 +93,8 @@ issue per target.
   This report, its log, its page and its issues are public, so
   `modelspec-data` never appears in them by workflow name, run URL, date or
   error text, and no raw `gh` stderr is kept for any repository. On GitHub the
-  private repository is checked in a separate job, `private-health`. It is the
-  only job holding `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
+  private repository is checked in a separate job, `private-health`, with
+  `MODELSPEC_DATA_TOKEN` (Contents: read and Actions: read).
   It reads the private workflow files and runs through the API with no
   checkout, prints nothing, and uploads or caches nothing. It hands on only
   pass or fail, as its job result. The report job has no private access. It
@@ -202,14 +202,46 @@ stage-level measurement-error issue. A measured stage closes issues for
 releases no longer in breach, including those outside the rolling window.
 Public counts never open named release issues.
 
-Run `releases` again without `--private-detail` to produce a public-safe
-`coverage.json`. The full report accepts it with
+Use `--counts-out /path/to/counts/coverage.json` with the private command to
+write public counts from the same history and report time. The full report accepts it with
 `report --release-report /path/to/counts/coverage.json --out /tmp/coverage`.
 The importer copies only validated numeric counts for the four stages and
 requires the current UTC day. It discards input titles, names, errors and
 timings. Without release inputs, the full report marks these targets
-unmeasured. The existing public workflow has no private release-history input;
-this change does not grant it private access or alter scheduled workflows.
+unmeasured.
+
+The private `release-coverage.yml` workflow runs daily at 09:07 UTC, before the
+public report at 09:37. It checks out complete data history on main and the
+public engine at `.engine-pin`, after verifying that pin belongs to public
+main. It writes private detail and counts together, uploads only the counts
+file as `release-coverage-counts`, and then applies the private breach issues.
+An issue-writing failure does not discard the measurement. The workflow needs
+`contents: read` and `issues: write`; `.engine-pin` must include public PR #970.
+MODEL-446/data#127 owns that pin update.
+
+The public workflow's separate `release-counts` job has the read token and
+fetches the dedicated artifact from the latest main run of that private
+workflow. It accepts scheduled and manually dispatched runs. It reads the ZIP
+in memory, accepts only `coverage.json`, and validates the date and every
+count. Artifact download requires Actions read permission, already used by
+the private-health token. The storage redirect receives no GitHub token.
+See [GitHub's artifact API](https://docs.github.com/en/rest/actions/artifacts).
+
+Only the current report date, fixed stage names, a `counts_only` flag, and six
+integer counts per stage cross the job boundary. Each count is between zero
+and 1,000,000. The reader caps JSON at 16 KiB, the ZIP at 64 KiB and API
+responses at 128 KiB. The privacy guard allows only the exact audited CLI
+writer for this job output; arbitrary private outputs remain forbidden.
+Private responses, metadata, errors and names never enter public logs,
+artifacts, summaries or caches.
+
+The report job receives `PRIVATE_RELEASE_COUNTS` without the private token.
+`release-counts --from-env --out release-counts.json` validates it again before
+`report --release-report release-counts.json` renders the public files. A missing
+token, failed producer, absent artifact, old date, malformed input or failed
+handoff becomes fixed error counts for all four stages. It never reuses an
+older successful run. Missing historical discoveries or snapshots remain
+unknown; the daily workflow does not invent observations to fill those gaps.
 
 ### Offline alert proof and historical audit
 
