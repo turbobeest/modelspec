@@ -284,6 +284,29 @@ def load_known_identities(path: Path | None = None) -> dict[str, str]:
     return mapping
 
 
+def load_skipped_listings(path: Path | None = None) -> dict[str, str]:
+    """Load exact models.dev IDs that are not models, with their review reasons."""
+    path = path or KNOWN_IDENTITIES_PATH
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    rows = raw.get("skips", [])
+    if not isinstance(rows, list):
+        raise ValueError(f"{path} skips must be a list")
+    skipped: dict[str, str] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError(f"{path} skip row is not a mapping: {row!r}")
+        models_dev_id = row.get("models_dev")
+        reason = row.get("reason")
+        if not isinstance(models_dev_id, str) or not models_dev_id.strip():
+            raise ValueError(f"{path} skip row needs a models_dev id: {row!r}")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(f"{path} skip row needs a reason: {row!r}")
+        if models_dev_id in skipped and skipped[models_dev_id] != reason:
+            raise ValueError(f"{path} conflicting skip reasons for {models_dev_id}")
+        skipped[models_dev_id] = reason
+    return skipped
+
+
 def models_dev_identity(provider_id: str, raw: dict, model_key: str) -> str:
     """The models.dev identity: ``<provider>/<id>`` as published."""
     return f"{provider_id}/{raw.get('id', model_key)}"
@@ -315,16 +338,20 @@ def already_held(
     models_dir: Path,
     known: dict[str, str],
     new_only: bool,
+    skipped: dict[str, str] | None = None,
 ) -> str | None:
     """Return a skip reason if this models.dev row must not become a new card.
 
     ``known:<canonical>`` — explicit registry, and that card file exists.
     ``exists`` — ``--new-only`` and the seeder path is already a card.
+    ``not-model:<reason>`` — an exact models.dev ID explicitly excluded by review.
 
     Display names are not an argument and are never consulted. A registry row
     whose canonical card is missing is ignored, so a typo cannot swallow a
     genuinely new model.
     """
+    if skipped and models_dev_id in skipped:
+        return f"not-model:{skipped[models_dev_id]}"
     for key in (models_dev_id, seeder_id):
         canonical = known.get(key)
         if canonical and canonical_card_path(models_dir, canonical).is_file():
@@ -841,9 +868,11 @@ def main() -> None:
 
     models_dir = PROJECT_ROOT / "models"
     known = load_known_identities()
+    skipped = load_skipped_listings()
     total_created = 0
     total_skipped_existing = 0
     total_skipped_known = 0
+    total_skipped_non_models = 0
     total_skipped_creator_page = 0
     total_errors = 0
     created_ids: list[str] = []
@@ -920,6 +949,7 @@ def main() -> None:
                         models_dir=models_dir,
                         known=known,
                         new_only=args.new_only,
+                        skipped=skipped,
                     )
                     if held:
                         break
@@ -927,6 +957,11 @@ def main() -> None:
                     canonical = held.split(":", 1)[1]
                     total_skipped_known += 1
                     print(f"    SKIP {md_id} (already {canonical})")
+                    continue
+                if held and held.startswith("not-model:"):
+                    reason = held.split(":", 1)[1]
+                    total_skipped_non_models += 1
+                    print(f"    SKIP {md_id} (not a model: {reason})")
                     continue
                 if held == "exists":
                     total_skipped_existing += 1
@@ -1044,6 +1079,7 @@ def main() -> None:
     print(f"  Total cards created:     {total_created}")
     print(f"  Skipped, file exists:    {total_skipped_existing}")
     print(f"  Skipped, known identity: {total_skipped_known}")
+    print(f"  Skipped, not a model:    {total_skipped_non_models}")
     print(f"  Skipped, creator's page: {total_skipped_creator_page}")
     queued = [r for r in attributor.results if not r.writes_creator]
     print(f"  Creator not established: {len(queued)}")
