@@ -26,6 +26,9 @@ NAMES = (
     "curation-benchmarks",
     "speed-probe",
     "data-trust-audit",
+    "admission-drafter",
+    "rendered-reread",
+    "workflow-health",
 )
 ENGINE_JOBS = {
     "recall-private": 1,
@@ -36,6 +39,9 @@ ENGINE_JOBS = {
     "curation-benchmarks": 4,
     "speed-probe": 1,
     "data-trust-audit": 1,
+    "admission-drafter": 1,
+    "rendered-reread": 1,
+    "workflow-health": 1,
 }
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
@@ -219,7 +225,13 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
             steps,
             lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
         )
-        assert steps[data + 1] is steps[pin]
+        if name == "rendered-reread":
+            assert [step.get("name") for step in steps[data + 1 : pin]] == [
+                "Restore pending report data without executing its branch",
+                "Start a new report for this scheduled run",
+            ]
+        else:
+            assert steps[data + 1] is steps[pin]
         between = [step.get("name") for step in steps[pin + 1 : engine]]
         assert between == ([DOWNGRADE] if name == "recall-private" else [])
         assert steps[engine]["with"]["ref"] == PIN_REF
