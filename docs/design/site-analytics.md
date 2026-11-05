@@ -4,6 +4,10 @@ MODEL-220. Proposal for Jamie, 2026-10-26. Reviewed against repository commit
 `d326a69bb46f9d573f28c6988aef95d412d01d9a` and privacy statement **1.14**, effective
 2026-10-13. This is a source and documentation review, not a production capture.
 
+## Decision
+
+2026-11-04: Jamie adopted option A. No counters are built, no privacy revision is adopted, and the proposed v1.15 diff below is kept for reference only.
+
 The first option is to change nothing. Cloudflare Web Analytics is live and
 already disclosed in privacy v1.14. It covers page views, referrers and load
 times, with page-view proxies for template interest and `/decide` reach.
