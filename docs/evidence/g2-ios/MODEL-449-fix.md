@@ -7,10 +7,30 @@ exited 0 and adopted the orchestrator's merge
 `e8eb9015b13cc0869e9699f97388d920cef09859`. Implementation is
 `43cd61325176f8d8f1ca26028b15eae7d4d35919`; the evidence-inclusive submitted
 head is recorded in `.pr-commit.txt` and the executor completion line. Public
-PR [#972](https://github.com/turbobeest/modelspec/pull/972) and private workflow
-PR [#128](https://github.com/turbobeest/modelspec-data/pull/128) remain drafts.
+PR [#972](https://github.com/turbobeest/modelspec/pull/972) was confirmed open and
+draft after the push. The final read found private workflow PR
+[#128](https://github.com/turbobeest/modelspec-data/pull/128) open but non-draft.
 The private workflow was pushed at
 `717e7c8ae6c0bbd2b77eacfebae2a72b2137c152`.
+
+**Handoff blocked on private PR state:** the two permitted GitHub reads were
+used to inspect the two PRs. This executor did not mark either PR ready. The
+round-five spec prohibits `gh pr ready`, including no exception for its undo
+mode, and permits at most two GitHub calls. Private #128 still needs the
+orchestrator to convert it to draft. No further GitHub request was made.
+
+```sh
+# Both commands ran from /tmp and exited 0.
+gh pr view 972 -R turbobeest/modelspec --json number,url,state,isDraft,headRefOid,headRefName
+gh pr view 128 -R turbobeest/modelspec-data --json number,url,state,isDraft,headRefOid,headRefName
+```
+
+The public read returned `OPEN`, `isDraft: true` at
+`fa2545aa0b7a7f1d3b92f665d91b9d4287201e3b`; the private read returned `OPEN`,
+`isDraft: false` at `717e7c8ae6c0bbd2b77eacfebae2a72b2137c152`. A final
+evidence-only commit corrects the draft-status claim and is pushed without a
+third GitHub read. Both pushes use `CI_LOCAL_SKIP=1 git push -u origin` followed
+by the respective assigned branch name.
 
 The initial four-file run reproduced **7 failures, 355 passes**, exit 1:
 
