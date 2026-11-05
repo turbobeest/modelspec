@@ -16,12 +16,12 @@ PRICES = (b"<table><tr><th>Model</th><th>Input price per 1M tokens</th>"
           b"<tr><td>Fixture Model</td><td>$2</td><td>$8</td></tr></table>")
 
 
-def catalogue(tmp_path, *, model=MODEL, url=URL):
+def catalogue(tmp_path, *, model=MODEL, url=URL, version="fixture-model"):
     root = tmp_path / "data"
     path = root / "models" / f"{model}.md"
     path.parent.mkdir(parents=True)
     path.write_text("---\n" + yaml.safe_dump({
-        "model_id": model, "display_name": "Fixture Model", "version": "fixture-model",
+        "model_id": model, "display_name": "Fixture Model", "version": version,
         "model_type": "llm", "status": "active", "sources": {"provider_docs_url": url},
         "cost": {"input": 999, "output": 999},
     }) + "---\nIncomplete new card.\n")
@@ -225,3 +225,129 @@ def test_normalized_exact_model_row_still_writes_verified_prices(tmp_path, row_n
     receipts = VerificationLog(root / "verification").latest()
     assert len(receipts) == 2
     assert all(record.independent and record.outcome == "verified" for record in receipts.values())
+
+
+@pytest.mark.parametrize("row_name", ["Fixture Model Ultra", "Mini Fixture Model"])
+def test_model_page_fallback_cannot_draft_a_sibling_price(tmp_path, row_name):
+    root = catalogue(tmp_path)
+    body = ("<table><tr><th>Model</th><th>Input</th><th>Output</th></tr>"
+            f"<tr><td>{row_name}</td><td>$5</td><td>$9</td></tr></table>"
+            "<p>Prices are listed per million tokens.</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering is None
+    assert not list(root.glob("offerings/**/*.yaml"))
+    assert {g.facet for g in packet.gaps} >= {"offering.price.input", "offering.price.output"}
+
+
+@pytest.mark.parametrize("other_first", [False, True])
+def test_model_page_fallback_keeps_exact_prices_without_sibling_conflicts(tmp_path, other_first):
+    root = catalogue(tmp_path)
+    own = "<tr><td>Fixture Model</td><td>$2</td><td>$8</td></tr>"
+    other = "<tr><td>Fixture Model Ultra</td><td>$5</td><td>$9</td></tr>"
+    body = ("<table><tr><th>Model</th><th>Input</th><th>Output</th></tr>"
+            + (other + own if other_first else own + other)
+            + "</table><p>Prices are listed per million tokens.</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    assert {fact["facet"]: fact["value"] for fact in offering["facts"]} == {
+        "offering.price.input": 2, "offering.price.output": 8,
+    }
+    assert not any("conflicting" in gap.reason for gap in packet.gaps)
+
+
+@pytest.mark.parametrize("heading", ["Fixture Model Ultra", "Mini Fixture Model"])
+@pytest.mark.parametrize("earlier_exact", [False, True])
+def test_model_page_heading_cannot_assign_sibling_prices(tmp_path, heading, earlier_exact):
+    root = catalogue(tmp_path)
+    prefix = "<h1>Fixture Model</h1>" if earlier_exact else ""
+    body = (prefix + f"<h1>{heading}</h1>"
+            "<p>Input</p><p>$5</p><p>Output</p><p>$9</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering is None
+    assert not list(root.glob("offerings/**/*.yaml"))
+
+
+@pytest.mark.parametrize("heading, version", [
+    ("FIXTURE--Model", "fixture-model"),
+    ("Fixture Model Global", "Fixture Model Global"),
+])
+def test_model_page_exact_heading_or_declared_alias_drafts_prices(tmp_path, heading, version):
+    root = catalogue(tmp_path, version=version)
+    body = (f"<h1>{heading}</h1>"
+            "<p>Input</p><p>$2</p><p>Output</p><p>$8</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    assert {fact["facet"]: fact["value"] for fact in offering["facts"]} == {
+        "offering.price.input": 2, "offering.price.output": 8,
+    }
+
+
+@pytest.mark.parametrize("name, version, expected_cached", [
+    ("Fixture Model Ultra", "fixture-model", None),
+    ("FIXTURE--Model", "fixture-model", 0.2),
+    ("Fixture Model Global", "Fixture Model Global", 0.2),
+])
+def test_model_page_cached_prose_requires_exact_name_or_declared_alias(
+        tmp_path, name, version, expected_cached):
+    root = catalogue(tmp_path, version=version)
+    body = ("<table><tr><th>Model</th><th>Input</th><th>Output</th></tr>"
+            "<tr><td>Fixture Model</td><td>$2</td><td>$8</td></tr></table>"
+            f"<p>{name} caching gives a discount ($0.20 USD per million tokens).</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    prices = {fact["facet"]: fact["value"] for fact in offering["facts"]}
+    assert prices["offering.price.input"] == 2
+    assert prices["offering.price.output"] == 8
+    if expected_cached is None:
+        assert "offering.price.cached_input" not in prices
+        assert any(g.facet == "offering.price.cached_input" for g in packet.gaps)
+    else:
+        assert prices["offering.price.cached_input"] == expected_cached
+
+
+@pytest.mark.parametrize("earlier_exact", [False, True])
+@pytest.mark.parametrize("heading_tag", ["h2", "p"])
+def test_inverse_price_labels_do_not_draft_a_sibling(tmp_path, earlier_exact, heading_tag):
+    root = catalogue(tmp_path)
+    prefix = "<h1>Fixture Model</h1>" if earlier_exact else ""
+    body = (prefix + f"<{heading_tag}>Fixture Model Ultra</{heading_tag}>"
+            "<p>$5 input</p><p>$9 output</p>").encode()
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering is None
+    assert not list(root.glob("offerings/**/*.yaml"))
+    assert {gap.facet for gap in packet.gaps} >= {
+        "offering.price.input", "offering.price.output",
+    }
+
+
+def test_inverse_price_labels_keep_exact_model_without_sibling_conflicts(tmp_path):
+    root = catalogue(tmp_path)
+    body = (b"<h1>Fixture Model</h1><p>$2 input</p><p>$8 output</p>"
+            b"<h2>Fixture Model Ultra</h2><p>$5 input</p><p>$9 output</p>")
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering_path is not None
+    offering, = yaml.safe_load((root / packet.offering_path).read_text())
+    assert {fact["facet"]: fact["value"] for fact in offering["facts"]} == {
+        "offering.price.input": 2, "offering.price.output": 8,
+    }
+    assert not any("conflicting" in gap.reason for gap in packet.gaps)
+
+
+def test_priority_section_does_not_draft_standard_prices(tmp_path):
+    root = catalogue(tmp_path)
+    body = (b"<h1>Fixture Model</h1><h2>Priority</h2>"
+            b"<p>Input</p><p>$5</p><p>Output</p><p>$9</p>")
+    packet = draft(root, tmp_path, Pages({URL: body}))
+    packet.write(root)
+    assert packet.offering is None
+    assert not list(root.glob("offerings/**/*.yaml"))

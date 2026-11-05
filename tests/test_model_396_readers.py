@@ -106,6 +106,12 @@ def test_mistral_rule_requires_exact_model_identity(tmp_path, subject, names, te
     assert read(tmp_path, text, subject=subject, names=names).outcome == "mismatch"
 
 
+@pytest.mark.parametrize("sibling", ["# Mistral Small 4 Pro", "Mistral Small 4 Pro"])
+def test_mistral_output_under_a_sibling_heading_does_not_inherit_an_earlier_name(tmp_path, sibling):
+    text = f"# Mistral Small 4\n{sibling}\nOutput: reasoning, text\n"
+    assert read(tmp_path, text).outcome == "mismatch"
+
+
 def test_mistral_output_rule_does_not_drop_input_reasoning(tmp_path):
     result = read(tmp_path, "Mistral Small 4\nInput: reasoning, text\n",
                   field="model.input_modalities", label="Input")

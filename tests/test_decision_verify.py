@@ -307,6 +307,87 @@ def _verify_scoped_price(store, text, field, value, *, aliases=()):
                          verify.deterministic_extractors(), today=TODAY)
 
 
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_full_verifier_cannot_fall_through_to_a_sibling_price(store, subject):
+    text = (f"Model | Input | Output\n{subject} | $5 | $9\n"
+            "Prices are listed per million tokens.\n")
+    assert _verify_scoped_price(store, text, "input", 5).outcome == "mismatch"
+
+
+@pytest.mark.parametrize("exact_first", [False, True])
+@pytest.mark.parametrize(("published", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_full_verifier_keeps_exact_rows_when_a_sibling_is_on_the_same_page(
+        store, exact_first, published, aliases):
+    rows = [f"{published} | $2 | $8", "Fixture Model Ultra | $5 | $9"]
+    if not exact_first:
+        rows.reverse()
+    text = "Model | Input | Output\n" + "\n".join(rows) + "\nPrices per million tokens.\n"
+    for field, expected, sibling in [("input", 2, 5), ("output", 8, 9)]:
+        assert _verify_scoped_price(store, text, field, expected, aliases=aliases).outcome == "verified"
+        assert _verify_scoped_price(store, text, field, sibling, aliases=aliases).outcome == "mismatch"
+
+
+@pytest.mark.parametrize("text", [
+    "# Fixture Model\n# Fixture Model Ultra\nInput\n$5\nOutput\n$9\n",
+    "# Fixture Model\n# Fixture Model Ultra\nInput: $5\nOutput: $9\n",
+])
+def test_full_verifier_keeps_model_headings_with_their_own_prices(store, text):
+    assert _verify_scoped_price(store, text, "input", 5).outcome == "mismatch"
+
+
+def _verify_subject_fact(store, text, field, value, *, name="Fixture Model", aliases=(),
+                         label=None, unit=None):
+    source = Source(id="subject-page", url="https://fixture.example/model",
+                    kind="lab_documentation", normaliser="text-default",
+                    cited_regions=[CitedRegion(id="page", locator={"kind": "page"})])
+    ref = store.put(text.encode(), source_url=str(source.url))
+    claim = replace(_price_claim("input", 0, name=name, aliases=aliases),
+                    field=field, value=value, label=label, unit=unit,
+                    sources=(SourceRef(source_id=source.id, snapshot_ref=ref, cited_regions=["page"]),))
+    return verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+                         verify.deterministic_extractors(), today=TODAY)
+
+
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model"])
+@pytest.mark.parametrize(("field", "value", "label", "body"), [
+    ("model.context_window", 5000, "context window", "Context window\n5000"),
+    ("model.lifecycle", "active", None, "This model is available.\nDetails follow."),
+    ("feature.tool_calling", "supported", "Function calling", "Function calling\nSupported"),
+    ("model.context_window", 5000, "context window", "Context window: 5000\nUnit: tokens"),
+])
+def test_full_verifier_does_not_attribute_other_facets_to_a_sibling(
+        store, subject, field, value, label, body):
+    result = _verify_subject_fact(store, f"# {subject}\n{body}\n", field, value, label=label)
+    assert result.outcome == "mismatch"
+
+
+@pytest.mark.parametrize("published", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_full_verifier_retention_scope_names_the_whole_model(store, published):
+    text = (f"For models requiring review (currently {published}): "
+            "prompts are retained for 30 days.\n")
+    result = _verify_subject_fact(store, text, "offering.data.retention", 30, unit="days")
+    assert result.outcome == "mismatch"
+
+
+@pytest.mark.parametrize("missing_value", [False, True])
+def test_full_verifier_never_supplies_a_missing_llm_subject(missing_value):
+    page = "Fixture Model Ultra costs $5 per million input tokens."
+    reply = [] if missing_value else [{"value": "$5", "unit": "usd_per_1m_tokens",
+                                      "quoted_sentence": page}]
+    reader = verify.LLMExtractor(lambda _: json.dumps(reply), agent="fixture-reader",
+                                model="fixture", model_family="independent-fixture")
+    claim = _price_claim("input", None if missing_value else 5, name="Fixture Model")
+
+    class Regions:
+        def text(self, *_args):
+            return page
+
+    result = verify.verify(claim, Regions(), [reader], today=TODAY)
+    assert result.outcome == "mismatch"
+
+
 @pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
 @pytest.mark.parametrize("heading", ["Fixture Model Ultra", "Ultra Fixture Model",
                                       "# Fixture Model\n\n# Fixture Model Ultra"])
@@ -1070,7 +1151,7 @@ AI Ultra | 5x or 20x higher than AI Pro limits depending on your subscription
         (
             "offering.subscription.usage_allowance",
             "5x more usage than Pro",
-            ("Claude Max 5x", "Max 5x"),
+            ("Claude Max 5x", "Max 5x", "5x"),
             "Choose 5x or 20x more usage than Pro\n",
         ),
         (
@@ -1262,10 +1343,10 @@ Price | $ 50 /month
         ("offering.subscription.billing_period", "monthly", ("Max",), ZAI_CARD),
         ("offering.subscription.price", 55, ("Max",), MINIMAX_TABLE),
         ("offering.subscription.billing_period", "monthly", ("Ultra",), MINIMAX_TABLE),
-        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x"),
+        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x", "20x"),
          GEMINI_TIERS),
         ("offering.subscription.usage_allowance", "5x higher usage limits vs. AI Pro",
-         ("Google AI Ultra 5x", "Ultra 5x"), GEMINI_TIERS),
+         ("Google AI Ultra 5x", "Ultra 5x", "5x"), GEMINI_TIERS),
         ("offering.subscription.price", 125, ("Premium seat",), SEAT_TABLE),
         ("offering.subscription.programmatic_or_agent_use",
          "ChatGPT, ChatGPT Work, and Codex", ("Standard seat",), SEAT_TABLE),
@@ -1446,7 +1527,7 @@ def test_no_subscription_reading_is_page_chrome(field) -> None:
         ("offering.subscription.price", 20, ("Standard seats",), TEAM_CARD),
         # Another tier's column and another tier's line.
         ("offering.subscription.price", 22, ("Max",), MINIMAX_TABLE),
-        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x"),
+        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x", "20x"),
          GEMINI_TIERS),
         # A price published only as billed annually is not a monthly plan.
         ("offering.subscription.billing_period", "monthly", ("Pro",),
@@ -1502,7 +1583,7 @@ def test_subscription_page_preserves_codex_restrictions(page) -> None:
 
     readings = verify.SubscriptionPageExtractor().extract(claim, page)
 
-    assert readings == [verify.Reading("ChatGPT Plus", page)]
+    assert readings == [verify.Reading("Plus plans", page)]
     assert verify.compare(claim, readings) == [verify.Diff("value", "Codex", page)]
 
 
@@ -2539,11 +2620,10 @@ def test_llm_cache_key_is_copy_region_facet_and_names(tmp_path, store, regions) 
 
 
 def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store, regions) -> None:
-    # The prompt names the subject, and a reader answers mostly for it; a row with
-    # no subject is read as the named one. A reply cached for one sibling must not
-    # answer for another, or it can confirm a value the source never gave it.
+    # A reply cached for one named subject must not answer for another, or it can
+    # confirm a value the source never gave that sibling.
     replies = iter([
-        json.dumps([{"subject": None, "value": "400,000", "unit": "tokens",
+        json.dumps([{"subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
                      "quoted_sentence": "It accepts up to 400,000 tokens of context."}]),
         json.dumps([]),
     ])
@@ -2767,10 +2847,10 @@ def _plan_claim(field, value, names, subject="provider/subscription/plan"):
         ("offering.subscription.allowance.relative_to", "openai/subscription/plus",
          ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
         ("offering.subscription.allowance.multiplier", 20,
-         ("Google AI Ultra 20x", "Ultra 20x"), "google-gemini-api/subscription/ai-ultra-20x",
+         ("Google AI Ultra 20x", "Ultra 20x", "20x"), "google-gemini-api/subscription/ai-ultra-20x",
          GEMINI_TIERS),
         ("offering.subscription.allowance.relative_to", "google-gemini-api/subscription/ai-pro",
-         ("Google AI Ultra 5x", "Ultra 5x"), "google-gemini-api/subscription/ai-ultra-5x",
+         ("Google AI Ultra 5x", "Ultra 5x", "5x"), "google-gemini-api/subscription/ai-ultra-5x",
          GEMINI_TIERS),
         ("offering.subscription.allowance.window", "five hours", ("Lite",),
          "zai/subscription/glm-coding-lite",
@@ -2918,7 +2998,7 @@ def test_review_counterexamples_do_not_verify(field, value, names, subject, page
          "moonshot/subscription/moderato", KIMI_PAGE),
         ("offering.subscription.surfaces",
          ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
-         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         ("Claude Max 5x", "Max 5x", "Max plan", "Max"), "anthropic/subscription/max-5x",
          CLAUDE_CODE_ARTICLE),
     ],
 )

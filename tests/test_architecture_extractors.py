@@ -28,6 +28,12 @@ CONFIG_URL = "https://huggingface.co/lab/Alpha/resolve/main/config.json"
 API_URL = "https://huggingface.co/api/models/lab/Alpha"
 README_URL = "https://huggingface.co/lab/Alpha/raw/main/README.md"
 ME = VerificationActor(agent="collector", model_family="openai", method="test")
+GEMMA_LABELS = {
+    "gemma-4-e2b-it": "E2B",
+    "gemma-4-e4b-it": "E4B",
+    "gemma-4-31b-it": "31B Dense",
+    "gemma-4-26b-a4b-it": "26B A4B MoE",
+}
 
 
 def claim(facet="model.architecture", value=None, refs=None):
@@ -366,7 +372,7 @@ def test_retained_gemma_configs_have_dense_backbones_and_dimension_gated_ple(
     assert text_config["vocab_size_per_layer_input"] == 262144
     repo = f"google/{name}"
     url = f"https://huggingface.co/{repo}/resolve/main/config.json"
-    c = replace(claim(), subject=repo, names=(name, repo))
+    c = replace(claim(), subject=repo, names=(name, repo, GEMMA_LABELS[name]))
     assert HFConfigExtractor().extract(c, config, page_url=url) == [
         Reading(name, "dense-transformer")
     ]
@@ -389,7 +395,7 @@ def test_retained_gemma_configs_have_dense_backbones_and_dimension_gated_ple(
     readme_url = f"https://huggingface.co/{repo}/raw/main/README.md"
     c = replace(c, field="model.parameters_active", unit="parameters")
     assert ModelCardParamsExtractor().extract(c, card, page_url=readme_url) == (
-        [] if active is None else [Reading(name, active, "parameters")]
+        [] if active is None else [Reading(GEMMA_LABELS[name], active, "parameters")]
     )
     assert (
         DenseActiveEqualsTotalExtractor().extract(
@@ -527,12 +533,12 @@ def test_gemma_shared_readme_scopes_the_moe_table_to_its_variant():
     ):
         c = replace(
             claim("model.parameters_active"),
-            names=(name, "google/" + name),
+            names=(name, "google/" + name, GEMMA_LABELS[name]),
             subject="google/" + name,
         )
         url = "https://huggingface.co/google/" + name + "/raw/main/README.md"
         assert reader.extract(c, text, page_url=url) == (
-            [] if expected is None else [Reading(name, expected, "parameters")]
+            [] if expected is None else [Reading(GEMMA_LABELS[name], expected, "parameters")]
         )
 
 
@@ -950,7 +956,7 @@ def test_dense_rule_defers_to_active_or_effective_wording_and_ple(extra, card):
 )
 def test_effective_parameter_table_binds_to_the_gemma_variant(name, amount):
     c = replace(
-        claim("model.parameters_active"), subject="google/" + name, names=(name, "google/" + name)
+        claim("model.parameters_active"), subject="google/" + name, names=(name, "google/" + name, GEMMA_LABELS[name])
     )
     text = (
         "# Gemma 4\n| Property | E2B | E4B |\n"
@@ -959,7 +965,7 @@ def test_effective_parameter_table_binds_to_the_gemma_variant(name, amount):
     )
     url = "https://huggingface.co/google/" + name + "/raw/main/README.md"
     assert ModelCardParamsExtractor().extract(c, text, page_url=url) == [
-        Reading(name, amount, "parameters")
+        Reading(GEMMA_LABELS[name], amount, "parameters")
     ]
 
 
@@ -1421,7 +1427,7 @@ def test_round4_card_total_must_agree_with_census(total, expected):
     ],
 )
 def test_round4_named_variant_probes(name, repo, card, expected):
-    c = replace(claim("model.parameters_active"), names=(name, repo))
+    c = replace(claim("model.parameters_active"), names=(name, repo, *([GEMMA_LABELS[name]] if name in GEMMA_LABELS else [])))
     assert [
         r.value
         for r in ModelCardParamsExtractor().extract(
@@ -1766,7 +1772,9 @@ def test_round5_uncited_config_cannot_support_active_absence(tmp_path):
             "| Property | `Alpha` |\n|---|---|\n| Active Parameters | 3B |",
             [Reading("Alpha", 3_000_000_000, "parameters")],
         ),
-        ("| Property | lab/Alpha |\n|---|---|\n| Active Parameters | 3B |", []),
+        ("| Property | other/Alpha |\n|---|---|\n| Active Parameters | 3B |", []),
+        ("| Property | lab/Alpha |\n|---|---|\n| Active Parameters | 3B |",
+         [Reading("lab/Alpha", 3_000_000_000, "parameters")]),
         (
             "| Property | Alpha-Lite | Alpha |\n|---|---|---|\n| Active Parameters | 1B | 3B |",
             [Reading("Alpha", 3_000_000_000, "parameters")],
@@ -1948,10 +1956,10 @@ def test_round6_bare_active_table_value_rejects_nonparameter_labels(word, label)
                                         ("gemma-4-e4b-it", 4_500_000_000)])
 def test_round6_retained_gemma_readme_effective_counts(name, amount):
     card = (Path(__file__).parent / "fixtures/hf-gemma-4/README.md").read_text()
-    c = replace(claim("model.parameters_active"), names=(name, "google/" + name))
+    c = replace(claim("model.parameters_active"), names=(name, "google/" + name, GEMMA_LABELS[name]))
     assert ModelCardParamsExtractor().extract(
         c, card, page_url=f"https://huggingface.co/google/{name}/raw/main/README.md"
-    ) == [Reading(name, amount, "parameters")]
+    ) == [Reading(GEMMA_LABELS[name], amount, "parameters")]
 
 
 @pytest.mark.parametrize(
