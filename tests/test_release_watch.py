@@ -509,7 +509,7 @@ def test_the_workflow_alerts_on_outage_and_holds_no_pr_credential() -> None:
     assert "DATA_SPLIT_ENABLED" in dispatch["if"]
 
 
-def test_public_source_detection_does_not_use_catalogue_or_hold_bursts(world):
+def test_public_source_detection_retains_observations_before_catalogue_filtering(world):
     registry, baseline, _ = world
     runs = run_all(registry, baseline, fetch=replay("after"), now=NOW)
     assert discoveries(runs, NOW)
@@ -518,7 +518,15 @@ def test_public_source_detection_does_not_use_catalogue_or_hold_bursts(world):
     limited = replace(registry, sources=(replace(source, max_new=0),))
     runs = run_all(limited, baseline, fetch=replay("after"), now=NOW)
     assert runs[0].status == "ok"
-    assert "load_catalogue" not in __import__('inspect').getsource(release_watch.main)
+    # Card filtering happens after detection, so rejected observations stay in
+    # reports and the source's max_new does not turn duplicates into an outage.
+    from scripts.release_watch_filter import filter_releases
+    detected = run_all(registry, {source.id: frozenset() for source in registry.sources},
+                       fetch=replay("after"), now=NOW)
+    filtered = filter_releases(detected, NOW, catalogue=world[2])
+    assert any(row["model_name"] == "acme-one-1" for row in filtered["observations"])
+    assert any(row["model_name"] == "acme-one-1" and "already carded" in row["reason"]
+               for row in filtered["rejected"])
 
 
 # ── MODEL-421: an outage fails the run ─────────────────────────────────────
