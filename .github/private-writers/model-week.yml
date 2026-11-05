@@ -1,0 +1,166 @@
+name: Draft Model Week
+
+'on':
+  schedule:
+    - cron: '17 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: ISO week (YYYY-Www); blank uses the last completed UTC week
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-week
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    name: Draft the weekly digest for human review
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: data
+    steps:
+      - name: Check out private data
+        uses: actions/checkout@v4
+        with:
+          path: data
+          ref: main
+          persist-credentials: false
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Complete public catalogue history
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$(git -C ../engine rev-parse --is-shallow-repository)" = true ]; then
+            args=(--unshallow)
+          fi
+          git -C ../engine fetch --no-tags "${args[@]}" origin refs/heads/main:refs/remotes/origin/main
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install digest dependency
+        run: python -I -m pip install 'PyYAML>=6.0'
+      - name: Resolve the ISO week
+        id: week
+        env:
+          REQUESTED_WEEK: ${{ inputs.week }}
+        run: |
+          python -I - <<'PY'
+          import os
+          import re
+          from datetime import date, datetime, timedelta, timezone
+          from pathlib import Path
+
+          requested = os.environ['REQUESTED_WEEK']
+          if requested:
+              if not re.fullmatch(r'[0-9]{4}-W[0-9]{2}', requested):
+                  raise SystemExit('::error::Use an ISO week such as 2026-W44.')
+              try:
+                  monday = date.fromisocalendar(int(requested[:4]), int(requested[6:]), 1)
+              except ValueError:
+                  raise SystemExit('::error::The requested ISO week does not exist.')
+          else:
+              today = datetime.now(timezone.utc).date()
+              monday = today - timedelta(days=today.weekday() + 7)
+          year, week, _ = monday.isocalendar()
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write(f'iso_week={year:04d}-W{week:02d}\nmonday={monday.isoformat()}\n')
+          PY
+      - name: Draft Model Week
+        env:
+          MONDAY: ${{ steps.week.outputs.monday }}
+        run: |
+          set -euo pipefail
+          python -I -c 'import runpy,sys; sys.path.insert(0, sys.argv.pop(1)); runpy.run_module("scripts.model_week", run_name="__main__")' \
+            "$GITHUB_WORKSPACE/engine" \
+            --week "$MONDAY" \
+            --private-repo "$GITHUB_WORKSPACE/data" \
+            --out-dir "$RUNNER_TEMP/model-week"
+      - name: Stage the weekly digest
+        env:
+          ISO_WEEK: ${{ steps.week.outputs.iso_week }}
+        run: |
+          python -I - <<'PY'
+          import os
+          import shutil
+          from pathlib import Path
+
+          week = os.environ['ISO_WEEK']
+          source = Path(os.environ['RUNNER_TEMP']) / 'model-week'
+          digest = Path('reports/digest')
+          appendices = digest / week
+          appendices.mkdir(parents=True, exist_ok=True)
+          summaries = []
+          for section in ('public', 'private'):
+              appendix = f'{section}-appendix.md'
+              shutil.copyfile(source / appendix, appendices / appendix)
+              summary = (source / f'{section}.md').read_text()
+              summaries.append(summary.replace(f']({appendix})', f']({week}/{appendix})'))
+          (digest / f'{week}.md').write_text('\n\n'.join(summaries))
+          PY
+      - name: Open the Model Week draft pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          path: data
+          base: main
+          branch: data/model-week
+          draft: always-true
+          add-paths: |
+            reports/digest/${{ steps.week.outputs.iso_week }}.md
+            reports/digest/${{ steps.week.outputs.iso_week }}/
+          signoff: true
+          commit-message: 'data: draft Model Week ${{ steps.week.outputs.iso_week }}'
+          title: 'Model Week ${{ steps.week.outputs.iso_week }} draft'
+          body: |
+            Weekly catalogue digest for ${{ steps.week.outputs.iso_week }}, beginning ${{ steps.week.outputs.monday }} UTC.
+
+            Read reports/digest/${{ steps.week.outputs.iso_week }}.md and its linked appendices.
+            Generated from committed history by the verified engine pin ${{ steps.engine_pin.outputs.sha }}.
+            No source fetching or provider calls. Human review and approval are required before publication.
