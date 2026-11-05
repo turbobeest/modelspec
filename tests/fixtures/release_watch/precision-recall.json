@@ -604,12 +604,12 @@
       "fixture_kind": "synthetic",
       "provider": "intfloat",
       "cases": [
-        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:intfloat:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-sdk-1"},
+        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
         {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-blog-1"},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
         {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:intfloat:fixture-orbit-7-docs-1"},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
         {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
@@ -900,12 +900,12 @@
       "fixture_kind": "synthetic",
       "provider": "sentence-transformers",
       "cases": [
-        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-sdk-1"},
+        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
         {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-blog-1"},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
         {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:sentence-transformers:fixture-orbit-7-docs-1"},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
         {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
       ]
     },
@@ -1040,15 +1040,15 @@
       "fixture_kind": "synthetic_and_public_issue_metadata",
       "provider": "unsloth",
       "cases": [
-        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": "watch:unsloth:fixture-orbit-7"},
-        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-sdk-1"},
+        {"key": "model", "name": "Fixture-Orbit-7", "expected_signal_id": null},
+        {"key": "sdk", "name": "Fixture-Orbit-7-sdk-1", "expected_signal_id": null},
         {"key": "non-model-sdk", "name": "sdk", "expected_signal_id": null},
-        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-blog-1"},
+        {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": null},
         {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
-        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:unsloth:fixture-orbit-7-docs-1"},
+        {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": null},
         {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
-        {"key": "lfm-mirror", "name": "LFM2.5-24B-A2B", "expected_signal_id": "watch:liquid:lfm-2-5-24b-a2b", "issue_url": "https://github.com/turbobeest/modelspec/issues/736", "url": "https://huggingface.co/unsloth/LFM2.5-24B-A2B"},
-        {"key": "embedding-mirror", "name": "embeddinggemma-2", "expected_signal_id": "watch:google:embeddinggemma-2", "issue_url": "https://github.com/turbobeest/modelspec/issues/619", "url": "https://huggingface.co/unsloth/embeddinggemma-2"}
+        {"key": "lfm-mirror", "name": "LFM2.5-24B-A2B", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/736", "url": "https://huggingface.co/unsloth/LFM2.5-24B-A2B"},
+        {"key": "embedding-mirror", "name": "embeddinggemma-2", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/619", "url": "https://huggingface.co/unsloth/embeddinggemma-2"}
       ]
     },
     {

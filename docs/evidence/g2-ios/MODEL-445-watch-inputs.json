@@ -1,0 +1,633 @@
+{
+  "observed_at": "2026-11-04T18:43:57Z",
+  "provenance": "Public issue metadata; source creation dates and missing observations unknown.",
+  "window": {
+    "start": "2026-10-21",
+    "end_exclusive": "2026-11-05",
+    "timezone": "UTC"
+  },
+  "issue_count": 68,
+  "observations": [
+    {
+      "source_id": "hf-unsloth",
+      "source_key": "issue:965:0",
+      "model_name": "Kimi-K3.1-Pro",
+      "provider": "unsloth",
+      "url": "https://huggingface.co/unsloth/Kimi-K3.1-Pro",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/965"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:964:0",
+      "model_name": "hy4",
+      "provider": "tencent",
+      "url": "https://openrouter.ai/tencent/hy4",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/964"
+    },
+    {
+      "source_id": "hf-bytedance-seed",
+      "source_key": "issue:961:0",
+      "model_name": "GenFirst",
+      "provider": "bytedance",
+      "url": "https://huggingface.co/ByteDance-Seed/GenFirst",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/961"
+    },
+    {
+      "source_id": "hf-baai",
+      "source_key": "issue:962:0",
+      "model_name": "PingPongRealWorldRL",
+      "provider": "baai",
+      "url": "https://huggingface.co/BAAI/PingPongRealWorldRL",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/962"
+    },
+    {
+      "source_id": "hf-sarvamai",
+      "source_key": "issue:963:0",
+      "model_name": "prism",
+      "provider": "sarvam",
+      "url": "https://huggingface.co/sarvamai/prism",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/963"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:959:0",
+      "model_name": "glm-5.3-flashx-legal",
+      "provider": "zhipu",
+      "url": "https://openrouter.ai/z-ai/glm-5.3-flashx-legal",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/959"
+    },
+    {
+      "source_id": "hf-sentence-transformers",
+      "source_key": "issue:958:0",
+      "model_name": "merged-mpnet-base",
+      "provider": "sentence-transformers",
+      "url": "https://huggingface.co/sentence-transformers/merged-mpnet-base",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/958"
+    },
+    {
+      "source_id": "google-gemini-models",
+      "source_key": "issue:956:0",
+      "model_name": "gemini-25-flash-lite",
+      "provider": "google",
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/956"
+    },
+    {
+      "source_id": "google-gemini-models",
+      "source_key": "issue:957:0",
+      "model_name": "gemini-25-pro",
+      "provider": "google",
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/957"
+    },
+    {
+      "source_id": "google-gemini-models",
+      "source_key": "issue:955:0",
+      "model_name": "gemini-25-flash",
+      "provider": "google",
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/955"
+    },
+    {
+      "source_id": "hf-rwkv",
+      "source_key": "issue:954:0",
+      "model_name": "RWKV7-G1l-13.3B-20261031",
+      "provider": "rwkv",
+      "url": "https://huggingface.co/RWKV/RWKV7-G1l-13.3B-20261031",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/954"
+    },
+    {
+      "source_id": "hf-rwkv",
+      "source_key": "issue:952:0",
+      "model_name": "RWKV7-G1l-2.9B-20261031",
+      "provider": "rwkv",
+      "url": "https://huggingface.co/RWKV/RWKV7-G1l-2.9B-20261031",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/952"
+    },
+    {
+      "source_id": "hf-rwkv",
+      "source_key": "issue:953:0",
+      "model_name": "RWKV7-G1l-7.2B-20261031",
+      "provider": "rwkv",
+      "url": "https://huggingface.co/RWKV/RWKV7-G1l-7.2B-20261031",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/953"
+    },
+    {
+      "source_id": "hf-rwkv",
+      "source_key": "issue:951:0",
+      "model_name": "RWKV7-G1l-1.5B-20261031",
+      "provider": "rwkv",
+      "url": "https://huggingface.co/RWKV/RWKV7-G1l-1.5B-20261031",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/951"
+    },
+    {
+      "source_id": "hf-microsoft",
+      "source_key": "issue:950:0",
+      "model_name": "UserLM-2.0",
+      "provider": "microsoft",
+      "url": "https://huggingface.co/microsoft/UserLM-2.0",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/950"
+    },
+    {
+      "source_id": "mistral-models",
+      "source_key": "issue:949:0",
+      "model_name": "voxtral-mini-tts-2603",
+      "provider": "mistral",
+      "url": "https://docs.mistral.ai/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/949"
+    },
+    {
+      "source_id": "mistral-models",
+      "source_key": "issue:947:0",
+      "model_name": "voxtral-mini-2602",
+      "provider": "mistral",
+      "url": "https://docs.mistral.ai/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/947"
+    },
+    {
+      "source_id": "mistral-models",
+      "source_key": "issue:948:0",
+      "model_name": "voxtral-mini-transcribe-realtime-2602",
+      "provider": "mistral",
+      "url": "https://docs.mistral.ai/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/948"
+    },
+    {
+      "source_id": "mistral-models",
+      "source_key": "issue:945:0",
+      "model_name": "mistral-large-2512",
+      "provider": "mistral",
+      "url": "https://docs.mistral.ai/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/945"
+    },
+    {
+      "source_id": "mistral-models",
+      "source_key": "issue:946:0",
+      "model_name": "mistral-medium-3-5",
+      "provider": "mistral",
+      "url": "https://docs.mistral.ai/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/946"
+    },
+    {
+      "source_id": "hf-microsoft",
+      "source_key": "issue:944:0",
+      "model_name": "Mage-VL-Cowork",
+      "provider": "microsoft",
+      "url": "https://huggingface.co/microsoft/Mage-VL-Cowork",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/944"
+    },
+    {
+      "source_id": "hf-servicenow-ai",
+      "source_key": "issue:943:0",
+      "model_name": "Apriel-Voice-27B-preview",
+      "provider": "servicenow",
+      "url": "https://huggingface.co/ServiceNow-AI/Apriel-Voice-27B-preview",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/943"
+    },
+    {
+      "source_id": "hf-mistralai",
+      "source_key": "issue:942:0",
+      "model_name": "Mistral-Large-4-1T-A52B",
+      "provider": "mistral",
+      "url": "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/942"
+    },
+    {
+      "source_id": "google-gemini-models",
+      "source_key": "issue:940:0",
+      "model_name": "gemini-embedding-2",
+      "provider": "google",
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/940"
+    },
+    {
+      "source_id": "hf-allenai",
+      "source_key": "issue:941:0",
+      "model_name": "OlmoEarth-v1_2-FT-LFMC-Base",
+      "provider": "allen-ai",
+      "url": "https://huggingface.co/allenai/OlmoEarth-v1_2-FT-LFMC-Base",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/941"
+    },
+    {
+      "source_id": "hf-stabilityai",
+      "source_key": "issue:939:0",
+      "model_name": "stable-diffusion-3.5-medium-amdnpu-medusa",
+      "provider": "stability",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-3.5-medium-amdnpu-medusa",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/939"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:937:0",
+      "model_name": "NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/937"
+    },
+    {
+      "source_id": "hf-stabilityai",
+      "source_key": "issue:938:0",
+      "model_name": "sdxl-base-amdnpu-medusa",
+      "provider": "stability",
+      "url": "https://huggingface.co/stabilityai/sdxl-base-amdnpu-medusa",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/938"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:936:0",
+      "model_name": "NVIDIA-Nemotron-3.5-Transcribe-30B-A4B",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Transcribe-30B-A4B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/936"
+    },
+    {
+      "source_id": "hf-ibm-granite",
+      "source_key": "issue:935:0",
+      "model_name": "LLMON-Benchmarks",
+      "provider": "ibm",
+      "url": "https://huggingface.co/ibm-granite/LLMON-Benchmarks",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/935"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:934:0",
+      "model_name": "Metatron-v1",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/Metatron-v1",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/934"
+    },
+    {
+      "source_id": "hf-openbmb",
+      "source_key": "issue:933:0",
+      "model_name": "MiniCPM-OCR-Jev",
+      "provider": "openbmb",
+      "url": "https://huggingface.co/openbmb/MiniCPM-OCR-Jev",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/933"
+    },
+    {
+      "source_id": "hf-openbmb",
+      "source_key": "issue:932:0",
+      "model_name": "MiniCPM-OCR-1.0-DSpark",
+      "provider": "openbmb",
+      "url": "https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/932"
+    },
+    {
+      "source_id": "hf-openbmb",
+      "source_key": "issue:931:0",
+      "model_name": "MiniCPM-OCR-1.0",
+      "provider": "openbmb",
+      "url": "https://huggingface.co/openbmb/MiniCPM-OCR-1.0",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/931"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:929:0",
+      "model_name": "d1-2B",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/d1-2B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/929"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:930:0",
+      "model_name": "d1-Omni-2B",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/d1-Omni-2B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/930"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:928:0",
+      "model_name": "LFM3-VL-2B",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/LFM3-VL-2B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/928"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:927:0",
+      "model_name": "LFM3-Omni-2B",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/LFM3-Omni-2B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/927"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:926:0",
+      "model_name": "LFM3-1.7B-Base",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/LFM3-1.7B-Base",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/926"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:925:0",
+      "model_name": "LFM3-1.7B",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/LFM3-1.7B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/925"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:923:0",
+      "model_name": "gpt-6.1-terra-pro",
+      "provider": "openai",
+      "url": "https://openrouter.ai/openai/gpt-6.1-terra-pro",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/923"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:921:0",
+      "model_name": "Hy-SimulMT-30B-A3B",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/Hy-SimulMT-30B-A3B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/921"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:922:0",
+      "model_name": "Hy-SimulMT-30B-A3B-Interleave",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/Hy-SimulMT-30B-A3B-Interleave",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/922"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:920:0",
+      "model_name": "NLD-Uni",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NLD-Uni",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/920"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:919:0",
+      "model_name": "MotionBricks",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/MotionBricks",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/919"
+    },
+    {
+      "source_id": "openai-models",
+      "source_key": "issue:917:0",
+      "model_name": "gpt-6.1-terra",
+      "provider": "openai",
+      "url": "https://developers.openai.com/api/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/917"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:917:1",
+      "model_name": "gpt-6.1-terra",
+      "provider": "openai",
+      "url": "https://openrouter.ai/openai/gpt-6.1-terra",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/917"
+    },
+    {
+      "source_id": "hf-microsoft",
+      "source_key": "issue:918:0",
+      "model_name": "CogACT-v2-RoboDojo",
+      "provider": "microsoft",
+      "url": "https://huggingface.co/microsoft/CogACT-v2-RoboDojo",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/918"
+    },
+    {
+      "source_id": "hf-baai",
+      "source_key": "issue:912:0",
+      "model_name": "MS-Human-700",
+      "provider": "baai",
+      "url": "https://huggingface.co/BAAI/MS-Human-700",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/912"
+    },
+    {
+      "source_id": "hf-nanbeige",
+      "source_key": "issue:911:0",
+      "model_name": "Nanbeige4.3-33B-Base",
+      "provider": "nanbeige",
+      "url": "https://huggingface.co/Nanbeige/Nanbeige4.3-33B-Base",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/911"
+    },
+    {
+      "source_id": "hf-nanbeige",
+      "source_key": "issue:910:0",
+      "model_name": "Nanbeige4.3-33B",
+      "provider": "nanbeige",
+      "url": "https://huggingface.co/Nanbeige/Nanbeige4.3-33B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/910"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:909:0",
+      "model_name": "Hy-Nomas-Diffusers",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/Hy-Nomas-Diffusers",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/909"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:907:0",
+      "model_name": "NVIDIA-Nemotron-3.5-Bolt-E4B-BF16",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-BF16",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/907"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:908:0",
+      "model_name": "kimi-k3.1-pro",
+      "provider": "moonshot",
+      "url": "https://openrouter.ai/moonshotai/kimi-k3.1-pro",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/908"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:906:0",
+      "model_name": "NVIDIA-Nemotron-3.5-Bolt-E4B-4GB-DFlash",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB-DFlash",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/906"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:905:0",
+      "model_name": "NVIDIA-Nemotron-3.5-Bolt-E4B-4GB",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/905"
+    },
+    {
+      "source_id": "hf-nvidia",
+      "source_key": "issue:904:0",
+      "model_name": "InternVideo2-CLIP-anomaly-detection",
+      "provider": "nvidia",
+      "url": "https://huggingface.co/nvidia/InternVideo2-CLIP-anomaly-detection",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/904"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:903:0",
+      "model_name": "WeVisOne-VL-4B",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/WeVisOne-VL-4B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/903"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:902:0",
+      "model_name": "WeVisOne-VL-2B",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/WeVisOne-VL-2B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/902"
+    },
+    {
+      "source_id": "hf-tencent",
+      "source_key": "issue:901:0",
+      "model_name": "Hy-Nomas",
+      "provider": "tencent",
+      "url": "https://huggingface.co/tencent/Hy-Nomas",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/901"
+    },
+    {
+      "source_id": "hf-unsloth",
+      "source_key": "issue:900:0",
+      "model_name": "MiniMax-M3.1-Flash",
+      "provider": "unsloth",
+      "url": "https://huggingface.co/unsloth/MiniMax-M3.1-Flash",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/900"
+    },
+    {
+      "source_id": "openrouter",
+      "source_key": "issue:896:0",
+      "model_name": "minimax-m3.1-flash",
+      "provider": "minimax",
+      "url": "https://openrouter.ai/minimax/minimax-m3.1-flash",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/896"
+    },
+    {
+      "source_id": "hf-ibm-granite",
+      "source_key": "issue:892:0",
+      "model_name": "granite-speech-5.0-2b",
+      "provider": "ibm",
+      "url": "https://huggingface.co/ibm-granite/granite-speech-5.0-2b",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/892"
+    },
+    {
+      "source_id": "hf-trillionlabs",
+      "source_key": "issue:888:0",
+      "model_name": "Zoro-1",
+      "provider": "trillionlabs",
+      "url": "https://huggingface.co/trillionlabs/Zoro-1",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/888"
+    },
+    {
+      "source_id": "hf-liquidai",
+      "source_key": "issue:887:0",
+      "model_name": "LFM2.5-24B-A2B-DSpark",
+      "provider": "liquid",
+      "url": "https://huggingface.co/LiquidAI/LFM2.5-24B-A2B-DSpark",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/887"
+    },
+    {
+      "source_id": "hf-microsoft",
+      "source_key": "issue:885:0",
+      "model_name": "Sentiment-Analysis-7B",
+      "provider": "microsoft",
+      "url": "https://huggingface.co/microsoft/Sentiment-Analysis-7B",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/885"
+    },
+    {
+      "source_id": "cohere-models",
+      "source_key": "issue:884:0",
+      "model_name": "rerank-v5.0-pro",
+      "provider": "cohere",
+      "url": "https://docs.cohere.com/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/884"
+    },
+    {
+      "source_id": "hf-primeintellect",
+      "source_key": "issue:886:0",
+      "model_name": "DeepSeek-V4-Flash-Base-bf16",
+      "provider": "primeintellect",
+      "url": "https://huggingface.co/PrimeIntellect/DeepSeek-V4-Flash-Base-bf16",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/886"
+    },
+    {
+      "source_id": "cohere-models",
+      "source_key": "issue:883:0",
+      "model_name": "rerank-v5.0-fast",
+      "provider": "cohere",
+      "url": "https://docs.cohere.com/docs/models",
+      "created": null,
+      "issue_url": "https://github.com/turbobeest/modelspec/issues/883"
+    }
+  ]
+}
