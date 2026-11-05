@@ -38,6 +38,8 @@ from schema.card import (
     TextDetail,
     VisionDetail,
     AudioDetail,
+    VideoDetail,
+    ImageGenDetail,
     Capabilities,
     ReasoningCapability,
     ToolUseCapability,
@@ -740,6 +742,13 @@ def build_model_card(
             audio=AudioDetail(
                 input_supported=Modality.AUDIO in input_mods,
                 output_supported=Modality.AUDIO in output_mods,
+            ),
+            video=VideoDetail(
+                input_supported=Modality.VIDEO in input_mods,
+                output_supported=Modality.VIDEO in output_mods,
+            ),
+            image_generation=ImageGenDetail(
+                supported=Modality.IMAGE in output_mods,
             ),
         ),
         capabilities=Capabilities(
