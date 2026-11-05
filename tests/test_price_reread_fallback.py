@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -802,6 +803,12 @@ def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
     capsys,
     caplog,
 ):
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 10, 15, tzinfo=tz)
+
+    monkeypatch.setattr(price_reread, "datetime", FrozenDateTime)
     root, _ = allowed_estate
     rendered = artifact(tmp_path / "render")
     ledger = tmp_path / "ledger"

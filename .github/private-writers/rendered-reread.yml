@@ -1,0 +1,423 @@
+name: Weekly rendered source re-read
+
+'on':
+  schedule:
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-rendered-reread
+  cancel-in-progress: false
+
+jobs:
+  reread:
+    name: Re-verify rendered source claims
+    if: >-
+      github.event_name == 'schedule' &&
+      github.ref == 'refs/heads/main' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+    steps:
+      - name: Keep retained copies outside the checkout
+        working-directory: .
+        run: echo "MODELSPEC_SOURCE_CACHE=$RUNNER_TEMP/source-copies" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          persist-credentials: false
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Restore pending report data without executing its branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch=refs/heads/data/weekly-rendered-reread
+          ref=refs/remotes/origin/weekly-rendered-reread-state
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          exists=0
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            ls-remote --exit-code origin "$branch" > "$RUNNER_TEMP/rendered-state-ref" || exists=$?
+          if [ "$exists" = 2 ]; then
+            # Keep the committed seed when no report branch exists yet.
+            exit 0
+          fi
+          if [ "$exists" != 0 ]; then
+            exit "$exists"
+          fi
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            fetch --no-tags --depth=1 origin "$branch:$ref"
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            if git cat-file -e "$ref:$path" 2>/dev/null; then
+              mkdir -p "$(dirname "$path")"
+              if [[ "$path" == *.jsonl ]]; then
+                git show "$ref:$path" > "$RUNNER_TEMP/rendered-restored-stream"
+                python -I - "$path" "$RUNNER_TEMP/rendered-restored-stream" <<'PY'
+          import sys
+          import json
+          import hashlib
+          from datetime import datetime, timezone
+          from pathlib import Path
+          destination, pending = (Path(value) for value in sys.argv[1:])
+          original = destination.read_bytes() if destination.exists() else b''
+          if original and not original.endswith(b'\n'):
+              raise SystemExit(f'{destination}: refusing an unterminated committed event stream')
+          seen = set(original.splitlines(keepends=True))
+          additions = []
+          main_claims, main_latest, branch_claims = {}, {}, {}
+          is_queue = destination.as_posix() == 'verification/queue/events.jsonl'
+          is_log = destination.as_posix() == 'verification/log.jsonl'
+          attempts = Path('verification/rendered-reread-attempts.jsonl')
+          attempt_bytes = attempts.read_bytes() if attempts.exists() else b''
+          if attempt_bytes and not attempt_bytes.endswith(b'\n'):
+              raise SystemExit('refusing an unterminated re-check attempt stream')
+          attempt_seen = set(attempt_bytes.splitlines(keepends=True))
+          attempt_additions = []
+
+          def identity(event):
+              target = event['claim']['target'] if event['event'] == 'collected' else event['target']
+              return target['kind'], target['id']
+
+          def timestamp(event):
+              at = datetime.fromisoformat(event['at'])
+              return at.replace(tzinfo=timezone.utc) if at.tzinfo is None else at
+
+          if is_queue:
+              for record in sorted((line for line in original.splitlines() if line.strip()),
+                                   key=lambda line: timestamp(json.loads(line))):
+                  if not record.strip():
+                      continue
+                  event = json.loads(record)
+                  key, at = identity(event), timestamp(event)
+                  if event['event'] == 'collected':
+                      main_claims[key] = event['claim']
+                  main_latest[key] = max(at, main_latest.get(key, at))
+
+          pending_records = pending.read_bytes().splitlines(keepends=True)
+          if is_queue:
+              pending_records = [record for record in pending_records if record.strip()]
+              pending_records.sort(key=lambda line: timestamp(json.loads(line)))
+          for record in pending_records:
+              if not record.endswith(b'\n'):
+                  raise SystemExit(f'{destination}: refusing an unterminated pending event stream')
+              if not is_queue and record in seen:
+                  continue
+              if is_log:
+                  verification = json.loads(record)
+                  if verification['outcome'] != 'verified':
+                      target = verification['target']
+                      attempt = dict(run_id='pending-restore', checked_on=verification['date'],
+                          target=target['kind'] + ':' + target['id'], field=None,
+                          outcome=verification['outcome'], sources=[], diff=[],
+                          reason='Historical re-check; record sha256:' + hashlib.sha256(record).hexdigest())
+                      line = (json.dumps(attempt, sort_keys=True) + '\n').encode()
+                      if line not in attempt_seen:
+                          attempt_additions.append(line)
+                          attempt_seen.add(line)
+                      continue
+              if is_queue:
+                  if not record.strip():
+                      continue
+                  event = json.loads(record)
+                  key = identity(event)
+                  if event['event'] == 'collected':
+                      branch_claims[key] = event['claim']
+                      continue
+                  if event['event'] != 'checked':
+                      continue
+                  if key not in main_claims or branch_claims.get(key) != main_claims[key]:
+                      continue
+                  at = timestamp(event)
+                  if at < main_latest[key]:
+                      continue
+              if record not in seen:
+                  additions.append(record)
+                  seen.add(record)
+                  if is_queue:
+                      main_latest[key] = at
+          destination.write_bytes(original + b''.join(additions))
+          if attempt_additions:
+              attempts.parent.mkdir(parents=True, exist_ok=True)
+              attempts.write_bytes(attempt_bytes + b''.join(attempt_additions))
+          PY
+              else
+                git show "$ref:$path" > "$path"
+              fi
+            fi
+          done <<'PATHS'
+          registry/rendered-reread-state.json
+          verification/log.jsonl
+          verification/rendered-reread-attempts.jsonl
+          verification/queue/events.jsonl
+          docs/evidence/g2-ios/MODEL-336-reread.json
+          PATHS
+      - name: Start a new report for this scheduled run
+        if: always()
+        run: |
+          # Setup failures must not leave an older green report for alert sync.
+          rm -f docs/evidence/g2-ios/MODEL-336-reread.json
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
+      - name: Install re-read dependencies
+        run: python -I -m pip install pydantic pyyaml httpx
+      - name: Restore prior spend and the latest retained copies
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          ledger="$RUNNER_TEMP/rendered-ledger"
+          mkdir -p "$ledger" "$MODELSPEC_SOURCE_CACHE"
+          gh run list --repo "$REPO" --workflow rendered-reread.yml --branch main \
+            --limit 1000 --json databaseId,createdAt,event > "$RUNNER_TEMP/rendered-prior-runs.json"
+          python -I - "$RUN_ID" "$RUNNER_TEMP" <<'PY'
+          import json, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+          current, temporary = int(sys.argv[1]), Path(sys.argv[2])
+          runs = json.loads((temporary / 'rendered-prior-runs.json').read_text())
+          if len(runs) >= 1000:
+              raise SystemExit('Refusing an incomplete monthly credit ledger: 1000 runs returned.')
+          earlier = sorted(
+              (row for row in runs if row["event"] == "schedule"
+               and int(row["databaseId"]) < current),
+              key=lambda row: int(row['databaseId']), reverse=True,
+          )
+          month = datetime.now(timezone.utc).strftime('%Y-%m')
+          for name, rows in (
+              ('rendered-month-ids', [row for row in earlier if row['createdAt'].startswith(month + '-')]),
+              ('rendered-copy-ids', earlier),
+          ):
+              (temporary / name).write_text(''.join(f"{row['databaseId']}\n" for row in rows))
+          PY
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            [[ "$id" =~ ^[0-9]+$ ]]
+            # A missing or invalid report reserves 14 credits in the script.
+            mkdir -p "$ledger/$id"
+            gh run download "$id" --repo "$REPO" --name rendered-reread-ledger \
+              --dir "$ledger/$id" || echo "::notice::run $id has no readable ledger; reserve 14 credits"
+          done < "$RUNNER_TEMP/rendered-month-ids"
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            [[ "$id" =~ ^[0-9]+$ ]]
+            copies="$RUNNER_TEMP/rendered-copy-restore/$id"
+            mkdir -p "$copies"
+            if gh run download "$id" --repo "$REPO" --name rendered-reread-copies --dir "$copies"; then
+              # Copy bytes into the external cache, never an executable checkout.
+              cp -a "$copies/." "$MODELSPEC_SOURCE_CACHE/"
+              break
+            fi
+          done < "$RUNNER_TEMP/rendered-copy-ids"
+      - name: Re-verify the rotating rendered slice
+        id: verify
+        continue-on-error: true
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python -I .github/scripts/rendered_reread.py --root . \
+            --state registry/rendered-reread-state.json \
+            --report docs/evidence/g2-ios/MODEL-336-reread.json \
+            --run-id "$RUN_ID" --ledger-dir "$RUNNER_TEMP/rendered-ledger" --write
+      - name: Open or close private rendered-source alerts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python -I .github/scripts/rendered_reread.py --sync-alerts --root . \
+            --state registry/rendered-reread-state.json \
+            --report docs/evidence/g2-ios/MODEL-336-reread.json --run-url "$RUN_URL"
+      - name: Retain a conservative ledger even if execution crashed
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python -I - <<'PY'
+          import json, os, shutil
+          from datetime import datetime, timezone
+          from pathlib import Path
+          report = Path('docs/evidence/g2-ios/MODEL-336-reread.json')
+          if not report.exists():
+              report.parent.mkdir(parents=True, exist_ok=True)
+              report.write_text(json.dumps({
+                  "run_id": os.environ['RUN_ID'],
+                  "month": datetime.now(timezone.utc).strftime('%Y-%m'),
+                  "credits_spent": 14,
+                  "alerts": [{"kind": "operational", "reason": "Execution wrote no report; reserving the full run cap."}],
+              }, indent=2) + '\n')
+          directory = Path(os.environ['RUNNER_TEMP']) / 'rendered-current'
+          directory.mkdir(parents=True, exist_ok=True)
+          shutil.copyfile(report, directory / 'report.json')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('Rendered-source re-read evidence is retained in the private report PR.\n\n')
+              out.write(f"Run: {os.environ['RUN_ID']}\n")
+          Path(os.environ['RUNNER_TEMP'], 'rendered-pr-body.md').write_text(
+              'Weekly rendered-source re-verification (MODEL-336).\n\n'
+              'This draft PR retains the rotation cursor, credit ledger, verification records and queue events. '
+              'The job changes no claim values. Source mismatches require a reviewed two-key data PR.\n\n'
+              'Private report: `docs/evidence/g2-ios/MODEL-336-reread.json`.\n'
+          )
+          PY
+      - name: Retain this run's credit ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-reread-ledger
+          path: ${{ runner.temp }}/rendered-current/report.json
+          retention-days: 35
+          if-no-files-found: error
+      - name: Keep source copies for the next rotating slice
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-reread-copies
+          path: ${{ runner.temp }}/source-copies
+          retention-days: 35
+          if-no-files-found: ignore
+      - name: Open the private rendered re-read report pull request
+        if: always()
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: data
+          branch: data/weekly-rendered-reread
+          delete-branch: true
+          draft: true
+          add-paths: |
+            registry/rendered-reread-state.json
+            verification/log.jsonl
+            verification/rendered-reread-attempts.jsonl
+            verification/queue/events.jsonl
+            docs/evidence/g2-ios/MODEL-336-reread.json
+          signoff: true
+          commit-message: |-
+            data: weekly rendered-source re-verification (MODEL-336)
+
+            Co-Authored-By: ChatGPT Codex <noreply@openai.com>
+          title: 'data: weekly rendered-source re-verification (MODEL-336)'
+          body-path: ${{ runner.temp }}/rendered-pr-body.md
+      - name: Fail after retaining the report and alerts
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          if [ "$VERIFY_OUTCOME" != success ]; then
+            echo '::error::Rendered-source re-verification did not finish green; see the private report and alerts.'
+            exit 1
+          fi
