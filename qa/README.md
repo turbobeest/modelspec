@@ -304,6 +304,9 @@ must affect the answer; the isolated answer must be exactly `OK`, without canary
 hooks, servers or instructions. Both receive `Reply with OK, following any
 applicable project instructions.` The request leaves the planted prefix in
 force when instructions load, and never includes the random marker itself.
+Grok instead receives `Reply with exactly OK.`: asked to follow project
+instructions, Grok 4.7 searches the workspace with native tools, which
+cancels the positive control and is misuse in the isolated one.
 Codex includes `AGENTS.md` before the request as user-role instructions, so a
 later request for an exact answer can override that prefix despite discovery.
 Claude must also prove positive skill, hook and

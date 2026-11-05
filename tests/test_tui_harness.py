@@ -1774,7 +1774,11 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
             if cli == "grok":
                 return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
             return execution(cli, answer="OK")
-        assert prompt == "Reply with OK, following any applicable project instructions."
+        assert prompt == (
+            "Reply with exactly OK."
+            if cli == "grok"
+            else "Reply with OK, following any applicable project instructions."
+        )
         if isolated:
             return execution(cli, answer="OK")
         root = probe_mcp.parent
@@ -2273,6 +2277,98 @@ def test_grok_unobserved_call_is_not_a_refusal_and_user_cancelled_is():
             "result": {"isError": True, "content": [{"type": "text", "text": "denied"}]},
         },
     ) is True
+
+
+GROK_INIT = {
+    "type": "system", "subtype": "init", "tools": ["search_tool", "use_tool"],
+    "mcp_servers": [], "skills": [],
+}
+GROK_SUCCESS = {
+    "type": "result", "subtype": "success", "is_error": False,
+    "stop_reason": "end_turn", "result": "OK",
+}
+GROK_CANCELLED = {
+    "type": "result", "subtype": "error_during_execution", "is_error": True,
+    "stop_reason": "cancelled", "errors": ["cancelled"], "result": "OK",
+}
+
+
+@pytest.mark.parametrize(
+    "terminal, completed",
+    [
+        (GROK_SUCCESS, True),
+        (GROK_CANCELLED, False),
+        ({"type": "result", "subtype": "cancelled", "status": "cancelled", "result": "OK"}, False),
+        ({**GROK_SUCCESS, "stop_reason": "cancelled"}, False),
+        ({**GROK_SUCCESS, "subtype": "error_max_turns"}, False),
+        *(
+            ({k: v for k, v in GROK_SUCCESS.items() if k != missing}, False)
+            for missing in ("subtype", "is_error", "stop_reason")
+        ),
+        ({"type": "end", "result": "OK"}, False),
+    ],
+)
+def test_grok_only_a_successful_terminal_completes_the_isolated_canary(
+    terminal, completed, config, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        inventory, "inspect_inventory", lambda *a, **k: native_inventory("grok", mcp_enabled=False)
+    )
+    monkeypatch.setattr(
+        providers.subprocess,
+        "run",
+        lambda command, **_: subprocess.CompletedProcess(
+            command, 0, text([GROK_INIT, terminal]), ""
+        ),
+    )
+    result = providers._execute(
+        "grok", config, tmp_path, isolation.CANARY_PROMPTS["grok"], mcp_enabled=False
+    )
+    assert (result.status == "completed") is completed
+    passed = isolation.canary_passed(
+        result, "grok", "MODEL301_CANARY_X", tmp_path / "h", tmp_path / "m"
+    )
+    assert passed is completed
+
+
+@pytest.mark.parametrize(
+    "terminal",
+    [
+        {"type": "result", "subtype": "cancelled", "status": "cancelled", "result": "OK"},
+        *({k: v for k, v in GROK_SUCCESS.items() if k != missing}
+          for missing in ("subtype", "is_error", "stop_reason")),
+    ],
+    ids=["cancelled", "no-subtype", "no-is_error", "no-stop_reason"],
+)
+def test_doctor_writes_no_verified_receipt_after_a_non_success_isolated_terminal(
+    terminal, config, tmp_path, monkeypatch
+):
+    real_execute = providers._execute
+    monkeypatch.setattr(
+        inventory, "inspect_inventory", lambda *a, **k: native_inventory("grok", mcp_enabled=False)
+    )
+    monkeypatch.setattr(
+        providers.subprocess,
+        "run",
+        lambda command, **_: subprocess.CompletedProcess(
+            command, 0, text([GROK_INIT, terminal]), ""
+        ),
+    )
+
+    def fake(cli, cfg, workspace, prompt, *, isolated=True, probe_mcp=None, **kwargs):
+        if prompt == isolation.MISUSE_PROMPT:
+            return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
+        if not isolated:
+            return _positive_canary(cli, cfg, probe_mcp)
+        return real_execute(
+            cli, cfg, workspace, prompt, isolated=isolated, probe_mcp=probe_mcp, **kwargs
+        )
+
+    monkeypatch.setattr(isolation, "_execute", fake)
+    result = isolation.verify_isolation("grok", config, tmp_path)
+    assert result["verified"] is False and result["isolated_control"] == {"cwd": False}
+    receipt = isolation.receipt_file(isolation.state_directory("grok", config))
+    assert not receipt.exists() or json.loads(receipt.read_text())["verified"] is False
 
 
 def test_grok_misuse_probe_is_unproven_when_attempts_have_no_observed_result(
