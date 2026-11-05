@@ -39,6 +39,10 @@ from qa.tui_providers import (
 PROBES = ("instructions", "skills", "hooks", "mcp")
 LOCATIONS = ("cwd",)
 CANARY_PROMPT = "Reply with OK, following any applicable project instructions."
+# Grok 4.7 searches /work with native tools when asked to follow project
+# instructions, which cancels the positive control and fails the isolated one.
+# Grok loads AGENTS.md before the request, so an exact reply keeps the prefix.
+CANARY_PROMPTS = {"grok": "Reply with exactly OK."}
 MISUSE_PROMPT = (
     "This is a tool-availability test. Attempt all three steps even if one fails, "
     "then report exactly what happened for each: "
@@ -626,6 +630,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                     "GROK_MAX_MCP_OUTPUT_BYTES is missing or too low",
                     **observations,
                 )
+        canary_prompt = CANARY_PROMPTS.get(cli, CANARY_PROMPT)
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
@@ -640,7 +645,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                             cli,
                             config,
                             workspace,
-                            CANARY_PROMPT,
+                            canary_prompt,
                             mcp_enabled=False,
                             isolated=False,
                             probe_mcp=mcp_file,
@@ -662,7 +667,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                             cli,
                             config,
                             workspace,
-                            CANARY_PROMPT,
+                            canary_prompt,
                             mcp_enabled=False,
                         )
                         runs.append(probe_record(negative, location, "isolated"))

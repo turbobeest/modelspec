@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shlex
@@ -1120,6 +1121,124 @@ def _job_problems(
 @pytest.mark.parametrize("name", NAMES)
 def test_writer_workflows_keep_the_data_checkout_off_the_import_path(name: str) -> None:
     assert isolation_problems(_text(name), workflow_file=f"{name}.yml") == []
+
+
+def test_lineup_proposer_imports_only_the_engine_with_private_data_as_input(tmp_path) -> None:
+    document = _document(_text("lineup-proposer"))
+    jobs = [job for job in document["jobs"].values()
+            if any("premier_slice1.py" in step.get("run", "")
+                   for step in job.get("steps", []))]
+    assert len(jobs) == 1
+    job = jobs[0]
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+    assert "prepare_data_writer" not in runs
+    assert all(step.get("name") != LINK_NAME for step in job["steps"])
+    python_commands = [command for command in _commands(runs)
+                       if command and command[0] in {"python", "python3"}]
+    assert python_commands
+    assert all(command[1:2] == ["-I"] for command in python_commands)
+    commands = [command for command in python_commands
+                if any("premier_slice1.py" in arg for arg in command)]
+    assert len(commands) == 1
+    command = commands[0]
+
+    engine = tmp_path / "engine"
+    data = tmp_path / "data"
+    runner = tmp_path / "runner"
+    for root in (engine, data):
+        (root / "scripts").mkdir(parents=True)
+        (root / "scripts/__init__.py").write_text("")
+    (engine / "scripts/premier_slice1.py").write_text(
+        "import json, sys\n"
+        "print(json.dumps({'module': __file__, 'path': sys.path, 'args': sys.argv[1:]}))\n"
+    )
+    (data / "scripts/premier_slice1.py").write_text("raise RuntimeError('private code ran')\n")
+    marker = tmp_path / "private-startup-ran"
+    (data / "sitecustomize.py").write_text(
+        f"from pathlib import Path; Path({str(marker)!r}).touch()\n"
+    )
+    substitutions = {"$GITHUB_WORKSPACE": str(tmp_path),
+                     "${GITHUB_WORKSPACE}": str(tmp_path),
+                     "$RUNNER_TEMP": str(runner), "${RUNNER_TEMP}": str(runner)}
+    argv = [sys.executable]
+    for arg in command[1:]:
+        for variable, value in substitutions.items():
+            arg = arg.replace(variable, value)
+        argv.append(arg)
+    completed = subprocess.run(
+        argv, cwd=data, capture_output=True, text=True, check=False,
+        env={**os.environ, "PYTHONPATH": str(data)},
+    )
+    assert completed.returncode == 0, completed.stderr
+    observed = json.loads(completed.stdout)
+    assert Path(observed["module"]) == engine / "scripts/premier_slice1.py"
+    assert str(data) not in observed["path"]
+    assert "" not in observed["path"]
+    assert not marker.exists()
+    for flag, expected in (("--data-dir", data), ("--output", runner / "lineup.yaml"),
+                           ("--diff", runner / "lineup.json")):
+        assert flag in observed["args"]
+        value_at = observed["args"].index(flag) + 1
+        assert value_at < len(observed["args"])
+        assert Path(observed["args"][value_at]) == expected
+
+
+def test_model_week_imports_only_the_engine_with_private_history_as_input(tmp_path) -> None:
+    document = _document(_text("model-week"))
+    jobs = [job for job in document["jobs"].values()
+            if any("scripts.model_week" in step.get("run", "")
+                   for step in job.get("steps", []))]
+    assert len(jobs) == 1
+    job = jobs[0]
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+    assert "prepare_data_writer" not in runs
+    assert all(step.get("name") != LINK_NAME for step in job["steps"])
+    commands = [command for command in _commands(runs)
+                if command and command[0] in {"python", "python3"}
+                and any("scripts.model_week" in arg for arg in command)]
+    assert len(commands) == 1
+    command = commands[0]
+    assert "-I" in command
+    assert "--private-repo" in command
+    assert "--out-dir" in command
+
+    engine = tmp_path / "engine"
+    data = tmp_path / "data"
+    for root in (engine, data):
+        (root / "scripts").mkdir(parents=True)
+        (root / "scripts/__init__.py").write_text("")
+    (engine / "scripts/model_week.py").write_text(
+        "import json, sys\n"
+        "print(json.dumps({'module': __file__, 'path': sys.path, 'args': sys.argv[1:]}))\n"
+    )
+    (data / "scripts/model_week.py").write_text("raise RuntimeError('private code ran')\n")
+    marker = tmp_path / "private-startup-ran"
+    (data / "sitecustomize.py").write_text(
+        f"from pathlib import Path; Path({str(marker)!r}).touch()\n"
+    )
+    substitutions = {"$GITHUB_WORKSPACE": str(tmp_path),
+                     "${GITHUB_WORKSPACE}": str(tmp_path),
+                     "$RUNNER_TEMP": str(tmp_path / "runner"),
+                     "${RUNNER_TEMP}": str(tmp_path / "runner")}
+    argv = [sys.executable]
+    for arg in command[1:]:
+        for variable, value in substitutions.items():
+            arg = arg.replace(variable, value)
+        argv.append(arg)
+    completed = subprocess.run(
+        argv, cwd=data, capture_output=True, text=True, check=False,
+        env={**os.environ, "PYTHONPATH": str(data)},
+    )
+    assert completed.returncode == 0, completed.stderr
+    observed = json.loads(completed.stdout)
+    assert Path(observed["module"]) == engine / "scripts/model_week.py"
+    assert str(data) not in observed["path"]
+    assert "" not in observed["path"]
+    assert not marker.exists()
+    private_arg = observed["args"].index("--private-repo") + 1
+    assert Path(observed["args"][private_arg]) == data
+    output_arg = observed["args"].index("--out-dir") + 1
+    assert Path(observed["args"][output_arg]).is_relative_to(tmp_path / "runner")
 
 
 @pytest.mark.parametrize("change", [
