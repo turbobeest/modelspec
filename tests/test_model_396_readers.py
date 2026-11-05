@@ -78,8 +78,12 @@ def test_mistral_rule_keeps_real_output_labels(tmp_path):
     "Mistral Small 4\nOutput | text\nOutput | reasoning, text, image\n",
     "Mistral Small 4\nOutput\nText\nFeatures\nOutput\nText, image\n",
 ])
-def test_mistral_rule_refuses_conflicting_output_blocks_even_with_claim_label(tmp_path, text):
-    assert read(tmp_path, text, label="Output").outcome == "mismatch"
+@pytest.mark.parametrize("value", [["text"], ["text", "image"]])
+def test_mistral_rule_refuses_conflicting_output_blocks_even_with_claim_label(tmp_path, text, value):
+    result = read(tmp_path, text, label="Output", value=value)
+    assert result.outcome == "mismatch"
+    assert result.verification.verifier.method == "mistral-output-labels@1"
+    assert any(diff.field == "value" for diff in result.diffs)
 
 
 @pytest.mark.parametrize("url", [
@@ -103,7 +107,20 @@ def test_mistral_rule_requires_exact_primary_host_and_model_path(tmp_path, url):
     (MODEL, ("Mistral Small 4",), "Mistral-Small-4-Pro\nOutput: reasoning, text\n"),
 ])
 def test_mistral_rule_requires_exact_model_identity(tmp_path, subject, names, text):
-    assert read(tmp_path, text, subject=subject, names=names).outcome == "mismatch"
+    result = read(tmp_path, text, subject=subject, names=names)
+    if subject == MODEL:
+        assert result.outcome == "skipped"
+        assert result.verification is None
+    else:
+        assert result.outcome == "mismatch"
+
+
+@pytest.mark.parametrize("sibling", ["# Mistral Small 4 Pro", "Mistral Small 4 Pro"])
+def test_mistral_output_under_a_sibling_heading_does_not_inherit_an_earlier_name(tmp_path, sibling):
+    text = f"# Mistral Small 4\n{sibling}\nOutput: reasoning, text\n"
+    result = read(tmp_path, text)
+    assert result.outcome == "skipped"
+    assert result.verification is None
 
 
 def test_mistral_output_rule_does_not_drop_input_reasoning(tmp_path):

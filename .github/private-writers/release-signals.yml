@@ -278,6 +278,7 @@ jobs:
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install pipeline dependencies
+        # Browsers belong in read-only jobs. Unreadable HTTP prices remain explicit gaps here.
         run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow
       - name: Prepare the private review label
         env:
@@ -291,7 +292,7 @@ jobs:
       - name: Preserve the mechanically checked baseline
         run: |
           mkdir -p "$RUNNER_TEMP/before"
-          cp -R models verification "$RUNNER_TEMP/before/"
+          cp -R models offerings registry verification "$RUNNER_TEMP/before/"
       - name: Process one isolated work item
         env:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
@@ -313,11 +314,19 @@ jobs:
             --recheck-day "$RECHECK_DAY" \
             "${closed_pr[@]}"
           cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain allowed pricing copies and citation metadata for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signal-price-copies-${{ matrix.work.signal_id }}-${{ matrix.work.recheck_day }}
+          path: ${{ runner.temp }}/source-copies
+          retention-days: 35
+          if-no-files-found: ignore
       - name: Classify the generated change
         id: classify
         run: |
           mkdir -p "$RUNNER_TEMP/after"
-          cp -R models verification "$RUNNER_TEMP/after/"
+          cp -R models offerings registry verification "$RUNNER_TEMP/after/"
           python -I - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" "$RUNNER_TEMP/result.json" "$GITHUB_OUTPUT" <<'PY'
           import json, sys
           from pathlib import Path
@@ -362,6 +371,8 @@ jobs:
           echo "url=$issue_url" >> "$GITHUB_OUTPUT"
       - name: Validate cards and run two-key verification
         if: steps.classify.outputs.changed == 'true'
+        env:
+          MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
         run: |
           python -I -m scripts.validate_pr --all > "$RUNNER_TEMP/card-validation.json"
           python -I -m cli.modelspec.legacy verify --json > "$RUNNER_TEMP/verification.json"
@@ -391,7 +402,7 @@ jobs:
             branch="data/release-signal-${SIGNAL_ID//[^A-Za-z0-9._-]/-}-${RECHECK_DAY}"
             git switch -c "$branch"
           fi
-          git add models verification
+          git add models offerings registry/sources.yaml verification
           git commit -s \
             -m "pipeline: process release signal ${SIGNAL_ID} (MODEL-113)" \
             -m "Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>"

@@ -82,8 +82,9 @@ def check(tmp_path: Path, page: str, *, terms: str = SENTENCE,
 
 
 def assert_unbound(result):
-    assert result.outcome == "mismatch", result
-    assert [(diff.field, diff.found) for diff in result.diffs] == [("model", None)]
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_policy_recipe_retains_markup_and_leaves_html_default_text_unchanged():

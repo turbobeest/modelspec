@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from contextlib import ExitStack
 from datetime import date
 from pathlib import Path
 
@@ -103,6 +104,7 @@ def process(
     signal_id: str | None = None,
     recheck_day: int | None = None,
     closed_unmerged_pr: str | None = None,
+    price_fetcher=None,
 ) -> dict:
     payload = json.loads(pending.read_text(encoding="utf-8"))
     signal, recheck = _select_signal(
@@ -137,13 +139,28 @@ def process(
         if resolution.status == "uncertain":
             result["reason"] = resolution.reason
         if resolution.status == "new":
-            drafted = draft_signal(
-                signal,
-                root=root,
-                fetch=_fetch,
-                read_date=date.today(),
-                discover_huggingface=True,
-            )
+            from decision.sources import load_sources
+            from scripts.admission_drafter import load_source_terms
+            from scripts.offering_fetch import OfferingFetcher, OfferingHTTPFetcher
+
+            with ExitStack() as resources:
+                if price_fetcher is None:
+                    terms = load_source_terms(root)
+                    lab = resolution.model_id.split("/", 1)[0]
+                    client = resources.enter_context(httpx.Client())
+                    price_fetcher = resources.enter_context(OfferingFetcher(
+                        OfferingHTTPFetcher(client, lab=lab, terms=terms),
+                        lab=lab, terms=terms,
+                        sources=load_sources(root / "registry/sources.yaml"),
+                    ))
+                drafted = draft_signal(
+                    signal,
+                    root=root,
+                    fetch=_fetch,
+                    read_date=date.today(),
+                    discover_huggingface=True,
+                    price_fetcher=price_fetcher,
+                )
             if drafted.resolution.status == "uncertain":
                 result.update({
                     "status": "uncertain",
@@ -159,6 +176,11 @@ def process(
             result["sources"] = list(drafted.evidence_urls)
             result["firecrawl_credits"] = drafted.firecrawl_credits
             result["gather_failures"] = list(drafted.gather_failures)
+            result["offering"] = (
+                str(drafted.offering_path.relative_to(root)) if drafted.offering_path else None
+            )
+            result["price_gaps"] = list(drafted.price_gaps)
+            result["price_sources"] = list(drafted.price_sources)
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,

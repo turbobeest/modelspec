@@ -24,30 +24,30 @@ def claim() -> verify.Claim:
 
 
 @pytest.mark.parametrize(
-    ("page", "value"),
+    ("page", "value", "published"),
     [
-        ("Token Plan is open to new subscribers.", "open"),
-        ("MiniMax Token Plan is available for new subscriptions.", "open"),
-        ("Token Plan is available only to existing subscribers.", "existing_subscribers_only"),
-        ("Token Plan is closed to new subscribers.", "existing_subscribers_only"),
+        ("Token Plan is open to new subscribers.", "open", "Token Plan"),
+        ("MiniMax Token Plan is available for new subscriptions.", "open", "MiniMax Token Plan"),
+        ("Token Plan is available only to existing subscribers.", "existing_subscribers_only", "Token Plan"),
+        ("Token Plan is closed to new subscribers.", "existing_subscribers_only", "Token Plan"),
         ("Token Plan is no longer available for new subscriptions. "
-         "Existing subscribers can continue renewing.", "existing_subscribers_only"),
-        ("Token Plan has been retired.", "retired"),
-        ("Token Plan is discontinued for all subscribers.", "retired"),
-        ("## Token Plan\nRetired", "retired"),
+         "Existing subscribers can continue renewing.", "existing_subscribers_only", "Token Plan"),
+        ("Token Plan has been retired.", "retired", "Token Plan"),
+        ("Token Plan is discontinued for all subscribers.", "retired", "Token Plan"),
+        ("## Token Plan\nRetired", "retired", "Token Plan"),
         ("## Token Plan\nExisting subscribers only\n## M Plan\nOpen to new subscribers",
-         "existing_subscribers_only"),
+         "existing_subscribers_only", "Token Plan"),
         ("Plan | Availability\nToken Plan | Existing subscribers only\nM Plan | Open to new subscribers",
-         "existing_subscribers_only"),
+         "existing_subscribers_only", "Token Plan"),
         ("Features | Token Plan | M Plan\nAvailability | Retired | Open to new subscribers",
-         "retired"),
+         "retired", "Token Plan"),
     ],
 )
-def test_reader_reads_explicit_plan_availability(page, value):
+def test_reader_reads_explicit_plan_availability(page, value, published):
     reader = verify.SubscriptionPageExtractor()
 
     assert reader.accepts(page)
-    assert reader.extract(claim(), page) == [verify.Reading("MiniMax Token Plan", value)]
+    assert reader.extract(claim(), page) == [verify.Reading(published, value)]
 
 
 @pytest.mark.parametrize(
@@ -104,22 +104,22 @@ def _tier(*names: str) -> verify.Claim:
 )
 def test_family_purchase_statement_closes_the_named_tier(page):
     reader = verify.SubscriptionPageExtractor()
-    tier = _tier("Token Plan Plus")
+    tier = _tier("Token Plan Plus", "Token Plan")
 
     assert reader.accepts(page)
     assert reader.extract(tier, page) == [
-        verify.Reading("Token Plan Plus", "existing_subscribers_only")]
+        verify.Reading("Token Plan", "existing_subscribers_only")]
 
 
 def test_family_purchase_statement_closes_the_catalogue_tier_name():
-    """The filed name is the vendor plus the family plus one tier word."""
+    """The filed aliases explicitly include the family the page names."""
     reader = verify.SubscriptionPageExtractor()
-    tier = _tier("MiniMax Token Plan Plus", "Plus", "token-plus")
+    tier = _tier("MiniMax Token Plan Plus", "Plus", "token-plus", "Token Plan")
     page = "With the launch of M Plan, Token Plan is no longer available for new purchases."
 
     assert reader.accepts(page)
     assert reader.extract(tier, page) == [
-        verify.Reading("MiniMax Token Plan Plus", "existing_subscribers_only")]
+        verify.Reading("Token Plan", "existing_subscribers_only")]
 
 
 @pytest.mark.parametrize(
@@ -135,7 +135,7 @@ def test_family_purchase_statement_closes_the_catalogue_tier_name():
     ],
 )
 def test_family_purchase_statement_rejects_siblings_questions_and_open_wording(page):
-    assert verify.SubscriptionPageExtractor().extract(_tier("Token Plan Plus"), page) == []
+    assert verify.SubscriptionPageExtractor().extract(_tier("Token Plan Plus", "Token Plan"), page) == []
 
 
 @pytest.mark.parametrize("names", [("M Plan",), ("Token Pro",)])

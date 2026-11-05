@@ -243,11 +243,12 @@ def test_currency_with_mtok_header_is_a_per_million_token_price() -> None:
     assert (quantity.number, quantity.unit) == (4, "usd_per_1m_tokens")
 
 
-def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6") -> verify.Claim:
+def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6",
+                 aliases: tuple[str, ...] = ()) -> verify.Claim:
     return verify.Claim(
         target=verify.TargetRef(kind="fact", id=f"offering#{field}"),
         subject="provider/lab/model/global/standard",
-        names=(name,),
+        names=(name, *aliases),
         field=f"offering.price.{field}",
         label=field.replace("_", " ").title(),
         value=value,
@@ -256,6 +257,178 @@ def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6") -> 
         sources=(verify.SourceRef(source_id="pricing", snapshot_ref="sha256:" + "0" * 64,
                                   cited_regions=["prices"]),),
     )
+
+
+def _attribution_price_table(subject: str, *, grouped: bool) -> str:
+    header = ("Model | Base tokens\nName | Input | Output" if grouped
+              else "Model | Input tokens | Output tokens")
+    return f"{header}\n{subject} | $5 | $9\n"
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model",
+                                    "Fixture Model Global", "Fixture Model context caching discount"])
+def test_offering_price_rows_require_an_exact_registered_name(grouped, subject):
+    claim = _price_claim("input", 5, name="Fixture Model")
+    assert verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table(subject, grouped=grouped)) == []
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+def test_offering_price_row_preserves_its_normalized_exact_subject(grouped):
+    claim = _price_claim("input", 5, name="Fixture Model")
+    readings = verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table("FIXTURE--Model", grouped=grouped))
+    assert readings == [verify.Reading("FIXTURE--Model", "$5", "usd_per_1m_tokens")]
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize("grouped", [False, True], ids=["single-header", "grouped-header"])
+def test_offering_price_row_uses_an_explicit_alias_without_rewriting_it(grouped):
+    claim = replace(_price_claim("input", 5, name="Fixture Model"),
+                    names=("Fixture Model", "Fixture Model Global"))
+    readings = verify.OfferingPriceExtractor().extract(
+        claim, _attribution_price_table("Fixture Model Global", grouped=grouped))
+    assert readings == [verify.Reading("Fixture Model Global", "$5", "usd_per_1m_tokens")]
+    assert verify.compare(claim, readings) == []
+
+
+def _verify_scoped_price(store, text, field, value, *, aliases=()):
+    source = Source(
+        id="scoped-pricing", url="https://fixture.example/pricing",
+        kind="provider_documentation", normaliser="text-default",
+        cited_regions=[CitedRegion(id="prices", locator={"kind": "page"})],
+    )
+    ref = store.put(text.encode(), source_url=str(source.url))
+    claim = replace(_price_claim(field, value, name="Fixture Model", aliases=aliases), sources=(
+        SourceRef(source_id=source.id, snapshot_ref=ref, cited_regions=["prices"]),
+    ))
+    return verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+                         verify.deterministic_extractors(), today=TODAY)
+
+
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_full_verifier_cannot_fall_through_to_a_sibling_price(store, subject):
+    text = (f"Model | Input | Output\n{subject} | $5 | $9\n"
+            "Prices are listed per million tokens.\n")
+    result = _verify_scoped_price(store, text, "input", 5)
+    assert result.outcome == "skipped"
+    assert result.verification is None
+
+
+@pytest.mark.parametrize("exact_first", [False, True])
+@pytest.mark.parametrize(("published", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_full_verifier_keeps_exact_rows_when_a_sibling_is_on_the_same_page(
+        store, exact_first, published, aliases):
+    rows = [f"{published} | $2 | $8", "Fixture Model Ultra | $5 | $9"]
+    if not exact_first:
+        rows.reverse()
+    text = "Model | Input | Output\n" + "\n".join(rows) + "\nPrices per million tokens.\n"
+    for field, expected, sibling in [("input", 2, 5), ("output", 8, 9)]:
+        assert _verify_scoped_price(store, text, field, expected, aliases=aliases).outcome == "verified"
+        assert _verify_scoped_price(store, text, field, sibling, aliases=aliases).outcome == "mismatch"
+
+
+@pytest.mark.parametrize("text", [
+    "# Fixture Model\n# Fixture Model Ultra\nInput\n$5\nOutput\n$9\n",
+    "# Fixture Model\n# Fixture Model Ultra\nInput: $5\nOutput: $9\n",
+])
+def test_full_verifier_keeps_model_headings_with_their_own_prices(store, text):
+    assert _verify_scoped_price(store, text, "input", 5).outcome == "mismatch"
+
+
+def _verify_subject_fact(store, text, field, value, *, name="Fixture Model", aliases=(),
+                         label=None, unit=None):
+    source = Source(id="subject-page", url="https://fixture.example/model",
+                    kind="lab_documentation", normaliser="text-default",
+                    cited_regions=[CitedRegion(id="page", locator={"kind": "page"})])
+    ref = store.put(text.encode(), source_url=str(source.url))
+    claim = replace(_price_claim("input", 0, name=name, aliases=aliases),
+                    field=field, value=value, label=label, unit=unit,
+                    sources=(SourceRef(source_id=source.id, snapshot_ref=ref, cited_regions=["page"]),))
+    return verify.verify(claim, verify.StoredRegions(store, {source.id: source}),
+                         verify.deterministic_extractors(), today=TODAY)
+
+
+@pytest.mark.parametrize("subject", ["Fixture Model Ultra", "Ultra Fixture Model"])
+@pytest.mark.parametrize(("field", "value", "label", "body"), [
+    ("model.context_window", 5000, "context window", "Context window\n5000"),
+    ("model.lifecycle", "active", None, "This model is available.\nDetails follow."),
+    ("feature.tool_calling", "supported", "Function calling", "Function calling\nSupported"),
+    ("model.context_window", 5000, "context window", "Context window: 5000\nUnit: tokens"),
+])
+def test_full_verifier_does_not_attribute_other_facets_to_a_sibling(
+        store, subject, field, value, label, body):
+    result = _verify_subject_fact(store, f"# {subject}\n{body}\n", field, value, label=label)
+    assert result.verification is None
+    assert result.outcome == "skipped"
+
+
+@pytest.mark.parametrize("published", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_full_verifier_retention_scope_names_the_whole_model(store, published):
+    text = (f"For models requiring review (currently {published}): "
+            "prompts are retained for 30 days.\n")
+    result = _verify_subject_fact(store, text, "offering.data.retention", 30, unit="days")
+    assert result.verification is None
+    assert result.outcome == "skipped"
+
+
+@pytest.mark.parametrize("missing_value", [False, True])
+def test_full_verifier_never_supplies_a_missing_llm_subject(missing_value):
+    page = "Fixture Model Ultra costs $5 per million input tokens."
+    reply = [] if missing_value else [{"value": "$5", "unit": "usd_per_1m_tokens",
+                                      "quoted_sentence": page}]
+    reader = verify.LLMExtractor(lambda _: json.dumps(reply), agent="fixture-reader",
+                                model="fixture", model_family="independent-fixture")
+    claim = _price_claim("input", None if missing_value else 5, name="Fixture Model")
+
+    class Regions:
+        def text(self, *_args):
+            return page
+
+    result = verify.verify(claim, Regions(), [reader], today=TODAY)
+    assert result.verification is None
+    assert result.outcome == "skipped"
+
+
+@pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
+@pytest.mark.parametrize("heading", ["Fixture Model Ultra", "Ultra Fixture Model",
+                                      "# Fixture Model\n\n# Fixture Model Ultra"])
+def test_scoped_btok_price_never_verifies_another_models_heading(store, field, value, heading):
+    text = f"{heading}\nPrice (per Btok / per Mtok) | $5000 / $5\nOutput tokens are free.\n"
+    assert _verify_scoped_price(store, text, field, value).outcome != "verified"
+
+
+@pytest.mark.parametrize(("field", "value"), [("input", 5), ("output", 0)])
+@pytest.mark.parametrize(("heading", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_scoped_btok_price_verifies_its_exact_name_or_explicit_alias(
+        store, field, value, heading, aliases):
+    text = f"{heading}\nPrice (per Btok / per Mtok) | $5000 / $5\nOutput tokens are free.\n"
+    result = _verify_scoped_price(store, text, field, value, aliases=aliases)
+    assert result.outcome == "verified"
+    assert result.verification.method == "offering-price-table@1"
+
+
+@pytest.mark.parametrize("published", ["Fixture Model Ultra", "Ultra Fixture Model"])
+def test_cached_price_prose_never_verifies_an_extended_model_name(store, published):
+    text = (f"{published} caching is billed at a lower rate ($0.20 USD per million tokens).\n"
+            "Usage | Price\nInput | $9\n")
+    assert _verify_scoped_price(store, text, "cached_input", .2).outcome != "verified"
+
+
+@pytest.mark.parametrize(("published", "aliases"), [
+    ("FIXTURE--Model", ()), ("Fixture Model Global", ("Fixture Model Global",)),
+])
+def test_cached_price_prose_verifies_its_exact_name_or_explicit_alias(store, published, aliases):
+    text = (f"{published} caching is billed at a lower rate ($0.20 USD per million tokens).\n"
+            "Usage | Price\nInput | $9\n")
+    result = _verify_scoped_price(store, text, "cached_input", .2, aliases=aliases)
+    assert result.outcome == "verified"
+    assert result.verification.method == "offering-price-table@1"
 
 
 def test_offering_price_reader_carries_models_across_continuation_rows() -> None:
@@ -281,8 +454,10 @@ GPT-5.4 Global | Input: $2.50 Cached Input: $0.25 Output: $15 | Input: $1.25 Out
     extractor = verify.OfferingPriceExtractor()
     for field, value in (("input", 2.5), ("output", 15), ("cached_input", .25),
                          ("batch_input", 1.25), ("batch_output", 7.5)):
-        claim = _price_claim(field, value, name="GPT-5.4")
-        assert verify.compare(claim, extractor.extract(claim, text)) == []
+        claim = _price_claim(field, value, name="GPT-5.4", aliases=("GPT-5.4 Global",))
+        readings = extractor.extract(claim, text)
+        assert all(reading.subject == "GPT-5.4 Global" for reading in readings)
+        assert verify.compare(claim, readings) == []
 
 
 def _deepseek_price_text(layout: str) -> str:
@@ -508,8 +683,13 @@ def test_grouped_header_section_keeps_standard_and_batch_prices_separate(
 ])
 def test_grouped_header_price_tables_are_read(name: str, field: str, value: float) -> None:
     """MODEL-235: Anthropic's two-row headers, read table by table."""
-    claim = _price_claim(field, value, name=name)
+    published = {
+        "Claude Opus 5.5": "Claude Opus 5.5 For agentic coding",
+        "Claude Sonnet 5.5": "Claude Sonnet 5.5 The best mix",
+    }.get(name, name)
+    claim = _price_claim(field, value, name=name, aliases=(published,))
     readings = verify.OfferingPriceExtractor().extract(claim, ANTHROPIC_TABLES)
+    assert [reading.subject for reading in readings] == [published]
     assert verify.compare(claim, readings) == []
 
 
@@ -585,15 +765,19 @@ def test_band_tiered_table_reads_the_price_column_of_the_lowest_band() -> None:
         ("qwen3-max", "output", 6, "$6"),
     )
     for name, field, number, published in cases:
-        claim = _price_claim(field, number, name=name)
+        alias = f"{name} context caching discount"
+        claim = _price_claim(field, number, name=name, aliases=(alias,))
         readings = extractor.extract(claim, text)
+        assert [reading.subject for reading in readings] == [alias]
         assert [reading.value for reading in readings] == [published]
         assert verify.compare(claim, readings) == []
 
-    higher = _price_claim("input", 2.4, name="qwen3-max")
+    higher = _price_claim("input", 2.4, name="qwen3-max",
+                          aliases=("qwen3-max context caching discount",))
     assert verify.compare(higher, extractor.extract(higher, text)) != []
     for field in ("cached_input", "batch_input", "batch_output"):
-        claim = _price_claim(field, 2, name="qwen3.8-max-0902")
+        claim = _price_claim(field, 2, name="qwen3.8-max-0902",
+                             aliases=("qwen3.8-max-0902 context caching discount",))
         assert extractor.extract(claim, text) == []
 
 
@@ -972,7 +1156,7 @@ AI Ultra | 5x or 20x higher than AI Pro limits depending on your subscription
         (
             "offering.subscription.usage_allowance",
             "5x more usage than Pro",
-            ("Claude Max 5x", "Max 5x"),
+            ("Claude Max 5x", "Max 5x", "5x"),
             "Choose 5x or 20x more usage than Pro\n",
         ),
         (
@@ -1164,10 +1348,10 @@ Price | $ 50 /month
         ("offering.subscription.billing_period", "monthly", ("Max",), ZAI_CARD),
         ("offering.subscription.price", 55, ("Max",), MINIMAX_TABLE),
         ("offering.subscription.billing_period", "monthly", ("Ultra",), MINIMAX_TABLE),
-        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x"),
+        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x", "20x"),
          GEMINI_TIERS),
         ("offering.subscription.usage_allowance", "5x higher usage limits vs. AI Pro",
-         ("Google AI Ultra 5x", "Ultra 5x"), GEMINI_TIERS),
+         ("Google AI Ultra 5x", "Ultra 5x", "5x"), GEMINI_TIERS),
         ("offering.subscription.price", 125, ("Premium seat",), SEAT_TABLE),
         ("offering.subscription.programmatic_or_agent_use",
          "ChatGPT, ChatGPT Work, and Codex", ("Standard seat",), SEAT_TABLE),
@@ -1348,7 +1532,7 @@ def test_no_subscription_reading_is_page_chrome(field) -> None:
         ("offering.subscription.price", 20, ("Standard seats",), TEAM_CARD),
         # Another tier's column and another tier's line.
         ("offering.subscription.price", 22, ("Max",), MINIMAX_TABLE),
-        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x"),
+        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x", "20x"),
          GEMINI_TIERS),
         # A price published only as billed annually is not a monthly plan.
         ("offering.subscription.billing_period", "monthly", ("Pro",),
@@ -1404,7 +1588,7 @@ def test_subscription_page_preserves_codex_restrictions(page) -> None:
 
     readings = verify.SubscriptionPageExtractor().extract(claim, page)
 
-    assert readings == [verify.Reading("ChatGPT Plus", page)]
+    assert readings == [verify.Reading("Plus plans", page)]
     assert verify.compare(claim, readings) == [verify.Diff("value", "Codex", page)]
 
 
@@ -1449,8 +1633,8 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
     before = log.path.read_text()
     report = verify.run(verify.Queue(log.directory), log, regions,
                         verify.deterministic_extractors(), today=TODAY)
-    # Only the skipped claim is still pending: it was never verified.
-    assert [r.target.id for r in report.results] == ["sol-prose-no-extractor"]
+    # Unreadable and unbound claims remain pending, with no fabricated receipt.
+    assert [r.target.id for r in report.results] == ["orion-absent", "sol-prose-no-extractor"]
     assert log.path.read_text() == before
 
 
@@ -2441,11 +2625,10 @@ def test_llm_cache_key_is_copy_region_facet_and_names(tmp_path, store, regions) 
 
 
 def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store, regions) -> None:
-    # The prompt names the subject, and a reader answers mostly for it; a row with
-    # no subject is read as the named one. A reply cached for one sibling must not
-    # answer for another, or it can confirm a value the source never gave it.
+    # A reply cached for one named subject must not answer for another, or it can
+    # confirm a value the source never gave that sibling.
     replies = iter([
-        json.dumps([{"subject": None, "value": "400,000", "unit": "tokens",
+        json.dumps([{"subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
                      "quoted_sentence": "It accepts up to 400,000 tokens of context."}]),
         json.dumps([]),
     ])
@@ -2464,7 +2647,9 @@ def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store
                               "target": verify.TargetRef(kind="fact", id="luna#context")})
 
     assert verify.verify(claim, regions, [extractor], today=TODAY).outcome == "verified"
-    assert verify.verify(sibling, regions, [extractor], today=TODAY).outcome == "mismatch"
+    unbound = verify.verify(sibling, regions, [extractor], today=TODAY)
+    assert unbound.outcome == "skipped"
+    assert unbound.verification is None
     assert len(seen) == 2 and "GPT-6 Luna" in seen[1]
 
 
@@ -2669,10 +2854,10 @@ def _plan_claim(field, value, names, subject="provider/subscription/plan"):
         ("offering.subscription.allowance.relative_to", "openai/subscription/plus",
          ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
         ("offering.subscription.allowance.multiplier", 20,
-         ("Google AI Ultra 20x", "Ultra 20x"), "google-gemini-api/subscription/ai-ultra-20x",
+         ("Google AI Ultra 20x", "Ultra 20x", "20x"), "google-gemini-api/subscription/ai-ultra-20x",
          GEMINI_TIERS),
         ("offering.subscription.allowance.relative_to", "google-gemini-api/subscription/ai-pro",
-         ("Google AI Ultra 5x", "Ultra 5x"), "google-gemini-api/subscription/ai-ultra-5x",
+         ("Google AI Ultra 5x", "Ultra 5x", "5x"), "google-gemini-api/subscription/ai-ultra-5x",
          GEMINI_TIERS),
         ("offering.subscription.allowance.window", "five hours", ("Lite",),
          "zai/subscription/glm-coding-lite",
@@ -2820,7 +3005,7 @@ def test_review_counterexamples_do_not_verify(field, value, names, subject, page
          "moonshot/subscription/moderato", KIMI_PAGE),
         ("offering.subscription.surfaces",
          ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
-         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         ("Claude Max 5x", "Max 5x", "Max plan", "Max"), "anthropic/subscription/max-5x",
          CLAUDE_CODE_ARTICLE),
     ],
 )
@@ -3318,8 +3503,9 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE,))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch"
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert result.diffs == ()
 
     cited = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     named_only = "Nimbus 3 weights are in this repository.\n"
@@ -3329,8 +3515,9 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
         {"nimbus-licence": "https://example.test/LICENSE"},
     )
     result = verify.verify(cited, unbound, [reader], today=TODAY)
-    assert result.outcome == "mismatch"
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert result.diffs == ()
 
     linked = "license_link: https://example.test/LICENSE\nNimbus 3\n"
     bound = _KindRegions(
@@ -3352,8 +3539,9 @@ def test_a_raw_page_url_does_not_bind_a_licence() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert [(diff.field, diff.found) for diff in result.diffs] == [("model", None)]
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_deterministic_extractors_do_not_claim_a_licence_region() -> None:
@@ -3548,8 +3736,9 @@ def test_license_other_does_not_bind_the_apache_text() -> None:
     reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_sibling_readme_does_not_bind_the_licence() -> None:
@@ -3570,8 +3759,9 @@ def test_a_sibling_readme_does_not_bind_the_licence() -> None:
         sources=(_LICENCE, _README),
     )
     result = verify.verify(claim, regions, [reader], today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_apache_2_0_binds_the_apache_org_text() -> None:
@@ -3702,8 +3892,9 @@ def test_a_conflicting_license_link_does_not_bind_the_local_mit_file() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_matching_license_link_binds_across_raw_and_blob() -> None:
@@ -3727,8 +3918,9 @@ def test_license_mit_does_not_bind_a_local_file_whose_text_is_apache() -> None:
         quote=APACHE_QUOTE,
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_mit_binds_a_local_mit_file() -> None:
@@ -3762,8 +3954,9 @@ def test_a_readme_or_config_registered_as_licence_text_does_not_bind_by_location
             page_url=page_url,
         )
         assert rule is None, name
-        assert result.outcome == "mismatch", (name, result)
-        assert result.diffs[0].field == "model"
+        assert result.outcome == "skipped", (name, result)
+        assert result.verification is None
+        assert result.diffs == ()
 
 
 def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
@@ -3773,8 +3966,9 @@ def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 _GEMMA_TERMS = (
@@ -3880,11 +4074,13 @@ def test_verify_uses_base_model_and_ignores_an_unrelated_model() -> None:
     bound = verify.verify(claim(_GEMMA_BASE), regions, [reader], today=TODAY)
     assert bound.outcome == "verified", bound
     missing = verify.verify(claim(None), regions, [reader], today=TODAY)
-    assert missing.outcome == "mismatch", missing
-    assert missing.diffs[0].field == "model"
+    assert missing.outcome == "skipped", missing
+    assert missing.verification is None
+    assert missing.diffs == ()
     other = verify.verify(claim("meta/llama-3", subject="lab/unrelated"), regions, [reader], today=TODAY)
-    assert other.outcome == "mismatch", other
-    assert other.diffs[0].field == "model"
+    assert other.outcome == "skipped", other
+    assert other.verification is None
+    assert other.diffs == ()
 
 
 def _bound_gemma_page(page: str, text: str = _GEMMA_TERMS) -> str | None:
@@ -4051,8 +4247,9 @@ def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_license_other_and_the_apache_text_still_do_not_bind() -> None:
@@ -4062,8 +4259,9 @@ def test_license_other_and_the_apache_text_still_do_not_bind() -> None:
         page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_a_sibling_repo_readme_still_does_not_bind() -> None:
@@ -4075,8 +4273,9 @@ def test_a_sibling_repo_readme_still_does_not_bind() -> None:
         subject="google/gemma-4-e2b-it",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_the_readme_repo_name_names_querit_4b() -> None:
@@ -4102,8 +4301,9 @@ def test_querit_does_not_match_querit_4b() -> None:
         subject="querit/querit",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
     bare = "license: apache-2.0\nWeights are in this repository.\n"
     assert "querit" not in bare.casefold()
@@ -4115,8 +4315,9 @@ def test_querit_does_not_match_querit_4b() -> None:
         subject="querit/querit",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_querit_4b_does_not_match_querit_4b_pro() -> None:
@@ -4128,8 +4329,9 @@ def test_querit_4b_does_not_match_querit_4b_pro() -> None:
         subject="querit/querit-4b",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
     bare = "license: apache-2.0\nWeights are in this repository.\n"
     rule, result = _bound_readme(
@@ -4140,8 +4342,9 @@ def test_querit_4b_does_not_match_querit_4b_pro() -> None:
         subject="querit/querit-4b",
     )
     assert rule is None
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_querit_and_querit_4b_still_match_their_own_names() -> None:
@@ -4636,8 +4839,9 @@ def test_canonical_mit_without_a_binding_page_does_not_verify() -> None:
     )
     claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE,))
     result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].field == "model"
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 def test_permitted_with_conditions_on_canonical_mit_is_a_mismatch() -> None:

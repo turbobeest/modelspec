@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections.abc import Callable, Mapping
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
@@ -15,6 +17,7 @@ from urllib.parse import urlencode, urlsplit
 import yaml
 
 from decision.excluded import excluded_sources
+from decision.sources import CopyStore, FetchResult as SourceFetchResult, load_sources
 from schema.card import ModelCard
 from scripts import attribution
 from scripts.refresh_leaderboards import check_score_only
@@ -61,6 +64,9 @@ class DraftResult:
     evidence_urls: tuple[str, ...]
     firecrawl_credits: int = 0
     gather_failures: tuple[str, ...] = ()
+    offering_path: Path | None = None
+    price_gaps: tuple[dict, ...] = ()
+    price_sources: tuple[dict, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -552,6 +558,21 @@ def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date)
     return path
 
 
+class _PriceTransport:
+    def __init__(self, fetch: Callable[[str], FetchResult]) -> None:
+        self._fetch = fetch
+
+    def fetch(self, url: str) -> SourceFetchResult:
+        try:
+            response = _fetch_allowed(self._fetch, url)
+        except Exception as exc:
+            return SourceFetchResult("unreachable", error=f"{type(exc).__name__}: {exc}")
+        return SourceFetchResult(
+            "ok", 200, body=response.body, content_type=response.content_type,
+            resolved_urls=(response.url,),
+        )
+
+
 def draft_signal(
     signal,
     *,
@@ -561,6 +582,8 @@ def draft_signal(
     models_dev_url: str = MODELS_DEV_URL,
     firecrawl_budget: FirecrawlBudget | None = None,
     discover_huggingface: bool = False,
+    price_fetcher=None,
+    source_cache: Path | None = None,
 ) -> DraftResult:
     """Draft one new card. X is never fetched or written as a source."""
     gathered = gather_signal(
@@ -620,12 +643,33 @@ def draft_signal(
         encoding="utf-8",
     )
     ModelCard.from_yaml_file(card_path)
+    from scripts.admission_drafter import load_source_terms
+    from scripts.offering_drafter import draft_offering
+    from scripts.offering_fetch import OfferingFetcher
+
+    pricing = nullcontext(price_fetcher) if price_fetcher is not None else OfferingFetcher(
+        _PriceTransport(fetch), lab=provider, terms=load_source_terms(root),
+        sources=load_sources(root / "registry/sources.yaml"), renderer=False,
+    )
+    with pricing as pricing_fetcher:
+        offering = draft_offering(
+            root=root, model_id=resolution.model_id, fetcher=pricing_fetcher,
+            store=CopyStore(source_cache or os.environ.get("MODELSPEC_SOURCE_CACHE")
+                            or root / "source-copies"),
+            today=read_date,
+        )
+        offering.write(root)
+        price_report = offering.to_dict()
+        price_credits = pricing_fetcher.credits_spent
     return DraftResult(
         resolution,
         card_path,
         gathered.evidence_urls,
-        (firecrawl_budget or FirecrawlBudget()).spent,
+        (firecrawl_budget or FirecrawlBudget()).spent + price_credits,
         gathered.gather_failures,
+        root / offering.offering_path if offering.offering_path else None,
+        tuple(price_report["gaps"]),
+        tuple(price_report["sources"]),
     )
 
 
