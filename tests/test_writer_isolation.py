@@ -65,6 +65,55 @@ CURATION_FIRECRAWL_RUN = (
     '--firecrawl-credit-cap 10 --firecrawl-key-from-env\nfi\n'
     'cat benchmarks/_curation/reports/change_report.md >> "$GITHUB_STEP_SUMMARY"'
 )
+DAILY_DATA_GUARD = {
+    "name": "Refuse code and symlinks in linked data paths",
+    "working-directory": ".",
+    "run": "python -I data/.github/scripts/check_linked_data.py --engine engine --data data",
+}
+DAILY_GUARDED_LINK = {
+    "name": LINK_NAME,
+    "working-directory": ".",
+    "run": r"""set -euo pipefail
+paths="$(python -I engine/pipeline/data_source.py paths)"
+while IFS= read -r P; do
+  [ -n "$P" ] || continue
+  rm -rf "engine/$P"
+  if [ -e "data/$P" ]; then
+    mkdir -p "$(dirname "engine/$P")"
+    ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+  fi
+done <<< "$paths"
+purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+mkdir -p "$purelib"
+printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
+""",
+}
+RENDERED_FIRECRAWL_STEP = {
+    "name": "Re-verify the rotating rendered slice",
+    "id": "verify",
+    "continue-on-error": True,
+    "env": {"FIRECRAWL_API_KEY": FIRECRAWL_ENV, "RUN_ID": "${{ github.run_id }}"},
+    "run": r"""set -euo pipefail
+python -I .github/scripts/rendered_reread.py --root . \
+  --state registry/rendered-reread-state.json \
+  --report docs/evidence/g2-ios/MODEL-336-reread.json \
+  --run-id "$RUN_ID" --ledger-dir "$RUNNER_TEMP/rendered-ledger" --write
+""",
+}
+PRICE_RECONFIRM_GUARD = {
+    "name": "Prove a no-change run wrote only reconfirmations and dated citations",
+    "id": "reconfirm",
+    "if": (
+        "inputs.dry_run != true && steps.result.outputs.changes == '0' && "
+        "steps.result.outputs.reconfirmed != '0'"
+    ),
+    "run": r"""# MODEL-423: appended log and queue lines, and dated citations on references
+# whose registered source is cite-only. Anything else fails.
+python -I .github/scripts/price_reread_guard.py --report "$RUNNER_TEMP/report.json"
+echo "log_only=true" >> "$GITHUB_OUTPUT"
+""",
+}
 BROWSER = re.compile(r"\b(?:playwright|puppeteer|selenium|chromium|firefox|webkit)\b", re.I)
 # Writer `run:` text is an allowlist. `cd` is rejected: jobs set
 # `working-directory` or call `git -C`, and `cd` would hide where a later
@@ -78,8 +127,8 @@ BROWSER = re.compile(r"\b(?:playwright|puppeteer|selenium|chromium|firefox|webki
 # `release_signals.*`, `pipeline.*`, or `pip`. Only the price workflow's render
 # job, with exactly contents: read, may install Chromium and its hashed Python
 # requirements. The guard identifies that workflow by its top-level name.
-# A script path must be
-# `engine/...` with no `..` and must not be a data path the link step mounts
+# Daily research and price reconfirmation permit only their exact private guard steps.
+# Other script paths must be `engine/...` with no `..` and must not be a data path the link step mounts
 # (`models/`, `benchmarks/`, ...). After the link step, a redirection,
 # `cp`/`mv`/`ln` destination, `tar -C`, `unzip -d`, or
 # `gh run download --dir`/`-D` whose path is under `data/` is a restore.
@@ -175,11 +224,11 @@ def _document(text: str) -> dict:
 
 
 def _canonical_link() -> dict:
-    for job in _document(_text("daily-research"))["jobs"].values():
+    for job in _document(_text("price-reread"))["jobs"].values():
         for step in job.get("steps") or []:
             if step.get("name") == LINK_NAME:
                 return step
-    raise AssertionError("daily-research has no link step")
+    raise AssertionError("price-reread has no link step")
 
 
 def cache_problems(document: dict) -> list[str]:
@@ -204,7 +253,7 @@ def _has_firecrawl_secret(value) -> bool:
 
 
 def firecrawl_secret_problems(document: dict, *, workflow_file: str | None = None) -> list[str]:
-    """Only the two existing, bounded scraper steps may receive the key."""
+    """Only the reviewed, bounded scraper steps may receive the key."""
     problems = []
     if _has_firecrawl_secret({k: v for k, v in document.items() if k != "jobs"}):
         problems.append("workflow: Firecrawl secret outside the fallback step env")
@@ -218,6 +267,20 @@ def firecrawl_secret_problems(document: dict, *, workflow_file: str | None = Non
         curation = (workflow_file == "curation-benchmarks.yml"
                     and document.get("name") == "Curation watcher" and job_name == "watch"
                     and job.get("permissions") == {"contents": "read", "actions": "read"})
+        rendered = (
+            workflow_file == "rendered-reread.yml"
+            and document.get("name") == "Weekly rendered source re-read"
+            and document.get("on") == {"schedule": [{"cron": "17 6 * * 1"}]}
+            and job_name == "reread"
+            and job.get("if") == (
+                "github.event_name == 'schedule' && github.ref == 'refs/heads/main' && "
+                "github.run_attempt == 1"
+            )
+            and job.get("defaults") == {"run": {"working-directory": "data"}}
+            and job.get("permissions") == {
+                "contents": "write", "pull-requests": "write", "issues": "write", "actions": "read",
+            }
+        )
         if _has_firecrawl_secret({k: v for k, v in job.items() if k != "steps"}):
             problems.append(f"{job_name}: Firecrawl secret outside the fallback step env")
         for step in job.get("steps") or []:
@@ -228,7 +291,8 @@ def firecrawl_secret_problems(document: dict, *, workflow_file: str | None = Non
                          and step.get("run", "").strip() == FIRECRAWL_FETCH_RUN)
             curation_step = (curation and step.get("name") == CURATION_FIRECRAWL_STEP
                              and step.get("run", "").strip() == CURATION_FIRECRAWL_RUN)
-            if ((paid_step or curation_step) and not step.get("uses")
+            rendered_step = rendered and step == RENDERED_FIRECRAWL_STEP
+            if ((paid_step or curation_step or rendered_step) and not step.get("uses")
                     and env.get("FIRECRAWL_API_KEY") == FIRECRAWL_ENV):
                 env.pop("FIRECRAWL_API_KEY")
                 copy["env"] = env
@@ -260,7 +324,7 @@ def isolation_problems(text: str, *, workflow_file: str | None = None) -> list[s
     canonical = _canonical_link()
     for job_name, job in document["jobs"].items():
         problems.extend(_job_problems(str(job_name), job, canonical,
-                                      workflow_name=document.get("name")))
+                                      workflow_name=document.get("name"), workflow_file=workflow_file))
     return problems
 
 
@@ -970,13 +1034,24 @@ def _workdir(job: dict, step: dict) -> str:
 
 def _job_problems(
     job_name: str, job: dict, canonical: dict, *, workflow_name: str | None,
+    workflow_file: str | None,
 ) -> list[str]:
     problems: list[str] = []
     steps = job.get("steps") or []
+    split_guard = (workflow_file == "daily-research.yml"
+                   and workflow_name == "Daily model research" and job_name == "research")
+    if split_guard:
+        canonical = DAILY_GUARDED_LINK
+        guards = [index for index, step in enumerate(steps) if step == DAILY_DATA_GUARD]
+        links = [index for index, step in enumerate(steps) if step.get("name") == LINK_NAME]
+        if len(guards) != 1 or len(links) != 1 or guards[0] + 1 != links[0]:
+            problems.append(f"{job_name}: shared data guard must run immediately before the link step")
     render_install_allowed = (
         workflow_name == PRICE_WORKFLOW_NAME and job_name == "render"
         and job.get("permissions") == {"contents": "read"}
     )
+    reconfirm_guard = (workflow_file == "price-reread.yml"
+                       and workflow_name == PRICE_WORKFLOW_NAME and job_name == "reread")
     runs_python = False
     for step in steps:
         run = step.get("run") or ""
@@ -997,6 +1072,10 @@ def _job_problems(
         for tokens in _commands(run):
             if tokens is None:
                 problems.append(f"{job_name}: unparseable shell")
+                continue
+            if split_guard and step == DAILY_DATA_GUARD:
+                continue
+            if reconfirm_guard and step == PRICE_RECONFIRM_GUARD and workdir == "data":
                 continue
             if render_install_allowed and tokens in (PLAYWRIGHT_INSTALL, HASHED_RENDER_INSTALL):
                 continue
@@ -1043,6 +1122,95 @@ def test_writer_workflows_keep_the_data_checkout_off_the_import_path(name: str) 
     assert isolation_problems(_text(name), workflow_file=f"{name}.yml") == []
 
 
+@pytest.mark.parametrize("change", [
+    "missing", "after-link", "restore-between", "conditional", "continue-on-error",
+    "working-directory", "not-isolated", "script", "extra-command", "link",
+])
+def test_daily_research_requires_the_shared_guard_before_its_unchanged_link(change) -> None:
+    document = _document(_text("daily-research"))
+    assert isolation_problems(yaml.safe_dump(document), workflow_file="daily-research.yml") == []
+    steps = document["jobs"]["research"]["steps"]
+    guard = next(step for step in steps
+                 if step.get("name") == "Refuse code and symlinks in linked data paths")
+    link = next(step for step in steps if step.get("name") == LINK_NAME)
+    if change == "missing":
+        steps.remove(guard)
+    elif change == "after-link":
+        steps.remove(guard)
+        steps.insert(steps.index(link) + 1, guard)
+    elif change == "restore-between":
+        steps.insert(steps.index(link), {
+            "uses": "actions/download-artifact@v4", "with": {"path": "data/models"},
+        })
+    elif change == "conditional":
+        guard["if"] = "false"
+    elif change == "continue-on-error":
+        guard["continue-on-error"] = True
+    elif change == "working-directory":
+        guard["working-directory"] = "data"
+    elif change == "not-isolated":
+        guard["run"] = guard["run"].replace("python -I", "python")
+    elif change == "script":
+        guard["run"] = guard["run"].replace("check_linked_data.py", "other.py")
+    elif change == "extra-command":
+        guard["run"] += "; python -I data/other.py"
+    elif change == "link":
+        link["run"] += "\necho planted >> data/models/x.yaml\n"
+    assert isolation_problems(yaml.safe_dump(document), workflow_file="daily-research.yml")
+
+
+@pytest.mark.parametrize("identity", ["file", "unknown-file", "workflow", "job"])
+def test_only_daily_research_may_invoke_its_private_guard(identity) -> None:
+    document = _document(_text("daily-research"))
+    assert isolation_problems(yaml.safe_dump(document), workflow_file="daily-research.yml") == []
+    filename = "daily-research.yml"
+    if identity == "file":
+        filename = "price-reread.yml"
+    elif identity == "unknown-file":
+        filename = None
+    elif identity == "workflow":
+        document["name"] = "Other writer"
+    elif identity == "job":
+        document["jobs"]["other"] = document["jobs"].pop("research")
+    assert any("python invocation is not an allowed isolated form" in problem
+               for problem in isolation_problems(yaml.safe_dump(document), workflow_file=filename))
+
+
+@pytest.mark.parametrize("change", [
+    "name", "id", "condition", "not-isolated", "script", "working-directory",
+    "continue-on-error", "extra-command", "file", "job",
+])
+def test_price_reconfirmation_allows_only_its_exact_private_guard(change) -> None:
+    document = _document(_text("price-reread"))
+    assert isolation_problems(yaml.safe_dump(document), workflow_file="price-reread.yml") == []
+    job = document["jobs"]["reread"]
+    step = next(step for step in job["steps"] if step.get("id") == "reconfirm")
+    filename = "price-reread.yml"
+    if change == "name":
+        step["name"] = "Other guard"
+    elif change == "id":
+        step["id"] = "other"
+    elif change == "condition":
+        step["if"] = "always()"
+    elif change == "not-isolated":
+        step["run"] = step["run"].replace("python -I", "python")
+    elif change == "script":
+        step["run"] = step["run"].replace("price_reread_guard.py", "other.py")
+    elif change == "working-directory":
+        job["defaults"]["run"]["working-directory"] = "engine"
+    elif change == "continue-on-error":
+        step["continue-on-error"] = True
+    elif change == "extra-command":
+        step["run"] += "python -I data/other.py\n"
+    elif change == "file":
+        filename = "other.yml"
+    elif change == "job":
+        document["jobs"]["other"] = document["jobs"].pop("reread")
+    assert any("python" in problem for problem in isolation_problems(
+        yaml.safe_dump(document), workflow_file=filename,
+    ))
+
+
 @pytest.mark.parametrize("path", sorted(WRITERS.glob("*.yml")), ids=lambda path: path.stem)
 def test_every_private_writer_rejects_shared_caches(path: Path) -> None:
     assert cache_problems(_document(path.read_text(encoding="utf-8"))) == []
@@ -1056,7 +1224,7 @@ def test_setup_python_cache_inputs_are_rejected(cache: str | None, job_name: str
                 if step.get("uses") == "actions/setup-python@v5")
     step["with"]["cache"] = cache
     assert f"{job_name}: setup-python cache input is not allowed" in isolation_problems(
-        yaml.safe_dump(document)
+        yaml.safe_dump(document), workflow_file="price-reread.yml"
     )
 
 
@@ -1075,7 +1243,7 @@ def test_cache_actions_are_rejected_regardless_of_path_or_step_order(
         "uses": uses, "with": {"path": "${{ runner.temp }}/pip", "key": "planted"},
     })
     assert f"research: cache action is not allowed ({uses.split('@', 1)[0]})" in isolation_problems(
-        yaml.safe_dump(document)
+        yaml.safe_dump(document), workflow_file="daily-research.yml"
     )
 
 
@@ -1092,7 +1260,7 @@ def test_a_pythonpath_assignment_is_rejected() -> None:
         "permissions:\n  contents: read\nenv:\n  PYTHONPATH: /tmp/data\n",
         1,
     )
-    assert "PYTHONPATH is set" in isolation_problems(text)
+    assert "PYTHONPATH is set" in isolation_problems(text, workflow_file="daily-research.yml")
 
 
 def test_a_python_command_without_isolated_mode_is_rejected() -> None:
@@ -1101,7 +1269,7 @@ def test_a_python_command_without_isolated_mode_is_rejected() -> None:
         "python scripts/seed_models_dev.py",
         1,
     )
-    assert "research: a python command is missing -I" in isolation_problems(text)
+    assert "research: a python command is missing -I" in isolation_problems(text, workflow_file="daily-research.yml")
 
 
 def test_a_bare_pip_install_is_rejected() -> None:
@@ -1110,7 +1278,7 @@ def test_a_bare_pip_install_is_rejected() -> None:
         "pip install pydantic pyyaml httpx",
         1,
     )
-    assert "research: pip install is not python -I -m pip" in isolation_problems(text)
+    assert "research: pip install is not python -I -m pip" in isolation_problems(text, workflow_file="daily-research.yml")
 
 
 @pytest.mark.parametrize("editable", ["-e .", "-e '.[dev]'"])
@@ -1120,7 +1288,7 @@ def test_an_editable_install_of_the_data_tree_is_rejected(editable: str) -> None
         editable,
         1,
     )
-    assert "editable install targets the data checkout" in isolation_problems(text)
+    assert "editable install targets the data checkout" in isolation_problems(text, workflow_file="release-signals.yml")
 
 
 def test_prepare_data_writer_is_rejected() -> None:
@@ -1129,7 +1297,7 @@ def test_prepare_data_writer_is_rejected() -> None:
         "python -I ../engine/scripts/prepare_data_writer.py",
         1,
     )
-    assert "prepare_data_writer still runs" in isolation_problems(text)
+    assert "prepare_data_writer still runs" in isolation_problems(text, workflow_file="speed-probe.yml")
 
 
 def test_an_engine_checkout_on_a_branch_is_rejected() -> None:
@@ -1138,17 +1306,17 @@ def test_an_engine_checkout_on_a_branch_is_rejected() -> None:
         "ref: qa/model-267-engine",
         1,
     )
-    assert "refresh: engine checkout ref is not the verified pin" in isolation_problems(text)
+    assert "refresh: engine checkout ref is not the verified pin" in isolation_problems(text, workflow_file="leaderboard-refresh.yml")
 
 
 def test_workflow_write_permission_is_rejected() -> None:
     text = _text("daily-research").replace("contents: read", "contents: write", 1)
-    assert "workflow permissions are {'contents': 'write'}" in isolation_problems(text)
+    assert "workflow permissions are {'contents': 'write'}" in isolation_problems(text, workflow_file="daily-research.yml")
 
 
 def test_a_python_job_without_the_link_step_is_rejected() -> None:
     text = _text("data-trust-audit").replace(LINK_NAME, "Do not link", 1)
-    assert "audit: runs python without the link step" in isolation_problems(text)
+    assert "audit: runs python without the link step" in isolation_problems(text, workflow_file="data-trust-audit.yml")
 
 
 @pytest.mark.parametrize("job", ["render", "reread"])
@@ -1157,7 +1325,7 @@ def test_a_link_step_that_is_not_the_canonical_one_is_rejected(job: str) -> None
     link = next(step for step in document["jobs"][job]["steps"] if step.get("name") == LINK_NAME)
     link["run"] = link["run"].replace("modelspec-engine.pth", "other-engine.pth")
     assert f"{job}: link step does not match the canonical link step" in isolation_problems(
-        yaml.safe_dump(document)
+        yaml.safe_dump(document), workflow_file="price-reread.yml"
     )
 
 
@@ -1169,7 +1337,7 @@ def test_the_link_step_must_follow_setup_python() -> None:
     setup_part = text[start:link_at]
     link_part = text[link_at:install_at]
     swapped = text[:start] + link_part + setup_part + text[install_at:]
-    problems = isolation_problems(swapped)
+    problems = isolation_problems(swapped, workflow_file="daily-research.yml")
     assert "research: link step is not between setup-python and the first engine script" in problems
 
 
@@ -1196,6 +1364,7 @@ def _with_command(command: str) -> str:
         f"          {command}\n"
     )
     text = _text("daily-research")
+    assert isolation_problems(text, workflow_file="daily-research.yml") == []
     assert text.count(_INSTALL) == 1
     return text.replace(_INSTALL, block, 1)
 
@@ -1303,7 +1472,7 @@ def _with_command(command: str) -> str:
 def test_a_writer_command_outside_the_allowlist_is_rejected(
     command: str, fragment: str
 ) -> None:
-    problems = isolation_problems(_with_command(command))
+    problems = isolation_problems(_with_command(command), workflow_file="daily-research.yml")
     assert any(f"research: {fragment}" == problem or fragment in problem for problem in problems), (
         problems
     )
@@ -1329,14 +1498,14 @@ def test_render_rejects_other_playwright_commands(command: str) -> None:
     install = "python -I -m playwright install --with-deps --only-shell chromium"
     text = _text("price-reread")
     assert text.count(install) == 1
-    problems = isolation_problems(text.replace(install, command, 1))
+    problems = isolation_problems(text.replace(install, command, 1), workflow_file="price-reread.yml")
     assert any(problem.startswith("render:") for problem in problems), problems
 
 
 def test_a_render_job_in_another_workflow_cannot_install_chromium() -> None:
     document = _document(_text("price-reread"))
     document["name"] = "Another private writer"
-    problems = isolation_problems(yaml.safe_dump(document))
+    problems = isolation_problems(yaml.safe_dump(document), workflow_file="price-reread.yml")
     assert "render: rejected playwright invocation" in problems
 
 
@@ -1346,14 +1515,14 @@ def test_a_render_job_in_another_workflow_cannot_install_chromium() -> None:
 def test_render_must_have_exactly_contents_read_to_install_chromium(permissions) -> None:
     document = _document(_text("price-reread"))
     document["jobs"]["render"]["permissions"] = permissions
-    problems = isolation_problems(yaml.safe_dump(document))
+    problems = isolation_problems(yaml.safe_dump(document), workflow_file="price-reread.yml")
     assert "render: rejected playwright invocation" in problems
 
 
 def test_reread_cannot_install_or_run_playwright() -> None:
     document = _document(_text("price-reread"))
     document["jobs"]["reread"]["steps"].append({"run": " ".join(PLAYWRIGHT_INSTALL)})
-    assert "reread: rejected playwright invocation" in isolation_problems(yaml.safe_dump(document))
+    assert "reread: rejected playwright invocation" in isolation_problems(yaml.safe_dump(document), workflow_file="price-reread.yml")
 
 
 @pytest.mark.parametrize("command", [
@@ -1367,7 +1536,7 @@ def test_render_rejects_other_requirements_installs(command: str) -> None:
     text = _text("price-reread")
     install = 'python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"'
     assert text.count(install) == 1
-    problems = isolation_problems(text.replace(install, command, 1))
+    problems = isolation_problems(text.replace(install, command, 1), workflow_file="price-reread.yml")
     assert any("render: pip install argument is not allowed" in p for p in problems), problems
 
 
@@ -1403,7 +1572,44 @@ def test_existing_curation_watch_step_may_keep_its_firecrawl_key() -> None:
     assert firecrawl_secret_problems(document, workflow_file="curation-benchmarks.yml") == []
 
 
-@pytest.mark.parametrize("name", ["curation-benchmarks", "price-reread"])
+@pytest.mark.parametrize("change", [
+    "workflow", "job", "permissions", "trigger", "main", "attempt", "schedule",
+    "step", "command", "job-env", "working-directory", "action",
+])
+def test_rendered_secret_requires_the_existing_scheduled_bounded_step(change) -> None:
+    document = _document(_text("rendered-reread"))
+    assert firecrawl_secret_problems(document, workflow_file="rendered-reread.yml") == []
+    job = document["jobs"]["reread"]
+    step = next(step for step in job["steps"]
+                if step.get("name") == "Re-verify the rotating rendered slice")
+    if change == "workflow":
+        document["name"] = "Other writer"
+    elif change == "job":
+        document["jobs"]["other"] = document["jobs"].pop("reread")
+    elif change == "permissions":
+        job["permissions"]["id-token"] = "write"
+    elif change == "trigger":
+        document["on"]["workflow_dispatch"] = None
+    elif change == "main":
+        job["if"] = job["if"].replace("github.ref == 'refs/heads/main'", "true")
+    elif change == "attempt":
+        job["if"] = job["if"].replace("github.run_attempt == 1", "true")
+    elif change == "schedule":
+        job["if"] = job["if"].replace("github.event_name == 'schedule'", "true")
+    elif change == "step":
+        step["name"] = "Other step"
+    elif change == "command":
+        step["run"] += '\necho "$FIRECRAWL_API_KEY"\n'
+    elif change == "job-env":
+        job["env"]["FIRECRAWL_API_KEY"] = step["env"].pop("FIRECRAWL_API_KEY")
+    elif change == "working-directory":
+        step["working-directory"] = "engine"
+    elif change == "action":
+        step["uses"] = "./data/.github/actions/other"
+    assert firecrawl_secret_problems(document, workflow_file="rendered-reread.yml")
+
+
+@pytest.mark.parametrize("name", ["curation-benchmarks", "price-reread", "rendered-reread"])
 def test_the_same_scraper_step_in_a_different_workflow_file_is_rejected(name) -> None:
     document = _document(_text(name))
     assert firecrawl_secret_problems(document, workflow_file="daily-research.yml")
@@ -1525,7 +1731,7 @@ def test_fallback_cannot_install_a_browser(command) -> None:
 def test_other_writer_jobs_cannot_install_chromium() -> None:
     problems = isolation_problems(_with_command(
         "python -I -m playwright install --with-deps --only-shell chromium"
-    ))
+    ), workflow_file="daily-research.yml")
     assert "research: rejected playwright invocation" in problems
 
 
@@ -1536,7 +1742,7 @@ def test_an_untrusted_expression_in_a_run_script_is_rejected() -> None:
         '            echo "::error::models.dev survey failed; see output above"',
         1,
     )
-    assert "research: untrusted expression in run script" in isolation_problems(text)
+    assert "research: untrusted expression in run script" in isolation_problems(text, workflow_file="daily-research.yml")
 
 
 @pytest.mark.parametrize(
@@ -1553,7 +1759,7 @@ def test_a_restore_into_data_after_the_link_step_is_rejected(uses: str) -> None:
         "          path: data/models\n"
         "          key: planted\n"
     )
-    problems = isolation_problems(text.replace(needle, step + needle, 1))
+    problems = isolation_problems(text.replace(needle, step + needle, 1), workflow_file="daily-research.yml")
     assert "research: restore writes under data/ after the link step" in problems
 
 
@@ -1564,7 +1770,7 @@ def test_a_named_restore_that_writes_under_data_after_the_link_is_rejected() -> 
         "\n      - name: Restore planted files\n"
         "        run: cp /tmp/x.yaml data/models/x.yaml\n"
     )
-    problems = isolation_problems(text.replace(needle, step + needle, 1))
+    problems = isolation_problems(text.replace(needle, step + needle, 1), workflow_file="daily-research.yml")
     assert "research: restore writes under data/ after the link step" in problems
 
 
@@ -1578,7 +1784,8 @@ def test_a_restore_into_data_before_the_link_step_is_allowed() -> None:
         "          path: data/benchmarks/_curation/state\n"
         "          name: retained-state\n"
     )
-    assert isolation_problems(text.replace(needle, step + needle, 1)) == []
+    assert isolation_problems(text.replace(needle, step + needle, 1),
+                              workflow_file="daily-research.yml") == []
 
 
 @pytest.mark.parametrize(
@@ -1625,7 +1832,7 @@ def test_a_step_level_bypass_is_rejected(step: str, fragment: str) -> None:
     text = _text("daily-research")
     needle = "\n      - name: Install dependencies\n"
     assert text.count(needle) == 1
-    problems = isolation_problems(text.replace(needle, step + needle, 1))
+    problems = isolation_problems(text.replace(needle, step + needle, 1), workflow_file="daily-research.yml")
     assert any(fragment in problem for problem in problems), problems
 
 
