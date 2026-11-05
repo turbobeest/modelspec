@@ -1,5 +1,203 @@
 # MODEL-449 verification
 
+## Round 4: restore every replay regression
+
+Base `ca5abc1ed2cf138e37b3c7bbb46fd9c790d8726c`; checkpoint
+`145b37241c56ae28e44de46b25821bbda0d9f1dd`; final implementation
+`e33dfc6cd5bb1104d84f150bd2eef8bf10fb8e2a`. The evidence-inclusive final head
+is recorded in the untracked `.pr-commit.txt` handoff and executor completion
+line. PR #972 remains draft; the companion data-workflow draft #128 is unchanged.
+
+The complete private classification found **132 reader regressions or changed
+refusal diagnostics, zero demonstrated true misattributions**. All 131 records
+that had lost verification now verify again. The additional record, already a
+mismatch before round three, now verifies from its exact literal batch-price
+row. **Every one of the 333 baseline verified records remains verified.** No
+class (b) regression or class (a) case remains for escalation from this replay.
+
+The transposed reader's method on the old mismatch did not establish a wrong
+column reading. It already selected exact names, but `verify()` converted its
+empty list into the first mismatch when later readers lost page ownership. A
+later agreeing reader would still win. The repair separates these cases:
+
+- Transposed tables read the exact normalized or registered-alias column,
+  preserve its published header, handle Markdown framing, and stop at subsequent
+  table headers. Ambiguous unfamiliar text rows cause abstention. Known text,
+  boolean, modality, architecture and quantity rows remain readable. Real effort
+  captions are left to a reader that handles conditions.
+- Empty or unbound readings do not create mismatch receipts. Wrong values and
+  conflicting statements about an identified subject still mismatch. Existing
+  unbound tests now require `skipped`, no receipt and empty diffs; acceptance,
+  wrong-value, source-kind, quarantine and strict-licence checks remain intact.
+- Model sections retain their hierarchy through descriptive titles, metadata,
+  HTML presentation, generic labels and explicit feature-list declarations.
+  Fenced code, scripts and navigation cannot supply model facts. A concrete
+  owned value prevents an empty section from verifying absence.
+- A canonical card's existing `sources.huggingface_url` supplies its registered
+  repository identity only at the exact repository README. Readers preserve
+  the source spelling. No private alias or card was edited. Repository metadata
+  belongs to that repository; a foreign heading still closes body ownership.
+- Batch qualifiers remain separate from complete model identity. Explicit batch
+  columns win over generic columns, other price modes are excluded, and literal
+  DocTable records are decoded without executing JavaScript. Family notices
+  apply only to explicitly listed tiers whose composed source name matches a
+  registered alias.
+- The broader gate exposed two callers that depended on empty-read mismatches.
+  Missing coverage wording now mismatches only on the exact plan's page. The
+  strict output-modality reader preserves unknown and conflicting owned labels
+  as substantive mismatches instead of silently choosing one block.
+
+### Red-first evidence
+
+All tests use synthetic pages or injected replies. Commands ran serially from
+this worktree with Python 3.14.4, pytest 9.1.1, git 2.50.1 and Node 22.22.3.
+Each pytest command below uses this exact prefix:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider
+```
+
+| Test command suffix / defect | Observed red, exit 1 | Final state |
+| --- | --- | --- |
+| `tests/test_reader_regressions.py` initial table cases | 10 failed, 1 passed | pass |
+| Same file, headings/HTML/repository metadata | 10 failed, 18 passed | pass |
+| Same file `-k 'batch or billing'` | 2 failed, 5 passed | pass |
+| Same file `-k ends_at` adjacent table ownership | 1 failed | pass |
+| Same file `-k description_before_metadata` | 4 failed | pass |
+| Same file `-k batching` | 2 failed, 1 passed | pass |
+| Same file `-k price_display` | 1 failed | pass |
+| `tests/test_reader_table_boundaries.py` in-progress review fixes | 10 failed, 4 passed | pass |
+| Same file, arbitrary-header follow-up | 2 failed, 16 passed | pass |
+| Same file `-k actual_effort` registered effort alias | 1 failed, 1 passed | pass |
+| `tests/test_literal_price_tables.py` exact literal row | 1 failed, 5 passed | pass |
+| Same file `-k malformed` malformed quoted header | 1 failed | pass |
+| `tests/test_model_page_ownership.py` metadata/section/identity slices | successive reds of 1–4 failures | pass |
+| `tests/test_subscription_family_notice.py` against base | 6 failed, 9 passed | pass |
+| Same file `-k missing_coverage` | 1 failed, 1 passed | pass |
+| `tests/test_model_396_readers.py` strict owned conflicts | 8 failed, 30 passed | pass |
+
+The independent original-base replay of the new table, price and subscription
+boundary files produced **52 failed, 36 passed**, exit 1. This command loads the
+old module without editing the working file:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PYTEST'
+import subprocess, sys, types
+import decision, pytest
+source = subprocess.run(['git', 'show', 'ca5abc1e:decision/verify.py'],
+                        capture_output=True, check=True).stdout
+module = types.ModuleType('decision.verify')
+module.__file__ = 'decision/verify.py'
+module.__package__ = 'decision'
+sys.modules['decision.verify'] = module
+decision.verify = module
+exec(compile(source, module.__file__, 'exec'), module.__dict__)
+raise SystemExit(pytest.main(['-q', '-p', 'no:cacheprovider',
+    'tests/test_reader_regressions.py', 'tests/test_literal_price_tables.py',
+    'tests/test_reader_table_boundaries.py', 'tests/test_subscription_family_notice.py']))
+PYTEST
+```
+
+That result predates the final coverage and effort-alias cases. Each additional
+case has its own red log. Detailed incremental commands and outputs are in
+`.scratch/model-449-r4/root/`, `reader-review/findings.md`,
+`final-review/handoff.md` and `subscription/handoff.md`.
+
+Final integrated command, **2,309 passed in 26.27 seconds**, exit 0:
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py tests/test_offering_drafter.py tests/test_subject_attribution.py tests/test_subject_reader_guards.py tests/test_subject_scopes.py tests/test_llm_subject_attribution.py tests/test_metric_price_tables.py tests/test_price_reread.py tests/test_price_reread_fallback.py tests/test_admission_drafter.py tests/test_admission_fallback.py tests/test_architecture_extractors.py tests/test_architecture_facts.py tests/test_model_348_architecture.py tests/test_model_390_licence_readers.py tests/test_model_393_licence_binding.py tests/test_model_396_readers.py tests/test_licence_rules.py tests/test_model380_licence_metadata.py tests/test_model380_subscription_quotes.py tests/test_model380_subscription_types.py tests/test_subscription_availability_reader.py tests/test_subscription_jobs.py tests/test_subscription_sources.py tests/test_subscription_source_expectations.py tests/test_engine_pin.py tests/test_reader_regressions.py tests/test_model_page_ownership.py tests/test_subscription_family_notice.py tests/test_literal_price_tables.py tests/test_reader_table_boundaries.py
+```
+
+This includes the earlier sibling-row and three-line drafter reproductions,
+MODEL-426 table ownership, reread/admission callers, licence/architecture readers
+and subscription jobs. The first broader run found 55 failures, including the
+caller issues described above and old unbound-result assertions; all are resolved.
+`git diff --check` passes. After staging the implementation and this evidence,
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`
+passed **46 tests with one built-site skip in 49.35 seconds**, exit 0.
+The skip requires a built `MODELSPEC_DIST`, which this focused run does not create.
+
+### Complete private replay
+
+Private main `7409030687c87e1ed05b87b0c126ad0273b3dfb9` was cloned read-only under
+`/tmp/model-449-scratch/replay-data`. Its baseline and round-three replay records
+are identical to the earlier private revision's results, so the data revision
+introduced no result changes. The existing [read-only replay program](MODEL-449-r3-replay.py)
+ran against all 5,748 eligible current targets: 1,926 facts and 3,822 evidence
+records, using the original catalogue values and existing source snapshots.
+
+```bash
+git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/replay-data
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --revision 706d1cb0 --output .scratch/model-449-r4/private-results/all-before-current-main.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --revision ca5abc1e --output .scratch/model-449-r4/private-results/all-r3-current-main.json --compare .scratch/model-449-r4/private-results/all-before-current-main.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --output .scratch/model-449-r4/private-results/all-after.json --compare .scratch/model-449-r4/private-results/all-before-current-main.json
+```
+
+All replay processes exited 0. The operator-only `classification.md` and
+`final-replay.md` in that ignored private-results directory list all 132 records,
+their classifications, source line/column evidence, final readers and every
+additional transition. All 48 source references have hashes and retained paths.
+Held pages have coordinates and structural explanations, without newly copied
+page bytes. The classification includes 55 existing label-absence claims; it
+preserves those readers' prior semantics and does not assert that every facet
+is semantically absent from the whole page.
+
+| Outcome | Before round three | Final |
+| --- | ---: | ---: |
+| Verified | 333 | 334 |
+| Mismatch | 85 | 27 |
+| Skipped | 1 | 58 |
+| Cited | 375 | 375 |
+| Unreachable | 4,954 | 4,954 |
+
+There are 57 mismatch-to-skipped abstention corrections, one newly verified
+literal batch-input record, and nine same-outcome reader/diff changes. Every
+previously verified record remains verified. Only 427 attempted targets have a
+readable retained cited region, with 78 available non-cite-only hashes out of
+563 requested. Unchanged unreachable/cited evidence is not a successful broad
+reverification of its underlying values.
+
+Final verifier SHA-256:
+`bfd82c6e36cdc1478ac34c0ae8db641f75c9ef0aeb35d20fc32f5de5215d100d`.
+Baseline report SHA-256:
+`3d65afd4148347adbcab7407f6f6b3bdcea0f3003d31be33475446a89a7535eb`.
+Final report SHA-256:
+`d92171e008ac4ad187465d68f699392895013eafc34b9e2a02aff3a442c9a232`.
+Root independently checked all target keys, all 132 dispositions, preservation
+of all 333 verified records and the final code/report hashes. All 4,679 private
+tracked files are byte-identical and the checkout is clean. Network calls during
+replay: zero. No private alias, fact, source copy, manifest or receipt was edited.
+
+### Worker memory and limits
+
+The actual deploy-style private export and pinned Pyodide probe ran with a
+throwaway signing key, first for the current snapshot and then with `--successor`.
+Both used `--limit-mib 115`. Current steady usage was **104.671727 MiB** and
+successor steady usage **104.712033 MiB**. Peaks were 105.477010 and 105.517949 MiB.
+All decide, vocabulary, rank and policy-check probe requests returned 200.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r4/memory/run_probe.py
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r4/memory/capture_source_hashes.py
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r4/memory/run_public_vendor.py
+```
+
+All exited 0. The runners invoke `api/worker/vendor.py --data-dir` and
+`api/worker/measure_memory.cjs` as the deploy workflow does. Pyodide is 0.28.3.
+Public `vendor.py --check` and frozen-public export pass; all 129 generated public
+source files match HEAD. Root also checked the measured bundle's 62 public
+sources and 33 handwritten Worker modules against final source hashes.
+`decision/verify.py` is not exported into that bundle. No bundle change is needed.
+
+The host exporter used Python 3.14.4 rather than CI's 3.13; the memory runtime
+used the pinned deployed Pyodide dependencies. The full local suite, site build,
+remote CI, deployment, production requests and real signing secrets were not
+observed. No live vendor extraction, paid provider calls or paid crawl credits
+were used. Private clones and generated private bundles were deleted after their
+integrity checks; `/tmp/model-449-scratch` is absent. Ignored operator reports
+remain local. All started processes exited.
+
 ## Round 3: exact subjects across the reader chain
 
 Base `706d1cb002a1e4733a65ce106af642ad7a623c92`. Merged fetched main
