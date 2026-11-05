@@ -5,8 +5,8 @@ name: Coverage report
 # branch, and keep one GitHub issue per breached target. A breach does not
 # fail this job; a report that cannot be written does.
 #
-# Cost: two jobs. `report` takes about four minutes (the snapshot build reads
-# every card); `private-health` about one. About thirty REST calls: one per
+# Cost: three jobs. `report` takes about four minutes (the snapshot build reads
+# every card); the two private checks about one each. About thirty REST calls: one per
 # scheduled workflow here and in modelspec-data plus one per private workflow
 # file (MODEL-421), one per refresh branch (MODEL-232), one issue listing, and
 # one per issue change.
@@ -14,13 +14,17 @@ name: Coverage report
 # workflow-health (MODEL-421) watches every scheduled workflow, from its cron
 # lines, here and in modelspec-data. This log, the report and its issues are
 # public, so the private repository is checked in its own job,
-# `private-health`. That job alone holds MODELSPEC_DATA_TOKEN (Contents: read
+# `private-health`. That job holds MODELSPEC_DATA_TOKEN (Contents: read
 # and Actions: read on modelspec-data), reads the private workflow files and
 # runs through the API (no checkout), prints nothing, uploads and caches
 # nothing, and hands on only pass or fail as its job result. `report` holds no
 # private access and turns that one word into the workflow-health result. The
 # names and runs of red private workflows are in modelspec-data's own
 # workflow-health issue.
+# MODEL-450's separate `release-counts` job reads the private counts artifact
+# and hands on only bounded, validated numeric counts. It has no checkout of
+# private data, log output, summary, artifact or cache. The report job has no
+# private token; release names and issue updates remain in modelspec-data.
 
 on:
   schedule:
@@ -45,7 +49,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The only job with private access. It passes when every scheduled workflow
+  # The workflow-health check passes when every scheduled workflow
   # in the private repository is green and fails otherwise (red, unreadable,
   # or no token). No output, summary, artifact or cache: the leak guard in
   # tests/test_data_workflows.py holds it to that.
@@ -79,9 +83,37 @@ jobs:
           fi
           python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet
 
+  release-counts:
+    name: Read validated release coverage counts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      counts: ${{ steps.counts.outputs.counts }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: python -m pip install -e . "pydantic==2.13.5"
+
+      # The CLI never prints private responses or errors. Its only output is
+      # the validated counts JSON; missing or stale inputs become error counts.
+      - name: Transfer release counts only
+        id: counts
+        env:
+          MODELSPEC_DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: python -m scripts.slo release-counts --github-output
+
   report:
     name: Measure the coverage targets
-    needs: private-health
+    needs: [private-health, release-counts]
     # Runs whatever the private check concluded; its result is an input.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
@@ -92,6 +124,7 @@ jobs:
       # success, failure, cancelled or skipped; read through result_env in
       # scripts/slo/targets.yaml.
       PRIVATE_WORKFLOW_HEALTH: ${{ needs.private-health.result }}
+      PRIVATE_RELEASE_COUNTS: ${{ needs.release-counts.outputs.counts }}
     steps:
       - uses: actions/checkout@v4
 
@@ -107,9 +140,10 @@ jobs:
 
       - name: Measure every target
         run: |
+          python -m scripts.slo release-counts --from-env --out release-counts.json
           stage=()
           if [ -n "$STAGE_BREACH" ]; then stage=(--stage-breach "$STAGE_BREACH"); fi
-          python -m scripts.slo report --out coverage-report "${stage[@]}"
+          python -m scripts.slo report --release-report release-counts.json --out coverage-report "${stage[@]}"
           cat coverage-report/summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4

@@ -8,6 +8,7 @@ out `modelspec-data`) therefore never uploads an artifact and never prints data.
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -94,6 +95,21 @@ def _path_variables(job, workflow):
     return variables, env
 
 
+def _audited_release_counts_output(job, filename):
+    """The sole dynamic private output is the bounded counts CLI's exact writer."""
+    if filename != "coverage-slo.yml" or job.get("outputs") != {
+        "counts": "${{ steps.counts.outputs.counts }}"
+    }:
+        return False
+    writers = [{key: value for key, value in step.items() if key != "name"}
+               for step in job.get("steps", []) if step.get("id") == "counts"]
+    return writers == [{
+        "id": "counts",
+        "env": {"MODELSPEC_DATA_TOKEN": "${{ secrets.MODELSPEC_DATA_TOKEN }}"},
+        "run": "python -m scripts.slo release-counts --github-output",
+    }]
+
+
 def leaks(
     job: dict,
     workflow: dict | None = None,
@@ -151,7 +167,8 @@ def leaks(
         problems.append("delegates private access to an unaudited external workflow")
     for output, value in job.get("outputs", {}).items():
         # Expressions can carry arbitrary rows regardless of the output's name.
-        if not isinstance(value, (bool, int, float)) and str(value) not in {"true", "false"}:
+        if (not isinstance(value, (bool, int, float)) and str(value) not in {"true", "false"}
+                and not _audited_release_counts_output(job, filename)):
             problems.append("exports an unaudited job output from private access")
     for step in job.get("steps", []):
         uses = str(step.get("uses", ""))
@@ -385,6 +402,67 @@ def test_guard_rejects_data_job_outputs_and_only_lag_can_publish():
     }
     assert leaks(writer)
     assert leaks(writer, filename="data-lag.yml") == []
+
+
+def _release_counts_job():
+    return {
+        "outputs": {"counts": "${{ steps.counts.outputs.counts }}"},
+        "steps": [{
+            "id": "counts",
+            "env": {"MODELSPEC_DATA_TOKEN": "${{ secrets.MODELSPEC_DATA_TOKEN }}"},
+            "run": "python -m scripts.slo release-counts --github-output",
+        }],
+    }
+
+
+def test_guard_allows_only_the_audited_release_counts_output():
+    job = _release_counts_job()
+    assert leaks(job, filename="coverage-slo.yml") == []
+    assert leaks(job, filename="another-workflow.yml") == [
+        "exports an unaudited job output from private access"]
+
+
+@pytest.mark.parametrize("command", [
+    "python -m scripts.slo release-counts --github-output; echo secret",
+    "python -m scripts.slo release-counts --github-output\necho secret",
+    "python -m scripts.slo release-counts --github-output --from-env",
+    "python -m scripts.slo report --out report",
+])
+def test_guard_rejects_unaudited_release_counts_writers(command):
+    job = _release_counts_job()
+    job["steps"][0]["run"] = command
+    assert "exports an unaudited job output from private access" in leaks(
+        job, filename="coverage-slo.yml")
+
+
+@pytest.mark.parametrize("change", ["expression", "extra-output", "working-directory",
+                                   "duplicate-writer", "environment"])
+def test_guard_rejects_release_counts_output_changes(change):
+    job = _release_counts_job()
+    if change == "expression":
+        job["outputs"]["counts"] = "${{ steps.counts.outputs.rows }}"
+    elif change == "extra-output":
+        job["outputs"]["rows"] = "${{ steps.counts.outputs.rows }}"
+    elif change == "working-directory":
+        job["steps"][0]["working-directory"] = "modelspec-data"
+    elif change == "duplicate-writer":
+        job["steps"].append(deepcopy(job["steps"][0]))
+    else:
+        job["steps"][0]["env"]["PYTHONPATH"] = "modelspec-data"
+    assert "exports an unaudited job output from private access" in leaks(
+        job, filename="coverage-slo.yml")
+
+
+@pytest.mark.parametrize("step", [
+    {"uses": "actions/upload-artifact@v4", "with": {"path": "report"}},
+    {"uses": "actions/cache@v4"},
+    {"run": 'echo done >> "$GITHUB_STEP_SUMMARY"'},
+    {"run": "cat modelspec-data/report.json"},
+])
+def test_audited_release_counts_output_does_not_allow_other_publication(step):
+    job = _release_counts_job()
+    job["steps"].append(step)
+    assert leaks(job, filename="coverage-slo.yml")
 
 
 def test_dispatch_job_holds_no_code_or_install_step():
