@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+from collections import Counter
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -42,6 +43,7 @@ from release_signals.watch import (  # noqa: E402
     allowed_by_robots,
     extract,
     load_baseline,
+    load_catalogue,
     load_registry,
     run_all,
     write_baseline,
@@ -239,7 +241,10 @@ def summary(result: dict) -> str:
         (f"Replayed {len(result['sources'])} normalized source batches. "
          if result.get("replay") else f"{ok} of {len(result['sources'])} sources answered. ")
         + f"{len(result['discoveries'])} discoveries.",
+        f"Filtered out: {len(result.get('rejected', []))} observations.",
     ]
+    reasons = Counter(row["reason"] for row in result.get("rejected", []))
+    lines.extend(f"- {reason}: {count}" for reason, count in sorted(reasons.items()))
     if result["discoveries"]:
         lines += ["", "| Signal | Model | Lab | Seen at |", "| --- | --- | --- | --- |"]
         lines += [
@@ -330,7 +335,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--recall-end", type=date.fromisoformat,
                         help="compare the preceding 30 UTC days, excluding this YYYY-MM-DD")
     parser.add_argument("--catalogue-root", type=Path,
-                        help="local catalogue Git repository with complete history, for recall")
+                        help="local catalogue for alias filtering; complete Git history for recall")
     parser.add_argument(
         "--post", action="store_true",
         help="file discoveries; needs SIGNALS_ORIGIN and MODELSPEC_SIGNALS_READ_KEY",
@@ -349,7 +354,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--post and --issues are two sinks for one run; pick one")
     if args.replay and (args.post or args.issues or args.rebaseline):
         parser.error("--replay is offline and cannot file or rebaseline")
-    if (args.recall_end or args.catalogue_root) and not (
+    if args.recall_end and not (
         args.replay and args.recall_end and args.catalogue_root
     ):
         parser.error("recall needs --replay, --recall-end and --catalogue-root together")
@@ -365,6 +370,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return rebaseline(args.registry, args.baseline, args.source, now)
 
     registry = load_registry(args.registry)
+    catalogue = None
+    if not args.recall_end and (args.catalogue_root or not args.replay):
+        catalogue_root = args.catalogue_root or ROOT
+        if not (catalogue_root / "models").is_dir():
+            parser.error("catalogue root must contain a models directory")
+        catalogue = load_catalogue(catalogue_root)
     recall = None
     if args.replay:
         try:
@@ -379,7 +390,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             registry, load_baseline(args.baseline),
             fetch=http_fetch(registry.user_agent), now=now, catalogued=None,
         )
-    filtered = filter_releases(runs, now)
+    filtered = filter_releases(runs, now, catalogue=catalogue)
     signals = filtered["signals"]
     posted = None
     if args.post:

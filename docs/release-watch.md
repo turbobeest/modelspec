@@ -40,20 +40,32 @@ two-key rules.
    - **OpenRouter.** `/api/v1/models`. Only prefixes mapped to a catalogue
      lab are read. `~…-latest` aliases and `:free`/`:batch` variants are
      skipped.
-4. A model is new when all three are true: it is not in
+4. A model is new when both are true: it is not in
    [`registry/release-watch-baseline.json`](../registry/release-watch-baseline.json),
    it was created in the last 30 days (Hugging Face and OpenRouter only;
-   pages carry no date), and it matches no exact catalogue alias.
+   pages carry no date). Card matching happens in the following filter so
+   every rejected observation remains in the report.
 5. `scripts/release_watch_filter.py` rejects whole artifact names such as
    `docs`, `sdk`, or `<provider>-sdk`, plus the exact IBM forecasting example
-   repository. A token inside a model name, such as `Pixtral-Docs` or
+   repository. MODEL-445 adds explicit organization and suffix rules in
+   `ORG_RULES` and `NAME_RULES`: reupload/quant organizations, embedding-only
+   organizations, dated RWKV checkpoints, technical packaging suffixes and
+   the GPT Image flare/sunburst variants. Mixed model publishers remain
+   eligible. `lite`, `pro`, `base`, `instruct` and `preview` alone do not
+   cause rejection; dated API models from premier labs remain eligible.
+   A token inside a model name, such as `Pixtral-Docs` or
    `client-embed-1`, is retained. Every rejection appears in the run summary
    under "Rejected (not filed)", with its reason, source and URL.
+   The summary also counts filtered observations by reason. Live runs compare
+   names with the public cards in this checkout. `--catalogue-root` selects
+   another local catalogue. This comparison normalizes separators and the
+   known Gemini `2.5`/`25` spelling without merging numeric versions such as
+   `2.10` and `21.0`. It reads card aliases only; no card contents enter reports.
    The filter then groups release aliases before either sink sees them.
    Its `watch:<lab>:<model>` ID uses a canonical identity. Explicit
    aliases cover differing spellings, known mirrors, packaging suffixes and
    training endpoints of the same recipe. Sizes, base/tuned variants, named
-   minor versions and unknown dated revisions remain distinct. The first
+   minor versions and eligible dated revisions remain distinct. The first
    source in registry order supplies the representative. Every accepted
    observation stays attached to the group.
 6. Each group becomes one `release-discovery` v1. The JSON report keeps its
@@ -103,6 +115,9 @@ Replay refuses `--post`, `--issues` and `--rebaseline`. It evaluates the
 recorded observations with the current registry and filter; it does not
 recreate past source outages, raw extraction or candidates the old watcher
 never emitted.
+Replay omits card filtering by default. Pass `--catalogue-root` to compare
+against a chosen catalogue. Recall mode compares card additions against
+accepted release identities without removing those same cards first.
 
 For issue triage, obtain a single export, then run the offline classifier:
 
@@ -114,16 +129,34 @@ python scripts/triage_release_discoveries.py --issues issues.json \
   --report triage.json --summary triage.md
 ```
 
-The script has no apply mode or network operations. `duplicate` identifies
+Dry-run is the default and uses no network. Its Markdown and JSON reports
+list every issue with a decision and rule. `duplicate` identifies
 the earliest open issue with the same release identity. `superseded` means
 that identity is already carded, not that a newer version exists. `noise`
-requires an explicit non-model rule. `real` means a candidate to retain for
+requires an explicit filter rule. `real` means a candidate to retain for
 review, not a verified release. Malformed discovery payloads stay in `real`
 with a manual-review reason. Omit `--catalogue-root` to skip private catalogue
 comparison.
 
+After reviewing the report, an operator can run the same command with
+`--apply --repo turbobeest/modelspec --max-calls 100`. Apply closes noise,
+duplicates and already-carded discoveries as `not planned`; possible releases
+receive `release-review`. Each receives a one-line reason comment. The
+`release-discovery` label stays on both closed and reviewed issues so the
+watcher's permanent deduplication still finds them.
+
+All GitHub CLI calls, including reads and label setup, count toward the cap
+and start at least one second apart. Apply first lists open discovery issues,
+then rechecks each pending issue's body, title, state and comments. Closed,
+reviewed or changed issues are skipped. Reusing an export resumes pending
+work without repeating completed reason comments. A truncated listing or a
+GitHub error stops the run; exhausting the cap returns nonzero with per-issue
+statuses so the operator can rerun it. MODEL-445's executor only generates
+the dry-run report; the orchestrator applies it after review and merge.
+
 The per-source fixture in `tests/fixtures/release_watch/precision-recall.json`
 covers all 74 registered sources with 542 labelled normalized observations.
+Denied organizations have all-negative fixtures and no recall denominator.
 Most cases are synthetic. These measure regression precision and recall,
 not live-source accuracy. The MODEL-432 evidence records the incomplete
 historical replay and the independent card-addition comparison.
