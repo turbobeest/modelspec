@@ -277,13 +277,15 @@ def dependency_problems(document: dict) -> list[str]:
                         installed = True
                     continue
                 # Bootstrap scripts and inline stdlib helpers run before installation.
-                if not args or args[0] in bootstrap_scripts or args[0] == "-":
+                if not args or args[0] in bootstrap_scripts:
                     continue
-                if args[0] == "-c" and not any(
-                    re.search(r"\b(?:runpy|scripts|pipeline|decision|schema|api)\b", arg)
-                    for arg in args[1:]
-                ):
-                    continue
+                if args[0] in {"-", "-c"}:
+                    source = step["run"] if args[0] == "-" else " ".join(args[1:])
+                    if not re.search(
+                        r"\b(?:runpy|scripts|pipeline|decision|schema|api|cli|release_signals)\b",
+                        source,
+                    ):
+                        continue
                 if not installed:
                     problems.append(f"{job_name}: {step.get('name', args[0])} runs before dependencies")
     return problems
@@ -1422,6 +1424,16 @@ def test_dependency_guard_rejects_an_install_that_cannot_prepare_the_job(change:
     assert dependency_problems(document) == [
         "draft: Draft the admission packet runs before dependencies",
     ]
+
+
+@pytest.mark.parametrize("run", [
+    "python -I - <<'PY'\nfrom decision.contract import Spec\nPY\n",
+    "python -I -c 'import cli.modelspec.legacy'",
+    "python -I -c 'import release_signals'",
+])
+def test_dependency_guard_requires_installs_for_inline_engine_imports(run: str) -> None:
+    document = {"jobs": {"draft": {"steps": [{"name": "Inline engine", "run": run}]}}}
+    assert dependency_problems(document) == ["draft: Inline engine runs before dependencies"]
 
 
 @pytest.mark.parametrize("cache", ["pip", "pipenv", "poetry", "", None])

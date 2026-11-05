@@ -84,8 +84,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install digest dependency
-        run: python -I -m pip install 'PyYAML>=6.0'
+      - name: Install the pinned engine
+        run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]"
       - name: Resolve the ISO week
         id: week
         env:
