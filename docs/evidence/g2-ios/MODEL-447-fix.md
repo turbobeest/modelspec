@@ -1,3 +1,69 @@
+# MODEL-447 round 2: public writer mirror
+
+Public base: `ee1b9d6592cf85383bc59b40815a7fb372f9717c`.
+Verified public implementation SHA: `0df7a767e35874d0b79ba177f1219dbdd2c21cf2`.
+Data branch after the required fast-forward pull: `0d37b49041fd4a6348a13d87d271f62a85a98b06`.
+Final data SHA: `db3ca54f6a6d2f1c5ce0dc28297cd9be1baf9775`.
+The final public head, including this evidence-only commit, is in the untracked
+`.pr-commit.txt` handoff and the PR head.
+
+The new public mirror matches data#129's lineup workflow byte-for-byte. Its pin
+step and working directories now follow the existing writer format. Only the
+still-unmerged lineup workflow changed in the data repo. Schedules, permissions,
+proposal branch, draft settings and staged paths remain unchanged.
+The MODEL-448 mirror branch supplied the test-registration pattern.
+
+Red-first results, each exit 1:
+
+- The private mirror checker reported `lineup-proposer.yml: public mirror is missing`.
+- `test_the_pin_is_verified_before_the_engine_checkout[lineup-proposer]` and
+  `test_lineup_proposer_imports_only_the_engine_with_private_data_as_input`
+  both failed on the absent mirror: `2 failed in 0.19s`.
+- Copying the original workflow exposed the format mismatch:
+  `test_the_engine_pin_step_is_identical_in_every_writer` and the lineup pin
+  test failed; the confirmation used `engine` instead of `../engine`.
+  Result: `2 failed, 1 passed in 0.17s`.
+- After alignment, those three tests passed in 0.20s. The isolation test executes
+  the workflow command with a hostile private `PYTHONPATH`, startup hook and
+  duplicate entry script, and verifies the engine path and data/output arguments.
+
+Commands from the public worktree:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider 'tests/test_engine_pin.py::test_the_pin_is_verified_before_the_engine_checkout[lineup-proposer]' tests/test_writer_isolation.py::test_lineup_proposer_imports_only_the_engine_with_private_data_as_input
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_removed_sources.py
+actionlint .github/private-writers/lineup-proposer.yml
+git diff --cached --check
+```
+
+The broad focused run passed: `348 passed, 1 skipped in 61.90s`, exit 0.
+The skip needs a built site `dist/`. Actionlint and the diff check exited 0.
+Ruff reports the same 25 pre-existing E501 findings on the base and changed
+isolation-test file, with no new findings; those existing lines were left alone.
+
+Commands from `/Users/terbeest/dev/worktrees/data-model-447`:
+
+```sh
+git pull --ff-only
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider .github/scripts/tests/test_lineup_proposer.py .github/scripts/tests/test_writer_mirrors.py
+/Users/terbeest/dev/modelspec/.venv/bin/python -I .github/scripts/check_writer_mirrors.py --mirrors /Users/terbeest/dev/worktrees/model-447-mirror/.github/private-writers --workflows .github/workflows
+actionlint .github/workflows/lineup-proposer.yml
+```
+
+All exited 0. Data tests: `16 passed in 5.97s`. Mirror check:
+`12 public writer mirror(s) match private workflows.` Python byte comparison
+also passed: 4,285 bytes, SHA-256
+`e52df7f391cfb543b8fe9fbd1b7e6e7a3b2cd1b75460435257695ea561adf89a`.
+Logs are in `/tmp/model-447-scratch/r2/`.
+
+Tools: Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3, Git 2.50.1,
+actionlint 1.7.12. Tests ran serially. No hosted CI, live workflow dispatch,
+full local suite, site build, source fetch or vendor call was observed.
+No Worker export or snapshot field changed. Public and private merges must be
+coordinated because the private check compares its workflows with public main.
+
+---
+
 # MODEL-447 verification
 
 Public base: `6815544116839f991c10904772e7357f12d5b566`.

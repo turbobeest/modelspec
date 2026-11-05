@@ -29,6 +29,7 @@ NAMES = (
     "admission-drafter",
     "rendered-reread",
     "workflow-health",
+    "lineup-proposer",
 )
 ENGINE_JOBS = {
     "recall-private": 1,
@@ -42,6 +43,7 @@ ENGINE_JOBS = {
     "admission-drafter": 1,
     "rendered-reread": 1,
     "workflow-health": 1,
+    "lineup-proposer": 1,
 }
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"

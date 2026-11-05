@@ -1,0 +1,121 @@
+name: Propose premier lineup changes
+
+'on':
+  push:
+    branches: [main]
+    paths:
+      - 'models/**'
+      - 'offerings/**'
+      - 'benchmarks/**'
+      - 'verification/**'
+      - 'registry/**'
+      - 'premier/**'
+      - '.engine-pin'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lineup-proposal
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      # Required to update the fixed proposal branch; only its YAML is staged.
+      contents: write
+      pull-requests: write
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+    steps:
+      - name: Check out current private data
+        uses: actions/checkout@v4
+        with:
+          path: data
+          ref: main
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Refuse code and symlinks in data paths
+        working-directory: .
+        run: python -I data/.github/scripts/check_linked_data.py --engine engine --data data
+      - name: Install the pinned engine
+        run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]"
+      - name: Compute the live lineup
+        run: |
+          set -euo pipefail
+          python -I "$GITHUB_WORKSPACE/engine/scripts/premier_slice1.py" \
+            --data-dir "$GITHUB_WORKSPACE/data" \
+            --output "$RUNNER_TEMP/lineup.yaml" \
+            --diff "$RUNNER_TEMP/lineup.json"
+      - name: Prepare the membership proposal
+        working-directory: .
+        id: proposal
+        run: |
+          python -I data/.github/scripts/lineup_proposal.py \
+            --proposal "$RUNNER_TEMP/lineup.yaml" \
+            --diff "$RUNNER_TEMP/lineup.json" \
+            --target "$GITHUB_WORKSPACE/data/premier/slice-1.yaml" \
+            --body "$RUNNER_TEMP/lineup-body.md"
+      - name: Open or update the draft lineup proposal
+        # Reconcile existing proposals on a no-op; the action opens none without a diff.
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          path: data
+          base: main
+          branch: data/lineup-proposal
+          # Keep updates in draft even if someone marked the previous version ready.
+          draft: always-true
+          add-paths: premier/slice-1.yaml
+          title: 'MODEL-447: propose premier lineup changes'
+          commit-message: |-
+            data: propose computed premier lineup changes (MODEL-447)
+
+            Co-Authored-By: ChatGPT Codex <noreply@openai.com>
+          body-path: ${{ runner.temp }}/lineup-body.md
