@@ -245,6 +245,50 @@ def cache_problems(document: dict) -> list[str]:
     return problems
 
 
+def dependency_problems(document: dict) -> list[str]:
+    """Every job installs dependencies before its application Python runs."""
+    bootstrap_scripts = {
+        "engine/pipeline/data_source.py",
+        "../engine/scripts/prepare_data_writer.py",
+        "data/.github/scripts/check_linked_data.py",
+    }
+    problems = []
+    for job_name, job in document["jobs"].items():
+        installed = False
+        for step in job.get("steps", []):
+            if step.get("uses", "").startswith("actions/setup-python@"):
+                installed = False
+            for command in _commands(step.get("run", "")):
+                if not command:
+                    continue
+                args = list(command)
+                while args and (args[0] in _COMPOUND_OPEN | _COMPOUND_CLOSE | {"!"}
+                                or _ASSIGN.match(args[0])):
+                    args.pop(0)
+                if not args or not (args[0] in {"python", "python3"}
+                                    or _looks_like_other_python(args[0])):
+                    continue
+                args = args[1:]
+                while args and args[0] in {"-I", "-B", "-u", "-E", "-s"}:
+                    args.pop(0)
+                if args[:3] == ["-m", "pip", "install"]:
+                    if (len(args) > 3 and command[0] not in _COMPOUND_OPEN
+                            and not step.get("if") and not step.get("continue-on-error")):
+                        installed = True
+                    continue
+                # Bootstrap scripts and inline stdlib helpers run before installation.
+                if not args or args[0] in bootstrap_scripts or args[0] == "-":
+                    continue
+                if args[0] == "-c" and not any(
+                    re.search(r"\b(?:runpy|scripts|pipeline|decision|schema|api)\b", arg)
+                    for arg in args[1:]
+                ):
+                    continue
+                if not installed:
+                    problems.append(f"{job_name}: {step.get('name', args[0])} runs before dependencies")
+    return problems
+
+
 def _has_firecrawl_secret(value) -> bool:
     if isinstance(value, dict):
         return any(_has_firecrawl_secret(k) or _has_firecrawl_secret(v) for k, v in value.items())
@@ -1333,6 +1377,51 @@ def test_price_reconfirmation_allows_only_its_exact_private_guard(change) -> Non
 @pytest.mark.parametrize("path", sorted(WRITERS.glob("*.yml")), ids=lambda path: path.stem)
 def test_every_private_writer_rejects_shared_caches(path: Path) -> None:
     assert cache_problems(_document(path.read_text(encoding="utf-8"))) == []
+
+
+@pytest.mark.parametrize("path", sorted(WRITERS.glob("*.y*ml")), ids=lambda path: path.stem)
+def test_every_private_writer_installs_dependencies_before_engine_python(path: Path) -> None:
+    assert dependency_problems(_document(path.read_text(encoding="utf-8"))) == []
+
+
+def test_model_week_installs_the_same_engine_dependencies_as_admission() -> None:
+    steps = _document(_text("model-week"))["jobs"]["draft"]["steps"]
+    admission = _document(_text("admission-drafter"))["jobs"]["draft"]["steps"]
+    setup = next(step for step in admission
+                 if step.get("uses", "").startswith("actions/setup-python@"))
+    install = next(step for step in admission if step.get("name") == "Install the pinned engine")
+    assert install["run"] == 'python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]"'
+    assert install in steps, "Model Week must install the pinned engine's dependencies"
+    draft_at = next(i for i, step in enumerate(steps) if step.get("name") == "Draft Model Week")
+    assert steps.index(setup) < steps.index(install) < draft_at
+    assert not install.get("if")
+    assert not install.get("continue-on-error")
+
+
+@pytest.mark.parametrize("change", [
+    "missing", "late", "conditional", "continue-on-error", "other-job", "new-python", "comment",
+])
+def test_dependency_guard_rejects_an_install_that_cannot_prepare_the_job(change: str) -> None:
+    document = _document(_text("admission-drafter"))
+    steps = document["jobs"]["draft"]["steps"]
+    install = next(step for step in steps if step.get("name") == "Install the pinned engine")
+    if change in {"missing", "late", "other-job"}:
+        steps.remove(install)
+        if change == "late":
+            steps.append(install)
+        elif change == "other-job":
+            document["jobs"]["install"] = {"steps": [install]}
+    elif change == "conditional":
+        install["if"] = "false"
+    elif change == "continue-on-error":
+        install["continue-on-error"] = True
+    elif change == "new-python":
+        steps.insert(steps.index(install) + 1, {"uses": "actions/setup-python@v5"})
+    elif change == "comment":
+        install["run"] = "# " + install["run"]
+    assert dependency_problems(document) == [
+        "draft: Draft the admission packet runs before dependencies",
+    ]
 
 
 @pytest.mark.parametrize("cache", ["pip", "pipenv", "poetry", "", None])
