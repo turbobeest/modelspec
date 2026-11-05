@@ -8,6 +8,12 @@ rule, and writes ``premier/slice-1.yaml``.
     python scripts/premier_slice1.py           # write the YAML
     python scripts/premier_slice1.py --check   # fail if the YAML differs
     python scripts/premier_slice1.py --report  # print the cut, write nothing
+
+Live proposals read current private records, without fetching sources or changing
+the input checkout. The JSON diff compares membership with its premier list::
+
+    python scripts/premier_slice1.py --data-dir ../modelspec-data \
+        --output proposal.yaml --diff proposal.json --as-of 2026-10-04
 """
 
 from __future__ import annotations
@@ -17,6 +23,7 @@ import csv
 import json
 import re
 import sys
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -82,6 +89,7 @@ MAJOR_PLATFORMS = (
     "nvidia_nim",
 )
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
+VISION_DOMAINS = {"vision", "vision_documents"}
 
 EFFORT = {
     "max",
@@ -345,12 +353,13 @@ def leaderboards() -> list[dict]:
 def rank_board(board: dict) -> list[dict]:
     """Best score per model identity, then a rank. Ties at the cutoff all count."""
     best: dict[str, dict] = {}
+    direction = -1 if board.get("direction") == "lower_is_better" else 1
     for row in board["rows"]:
-        key = slug(row["name"], strip=True)
+        key = row.get("model_id") or slug(row["name"], strip=True)
         if not key or row["score"] is None:
             continue
         current = best.get(key)
-        if current is None or row["score"] > current["score"]:
+        if current is None or direction * row["score"] > direction * current["score"]:
             best[key] = {
                 "slug": key,
                 "name": row["name"],
@@ -358,7 +367,10 @@ def rank_board(board: dict) -> list[dict]:
                 "date": row["date"] or READ_DATE,
                 "org": row["org"],
             }
-    ordered = sorted(best.values(), key=lambda item: (-item["score"], item["slug"]))
+            for field in ("model_id", "url"):
+                if field in row:
+                    best[key][field] = row[field]
+    ordered = sorted(best.values(), key=lambda item: (-direction * item["score"], item["slug"]))
     if not ordered:
         return []
     cutoff = ordered[min(9, len(ordered) - 1)]["score"]
@@ -367,17 +379,17 @@ def rank_board(board: dict) -> list[dict]:
         item = dict(item)
         item["rank"] = index
         # A tie with the 10th score stays in. A shorter board counts every row.
-        item["top10"] = item["score"] >= cutoff if len(ordered) >= 10 else True
+        item["top10"] = direction * item["score"] >= direction * cutoff
         item["board"] = board["id"]
         item["domain"] = board["domain"]
-        item["url"] = board["url"]
+        item["url"] = item.get("url", board["url"])
         ranked.append(item)
     return ranked
 
 
-def load_cards() -> dict[str, dict]:
+def load_cards(root: Path = ROOT) -> dict[str, dict]:
     cards: dict[str, dict] = {}
-    verifications = _verification_index()
+    verifications = _verification_index(root)
     guaranteed = {
         facet.id
         for facet in default_registry().facets()
@@ -385,7 +397,7 @@ def load_cards() -> dict[str, dict]:
         and facet.tier == "guaranteed"
         and facet.computed_by is None
     }
-    for path in sorted((ROOT / "models").glob("*/*.md")):
+    for path in sorted((root / "models").glob("*/*.md")):
         text = path.read_text(encoding="utf-8", errors="replace")
         if not text.startswith("---"):
             continue
@@ -449,15 +461,15 @@ def load_cards() -> dict[str, dict]:
             "retirement_date": str(retirement)[:10] if retirement else None,
             "platforms": platforms,
             "guaranteed_facts_verified": guaranteed <= verified_facets,
-            "path": str(path.relative_to(ROOT)),
+            "path": str(path.relative_to(root)),
         }
     return cards
 
 
-def _verification_index() -> dict[tuple[str, str, str], dict]:
+def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
     """Latest counting verification for each exact record value."""
     latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
-    path = ROOT / "verification" / "log.jsonl"
+    path = root / "verification" / "log.jsonl"
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
@@ -549,9 +561,9 @@ def select_local_candidates(candidates: list[dict], *, max_memory_gb: float) -> 
     ]
 
 
-def local_candidate_universe(candidates: list[dict]) -> list[dict]:
+def local_candidate_universe(candidates: list[dict], root: Path = ROOT) -> list[dict]:
     """Attach exact-value verification state to the filed local facts."""
-    verifications = _verification_index()
+    verifications = _verification_index(root)
     suffixes = {
         "parameter_verified": ("model.parameters_total", "parameter_count"),
         "artifact_verified": ("local.quantised_size_bytes", "published_size_bytes"),
@@ -684,14 +696,14 @@ def bucket_for(card: dict, domains: set[str]) -> str:
         return "embedding"
     if class_id == "orderer":
         return "rerank"
-    if card["model_type"] == "vlm" and domains == {"vision"}:
+    if card["model_type"] == "vlm" and domains and domains <= VISION_DOMAINS:
         return "vision"
     if card["open_weights"]:
         return "open-weights-generation"
     return "frontier-generation"
 
 
-def _evidence(hit: dict) -> dict:
+def _evidence(hit: dict, read_date: str = READ_DATE) -> dict:
     return {
         "clause": 1,
         "domain": hit["domain"],
@@ -700,25 +712,52 @@ def _evidence(hit: dict) -> dict:
         "score": round(float(hit["score"]), 4),
         "model_on_board": hit["name"],
         "url": hit["url"],
-        "read_date": READ_DATE,
+        "read_date": read_date,
     }
 
 
-def build() -> dict:
-    aliases = json.loads((INPUTS / "aliases.json").read_text())
-    cards = load_cards()
+def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
+    if data_dir is None:
+        aliases = json.loads((INPUTS / "aliases.json").read_text())
+        cards = load_cards()
+        boards = leaderboards()
+        slice2 = yaml.safe_load(SLICE2_INPUT.read_text(encoding="utf-8"))
+        budget_universe = budget_candidate_universe(cards)
+        local_universe = local_candidate_universe(slice2["local"]["candidates"])
+        read_date, window_start, year_start = READ_DATE, RELEASE_WINDOW_START, PAST_YEAR_START
+        protected_frontier, protected_release = "2026-09-01", "2026-09-19"
+        fresh_boards = FRESH_BOARDS
+        reviewer_clauses = {DECISION_MODEL: [{
+            "clause": 4,
+            "note": "Reviewer addition. The MODEL-136 brief requires one "
+                    "decision model, and this card is the TypeSafe Jev card.",
+        }]}
+    else:
+        from scripts.premier_live import load_inputs
+
+        as_of = as_of or datetime.now(UTC).date()
+        live = load_inputs(data_dir, as_of)
+        cards, boards, aliases = live["cards"], live["boards"], live["aliases"]
+        slice2 = live["slice2"]
+        budget_universe, local_universe = live["budget_candidates"], live["local_candidates"]
+        read_date = as_of.isoformat()
+        window_start = (as_of - timedelta(days=90)).isoformat()
+        year_start = (as_of - timedelta(days=365)).isoformat()
+        protected_frontier = (as_of - timedelta(days=23)).isoformat()
+        protected_release = (as_of - timedelta(days=5)).isoformat()
+        fresh_boards = {board["id"] for board in boards}
+        reviewer_clauses = live["reviewer_clauses"]
     index = match_index(cards, aliases)
-    slice2 = yaml.safe_load(SLICE2_INPUT.read_text(encoding="utf-8"))
 
     missing: list[dict] = []
     by_model: dict[str, dict] = {}
-    for board in leaderboards():
+    for board in boards:
         for hit in rank_board(board):
             if not hit["top10"]:
                 continue
-            if hit["date"] and hit["date"] < PAST_YEAR_START:
+            if hit["date"] and hit["date"] < year_start:
                 continue
-            model_id = index.get(hit["slug"])
+            model_id = hit.get("model_id") or index.get(hit["slug"])
             if model_id is None:
                 missing.append(
                     {
@@ -737,7 +776,7 @@ def build() -> dict:
                 model_id,
                 {"card": card, "evidence": [], "clauses": set()},
             )
-            entry["evidence"].append(_evidence(hit))
+            entry["evidence"].append(_evidence(hit, hit["date"] if data_dir else read_date))
             entry["clauses"].add(1)
 
     qualifying_labs = {
@@ -748,7 +787,9 @@ def build() -> dict:
     for model_id, card in cards.items():
         if card["provider"] not in qualifying_labs:
             continue
-        if not card["release_date"] or card["release_date"] < RELEASE_WINDOW_START:
+        if not card["release_date"] or card["release_date"] < window_start:
+            continue
+        if data_dir and card["release_date"] > read_date:
             continue
         if card["class_id"] not in SLICE_CLASSES:
             continue
@@ -776,16 +817,18 @@ def build() -> dict:
         entry["clauses"].add(3)
         entry["platforms"] = candidate["providers"]
 
-    # Clause 4. The brief names this card; it is not inferred from a board.
-    if DECISION_MODEL in cards:
+    # Reviewer additions must be explicit; a draft packet is not a review.
+    for model_id in reviewer_clauses:
+        if model_id not in cards:
+            continue
         entry = by_model.setdefault(
-            DECISION_MODEL,
-            {"card": cards[DECISION_MODEL], "evidence": [], "clauses": set()},
+            model_id,
+            {"card": cards[model_id], "evidence": [], "clauses": set()},
         )
         entry["clauses"].add(4)
 
     budget_candidates = select_budget_candidates(
-        budget_candidate_universe(cards),
+        budget_universe,
         quota_per_class=int(slice2["budget"]["quota_per_class"]),
     )
     for candidate in budget_candidates:
@@ -798,7 +841,7 @@ def build() -> dict:
 
     local_limit = float(slice2["local"]["max_memory_gb"])
     local_candidates = select_local_candidates(
-        local_candidate_universe(slice2["local"]["candidates"]),
+        local_universe,
         max_memory_gb=local_limit,
     )
     for candidate in local_candidates:
@@ -818,7 +861,7 @@ def build() -> dict:
 
     def sort_key(model_id: str) -> tuple:
         entry = by_model[model_id]
-        fresh = [item["rank"] for item in entry["evidence"] if item["board"] in FRESH_BOARDS]
+        fresh = [item["rank"] for item in entry["evidence"] if item["board"] in fresh_boards]
         fresh_best = min(fresh) if fresh else 50
         return (fresh_best, -release_key(model_id), model_id)
 
@@ -837,7 +880,7 @@ def build() -> dict:
     for model_id, entry in by_model.items():
         if entry["card"]["status"] == "sunset" or 1 not in entry["clauses"]:
             continue
-        vision = [item for item in entry["evidence"] if item["domain"] == "vision"]
+        vision = [item for item in entry["evidence"] if item["domain"] in VISION_DOMAINS]
         if vision:
             vision_leaders.append((min(item["rank"] for item in vision), model_id))
     vision_leaders.sort()
@@ -898,8 +941,8 @@ def build() -> dict:
         for model_id, entry in by_model.items()
         if entry["card"]["status"] != "sunset"
         and (
-            (1 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-01")
-            or (2 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-19")
+            (1 in entry["clauses"] and entry["card"]["release_date"] >= protected_frontier)
+            or (2 in entry["clauses"] and entry["card"]["release_date"] >= protected_release)
         )
     ]
     protected.sort(key=sort_key)
@@ -951,7 +994,7 @@ def build() -> dict:
                     "lab": card["provider"],
                     "note": (
                         "Released on or after "
-                        f"{RELEASE_WINDOW_START} by {card['provider']}, a lab with a "
+                        f"{window_start} by {card['provider']}, a lab with a "
                         "top-10 model on a current board."
                     ),
                 }
@@ -961,19 +1004,14 @@ def build() -> dict:
                 {
                     "clause": 3,
                     "providers": card["platforms"],
-                    "note": "At least three recorded major providers on the card.",
-                }
-            )
-        if 4 in entry["clauses"]:
-            clauses.append(
-                {
-                    "clause": 4,
                     "note": (
-                        "Reviewer addition. The MODEL-136 brief requires one "
-                        "decision model, and this card is the TypeSafe Jev card."
+                        "At least three major providers have recorded offerings."
+                        if data_dir else "At least three recorded major providers on the card."
                     ),
                 }
             )
+        if 4 in entry["clauses"]:
+            clauses.extend(reviewer_clauses[model_id])
         if 5 in entry["clauses"]:
             candidate = entry["budget"]
             clauses.append(
@@ -1091,10 +1129,10 @@ def build() -> dict:
 
     return {
         "schema_version": 1,
-        "status": "approved",
-        "approved_date": "2026-09-26",
-        "read_date": READ_DATE,
-        "release_window_start": RELEASE_WINDOW_START,
+        "status": "proposed" if data_dir else "approved",
+        "approved_date": None if data_dir else "2026-09-26",
+        "read_date": read_date,
+        "release_window_start": window_start,
         "rule": [
             "Top 10 of its class on a slice-1 board, after collapsing effort "
             "settings of the same model.",
@@ -1139,11 +1177,52 @@ def _dump(document: dict) -> str:
     )
 
 
+def membership_diff(document: dict, baseline: dict) -> dict:
+    """Report changed seats, with the clauses that admitted each old or new seat."""
+    current = {row["model_id"]: row for row in document["models"]}
+    previous = {
+        row if isinstance(row, str) else row["model_id"]:
+        {"model_id": row, "clauses": []} if isinstance(row, str) else row
+        for row in baseline["models"]
+    }
+    reasons = {row["model_id"]: row["why"] for row in document["near_misses"]}
+    reasons.update({row["model_id"]: row["why"] for row in document["archived"]})
+    added = [current[mid] for mid in sorted(current.keys() - previous.keys())]
+    removed = [
+        {**previous[mid], "reason": reasons.get(
+            mid, "No current admission clause selects this model.")}
+        for mid in sorted(previous.keys() - current.keys())
+    ]
+    return {"added": added, "removed": removed, "changed": bool(added or removed)}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the YAML differs")
     parser.add_argument("--report", action="store_true", help="print a short summary")
+    parser.add_argument("--data-dir", type=Path,
+                        help="read live private data instead of frozen inputs")
+    parser.add_argument("--as-of", type=date.fromisoformat,
+                        help="live evaluation date, UTC today by default")
+    parser.add_argument("--output", type=Path, help="write the live proposed YAML to this path")
+    parser.add_argument("--diff", type=Path, help="write the live membership diff as JSON")
     args = parser.parse_args()
+    if not args.data_dir and (args.as_of or args.output or args.diff):
+        parser.error("--as-of, --output and --diff require --data-dir")
+    if args.data_dir:
+        baseline_path = args.data_dir / "premier/slice-1.yaml"
+        if any(path and path.resolve() == baseline_path.resolve()
+               for path in (args.output, args.diff)):
+            parser.error("output paths must not overwrite the reviewed premier list")
+        document = build(data_dir=args.data_dir, as_of=args.as_of)
+        changes = membership_diff(document, yaml.safe_load(baseline_path.read_text()))
+        text = json.dumps(changes, indent=2, ensure_ascii=False) + "\n"
+        for path, content in ((args.output, _dump(document)), (args.diff, text)):
+            if path:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+        print(text, end="")
+        return int(args.check and changes["changed"])
     document = build()
     if args.report:
         counts: dict[str, int] = {}
