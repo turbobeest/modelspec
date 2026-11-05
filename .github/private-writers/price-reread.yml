@@ -538,20 +538,13 @@ jobs:
           title: 'data: re-read prices and plans (MODEL-217)'
           body-path: ${{ runner.temp }}/pr-body.md
           path: data
-      - name: Prove a no-change run only appended to the verification log
+      - name: Prove a no-change run wrote only reconfirmations and dated citations
         id: reconfirm
         if: inputs.dry_run != true && steps.result.outputs.changes == '0' && steps.result.outputs.reconfirmed != '0'
         run: |
-          changed="$(git status --porcelain -- offerings verification)"
-          if [ "$changed" != " M verification/log.jsonl" ]; then
-            echo "::error::a run with no value change touched more than the log:"
-            echo "$changed"
-            exit 1
-          fi
-          if git diff --numstat verification/log.jsonl | awk '$2 != 0 { bad = 1 } END { exit !bad }'; then
-            echo "::error::the log was edited, not appended to"
-            exit 1
-          fi
+          # MODEL-423: appended log and queue lines, and dated citations on references
+          # whose registered source is cite-only. Anything else fails.
+          python -I .github/scripts/price_reread_guard.py --report "$RUNNER_TEMP/report.json"
           echo "log_only=true" >> "$GITHUB_OUTPUT"
       - name: Open the reconfirmation pull request
         if: steps.reconfirm.outputs.log_only == 'true'
@@ -560,7 +553,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: data/weekly-price-reconfirm
           delete-branch: true
-          add-paths: verification/log.jsonl
+          # The guard above allows only reconfirmations and dated citations here.
+          add-paths: |
+            verification/log.jsonl
+            verification/queue/events.jsonl
+            offerings/**
           signoff: true
           commit-message: |-
             data: reconfirm prices and plans (MODEL-217)
