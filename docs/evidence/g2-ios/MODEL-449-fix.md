@@ -1,5 +1,106 @@
 # MODEL-449 verification
 
+## Round 2: exact price attribution
+
+Round-two base: `489eab5e3124e82e4de96402086068ebce949acb`.
+Final implementation: `4a24eda6bb5b65e5c9e2c86322e86982bf5b4c36`.
+The evidence-only follow-up is included in the final submitted head recorded in
+`.pr-commit.txt` and the executor completion line. This updates existing draft
+PR #972; data PR #128 has no round-two changes.
+
+The review's substring match and subject replacement predate this PR:
+
+```sh
+git blame 6815544116839f991c10904772e7357f12d5b566 -L 715,719 -- decision/verify.py
+```
+
+Exit 0. All five lines belong to `2ad89a4ee8`, dated 2026-09-25.
+Direct and grouped pricing rows now require exact normalized membership in the
+claim's names and preserve the published subject. Full aliases must be explicit;
+qualifiers such as `Global` or marketing descriptions are never inferred.
+Existing positive parser fixtures declare their full aliases and retain their
+price, tier, and wrong-value assertions. New controls reject undeclared aliases.
+
+An additional full-verifier probe found the same misattribution in Btok/Mtok
+tables and cached-price prose. Btok prices now use the adjacent exact model
+declaration and MODEL-426 heading checks. Cached prose must name the exact model
+before `caching`; free-output statements are limited to the next line of the
+owned Btok table. No whole-page substring is used to establish model identity.
+
+### Round-two red and green
+
+Python 3.14.4, pytest 9.1.1, git 2.50.1. Tests used the designated worktree,
+serial pytest, and synthetic source bytes; no provider or paid calls.
+
+| Regression | Red, before its fix | Final green |
+| --- | --- | --- |
+| `test_substring_model_row_leaves_prices_unwritten`, `test_price_table_with_both_models_keeps_only_the_exact_row`, normalized-name controls | 5 failed, 4 passed, exit 1. Sibling-only pages wrote offerings; mixed pages lost the exact price. | All 9 passed |
+| `test_offering_price_rows_require_an_exact_registered_name`, `test_offering_price_row_preserves_its_normalized_exact_subject`, explicit-alias controls | 11 failed, 1 passed, exit 1. Wrong subjects were accepted or replaced. | All 12 passed |
+| `test_scoped_btok_price_never_verifies_another_models_heading`, `test_cached_price_prose_never_verifies_an_extended_model_name`, exact/alias controls | 9 failed, 5 passed, exit 1. Real `verify()` returned `verified` for sibling prices; normalized cached identity also failed. | All 14 passed |
+
+Exact focused commands, with the first three run before the corresponding fix:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_offering_drafter.py -k 'substring_model or both_models or normalized_exact'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py -k 'offering_price_rows_require_an_exact_registered_name or offering_price_row_preserves_its_normalized_exact_subject or offering_price_row_uses_an_explicit_alias_without_rewriting_it'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py -k 'scoped_btok or cached_price_prose'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_verify.py tests/test_offering_drafter.py tests/test_metric_price_tables.py tests/test_price_reread.py tests/test_admission_drafter.py
+# Final code: exit 0, 684 passed in 7.77s, including the MODEL-426 table-attribution suite.
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+# After staging round-two evidence: exit 0, 46 passed, 1 built-dist skip in 60.01s.
+```
+
+Red logs remain in `.scratch/model-449-r2/root/attribution-red.log`,
+`.scratch/model-449-r2/review/red.log`, and `review/scoped-red.log`;
+the final output is `root/final-focused.log` under the same scratch directory.
+
+### Existing private offering prices
+
+Both runs invoked the real deterministic verifier for every current
+`offering.price.*` fact, using current values and references with filed claim
+names and collector metadata. The generic, byte-identical reproduction script
+is preserved in [MODEL-449-r2-replay.py](MODEL-449-r2-replay.py).
+It disables network connections, reads committed archives only into memory,
+refuses source writes, and checks tracked file hashes and git status afterward.
+Exact executed commands:
+
+```sh
+git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/private-data
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r2/private/replay_prices.py --engine $PWD --data /tmp/model-449-scratch/private-data --revision 489eab5e --output /tmp/model-449-scratch/prices-before.json
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r2/private/replay_prices.py --engine $PWD --data /tmp/model-449-scratch/private-data --output /tmp/model-449-scratch/prices-after.json
+```
+
+All exited 0. Private main was `c26a2d7b67039dd0ed2490cd740766680c9e454d`.
+Final verifier SHA-256 was
+`3c1de57ac8dc859d22509a7ffe76c6418bf6292f40d3e2128a2b4dbb7fa9e2d6`.
+
+| Outcome | Before | After |
+| --- | ---: | ---: |
+| Verified | 71 | 71 |
+| Mismatch | 3 | 3 |
+| Cited | 30 | 30 |
+| Unreachable | 126 | 126 |
+| Total | 230 | 230 |
+
+**Every fact whose outcome changed: none.** Methods, reasons, and diffs also
+matched for every fact. Forty-five facts exercised `offering-price-table@1`.
+Coverage is limited: matching retained bytes exist for 74 facts. The scan
+checked all 4,676 tracked files and 407 gzip archives, but only four of 20
+non-cited hashes are present. The 126 unreachable facts include 102 known and
+24 not-disclosed values. This is not a claim that all 230 prices were reverified.
+All tracked private files remained byte-identical; no data file was rewritten.
+Full per-fact results remain untracked in the private data worktree at
+`.scratch/model-449-r2/`; no private values enter this public evidence.
+
+The verifier is absent from `api/worker/vendor.py:SOURCES`; snapshot/export
+consumes recorded receipts and does not run these readers. With no receipts,
+rank rows, or exported fields changed, the conditional Worker memory probe and
+re-vendor are not triggered. No full local suite, deployment, or remote CI result
+was observed. The private scratch clone was deleted after confirming the saved
+private reports were byte-identical to the compared files.
+
+## Round 1
+
 Public base: `6815544116839f991c10904772e7357f12d5b566`.
 Final implementation: `d28057f2aeddcc64bd0186918b40303909933b79`.
 The subsequent evidence-only commit is included in the submitted head recorded
