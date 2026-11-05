@@ -1,5 +1,142 @@
 # MODEL-449 verification
 
+## Round 5: merged CI failures
+
+Started at `63885726f612cbd1a43dd864819b643279ed5b4b`. `git pull --ff-only`
+exited 0 and adopted the orchestrator's merge
+`e8eb9015b13cc0869e9699f97388d920cef09859`. Implementation is
+`43cd61325176f8d8f1ca26028b15eae7d4d35919`; the evidence-inclusive submitted
+head is recorded in `.pr-commit.txt` and the executor completion line. Public
+PR [#972](https://github.com/turbobeest/modelspec/pull/972) and private workflow
+PR [#128](https://github.com/turbobeest/modelspec-data/pull/128) remain drafts.
+The private workflow was pushed at
+`717e7c8ae6c0bbd2b77eacfebae2a72b2137c152`.
+
+The initial four-file run reproduced **7 failures, 355 passes**, exit 1:
+
+| Failing test | Observed failure | Correction |
+| --- | --- | --- |
+| `test_local_projection_verifier_rejects_sibling_and_value_mismatches[sibling-model]` | `skipped` instead of `mismatch` | Require `skipped`, no receipt and no diffs for a sibling. Keep value/unit mismatch assertions. |
+| `test_saved_page_does_not_verify_an_absent_model_or_plan` | All four parameters returned `skipped` | Require abstention with no receipt and empty diffs. This also covers the two absent-plan cases beyond those named in CI. |
+| `test_writer_workflows_keep_the_data_checkout_off_the_import_path[release-signals]` | Four disallowed-command diagnostics, starting with `--require-hashes` | Remove the two browser installation commands from the privileged process job. Keep the isolation guard unchanged. |
+| `test_shard_timings_cover_the_current_suite_and_browser_modules` | Only 339/361 modules measured | Add measured durations for all twelve modules introduced by this PR, reaching 351/361, or 97.23%. Keep the threshold and existing entries. |
+
+The lineup writer's `file_verified()` in `scripts/model_163_local.py` raises on
+every outcome other than `verified`. It files the claim before verification and
+appends only actual receipts. A sibling-only reading therefore cannot admit a
+fact; it remains pending and unverified. The four saved pages likewise omit the
+claimed model or plan. No reader or quarantine behavior was changed in round
+five. The existing quarantine, exact-value and unit checks passed in the broader
+focused run.
+
+The release writer retains the canonical engine-only import path and isolated
+`python -I` engine installation, as the other writers do. Its public mirror and
+private workflow are byte-identical, SHA-256
+`81fcfb5b82dde09fc407381af89ef9393d6814665644d2c1924ba6a3a38de9dc`.
+Only that workflow changed in the private branch; no engine pin or data changed.
+The new no-browser workflow assertion failed before the workflow edit, **1
+failed, 5 passed**, exit 1. The production process test also proves that HTTP
+prices still produce an offering, while unavailable Chromium yields no offering,
+explicit input/output gaps and zero paid credits. **Release-signals now leaves
+pages requiring rendering as gaps.** Standalone drafting still supports local
+Chromium where installed. The current isolation policy permits browser installs
+only in the separate read-only price-render job; this change adds no exception.
+
+Commands ran serially with Python 3.14.4, pytest 9.1.1, Git 2.50.1 and Node
+22.22.3. The initial red command was:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_model_163_lineup_data.py tests/test_writer_isolation.py tests/test_ci_workflows.py tests/test_model_235_readers.py > .scratch/model-449-r5/root/ci-red.log 2>&1
+```
+
+The final focused gate passed **923 tests in 19.92 seconds**, exit 0:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_model_163_lineup_data.py tests/test_writer_isolation.py tests/test_ci_workflows.py tests/test_model_235_readers.py tests/test_decision_verify.py tests/test_release_signal_prices.py tests/test_release_pipeline.py tests/test_offering_drafter.py tests/test_engine_pin.py > .scratch/model-449-r5/root/final-focused.log 2>&1
+```
+
+The private mirror's release tests passed **6 tests**, exit 0, with
+`MODEL449_RELEASE_WORKFLOW=/Users/terbeest/dev/worktrees/data-model-449/.github/workflows/release-signals.yml`.
+The workflow-specific broader suite passed **372 tests**, exit 0. Commands and
+red/green logs are in `.scratch/model-449-r5/workflows/handoff.md`.
+
+Local JUnit measurement of the twelve added files passed **267 tests**, exit 0,
+including the actual local Chromium redirect test. The final release test file
+was measured again after its edit, **6 passed**, exit 0. The repository's
+`durations_from_junit` parser merged only those twelve missing entries into
+`tests/shard_durations.json`. The CI workflow file passed **68 tests**, exit 0.
+Raw XML, exact commands and measured values are under
+`.scratch/model-449-r5/accuracy-timings/`, documented in `handoff.md`.
+
+### Accuracy failure also occurs on main
+
+Fetched `origin/main` was `187117e902c266b3c63b5861af1f57189cf4f30a`.
+It ran in a detached checkout at `/tmp/model-449-scratch/r5-main`. Each checkout
+ran its own frozen public data and engine, with the same explicit date and Node
+22.22.3. Both commands exited **1**:
+
+```sh
+# From /tmp/model-449-scratch/r5-main:
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTEST_ADDOPTS='-p no:cacheprovider' PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/accuracy.py --profile pr --date 2026-11-05 --output-dir /Users/terbeest/dev/worktrees/model-449/.scratch/model-449-r5/accuracy-timings/main-report
+# From the assigned public worktree:
+env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTEST_ADDOPTS='-p no:cacheprovider' PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/accuracy.py --profile pr --date 2026-11-05 --output-dir .scratch/model-449-r5/accuracy-timings/branch-report
+```
+
+Both fail only freshness with **872 `stale_live_leaderboard` failures**. Their
+entire parsed freshness objects, including all per-record details, are equal.
+Root independently checked that equality. All other layers pass: main's
+deterministic suite has 1,307 passes, the branch has 1,353; both have 678 Python
+parity passes and one existing optional Pyodide skip, 228 web parity passes, and
+all 20 frozen-image recall verdicts match their baseline. This does not claim
+all recall verdicts are successful: the baseline includes 15 pass, four partial
+and one fail verdict. No new recall regression occurred. Freshness was not
+repaired because it is a main-wide condition, not a change from this PR.
+
+### Full private replay and limits
+
+Fresh private main was `b2f7176b13bc4c7186f9b36f66f0e644df65dcb6`.
+All replay commands exited 0:
+
+```sh
+git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/r5-replay-data
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --revision 706d1cb0 --output .scratch/model-449-r5/private-results/all-before-r3.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --revision 63885726 --output .scratch/model-449-r5/private-results/all-round4.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --output .scratch/model-449-r5/private-results/all-final.json --compare .scratch/model-449-r5/private-results/all-round4.json
+/Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r5/private-audit/check_results.py
+```
+
+All **5,748 results match round four exactly**, including outcome, reason,
+reader method and diffs. All **334 round-four verified records**, all **333
+pre-round-three verified records**, and all **132 repaired records** still
+verify. There are **zero verified-to-non-verified changes**. Final outcomes are
+334 verified, 27 mismatch, 58 skipped, 375 cited and 4,954 unreachable. Root
+independently checked target equality, verified preservation and report hashes.
+
+Only 427 targets had readable retained regions, with 78 of 563 requested copy
+hashes available. No missing sources were fetched. All 4,686 tracked private
+files remained byte-identical; sockets were blocked. The reports contain private
+records and remain ignored under `.scratch/model-449-r5/private-results/`.
+Exact commands, hashes and cleanup checks are in `private-audit/handoff.md`.
+The final report's SHA-256 is
+`4c0eea8f4f141982a1c5323baa8c98b526d947367eb08170da3acf0fb341dce4`.
+
+`decision/verify.py` remains byte-identical to `63885726`, SHA-256
+`bfd82c6e36cdc1478ac34c0ae8db641f75c9ef0aeb35d20fc32f5de5215d100d`.
+No Worker-exported code changed. Neither memory-probe trigger applies, so no
+new memory measurement is claimed. The round-four section records its measurements.
+The private clone and detached main checkout were deleted after clean checks.
+No paid calls, source fetches, production requests, deployments, full pytest
+suite or site build ran. The full required remote CI gate and independent
+review remain unobserved.
+
+The tracked-source guard passed **46 tests, one existing built-site skip**, exit
+0, in 49.78 seconds, with the round-five evidence staged. `git diff --check`
+also exited 0. No built site was supplied for the skipped check.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py > .scratch/model-449-r5/root/removed-sources.log 2>&1
+```
+
 ## Round 4: restore every replay regression
 
 Base `ca5abc1ed2cf138e37b3c7bbb46fd9c790d8726c`; checkpoint
