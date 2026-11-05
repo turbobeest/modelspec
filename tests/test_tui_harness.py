@@ -1774,7 +1774,11 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
             if cli == "grok":
                 return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
             return execution(cli, answer="OK")
-        assert prompt == "Reply with OK, following any applicable project instructions."
+        assert prompt == (
+            "Reply with exactly OK."
+            if cli == "grok"
+            else "Reply with OK, following any applicable project instructions."
+        )
         if isolated:
             return execution(cli, answer="OK")
         root = probe_mcp.parent
