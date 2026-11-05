@@ -421,6 +421,24 @@ class Transcript:
         )
 
 
+GROK_TERMINAL_KEYS = ("type", "subtype", "is_error", "status", "stop_reason")
+
+
+def _grok_success(event: dict) -> bool:
+    """The only Grok terminal accepted as success, recorded live 2026-11-04 (1.0.46).
+
+    Cancelled (error_during_execution, stop_reason cancelled) and any other or
+    unknown shape fail closed.
+    """
+    return (
+        event.get("type") == "result"
+        and event.get("subtype") == "success"
+        and event.get("is_error") is False
+        and event.get("status", "success") == "success"
+        and event.get("stop_reason", "end_turn") == "end_turn"
+    )
+
+
 def parse_transcript(cli: str, output: str) -> Transcript:
     """Keep ordered calls and their results, never count streaming deltas twice."""
     parsed = Transcript()
@@ -552,6 +570,11 @@ def parse_transcript(cli: str, output: str) -> Transcript:
             if event.get("is_error") or event.get("status") == "error":
                 parsed.errors.append(
                     json.dumps(event.get("error", event.get("errors", parsed.final_answer)))
+                )
+            elif cli == "grok" and not _grok_success(event):
+                parsed.errors.append(
+                    "Grok terminal outcome is not success: "
+                    + json.dumps({key: event.get(key) for key in GROK_TERMINAL_KEYS})
                 )
             parsed.usage = event.get("usage", event.get("stats"))
             parsed.cost_usd = event.get("total_cost_usd", event.get("cost_usd"))
