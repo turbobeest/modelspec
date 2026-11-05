@@ -898,6 +898,22 @@ class ModelCard(BaseModel):
                 "open_weights is true with license_type proprietary: "
                 "a proprietary licence does not distribute downloadable weights"
             )
+        # Warning-only: the MODEL-452 audit found contradictions on data main.
+        mods = self.modalities
+        for direction, kind, field, supported in (
+            ("input", Modality.IMAGE, "vision.supported", mods.vision.supported),
+            ("output", Modality.IMAGE, "image_generation.supported", mods.image_generation.supported),
+            ("input", Modality.AUDIO, "audio.input_supported", mods.audio.input_supported),
+            ("output", Modality.AUDIO, "audio.output_supported", mods.audio.output_supported),
+            ("input", Modality.VIDEO, "video.input_supported", mods.video.input_supported),
+            ("output", Modality.VIDEO, "video.output_supported", mods.video.output_supported),
+        ):
+            listed = kind in getattr(mods, direction)
+            if supported != listed:
+                out.append(
+                    f"modalities.{field} is {str(supported).lower()} but modalities.{direction} "
+                    f"{'contains' if listed else 'does not contain'} {kind.value}"
+                )
         return out
 
     @property
