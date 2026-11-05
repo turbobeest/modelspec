@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -418,7 +418,7 @@ def test_response_size_is_bounded_while_streaming(monkeypatch):
     assert firecrawl.MAX_FIRECRAWL_RESPONSE_BYTES == 63
 
 
-def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=None, month=MONTH):
+def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=None):
     urls = (HELP,) if urls is None else urls
     directory.mkdir(parents=True, exist_ok=True)
     pages = {}
@@ -435,7 +435,7 @@ def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=N
     manifest = (
         {
             "schema_version": 1,
-            "month": month,
+            "month": MONTH,
             "credits_spent": len(pages) if spent is None else spent,
             "pages": pages,
         }
@@ -803,17 +803,17 @@ def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
     capsys,
     caplog,
 ):
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 10, 15, tzinfo=tz)
+
+    monkeypatch.setattr(price_reread, "datetime", FrozenDateTime)
     root, _ = allowed_estate
     rendered = artifact(tmp_path / "render")
     ledger = tmp_path / "ledger"
     ledger.mkdir()
-    # The CLI reads the ledger for the current UTC month.
-    artifact(
-        ledger / "known",
-        urls=tuple(f"{PLAN}{n}" for n in range(7)),
-        fallback_manifest=True,
-        month=datetime.now(UTC).strftime("%Y-%m"),
-    )
+    artifact(ledger / "known", urls=tuple(f"{PLAN}{n}" for n in range(7)), fallback_manifest=True)
     (ledger / "unreadable").mkdir()
     summary = tmp_path / "step-summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
