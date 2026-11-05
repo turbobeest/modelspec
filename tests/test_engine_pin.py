@@ -29,6 +29,7 @@ NAMES = (
     "admission-drafter",
     "rendered-reread",
     "workflow-health",
+    "model-week",
 )
 ENGINE_JOBS = {
     "recall-private": 1,
@@ -42,6 +43,7 @@ ENGINE_JOBS = {
     "admission-drafter": 1,
     "rendered-reread": 1,
     "workflow-health": 1,
+    "model-week": 1,
 }
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
@@ -248,6 +250,44 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
         if repository == ENGINE_REPOSITORY:
             assert ref == PIN_REF
             assert HEX40.fullmatch(str(ref)) is None
+
+
+@pytest.mark.parametrize("case", ["shallow", "full", "unreachable"])
+def test_model_week_completes_main_history_without_moving_the_pin(
+    case: str, tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    engine = tmp_path / "engine"
+    data = tmp_path / "data"
+    data.mkdir()
+    clone = ["git", "clone", "--quiet", "--no-checkout", "--branch", "main"]
+    if case != "full":
+        clone.extend(["--depth", "1"])
+    subprocess.run([*clone, local_engine.url, str(engine)], check=True, capture_output=True)
+    if case != "full":
+        _git(engine, "fetch", "--depth", "1", "origin", local_engine.ancestor)
+    _git(engine, "checkout", "--detach", local_engine.ancestor)
+    _git(engine, "update-ref", "-d", "refs/remotes/origin/main")
+    assert _git(engine, "rev-parse", "--is-shallow-repository") == (
+        "false" if case == "full" else "true"
+    )
+    if case == "unreachable":
+        _git(engine, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    steps = _engine_job(_document("model-week"))["steps"]
+    step = steps[_index(steps, lambda item: item.get("name") ==
+                        "Complete public catalogue history")]
+    completed = subprocess.run(
+        ["bash", "-c", step["run"]], cwd=data, capture_output=True, text=True,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}, check=False,
+    )
+    detail = f"{case}: exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert _git(engine, "rev-parse", "HEAD") == local_engine.ancestor
+    if case == "unreachable":
+        assert completed.returncode != 0, detail
+    else:
+        assert completed.returncode == 0, detail
+        assert _git(engine, "rev-parse", "--is-shallow-repository") == "false"
+        assert _git(engine, "rev-parse", "refs/remotes/origin/main") == local_engine.tip
+        assert _git(engine, "rev-list", "--count", "refs/remotes/origin/main") == "3"
 
 
 @pytest.mark.parametrize(
