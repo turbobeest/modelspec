@@ -12,6 +12,8 @@
 # models_dev:  <provider>/<id> as published by https://models.dev/api.json
 # seeder:      optional identity after PROVIDER_MAP + slugify (what NEW prints)
 # canonical:   catalogue model_id whose card file must exist, or the row is ignored
+# skips:       exact models.dev rows that are not stable model identities;
+#              each needs a reason and does not depend on a canonical card
 
 identities:
   - models_dev: mistral/zai-glm-5-2
@@ -36,3 +38,31 @@ identities:
       listing kept as availability. Dropped as the same model as
       zhipu/glm-5-3. Hugging Face repo on the canonical card is
       zai-org/GLM-5.3.
+  - models_dev: mistral/deepseek-v4-1-flash-1017
+    canonical: deepseek/deepseek-flash
+    note: >
+      Dated Mistral serving ID for DeepSeek V4.1 Flash. Dropped in REV-data99;
+      availability.mistral_plateforme.model_id at data commit 68f3a774.
+  - models_dev: mistral/mistral-large-4-0-8
+    canonical: mistral/mistral-large-4
+    note: >
+      Same Mistral Large 4 release, with no evidence of a distinct model in
+      REV-data99. ID from version and sources.models_dev_url at 68f3a774.
+  - models_dev: moonshotai/kimi-k3.1-pro-highspeed
+    canonical: moonshot/kimi-k3-1-pro
+    note: >
+      Serving speed tier of Kimi K3.1 Pro, dropped in REV-data99. ID from
+      version and sources.models_dev_url at 68f3a774, including the dot.
+      The canonical card is on data#99; this mapping takes effect when it exists.
+  - models_dev: mistral/zai-glm-5-3-flash
+    canonical: zhipu/glm-5-3-flash
+    note: >
+      Mistral serving name for GLM-5.3 Flash. Dropped in REV-data99;
+      availability.mistral_plateforme.model_id at data commit 68f3a774.
+
+skips:
+  - models_dev: google/gemini-pro-latest
+    reason: rolling alias with no fixed model identity
+    note: >
+      Dropped in REV-data99. ID from version and sources.models_dev_url at
+      68f3a774. A moving alias cannot be mapped to a fixed canonical card.
