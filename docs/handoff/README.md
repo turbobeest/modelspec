@@ -57,7 +57,7 @@ Learned expensively during 2026-09-09/10.
     covers the reader and `test_soc2_type_2_phrase_matches_registered_enum` the
     comparison. The scope comment is the human check.
 
-Public PR bodies and evidence carry counts and field names only: no private SHAs, clone URLs, PR ages or per-card values.
+Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards
 

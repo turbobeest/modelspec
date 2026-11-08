@@ -1,5 +1,43 @@
 # MODEL-455 verification
 
+## Round 2
+
+The guard now redacts a detected private revision in filenames regardless of
+case, adjacent characters or supported abbreviation length. The regression
+executes the real guard, workflow shell and alert JavaScript, checking scanner
+stdout, workflow stdout, `GITHUB_OUTPUT`, `GITHUB_STEP_SUMMARY` and the mocked
+alert body. All 5 destinations must omit even the revision's shortest prefix.
+
+Value matching removes paired Markdown emphasis before checking token
+boundaries. Single and double underscore cases cover private modalities and
+prices. Regression controls preserve literal model IDs and avoid matching
+substrings of other values. The standing rule now prohibits only private
+commit SHAs and per-card private values. Private PR numbers, ages and clone
+URLs are not sensitive; a passing guard fixture covers them.
+
+The focused data run passed 71 tests. Before the fixes, the CLI regressions
+failed 15 cases and the publication regression failed all 5 destinations.
+A further literal-ID regression failed once before normalization was limited
+to value cells. The two workflow files remain unchanged and byte-identical.
+The pre-existing `model-week.yml` mismatch remains outside this change.
+
+Public validation ran serially after the data suite:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py tests/test_workflow_dependencies.py tests/test_removed_sources.py
+```
+
+It exited 0 with 389 passed and 1 skipped in 65.20 seconds. The skip requires a
+built dist. Python 3.14.4, pytest 9.1.1 and PyYAML 6.0.3 were rechecked.
+The revised public PR handoff and this ticket's public evidence had 0 guard
+findings when checked against a fresh private clone. The live counts in the
+round-one section below were not remeasured in this round.
+
+No hosted workflow, real alert issue write, full suite or deployed behavior was
+observed in this round. The existing draft PRs remain the delivery targets.
+
+## Round 1
+
 This public change adds the private workflow mirror and the standing rule for
 public PR bodies and evidence. The companion data change implements the guard.
 The two PRs require a coordinated merge because the private mirror gate reads
