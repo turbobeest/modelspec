@@ -102,3 +102,294 @@ No frozen cards, schema fields, Worker exports, rank rows, production switches
 or legal terms changed. No provider calls, source-page retrieval, production
 deployment, full local suite or CI result was observed. The conditional Worker
 memory probe is not triggered by this seeder and warning-only change.
+
+## Writer-pin follow-up execution evidence
+
+Observed 2026-11-08 in the assigned `model-452-writers-read-pin` worktrees.
+
+- Public base: `7c9282c6dc20bfb6a38e1f87ad569edb13e71a19`.
+- Final public test SHA: `e6fe3d99574979b90afc502be4eda44684a26733`.
+- Evidence follows those code commits. Final PR-tip SHAs are recorded after
+  committing this evidence in each worktree's untracked `.pr-commit.txt` and
+  in the executor completion. `git rev-parse HEAD` reproduces each final tip.
+
+The migration described by the ticket is already present at the supplied
+bases. All 19 engine checkouts across 14 workflow files read `.engine-pin`,
+and every public workflow mirror is byte-identical to the private workflow.
+No workflow changes or older-engine exceptions were needed.
+
+The public test now discovers every `.yml` and `.yaml` writer, including future
+files absent from the existing fixed test list. It checks the pin read, main
+ancestry check, step order and checkout ref. The data companion rejects matching
+mirrors that hard-code an engine ref and tests the real private inventory.
+
+### Regression probe and green suite
+
+From `/Users/terbeest/dev/worktrees/model-452-pin`, this temporary additional
+writer proves discovery catches a new file whose engine ref is hard-coded:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+from pathlib import Path
+import subprocess
+import sys
+
+probe = Path('.github/private-writers/model-452-probe.yaml')
+assert not probe.exists()
+source = Path('.github/private-writers/daily-research.yml').read_text()
+try:
+    probe.write_text(source.replace('ref: ${{ steps.engine_pin.outputs.sha }}', 'ref: ' + 'a' * 40, 1))
+    result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_engine_pin.py', '-k', 'every_discovered_writer', '--tb=short'])
+finally:
+    probe.unlink()
+sys.exit(result.returncode)
+PY
+```
+
+`test_every_discovered_writer_checks_out_the_verified_engine_pin[model-452-probe.yaml]`
+failed at `assert checkout.get("ref") == PIN_REF` with the literal SHA instead
+of `${{ steps.engine_pin.outputs.sha }}`. Result:
+**1 failed, 14 passed, 60 deselected in 0.12s; exit 1**. The probe was removed
+by `finally`. This was a deliberate mutation, not an existing broken workflow.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_writer_artifacts.py tests/test_research_workflow.py
+```
+
+Result: **375 passed in 12.64s; exit 0**. The tests execute pin validation
+against local Git repositories, including malformed pins and off-main commits.
+They ran serially after the data workflow/guard suites, which passed 173 tests.
+The data evidence records its red-first guard tests and exact commands.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+```
+
+Result: **46 passed, 1 skipped in 52.87s; exit 0**. The skip requires a built
+`dist/` selected by `MODELSPEC_DIST`; no deployed site build was tested. This
+ran after staging the evidence so the tracked-file scan included it.
+
+```sh
+/Users/terbeest/dev/modelspec/.venv/bin/python /Users/terbeest/dev/worktrees/data-model-452-pin/.github/scripts/check_writer_mirrors.py --mirrors /Users/terbeest/dev/worktrees/model-452-pin/.github/private-writers --workflows /Users/terbeest/dev/worktrees/data-model-452-pin/.github/workflows
+git diff --check
+```
+
+Results: `14 public writer mirror(s) match private workflows.`, exit 0;
+whitespace check exit 0.
+
+### Tools and limits
+
+Version commands were `git --version`, `gh --version`,
+`/Users/terbeest/dev/modelspec/.venv/bin/python --version`,
+`/Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --version`, and
+`/Users/terbeest/dev/modelspec/.venv/bin/python -c 'import yaml; print("PyYAML", yaml.__version__)'`.
+Versions: Git 2.50.1, GitHub CLI 2.103.3, Python 3.14.4, pytest 9.1.1,
+PyYAML 6.0.3.
+
+Merge data#138 first so the pin includes public #979. Merge the paired MODEL-452
+draft PRs together, public first. The data body links this companion by the
+stable branch PR search because it must be created first and PR edits are
+prohibited. This public PR links the exact data PR URL. Publish commands from
+this worktree and `/tmp` respectively:
+
+```sh
+CI_LOCAL_SKIP=1 git push -u origin model-452-writers-read-pin
+gh pr create -R turbobeest/modelspec --draft --base main --head model-452-writers-read-pin --title "MODEL-452: discover every writer in engine-pin mirror tests" --body-file /Users/terbeest/dev/worktrees/model-452-pin/.pr-body.md
+```
+
+Not observed: a currently hard-coded production checkout, live Actions
+execution, the full CI run, data#138's merge state, a deployed daily-model
+rebuild, or independent review. No private data was copied into this repo.
+No full local suite, WSL gate, provider calls, Worker export changes,
+deployments, or merges were performed.
+
+## Pin-enforcement round two, 2026-11-08
+
+This follow-up addresses both P2 findings in `REV-994-cx.verdict.md`.
+Public base: `afa9b899f1f3af0fa903574cfc831d53e371347b`.
+Validated test commit: `bcd2be2ca71e2867018c66138a621458d866599f`.
+The final tip, including this evidence, is recorded in `.pr-commit.txt` after
+the evidence commit and is reproducible with `git rev-parse HEAD`.
+
+Discovery now scans every checkout in every job. Explicit repository inputs
+must be literal owner/repo values; case and `.git` variants of the engine name
+receive the same pin checks. Default and unrelated literal repositories pass.
+
+Each engine checkout must consume the exact output of its unique earlier
+producer. That producer must match one of the two canonical forms already
+tested against local Git fixtures. Separate assertions forbid conditional
+producers and ignored failures even if a canonical reference file is changed.
+Effective working directory and Bash shell are also checked. This deliberately
+accepts reviewed complete scripts instead of inferring shell data flow from
+substrings; new script forms require an explicit guard update and tests.
+
+Red-first command, before changing discovery:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k 'discovered_writer_rejects or discovered_writer_recognizes or discovered_writer_allows or wrong_output_mutation' --tb=short
+```
+
+Result: **22 failed, 2 passed, 74 deselected in 0.81s, exit 1**. Failures were
+`DID NOT RAISE AssertionError` in the indirect-repository tests, engine case
+test, unbound-producer tests, and runtime wrong-output regression.
+The producer cases cover a fixed SHA, another variable, reassignment, a second
+output, `if: false`, and `continue-on-error: true` for both canonical forms.
+After the discovery change, the same command returned
+**24 passed, 74 deselected in 0.58s, exit 0**.
+
+`test_wrong_output_mutation_emits_a_different_commit` runs the actual modified
+script against a local Git repository. The script succeeds after validating
+the ancestor named in `.engine-pin` but emits the tip commit. The test then
+requires the discovery check to reject that writer. No hosted checkout ran.
+
+Supplementary red-first command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k 'a_canonical_writer_cannot_skip_pin_validation or discovered_writer_recognizes_engine_repository_aliases' --tb=short
+```
+
+Result: **3 failed, 1 passed, 97 deselected in 0.14s, exit 1**, again with
+`DID NOT RAISE AssertionError`. These cases cover the `.git` spelling and
+`if: false` or ignored failures on the canonical reference file itself.
+Suffix normalization is conservative; live GitHub alias handling was not tested.
+
+Final related suite, after the data suites completed:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py tests/test_writer_isolation.py tests/test_writer_artifacts.py tests/test_research_workflow.py
+git diff --exit-code afa9b899f1f3af0fa903574cfc831d53e371347b -- .github/private-writers
+git diff --check
+```
+
+Results: **402 passed in 12.88s, exit 0**; no mirror diff, exit 0; whitespace
+check exit 0. The data counterpart passed 190 related tests. The exact mirror
+checker returned `14 public writer mirror(s) match private workflows.`, exit 0.
+
+Required source guard, after staging this evidence:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+```
+
+Result: **46 passed, 1 skipped in 51.65s, exit 0**. The skip is the optional
+built-site scan requiring `MODELSPEC_DIST`; no site was built.
+
+Current tools: Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3, Git 2.50.1 and Bash
+5.3.9, checked with the version commands recorded above and `bash --version`.
+No extra GitHub version call was made; this round permits only two `gh` calls.
+Push command: `CI_LOCAL_SKIP=1 git push -u origin model-452-writers-read-pin`.
+The existing public#994 and data#139 stay paired drafts. Local handoff bodies
+are refreshed; the executor restriction prevents editing the remote PR bodies.
+No private data or private revision identifiers were added to public commits.
+No live Actions execution, full CI, deployment, provider call, source retrieval
+or merge was observed or performed in this round.
+
+After pushing, `gh pr view 994 -R turbobeest/modelspec --json number,isDraft,headRefName,headRefOid,baseRefName,state`
+verifies this draft and its head. The other permitted `gh` call verifies the
+data draft. Exact results are recorded in the local `.pr-commit.txt` handoffs.
+
+## Pin-enforcement round three, 2026-11-08
+
+Addresses the input-name casing P2 in `REV-994-cx-r2.verdict.md`.
+Public base: `866662802fad7edcf52857ff3a500cb16160ad0f`.
+Validated test SHA: `e1cc6a556cd5ab83f943543a4f5d8fdbdc12c3e1`.
+Final tip, including evidence, is written to `.pr-commit.txt` after the evidence
+commit and can be reproduced with `git rev-parse HEAD`.
+
+Discovery now lowercases every `with` key before repository classification
+and ref validation. Action names were already normalized. No other enforcement
+behavior changed. Copied-writer fixtures preserve the original valid checkout
+and append a second checkout with the reviewer's casing, mixed-case and
+all-caps action/input names, or uppercase `REF` with lowercase `repository`.
+The cases include unpinned refs, valid pin refs, and unresolved repositories.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k second_checkout_input_names --tb=short
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py
+```
+
+`test_second_checkout_input_names_are_case_insensitive` ran against unchanged
+discovery first: **7 failed, 5 passed, 101 deselected in 0.42s, exit 1**.
+Six rejected-workflow fixtures failed with `DID NOT RAISE AssertionError`;
+the valid uppercase-`REF` case failed with `None == PIN_REF`. After key
+normalization, the identical focused command returned **12 passed, 101
+deselected in 0.21s, exit 0**. The complete touched suite returned
+**113 passed in 3.84s, exit 0**, after the data touched suite's 48 passing tests.
+
+The exact mirror checker returned **14 mirrors match, exit 0**.
+`git diff --exit-code 866662802fad7edcf52857ff3a500cb16160ad0f -- .github/private-writers`
+and `git diff --check` returned 0. No workflow or mirror bytes changed.
+Current versions, using the recorded version commands, were Python 3.14.4,
+pytest 9.1.1, PyYAML 6.0.3 and Git 2.50.1.
+
+Push command remains `CI_LOCAL_SKIP=1 git push -u origin model-452-writers-read-pin`.
+The draft/head verification command above and its data counterpart are the
+only planned `gh` calls this round. Final results go in the untracked handoffs.
+Remote PR bodies are not edited under the executor restriction. No private
+data or private revision identifiers were added here. No live Actions run,
+full CI, deployment, provider call, source retrieval or merge was observed or
+performed in this round.
+
+Required source guard, after staging this evidence:
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`.
+Result: **46 passed, 1 skipped in 50.87s, exit 0**. The optional built-site
+scan was skipped because `MODELSPEC_DIST` was not set; no site was built.
+
+## Public-data scan exception, round four, 2026-11-08
+
+Starting public head: `3f91d9988c419d6c7aec8c438dc35698d32ea77d`.
+Fetched public main: `8426f6dae17ea4a695412cb309851392a3bee354`.
+Merge commit: `95fce3494dd1221f88d29cea7f67353ffb1ea4a9`.
+Validated implementation: `4155ef7da9b4289809caebdd9e815312cda8f9bc`.
+Final tip, including evidence, is recorded in `.pr-commit.txt` after the
+evidence commit and is reproducible with `git rev-parse HEAD`.
+
+```sh
+git fetch origin main
+git merge --no-ff --no-edit --quiet origin/main -m "MODEL-452: merge main for the public-data scan mirror" -m "Co-Authored-By: ChatGPT Codex <noreply@openai.com>"
+```
+
+Both commands returned 0 with no merge conflicts. The data branch also merged
+its fetched main. MODEL-455's newly merged leak guard must inspect current
+public `main` as data, so requiring `.engine-pin` for that checkout was a false
+positive in both checks.
+
+The exception is a named allowlist, as permitted by the spec. It requires the
+exact `public-leak-guard.yml` file, `scan` job, read-only-comparison step name,
+and existing repository/ref/path/full-history/credential inputs. Current source
+review confirmed that the private `python -I` scanner reads the public checkout
+as data, with no public script execution or import-path insertion. This does
+not attempt a general static proof for arbitrary future shell/Python scripts.
+Every other public checkout still reaches the existing pin checks. No marker
+or workflow edit was needed, and all mirrors remain byte-identical.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k public_leak_guard --tb=short
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py
+```
+
+Red: `test_public_leak_guard_has_one_named_data_checkout_exception[none]`
+failed at the pin-ref assertion with `main` instead of the pin expression.
+**1 failed, 7 passed, 114 deselected in 0.27s, exit 1**.
+Green, identical focused command: **8 passed, 114 deselected in 0.15s, exit 0**.
+Negative cases reject renamed workflow/job/step, altered checkout inputs and
+an additional unpinned checkout. The complete pin suite returned
+**122 passed in 4.75s, exit 0**, after the data suite's 150 passing tests.
+The complete private checker returned **15 matching mirrors, exit 0**.
+
+`git merge-base --is-ancestor origin/main HEAD`,
+`git diff --exit-code origin/main -- .github/private-writers` and
+`git diff --check` returned 0. Current version checks confirmed Python 3.14.4,
+pytest 9.1.1, PyYAML 6.0.3, Git 2.50.1 and Bash 5.3.9. The related private
+workflow tests used Node v22.22.3 and local HTTP/issue stubs.
+
+Push and the two permitted draft-verification commands are those recorded
+above, with final heads/results written to the local handoffs. No private data
+or private revision IDs were added to public commits. No hosted Actions result,
+full CI, deployment, provider call, source retrieval or PR merge was observed
+or performed in this round.
+
+Required source guard, run from the public worktree after staging its evidence:
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`.
+Result: **46 passed, 1 skipped in 53.71s, exit 0**. The optional built-site
+scan requires `MODELSPEC_DIST`; no site was built.
