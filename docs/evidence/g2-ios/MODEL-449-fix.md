@@ -1,5 +1,49 @@
 # MODEL-449 verification
 
+## Round 7: remove private metadata from public text
+
+Base `89a2d6f2efba5e9ac2ab51f1547a28cd22c90348`. Independent review found no
+additional code defect. This round changes only this evidence file and the
+untracked PR-body handoff. The final public commit is recorded in
+`.pr-commit.txt` and the executor completion line.
+
+Private main revisions now use `<private main at assessment time>`, other
+private revisions use local-record placeholders, and clone commands use
+`$PRIVATE_DATA_CLONE_URL`. Private repository arguments and PR links are also
+placeholders. Checksums remain in the local validation records so every long
+hex token left here identifies a public commit. Numeric CI-run identifiers and
+the signing-algorithm spelling were replaced with prose to meet that same check.
+All aggregate test, replay, coverage and memory results are preserved.
+
+The initial audit failed with 11 private repository-name occurrences and 24
+non-commit hex occurrences across the two files. The replacement pass removed
+seven clone URLs, two private PR links and one private repository argument.
+Audit output reports counts only. The initial audit exited 1. The final audit
+exited 0 with zero private repository-name matches and zero unresolved tokens;
+all 42 remaining hex occurrences resolve to public commits using
+`git cat-file -e <sha>^{commit}`. The reference search uses the exact pattern
+supplied by the round-seven spec; its exit 1 means no matches. Audit records
+are under `.scratch/model-449-r7/`.
+
+The required source guard passed **46 tests with one existing built-site skip**
+in 50.23 seconds, exit 0. Python was 3.14.4 and pytest was 9.1.1. No built site
+was supplied for the skipped check. `git diff --check` exited 0.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py
+```
+
+The live PR body is updated using the round-seven authorization for `gh pr edit`.
+No code, tests, private data, workflow or engine pin changed. No replay or memory
+probe was rerun for this text-only correction.
+
+```sh
+# From /tmp, using the round-seven exception to the general edit prohibition:
+gh pr edit 972 -R turbobeest/modelspec --body-file /Users/terbeest/dev/worktrees/model-449/.pr-body.md
+# From the assigned worktree, after validation:
+CI_LOCAL_SKIP=1 git push -u origin model-449-codex
+```
+
 ## Round 6: licence binding refusals and remaining CI expectations
 
 Started at `15eac364b25e54b82989d4794dcace90c7c51e5b`. The requested fetch and
@@ -27,7 +71,7 @@ incorrectly changed those binding failures to `skipped`. They now again require
 model mismatches. This restores the existing licence contract rather than
 weakening its rejection tests.
 
-One permitted GitHub call downloaded run 41982619092's failed logs. The complete
+One permitted GitHub call downloaded the failed CI run's logs. The complete
 census was 61 failures across exactly three files:
 
 | Shard | File | Red failures | Correction |
@@ -76,7 +120,7 @@ assertion are in `.scratch/model-449-r6/ci-audit/handoff.md`.
 
 ### Private replay and Worker memory
 
-Fresh private main was `97fda5fdbc280730dbb422fe0449221ee7d35b32`.
+Fresh private main was `<private main at assessment time>`.
 The complete replay compared all **5,748 targets** against round five and the
 pre-round-three baseline. All **334 round-five verified records**, all **333
 earlier verified records**, and all **132 repaired records** remain verified.
@@ -86,7 +130,7 @@ diagnostics match the earlier baseline. All replay and comparison commands
 exited 0. Root independently checked target sets, preservation and hashes.
 
 ```sh
-git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/r6-replay-data
+git clone --quiet "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/r6-replay-data
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --revision 15eac364 --output .scratch/model-449-r6/private-results/all-round5.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --revision 706d1cb0 --output .scratch/model-449-r6/private-results/all-before-r3.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --output .scratch/model-449-r6/private-results/all-final.json --compare .scratch/model-449-r6/private-results/all-round5.json
@@ -99,7 +143,7 @@ to 2026-11-05 for comparison. All 4,802 private tracked files remained unchanged
 and socket connections were blocked. Private reports remain ignored under
 `.scratch/model-449-r6/private-results/`; commands, hashes and cleanup evidence
 are in `private-audit/handoff.md`. The final verifier SHA-256 is
-`1ecb28b33f22b3eb3744b8b29ced7b4adddbbe89a9edb9e18171944a4d1e1f09`.
+`<checksum recorded locally>`.
 
 The deploy-style private Worker probe passed the 115 MiB steady limit:
 
@@ -140,9 +184,9 @@ exited 0 and adopted the orchestrator's merge
 head is recorded in `.pr-commit.txt` and the executor completion line. Public
 PR [#972](https://github.com/turbobeest/modelspec/pull/972) was confirmed open and
 draft after the push. The final read found private workflow PR
-[#128](https://github.com/turbobeest/modelspec-data/pull/128) open but non-draft.
+`<private workflow PR>` open but non-draft.
 The private workflow was pushed at
-`717e7c8ae6c0bbd2b77eacfebae2a72b2137c152`.
+`<private revision recorded locally>`.
 
 **Handoff blocked on private PR state:** the two permitted GitHub reads were
 used to inspect the two PRs. This executor did not mark either PR ready. The
@@ -153,12 +197,12 @@ orchestrator to convert it to draft. No further GitHub request was made.
 ```sh
 # Both commands ran from /tmp and exited 0.
 gh pr view 972 -R turbobeest/modelspec --json number,url,state,isDraft,headRefOid,headRefName
-gh pr view 128 -R turbobeest/modelspec-data --json number,url,state,isDraft,headRefOid,headRefName
+gh pr view 128 -R "$PRIVATE_DATA_REPO" --json number,url,state,isDraft,headRefOid,headRefName
 ```
 
 The public read returned `OPEN`, `isDraft: true` at
 `fa2545aa0b7a7f1d3b92f665d91b9d4287201e3b`; the private read returned `OPEN`,
-`isDraft: false` at `717e7c8ae6c0bbd2b77eacfebae2a72b2137c152`. A final
+`isDraft: false` at `<private revision recorded locally>`. A final
 evidence-only commit corrects the draft-status claim and is pushed without a
 third GitHub read. Both pushes use `CI_LOCAL_SKIP=1 git push -u origin` followed
 by the respective assigned branch name.
@@ -183,7 +227,7 @@ focused run.
 The release writer retains the canonical engine-only import path and isolated
 `python -I` engine installation, as the other writers do. Its public mirror and
 private workflow are byte-identical, SHA-256
-`81fcfb5b82dde09fc407381af89ef9393d6814665644d2c1924ba6a3a38de9dc`.
+`<checksum recorded locally>`.
 Only that workflow changed in the private branch; no engine pin or data changed.
 The new no-browser workflow assertion failed before the workflow edit, **1
 failed, 5 passed**, exit 1. The production process test also proves that HTTP
@@ -245,11 +289,11 @@ repaired because it is a main-wide condition, not a change from this PR.
 
 ### Full private replay and limits
 
-Fresh private main was `b2f7176b13bc4c7186f9b36f66f0e644df65dcb6`.
+Fresh private main was `<private main at assessment time>`.
 All replay commands exited 0:
 
 ```sh
-git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/r5-replay-data
+git clone --quiet "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/r5-replay-data
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --revision 706d1cb0 --output .scratch/model-449-r5/private-results/all-before-r3.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --revision 63885726 --output .scratch/model-449-r5/private-results/all-round4.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r5-replay-data --output .scratch/model-449-r5/private-results/all-final.json --compare .scratch/model-449-r5/private-results/all-round4.json
@@ -269,10 +313,10 @@ files remained byte-identical; sockets were blocked. The reports contain private
 records and remain ignored under `.scratch/model-449-r5/private-results/`.
 Exact commands, hashes and cleanup checks are in `private-audit/handoff.md`.
 The final report's SHA-256 is
-`4c0eea8f4f141982a1c5323baa8c98b526d947367eb08170da3acf0fb341dce4`.
+`<checksum recorded locally>`.
 
 `decision/verify.py` remains byte-identical to `63885726`, SHA-256
-`bfd82c6e36cdc1478ac34c0ae8db641f75c9ef0aeb35d20fc32f5de5215d100d`.
+`<checksum recorded locally>`.
 No Worker-exported code changed. Neither memory-probe trigger applies, so no
 new memory measurement is claimed. The round-four section records its measurements.
 The private clone and detached main checkout were deleted after clean checks.
@@ -408,7 +452,7 @@ The skip requires a built `MODELSPEC_DIST`, which this focused run does not crea
 
 ### Complete private replay
 
-Private main `7409030687c87e1ed05b87b0c126ad0273b3dfb9` was cloned read-only under
+Private main `<private main at assessment time>` was cloned read-only under
 `/tmp/model-449-scratch/replay-data`. Its baseline and round-three replay records
 are identical to the earlier private revision's results, so the data revision
 introduced no result changes. The existing [read-only replay program](MODEL-449-r3-replay.py)
@@ -416,7 +460,7 @@ ran against all 5,748 eligible current targets: 1,926 facts and 3,822 evidence
 records, using the original catalogue values and existing source snapshots.
 
 ```bash
-git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/replay-data
+git clone --quiet "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/replay-data
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --revision 706d1cb0 --output .scratch/model-449-r4/private-results/all-before-current-main.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --revision ca5abc1e --output .scratch/model-449-r4/private-results/all-r3-current-main.json --compare .scratch/model-449-r4/private-results/all-before-current-main.json
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/replay-data --output .scratch/model-449-r4/private-results/all-after.json --compare .scratch/model-449-r4/private-results/all-before-current-main.json
@@ -447,11 +491,11 @@ readable retained cited region, with 78 available non-cite-only hashes out of
 reverification of its underlying values.
 
 Final verifier SHA-256:
-`bfd82c6e36cdc1478ac34c0ae8db641f75c9ef0aeb35d20fc32f5de5215d100d`.
+`<checksum recorded locally>`.
 Baseline report SHA-256:
-`3d65afd4148347adbcab7407f6f6b3bdcea0f3003d31be33475446a89a7535eb`.
+`<checksum recorded locally>`.
 Final report SHA-256:
-`d92171e008ac4ad187465d68f699392895013eafc34b9e2a02aff3a442c9a232`.
+`<checksum recorded locally>`.
 Root independently checked all target keys, all 132 dispositions, preservation
 of all 333 verified records and the final code/report hashes. All 4,679 private
 tracked files are byte-identical and the checkout is clean. Network calls during
@@ -565,15 +609,15 @@ tracked file and git status before/after. It replays current values/references
 with filed aliases and collector metadata, including lab facts and evidence.
 
 ```sh
-git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/replay-data
+git clone --depth 1 "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/replay-data
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/private/replay_all.py --engine $PWD --data /tmp/model-449-scratch/replay-data --revision 706d1cb0 --output /tmp/model-449-scratch/all-before.json
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/private/replay_all.py --engine $PWD --data /tmp/model-449-scratch/replay-data --output /tmp/model-449-scratch/all-after.json --compare /tmp/model-449-scratch/all-before.json
 ```
 
-All exit 0. Private main `8ce0b5b56a2cdbbc84449bf6150c436124203dc1`.
+All exit 0. Private main `<private main at assessment time>`.
 The tracked reproduction script is byte-identical to the executed scratch copy.
 Final verifier SHA-256:
-`701cb208cb99a961b0584b4337de46dad4684adba2f91229af763774700d94bc`.
+`<checksum recorded locally>`.
 A repeated baseline control produced zero changed records.
 
 | Outcome | Before | After |
@@ -615,19 +659,19 @@ longer in the authored catalogue; these are counted separately. All 4,679 tracke
 private files remained byte-identical. No sources were fetched.
 
 Private report SHA-256 values:
-`all-before.json`: `9142da5cb88de8bf891b3b3213c8721f56821bcaf58c8cfea8532db81097d43f`;
-`all-after.json`: `7c5920edb2b593f4b583cd4f749c04b6ed09acf72f044a9112ca48308a4e3851`.
+`all-before.json`: `<checksum recorded locally>`;
+`all-after.json`: `<checksum recorded locally>`.
 
 ### Worker memory and public vendor
 
 Executed the deploy's private `vendor.py --data-dir` and real
 `api/worker/measure_memory.cjs` path with a random throwaway HMAC key, inherited
-Ed25519 signing key removed, pinned Pyodide 0.28.3 and Node 22.22.3. No real secret
+asymmetric signing key removed, pinned Pyodide 0.28.3 and Node 22.22.3. No real secret
 or production endpoint was used. Host dependencies match the deploy pins;
 host Python is 3.14.4, while CI uses 3.13.
 
 ```sh
-git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/memory-data
+git clone --depth 1 "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/memory-data
 env PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm install --prefix .scratch/model-449-r3/memory/runtime --no-save pyodide@0.28.3
 env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/memory/run_probe.py
 env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r3/memory/run_public_vendor.py
@@ -725,14 +769,14 @@ refuses source writes, and checks tracked file hashes and git status afterward.
 Exact executed commands:
 
 ```sh
-git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/private-data
+git clone --depth 1 "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/private-data
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r2/private/replay_prices.py --engine $PWD --data /tmp/model-449-scratch/private-data --revision 489eab5e --output /tmp/model-449-scratch/prices-before.json
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .scratch/model-449-r2/private/replay_prices.py --engine $PWD --data /tmp/model-449-scratch/private-data --output /tmp/model-449-scratch/prices-after.json
 ```
 
-All exited 0. Private main was `c26a2d7b67039dd0ed2490cd740766680c9e454d`.
+All exited 0. Private main was `<private main at assessment time>`.
 Final verifier SHA-256 was
-`3c1de57ac8dc859d22509a7ffe76c6418bf6292f40d3e2128a2b4dbb7fa9e2d6`.
+`<checksum recorded locally>`.
 
 | Outcome | Before | After |
 | --- | ---: | ---: |
@@ -765,8 +809,8 @@ Public base: `6815544116839f991c10904772e7357f12d5b566`.
 Final implementation: `d28057f2aeddcc64bd0186918b40303909933b79`.
 The subsequent evidence-only commit is included in the submitted head recorded
 in the untracked `.pr-commit.txt` handoff and executor completion line.
-Private workflow base: `c26a2d7b67039dd0ed2490cd740766680c9e454d`;
-final: `2e98ae0cfd010dee0a87d20cf97958afeb95381b`.
+Private workflow base: `<private main at assessment time>`;
+final: `<private revision recorded locally>`.
 
 The standalone `scripts.offering_drafter` writes a new offering and independent
 receipts without premier admission. It shares the admission drafter's typed
@@ -822,7 +866,7 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ## Five releases
 
 The authorized private scratch clone was created with
-`git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/private-data`.
+`git clone --depth 1 "$PRIVATE_DATA_CLONE_URL" /tmp/model-449-scratch/private-data`.
 Each command below exited 0. None wrote an unverified price. All five produced
 explicit gaps; these replays did not produce five successfully priced offerings.
 
