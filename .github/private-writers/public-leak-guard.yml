@@ -1,0 +1,172 @@
+name: Public leak guard
+
+on:
+  schedule:
+    - cron: '23 10 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-leak-guard
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      status: ${{ steps.guard.outputs.status }}
+      report: ${{ steps.guard.outputs.report }}
+    steps:
+      - name: Check out private history
+        uses: actions/checkout@v4
+        with:
+          path: data
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out public main for read-only comparison
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: main
+          path: engine
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install the card parser
+        run: python -m pip install pyyaml
+
+      - name: Fetch all open public PR bodies without credentials
+        id: pull_requests
+        run: |
+          python -I - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          from urllib.request import Request, urlopen
+
+          bodies = []
+          page = 1
+          try:
+              while True:
+                  request = Request(
+                      "https://api.github.com/repos/turbobeest/modelspec/pulls"
+                      f"?state=open&per_page=100&page={page}",
+                      headers={"Accept": "application/vnd.github+json", "User-Agent": "modelspec-public-leak-guard"},
+                  )
+                  with urlopen(request, timeout=30) as response:
+                      batch = json.load(response)
+                  if not isinstance(batch, list):
+                      raise ValueError("Invalid PR response")
+                  for pr in batch:
+                      if not isinstance(pr, dict) or type(pr.get("number")) is not int or pr["number"] <= 0:
+                          raise ValueError("Invalid PR number")
+                      if "body" not in pr or (pr["body"] is not None and not isinstance(pr["body"], str)):
+                          raise ValueError("Invalid PR body")
+                      bodies.append({"number": pr["number"], "body": pr.get("body") or ""})
+                  if len(batch) < 100:
+                      break
+                  page += 1
+              Path(os.environ["RUNNER_TEMP"], "public-pr-bodies.json").write_text(json.dumps(bodies))
+          except (OSError, ValueError, TypeError, KeyError):
+              print("Public PR bodies could not be fetched or parsed.", file=sys.stderr)
+              raise SystemExit(2)
+          print(f"Fetched {len(bodies)} public PR bodies.")
+          PY
+
+      - name: Scan public evidence and PR bodies
+        id: guard
+        run: |
+          if python -I data/.github/scripts/public_leak_guard.py \
+            --public-repo engine --private-repo data \
+            --pr-bodies "$RUNNER_TEMP/public-pr-bodies.json" \
+            > "$RUNNER_TEMP/public-leak-report.json" 2> "$RUNNER_TEMP/public-leak-error.txt"; then
+            status=0
+          else
+            status=$?
+          fi
+          case "$status" in
+            0|1) ;;
+            *) echo 'Public leak scan could not complete.' >&2; exit "$status" ;;
+          esac
+          export PUBLIC_LEAK_STATUS="$status"
+          python -I - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import sys
+
+          try:
+              report = json.loads(Path(os.environ["RUNNER_TEMP"], "public-leak-report.json").read_text())
+              encoded = json.dumps(report, separators=(",", ":"))
+              with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+                  output.write(f"status={os.environ['PUBLIC_LEAK_STATUS']}\nreport={encoded}\n")
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+                  summary.write(f"```json\n{encoded}\n```\n")
+              print(encoded)
+          except (OSError, ValueError, TypeError):
+              print("Public leak report could not be read or published.", file=sys.stderr)
+              raise SystemExit(2)
+          PY
+          exit "$status"
+
+  alert:
+    needs: scan
+    if: ${{ always() && needs.scan.outputs.status == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the private alert
+        uses: actions/github-script@v7
+        env:
+          REPORT_JSON: ${{ needs.scan.outputs.report }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            if (owner !== 'turbobeest' || repo !== 'modelspec-data') {
+              throw new Error('The alert must remain in the private data repository.');
+            }
+            const report = JSON.parse(process.env.REPORT_JSON);
+            const title = 'Public leak guard findings';
+            const lines = [];
+            let size = 0;
+            for (const finding of report.findings) {
+              const line = JSON.stringify(finding);
+              if (size + line.length > 55000) break;
+              lines.push(line);
+              size += line.length + 1;
+            }
+            const omitted = report.findings.length - lines.length;
+            const body = [
+              `Counts: ${JSON.stringify(report.counts)}`,
+              '', '```json', ...lines, '```',
+              `${omitted} additional finding location(s) omitted from this issue.`,
+              '', `Run: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
+            ].join('\n');
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: 'alert' });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.issues.createLabel({ owner, repo, name: 'alert', color: 'B60205' });
+            }
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', labels: 'alert', per_page: 100,
+            });
+            const existing = issues.find(issue => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, body, labels: ['alert'] });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['alert'] });
+            }
