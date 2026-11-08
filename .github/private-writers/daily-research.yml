@@ -240,7 +240,7 @@ jobs:
             echo "::error::Could not merge main into $BRANCH (#$number). Nothing was pushed; resolve it by hand."
             exit 1
           fi
-          echo "Merged main into #$number ($behind commits behind)."
+          echo "Requested a merge of main into #$number ($behind commits behind)."
 'on':
   push:
     branches:

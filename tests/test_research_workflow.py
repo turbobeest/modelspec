@@ -112,7 +112,13 @@ def test_research_runs_on_its_schedule_and_the_sync_also_runs_on_every_push_to_m
     sync = workflow["jobs"]["sync"]
     assert sync["needs"] == "research"
     assert "github.event_name == 'push' && needs.research.result == 'skipped'" in sync["if"]
-    assert "!inputs.dry_run" in sync["if"]
+    assert sync["if"].startswith("${{ !cancelled() && !inputs.dry_run && ")
+    assert "needs.research.result == 'success'" in sync["if"]
+    assert sync["permissions"] == {"contents": "write", "pull-requests": "write"}
+    assert "concurrency" not in workflow
+    assert workflow["jobs"]["research"]["concurrency"] == {
+        "group": "daily-research", "cancel-in-progress": False}
+    assert sync["concurrency"] == {"group": "daily-research-sync", "cancel-in-progress": False}
     assert [s.get("uses") for s in sync["steps"]] == [None]
     assert sync["steps"][0]["env"]["BRANCH"] == "research/daily-models"
 
@@ -123,7 +129,7 @@ def test_sync_merges_main_into_a_branch_that_is_behind(tmp_path: Path) -> None:
     assert calls[-1] == (
         f"api -X PUT repos/owner/data/pulls/99/update-branch -f expected_head_sha={HEAD}"
     )
-    assert "Merged main into #99 (2 commits behind)." in result.stdout
+    assert "Requested a merge of main into #99 (2 commits behind)." in result.stdout
 
 
 def test_sync_leaves_an_up_to_date_branch_alone(tmp_path: Path) -> None:
