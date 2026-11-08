@@ -9,7 +9,7 @@ Engine base: `badf4be5fdff0a0803fd69387b165307f4190909`.
 Design-only first commit: `581833f1`.
 Final xAI production implementation and private engine pin:
 `a22355bf9c3d9511ff563494791dd99282411898`.
-Private data base: `92f1f227dcd64394a362e827dfedb306a99beead`.
+Private data base: `<private revision at assessment time>`.
 Final private data commit: `9cb9260f394e8d6b0c0300c5c5091c502ee482bb`,
 draft [data PR #96](https://github.com/turbobeest/modelspec-data/pull/96).
 The final engine evidence commit is reproducible with

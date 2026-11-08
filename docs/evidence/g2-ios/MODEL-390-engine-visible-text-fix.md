@@ -86,7 +86,7 @@ unsigned-vocabulary test fixtures.
 ## Offline data #80 recheck
 
 The committed helper ran against retained copies at data revision
-`4bc5f4cfa9c1f29689aaf3142be22cabc44454db` with socket operations blocked.
+`<private revision at assessment time>` with socket operations blocked.
 It made no network or completion calls, changed no data files, and left the
 engine pin `60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa` unchanged.
 The engine checkout was clean at the implementation SHA when the recheck ran.

@@ -4,8 +4,8 @@
   "advertised_main": "36b2d184dcc5a67a90ceb1a9015275143c09691d",
   "pr889": "33c705e125545400b3af6b0d2aab9b74da5ad2fc",
   "policy866": "82ebcf4627d255d7641303caff2d149e879cf359",
-  "data_head": "44fc4e4f6cb3dd75332c30e2f17741a9e1d5ea6e",
-  "data_main_merge": "4ac4f273bebf25ac796e67441d7381d618394a26",
+  "data_head": "<private revision at assessment time>",
+  "data_main_merge": "<private revision at assessment time>",
   "data_engine_pin": "36b2d184dcc5a67a90ceb1a9015275143c09691d",
   "candidate_runtime_matches_measured_stage": true,
   "runtime_files": [

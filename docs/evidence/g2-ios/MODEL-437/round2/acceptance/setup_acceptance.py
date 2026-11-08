@@ -18,7 +18,7 @@ SHAS = {
     'engine_main': 'a03c4d077acc03c2bc5dba526ff635fb708ccb94',
     'host_policy': '82ebcf4627d255d7641303caff2d149e879cf359',
     'repair_engine': '77a9566822f7a23e322d2647913c755ad3cb7ed8',
-    'baseline_data': '9d9de96f062ac031336ee483ae97c3b436bd3845',
+    'baseline_data': '<private revision at assessment time>',
     'repaired_data': 'f722d3fcb673b28bdff9fa1b5cac06c22cc61c38',
 }
 

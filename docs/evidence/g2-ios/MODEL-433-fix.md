@@ -101,8 +101,8 @@ passed. Red commands intentionally exited 1; green commands exited 0.
 ## Private-data run and retention
 
 The existing clone under `/tmp/model-433-scratch/modelspec-data` was reused
-at `a6f8fd798d7d6f40b35ed08320796b773f29df9a`. The executor read data#98's
-terms audit at `8fb320abf57dddd63bcdd8709b686e8cb7f02080` before retaining
+at `<private revision at assessment time>`. The executor read data#98's
+terms audit at `<private revision at assessment time>` before retaining
 new copies. Hosts classed forbids and absent from the cite-only list were
 blocked before fetch. No retention policy was changed.
 

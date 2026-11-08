@@ -321,9 +321,9 @@ git -C "$repo" show "$sha:$path"
 ```
 
 The public revision was the base SHA above. The private revision was
-`a6f8fd798d7d6f40b35ed08320796b773f29df9a`. Subjects starting with `Seed:`
+`<private revision at assessment time>`. Subjects starting with `Seed:`
 were excluded, removing the private initial import
-`df5c7e3da3da488e36418b4f3571c1c1df9f53ed`. Each added card's YAML
+`<private revision at assessment time>`. Each added card's YAML
 frontmatter supplied its release date. The audit compared in-window
 identities with the issue archive and committed baseline. Private data was
 used only in scratch and deleted before delivery.

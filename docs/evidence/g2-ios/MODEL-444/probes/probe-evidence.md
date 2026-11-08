@@ -1,6 +1,6 @@
 MODEL-444 private probe evidence, October 23, 2026 UTC.
 
-Engine baseline is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`. Private data main is `ba03e11651513aa108f4031e56622717cf419acf`; original data#103 is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. Both revisions were staged locally from the existing clone. No new source fetch was performed.
+Engine baseline is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`. Private data main is `<private revision at assessment time>`; original data#103 is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. Both revisions were staged locally from the existing clone. No new source fetch was performed.
 
 Baseline command, exit 0:
 

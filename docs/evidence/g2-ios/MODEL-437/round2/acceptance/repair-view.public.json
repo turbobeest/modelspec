@@ -1,8 +1,8 @@
 {
-  "baseline_data": "9d9de96f062ac031336ee483ae97c3b436bd3845",
+  "baseline_data": "<private revision at assessment time>",
   "repaired_data": "f722d3fcb673b28bdff9fa1b5cac06c22cc61c38",
   "repair_commit_parents": [
-    "9d9de96f062ac031336ee483ae97c3b436bd3845"
+    "<private revision at assessment time>"
   ],
   "repair_directly_descends_from_baseline": true,
   "changed_branch_files": 13,

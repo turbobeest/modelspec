@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--data-dir',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--main-ref',default='36b2d184dcc5a67a90ceb1a9015275143c09691d')
-    parser.add_argument('--data-ref',default='9d9de96f062ac031336ee483ae97c3b436bd3845')
+    parser.add_argument('--data-ref',default='<private revision at assessment time>')
     parser.add_argument('--policy-ref',default='82ebcf4627d255d7641303caff2d149e879cf359')
     args=parser.parse_args()
     out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)

@@ -13,7 +13,7 @@ implementation base is `2bb355f25cdaaa917a623426c79b071642c011be`. The replaceme
 implementation is commit `25ee05c772f3cc3f0528de5e7b8f7d704593d5a2`. The final
 engine SHA is the commit containing this evidence, reproducible with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-393-r2-fix.md`.
-Private revision base is `f0ad5ce3fef1a97e07e3328ef29fe1a6ae114c2b`.
+Private revision base is `<private revision at assessment time>`.
 
 Only `meta/muse-spark-1-1` and `meta/muse-spark-1-3` are included in the Meta
 binding template. The bare April `meta/muse-spark`, version 1.2, other siblings

@@ -1,7 +1,7 @@
 # MODEL-393 execution evidence
 
 Engine base SHA: `2bb355f25cdaaa917a623426c79b071642c011be`.
-Data base SHA: `85e71131d455d5517bcf9eb50630a649dfbedccb`.
+Data base SHA: `<private revision at assessment time>`.
 Design commit: `c5ca34ed`, before any new template.
 Verified engine implementation SHA: `9dc7d26092ec0750a62bcfc642acc9881c5fb9b5`.
 The final engine delivery SHA is the commit containing this completed record,
@@ -86,7 +86,7 @@ exited 0 and npm tests reported 843 passed, with one test file skipped.
 The private data suite passed twice, including its explicit private-data
 configuration: 198 passed, 17 skipped, exit 0. The actual premier completeness
 gate passed with zero gaps. Isolated private recall at data implementation
-`9f97c11cc23760641d1541ca58a3518bbe575fd8` and engine `9dc7d260` produced
+`<private revision at assessment time>` and engine `9dc7d260` produced
 `snap_1318fd523c982c07`, 16 pass, four existing partials, zero fail, zero gaps.
 Both baseline comparisons passed with no regression IDs. The private audit
 confirmed exact original main prefixes, four independent keys, eight queue

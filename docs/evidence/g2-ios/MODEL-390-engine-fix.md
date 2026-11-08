@@ -15,7 +15,7 @@ The execution marker and draft PR head record the full delivery SHA.
 Worktree: `/Users/terbeest/dev/worktrees/model-390-engine`.
 Branch: `sparksandsawdust/model-390-licence-readers`.
 Private data PR #80 was rechecked at
-`4bc5f4cfa9c1f29689aaf3142be22cabc44454db` in `/tmp/d390`.
+`<private revision at assessment time>` in `/tmp/d390`.
 Its engine pin remains `60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa`.
 
 The executor read CODEX-EXEC.md, the full ticket spec, CLAUDE.md, AGENTS.md,

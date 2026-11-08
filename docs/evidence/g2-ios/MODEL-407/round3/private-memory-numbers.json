@@ -1,7 +1,7 @@
 [
   {
     "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
-    "data": "74947c3",
+    "data": "<private revision at assessment time>",
     "period": "current",
     "exit_code": 0,
     "steady_bytes": 109652912,
@@ -12,7 +12,7 @@
   },
   {
     "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
-    "data": "74947c3",
+    "data": "<private revision at assessment time>",
     "period": "successor",
     "exit_code": 0,
     "steady_bytes": 109652968,
@@ -23,7 +23,7 @@
   },
   {
     "engine": "f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618",
-    "data": "74947c3",
+    "data": "<private revision at assessment time>",
     "period": "warm",
     "exit_code": 0,
     "steady_bytes": 108730708,

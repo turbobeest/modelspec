@@ -326,6 +326,6 @@ Verification (exit codes checked directly):
   throwaway key, then `measure_memory.cjs` with Pyodide 0.28.3 on Node
   22.22.3. Steady memory was 108.95, 104.56, 103.65 and 104.63 MiB. The first
   run had a cold wheel cache. Peak wasm memory was 59.875 MiB in every run,
-  and every run exited 0. The same engine with data main (5d797a6) as a
+  and every run exited 0. The same engine with data main (<private revision at assessment time>) as a
   control measured 104.59 MiB steady and 59.875 MiB peak wasm, so #96 adds no
   measurable memory.

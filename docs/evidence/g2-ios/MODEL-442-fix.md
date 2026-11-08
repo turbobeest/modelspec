@@ -254,7 +254,7 @@ cmp "$S/profile-context/probabilities-before.json" "$S/profile-context/probabili
 ```
 
 Actual private-data probes used private data commit
-`c26a2d7b67039dd0ed2490cd740766680c9e454d`. Only synthetic signing material was
+`<private revision at assessment time>`. Only synthetic signing material was
 supplied; the Ed25519 signing environment was explicitly removed. The baseline
 custom output directory received the 32 tracked, hand-written top-level Worker
 Python files, using `git ls-files api/worker/src` and `shutil.copyfile`. This

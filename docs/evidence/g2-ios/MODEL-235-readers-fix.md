@@ -24,10 +24,10 @@ results are historical, not claims about the final implementation.
 - Final delivery SHA is the commit containing this report. Resolve it with
   `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-235-readers-fix.md`.
   The executor's final output also records that SHA.
-- Data checkout HEAD: `0cb8eedeb210cf5e31a93d5b9a976485fd628eea`, dated October 6.
+- Data checkout HEAD: `<private revision at assessment time>`, dated October 6.
   Its 524 facts were an initial diagnostic input, not the final replay input.
 - Final data input: the already available local `origin/main` at
-  `4d4f709621486e791107830680e7d2293ea450a7`, containing 555 tracked facts.
+  `<private revision at assessment time>`, containing 555 tracked facts.
   `git archive` exported it inside this worktree's ignored `.artifacts` directory.
   The data checkout remained read-only. No remote fetch ran.
 - Saved copies and rendered manifest: the two paths supplied in the spec under
@@ -52,7 +52,7 @@ come from HTTP 403 entries in the rendered manifest.
 | Input and engine | unchanged | changed | needs_review | unreadable | unreachable | not_reread |
 |---|---:|---:|---:|---:|---:|---:|
 | Run 38572656013, as supplied in the spec | 327 | 0 | 21 | 120 | 43 | 44 |
-| Saved-input replay, data `4d4f709`, engine pin `ee16bf40` | 335 | 0 | 13 | 120 | 43 | 44 |
+| Saved-input replay, data `<private revision at assessment time>`, engine pin `ee16bf40` | 335 | 0 | 13 | 120 | 43 | 44 |
 | Same replay, final MiniMax-only readers | 338 | 0 | 13 | 117 | 43 | 44 |
 
 The supplied run table sums to 555, not 575. The replay reproduces both requested

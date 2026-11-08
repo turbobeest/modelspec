@@ -1,7 +1,7 @@
 # MODEL-394 execution evidence
 
 Engine base: `b51985205621aba2e231a8914b5d4f0be9d4db6d`.
-Data base: `502683e2aee6c6ddb3f8e5fd4998f89007388ae9`.
+Data base: `<private revision at assessment time>`.
 Final source commit: `93854ca73f34106d60eec9c838a6d82e604030e9`.
 The executor handoff records the final branch SHA after the evidence commit.
 

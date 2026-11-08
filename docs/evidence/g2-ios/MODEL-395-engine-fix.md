@@ -13,7 +13,7 @@ identity, value, and source comparisons still detect dropped plans and facts.
 - Engine worktree: `/Users/terbeest/dev/worktrees/model-395-engine`.
 - Branch: `model-395-engine-tests`.
 - Private main checked out for composition:
-  `85e71131d455d5517bcf9eb50630a649dfbedccb`.
+  `<private revision at assessment time>`.
 - Final SHA is the commit containing this report, resolved with
   `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-395-engine-fix.md`.
   The engine PR body and executor completion line record the literal SHA.

@@ -9,8 +9,8 @@ The final tested engine SHA is
 `origin/main` at `d9ed66aea52395b440bd72a94a109c159d4ea4c2`.
 Only this evidence file changes after that tested SHA. The final branch SHA is
 recorded in the completion comment on PR #861 and the executor completion line.
-The private data base was `91b36ae97a80715525ca8905ecbdd979afdacc34`;
-its final SHA is `cda567d6d51982f81759f05307403392d5826956`.
+The private data base was `<private revision at assessment time>`;
+its final SHA is `<private revision at assessment time>`.
 The data branch was already up to date with `origin/main`.
 
 The engine reads `registry/source-terms.json` from the supplied data directory.
@@ -25,7 +25,7 @@ the admission gate.
 The data generator projects all 92 hosts from the MODEL-409 audit.
 `restricts-with-conditions` maps to `restricts`; `unclear, needs counsel` and
 `silent` map to `unclear`. It makes no new classification. The imported audit
-is byte-identical to `8fb320a:research/model-409/source-terms-audit.md`, with Git
+is byte-identical to `<private revision at assessment time>:research/model-409/source-terms-audit.md`, with Git
 blob ID `9d1c892a59cf0afbca9e58402adf5902bc67dd51`.
 The generator test compares every host and class with the audit table.
 
@@ -48,7 +48,7 @@ changes. Those changes were read and preserved in commit `061d753e` before
 merging main. The saved red runs reported 9 engine failures, then 4 CLI
 failures, and 2 data failures. This execution independently replayed all 13
 engine regressions against the unchanged `8dc263d2` implementation and both
-data regressions against the `91b36ae` workflow.
+data regressions against the `<private revision at assessment time>` workflow.
 
 | Defect | Test | Replayed red output | Green result |
 | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ workflow = replay / '.github/workflows/admission-drafter.yml'
 workflow.parent.mkdir(parents=True, exist_ok=True)
 workflow.write_bytes(subprocess.check_output([
     'git', '-C', str(data), 'show',
-    '91b36ae:.github/workflows/admission-drafter.yml',
+    '<private revision at assessment time>:.github/workflows/admission-drafter.yml',
 ]))
 raise SystemExit(subprocess.run([
     sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
@@ -147,7 +147,7 @@ From `.scratch/model-428-r2/modelspec-data`:
 actionlint .github/workflows/admission-drafter.yml
 git diff --check
 git hash-object research/model-409/source-terms-audit.md
-git rev-parse 8fb320a:research/model-409/source-terms-audit.md
+git rev-parse <private revision at assessment time>:research/model-409/source-terms-audit.md
 ```
 
 Focused tests: exit 0, `24 passed in 6.10s`.

@@ -2,8 +2,8 @@
 
 Public base: `ee1b9d6592cf85383bc59b40815a7fb372f9717c`.
 Verified public implementation SHA: `0df7a767e35874d0b79ba177f1219dbdd2c21cf2`.
-Data branch after the required fast-forward pull: `0d37b49041fd4a6348a13d87d271f62a85a98b06`.
-Final data SHA: `db3ca54f6a6d2f1c5ce0dc28297cd9be1baf9775`.
+Data branch after the required fast-forward pull: `<private revision at assessment time>`.
+Final data SHA: `<private revision at assessment time>`.
 The final public head, including this evidence-only commit, is in the untracked
 `.pr-commit.txt` handoff and the PR head.
 
@@ -68,8 +68,8 @@ coordinated because the private check compares its workflows with public main.
 
 Public base: `6815544116839f991c10904772e7357f12d5b566`.
 Verified public implementation: `a10e3a7a9e084e2f2405063549b7e0bd4919bb1d`.
-Data base: `c26a2d7b67039dd0ed2490cd740766680c9e454d`.
-Verified data implementation: `183927ac8617b8ca894ca85cf29b1137545cfc79`.
+Data base: `<private revision at assessment time>`.
+Verified data implementation: `<private revision at assessment time>`.
 The final PR heads, including evidence-only commits, are recorded in each
 worktree's untracked `.pr-commit.txt` handoff.
 
@@ -142,10 +142,10 @@ revision/date pairs:
 
 | Run | Private revision | Evaluation date |
 | --- | --- | --- |
-| Admission parent | `e562ba68cdc6306e25f4c010b2ec727c6cb189a7` | 2026-10-04 |
-| Admission merge | `7aa56b8f198f0043c8fb806c0fd2def35ccc562a` | 2026-10-04 |
-| No-op parent | `081c6bcb5546e13308754bf5f6ff2bf29f8e447e` | 2026-10-10 |
-| No-op merge | `603f06abe7c124eb0320924ede400d81b6ae6c91` | 2026-10-10 |
+| Admission parent | `<private revision at assessment time>` | 2026-10-04 |
+| Admission merge | `<private revision at assessment time>` | 2026-10-04 |
+| No-op parent | `<private revision at assessment time>` | 2026-10-10 |
+| No-op merge | `<private revision at assessment time>` | 2026-10-10 |
 
 For each row the runner executed `git -C /tmp/model-447-scratch/private
 checkout --detach REVISION`, followed by:
@@ -171,14 +171,14 @@ The helper prints `changed=true` and its body names the model and clause 2.
 The direct comparison against the historical reviewed YAML also proposes Sol;
 it contains 1 addition and 7 removals from recomputing the older frozen list.
 
-`git diff --name-only 603f06a^ 603f06a` prints only `.engine-pin`.
+`git diff --name-only <private revision at assessment time>^ <private revision at assessment time>` prints only `.engine-pin`.
 The no-op replay emits `{"added": [], "removed": [], "changed": false}`.
 The helper prints `changed=false`, writes the no-op body, and leaves the
 scratch baseline bytes unchanged. This establishes local proposal/no-proposal
 behavior; the action's GitHub lifecycle was not executed.
 
 A final current-main smoke run at private commit
-`c26a2d7b67039dd0ed2490cd740766680c9e454d` used the same CLI with
+`<private revision at assessment time>` used the same CLI with
 `--as-of 2026-11-04 --output /tmp/model-447-scratch/executor/current.yaml
 --diff /tmp/model-447-scratch/executor/current.json`. It exited 0 and selected
 36 models. The excluded-source tracked-file guard was rerun after staging

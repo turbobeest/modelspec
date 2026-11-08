@@ -65,7 +65,7 @@ lines = [
     '# MODEL-437 round-2 private acceptance', '',
     'Measured implementation `6b9695fc75748bf31d8f07955bbf8fea89fc57f0` against main '
     '`a03c4d077acc03c2bc5dba526ff635fb708ccb94` with main host policy. Baseline a and '
-    'candidate d use original data `9d9de96f062ac031336ee483ae97c3b436bd3845`. Candidate c '
+    'candidate d use original data `<private revision at assessment time>`. Candidate c '
     'uses #866 policy `82ebcf4627d255d7641303caff2d149e879cf359` and data#118 '
     '`f722d3fcb673b28bdff9fa1b5cac06c22cc61c38`.', '',
     '| State | Period | Cases | First result | Tie set | Answer kind | Kind/member set | Gaps | Scores/cited | Warned templates | Steady MiB | Peak MiB |',

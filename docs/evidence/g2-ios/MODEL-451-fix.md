@@ -80,7 +80,7 @@ for path in paths:
 ```
 
 The audit also used `git cat-file -e <revision>:models/<canonical>.md`.
-At the clone's main revision `c26a2d7b67039dd0ed2490cd740766680c9e454d`,
+At the clone's main revision `<private revision at assessment time>`,
 the DeepSeek, Mistral Large 4 and Zhipu canonical cards existed, with exit 0.
 Kimi K3.1 Pro was absent, with exit 128, but existed at the reviewed head,
 with exit 0. The audit deleted its clone with `shutil.rmtree` and verified

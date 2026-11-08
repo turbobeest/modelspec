@@ -9,7 +9,7 @@ PR [#866](https://github.com/turbobeest/modelspec/pull/866) remains a draft.
 - Round-two base: `7d51e57ae0b9e7d8d8478aa71f548d8d9ca0b06d`.
 - Final implementation: `563da3fc9e90c89e4b740065a924ae23e7e9fbe1`.
 - Main-policy comparison: `ae149af075e1ea1e479cd5ab3a43ebce74f7ca08`.
-- Private data: `ba03e11651513aa108f4031e56622717cf419acf`.
+- Private data: `<private revision at assessment time>`.
 
 The delivery commit adds this evidence after the implementation. Its final SHA
 is in the executor receipt and is reproducible with
@@ -208,8 +208,8 @@ Private measurement commands:
 git clone --depth 1 https://github.com/turbobeest/modelspec-data.git "$S/modelspec-data"
 git -C "$S/modelspec-data" rev-parse HEAD
 # The initial clone matched this SHA. It was explicitly pinned again before cleanup.
-git -C "$S/modelspec-data" fetch --depth 1 origin ba03e11651513aa108f4031e56622717cf419acf
-git -C "$S/modelspec-data" checkout --detach ba03e11651513aa108f4031e56622717cf419acf
+git -C "$S/modelspec-data" fetch --depth 1 origin <private revision at assessment time>
+git -C "$S/modelspec-data" checkout --detach <private revision at assessment time>
 env -u MODELSPEC_SOURCE_CACHE -u MODELSPEC_DATA_DIR \
   -u MODELSPEC_SNAPSHOT_ED25519_KEY -u MODELSPEC_SNAPSHOT_KEY TMPDIR="$S/tmp" \
   "$P" "$S/run_recorded.py" comparison "$P" \

@@ -33,7 +33,7 @@ the executor completion line and the untracked `.pr-commit.txt` hand-off.
   as `not planned` and add `release-review` to 207. No issue was changed.
 - [Card-addition audit](MODEL-445-card-additions.json): **none added** in the
   requested UTC window on private main at
-  `c26a2d7b67039dd0ed2490cd740766680c9e454d`. The clone was not shallow.
+  `<private revision at assessment time>`. The clone was not shallow.
   The latest card addition was October 15 UTC. A control audit for October
   1–20 found 13 additions. Historical recall has no denominator here;
   it is null, not 100%.

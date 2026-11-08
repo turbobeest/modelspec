@@ -6,7 +6,7 @@ import subprocess
 root = Path('/tmp/model-437-scratch/acceptance')
 data = root / 'modelspec-data'
 repaired = root / 'prepared/repaired-data'
-base = '9d9de96f062ac031336ee483ae97c3b436bd3845'
+base = '<private revision at assessment time>'
 revision = 'f722d3fcb673b28bdff9fa1b5cac06c22cc61c38'
 
 

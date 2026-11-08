@@ -14,7 +14,7 @@ description.
   The PR body and executor completion record identify the final branch SHA.
 - Final `decision/verify.py` SHA-256:
   `b7563c77ed04ffc94e88f9fe81b45b86c2ed6d82cd75a1763b677abae51b149d`.
-- Private data revision: `a6f8fd798d7d6f40b35ed08320796b773f29df9a`.
+- Private data revision: `<private revision at assessment time>`.
 - Python 3.14.4, pytest 9.1.1, Ruff 0.16.6, Git 2.50.1, GitHub CLI 2.102.0.
 - Worktree: `/Users/terbeest/dev/worktrees/model-431`.
 - Branch: `model-431-kimi-plan-reader`.
@@ -135,7 +135,7 @@ new CNY prices have one matching reading each, and the expected eight candidate
 facets have readings. Reproduction requires the private data revision above
 and both existing operator CopyStore copies.
 
-The source-terms audit was read from private commit `8fb320a`, path
+The source-terms audit was read from private commit `<private revision at assessment time>`, path
 `research/model-409/source-terms-audit.md`. It classifies `www.kimi.com` as
 `restricts-with-conditions`. The retained-copy decision and page inventory are
 recorded in `research/model-425-reread-changes.md`. This task used those existing

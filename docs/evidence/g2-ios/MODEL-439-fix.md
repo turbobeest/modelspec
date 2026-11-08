@@ -43,8 +43,8 @@ own contract changes; MODEL-439 adds no further version change.
 - Integrated #889 head: `33c705e125545400b3af6b0d2aab9b74da5ad2fc`.
 - Prospective main+#889 tree: `e27848539593d156507ae9fccb6fe52a324e1b66`.
 - #866 policy: `82ebcf4627d255d7641303caff2d149e879cf359`.
-- Data #117 merge fetched by SHA: `4ac4f273bebf25ac796e67441d7381d618394a26`.
-- Data #118 head pushed: `44fc4e4`; `.engine-pin` remains the main commit above.
+- Data #117 merge fetched by SHA: `<private revision at assessment time>`.
+- Data #118 head pushed: `<private revision at assessment time>`; `.engine-pin` remains the main commit above.
 
 [Identities and 101 runtime source hashes](MODEL-439/r3/identities.public.json)
 confirm that the measured candidate code matches the final runtime source.
@@ -53,7 +53,7 @@ in the executor completion marker; this file cannot contain its own commit's
 hash.
 
 GitHub reported data #117 merged while Git still advertised the older data
-main `9d9de96f`. The reported merge commit was fetched directly and merged.
+main `<private revision at assessment time>`. The reported merge commit was fetched directly and merged.
 Three add/add conflicts were older copies of the same guard/test files;
 resolution takes #117's split cite-only API and rendering tests. The final
 data diff against that merge contains only the original ten repaired model
@@ -202,7 +202,7 @@ measurement and test invocations. Python was 3.14.4, pytest 9.1.1, Pydantic
 2.13.5, PyYAML 6.0.3, Ruff 0.16.6, git 2.50.1 and Node 22.22.3.
 
 For replay, clone private data into `/tmp/model-439-scratch/`, check out
-`44fc4e4`, and archive the pinned public engine refs into scratch. The
+`<private revision at assessment time>`, and archive the pinned public engine refs into scratch. The
 [r2 preparation helper](MODEL-439/r2/prepare_baseline.py) archives refs without
 changing the active checkout. `git merge-tree --write-tree 36b2d184 33c705e1`
 produces the prospective baseline tree above. Use the exact pinned main commit

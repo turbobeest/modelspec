@@ -379,7 +379,7 @@ Worker memory, Pyodide 0.28.3, Node v22.23.2, exit codes 0. Steady MiB / Wasm Mi
 | --- | ---: | ---: | ---: |
 | PR job fixture, current period | 104.571 / 59.875 | 104.571 / 59.875 | 0.000 |
 | PR job fixture, successor period | 103.669 / 59.875 | 103.660 / 59.875 | -0.009 |
-| Private data (`modelspec-data` `5d797a6`, test key), steady | 104.582 / 59.875 | 104.561 / 59.875 | -0.021 |
+| Private data (`modelspec-data` `<private revision at assessment time>`, test key), steady | 104.582 / 59.875 | 104.561 / 59.875 | -0.021 |
 
 The PR job ran as `rank-api.yml` defines it, with the #843 fixture recipe and
 `--limit-mib 115` against main baselines. The first main measurement downloaded
