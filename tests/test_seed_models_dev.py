@@ -188,6 +188,44 @@ def test_new_cards_record_the_day_the_seeder_created_them() -> None:
     assert card.card_updated == today
 
 
+@pytest.mark.parametrize(
+    "inputs,outputs,expected_flags",
+    [
+        (["text"], ["text"], (False, False, False, False, False, False)),
+        (["text", "image", "video"], ["text"], (True, False, False, False, True, False)),
+        (["text"], ["video"], (False, False, False, False, False, True)),
+        (["image"], ["text"], (True, False, False, False, False, False)),
+        (["text"], ["image"], (False, True, False, False, False, False)),
+        (["audio"], ["text"], (False, False, True, False, False, False)),
+        (["text"], ["audio"], (False, False, False, True, False, False)),
+        (
+            ["image", "audio", "video"], ["image", "audio", "video"],
+            (True, True, True, True, True, True),
+        ),
+    ],
+    ids=["text-only", "video-input", "video-output", "image-input", "image-output",
+         "audio-input", "audio-output", "all-both-directions"],
+)
+def test_seeded_modality_flags_match_the_written_lists(inputs, outputs, expected_flags) -> None:
+    card = seeder.build_model_card(
+        {"id": "fixture", "modalities": {"input": inputs, "output": outputs}},
+        "openai",
+        seeder.PROVIDER_MAP["openai"],
+    )
+    written = yaml.safe_load(card.to_yaml().split("---", 2)[1])["modalities"]
+
+    assert written["input"] == inputs
+    assert written["output"] == outputs
+    assert (
+        written["vision"]["supported"],
+        written["image_generation"]["supported"],
+        written["audio"]["input_supported"],
+        written["audio"]["output_supported"],
+        written["video"]["input_supported"],
+        written["video"]["output_supported"],
+    ) == expected_flags
+
+
 def _rehost_card(models_dir: Path) -> None:
     path = models_dir / "zhipu" / "glm-5-3.md"
     path.parent.mkdir(parents=True, exist_ok=True)

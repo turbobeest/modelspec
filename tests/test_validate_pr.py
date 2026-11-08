@@ -10,6 +10,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
@@ -76,3 +79,60 @@ def test_validate_card_attaches_warnings_and_stays_valid() -> None:
     result = validate_card("models/anthropic/claude-haiku-4-5.md", compute_diff=False)
     assert result["status"] == "valid"
     assert result["warnings"] == []
+
+
+@pytest.mark.parametrize(
+    "kind,direction,section,flag",
+    [
+        ("video", "input", "video", "input_supported"),
+        ("video", "output", "video", "output_supported"),
+        ("audio", "input", "audio", "input_supported"),
+        ("audio", "output", "audio", "output_supported"),
+        ("image", "input", "vision", "supported"),
+        ("image", "output", "image_generation", "supported"),
+    ],
+)
+@pytest.mark.parametrize(
+    "listed,supported,warns",
+    [(True, False, True), (False, True, True), (True, True, False), (False, False, False)],
+    ids=["listed-but-false", "unlisted-but-true", "consistent-true", "consistent-false"],
+)
+def test_modality_list_flag_consistency(
+    tmp_path, kind, direction, section, flag, listed, supported, warns
+) -> None:
+    path = tmp_path / "fixture.md"
+    data = {
+        "model_id": "fixture/model",
+        "display_name": "Fixture",
+        "provider": "fixture",
+        "modalities": {direction: [kind] if listed else [], section: {flag: supported}},
+    }
+    path.write_text("---\n" + yaml.safe_dump(data) + "---\n", encoding="utf-8")
+
+    result = validate_card(str(path), compute_diff=False)
+
+    assert result["status"] == "valid"
+    if warns:
+        assert len(result["warnings"]) == 1
+        warning = result["warnings"][0]
+        assert f"modalities.{section}.{flag}" in warning
+        assert f"modalities.{direction}" in warning
+        assert kind in warning
+        assert str(supported).lower() in warning
+    else:
+        assert result["warnings"] == []
+
+
+def test_listed_video_with_default_support_flag_warns(tmp_path) -> None:
+    path = tmp_path / "fixture.md"
+    path.write_text(
+        "---\nmodel_id: fixture/video\ndisplay_name: Video\nprovider: fixture\n"
+        "modalities:\n  input: [text, video]\n---\n",
+        encoding="utf-8",
+    )
+
+    result = validate_card(str(path), compute_diff=False)
+
+    assert result["status"] == "valid"
+    assert len(result["warnings"]) == 1
+    assert "modalities.video.input_supported" in result["warnings"][0]
