@@ -317,9 +317,8 @@ def test_cap_reading_uses_the_published_unit(unit):
 def test_explicit_clause_still_requires_model_binding_and_permitted_source_kind():
     text = "If you exceed 200 million monthly active users, you must obtain a separate licence."
     result = check("licence.user_cap", 200_000_000, text, bound=False)
-    assert result.outcome == "skipped", result
-    assert result.verification is None
-    assert result.diffs == ()
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
     result = check("licence.user_cap", None, text, "lab_documentation")
     assert result.outcome == "mismatch", result
     assert result.diffs[0].field == "source_kind"
@@ -736,9 +735,8 @@ def test_registered_sentence_still_requires_binding_and_source_kind(registered_s
     field, value, sentence, template = registered_sentence
     readers = [verify.LicenceTermsExtractor(templates=(template,))]
     result = check(field, value, sentence, bound=False, readers=readers)
-    assert result.outcome == "skipped", result
-    assert result.verification is None
-    assert result.diffs == ()
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
     result = check(field, value, sentence, "lab_documentation", readers=readers)
     assert result.outcome == "skipped", result
     assert result.verification is None

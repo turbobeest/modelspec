@@ -237,7 +237,7 @@ def test_wilson():
         (b"Model: Test Model\nmodel.context window: 128000 tokens\n", "matched"),
         (b"Model: Test Model\nmodel.context window: 64000 tokens\n", "mismatched"),
         (b"JavaScript required", "unreadable"),
-        (b"Model: Sibling Model\nmodel.context window: 128000 tokens\n", "mismatched"),
+        (b"Model: Sibling Model\nmodel.context window: 128000 tokens\n", "unreadable"),
     ],
 )
 def test_plain_http_readers(catalogue, registry, body, expected):

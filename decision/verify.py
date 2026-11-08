@@ -7126,7 +7126,9 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     no outcome while the claim also cites a permitted kind. It is a
     ``source_kind`` mismatch only when the claim cites no permitted kind.
     Verified if any reading confirms the value; otherwise the first mismatch
-    from a reading bound to this subject. Empty or unbound readings abstain.
+    from a reading bound to this subject. Empty readings abstain. Unbound
+    readings also abstain, except licence readers report a failed document
+    binding as a model mismatch.
     A claim whose permitted regions all have no extractor, or all raised
     ``ExtractorError``, is skipped.
     ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
@@ -7223,9 +7225,11 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 if claim.field.startswith("offering.price.") else text
             for extractor in independent:
                 read = text if isinstance(extractor, ModelPageExtractor) else loose
+                licence_reader = isinstance(extractor, (
+                    LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor,
+                ))
                 try:
-                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor,
-                                              LicenceTermsExtractor)):
+                    if licence_reader:
                         pages, page_urls = _binding_pages(
                             claim, regions, source.source_id, region_id,
                         )
@@ -7258,8 +7262,10 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
-                if not any(reading.subject and _reading_subject_matches(
-                        reading.subject, read_claim.names, field=claim.field) for reading in readings):
+                if not readings or (not licence_reader and not any(
+                        reading.subject and _reading_subject_matches(
+                            reading.subject, read_claim.names, field=claim.field)
+                        for reading in readings)):
                     reasons.append(f"no_reading:{where}: {extractor.actor.method}")
                     continue
                 diffs = compare(read_claim, readings)
