@@ -60,8 +60,8 @@ Actual private-worktree mirror check:
 
 Exit 1: `::error::lineup-proposer.yml: private workflow is missing`.
 The pulled private ticket branch is still
-`<private revision at assessment time>`; its fetched main is
-`<private revision at assessment time>`. Neither contains the lineup
+`82a2a61ee05c01870e46e807ccbc16173ce350b9`; its fetched main is
+`7409030687c87e1ed05b87b0c126ad0273b3dfb9`. Neither contains the lineup
 workflow. The incoming public lineup mirror matches
 `origin/model-447-proposer:.github/workflows/lineup-proposer.yml` in the
 private repository byte-for-byte. That separate workflow has not reached the

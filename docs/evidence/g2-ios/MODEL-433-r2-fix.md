@@ -28,8 +28,8 @@ nested serialization.
 - The following evidence-only commit is the final branch revision, recorded in
   PR #865 and the executor's final output. Resolve it with
   `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-433-r2-fix.md`.
-- Data base: `<private revision at assessment time>`.
-- Data implementation: `<private revision at assessment time>`.
+- Data base: `acd85ff25b34c3170b10adc472aff3129adb615a`.
+- Data implementation: `0d62d3f69ddf03ed042f74c3271cd1246951a7bf`.
   Its origin/main was already an ancestor.
 
 The data clone is under this worktree's ignored `tmp/model-433-r2/` directory.

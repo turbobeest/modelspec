@@ -4,9 +4,9 @@ Local focused checks pass. Independent cross-model review and live CI remain pen
 
 | Revision | Public | Private |
 | --- | --- | --- |
-| Original base | `6815544116839f991c10904772e7357f12d5b566` | `<private revision at assessment time>` |
-| Round-2 base | `f470342cd088ec9b90d092088ae5b844ac802caf` | `<private revision at assessment time>` |
-| Final implementation | `a4618bc20c826a5e286c3b85d641c3ca47c0dc48` | `<private revision at assessment time>` |
+| Original base | `6815544116839f991c10904772e7357f12d5b566` | `c26a2d7b67039dd0ed2490cd740766680c9e454d` |
+| Round-2 base | `f470342cd088ec9b90d092088ae5b844ac802caf` | `1e945519c022860520d3dc4ed1e383604c7f5d21` |
+| Final implementation | `a4618bc20c826a5e286c3b85d641c3ca47c0dc48` | `2c08853d9110538db755faeddff101a47c04d5c4` |
 
 Evidence-only commits follow these implementation commits. Each worktree's untracked `.pr-commit.txt` records its final PR head SHA. Draft PRs: [public #969](https://github.com/turbobeest/modelspec/pull/969), [private #127](https://github.com/turbobeest/modelspec-data/pull/127). Merge public first, then private, after human review. The private check intentionally compares with public main independently of the engine pin.
 

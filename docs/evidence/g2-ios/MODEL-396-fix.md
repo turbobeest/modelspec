@@ -121,7 +121,7 @@ The private checkout was created with:
 git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/model-396-scratch/private_sources/modelspec-data
 ```
 
-Its HEAD was `<private revision at assessment time>`. From that checkout:
+Its HEAD was `a6f8fd798d7d6f40b35ed08320796b773f29df9a`. From that checkout:
 
 ```sh
 git ls-remote origin refs/pull/98/head
@@ -130,7 +130,7 @@ git show origin/data-pr-98:research/model-409/source-terms-audit.md
 env PYTHONPATH=/Users/terbeest/dev/worktrees/model-396 /Users/terbeest/dev/modelspec/.venv/bin/python tools/research/model-396/replay.py
 ```
 
-The audit ref was `<private revision at assessment time>`. It classifies the
+The audit ref was `8fb320abf57dddd63bcdd8709b686e8cb7f02080`. It classifies the
 Mistral hosts as silent and says silence is not permission. The current engine
 policy continues to identify x.ai, docs.x.ai and perplexity.ai as cite-only.
 

@@ -70,7 +70,7 @@ Ruff and `git diff --check` pass.
 ## Offline replay
 
 The replay uses the same saved pages, explicit copy map, fixed date, and exported
-data `origin/main` at `<private revision at assessment time>` as the first round.
+data `origin/main` at `4d4f709621486e791107830680e7d2293ea450a7` as the first round.
 Socket connections remain blocked by the replay tool. It does not fetch pages or
 write to the data checkout.
 

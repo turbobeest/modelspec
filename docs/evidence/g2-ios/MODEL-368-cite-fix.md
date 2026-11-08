@@ -272,14 +272,21 @@ parse. No page text, quote or HTML was written to either repository.
 Model names only; the answer sentence is not reproduced. Catalogue: `models/`
 in the data worktree at `6fb6bea4`.
 
-The mapping covered five FAQ labels. This public report retains the aggregate
-mapping counts below; individual catalogue identities remain in the private audit.
+| FAQ model name | Canonical ID | Reason |
+| --- | --- | --- |
+| GPT-5.6 Terra | `openai/gpt-5-6-terra` | Card `display_name` is exactly this name |
+| Claude Sonnet 5 | `anthropic/claude-sonnet-5` | Card `display_name` is exactly this name; `claude-sonnet-5-5` is a different model |
+| Gemini 3.1 Pro Thinking | unmapped | No card. `google/gemini-3-1-pro-preview` and `…-preview-customtools` are different, Preview-labelled models |
+| Grok 4.1 | unmapped | No card. `xai/grok-4-1-fast` and `xai/grok-4-1-fast-non-reasoning` are the Fast variants |
+| Sonar 2 | unmapped | No card. `models/perplexity/` holds only `sonar`, `sonar-pro`, `sonar-reasoning-pro` and `sonar-deep-research` |
 
 Mapped 2, unmapped 3. This matches the reviewed `MAPPING` in the reader.
 
 ### Why this blocks
 
-The curated membership set matches the filed set, so its value hash is unchanged.
+The curated value is `["anthropic/claude-sonnet-5", "openai/gpt-5-6-terra"]`,
+the same as the filed value.
+`value_hash` = `sha256:d8f1c80fb0bbf3ce12db7154fe18f281f96c8325d28609aad7272f5e21d1a685`,
 unchanged. The latest log row for that hash is the 2026-10-14 `mismatch`
 (private `verification/log.jsonl:21269`). That row compared the value with the
 `#pricing` region of `model-235-data-perplexity-html` and found no models
@@ -288,8 +295,8 @@ there. The FAQ read today confirms the value. But
 `mismatch`, keyed only on the value hash. The append-only log and the admission
 rule were not changed.
 
-Not done: `value_hash` is order-sensitive for set facets. Reordering the same
-two members changes the hash.
+Not done: `value_hash` is order-sensitive for set facets. The same two IDs in
+FAQ order hash to `sha256:810a5ed5dbcd7201d1bdfcbdd20e95357875cf80e3782eb076336e2bcf8b7ac5`.
 Refiling the same set in another order would leave quarantine without new
 information. That would weaken the quarantine rule, so it was not done. The
 order sensitivity is a separate gap: a set-valued fact can leave a
@@ -372,7 +379,7 @@ Worker memory, Pyodide 0.28.3, Node v22.23.2, exit codes 0. Steady MiB / Wasm Mi
 | --- | ---: | ---: | ---: |
 | PR job fixture, current period | 104.571 / 59.875 | 104.571 / 59.875 | 0.000 |
 | PR job fixture, successor period | 103.669 / 59.875 | 103.660 / 59.875 | -0.009 |
-| Private data (`modelspec-data` `<private revision at assessment time>`, test key), steady | 104.582 / 59.875 | 104.561 / 59.875 | -0.021 |
+| Private data (`modelspec-data` `5d797a6`, test key), steady | 104.582 / 59.875 | 104.561 / 59.875 | -0.021 |
 
 The PR job ran as `rank-api.yml` defines it, with the #843 fixture recipe and
 `--limit-mib 115` against main baselines. The first main measurement downloaded

@@ -4,7 +4,7 @@ The weekly rendered re-read now separates re-check attempts from verification de
 
 The public engine change replays verification queue events by their timestamps. Legacy naive timestamps mean UTC; equal instants retain append order. Reading the queue does not rewrite its history. The private workflow restores completed checks only, diverts historical failed verifications to the attempt stream, and never restores unfinished failed-copy changes. The live writer also avoids an intermediate changed event, so an interrupted write cannot leave a failed copy pending for generic verification.
 
-The engine base is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the final engine implementation is `8d380496de7f1acad555485b896083879b7a6f32`. Subsequent public commits contain only this evidence. The final public HEAD is recorded in the PR body and executor completion line. Private data main is `<private revision at assessment time>`, and the captured data#103 head is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. The replacement data head is `<private revision at assessment time>`, published as draft [data#120](https://github.com/turbobeest/modelspec-data/pull/120). Its `.engine-pin` is the existing main commit `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the private job also passes against that pin.
+The engine base is `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the final engine implementation is `8d380496de7f1acad555485b896083879b7a6f32`. Subsequent public commits contain only this evidence. The final public HEAD is recorded in the PR body and executor completion line. Private data main is `ba03e11651513aa108f4031e56622717cf419acf`, and the captured data#103 head is `a9300cb6ce41fc2e238ccd38ff326d5e5a9700a7`. The replacement data head is `e326341aea1ce91c41df55d108f0dd4d0b585d13`, published as draft [data#120](https://github.com/turbobeest/modelspec-data/pull/120). Its `.engine-pin` is the existing main commit `7e3d8ba6c95eac6f03e438366686c5299499b6bc`; the private job also passes against that pin.
 
 The replacement starts from data main. Offline replay uses only the captured report, Git records and current source policies. Of 287 captured results, 223 concern derived copies and 35 require interaction recipes, so 258 are recorded as not reread. The other 29 are cite-only under the current retention policy and source-terms hold. None supplies a new verification. The private receipt maps every one of the 269 captured verification additions and 554 queue events to its captured report row and SHA256. All eight existing main JSONL streams remain byte-identical; the new attempt stream has 287 rows. Eight stale queue events affect four newer claim states. The old restore path also left 16 unfinished checks pending; the new checked-only restore closes that path.
 
@@ -64,16 +64,10 @@ env PYTHONPATH=/tmp/model-444-scratch/probes/engine-base /Users/terbeest/dev/mod
 /Users/terbeest/dev/modelspec/.venv/bin/python .github/scripts/check_linked_data.py --data /tmp/model-444-scratch/data --engine /Users/terbeest/dev/worktrees/model-444
 ```
 
-For replay, supply the reviewed private revision locally before staging with
-the script preserved beside this report:
+Replay and cleanup commands used the scripts preserved beside this report:
 
 ```sh
-export MODELSPEC_EXPECTED_DATA_SHA="${MODELSPEC_EXPECTED_DATA_SHA:?set the reviewed private revision locally}"
-/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-444/probes/stage_data.py
 ```
-
-The supplied revision remains in the local private `.sha` handoff; staging
-stdout reports completion without printing it.
 
 These results establish local behavior and compatibility with the captured private data. No fresh source accuracy, production deployment, CI result or independent cross-model approval was observed. No provider API call, Firecrawl call, Linear write, main push, force push or merge occurred. Draft PRs require review. The old data#103 branch remains historical and must be replaced by the corrected draft; this task does not approve it for merge.
 
@@ -86,4 +80,4 @@ Executed by ChatGPT Codex (GPT-6 Astra); cross-model review by Claude pending.
 
 ## Orchestrator note (2026-10-23)
 
-The replacement data PR first carried a cleanup that deleted 81 source copies already committed on data main. Purging committed copies is held for Jamie and counsel (MODEL-409), so commit `<private revision at assessment time>` restored them, and the cleanup and replay helper scripts were removed from this public PR. data#120 merged with zero deletions against data main.
+The replacement data PR first carried a cleanup that deleted 81 source copies already committed on data main. Purging committed copies is held for Jamie and counsel (MODEL-409), so commit `e326341` restored them, and the cleanup and replay helper scripts were removed from this public PR. data#120 merged with zero deletions against data main.

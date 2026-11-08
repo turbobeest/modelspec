@@ -3,8 +3,8 @@
 Engine base: `34c6dbef95371cff728a7a28aba33dcffe3e50e3`.
 Design-only first commit: `433c78eb`.
 Implementation and private engine pin: `778e626505abb3c3a2687522c1c3759d42a05565`.
-Private data base: `<private revision at assessment time>`.
-Final private data commit: `<private revision at assessment time>`,
+Private data base: `b058eb531138d7b16915f911e6b68a277b8279a9`.
+Final private data commit: `fe1b57b5eaf8c80acd9f37a9d6ae1649bec682ed`,
 draft [data PR #95](https://github.com/turbobeest/modelspec-data/pull/95).
 The final engine SHA is the commit containing this evidence, reproducible with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-367-fix.md`.

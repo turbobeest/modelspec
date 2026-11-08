@@ -18,7 +18,7 @@ mismatches. No comparison tolerance or accuracy threshold changed.
 - Python `3.14.4`, pytest `9.1.1`, Node `v22.22.3`, npm `10.9.8`,
   Chromium `153.0.8010.12`, git `2.50.1`, gh `2.102.0`.
 - Private archive: `modelspec-data` origin/main
-  `<private revision at assessment time>`, read only.
+  `20c154d89c5bc8ace0601d95ab2785b6fa6592d1`, read only.
 
 All committed source fixtures are synthetic. Live reports and baseline replay
 scripts stay under `/tmp/model-380-engine`, outside the public repository.

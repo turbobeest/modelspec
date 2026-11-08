@@ -18,7 +18,7 @@ request handler rejects network access.
 The worktree base was `bd38d72e326e3d603a45dac6fc758dc8acfeb324`.
 The public HEAD at final verification was
 `8e2cdd8dd5b8e7d21948d3e5fb4d22e9d3fb9a38`.
-The private data HEAD was `<private revision at assessment time>`.
+The private data HEAD was `a6f8fd798d7d6f40b35ed08320796b773f29df9a`.
 The private checkout was read only during this verification.
 The measured `decision/model.py` SHA-256 was
 `51fe075b1eb7831f461c31c7527ee2c3ec8938bbd974abcd223f5ebb83c1ef42`.

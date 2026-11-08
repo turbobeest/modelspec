@@ -82,7 +82,7 @@ not presented as a general solution to card ownership.
 
 ## Offline replay
 
-The saved input set, data export `<private revision at assessment time>`, fixed
+The saved input set, data export `4d4f709621486e791107830680e7d2293ea450a7`, fixed
 2026-10-14 date, and replay tool are unchanged. The tool blocks socket connects,
 reads the supplied pages, and writes only this worktree's replay output.
 

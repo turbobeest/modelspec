@@ -9,7 +9,7 @@ docs/evidence/g2-ios/MODEL-378-fix.md`.
 
 Worktree: `/Users/terbeest/dev/worktrees/model-378`.
 Branch: `sparksandsawdust/model-378-engine`.
-Private data main in the earlier run: `<private revision at assessment time>`.
+Private data main in the earlier run: `45cb41c1bfed7112e82402ed52278bfbef6bc3b3`.
 Both the local `origin/main` ref and the remote main ref named that data SHA.
 The data checkout was behind main, so verification used a `git archive` of
 `origin/main` extracted inside this worktree, without changing another checkout.
@@ -26,9 +26,9 @@ Follow-up base: `9f3f4440fb148bd7cd587c18d544dec2c2daa573`.
 Merged main: `d5569420b07ab8c7dd8efa2117789afb36505197`, producing
 `c2457307faffc7a2973ded666a86ca06e0ba203b`. The final tests were replayed against
 that merge before the fix. Private-data main was first archived at
-`<private revision at assessment time>`. It advanced during the full run,
+`e5a0cf1f085c1b4d621de538d08378962eb3d78c`. It advanced during the full run,
 so the final audit used a fresh archive of
-`<private revision at assessment time>`.
+`20c154d89c5bc8ace0601d95ab2785b6fa6592d1`.
 
 | Follow-up check | Exit code | Observed result |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PW
 MODELSPEC_ENGINE=$PWD PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m scripts.data_trust data --data-dir .scratch/model-378-integration/data-main --summary-only --date 2026-10-14
 ```
 
-The integration audit again used an archive of private main `<private revision at assessment time>`,
+The integration audit again used an archive of private main `20c154d8`,
 isolated outside `docs`; that temporary scratch was removed after verification.
 
 ## Changes and contract
@@ -208,7 +208,7 @@ without conflicts. Both read-only reviews found no implementation defects.
 | First local merge | `b2d89997543365e72fe966c4b7e9d9731aca1e5f` |
 | Latest fetched engine `origin/main` | `b5ec02b18d8edffdd8504b0ea7d108367e5903fd` |
 | Latest local merge and verification target | `b4e2a964b89438f64691540a95b2139ea1c8a113` |
-| Confirmed private-data main | `<private revision at assessment time>` |
+| Confirmed private-data main | `45cb41c1bfed7112e82402ed52278bfbef6bc3b3` |
 
 `git ls-remote` confirmed the private-data main revision. A fresh archive of
 that revision was extracted into
@@ -285,7 +285,7 @@ A second `git fetch origin main` advanced engine main to
 conflicts. The MODEL-378 implementation diff is unchanged. The executor read
 main's decision-contract additions, and its version remains 2.17.
 Private-data `ls-remote` still confirmed
-`<private revision at assessment time>`.
+`45cb41c1bfed7112e82402ed52278bfbef6bc3b3`.
 
 Focused engine checks and private-data offering and router checks passed at the
 earlier merge. That offline summary exited 1 with eight errors.
@@ -484,11 +484,8 @@ PY
 The finish data archive and overlay were prepared with physical copies:
 
 ```bash
-: "${MODEL378_EXPECTED_DATA_SHA:?Set the reviewed private revision locally}"
-export MODEL378_EXPECTED_DATA_SHA
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
 from pathlib import Path
-import os
 import shutil
 import subprocess
 import tarfile
@@ -499,7 +496,7 @@ data = scratch / 'data-main'
 data.mkdir()
 archive = scratch / 'data-main.tar'
 with archive.open('wb') as out:
-    subprocess.run(['git', '-C', '/Users/terbeest/dev/modelspec-data', 'archive', os.environ['MODEL378_EXPECTED_DATA_SHA']], stdout=out, check=True)
+    subprocess.run(['git', '-C', '/Users/terbeest/dev/modelspec-data', 'archive', '45cb41c1bfed7112e82402ed52278bfbef6bc3b3'], stdout=out, check=True)
 with tarfile.open(archive) as contents:
     contents.extractall(data, filter='data')
 archive.unlink()

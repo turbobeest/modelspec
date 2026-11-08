@@ -55,9 +55,8 @@ The private run used the ordinary vendor path, with all generated files,
 bundles, logs, and probe outputs under the authorized scratch directory:
 
 ```sh
-: "${MODEL407_REPAIRED_DATA_SHA:?Set the private data#93 revision locally}"
 git -C /Users/terbeest/dev/modelspec-data worktree add --detach \
-  /tmp/model-407-private/data-repaired "$MODEL407_REPAIRED_DATA_SHA"
+  /tmp/model-407-private/data-74947c3 74947c3
 mkdir -p /tmp/model-407-private/tmp
 export TMPDIR=/tmp/model-407-private/tmp
 export TZ=UTC PYTHONDONTWRITEBYTECODE=1 MODELSPEC_REQUIRE_DATA_DIR=1
@@ -65,7 +64,7 @@ export MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key
 unset MODELSPEC_SNAPSHOT_ED25519_KEY GITHUB_STEP_SUMMARY MODEL407_MEMORY_MODE
 export NODE_PATH="$PWD/tmp/model-407/memory_probe/runtime/node_modules"
 "$MODEL407_PYTHON" api/worker/vendor.py \
-  --data-dir /tmp/model-407-private/data-repaired \
+  --data-dir /tmp/model-407-private/data-74947c3 \
   --out /tmp/model-407-private/bundle-round3-final \
   > /tmp/model-407-private/vendor.log 2>&1
 ```

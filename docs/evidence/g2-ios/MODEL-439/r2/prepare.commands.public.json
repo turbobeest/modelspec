@@ -15,7 +15,7 @@
       "-C",
       "/tmp/model-439-scratch/modelspec-data",
       "rev-parse",
-      "<private revision at assessment time>"
+      "9d9de96"
     ],
     "exit_code": 0
   },
@@ -45,7 +45,7 @@
       "-C",
       "/tmp/model-439-scratch/modelspec-data",
       "archive",
-      "<private revision at assessment time>"
+      "9d9de96f062ac031336ee483ae97c3b436bd3845"
     ],
     "exit_code": 0
   },

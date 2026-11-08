@@ -1,7 +1,7 @@
 {
   "window_start": "2026-10-21",
   "window_end_exclusive": "2026-11-05",
-  "catalogue_revision": "<private revision at assessment time>",
+  "catalogue_revision": "c26a2d7b67039dd0ed2490cd740766680c9e454d",
   "cards_added": 0,
   "matched_cards": 0,
   "recall": null,

@@ -1,23 +1,17 @@
 """Prove the repair view matches its branch without reading retained page bytes."""
 from pathlib import Path
 import json
-import os
 import subprocess
 
 root = Path('/tmp/model-437-scratch/acceptance')
 data = root / 'modelspec-data'
 repaired = root / 'prepared/repaired-data'
-base = os.environ['MODELSPEC_EXPECTED_DATA_SHA']
+base = '9d9de96f062ac031336ee483ae97c3b436bd3845'
 revision = 'f722d3fcb673b28bdff9fa1b5cac06c22cc61c38'
 
 
 def git(*args):
-    command = ['git', '-C', str(data), *args]
-    try:
-        return subprocess.run(command, check=True, capture_output=True).stdout
-    except subprocess.CalledProcessError as error:
-        public_command = [arg.replace(base, '<private revision supplied>') for arg in command]
-        raise subprocess.CalledProcessError(error.returncode, public_command) from None
+    return subprocess.run(['git', '-C', str(data), *args], check=True, capture_output=True).stdout
 
 
 changed = {Path(p.decode()) for p in git('diff', '--name-only', '-z', base, revision).split(b'\0') if p}
@@ -48,8 +42,7 @@ def check(directory, relative=Path()):
 check(repaired)
 assert files == len(changed) == 13
 report = {
-    'baseline_data': '<private revision supplied>', 'repaired_data': revision,
-    'repair_commit_parents': ['<private revision supplied>' for _ in parents],
+    'baseline_data': base, 'repaired_data': revision, 'repair_commit_parents': parents,
     'repair_directly_descends_from_baseline': parents == [base],
     'changed_branch_files': len(changed), 'changed_files_match_branch_bytes': True,
     'unchanged_leaf_files_are_links_to_original': True, 'unchanged_link_count': links,

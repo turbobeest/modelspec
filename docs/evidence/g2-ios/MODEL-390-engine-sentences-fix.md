@@ -36,7 +36,7 @@ a short paraphrase label. The six records in `decision/verify.py` cover:
 The public registry holds hashes and labels, including for the long complete
 operative sentences. It holds no whole licence or private clause text.
 The seed script uses curator-selected sentence positions in data revision
-`<private revision at assessment time>`. It checks that revision and a clean
+`4bc5f4cfa9c1f29689aaf3142be22cabc44454db`. It checks that revision and a clean
 data checkout, verifies retained byte hashes, blocks socket operations, and
 prints only registry metadata. Repeating it reproduces all six rows exactly.
 It does not choose readings using phrase searches or the collector's values.
@@ -120,7 +120,7 @@ expectations initially fail during migration, then become explicit negatives.
 
 [The aggregate](MODEL-390-engine-sentences-recheck.json) comes from the unchanged
 offline helper against `/tmp/d390`, data SHA
-`<private revision at assessment time>`. The engine pin remains
+`4bc5f4cfa9c1f29689aaf3142be22cabc44454db`. The engine pin remains
 `60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa`. Actual `verify`, fidelity,
 collection, and snapshot-building calls run; new verification records are
 overlaid in memory. No data files or historical logs are edited.
@@ -152,7 +152,6 @@ TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest 
 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_390_licence_readers.py -k review747 > /tmp/model-390-sentences-probes.log 2>&1
 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_390_licence_readers.py
 
-export MODELSPEC_EXPECTED_DATA_SHA="${MODELSPEC_EXPECTED_DATA_SHA:?set the reviewed private revision locally}"
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -B docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py --data /tmp/d390 > /tmp/model-390-sentence-templates-final.json
 
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_390_licence_readers.py tests/test_decision_verify.py tests/test_decision_registry.py tests/test_licence_coverage.py tests/test_decision_sources.py tests/test_model_345_collect.py tests/test_decision_model.py > /tmp/model-390-sentences-focused-final.log 2>&1

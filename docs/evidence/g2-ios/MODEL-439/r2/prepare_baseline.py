@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--data-dir',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--main-ref',default='36b2d184dcc5a67a90ceb1a9015275143c09691d')
-    parser.add_argument('--data-ref',required=True)
+    parser.add_argument('--data-ref',default='9d9de96f062ac031336ee483ae97c3b436bd3845')
     parser.add_argument('--policy-ref',default='82ebcf4627d255d7641303caff2d149e879cf359')
     args=parser.parse_args()
     out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
@@ -23,14 +23,10 @@ def main():
     def git(root,*options):
         command=['git','-C',str(root),*options]
         result=subprocess.run(command,capture_output=True)
-        public_command=command.copy()
-        if root == args.data_dir:
-            public_command[-1]='<private revision supplied locally>'
-        commands.append({'argv':public_command,'exit_code':result.returncode})
-        if result.returncode:
-            raise subprocess.CalledProcessError(result.returncode,public_command)
+        commands.append({'argv':command,'exit_code':result.returncode})
+        result.check_returncode()
         return result.stdout
-    refs={'main':git(args.repo,'rev-parse',args.main_ref).decode().strip(),'baseline_data':git(args.data_dir,'rev-parse','--verify',args.data_ref+'^{commit}').decode().strip(),'policy':git(args.repo,'rev-parse',args.policy_ref).decode().strip()}
+    refs={'main':git(args.repo,'rev-parse',args.main_ref).decode().strip(),'baseline_data':git(args.data_dir,'rev-parse',args.data_ref).decode().strip(),'policy':git(args.repo,'rev-parse',args.policy_ref).decode().strip()}
     for source,rev,destination in [(args.repo,refs['main'],out/'main'),(args.data_dir,refs['baseline_data'],out/'baseline-data')]:
         destination.mkdir(exist_ok=False)
         with tarfile.open(fileobj=io.BytesIO(git(source,'archive',rev))) as archive:
@@ -40,8 +36,7 @@ def main():
     for name in ['compare_private.py','check_completeness.py','diagnose_assurance.py','scope_assurance.py','run_recorded.py']:
         if helpers/name != out/name:shutil.copy2(helpers/name,out/name)
     (out/'prepare.commands.public.json').write_text(json.dumps(commands,indent=2)+'\n')
-    identities={'revisions':{**refs,'baseline_data':'<private revision supplied locally>'},
-                'prepared_at':datetime.now(UTC).isoformat()}
+    identities={'revisions':refs,'prepared_at':datetime.now(UTC).isoformat()}
     (out/'identities.public.json').write_text(json.dumps(identities,indent=2)+'\n')
     print(json.dumps(identities))
     return 0

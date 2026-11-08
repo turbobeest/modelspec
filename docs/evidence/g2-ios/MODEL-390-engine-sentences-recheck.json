@@ -12,7 +12,7 @@
     "status": "fail"
   },
   "data_engine_pin": "60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa",
-  "data_sha": "<private revision at assessment time>",
+  "data_sha": "4bc5f4cfa9c1f29689aaf3142be22cabc44454db",
   "data_status_unchanged": true,
   "engine_sha": "012c690b93cde331345ae4c59d92b25239da042f",
   "engine_tracked_changes": false,

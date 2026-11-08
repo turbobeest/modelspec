@@ -12,9 +12,9 @@ Zero `gh` calls; no PR-state changes.
 Public base: `9efcb5610732c1eac21a63e90bfab1beffdb8697`.
 Incoming public main: `1de613b202258bf244a9427aafd722bcd71b7662`.
 Verified public merge: `afc571aa23e008b85e2863146d3308114da28423`.
-Private base after pull: `<private revision at assessment time>`.
-Incoming private main: `<private revision at assessment time>`.
-Verified private merge: `<private revision at assessment time>`.
+Private base after pull: `afc3a5b2fce504601af0a3537401c2edd2f231a8`.
+Incoming private main: `b2f7176b13bc4c7186f9b36f66f0e644df65dcb6`.
+Verified private merge: `2d5499fcae20e8294d20ecce33ce236a8bbf1be4`.
 The final public evidence commit SHA is recorded in `.pr-commit.txt` and
 `.pr-body.md`; this file cannot contain its own commit hash. Earlier evidence
 remains at the base commit.

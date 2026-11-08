@@ -20,7 +20,7 @@ round-1 blocker assessment. The earlier report and measurements remain in
 | Final implementation and tests | `6b9695fc75748bf31d8f07955bbf8fea89fc57f0` |
 | Scratch-only #866 policy | `82ebcf4627d255d7641303caff2d149e879cf359` |
 | MODEL-439 repair script, engine #891 | `77a9566822f7a23e322d2647913c755ad3cb7ed8` |
-| Baseline private data | `<private revision at assessment time>` |
+| Baseline private data | `9d9de96f062ac031336ee483ae97c3b436bd3845` |
 | Repaired private data, data #118 | `f722d3fcb673b28bdff9fa1b5cac06c22cc61c38` |
 
 Worktree `/Users/terbeest/dev/worktrees/model-437`, branch
@@ -103,9 +103,9 @@ measured results. Command records include the failed setup attempt.
 
 | State | Engine | Policy | Private data |
 | --- | --- | --- | --- |
-| a, baseline | Main `a03c4d07` | Main | `<private revision at assessment time>` |
-| d | Candidate `6b9695fc` | Main | `<private revision at assessment time>` |
-| c | Candidate `6b9695fc` | #866 | Data #118 repair on `<private revision at assessment time>` |
+| a, baseline | Main `a03c4d07` | Main | `9d9de96f` |
+| d | Candidate `6b9695fc` | Main | `9d9de96f` |
+| c | Candidate `6b9695fc` | #866 | Data #118 repair on `9d9de96f` |
 
 Data #118 directly descends from the baseline data revision. Its 13 changed
 files were applied byte-for-byte in scratch. Unchanged leaf files were linked
@@ -212,16 +212,6 @@ private-data argument or signing key. It passed the import check and left no
 tracked bundle changes.
 
 ## Reproduction and limits
-
-The setup and repair-view audit require the reviewed baseline revision from
-private local configuration. Keep the same value for both commands; their
-existing comparisons still use it. Public metadata retains only a placeholder.
-
-```sh
-export MODELSPEC_EXPECTED_DATA_SHA="${MODELSPEC_EXPECTED_DATA_SHA:?set the reviewed private revision locally}"
-/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-437/round2/acceptance/setup_acceptance.py
-/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-437/round2/acceptance/audit_repaired_view.py
-```
 
 Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5, PyYAML 6.0.3,
 cryptography 45.0.7, pypdf 6.19.0, Node 22.22.3, Pyodide 0.28.3,

@@ -6,8 +6,8 @@
     "pydantic_in_pyodide": "2.10.6"
   },
   "private_data_refs": {
-    "without_data93": "<private revision at assessment time>",
-    "data93": "<private revision at assessment time>"
+    "without_data93": "fd3145c",
+    "data93": "74947c3"
   },
   "engine_refs": {
     "without_successor": "7908f238",
@@ -47,7 +47,7 @@
   "final_private_memory": [
     {
       "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
-      "data": "<private revision at assessment time>",
+      "data": "74947c3",
       "period": "current",
       "exit_code": 0,
       "steady_bytes": 109651736,
@@ -69,7 +69,7 @@
     },
     {
       "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
-      "data": "<private revision at assessment time>",
+      "data": "74947c3",
       "period": "successor",
       "exit_code": 0,
       "steady_bytes": 109652504,
@@ -91,7 +91,7 @@
     },
     {
       "engine": "bb41f0f68cb90c0616263e4c4853c77ee3d916a4",
-      "data": "<private revision at assessment time>",
+      "data": "74947c3",
       "period": "warm",
       "exit_code": 0,
       "steady_bytes": 109698653,

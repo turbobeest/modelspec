@@ -63,7 +63,7 @@ names a competing AI model; the product-only pattern is a negative fixture.
 
 The same committed socket-blocking helper runs against the same clean data
 worktree `/tmp/d390`, revision
-`<private revision at assessment time>`, and its unchanged engine pin
+`4bc5f4cfa9c1f29689aaf3142be22cabc44454db`, and its unchanged engine pin
 `60c26c623f2fd3b1be1ca7dbedf75dde9d7d77fa`.
 It calls actual verification, fidelity, collection, and snapshot-building APIs
 and retains new verification records only in memory. The output is first

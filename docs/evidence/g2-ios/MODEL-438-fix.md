@@ -9,11 +9,11 @@ Final implementation SHA: `5eefeefa85a26ac59754210270a3cfaec00a1fbb`.
 The subsequent commit adds only this evidence file; its final SHA is recorded in
 the PR body and executor completion marker.
 
-Private data final SHA: `<private revision at assessment time>`.
+Private data final SHA: `bc6fb0a9319f020b6a86f0c8430190884b83a8e0`.
 Its branch has the same name and is stacked on data PR #116,
 `model-433-interactive-pricing`. Red tests used base
-`<private revision at assessment time>`. During execution, #116 advanced to
-`<private revision at assessment time>`, deleting two old research scripts and
+`3c1d517511db40fb0d6de241804b8cc3802a7c43`. During execution, #116 advanced to
+`b46b859efda086a4b4a77a8dacc5cfa86f3398e8`, deleting two old research scripts and
 updating their report. The follow-up was fast-forwarded to that disjoint change
 before its final 66-test validation.
 

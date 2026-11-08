@@ -10,7 +10,7 @@ Round 3 executable implementation: `f6dbbcd86845e614a00d3bd7ce8dfa4d55c2f618`.
 Final merged executable implementation: `e7f422751aa49dcb8461863fd7f5cd7983208e82`.
 The final evidence commit is the branch HEAD printed in the execution marker.
 
-The private acceptance target passes for `e7f42275` with data `<private revision at assessment time>`:
+The private acceptance target passes for `e7f42275` with data `74947c3`:
 **103.50889 MiB** with the successor loaded and **104.61812 MiB** after warm
 rollover. The unchanged 100 ms load gate measures **14.53 ms** locally, best
 of five with GC disabled. The merged build passes 652 focused tests, 166
@@ -112,7 +112,7 @@ byte-identical to the measured `f6dbbcd8` implementation.
 
 Fresh ordinary vendor builds and all six public/private probes pass the
 unchanged 115 MiB gate on the merged source. Private data remains pinned to
-`<private revision at assessment time>`. Each probe uses Pyodide 0.28.3, Node 22.22.3 and the existing request
+`74947c3`. Each probe uses Pyodide 0.28.3, Node 22.22.3 and the existing request
 sequence; the warm probe first serves the current period before crossing the
 boundary. Every scenario allocates 59.875 MiB of Wasm.
 
@@ -266,27 +266,27 @@ the limit behavior without relying on that environment failure.
 ## Private measurement scope
 
 The private checkout is read-only. The matrix uses engine commits `7908f238`
-and `b4a7074f` against private data commits `<private revision at assessment time>` and `<private revision at assessment time>`. The final
-target uses `<private revision at assessment time>` with this implementation.
+and `b4a7074f` against private data commits `fd3145c` and `74947c3`. The final
+target uses `74947c3` with this implementation.
 
 | Private combination | Engine | Data | Steady bytes | Steady MiB | Wasm MiB |
 | --- | --- | --- | ---: | ---: | ---: |
-| Base | `7908f238` | `<private revision at assessment time>` | 109,048,943 | 103.99718 | 59.875 |
-| Plus data#93 | `7908f238` | `<private revision at assessment time>` | 121,685,659 | 116.04849 | 71.875 |
-| Plus #813 successor | `b4a7074f` | `<private revision at assessment time>` | 121,048,098 | 115.44046 | 71.875 |
-| Both | `b4a7074f` | `<private revision at assessment time>` | 122,224,715 | 116.56257 | 71.875 |
-| Initial implementation, current | `8df90ee0` | `<private revision at assessment time>` | 122,218,799 | 116.55693 | 71.875 |
-| Initial implementation, successor | `8df90ee0` | `<private revision at assessment time>` | 137,295,447 | 130.93514 | 86.25 |
-| Initial implementation, warm rollover | `8df90ee0` | `<private revision at assessment time>` | 137,346,492 | 130.98382 | 86.25 |
-| Round 2 implementation, current | `bb41f0f6` | `<private revision at assessment time>` | 109,651,736 | 104.57204 | 59.875 |
-| Round 2 implementation, successor | `bb41f0f6` | `<private revision at assessment time>` | 109,652,504 | 104.57278 | 59.875 |
-| Round 2 implementation, warm rollover | `bb41f0f6` | `<private revision at assessment time>` | 109,698,653 | 104.61679 | 59.875 |
-| Round 3 implementation, current | `f6dbbcd8` | `<private revision at assessment time>` | 109,652,912 | 104.57317 | 59.875 |
-| Round 3 implementation, successor | `f6dbbcd8` | `<private revision at assessment time>` | 109,652,968 | 104.57322 | 59.875 |
-| Round 3 implementation, warm rollover | `f6dbbcd8` | `<private revision at assessment time>` | 108,730,708 | 103.69368 | 59.875 |
-| Final merged implementation, current | `e7f42275` | `<private revision at assessment time>` | 109,654,314 | 104.57450 | 59.875 |
-| Final merged implementation, successor | `e7f42275` | `<private revision at assessment time>` | 108,536,937 | 103.50889 | 59.875 |
-| Final merged implementation, warm rollover | `e7f42275` | `<private revision at assessment time>` | 109,700,047 | 104.61812 | 59.875 |
+| Base | `7908f238` | `fd3145c` | 109,048,943 | 103.99718 | 59.875 |
+| Plus data#93 | `7908f238` | `74947c3` | 121,685,659 | 116.04849 | 71.875 |
+| Plus #813 successor | `b4a7074f` | `fd3145c` | 121,048,098 | 115.44046 | 71.875 |
+| Both | `b4a7074f` | `74947c3` | 122,224,715 | 116.56257 | 71.875 |
+| Initial implementation, current | `8df90ee0` | `74947c3` | 122,218,799 | 116.55693 | 71.875 |
+| Initial implementation, successor | `8df90ee0` | `74947c3` | 137,295,447 | 130.93514 | 86.25 |
+| Initial implementation, warm rollover | `8df90ee0` | `74947c3` | 137,346,492 | 130.98382 | 86.25 |
+| Round 2 implementation, current | `bb41f0f6` | `74947c3` | 109,651,736 | 104.57204 | 59.875 |
+| Round 2 implementation, successor | `bb41f0f6` | `74947c3` | 109,652,504 | 104.57278 | 59.875 |
+| Round 2 implementation, warm rollover | `bb41f0f6` | `74947c3` | 109,698,653 | 104.61679 | 59.875 |
+| Round 3 implementation, current | `f6dbbcd8` | `74947c3` | 109,652,912 | 104.57317 | 59.875 |
+| Round 3 implementation, successor | `f6dbbcd8` | `74947c3` | 109,652,968 | 104.57322 | 59.875 |
+| Round 3 implementation, warm rollover | `f6dbbcd8` | `74947c3` | 108,730,708 | 103.69368 | 59.875 |
+| Final merged implementation, current | `e7f42275` | `74947c3` | 109,654,314 | 104.57450 | 59.875 |
+| Final merged implementation, successor | `e7f42275` | `74947c3` | 108,536,937 | 103.50889 | 59.875 |
+| Final merged implementation, warm rollover | `e7f42275` | `74947c3` | 109,700,047 | 104.61812 | 59.875 |
 
 The historical four-cell runs exit successfully at the unchanged 120 MiB
 deployment gate. All three initial implementation runs fail the 115 MiB gate;
