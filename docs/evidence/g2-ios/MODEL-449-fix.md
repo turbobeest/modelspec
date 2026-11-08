@@ -1,5 +1,136 @@
 # MODEL-449 verification
 
+## Round 6: licence binding refusals and remaining CI expectations
+
+Started at `15eac364b25e54b82989d4794dcace90c7c51e5b`. The requested fetch and
+fast-forward adopted `7e6277790ff201e3448dea32c26bbe7d93d0b16e`. Merging current
+main `9e7a18eff326f5d2806b40bf6d0af1b039fd6a19` produced
+`e7daf94313ace92b18f0bf487aaa0003684a965b`, with no conflicts. Implementation is
+`15257d8f3a774ebbbc2d9da79d401ebdfa02e4e8`. The evidence-inclusive final head is
+recorded in `.pr-commit.txt` and the executor completion line.
+
+The generic subject filter incorrectly discarded explicit licence binding
+refusals. Licence readers return a nonempty reading with no subject when the
+document does not bind the claimed model. Those readings now reach the existing
+comparison, which records a model mismatch. This exception covers only the
+three existing licence reader classes. It does not grant provider terms to an
+unlisted model, fabricate a subject, or bypass source-kind, reviewed-region,
+URL or canonical-ID checks. Empty readings still abstain. Pricing, model-page
+and lineup readers still require the exact published subject or registered alias.
+
+`tests/test_model_393_exact_binding.py` is unchanged. Its two positive cases
+already passed before the repair; its 46 failures were missing rejection
+diagnostics. The original assertions in `test_model_390_licence_readers.py`,
+`test_model_393_licence_binding.py` and 15 licence tests in
+`test_decision_verify.py` were restored from main. Earlier rounds of this PR had
+incorrectly changed those binding failures to `skipped`. They now again require
+model mismatches. This restores the existing licence contract rather than
+weakening its rejection tests.
+
+One permitted GitHub call downloaded run 41982619092's failed logs. The complete
+census was 61 failures across exactly three files:
+
+| Shard | File | Red failures | Correction |
+| --- | --- | ---: | --- |
+| 5 | `tests/test_data_trust.py` | 1 | A sibling-only page is unreadable for this claim and excluded from the readable-error denominator; exact-model value errors remain mismatches. |
+| 7 | `tests/test_kimi_plan_reader.py` | 14 | Four assertions now preserve the printed plan name, such as `Go`, instead of inventing the collector's `Kimi ` prefix. Value, billing and sibling controls are unchanged. |
+| 8 | `tests/test_model_393_exact_binding.py` | 46 | The production licence fix restores every expected model-binding mismatch without editing this test file. |
+
+Before editing verifier logic, the specifically authorized round-six command
+`gh pr ready 972 -R turbobeest/modelspec --undo` ran from `/tmp`, exited 0 and
+reported that #972 was already draft. This is the explicit exception to the
+spec's generic ready-command prohibition. No ready transition or merge occurred.
+
+### Tests and commands
+
+All pytest runs were serial, using Python 3.14.4 and pytest 9.1.1. Git was 2.50.1
+and Node was 22.22.3. The following exact command ran before the changes and
+again after them: **61 failed, 113 passed**, exit 1, then **174 passed in 10.65
+seconds**, exit 0. Logs are in `.scratch/model-449-r6/ci-audit/`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_data_trust.py tests/test_kimi_plan_reader.py tests/test_model_393_exact_binding.py
+```
+
+The licence and attribution gate initially exposed **58 stale licence
+expectations, 859 passes**, exit 1, after the code repair. Restoring main's
+original assertions made it **917 passed in 2.63 seconds**, exit 0:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_model_393_exact_binding.py tests/test_model_393_licence_binding.py tests/test_model_390_licence_readers.py tests/test_licence_rules.py tests/test_model380_licence_metadata.py tests/test_subject_attribution.py tests/test_subject_reader_guards.py tests/test_model_163_lineup_data.py tests/test_model_235_readers.py tests/test_decision_verify.py
+```
+
+The additional drafter, row-boundary, licence-consumer and merged-workflow gate
+passed **622 tests in 14.62 seconds**, exit 0:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_offering_drafter.py tests/test_subject_scopes.py tests/test_llm_subject_attribution.py tests/test_metric_price_tables.py tests/test_reader_regressions.py tests/test_reader_table_boundaries.py tests/test_licence_coverage.py tests/test_license_defaults.py tests/test_writer_isolation.py tests/test_engine_pin.py
+```
+
+The narrow freshness run still reports **872 stale live readings** at
+2026-11-08. Its implementation, configuration, snapshot builder and all frozen
+inputs are byte-identical to current main. The verifier is not part of that
+calculation. This PR adds no freshness failures. The full accuracy profile was
+not rerun or repaired here. The exact freshness command and input-identity
+assertion are in `.scratch/model-449-r6/ci-audit/handoff.md`.
+
+### Private replay and Worker memory
+
+Fresh private main was `97fda5fdbc280730dbb422fe0449221ee7d35b32`.
+The complete replay compared all **5,748 targets** against round five and the
+pre-round-three baseline. All **334 round-five verified records**, all **333
+earlier verified records**, and all **132 repaired records** remain verified.
+There are **zero verified-to-non-verified changes**. The only 16 changed results
+are licence binding refusals restored from `skipped` to `mismatch`; their
+diagnostics match the earlier baseline. All replay and comparison commands
+exited 0. Root independently checked target sets, preservation and hashes.
+
+```sh
+git clone --quiet https://github.com/turbobeest/modelspec-data.git /tmp/model-449-scratch/r6-replay-data
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --revision 15eac364 --output .scratch/model-449-r6/private-results/all-round5.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --revision 706d1cb0 --output .scratch/model-449-r6/private-results/all-before-r3.json
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-449-r3-replay.py --engine "$PWD" --data /tmp/model-449-scratch/r6-replay-data --output .scratch/model-449-r6/private-results/all-final.json --compare .scratch/model-449-r6/private-results/all-round5.json
+```
+
+Final outcomes are 334 verified, 43 mismatch, 42 skipped, 375 cited and 4,954
+unreachable. Only 427 targets had readable retained regions, using 78 of 563
+requested copy hashes. No missing sources were fetched. Replay dates stay pinned
+to 2026-11-05 for comparison. All 4,802 private tracked files remained unchanged,
+and socket connections were blocked. Private reports remain ignored under
+`.scratch/model-449-r6/private-results/`; commands, hashes and cleanup evidence
+are in `private-audit/handoff.md`. The final verifier SHA-256 is
+`1ecb28b33f22b3eb3744b8b29ced7b4adddbbe89a9edb9e18171944a4d1e1f09`.
+
+The deploy-style private Worker probe passed the 115 MiB steady limit:
+
+| Period | Steady MiB | Peak MiB | Exit |
+| --- | ---: | ---: | ---: |
+| Current | 104.665452 | 105.470689 | 0 |
+| Successor | 104.696687 | 105.502450 | 0 |
+
+The actual vendor export and Pyodide 0.28.3 probe used a throwaway signing key and
+Node 22.22.3. All four probe routes returned 200. The host exporter was Python
+3.14.4; CI uses Python 3.13. Public vendor validation and a frozen-public export
+exited 0, and all 129 generated public sources match HEAD. The measured 62
+public sources and 33 handwritten Worker modules also match final code.
+`verify.py` is not vendored. Exact commands and safe aggregate results are in
+`.scratch/model-449-r6/memory/handoff.md`.
+
+No authored writer-workflow changes were needed. The release-signals public
+mirror still matches data #128 byte-for-byte. No private facts, aliases,
+source copies, manifests, receipts or engine pin were changed. Both private
+clones and the temporary private bundle were removed after clean checks.
+No paid calls, production requests, deployments, site build or full local
+pytest suite ran. Remote CI and independent Codex review remain pending.
+
+The tracked-source guard passed **46 tests with one existing built-site skip**
+in 49.94 seconds, exit 0, with this evidence staged. No built site was supplied
+for the skipped check. `git diff --check` also exited 0.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py > .scratch/model-449-r6/root/removed-sources.log 2>&1
+```
+
 ## Round 5: merged CI failures
 
 Started at `63885726f612cbd1a43dd864819b643279ed5b4b`. `git pull --ff-only`
