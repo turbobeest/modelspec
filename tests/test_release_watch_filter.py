@@ -16,8 +16,119 @@ import yaml
 from release_signals.contract import ReleaseSignal
 from release_signals.watch import Response
 from scripts import release_watch
+from release_signals.watch import Seen, SourceRun, load_registry
+from scripts.release_watch_filter import filter_releases
 
 NOW = datetime(2026, 10, 20, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(("provider", "name", "rule"), [
+    ("unsloth", "Kimi-K3.1-Pro", "reupload/quant organization"),
+    ("mlx-community", "Mistral-Large-4", "reupload/quant organization"),
+    ("bartowski", "New-Model-7B", "reupload/quant organization"),
+    ("TheBloke", "New-Model-7B", "reupload/quant organization"),
+    ("lmstudio-community", "New-Model-7B", "reupload/quant organization"),
+    ("sentence-transformers", "merged-mpnet-base", "embedding-only organization"),
+    ("intfloat", "e5-new", "embedding-only organization"),
+    ("rwkv", "RWKV7-G1l-13.3B-20261031", "dated checkpoint"),
+    ("rwkv", "RWKV7-G1l-13.3B-2026-10-31", "dated checkpoint"),
+    ("liquid", "LFM2.5-24B-A2B-DSpark", "packaging variant"),
+    ("nvidia", "NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2", "packaging variant"),
+    ("stability", "sdxl-base-amdnpu-medusa", "packaging variant"),
+    ("acme", "acme-2-GGUF", "packaging variant"),
+    ("acme", "acme-2-4bit", "packaging variant"),
+    ("openai", "gpt-image-2.6-flare", "image serving variant"),
+    ("openai", "gpt-image-2.6-sunburst", "image serving variant"),
+])
+def test_noise_rules_explain_each_filtered_observation(provider, name, rule):
+    source = load_registry().sources[0]
+    seen = Seen(name, name, provider, "https://fixture.example/model")
+    result = filter_releases([SourceRun(source, "ok", new=(seen,))], NOW)
+    assert result["signals"] == []
+    assert len(result["rejected"]) == 1
+    assert rule in result["rejected"][0]["reason"]
+    assert result["observations"][0]["model_name"] == name
+
+
+@pytest.mark.parametrize(("provider", "name"), [
+    ("mistral", "Mistral-Large-4"),
+    ("xai", "Grok-Imagine-Video-Lite"),
+    ("xai", "Grok-Imagine-Video-1.5-Lite"),
+    ("openai", "GPT-6.1-Sol"),
+    ("openai", "gpt-image-2.6"),
+    ("openai", "gpt-4o-2024-11-20"),
+    ("anthropic", "claude-3-5-sonnet-20241022"),
+    ("mistral", "voxtral-mini-2602"),
+    ("google", "gemini-2.5-flash-lite"),
+    ("cohere", "embed-v5"),
+    ("primeintellect", "INTELLECT-4"),
+    ("acme", "model-2-base"),
+    ("acme", "model-2-instruct"),
+    ("acme", "model-2-pro"),
+    ("acme", "model-2-preview"),
+])
+def test_noise_rules_keep_frontier_releases_and_distinct_models(provider, name):
+    source = load_registry().sources[0]
+    seen = Seen(name, name, provider, "https://fixture.example/model")
+    result = filter_releases([SourceRun(source, "ok", new=(seen,))], NOW)
+    assert len(result["signals"]) == 1
+    assert result["signals"][0].model_name == name
+    assert result["rejected"] == []
+
+
+def test_mirror_url_is_filtered_even_after_provider_canonicalization():
+    source = load_registry().sources[0]
+    seen = Seen("mirror", "LFM2.5-24B-A2B", "liquid",
+                "https://huggingface.co/unsloth/LFM2.5-24B-A2B")
+    result = filter_releases([SourceRun(source, "ok", new=(seen,))], NOW)
+    assert result["signals"] == []
+    assert result["rejected"][0]["reason"] == "reupload/quant organization"
+
+
+def test_card_matching_preserves_numeric_version_boundaries():
+    from release_signals.watch import Catalogue
+
+    source = load_registry().sources[0]
+    seen = Seen("new", "model-21.0", "acme", "https://fixture.example/model")
+    catalogue = Catalogue({}, {"acme": frozenset({"model-2.10"})})
+    result = filter_releases([SourceRun(source, "ok", new=(seen,))], NOW,
+                             catalogue=catalogue)
+    assert len(result["signals"]) == 1
+    assert result["rejected"] == []
+
+
+def test_cli_filters_existing_card_slugs_and_counts_reasons(tmp_path, monkeypatch):
+    catalogue = tmp_path / "catalogue"
+    card = catalogue / "models/google/gemini-2-5-flash.md"
+    card.parent.mkdir(parents=True)
+    card.write_text("---\nmodel_id: google/gemini-2-5-flash\nprovider: google\n"
+                    "display_name: Gemini 2.5 Flash\n---\nPRIVATE CONTENT\n")
+    entries = [
+        ("google", "gemini-25-flash"), ("google", "gemini_2.5_flash"),
+        ("google", "gemini-2.5-flash-lite"), ("google", "gemini-2.6-flash"),
+        ("other-lab", "gemini-25-flash"),
+    ]
+    replay = tmp_path / "input.json"
+    replay.write_text(json.dumps({"observed_at": NOW.isoformat(), "observations": [
+        {"source_id": "openrouter", "source_key": str(i), "model_name": name,
+         "provider": provider, "url": "https://fixture.example/model", "created": None}
+        for i, (provider, name) in enumerate(entries)
+    ]}))
+    output = tmp_path / "output.json"
+    summary = tmp_path / "summary.md"
+    monkeypatch.setattr(release_watch, "http_fetch", lambda *_: pytest.fail("offline replay"))
+    assert release_watch.main([
+        "--replay", str(replay), "--catalogue-root", str(catalogue),
+        "--report", str(output), "--summary", str(summary),
+    ]) == 0
+    result = json.loads(output.read_text())
+    assert len(result["discoveries"]) == 3
+    assert len(result["rejected"]) == 2
+    assert all(row["reason"] == "already carded (normalized release or alias)"
+               for row in result["rejected"])
+    assert "Filtered out: 2" in summary.read_text()
+    assert "already carded (normalized release or alias): 2" in summary.read_text()
+    assert "PRIVATE CONTENT" not in output.read_text() + summary.read_text()
 
 
 def run_watch(tmp_path, monkeypatch, entries):
@@ -309,8 +420,26 @@ def test_public_issue_replay_keeps_each_newly_carded_release_once(tmp_path, monk
     original = json.loads(Path(
         "docs/evidence/g2-ios/MODEL-432-discovery-inputs.json",
     ).read_text())
-    assert len(retained) == 176
-    assert rejected == {"watch:ibm:ensemble-forecasting-with-ibm-granite-time-series"}
+    assert len(retained) == 160
+    assert rejected == {
+        "watch:ibm:ensemble-forecasting-with-ibm-granite-time-series",
+        "watch:nvidia:muse-spark-open-816b-a42b-dflash2",
+        "watch:openbmb:minicpm-v-4-7-1b-dspark",
+        "watch:openbmb:minicpm-v-4-7-35b-a3b-dspark",
+        "watch:rwkv:rwkv7-g1k-1-5b-20260930",
+        "watch:rwkv:rwkv7-g1k-13-3b-20260930",
+        "watch:rwkv:rwkv7-g1k-2-9b-20260930",
+        "watch:rwkv:rwkv7-g1k-7-2b-20260930",
+        "watch:unsloth:deepseek-v4-1-flash-1017",
+        "watch:unsloth:embeddinggemma-2",
+        "watch:unsloth:flux-3-image-klein",
+        "watch:unsloth:flux-3-image-klein-base",
+        "watch:unsloth:lfm2-5-24b-a2b",
+        "watch:unsloth:lfm2-5-24b-a2b-preview",
+        "watch:unsloth:muse-spark-open-816b-a42b",
+        "watch:unsloth:nvidia-nemotron-3-5-super-vl-120b-a12b",
+        "watch:unsloth:sam3-1",
+    }
     assert retained | rejected == {row["source_key"] for row in original["observations"]}
 
 

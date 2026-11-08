@@ -224,7 +224,21 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                 [initialize],
                 timeout,
             )
-            method = responses[0].get("result", {}).get("_meta", {}).get("defaultAuthMethodId")
+            initialized = responses[0].get("result", {})
+            metadata = initialized.get("_meta", {})
+            method = metadata.get("defaultAuthMethodId")
+            result["checks"].append(
+                {"command": "Grok ACP initialize (auth method)", "exit_code": 0}
+            )
+            if (
+                "defaultAuthMethodId" in metadata
+                and method is None
+                and [item.get("id") for item in initialized.get("authMethods", [])]
+                == ["grok.com"]
+            ):
+                # Grok 1.0.46 lists public models even without a cached login.
+                result.update(logged_in=False, auth_method="none", verified=True, reason=None)
+                return result
             if method in ("api_key", "api-key", "xai-api-key", "deployment_key"):
                 result.update(auth_method="api_key", reason="Grok reports API-key authentication")
                 return result
@@ -241,9 +255,6 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                 result.update(logged_in=False, auth_method="none")
             else:
                 raise ValueError("Grok authenticated model listing failed")
-            result["checks"].insert(
-                0, {"command": "Grok ACP initialize (auth method)", "exit_code": 0}
-            )
         result["verified"] = (
             result["auth_method"]
             in {

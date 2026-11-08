@@ -1,0 +1,93 @@
+name: Release coverage
+
+# MODEL-450. The pinned engine must include modelspec#970 before this job can
+# measure release stages. MODEL-446 owns the pin update; this workflow never
+# changes .engine-pin. Named release details and breach issues stay here.
+# The public coverage job receives only the dedicated counts artifact.
+
+on:
+  schedule:
+    - cron: '7 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: release-coverage
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    name: Measure release stages and keep private breach issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/release-engine-pin-check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo '::error::.engine-pin must name a commit on modelspec main.'
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        working-directory: engine
+        run: python -m pip install -e . "pydantic==2.13.5"
+
+      - name: Measure release stages
+        working-directory: engine
+        run: |
+          python -m scripts.slo releases --data-dir "$GITHUB_WORKSPACE/data" \
+            --ref origin/main --private-detail --out "$RUNNER_TEMP/release-detail" \
+            --counts-out "$RUNNER_TEMP/release-counts/coverage.json"
+
+      # Upload only the counts file before alerting, so a failed GitHub issue
+      # write does not discard a valid measurement. Never upload release-detail.
+      - name: Retain the counts-only public handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-coverage-counts
+          path: ${{ runner.temp }}/release-counts/coverage.json
+          retention-days: 2
+          if-no-files-found: error
+
+      - name: Keep private breach issues
+        working-directory: engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.slo alert --report "$RUNNER_TEMP/release-detail/coverage.json" --apply

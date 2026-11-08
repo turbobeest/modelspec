@@ -26,6 +26,11 @@ NAMES = (
     "curation-benchmarks",
     "speed-probe",
     "data-trust-audit",
+    "admission-drafter",
+    "rendered-reread",
+    "workflow-health",
+    "model-week",
+    "lineup-proposer",
 )
 ENGINE_JOBS = {
     "recall-private": 1,
@@ -36,6 +41,11 @@ ENGINE_JOBS = {
     "curation-benchmarks": 4,
     "speed-probe": 1,
     "data-trust-audit": 1,
+    "admission-drafter": 1,
+    "rendered-reread": 1,
+    "workflow-health": 1,
+    "model-week": 1,
+    "lineup-proposer": 1,
 }
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
@@ -219,7 +229,13 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
             steps,
             lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
         )
-        assert steps[data + 1] is steps[pin]
+        if name == "rendered-reread":
+            assert [step.get("name") for step in steps[data + 1 : pin]] == [
+                "Restore pending report data without executing its branch",
+                "Start a new report for this scheduled run",
+            ]
+        else:
+            assert steps[data + 1] is steps[pin]
         between = [step.get("name") for step in steps[pin + 1 : engine]]
         assert between == ([DOWNGRADE] if name == "recall-private" else [])
         assert steps[engine]["with"]["ref"] == PIN_REF
@@ -238,6 +254,37 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
             assert HEX40.fullmatch(str(ref)) is None
 
 
+def test_release_coverage_verifies_the_pin_before_running_the_engine() -> None:
+    document = _document("release-coverage")
+    assert document["permissions"] == {"contents": "read", "issues": "write"}
+    job = _engine_job(document)
+    steps = job["steps"]
+    data = _index(steps, lambda step: (step.get("with") or {}).get("path") == "data")
+    pin = _index(steps, lambda step: step.get("id") == "engine_pin")
+    engine = _index(steps, lambda step: (step.get("with") or {}).get("repository") ==
+                    ENGINE_REPOSITORY)
+    assert (data, pin, engine) == (0, 1, 2)
+    assert str(steps[data]["uses"]).startswith("actions/checkout@")
+    assert steps[data]["with"] == {
+        "ref": "main", "path": "data", "fetch-depth": 0, "persist-credentials": False,
+    }
+    assert steps[pin]["env"] == {
+        "ENGINE_REPO": "https://github.com/turbobeest/modelspec.git",
+        "GIT_NO_LAZY_FETCH": "1",
+    }
+    assert str(steps[engine]["uses"]).startswith("actions/checkout@")
+    assert steps[engine]["with"] == {
+        "repository": ENGINE_REPOSITORY, "ref": PIN_REF,
+        "path": "engine", "persist-credentials": False,
+    }
+    assert not job.get("defaults")
+    for step in steps[:engine + 1]:
+        assert not step.get("if")
+        assert not step.get("continue-on-error")
+        assert not step.get("working-directory")
+
+
+@pytest.mark.parametrize("writer", [NAMES[0], "release-coverage"])
 @pytest.mark.parametrize(
     "case",
     [
@@ -257,9 +304,9 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     ],
 )
 def test_the_pin_script_accepts_only_a_commit_on_main(
-    case: str, tmp_path: Path, local_engine: LocalEngine
+    writer: str, case: str, tmp_path: Path, local_engine: LocalEngine
 ) -> None:
-    script = _pin_step()["run"]
+    script = _pin_step(writer)["run"]
     ancestor = local_engine.ancestor
     tip = local_engine.tip
     url = local_engine.url
@@ -305,8 +352,12 @@ def test_the_pin_script_accepts_only_a_commit_on_main(
         assert output == f"sha={expect_sha}\n"
 
 
+@pytest.mark.parametrize(("writer", "check_directory", "error"), [
+    (NAMES[0], "engine-pin-check", "not a commit on modelspec main"),
+    ("release-coverage", "release-engine-pin-check", "must name a commit on modelspec main"),
+])
 def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
-    tmp_path: Path, local_engine: LocalEngine
+    writer: str, check_directory: str, error: str, tmp_path: Path, local_engine: LocalEngine
 ) -> None:
     # GitHub serves any commit in the fork network by SHA. Model that with
     # lazy fetch on, so the side commit reaches the clone and only
@@ -315,9 +366,9 @@ def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
     _git(source, "config", "uploadpack.allowAnySHA1InWant", "true")
     try:
         completed, output = _run_pin(
-            _pin_step()["run"], tmp_path, local_engine.url, local_engine.side + "\n", True
+            _pin_step(writer)["run"], tmp_path, local_engine.url, local_engine.side + "\n", True
         )
-        clone = tmp_path / "runner" / "engine-pin-check"
+        clone = tmp_path / "runner" / check_directory
         fetched = subprocess.run(
             ["git", "-C", str(clone), "cat-file", "-e", local_engine.side + "^{commit}"],
             env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
@@ -326,7 +377,7 @@ def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
         _git(source, "config", "--unset", "uploadpack.allowAnySHA1InWant")
     assert fetched.returncode == 0, "the side commit never reached the clone"
     assert completed.returncode != 0
-    assert "not a commit on modelspec main" in completed.stdout
+    assert error in completed.stdout
     assert output == ""
 
 
@@ -611,3 +662,41 @@ def test_the_descent_fetch_unsets_the_extraheader_when_the_fetch_fails(
     assert completed.returncode != 0, detail
     assert "no token is available" not in completed.stdout, detail
     assert _extraheader(data) == "", detail
+
+
+@pytest.mark.parametrize("case", ["shallow", "full", "unreachable"])
+def test_model_week_completes_main_history_without_moving_the_pin(
+    case: str, tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    engine = tmp_path / "engine"
+    data = tmp_path / "data"
+    data.mkdir()
+    clone = ["git", "clone", "--quiet", "--no-checkout", "--branch", "main"]
+    if case != "full":
+        clone.extend(["--depth", "1"])
+    subprocess.run([*clone, local_engine.url, str(engine)], check=True, capture_output=True)
+    if case != "full":
+        _git(engine, "fetch", "--depth", "1", "origin", local_engine.ancestor)
+    _git(engine, "checkout", "--detach", local_engine.ancestor)
+    _git(engine, "update-ref", "-d", "refs/remotes/origin/main")
+    assert _git(engine, "rev-parse", "--is-shallow-repository") == (
+        "false" if case == "full" else "true"
+    )
+    if case == "unreachable":
+        _git(engine, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    steps = _engine_job(_document("model-week"))["steps"]
+    step = steps[_index(steps, lambda item: item.get("name") ==
+                        "Complete public catalogue history")]
+    completed = subprocess.run(
+        ["bash", "-c", step["run"]], cwd=data, capture_output=True, text=True,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}, check=False,
+    )
+    detail = f"{case}: exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert _git(engine, "rev-parse", "HEAD") == local_engine.ancestor
+    if case == "unreachable":
+        assert completed.returncode != 0, detail
+    else:
+        assert completed.returncode == 0, detail
+        assert _git(engine, "rev-parse", "--is-shallow-repository") == "false"
+        assert _git(engine, "rev-parse", "refs/remotes/origin/main") == local_engine.tip
+        assert _git(engine, "rev-list", "--count", "refs/remotes/origin/main") == "3"

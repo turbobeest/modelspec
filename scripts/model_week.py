@@ -21,6 +21,7 @@ from pipeline.load import NOT_CONTENT, split_front_matter
 
 PUBLIC_REPO = Path(__file__).resolve().parents[1]
 CATEGORIES = ("Models added", "Benchmark movers", "Price and plan changes", "Lineup changes")
+DEFAULT_CATEGORY_LIMIT = 10
 PLAN_FACETS = {
     "availability", "price", "price_cny", "billing_period", "models_covered",
     "families_covered", "surfaces", "allowance.relative_to", "allowance.multiplier",
@@ -51,10 +52,10 @@ class Revision:
     day: str
 
 
-def _boundaries(repo: Path, start: date, end: date) -> tuple[Revision, Revision]:
+def _boundaries(repo: Path, start: date, end: date, ref: str) -> tuple[Revision, Revision]:
     if _git(repo, "rev-parse", "--is-shallow-repository").strip() != b"false":
         raise DraftError("Complete Git history is required.")
-    history = _git(repo, "log", "--first-parent", "--format=%H %ct", "HEAD").decode()
+    history = _git(repo, "log", "--first-parent", "--format=%H %ct", ref).decode()
 
     def before(boundary: date) -> Revision:
         cutoff = datetime.combine(boundary, datetime.min.time(), UTC).timestamp()
@@ -122,6 +123,11 @@ def _records(documents: dict[str, Any]) -> dict[str, Record]:
         row["id"]: row["url"]
         for row in registry.get("sources", [])
     }
+    card_urls = {
+        doc["model_id"]: (url,) if (url := (doc.get("sources") or {}).get("provider_docs_url"))
+        else ()
+        for path, doc in documents.items() if path.startswith("models/")
+    }
     records: dict[str, Record] = {}
 
     def add(key: str, record: Record) -> None:
@@ -157,11 +163,11 @@ def _records(documents: dict[str, Any]) -> dict[str, Record]:
             add(_json(["model", mid]), Record(
                 "Models added", mid,
                 {"model_id": mid, "display_name": doc.get("display_name", mid),
-                 "release_date": doc.get("release_date")}, path,
+                 "release_date": doc.get("release_date")}, path, card_urls[mid],
             ))
             add(_json(["status", mid]), Record(
                 "Lineup changes", f"{mid} catalogue status",
-                {k: doc[k] for k in ("status", "lifecycle") if k in doc}, path,
+                {k: doc[k] for k in ("status", "lifecycle") if k in doc}, path, card_urls[mid],
             ))
             facts(doc.get("facts") or [], path, mid)
             grouped: dict[str, list[dict]] = {}
@@ -202,6 +208,7 @@ def _records(documents: dict[str, Any]) -> dict[str, Record]:
                 mid = row["model_id"]
                 add(_json(["premier", mid]), Record(
                     "Lineup changes", f"{mid} premier membership", "selected", path,
+                    card_urls.get(mid, ()),
                 ))
     return records
 
@@ -209,7 +216,7 @@ def _records(documents: dict[str, Any]) -> dict[str, Record]:
 def _allowed(record: Record) -> bool:
     if record.needs_source and not record.urls:
         return False
-    if excluded_in([record.label, record.value, record.urls]) or removed_text_hit(record.label):
+    if excluded_in([record.label, record.value, record.urls, record.path]) or removed_text_hit(record.label):
         return False
     if record.benchmark_id and excluded_sources().benchmark(record.benchmark_id):
         return False
@@ -230,16 +237,28 @@ def _citation(record: Record, rev: Revision, repo_name: str) -> str:
     return cited
 
 
-def _section(repo: Path, start: date, end: date, *, private: bool) -> tuple[str, dict]:
-    before, after = _boundaries(repo, start, end)
+def _section(repo: Path, start: date, end: date, *, private: bool,
+             limits: dict[str, int]) -> tuple[dict[str, str], dict]:
+    before, after = _boundaries(repo, start, end, "HEAD" if private else "refs/remotes/origin/main")
     paths = _git(repo, "diff", "--name-only", "--no-renames", before.sha, after.sha,
                  "--", *DATA_PATHS).decode().splitlines()
     paths = [p for p in paths if p.endswith((".md", ".yaml", ".yml"))
              and Path(p).name not in NOT_CONTENT]
     if paths:
         paths.append("registry/sources.yaml")
-    old = _records(_documents(repo, before, paths))
-    new = _records(_documents(repo, after, paths))
+    old_docs = _documents(repo, before, paths)
+    new_docs = _documents(repo, after, paths)
+    # Membership can change without a card edit. Read both endpoints' member cards
+    # for citations, including removed members, without consulting the working tree.
+    member_paths = sorted({
+        f"models/{row['model_id']}.md"
+        for docs in (old_docs, new_docs)
+        for row in (docs.get("premier/slice-1.yaml") or {}).get("models", [])
+    } - set(paths))
+    old_docs.update(_documents(repo, before, member_paths))
+    new_docs.update(_documents(repo, after, member_paths))
+    old = _records(old_docs)
+    new = _records(new_docs)
     repo_name = "modelspec-data" if private else "modelspec"
     boundary = (f"{_link(repo_name, before)} at {before.day} and "
                 f"{_link(repo_name, after)} at {after.day}")
@@ -283,18 +302,31 @@ def _section(repo: Path, start: date, end: date, *, private: bool) -> tuple[str,
         changes[category].append(
             f"- {_code(record.label)}: before {parts[0]}; after {parts[1]}."
         )
+    section = "private" if private else "public"
+    appendix = [*lines]
+    appendix[0] = appendix[0].replace("DRAFT:", "DRAFT full-list appendix:")
+    lines.extend([f"[Full list]({section}-appendix.md)", ""])
     for category, entries in changes.items():
-        lines.extend([f"### {category}", ""])
-        lines.extend(entries or [f"No net recorded changes in this category. {boundary}."])
-        lines.append("")
-    lines.extend([
+        for output, selected in ((lines, entries[:limits[category]]), (appendix, entries)):
+            output.extend([f"### {category}", ""])
+            output.extend(selected if entries else [
+                f"No net recorded changes in this category. {boundary}.",
+            ])
+            output.append("")
+        omitted = len(entries) - limits[category]
+        if omitted > 0:
+            lines.extend([f"and {omitted} more. [Full list]({section}-appendix.md)", ""])
+    footer = [
         f"Withheld changes with missing or excluded sources: {withheld}. {boundary}.",
         "Coverage: model identities and status, dated benchmark evidence, structured price "
         "and plan facts, and premier membership. Legacy flat scores, free-text plan quotes, "
         "and changes that reverted within the week are outside this comparison.",
         "",
-    ])
-    return "\n".join(lines), {
+    ]
+    return {
+        f"{section}.md": "\n".join(lines + footer),
+        f"{section}-appendix.md": "\n".join(appendix + footer),
+    }, {
         "changes": {category: len(rows) for category, rows in changes.items()},
         "withheld": withheld,
     }
@@ -314,12 +346,20 @@ def _output_path(out_dir: Path, public_repo: Path, private_repo: Path | None) ->
 
 
 def generate(week: str, public_repo: Path, out_dir: Path, *,
-             private_repo: Path | None = None) -> dict:
+             private_repo: Path | None = None,
+             category_limits: dict[str, int] | None = None) -> dict:
     """Write separate drafts outside Git trees; return only category counts.
 
-    ``public_repo`` is the trusted frozen public repository, fixed by the CLI.
-    Working-tree edits and MODELSPEC_DATA_DIR never supply draft facts.
+    ``public_repo`` supplies only origin/main history, fixed by the CLI.
+    Local-only commits, working-tree edits and MODELSPEC_DATA_DIR never supply
+    public draft facts. Limits affect summaries only; appendices retain every
+    eligible change and returned counts remain complete.
     """
+    limits = dict.fromkeys(CATEGORIES, DEFAULT_CATEGORY_LIMIT)
+    for category, limit in (category_limits or {}).items():
+        if category not in limits or type(limit) is not int or limit < 0:
+            raise DraftError("Category limits must name a category and be nonnegative integers.")
+        limits[category] = limit
     start = date.fromisoformat(week)
     if start.isoformat() != week:
         raise DraftError("Week must be an ISO calendar date.")
@@ -331,12 +371,12 @@ def generate(week: str, public_repo: Path, out_dir: Path, *,
             raise DraftError("Private input must be a separate external checkout.")
     target = _output_path(out_dir, public_repo, private_repo)
     # Render both sections before writing anything; private data never enters public rendering.
-    public_text, public_counts = _section(public_repo, start, end, private=False)
-    outputs = {"public.md": public_text}
+    outputs, public_counts = _section(public_repo, start, end, private=False, limits=limits)
     counts = {"public": public_counts}
     if private_repo:
-        private_text, private_counts = _section(private_repo, start, end, private=True)
-        outputs["private.md"] = private_text
+        private_outputs, private_counts = _section(private_repo, start, end,
+                                                  private=True, limits=limits)
+        outputs.update(private_outputs)
         counts["private"] = private_counts
     target.mkdir(mode=0o700, parents=True)
     for name, text in outputs.items():
@@ -352,13 +392,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--private-repo", type=Path, help="Separate local private Git checkout")
     parser.add_argument("--out-dir", type=Path, required=True,
                         help="New directory outside Git trees")
+    parser.add_argument("--limit", action="append", default=[], metavar="CATEGORY=N",
+                        help="Summary entries per category, default 10; repeat for categories: "
+                             + ", ".join(CATEGORIES))
     args = parser.parse_args(argv)
     try:
-        counts = generate(args.week, PUBLIC_REPO, args.out_dir, private_repo=args.private_repo)
+        limits = {}
+        for item in args.limit:
+            category, value = item.rsplit("=", 1)
+            limits[category] = int(value)
+        counts = generate(args.week, PUBLIC_REPO, args.out_dir, private_repo=args.private_repo,
+                          category_limits=limits)
     except Exception:
         # Parser and Git exceptions can contain private values or paths.
-        print("Draft refused: check the date, complete catalogue history, "
-              "and external output path.")
+        print("Draft refused: check the date, complete catalogue history including origin/main, "
+              "category limits, and external output path.")
         return 2
     print(json.dumps(counts, sort_keys=True))
     return 0

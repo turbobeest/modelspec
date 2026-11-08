@@ -555,14 +555,29 @@ No secret belongs in this repository. Tests sign fixtures with a throwaway
 
 A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. The notification auto-deletes after 5 seconds. `ttl` defaults to 5 seconds and is clamped to 1–86400. No sale history is kept beyond the dedupe marker. Priority is 0. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` ships as `"0"`.
 
+`python scripts/sale_alert_dry_run.py` previews synthetic Stripe and x402
+payloads through the Worker's payload builder, with both secrets redacted.
+Both `PUSHOVER_APP_TOKEN` and `PUSHOVER_USER_KEY` must be in the local environment,
+including for a preview. Wrangler secrets configure the Worker only; load the
+same values into the local environment through your secret manager before running
+the script. Missing or blank credentials stop the command before any HTTP call.
+
+`--send` sends one synthetic Stripe notice directly to Pushover. Add
+`--channel x402` to send the x402 example instead. The script never calls Stripe,
+x402, or the deployed Worker, and makes no retries or redirect requests. It uses
+`SALE_ALERT_TTL_SECONDS`, defaulting locally to 900 seconds. An integer is required
+and the Worker bounds of 1–86400 apply. The deployed Worker retains its 5-second
+setting; use `SALE_ALERT_TTL_SECONDS=5` locally to check that duration. A successful
+exit confirms Pushover accepted the message. Observe arrival and deletion in the
+Pushover app to verify the full result.
+
 Jamie's steps:
 
-1. Install Pushover and create an application token.
-2. `wrangler secret put PUSHOVER_APP_TOKEN`
-3. `wrangler secret put PUSHOVER_USER_KEY`
-4. Set `SALE_ALERTS_ENABLED=1`.
-
-`scripts/sale_alert_test.py` sends one test notice from those environment variables. Jamie runs `op run -- python scripts/sale_alert_test.py`. CI does not run it. The script exits before any network call when either value is missing, and it does not print them.
+1. Install Pushover and note your user key.
+2. Create a Pushover application token.
+3. From `api/worker`, run `wrangler secret put PUSHOVER_APP_TOKEN` and `wrangler secret put PUSHOVER_USER_KEY`.
+4. From the repository root with both secrets in the local environment, run `SALE_ALERT_TTL_SECONDS=5 python scripts/sale_alert_dry_run.py --send` and verify that the push disappears after the TTL.
+5. Set `SALE_ALERTS_ENABLED=true` in the Worker configuration and deploy through the normal release workflow.
 
 ## Privacy
 

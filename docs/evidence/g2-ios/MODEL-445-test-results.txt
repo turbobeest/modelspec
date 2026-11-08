@@ -1,0 +1,198 @@
+MODEL-445 test output excerpts. All red phases exit 1; green phases exit 0.
+Full commands and the final focused result are in MODEL-445-fix.md.
+
+Filter baseline red
+/tmp/model-445-scratch/root/filter-red.log
+E       AssertionError: assert [ReleaseSigna...mi-k3-1-pro')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='Kimi-K3.1-Pro', provider='unsloth', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:unsloth:kimi-k3-1-pro')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...ral-large-4')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='Mistral-Large-4', provider='mlx-community', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:mlx-community:mistral-large-4')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...ew-model-7b')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='New-Model-7B', provider='bartowski', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:bartowski:new-model-7b')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...ew-model-7b')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='New-Model-7B', provider='thebloke', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:thebloke:new-model-7b')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...ew-model-7b')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='New-Model-7B', provider='lmstudio-community', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:lmstudio-community:new-model-7b')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...-mpnet-base')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='merged-mpnet-base', provider='sentence-transformers', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:sentence-transformers:merged-mpnet-base')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...loat:e5-new')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='e5-new', provider='intfloat', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:intfloat:e5-new')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...3b-20261031')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='RWKV7-G1l-13.3B-20261031', provider='rwkv', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:rwkv:rwkv7-g1l-13-3b-20261031')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...-2026-10-31')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='RWKV7-G1l-13.3B-2026-10-31', provider='rwkv', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:rwkv:rwkv7-g1l-13-3b-2026-10-31')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...-a2b-dspark')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='LFM2.5-24B-A2B-DSpark', provider='liquid', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:liquid:lfm-2-5-24b-a2b-dspark')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...a4b-dflash2')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2', provider='nvidia', first_seen_url='https://...l', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:nvidia:nemotron-3-5-transcribe-30b-a4b-dflash2')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...dnpu-medusa')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='sdxl-base-amdnpu-medusa', provider='stability', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:stability:sdxl-base-amdnpu-medusa')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...acme-2-gguf')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='acme-2-GGUF', provider='acme', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:acme:acme-2-gguf')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...acme-2-4bit')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='acme-2-4bit', provider='acme', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:acme:acme-2-4bit')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...e-2-6-flare')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='gpt-image-2.6-flare', provider='openai', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:openai:gpt-image-2-6-flare')
+E         Use -v to get more diff
+E       AssertionError: assert [ReleaseSigna...-6-sunburst')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='gpt-image-2.6-sunburst', provider='openai', first_seen_url='https://fixture.example/model', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:openai:gpt-image-2-6-sunburst')
+E         Use -v to get more diff
+E       SystemExit: 2
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[unsloth-Kimi-K3.1-Pro-reupload/quant organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[mlx-community-Mistral-Large-4-reupload/quant organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[bartowski-New-Model-7B-reupload/quant organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[TheBloke-New-Model-7B-reupload/quant organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[lmstudio-community-New-Model-7B-reupload/quant organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[sentence-transformers-merged-mpnet-base-embedding-only organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[intfloat-e5-new-embedding-only organization]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[rwkv-RWKV7-G1l-13.3B-20261031-dated checkpoint]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[rwkv-RWKV7-G1l-13.3B-2026-10-31-dated checkpoint]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[liquid-LFM2.5-24B-A2B-DSpark-packaging variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[nvidia-NVIDIA-Nemotron-3.5-Transcribe-30B-A4B-DFlash2-packaging variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[stability-sdxl-base-amdnpu-medusa-packaging variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[acme-acme-2-GGUF-packaging variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[acme-acme-2-4bit-packaging variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[openai-gpt-image-2.6-flare-image serving variant]
+FAILED tests/test_release_watch_filter.py::test_noise_rules_explain_each_filtered_observation[openai-gpt-image-2.6-sunburst-image serving variant]
+FAILED tests/test_release_watch_filter.py::test_cli_filters_existing_card_slugs_and_counts_reasons
+17 failed, 15 passed, 28 deselected in 0.77s
+
+Filter review red
+/tmp/model-445-scratch/root/filter-review-red.log
+E       AssertionError: assert [ReleaseSigna...2-5-24b-a2b')] == []
+E
+E         Left contains one more item: ReleaseSignal(model_name='LFM2.5-24B-A2B', provider='liquid', first_seen_url='https://huggingface.co/unsloth/LFM2.5-24B-A2B', timestamp='2026-10-20T00:00:00Z', confidence=0.9, signal_id='watch:liquid:lfm-2-5-24b-a2b')
+E         Use -v to get more diff
+E       assert 0 == 1
+E        +  where 0 = len([])
+FAILED tests/test_release_watch_filter.py::test_mirror_url_is_filtered_even_after_provider_canonicalization
+FAILED tests/test_release_watch_filter.py::test_card_matching_preserves_numeric_version_boundaries
+2 failed, 60 deselected in 0.31s
+
+Triage baseline red
+/tmp/model-445-scratch/triage/red.txt
+E           KeyError: 'decision'
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+E       SystemExit: 2
+FAILED tests/test_release_watch_triage.py::test_dry_run_reports_every_issue_with_decision_and_rule
+FAILED tests/test_release_watch_triage.py::test_apply_closes_noise_and_relabels_real_with_paced_reason_comments
+FAILED tests/test_release_watch_triage.py::test_apply_call_cap_includes_reads_and_leaves_unstarted_writes_pending
+FAILED tests/test_release_watch_triage.py::test_apply_resumes_without_touching_closed_or_already_reviewed_issues
+FAILED tests/test_release_watch_triage.py::test_apply_failure_is_reported_and_resume_does_not_duplicate_reason
+FAILED tests/test_release_watch_triage.py::test_apply_ensures_review_label_within_call_cap
+FAILED tests/test_release_watch_triage.py::test_apply_skips_issue_removed_from_discovery_or_edited_since_export
+7 failed, 21 passed in 1.15s
+
+Triage resume red
+/tmp/model-445-scratch/triage/resume-red.txt
+E       AssertionError: assert 4 == 5
+E        +  where 4 = len([(0.0, ['gh', 'issue', 'view', '1', '--json', 'state,labels,comments,title,body', ...]), (1.0, ['gh', 'issue', 'commen...-reason', 'not planned', ...]), (3.0, ['gh', 'issue', 'view', '2', '--json', 'state,labels,comments,title,body', ...])])
+E        +    where [(0.0, ['gh', 'issue', 'view', '1', '--json', 'state,labels,comments,title,body', ...]), (1.0, ['gh', 'issue', 'commen...-reason', 'not planned', ...]), (3.0, ['gh', 'issue', 'view', '2', '--json', 'state,labels,comments,title,body', ...])] = <tests.test_release_watch_triage.FakeGitHub object at 0x109394910>.calls
+E       AssertionError: assert [['issue', 'v...sue', 'view']] == [['issue', 'list']]
+E
+E         At index 0 diff: ['issue', 'view'] != ['issue', 'list']
+E         Left contains one more item: ['issue', 'view']
+E         Use -v to get more diff
+E       AssertionError: assert 5 == 6
+E        +  where 5 = len([(0.0, ['gh', 'issue', 'view', '1', '--json', 'state,labels,comments,title,body', ...]), (1.0, ['gh', 'label', 'list',...ble model release; keep for review.', ...]), (4.0, ['gh', 'issue', 'edit', '1', '--add-label', 'release-review', ...])])
+E        +    where [(0.0, ['gh', 'issue', 'view', '1', '--json', 'state,labels,comments,title,body', ...]), (1.0, ['gh', 'label', 'list',...ble model release; keep for review.', ...]), (4.0, ['gh', 'issue', 'edit', '1', '--add-label', 'release-review', ...])] = <tests.test_release_watch_triage.FakeGitHub object at 0x10946f100>.calls
+E       AssertionError: assert ['skipped_lab...pped_changed'] == ['skipped_not...pped_changed']
+E
+E         At index 0 diff: 'skipped_label_removed' != 'skipped_not_open_discovery'
+E         Use -v to get more diff
+E       AssertionError: assert 'OPEN' == 'CLOSED'
+E
+E         - CLOSED
+E         + OPEN
+E       AssertionError: assert ['real', 'sup...real', 'real'] == ['superseded'..., 'duplicate']
+E
+E         At index 0 diff: 'real' != 'superseded'
+E         Use -v to get more diff
+E       AssertionError: assert 'CLOSED' == 'OPEN'
+E
+E         - OPEN
+E         + CLOSED
+FAILED tests/test_release_watch_triage.py::test_apply_call_cap_includes_reads_and_leaves_unstarted_writes_pending
+FAILED tests/test_release_watch_triage.py::test_apply_resumes_without_touching_closed_or_already_reviewed_issues
+FAILED tests/test_release_watch_triage.py::test_apply_ensures_review_label_within_call_cap
+FAILED tests/test_release_watch_triage.py::test_apply_skips_issue_removed_from_discovery_or_edited_since_export
+FAILED tests/test_release_watch_triage.py::test_resume_reaches_pending_issues_beyond_a_full_call_budget_of_closed_issues
+FAILED tests/test_release_watch_triage.py::test_triage_matches_separator_variants_to_cards_and_duplicate_issues
+FAILED tests/test_release_watch_triage.py::test_apply_does_not_close_duplicate_when_its_original_issue_changed
+7 failed, 25 passed in 1.04s
+
+Triage uploader red
+/tmp/model-445-scratch/triage/hub-red.txt
+E       AssertionError: assert 'real' == 'noise'
+E
+E         - noise
+E         + real
+FAILED tests/test_release_watch_triage.py::test_triage_checks_original_hub_org_after_watch_provider_was_canonicalized
+1 failed, 32 passed in 0.96s
+
+Triage output safety red
+/tmp/model-445-scratch/triage/safety-red.txt
+E       Failed: DID NOT RAISE SystemExit
+E       Failed: DID NOT RAISE SystemExit
+E       Failed: DID NOT RAISE SystemExit
+FAILED tests/test_release_watch_triage.py::test_triage_refuses_to_write_inside_private_catalogue[--report]
+FAILED tests/test_release_watch_triage.py::test_triage_refuses_to_write_inside_private_catalogue[--summary]
+FAILED tests/test_release_watch_triage.py::test_apply_rejects_export_from_a_different_repository_before_github
+3 failed, 35 passed in 1.51s
+
+Triage budget status red
+/tmp/model-445-scratch/triage/budget-red.txt
+E       AssertionError: assert 0 == 1
+E        +  where 0 = <function main at 0x10aa533d0>(['--issues', '/private/var/folders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-81/test_apply_call_ca...ders/r6/p2knzk9x65d45dhc3x6zlyqc0000gn/T/pytest-of-terbeest/pytest-81/test_apply_call_cap_includes_r0/summary.md', ...])
+E        +    where <function main at 0x10aa533d0> = <module 'scripts.triage_release_discoveries' from '/Users/terbeest/dev/worktrees/model-445/scripts/triage_release_discoveries.py'>.main
+FAILED tests/test_release_watch_triage.py::test_apply_call_cap_includes_reads_and_leaves_unstarted_writes_pending
+1 failed in 0.46s
+
+Filter green
+/tmp/model-445-scratch/root/filter-review-green.log
+34 passed, 28 deselected in 0.82s
+
+Triage green before budget-status adjustment
+/tmp/model-445-scratch/triage/final-green.txt
+38 passed in 1.68s
+
+Final focused run, exit 0
+........................................................................ [ 28%]
+........................................................................ [ 56%]
+........................................................................ [ 85%]
+.....................................s                                   [100%]
+253 passed, 1 skipped in 120.07s (0:02:00)

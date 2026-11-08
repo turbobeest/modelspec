@@ -63,14 +63,17 @@ def _held(
     )
 
 
-def test_live_registry_maps_glm_5_2_and_points_at_existing_cards() -> None:
+def test_live_registry_maps_glm_5_2_and_only_private_cards_are_absent() -> None:
     known = load_known_identities()
     assert known[MISTRAL_GLM] == ZHIPU_GLM
     assert known[ALIBABA_GLM] == ZHIPU_GLM
     assert known[QWEN_GLM] == ZHIPU_GLM
-    for canonical in set(known.values()):
-        provider, slug = canonical.split("/", 1)
-        assert (REPO_ROOT / "models" / provider / f"{slug}.md").is_file()
+    missing = {
+        canonical for canonical in known.values()
+        if not (REPO_ROOT / "models" / f"{canonical}.md").is_file()
+    }
+    # The public catalogue is frozen; these cards belong to modelspec-data.
+    assert missing == {"mistral/mistral-large-4", "moonshot/kimi-k3-1-pro"}
 
 
 def test_glm_5_2_under_mistral_or_qwen_is_not_proposed(tmp_path: Path) -> None:
@@ -295,3 +298,146 @@ def test_same_huggingface_repo_is_proposed_and_flagged(tmp_path, monkeypatch, ca
         "    NEW zhipu/zai-org-glm-5-3  "
         "POSSIBLE DUPLICATE of zhipu/glm-5-3: same Hugging Face repo zai-org/glm-5.3"
     ]
+
+
+# Source IDs checked against data#99 at 68f3a774, not reconstructed from slugs.
+REVIEWED_LISTINGS = [
+    (
+        "mistral/deepseek-v4-1-flash-1017",
+        "already deepseek/deepseek-flash",
+    ),
+    ("google/gemini-pro-latest", "not a model: rolling alias with no fixed model identity"),
+    ("mistral/mistral-large-4-0-8", "already mistral/mistral-large-4"),
+    ("moonshotai/kimi-k3.1-pro-highspeed", "already moonshot/kimi-k3-1-pro"),
+    ("mistral/zai-glm-5-3-flash", "already zhipu/glm-5-3-flash"),
+]
+
+
+def _reviewed_catalogue(models_dir: Path) -> None:
+    for model_id in (
+        "deepseek/deepseek-flash",
+        "mistral/mistral-large-4",
+        "moonshot/kimi-k3-1-pro",
+        "zhipu/glm-5-3-flash",
+    ):
+        _write_card(models_dir, model_id)
+
+
+def _survey_listing(models_dev_id: str, tmp_path: Path, monkeypatch, capsys) -> str:
+    provider, model_id = models_dev_id.split("/", 1)
+    api = {provider: {"models": {model_id: {"id": model_id, "name": model_id}}}}
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only", "--dry-run"])
+    seeder.main()
+    return capsys.readouterr().out
+
+
+@pytest.mark.parametrize("models_dev_id,reason", REVIEWED_LISTINGS)
+def test_reviewed_daily_rows_are_skipped_with_reasons(
+    models_dev_id, reason, tmp_path, monkeypatch, capsys
+) -> None:
+    _reviewed_catalogue(tmp_path / "models")
+    output = _survey_listing(models_dev_id, tmp_path, monkeypatch, capsys)
+    assert f"    SKIP {models_dev_id} ({reason})" in output
+    assert "    NEW" not in output
+    assert "Total cards created:     0" in output
+
+
+@pytest.mark.parametrize(
+    "models_dev_id",
+    [
+        "mistral/deepseek-v99-flash",
+        "google/gemini-pro-latest-successor",
+        "mistral/mistral-large-99",
+        "moonshotai/kimi-k99-pro-highspeed",
+        "mistral/zai-glm-99-flash",
+    ],
+)
+def test_new_ids_from_the_reviewed_orgs_are_still_proposed(
+    models_dev_id, tmp_path, monkeypatch, capsys
+) -> None:
+    _reviewed_catalogue(tmp_path / "models")
+    output = _survey_listing(models_dev_id, tmp_path, monkeypatch, capsys)
+    new_lines = [line for line in output.splitlines() if line.startswith("    NEW")]
+    assert len(new_lines) == 1
+    assert models_dev_id.split("/", 1)[1] in new_lines[0]
+    assert "Total cards created:     1" in output
+
+
+@pytest.mark.parametrize(
+    "models_dev_id,canonical",
+    [
+        ("mistral/deepseek-v4-1-flash-1017", "deepseek/deepseek-flash"),
+        ("mistral/mistral-large-4-0-8", "mistral/mistral-large-4"),
+        ("moonshotai/kimi-k3.1-pro-highspeed", "moonshot/kimi-k3-1-pro"),
+        ("mistral/zai-glm-5-3-flash", "zhipu/glm-5-3-flash"),
+    ],
+)
+def test_reviewed_identities_only_skip_when_the_canonical_card_exists(
+    models_dev_id, canonical, tmp_path
+) -> None:
+    known = load_known_identities()
+    assert known[models_dev_id] == canonical
+    args = dict(
+        models_dev_id=models_dev_id,
+        seeder_id="fixture/new-listing",
+        known=known,
+    )
+    assert _held(tmp_path, **args) is None
+    _write_card(tmp_path, canonical)
+    assert _held(tmp_path, **args) == f"known:{canonical}"
+
+
+@pytest.mark.parametrize("new_only", [True, False])
+def test_rolling_alias_is_skipped_without_a_canonical_card(tmp_path, new_only) -> None:
+    known = load_known_identities()
+    assert "google/gemini-pro-latest" not in known
+    assert already_held(
+        models_dev_id="google/gemini-pro-latest",
+        seeder_id="google/gemini-pro-latest",
+        file_path=tmp_path / "google/gemini-pro-latest.md",
+        models_dir=tmp_path,
+        known=known,
+        skipped=seeder.load_skipped_listings(),
+        new_only=new_only,
+    ) == "not-model:rolling alias with no fixed model identity"
+
+
+def test_non_model_skip_matches_only_the_exact_source_id(tmp_path) -> None:
+    assert already_held(
+        models_dev_id="fixture/gemini-pro-latest",
+        seeder_id="google/gemini-pro-latest",
+        file_path=tmp_path / "google/gemini-pro-latest.md",
+        models_dir=tmp_path,
+        known=load_known_identities(),
+        skipped=seeder.load_skipped_listings(),
+        new_only=True,
+    ) is None
+
+
+def test_rolling_alias_is_not_written_or_queued(tmp_path, monkeypatch, capsys) -> None:
+    api = {"google": {"models": {"gemini-pro-latest": {"id": "gemini-pro-latest"}}}}
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("TEXT_MODEL_API_KEY", raising=False)
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only"])
+    seeder.main()
+    output = capsys.readouterr().out
+    assert "    SKIP google/gemini-pro-latest (not a model: rolling alias" in output
+    assert "Skipped, not a model:    1" in output
+    assert "Total cards created:     0" in output
+    assert "Creator not established: 0" in output
+    assert not (tmp_path / "models").exists()
+
+
+@pytest.mark.parametrize("reason", [None, "", "  "])
+def test_non_model_skip_requires_a_review_reason(tmp_path, reason) -> None:
+    path = tmp_path / "identities.yaml"
+    path.write_text(yaml.safe_dump({
+        "identities": [],
+        "skips": [{"models_dev": "google/gemini-pro-latest", "reason": reason}],
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="skip row needs a reason"):
+        seeder.load_skipped_listings(path)
