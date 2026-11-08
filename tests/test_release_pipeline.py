@@ -119,7 +119,27 @@ def _week_input(replay):
 def test_actual_pr_accuracy_report_is_accepted(tmp_path):
     path = tmp_path / "accuracy.json"
     _report(path, type("Snapshot", (), {"snapshot_id": "snap_fixture"})())
-    assert accuracy(path, "snap_fixture")["layers"][2]["name"] == "frozen_image_engine_recall"
+    layers = accuracy(path, "snap_fixture")["layers"]
+    assert {row["name"]: row["status"] for row in layers} == {
+        "deterministic_correctness": "pass",
+        "frozen_image_engine_recall": "pass",
+        "output_parity": "pass",
+    }
+
+
+@pytest.mark.parametrize("change", ["extra", "duplicate"])
+def test_accuracy_report_with_extra_or_duplicate_layer_is_refused(tmp_path, change):
+    path = tmp_path / "accuracy.json"
+    _report(path, type("Snapshot", (), {"snapshot_id": "snap_fixture"})())
+    report = json.loads(path.read_text())
+    if change == "extra":
+        report["layers"].append({"name": "freshness", "status": "pass"})
+    else:
+        report["layers"][1] = dict(report["layers"][0])
+    path.write_text(json.dumps(report))
+
+    with pytest.raises(ValueError, match="exact pr layers"):
+        accuracy(path, "snap_fixture")
 
 
 def test_replayed_release_produces_gated_draft_pr_within_one_day(replay):
@@ -272,12 +292,20 @@ def test_failed_quality_gate_opens_no_pr(replay, failure):
     assert opened == []
 
 
-def test_bad_accuracy_writes_no_post(replay):
+@pytest.mark.parametrize("layer", [
+    "deterministic_correctness", "frozen_image_engine_recall", "output_parity",
+])
+@pytest.mark.parametrize("failure", ["missing", "fail"])
+def test_bad_accuracy_writes_no_post(replay, layer, failure):
     root, _, data, _ = replay
     report = json.loads((root / data["accuracy"]).read_text())
-    report["layers"][0]["status"] = "fail"
+    if failure == "missing":
+        report["layers"] = [row for row in report["layers"] if row["name"] != layer]
+    else:
+        next(row for row in report["layers"] if row["name"] == layer)["status"] = "fail"
     (root / data["accuracy"]).write_text(json.dumps(report))
-    with pytest.raises(ValueError, match="did not pass"):
+    message = "exact pr layers" if failure == "missing" else f"did not pass layers: {layer}"
+    with pytest.raises(ValueError, match=message):
         _prepare(replay)
     assert not (root / "blog/posts").exists()
 
