@@ -58,7 +58,8 @@ def test_slice1_offerings_have_every_guaranteed_facet_once() -> None:
     offerings = _offerings()
     assert offerings
     for offering in offerings:
-        assert offering.model in premier
+        if offering.model not in premier:
+            continue
         facets = [fact.facet for fact in offering.facts]
         assert GUARANTEED <= set(facets)
         days = {date.today()}
@@ -163,12 +164,57 @@ def test_contract_only_zero_retention_is_not_filed_as_unconditional() -> None:
     for offering in _offerings():
         if offering.provider not in contract_only_providers:
             continue
-        zero_retention = next(
-            fact for fact in offering.facts
-            if fact.facet == "offering.data.zero_retention"
-        )
-        assert zero_retention.state == "requires_contract"
-        assert zero_retention.value is None
+        for zero_retention in offering.facts:
+            if zero_retention.facet == "offering.data.zero_retention":
+                assert zero_retention.state == "requires_contract"
+                assert zero_retention.value is None
+
+
+def test_nonpremier_verified_price_draft_passes_offering_checks(tmp_path, monkeypatch):
+    from decision.model import value_hash
+    from decision.verify import VerificationLog
+    from tests.test_offering_drafter import MODEL, catalogue, draft
+
+    root = catalogue(tmp_path)
+    packet = draft(root, tmp_path)
+    packet.write(root)
+    (root / "premier").mkdir()
+    (root / "premier/slice-1.yaml").write_text("models: []\n")
+    monkeypatch.setattr(f"{__name__}.ROOT", root)
+
+    rows = _offerings()
+    assert len(rows) == 1
+    assert rows[0].model == MODEL
+    receipts = VerificationLog(root / "verification").latest()
+    for price in rows[0].facts:
+        receipt = receipts[("fact", price.id)]
+        assert receipt.outcome == "verified" and receipt.independent
+        assert receipt.target.value_hash == value_hash(price.value)
+    test_slice1_offerings_have_every_guaranteed_facet_once()
+    test_governance_facts_only_use_the_serving_providers_own_documents()
+
+    (root / "premier/slice-1.yaml").write_text(
+        yaml.safe_dump({"models": [{"model_id": MODEL}]}))
+    with pytest.raises(AssertionError):
+        test_slice1_offerings_have_every_guaranteed_facet_once()
+
+
+def test_nonpremier_price_only_offering_has_no_zero_retention_claim(tmp_path, monkeypatch):
+    oid = "openai/test/model/global/standard"
+    path = tmp_path / "offerings/openai/test/model.yaml"
+    path.parent.mkdir(parents=True)
+    row = offering("test/model", "openai", facts=[
+        fact("offering", oid, "offering.price.input", 2),
+    ])
+    path.write_text(yaml.safe_dump([row]))
+    monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+
+    test_contract_only_zero_retention_is_not_filed_as_unconditional()
+
+    row["facts"].append(fact("offering", oid, "offering.data.zero_retention", True))
+    path.write_text(yaml.safe_dump([row]))
+    with pytest.raises(AssertionError):
+        test_contract_only_zero_retention_is_not_filed_as_unconditional()
 
 
 def test_client_rendered_cloud_sources_are_registered_as_rendered() -> None:

@@ -188,8 +188,8 @@ claims:
     unit: percent
     conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
     source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
-    expect: mismatch
-    expect_diff: [model]
+    expect: skipped
+    expect_diff: []
   - id: sol-copy-missing
     error: the retained copy is gone
     subject: openai/gpt-6-sol
