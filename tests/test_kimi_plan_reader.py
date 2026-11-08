@@ -47,7 +47,7 @@ def test_legacy_list_verifies_each_named_plan(plan):
     item = claim(plan, "availability", "existing_subscribers_only")
     assert result(item, LEGACY).outcome == "verified"
     assert verify.SubscriptionPageExtractor().extract(item, LEGACY) == [
-        verify.Reading(f"Kimi {plan}", "existing_subscribers_only")]
+        verify.Reading(plan, "existing_subscribers_only")]
 
 
 @pytest.mark.parametrize("plan", ["Go", "Plus", "Pro", "Max", "Ultra", "Andante Plus"])
@@ -102,7 +102,7 @@ def test_price_table_uses_billing_headers_to_exclude_annual_equivalent(columns):
     page = f"Plan | {columns}"
     item = claim("Go", "price_cny", 57)
     assert verify.SubscriptionPageExtractor().extract(item, page) == [
-        verify.Reading("Kimi Go", "57")]
+        verify.Reading("Go", "57")]
     assert result(item, page).outcome == "verified"
     assert result(claim("Go", "price_cny", 43), page).outcome == "mismatch"
     assert result(claim("Go", "billing_period", "monthly"), page).outcome == "verified"
@@ -136,7 +136,7 @@ PLAN_PAGE = "Plan | Monthly billing\nGo | ¥57/month\n\nChoosing a plan\n" + "\n
 def test_named_plan_line_preserves_agent_entitlement_and_restrictions(plan):
     item = claim(plan, "programmatic_or_agent_use", PLAN_LINES[plan])
     assert verify.SubscriptionPageExtractor().extract(item, PLAN_PAGE) == [
-        verify.Reading(f"Kimi {plan}", PLAN_LINES[plan])]
+        verify.Reading(plan, PLAN_LINES[plan])]
     assert result(item, PLAN_PAGE).outcome == "verified"
 
 
@@ -144,7 +144,7 @@ def test_named_plan_line_preserves_agent_entitlement_and_restrictions(plan):
 def test_named_plan_line_reads_its_own_allowance(plan):
     item = claim(plan, "usage_allowance", PLAN_LINES[plan])
     assert verify.SubscriptionPageExtractor().extract(item, PLAN_PAGE) == [
-        verify.Reading(f"Kimi {plan}", PLAN_LINES[plan])]
+        verify.Reading(plan, PLAN_LINES[plan])]
     assert result(item, PLAN_PAGE).outcome == "verified"
 
 

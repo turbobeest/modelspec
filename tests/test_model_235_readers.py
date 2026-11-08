@@ -224,8 +224,9 @@ def test_saved_page_does_not_verify_an_absent_model_or_plan(
         deterministic_extractors(),
         today=date(2026, 10, 14),
     )
-    assert result.outcome == "mismatch", result
-    assert result.diffs[0].found is None
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+    assert result.diffs == ()
 
 
 @pytest.mark.parametrize(

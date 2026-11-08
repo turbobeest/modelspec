@@ -267,6 +267,153 @@ def test_freshness_uses_registered_source_volatility() -> None:
     assert result.details[0]["reason"] == "stale_live_leaderboard"
 
 
+@pytest.mark.parametrize("age,expected", [(3, "pass"), (30, "pass"), (31, "fail"), (None, "fail")])
+def test_private_freshness_uses_current_data_and_its_registry_without_disclosure(
+    tmp_path: Path, monkeypatch, caplog, age: int | None, expected: str,
+) -> None:
+    import logging
+    from datetime import timedelta
+
+    from scripts import accuracy_alert
+
+    as_of = date(2026, 11, 5)
+    private = tmp_path / "private"
+    for directory in ("models", "benchmarks", "registry", "verification"):
+        (private / directory).mkdir(parents=True)
+    (private / "verification" / "log.jsonl").write_text("")
+    (private / "registry" / "sources.yaml").write_text(yaml.safe_dump({
+        "schema_version": 1,
+        "sources": [{"id": "private-sentinel-source", "url": "https://private-sentinel.test/",
+                     "volatility": "live"}],
+    }))
+    public_snapshot = FakeSnapshot(evidence=(FakeEvidence(
+        "frozen", 70, date(2026, 9, 25), date_type="observed",
+    ),))
+    private_snapshot = FakeSnapshot(evidence=(FakeEvidence(
+        "private-sentinel-benchmark", 71, date(2026, 7, 1),
+        source_ids=("private-sentinel-source",),
+        verified_at=as_of - timedelta(days=age) if age is not None else None,
+    ),))
+    private_snapshot.snapshot_id = "private-sentinel-snapshot"
+
+    def load(root, snapshot_file, when):
+        assert when == as_of
+        if root == private:
+            logging.getLogger("pipeline.load").warning("private-sentinel-model")
+            logging.getLogger("decision.snapshot").warning("private-sentinel-source-url")
+            assert snapshot_file is None
+            return private_snapshot
+        assert root == accuracy.ROOT
+        assert snapshot_file == tmp_path / "public.json"
+        return public_snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    report = accuracy.run_profile(
+        profile="nightly", layers=("freshness",), as_of=as_of,
+        private_data_root=private, snapshot_file=tmp_path / "public.json",
+    )
+
+    assert report.status == expected
+    layer, = report.layers
+    assert layer.gating is True
+    assert layer.counts["live_readings"] == 1
+    assert layer.counts["failures"] == int(expected == "fail")
+    assert layer.details == []
+    assert report.snapshot is None
+    markdown, payload = accuracy.write_report(report, tmp_path / "report")
+    alert = accuracy_alert.body(report.to_dict(), "https://example.test/run")
+    assert "private-sentinel" not in markdown.read_text() + payload.read_text() + alert + caplog.text
+
+
+@pytest.mark.parametrize("problem", ["missing", "empty", "malformed"])
+def test_private_freshness_rejects_unreadable_inputs_without_disclosure(
+    tmp_path: Path, monkeypatch, problem: str,
+) -> None:
+    private = tmp_path / "private"
+    if problem != "missing":
+        for directory in ("models", "benchmarks", "registry", "verification"):
+            (private / directory).mkdir(parents=True)
+        (private / "verification" / "log.jsonl").write_text("")
+        (private / "registry" / "sources.yaml").write_text(yaml.safe_dump({
+            "schema_version": 1,
+            "sources": [{"id": "board", "url": "https://example.test/", "volatility": "live"}],
+        }))
+
+    def load(root, snapshot_file, when):
+        if problem == "malformed":
+            raise ValueError("private-sentinel-content")
+        snapshot = FakeSnapshot()
+        snapshot.candidates = lambda: ()
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    with pytest.raises(ValueError, match="private freshness inputs could not be read") as caught:
+        accuracy.run_profile(
+            profile="nightly", layers=("freshness",), private_data_root=private,
+        )
+    assert "private-sentinel" not in str(caught.value)
+    assert caught.value.__suppress_context__
+
+
+def test_nightly_private_freshness_keeps_reference_and_recall_on_public_inputs(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public_snapshot = FakeSnapshot()
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: public_snapshot)
+    calls = []
+
+    def public_layer(name):
+        def run(*args, **kwargs):
+            calls.append((name, args, kwargs))
+            return accuracy.LayerResult(name, "pass", kwargs.get("gating", True), "ok")
+        return run
+
+    for function in ("data_fidelity", "reference_agreement", "run_golden"):
+        monkeypatch.setattr(accuracy, function, public_layer(function))
+    monkeypatch.setattr(
+        accuracy, "check_private_freshness",
+        public_layer("freshness"), raising=False,
+    )
+    public_file = tmp_path / "public.json"
+    baseline = tmp_path / "approved.json"
+    report = accuracy.run_profile(
+        profile="nightly", snapshot_file=public_file, private_data_root=tmp_path / "private",
+        approved_recall_baseline=baseline,
+    )
+
+    assert {layer.name for layer in report.layers} == {
+        "freshness", "data_fidelity", "reference_agreement", "run_golden",
+    }
+    assert report.snapshot == public_snapshot.snapshot_id
+    reference = next(args for name, args, _ in calls if name == "reference_agreement")
+    assert reference[:2] == (public_snapshot, accuracy.ROOT)
+    recall, options = next((args, kwargs) for name, args, kwargs in calls if name == "run_golden")
+    assert recall[:2] == (accuracy.ROOT, public_file)
+    assert options["gating"] is False
+    assert options["approved_baseline_path"] == baseline
+
+
+def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path, monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: snapshot)
+    monkeypatch.setattr(accuracy, "check_freshness", lambda *args, **kwargs: pytest.fail("frozen age gate"))
+    for name in ("deterministic_correctness", "output_parity"):
+        monkeypatch.setattr(accuracy, name, lambda *args: accuracy.LayerResult("engine", "pass", True, "ok"))
+    baseline = tmp_path / "approved.json"
+
+    def recall(root, snapshot_file, as_of, *, gating, approved_baseline_path):
+        assert root == accuracy.ROOT
+        assert gating is True
+        assert approved_baseline_path == baseline
+        return accuracy.LayerResult("frozen_image_engine_recall", "pass", gating, "ok")
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+    report = accuracy.run_profile(profile="pr", approved_recall_baseline=baseline)
+
+    assert report.status == "pass"
+    assert report.snapshot == snapshot.snapshot_id
+
+
 def _recall_question(
     question_id: str, verdict: str, cause: str = "engine_behavior"
 ) -> QuestionResult:
@@ -1384,9 +1531,11 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
         assert path in pr
     assert "scripts/accuracy.py --profile pr" in pr
     assert "scripts/accuracy.py --profile nightly" in nightly
-    assert (
-        '"nightly": ("data_fidelity", "reference_agreement", "frozen_image_engine_recall")'
-        in Path("scripts/accuracy.py").read_text()
+    assert accuracy.PROFILES["pr"] == (
+        "deterministic_correctness", "frozen_image_engine_recall", "output_parity",
+    )
+    assert accuracy.PROFILES["nightly"] == (
+        "freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall",
     )
     assert "cron:" in nightly
     assert "timeout-minutes:" in nightly
