@@ -210,6 +210,26 @@ def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
     assert all(block == blocks[0] for block in blocks)
 
 
+@pytest.mark.parametrize(
+    "path",
+    sorted([*WRITERS.glob("*.yml"), *WRITERS.glob("*.yaml")]),
+    ids=lambda path: path.name,
+)
+def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) -> None:
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for job in _engine_jobs(document):
+        steps = job["steps"]
+        pin = _index(steps, lambda step: step.get("id") == "engine_pin")
+        script = steps[pin]["run"]
+        assert 'pin="$(< data/.engine-pin)"' in script
+        assert 'merge-base --is-ancestor "$pin" refs/heads/main' in script
+        for index, step in enumerate(steps):
+            checkout = step.get("with") or {}
+            if checkout.get("repository") == ENGINE_REPOSITORY:
+                assert pin < index
+                assert checkout.get("ref") == PIN_REF
+
+
 @pytest.mark.parametrize("name", NAMES)
 def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     document = _document(name)
