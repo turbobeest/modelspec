@@ -334,3 +334,62 @@ Required source guard, after staging this evidence:
 `env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`.
 Result: **46 passed, 1 skipped in 50.87s, exit 0**. The optional built-site
 scan was skipped because `MODELSPEC_DIST` was not set; no site was built.
+
+## Public-data scan exception, round four, 2026-11-08
+
+Starting public head: `3f91d9988c419d6c7aec8c438dc35698d32ea77d`.
+Fetched public main: `8426f6dae17ea4a695412cb309851392a3bee354`.
+Merge commit: `95fce3494dd1221f88d29cea7f67353ffb1ea4a9`.
+Validated implementation: `4155ef7da9b4289809caebdd9e815312cda8f9bc`.
+Final tip, including evidence, is recorded in `.pr-commit.txt` after the
+evidence commit and is reproducible with `git rev-parse HEAD`.
+
+```sh
+git fetch origin main
+git merge --no-ff --no-edit --quiet origin/main -m "MODEL-452: merge main for the public-data scan mirror" -m "Co-Authored-By: ChatGPT Codex <noreply@openai.com>"
+```
+
+Both commands returned 0 with no merge conflicts. The data branch also merged
+its fetched main. MODEL-455's newly merged leak guard must inspect current
+public `main` as data, so requiring `.engine-pin` for that checkout was a false
+positive in both checks.
+
+The exception is a named allowlist, as permitted by the spec. It requires the
+exact `public-leak-guard.yml` file, `scan` job, read-only-comparison step name,
+and existing repository/ref/path/full-history/credential inputs. Current source
+review confirmed that the private `python -I` scanner reads the public checkout
+as data, with no public script execution or import-path insertion. This does
+not attempt a general static proof for arbitrary future shell/Python scripts.
+Every other public checkout still reaches the existing pin checks. No marker
+or workflow edit was needed, and all mirrors remain byte-identical.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k public_leak_guard --tb=short
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py
+```
+
+Red: `test_public_leak_guard_has_one_named_data_checkout_exception[none]`
+failed at the pin-ref assertion with `main` instead of the pin expression.
+**1 failed, 7 passed, 114 deselected in 0.27s, exit 1**.
+Green, identical focused command: **8 passed, 114 deselected in 0.15s, exit 0**.
+Negative cases reject renamed workflow/job/step, altered checkout inputs and
+an additional unpinned checkout. The complete pin suite returned
+**122 passed in 4.75s, exit 0**, after the data suite's 150 passing tests.
+The complete private checker returned **15 matching mirrors, exit 0**.
+
+`git merge-base --is-ancestor origin/main HEAD`,
+`git diff --exit-code origin/main -- .github/private-writers` and
+`git diff --check` returned 0. Current version checks confirmed Python 3.14.4,
+pytest 9.1.1, PyYAML 6.0.3, Git 2.50.1 and Bash 5.3.9. The related private
+workflow tests used Node v22.22.3 and local HTTP/issue stubs.
+
+Push and the two permitted draft-verification commands are those recorded
+above, with final heads/results written to the local handoffs. No private data
+or private revision IDs were added to public commits. No hosted Actions result,
+full CI, deployment, provider call, source retrieval or PR merge was observed
+or performed in this round.
+
+Required source guard, run from the public worktree after staging its evidence:
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`.
+Result: **46 passed, 1 skipped in 53.71s, exit 0**. The optional built-site
+scan requires `MODELSPEC_DIST`; no site was built.
