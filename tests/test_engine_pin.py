@@ -217,17 +217,163 @@ def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
 )
 def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) -> None:
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    for job in _engine_jobs(document):
-        steps = job["steps"]
-        pin = _index(steps, lambda step: step.get("id") == "engine_pin")
-        script = steps[pin]["run"]
-        assert 'pin="$(< data/.engine-pin)"' in script
-        assert 'merge-base --is-ancestor "$pin" refs/heads/main' in script
+    producers = (_pin_step("recall-private"), _pin_step("release-coverage"))
+    engine_checkouts = 0
+    for job in document["jobs"].values():
+        steps = job.get("steps") or []
         for index, step in enumerate(steps):
+            if str(step.get("uses", "")).split("@", 1)[0].lower() != "actions/checkout":
+                continue
             checkout = step.get("with") or {}
-            if checkout.get("repository") == ENGINE_REPOSITORY:
-                assert pin < index
-                assert checkout.get("ref") == PIN_REF
+            if "repository" not in checkout:
+                continue
+            repository = checkout["repository"]
+            assert isinstance(repository, str) and re.fullmatch(
+                r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository
+            ), "checkout must name a literal repository"
+            if repository.lower().removesuffix(".git") != ENGINE_REPOSITORY:
+                continue
+            engine_checkouts += 1
+            assert checkout.get("ref") == PIN_REF
+            pin = _index(steps, lambda item: item.get("id") == "engine_pin")
+            assert pin < index
+            producer = steps[pin]
+            assert "if" not in producer, "validated pin producer must run unconditionally"
+            assert producer.get("continue-on-error", False) is False, (
+                "validated pin producer must propagate failure"
+            )
+            assert producer in producers, "checkout requires a validated pin producer"
+            defaults = {
+                **document.get("defaults", {}).get("run", {}),
+                **job.get("defaults", {}).get("run", {}),
+            }
+            directory = producer.get("working-directory", defaults.get("working-directory", "."))
+            assert directory == ".", "validated pin producer must read from the workspace root"
+            assert defaults.get("shell", "bash") == "bash", "validated pin producer requires bash"
+    assert engine_checkouts, "writer must check out the pinned engine"
+
+
+@pytest.mark.parametrize(
+    "repository",
+    ["${{ env.ENGINE_REPOSITORY }}", "${{ matrix.repository }}",
+     "${{ inputs.repository }}", "$ENGINE_REPOSITORY"],
+)
+@pytest.mark.parametrize("separate_job", [False, True])
+def test_discovered_writer_rejects_indirect_checkout_repositories(
+    tmp_path: Path, repository: str, separate_job: bool
+) -> None:
+    document = _document("daily-research")
+    checkout = {
+        "uses": "actions/checkout@v4",
+        "env": {"ENGINE_REPOSITORY": ENGINE_REPOSITORY},
+        "with": {"repository": repository, "ref": "main", "path": "another-engine"},
+    }
+    job = _engine_job(document)
+    if separate_job:
+        job = document["jobs"]["second"] = {"steps": []}
+    job["strategy"] = {"matrix": {"repository": [ENGINE_REPOSITORY]}}
+    job["steps"].append(checkout)
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(AssertionError, match="literal repository"):
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+@pytest.mark.parametrize("repository", ["TURBOBEEST/ModelSpec", "turbobeest/modelspec.git"])
+def test_discovered_writer_recognizes_engine_repository_aliases(
+    tmp_path: Path, repository: str
+) -> None:
+    document = _document("daily-research")
+    _engine_job(document)["steps"].append({
+        "uses": "actions/checkout@v4",
+        "with": {"repository": repository, "ref": "main"},
+    })
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(AssertionError):
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+@pytest.mark.parametrize("repository", [None, "example/another-repository"])
+def test_discovered_writer_allows_default_and_unrelated_literal_checkouts(
+    tmp_path: Path, repository: str | None
+) -> None:
+    document = _document("daily-research")
+    checkout = {"uses": "actions/checkout@v4", "with": {"ref": "main"}}
+    if repository is not None:
+        checkout["with"]["repository"] = repository
+    _engine_job(document)["steps"].append(checkout)
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+@pytest.mark.parametrize("writer", ["daily-research", "release-coverage"])
+@pytest.mark.parametrize(
+    "mutation",
+    ["wrong-output", "other-variable", "reassigned-pin", "second-output",
+     "skipped-producer", "ignored-failure"],
+)
+def test_discovered_writer_rejects_an_unbound_pin_producer(
+    tmp_path: Path, writer: str, mutation: str
+) -> None:
+    document = _document(writer)
+    steps = _engine_job(document)["steps"]
+    producer = steps[_index(steps, lambda step: step.get("id") == "engine_pin")]
+    if mutation == "wrong-output":
+        producer["run"] = producer["run"].replace('sha=$pin', 'sha=' + 'a' * 40)
+    elif mutation == "other-variable":
+        producer["run"] = producer["run"].replace('sha=$pin', 'sha=$other')
+    elif mutation == "reassigned-pin":
+        producer["run"] = producer["run"].replace(
+            'echo "sha=$pin"', 'pin=' + 'a' * 40 + '\necho "sha=$pin"'
+        )
+    elif mutation == "second-output":
+        producer["run"] += 'echo "sha=' + 'a' * 40 + '" >> "$GITHUB_OUTPUT"\n'
+    elif mutation == "skipped-producer":
+        producer["if"] = False
+    elif mutation == "ignored-failure":
+        producer["continue-on-error"] = True
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(AssertionError, match="validated pin producer"):
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+@pytest.mark.parametrize("field,value", [("if", False), ("continue-on-error", True)])
+def test_a_canonical_writer_cannot_skip_pin_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, field: str, value: bool
+) -> None:
+    for writer in ("recall-private", "release-coverage"):
+        (tmp_path / f"{writer}.yml").write_bytes((WRITERS / f"{writer}.yml").read_bytes())
+    path = tmp_path / "release-coverage.yml"
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    steps = _engine_job(document)["steps"]
+    producer = steps[_index(steps, lambda step: step.get("id") == "engine_pin")]
+    producer[field] = value
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    monkeypatch.setitem(globals(), "WRITERS", tmp_path)
+    with pytest.raises(AssertionError, match="validated pin producer"):
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+def test_wrong_output_mutation_emits_a_different_commit(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    document = _document("daily-research")
+    steps = _engine_job(document)["steps"]
+    producer = steps[_index(steps, lambda step: step.get("id") == "engine_pin")]
+    producer["run"] = producer["run"].replace('sha=$pin', 'sha=' + local_engine.tip)
+    completed, output = _run_pin(
+        producer["run"], tmp_path, local_engine.url, local_engine.ancestor + "\n"
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert output == f"sha={local_engine.tip}\n"
+    assert output != f"sha={local_engine.ancestor}\n"
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(AssertionError, match="validated pin producer"):
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
 
 
 @pytest.mark.parametrize("name", NAMES)
