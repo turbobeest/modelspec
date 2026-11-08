@@ -45,6 +45,33 @@ jobs:
       - name: Install the card parser
         run: python -m pip install pyyaml
 
+      - name: Fetch private PR-head history without persisting credentials
+        id: private_pull_requests
+        env:
+          PRIVATE_READ_TOKEN: ${{ github.token }}
+        run: |
+          python -I - <<'PY'
+          import base64
+          import os
+          import subprocess
+          import sys
+
+          try:
+              auth = base64.b64encode(f"x-access-token:{os.environ['PRIVATE_READ_TOKEN']}".encode()).decode()
+              subprocess.run(
+                  ["git", "-C", "data", "fetch", "--quiet", "--no-tags", "origin",
+                   "+refs/pull/*/head:refs/remotes/origin/pull/*"],
+                  env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_COUNT": "1",
+                       "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+                       "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {auth}"},
+                  check=True, capture_output=True,
+              )
+          except (OSError, KeyError, subprocess.SubprocessError):
+              print("Private PR-head history could not be fetched.", file=sys.stderr)
+              raise SystemExit(2)
+          print("Fetched private PR-head history.")
+          PY
+
       - name: Fetch all open public PR bodies without credentials
         id: pull_requests
         run: |
@@ -90,6 +117,7 @@ jobs:
           if python -I data/.github/scripts/public_leak_guard.py \
             --public-repo engine --private-repo data \
             --pr-bodies "$RUNNER_TEMP/public-pr-bodies.json" \
+            --baseline data/.github/public-leak-baseline.json \
             > "$RUNNER_TEMP/public-leak-report.json" 2> "$RUNNER_TEMP/public-leak-error.txt"; then
             status=0
           else
@@ -109,10 +137,13 @@ jobs:
           try:
               report = json.loads(Path(os.environ["RUNNER_TEMP"], "public-leak-report.json").read_text())
               encoded = json.dumps(report, separators=(",", ":"))
+              historical = f"{report.get('historical', 0)} historical, ignored"
               with open(os.environ["GITHUB_OUTPUT"], "a") as output:
                   output.write(f"status={os.environ['PUBLIC_LEAK_STATUS']}\nreport={encoded}\n")
               with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+                  summary.write(f"{historical}\n\n")
                   summary.write(f"```json\n{encoded}\n```\n")
+              print(historical)
               print(encoded)
           except (OSError, ValueError, TypeError):
               print("Public leak report could not be read or published.", file=sys.stderr)
@@ -151,6 +182,7 @@ jobs:
             const omitted = report.findings.length - lines.length;
             const body = [
               `Counts: ${JSON.stringify(report.counts)}`,
+              `${report.historical ?? 0} historical, ignored`,
               '', '```json', ...lines, '```',
               `${omitted} additional finding location(s) omitted from this issue.`,
               '', `Run: https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
