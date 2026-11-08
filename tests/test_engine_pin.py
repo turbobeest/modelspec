@@ -219,7 +219,7 @@ def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) 
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     producers = (_pin_step("recall-private"), _pin_step("release-coverage"))
     engine_checkouts = 0
-    for job in document["jobs"].values():
+    for job_name, job in document["jobs"].items():
         steps = job.get("steps") or []
         for index, step in enumerate(steps):
             if str(step.get("uses", "")).split("@", 1)[0].lower() != "actions/checkout":
@@ -236,6 +236,19 @@ def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) 
             if repository.lower().removesuffix(".git") != ENGINE_REPOSITORY:
                 continue
             engine_checkouts += 1
+            # MODEL-455 scans current public main as data with the private -I scanner.
+            # This named checkout is the only exception to engine-pin enforcement.
+            if (
+                (path.name, job_name, step.get("name")) == (
+                    "public-leak-guard.yml", "scan",
+                    "Check out public main for read-only comparison",
+                )
+                and checkout == {
+                    "repository": ENGINE_REPOSITORY, "ref": "main", "path": "engine",
+                    "fetch-depth": 0, "persist-credentials": False,
+                }
+            ):
+                continue
             assert checkout.get("ref") == PIN_REF
             pin = _index(steps, lambda item: item.get("id") == "engine_pin")
             assert pin < index
@@ -252,7 +265,41 @@ def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) 
             directory = producer.get("working-directory", defaults.get("working-directory", "."))
             assert directory == ".", "validated pin producer must read from the workspace root"
             assert defaults.get("shell", "bash") == "bash", "validated pin producer requires bash"
-    assert engine_checkouts, "writer must check out the pinned engine"
+    assert engine_checkouts, "workflow must check out the public repository"
+
+
+@pytest.mark.parametrize("change", [
+    "none", "filename", "job", "step", "path", "ref", "credentials", "second-checkout",
+])
+def test_public_leak_guard_has_one_named_data_checkout_exception(
+    tmp_path: Path, change: str,
+) -> None:
+    name = "public-leak-guard.yml"
+    document = _document("public-leak-guard")
+    job = document["jobs"]["scan"]
+    checkout = next(step for step in job["steps"]
+                    if (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY)
+    if change == "filename":
+        name = "another-writer.yml"
+    elif change == "job":
+        document["jobs"]["another"] = document["jobs"].pop("scan")
+    elif change == "step":
+        checkout["name"] = "Run the public engine"
+    elif change == "path":
+        checkout["with"]["path"] = "another-engine"
+    elif change == "ref":
+        checkout["with"]["ref"] = "a" * 40
+    elif change == "credentials":
+        checkout["with"]["persist-credentials"] = True
+    elif change == "second-checkout":
+        job["steps"].append({**checkout, "name": "Another public checkout"})
+    path = tmp_path / name
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    if change == "none":
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+    else:
+        with pytest.raises(AssertionError):
+            test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
 
 
 @pytest.mark.parametrize(
