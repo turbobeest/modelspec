@@ -287,3 +287,50 @@ or merge was observed or performed in this round.
 After pushing, `gh pr view 994 -R turbobeest/modelspec --json number,isDraft,headRefName,headRefOid,baseRefName,state`
 verifies this draft and its head. The other permitted `gh` call verifies the
 data draft. Exact results are recorded in the local `.pr-commit.txt` handoffs.
+
+## Pin-enforcement round three, 2026-11-08
+
+Addresses the input-name casing P2 in `REV-994-cx-r2.verdict.md`.
+Public base: `866662802fad7edcf52857ff3a500cb16160ad0f`.
+Validated test SHA: `e1cc6a556cd5ab83f943543a4f5d8fdbdc12c3e1`.
+Final tip, including evidence, is written to `.pr-commit.txt` after the evidence
+commit and can be reproduced with `git rev-parse HEAD`.
+
+Discovery now lowercases every `with` key before repository classification
+and ref validation. Action names were already normalized. No other enforcement
+behavior changed. Copied-writer fixtures preserve the original valid checkout
+and append a second checkout with the reviewer's casing, mixed-case and
+all-caps action/input names, or uppercase `REF` with lowercase `repository`.
+The cases include unpinned refs, valid pin refs, and unresolved repositories.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py -k second_checkout_input_names --tb=short
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_engine_pin.py
+```
+
+`test_second_checkout_input_names_are_case_insensitive` ran against unchanged
+discovery first: **7 failed, 5 passed, 101 deselected in 0.42s, exit 1**.
+Six rejected-workflow fixtures failed with `DID NOT RAISE AssertionError`;
+the valid uppercase-`REF` case failed with `None == PIN_REF`. After key
+normalization, the identical focused command returned **12 passed, 101
+deselected in 0.21s, exit 0**. The complete touched suite returned
+**113 passed in 3.84s, exit 0**, after the data touched suite's 48 passing tests.
+
+The exact mirror checker returned **14 mirrors match, exit 0**.
+`git diff --exit-code 866662802fad7edcf52857ff3a500cb16160ad0f -- .github/private-writers`
+and `git diff --check` returned 0. No workflow or mirror bytes changed.
+Current versions, using the recorded version commands, were Python 3.14.4,
+pytest 9.1.1, PyYAML 6.0.3 and Git 2.50.1.
+
+Push command remains `CI_LOCAL_SKIP=1 git push -u origin model-452-writers-read-pin`.
+The draft/head verification command above and its data counterpart are the
+only planned `gh` calls this round. Final results go in the untracked handoffs.
+Remote PR bodies are not edited under the executor restriction. No private
+data or private revision identifiers were added here. No live Actions run,
+full CI, deployment, provider call, source retrieval or merge was observed or
+performed in this round.
+
+Required source guard, after staging this evidence:
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py`.
+Result: **46 passed, 1 skipped in 50.87s, exit 0**. The optional built-site
+scan was skipped because `MODELSPEC_DIST` was not set; no site was built.
