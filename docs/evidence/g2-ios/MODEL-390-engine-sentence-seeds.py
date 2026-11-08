@@ -4,6 +4,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ import yaml
 from decision.sources import CopyStore, load_sources
 from decision.verify import StoredRegions, licence_sentence_hash, licence_sentences
 
-DATA_SHA = "<private revision at assessment time>"
+DATA_SHA = os.environ["MODELSPEC_EXPECTED_DATA_SHA"]
 # Sentence positions are curator decisions in this exact data revision, not
 # phrase searches. Only complete statements that support the filed value seed.
 SEEDS = (

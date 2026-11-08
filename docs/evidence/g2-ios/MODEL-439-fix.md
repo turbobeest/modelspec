@@ -201,9 +201,21 @@ claims and four cited checks. The linked-data guard passed all 14 pinned paths.
 measurement and test invocations. Python was 3.14.4, pytest 9.1.1, Pydantic
 2.13.5, PyYAML 6.0.3, Ruff 0.16.6, git 2.50.1 and Node 22.22.3.
 
-For replay, clone private data into `/tmp/model-439-scratch/`, check out
-`<private revision at assessment time>`, and archive the pinned public engine refs into scratch. The
-[r2 preparation helper](MODEL-439/r2/prepare_baseline.py) archives refs without
+For replay, clone private data into `/tmp/model-439-scratch/`, set
+`MODELSPEC_EXPECTED_DATA_SHA` locally to the reviewed private revision, and archive
+the pinned public engine refs into scratch. The preparation helper requires
+`--data-ref "$MODELSPEC_EXPECTED_DATA_SHA"`. Check the local input first:
+
+```bash
+: "${MODELSPEC_EXPECTED_DATA_SHA:?Set the reviewed private revision locally}"
+/Users/terbeest/dev/modelspec/.venv/bin/python \
+  docs/evidence/g2-ios/MODEL-439/r2/prepare_baseline.py \
+  --repo "$PWD" --data-dir /tmp/model-439-scratch/modelspec-data \
+  --output /tmp/model-439-scratch/prepared \
+  --data-ref "$MODELSPEC_EXPECTED_DATA_SHA"
+```
+
+The [r2 preparation helper](MODEL-439/r2/prepare_baseline.py) archives refs without
 changing the active checkout. `git merge-tree --write-tree 36b2d184 33c705e1`
 produces the prospective baseline tree above. Use the exact pinned main commit
 for the actual-main baseline. Extract #866's retention registry into scratch.

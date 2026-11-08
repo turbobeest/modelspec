@@ -205,11 +205,12 @@ ARCHIVE
 Private measurement commands:
 
 ```sh
+: "${MODEL436_EXPECTED_DATA_SHA:?Set the reviewed private revision locally}"
 git clone --depth 1 https://github.com/turbobeest/modelspec-data.git "$S/modelspec-data"
-git -C "$S/modelspec-data" rev-parse HEAD
+git -C "$S/modelspec-data" rev-parse HEAD > "$S/private-data-head.txt"
 # The initial clone matched this SHA. It was explicitly pinned again before cleanup.
-git -C "$S/modelspec-data" fetch --depth 1 origin <private revision at assessment time>
-git -C "$S/modelspec-data" checkout --detach <private revision at assessment time>
+git -C "$S/modelspec-data" fetch --quiet --depth 1 origin "$MODEL436_EXPECTED_DATA_SHA"
+git -C "$S/modelspec-data" checkout --quiet --detach "$MODEL436_EXPECTED_DATA_SHA"
 env -u MODELSPEC_SOURCE_CACHE -u MODELSPEC_DATA_DIR \
   -u MODELSPEC_SNAPSHOT_ED25519_KEY -u MODELSPEC_SNAPSHOT_KEY TMPDIR="$S/tmp" \
   "$P" "$S/run_recorded.py" comparison "$P" \

@@ -484,8 +484,11 @@ PY
 The finish data archive and overlay were prepared with physical copies:
 
 ```bash
+: "${MODEL378_EXPECTED_DATA_SHA:?Set the reviewed private revision locally}"
+export MODEL378_EXPECTED_DATA_SHA
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import tarfile
@@ -496,7 +499,7 @@ data = scratch / 'data-main'
 data.mkdir()
 archive = scratch / 'data-main.tar'
 with archive.open('wb') as out:
-    subprocess.run(['git', '-C', '/Users/terbeest/dev/modelspec-data', 'archive', '<private revision at assessment time>'], stdout=out, check=True)
+    subprocess.run(['git', '-C', '/Users/terbeest/dev/modelspec-data', 'archive', os.environ['MODEL378_EXPECTED_DATA_SHA']], stdout=out, check=True)
 with tarfile.open(archive) as contents:
     contents.extractall(data, filter='data')
 archive.unlink()

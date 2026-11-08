@@ -171,7 +171,13 @@ The helper prints `changed=true` and its body names the model and clause 2.
 The direct comparison against the historical reviewed YAML also proposes Sol;
 it contains 1 addition and 7 removals from recomputing the older frozen list.
 
-`git diff --name-only <private revision at assessment time>^ <private revision at assessment time>` prints only `.engine-pin`.
+The reviewed private commit's parent comparison prints only `.engine-pin`.
+Supply its revision locally to replay that comparison:
+
+```sh
+: "${MODEL447_REVIEWED_DATA_SHA:?Set the reviewed private revision locally}"
+git diff --name-only "${MODEL447_REVIEWED_DATA_SHA}^" "$MODEL447_REVIEWED_DATA_SHA"
+```
 The no-op replay emits `{"added": [], "removed": [], "changed": false}`.
 The helper prints `changed=false`, writes the no-op body, and leaves the
 scratch baseline bytes unchanged. This establishes local proposal/no-proposal

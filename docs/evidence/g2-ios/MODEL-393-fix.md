@@ -38,9 +38,8 @@ those shortcuts are removed. Escaped labels and encoded href delimiters keep
 one genuine destination, and whole link spans are excluded from plaintext URL
 fallback. Model-name checks and exclusive `license_link` behavior remain.
 
-The private replay verified four facts, commercial use and output training on
-each exact Muse Spark version. Commercial use is `permitted_with_conditions`;
-output training is `restricted`. It retained all 23 other fact dictionaries
+The private replay verified four licence facts across two model versions,
+covering commercial use and output training. It retained all 23 other fact dictionaries
 unchanged and documented a reason for each. The verifier did not manufacture a
 cap absence, weight-modification right, commercial grant, or April model binding.
 Its standalone CLI refuses network connections and appends only independent

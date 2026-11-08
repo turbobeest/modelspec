@@ -187,16 +187,12 @@ The private data tool `tools/research/model-394/replay.py --proof` verifies
 30 dated price records against retained Google primary responses and records
 six boundary observations in `research/model-394/verification.json`.
 
-| Offering and snapshot date | Input | Output | Cache input | Snapshot expires at |
-| --- | --- | --- | --- | --- |
-| Argon candidate, 2026-11-30, `snap_b7c9b50f48e1072b` | 2.00 | 10.00 | 0.10 | 2026-12-01 |
-| Argon candidate, 2026-12-01, `snap_d5663f6012e2cf2e` | 4.00 | 20.00 | 0.20 | 2027-01-01 |
-| Vertex 3.7 and 3.8 Flash, 2026-12-31, `snap_635e25199012d2ab` | 0.75 | 3.75 | 0.075 | 2027-01-01 |
-| Vertex 3.7 and 3.8 Flash, 2027-01-01, `snap_c55213daf71f8b46` | 1.50 | 7.50 | 0.15 | No later filed boundary |
+The retained-source replay checked four offering/date observations. Each records
+input, output and cache-input prices plus snapshot expiry. Per-offering values
+remain in the private report.
 
-Prices are USD per million tokens. Batch input and output also switch.
-The December Argon proof includes the Vertex schedules, so its snapshot expires
-on January 1 despite Argon's later entry having no filed end date.
+Prices use USD per million tokens. Batch input and output also change at a
+schedule boundary. The replay checks expiry against every included schedule.
 
 Argon is an injected research candidate with the premier gate disabled. It is
 not a production offering. The private findings report 20 missing guaranteed

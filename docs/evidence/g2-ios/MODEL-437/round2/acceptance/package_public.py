@@ -105,8 +105,16 @@ lines += ['',
     'directory symlinks that recursive discovery skipped. The corrected view uses real '
     'directories and unchanged leaf-file links. Failed-attempt provenance is retained; '
     'the engine and private data were not changed to resolve it.', '',
+    'Set MODELSPEC_EXPECTED_DATA_SHA locally to the reviewed private baseline revision. '
     'Run setup_acceptance.py in a fresh scratch directory after placing the other helpers '
-    'there. It retrieves pinned input revisions. Run run_acceptance.sh baseline, then '
+    'there. It retrieves pinned input revisions:', '',
+    '```sh',
+    ': "${MODELSPEC_EXPECTED_DATA_SHA:?Set the reviewed private baseline revision locally}"',
+    'export MODELSPEC_EXPECTED_DATA_SHA',
+    'python setup_acceptance.py',
+    '```', '',
+    'Keep that environment variable set for audit_repaired_view.py. '
+    'Run run_acceptance.sh baseline, then '
     'candidate-d and candidate-c, compare, gates-d/gates-c and memory-d/memory-c. '
     'The candidate phases require the measured implementation checkout. setup-commands.public.json '
     'records the actual initial retrieval commands; commands.public.jsonl records measured '

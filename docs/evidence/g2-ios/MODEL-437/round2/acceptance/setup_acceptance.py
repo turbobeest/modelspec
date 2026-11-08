@@ -18,14 +18,19 @@ SHAS = {
     'engine_main': 'a03c4d077acc03c2bc5dba526ff635fb708ccb94',
     'host_policy': '82ebcf4627d255d7641303caff2d149e879cf359',
     'repair_engine': '77a9566822f7a23e322d2647913c755ad3cb7ed8',
-    'baseline_data': '<private revision at assessment time>',
+    'baseline_data': os.environ['MODELSPEC_EXPECTED_DATA_SHA'],
     'repaired_data': 'f722d3fcb673b28bdff9fa1b5cac06c22cc61c38',
 }
 
 
 def call(*command):
     env = dict(os.environ, PATH='/Users/terbeest/.nvm/versions/node/v22.22.3/bin:' + os.environ.get('PATH', ''))
-    return subprocess.run(command, check=True, capture_output=True, env=env).stdout
+    try:
+        return subprocess.run(command, check=True, capture_output=True, env=env).stdout
+    except subprocess.CalledProcessError as error:
+        public_command = [arg.replace(SHAS['baseline_data'], '<private revision supplied>')
+                          for arg in command]
+        raise subprocess.CalledProcessError(error.returncode, public_command) from None
 
 
 def git(repo, *args):
@@ -98,6 +103,7 @@ def main():
                     baseline_engine_path=str(prepared / 'main'),
                     policy_path=str(prepared / 'hosts-866.json'),
                     private_research_copies='not read; linked unchanged from required clone')
+    metadata['baseline_data'] = '<private revision supplied>'
     (ROOT / 'prepared.public.json').write_text(json.dumps(metadata, indent=2) + '\n')
     call('/Users/terbeest/.nvm/versions/node/v22.22.3/bin/npm', 'install',
          '--prefix', str(ROOT / 'memory-runtime'), '--no-save', 'pyodide@0.28.3')

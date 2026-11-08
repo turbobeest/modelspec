@@ -64,10 +64,16 @@ env PYTHONPATH=/tmp/model-444-scratch/probes/engine-base /Users/terbeest/dev/mod
 /Users/terbeest/dev/modelspec/.venv/bin/python .github/scripts/check_linked_data.py --data /tmp/model-444-scratch/data --engine /Users/terbeest/dev/worktrees/model-444
 ```
 
-Replay and cleanup commands used the scripts preserved beside this report:
+For replay, supply the reviewed private revision locally before staging with
+the script preserved beside this report:
 
 ```sh
+export MODELSPEC_EXPECTED_DATA_SHA="${MODELSPEC_EXPECTED_DATA_SHA:?set the reviewed private revision locally}"
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-444/probes/stage_data.py
 ```
+
+The supplied revision remains in the local private `.sha` handoff; staging
+stdout reports completion without printing it.
 
 These results establish local behavior and compatibility with the captured private data. No fresh source accuracy, production deployment, CI result or independent cross-model approval was observed. No provider API call, Firecrawl call, Linear write, main push, force push or merge occurred. Draft PRs require review. The old data#103 branch remains historical and must be replaced by the corrected draft; this task does not approve it for merge.
 

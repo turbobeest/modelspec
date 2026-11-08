@@ -84,25 +84,15 @@ hash-valid, and readable. The base replay produced 44 verified claims and four
 mismatches. The final replay produced 48 verified claims. These are every
 verification outcome change:
 
-| Fact ID | Base outcome | Final outcome |
-| --- | --- | --- |
-| `moonshot/subscription/andante#offering.subscription.availability` | mismatch | verified |
-| `moonshot/subscription/moderato#offering.subscription.availability` | mismatch | verified |
-| `moonshot/subscription/allegretto#offering.subscription.availability` | mismatch | verified |
-| `moonshot/subscription/allegro#offering.subscription.availability` | mismatch | verified |
+All four changed outcomes moved from mismatch to verified.
 
-Each of the new Go, Plus, Pro, Max, and Ultra `offering.subscription.price_cny`
-facts now has exactly one reading matching its filed monthly price. Go reads
-`49`; the annual-equivalent `39` is absent. All five price verification outcomes
-remain `verified`, because the old verifier already accepted any matching
-reading among the candidates.
+Five monthly-price facts now each have exactly one reading matching the filed
+price. One case excludes an annual-equivalent reading. All five verification
+outcomes remain `verified`, because the old verifier already accepted any
+matching reading among the candidates.
 
-Two other filed facts have additional readings without an outcome change:
-`moonshot/subscription/allegretto#offering.subscription.programmatic_or_agent_use`
-and
-`moonshot/subscription/allegro#offering.subscription.programmatic_or_agent_use`.
-Recognizing Kimi Claw adds a candidate from the older retained copy. Both remain
-verified.
+Two other filed programmatic-use facts gained an additional candidate reading
+from an older retained copy. Both verification outcomes remained unchanged.
 
 The following unknown facts gain candidate readings. These are extraction
 results, not new filed or verified facts:

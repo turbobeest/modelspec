@@ -59,8 +59,10 @@ directory. Each engine ran its own `api/worker/vendor.py`; the final build ran
 the current worktree's script. The data worktrees were created with:
 
 ```sh
-git -C /Users/terbeest/dev/modelspec-data worktree add --detach /tmp/model-407-private/data-<private revision at assessment time> <private revision at assessment time>
-git -C /Users/terbeest/dev/modelspec-data worktree add --detach /tmp/model-407-private/data-<private revision at assessment time> <private revision at assessment time>
+: "${MODEL407_BASELINE_DATA_SHA:?Set the private revision before data#93 locally}"
+: "${MODEL407_REPAIRED_DATA_SHA:?Set the private data#93 revision locally}"
+git -C /Users/terbeest/dev/modelspec-data worktree add --detach /tmp/model-407-private/data-baseline "$MODEL407_BASELINE_DATA_SHA"
+git -C /Users/terbeest/dev/modelspec-data worktree add --detach /tmp/model-407-private/data-repaired "$MODEL407_REPAIRED_DATA_SHA"
 ```
 
 For each historical `(ENGINE, DATA)` pair in
@@ -68,6 +70,8 @@ For each historical `(ENGINE, DATA)` pair in
 `(b4a7074f, <private revision at assessment time>)`, `(b4a7074f, <private revision at assessment time>)`, the build command was:
 
 ```sh
+# Set DATA=baseline for the revision before data#93, or DATA=repaired for data#93.
+: "${ENGINE:?Set the public engine revision}" "${DATA:?Select baseline or repaired}"
 TMPDIR=/tmp/model-407-private/tmp TZ=UTC PYTHONDONTWRITEBYTECODE=1   PYTHONPATH=/tmp/model-407-private/engine-$ENGINE   MODELSPEC_REQUIRE_DATA_DIR=1 MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key   /Users/terbeest/dev/modelspec/.venv/bin/python   /tmp/model-407-private/engine-$ENGINE/api/worker/vendor.py   --data-dir /tmp/model-407-private/data-$DATA   --out /tmp/model-407-private/bundle-$ENGINE-$DATA
 ```
 
@@ -83,7 +87,7 @@ The final private build and probes used these command arguments, with
 stdout/stderr and every JSON output redirected under the private scratch path:
 
 ```sh
-TMPDIR=/tmp/model-407-private/tmp TZ=UTC PYTHONDONTWRITEBYTECODE=1   PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1   MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key   /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py   --data-dir /tmp/model-407-private/data-<private revision at assessment time>   --out /tmp/model-407-private/private-bundle-final
+TMPDIR=/tmp/model-407-private/tmp TZ=UTC PYTHONDONTWRITEBYTECODE=1   PYTHONPATH=$PWD MODELSPEC_REQUIRE_DATA_DIR=1   MODELSPEC_SNAPSHOT_KEY=model247-ci-fixture-key   /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py   --data-dir /tmp/model-407-private/data-repaired   --out /tmp/model-407-private/private-bundle-final
 
 # Common environment for all three probes; GITHUB_STEP_SUMMARY was removed.
 export TMPDIR=/tmp/model-407-private/tmp TZ=UTC PYTHONDONTWRITEBYTECODE=1

@@ -213,6 +213,16 @@ tracked bundle changes.
 
 ## Reproduction and limits
 
+The setup and repair-view audit require the reviewed baseline revision from
+private local configuration. Keep the same value for both commands; their
+existing comparisons still use it. Public metadata retains only a placeholder.
+
+```sh
+export MODELSPEC_EXPECTED_DATA_SHA="${MODELSPEC_EXPECTED_DATA_SHA:?set the reviewed private revision locally}"
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-437/round2/acceptance/setup_acceptance.py
+/Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-437/round2/acceptance/audit_repaired_view.py
+```
+
 Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5, PyYAML 6.0.3,
 cryptography 45.0.7, pypdf 6.19.0, Node 22.22.3, Pyodide 0.28.3,
 Git 2.50.1 and gh 2.102.0 were used. Pytest ran serially with

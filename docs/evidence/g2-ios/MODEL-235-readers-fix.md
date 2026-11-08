@@ -119,14 +119,10 @@ The replay tool's `--fact` option selects exact IDs and uses the same re-read pa
 The historical engine exports stay inside this worktree. No checkout or bisect
 changed the assigned branch.
 
-| Fact | Before #743, `7d4f5bd8` | Before #747, `44f56ec6` | Final |
-|---|---|---|---|
-| Gemini 3.5 Flash input | unreadable | unreadable | unreadable |
-| Vertex Sonnet 5.5 input, global partner selector | unreadable, missing region | unreadable, missing region | unreadable, missing region |
-| MiniMax Token Plan Plus price | unreadable | unreadable | unreadable |
-| MiniMax M Plan Go usage allowance | unchanged | unreadable | unchanged |
-| Mistral Pro coding access | needs_review | unreadable | unreadable |
-| Moonshot Andante CNY price | unreadable | unreadable | unreadable |
+Across six historical facts, the engine before #743 (`7d4f5bd8`) reported four
+unreadable, one unchanged and one needs_review result. Before #747 (`44f56ec6`),
+all six were unreadable. The final replay reported five unreadable and one
+unchanged result.
 
 #743 added the subscription raw-markup rejection that blocks the MiniMax FAQ.
 Its quote handling also changes how the old Mistral failure is reported.

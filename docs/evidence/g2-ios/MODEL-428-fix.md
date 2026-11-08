@@ -89,8 +89,11 @@ PY
 Observed exit 1, `13 failed, 23 deselected in 3.84s`.
 
 ```sh
+: "${MODEL428_BASELINE_DATA_SHA:?Set the private pre-fix revision locally}"
+export MODEL428_BASELINE_DATA_SHA
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY' > .scratch/model-428-r2/data-red-replay-current.txt 2>&1
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -107,7 +110,7 @@ workflow = replay / '.github/workflows/admission-drafter.yml'
 workflow.parent.mkdir(parents=True, exist_ok=True)
 workflow.write_bytes(subprocess.check_output([
     'git', '-C', str(data), 'show',
-    '<private revision at assessment time>:.github/workflows/admission-drafter.yml',
+    os.environ['MODEL428_BASELINE_DATA_SHA'] + ':.github/workflows/admission-drafter.yml',
 ]))
 raise SystemExit(subprocess.run([
     sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
@@ -147,7 +150,8 @@ From `.scratch/model-428-r2/modelspec-data`:
 actionlint .github/workflows/admission-drafter.yml
 git diff --check
 git hash-object research/model-409/source-terms-audit.md
-git rev-parse <private revision at assessment time>:research/model-409/source-terms-audit.md
+: "${MODEL428_REVIEWED_DATA_SHA:?Set the private post-fix revision locally}"
+git rev-parse "${MODEL428_REVIEWED_DATA_SHA}:research/model-409/source-terms-audit.md"
 ```
 
 Focused tests: exit 0, `24 passed in 6.10s`.

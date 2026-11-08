@@ -22,13 +22,9 @@ Verified source identities
 The identity audit read these five cards from modelspec-data commit
 `68f3a7748f8695e0bcb67ad3e38d55302f487897`, the head reviewed in REV-data99.
 
-| Card path under models/ | Exact models.dev identity | Source fields |
-| --- | --- | --- |
-| deepseek/deepseek-v4-1-flash-1017.md | mistral/deepseek-v4-1-flash-1017 | Mistral availability model_id at line 468; models_dev_url at line 814 |
-| google/gemini-pro-latest.md | google/gemini-pro-latest | version at line 7; models_dev_url at line 818 |
-| mistral/mistral-large-4-0-8.md | mistral/mistral-large-4-0-8 | version at line 7; models_dev_url at line 816 |
-| moonshot/kimi-k3-1-pro-highspeed.md | moonshotai/kimi-k3.1-pro-highspeed | version at line 7; models_dev_url at line 816 |
-| zhipu/zai-glm-5-3-flash.md | mistral/zai-glm-5-3-flash | Mistral availability model_id at line 471; models_dev_url at line 817 |
+The audit recorded five card/source identity observations. It checked `version`,
+availability identifiers and `sources.models_dev_url`. This public report retains
+the count and field names; per-card values remain in the private audit.
 
 The three cards without populated availability IDs preserve the raw ID in
 `version`. The seeder assigns `version=raw.get("id", "")` and constructs
