@@ -224,7 +224,9 @@ def test_every_discovered_writer_checks_out_the_verified_engine_pin(path: Path) 
         for index, step in enumerate(steps):
             if str(step.get("uses", "")).split("@", 1)[0].lower() != "actions/checkout":
                 continue
-            checkout = step.get("with") or {}
+            checkout = {
+                key.lower(): value for key, value in (step.get("with") or {}).items()
+            }
             if "repository" not in checkout:
                 continue
             repository = checkout["repository"]
@@ -306,6 +308,36 @@ def test_discovered_writer_allows_default_and_unrelated_literal_checkouts(
     path = tmp_path / "future-writer.yaml"
     path.write_text(yaml.safe_dump(document), encoding="utf-8")
     test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+
+
+@pytest.mark.parametrize("action,repository_key,ref_key,path_key", [
+    ("actions/checkout@v4", "Repository", "ref", "path"),
+    ("Actions/Checkout@v4", "Repository", "Ref", "Path"),
+    ("ACTIONS/CHECKOUT@v4", "REPOSITORY", "REF", "PATH"),
+    ("actions/checkout@v4", "repository", "REF", "path"),
+])
+@pytest.mark.parametrize("repository,ref,accepted", [
+    (ENGINE_REPOSITORY, "main", False),
+    (ENGINE_REPOSITORY, PIN_REF, True),
+    ("${{ env.ENGINE_REPOSITORY }}", PIN_REF, False),
+])
+def test_second_checkout_input_names_are_case_insensitive(
+    tmp_path: Path, action: str, repository_key: str, ref_key: str, path_key: str,
+    repository: str, ref: str, accepted: bool,
+) -> None:
+    document = _document("daily-research")
+    _engine_job(document)["steps"].append({
+        "uses": action,
+        "env": {"ENGINE_REPOSITORY": ENGINE_REPOSITORY},
+        "with": {repository_key: repository, ref_key: ref, path_key: "another-engine"},
+    })
+    path = tmp_path / "future-writer.yaml"
+    path.write_text(yaml.safe_dump(document), encoding="utf-8")
+    if accepted:
+        test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
+    else:
+        with pytest.raises(AssertionError):
+            test_every_discovered_writer_checks_out_the_verified_engine_pin(path)
 
 
 @pytest.mark.parametrize("writer", ["daily-research", "release-coverage"])
