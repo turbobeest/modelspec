@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -57,3 +59,96 @@ def test_the_pull_request_commits_cards_and_nothing_else() -> None:
     pr = next(s for s in steps if str(s.get("uses", "")).startswith("peter-evans/create-pull-request"))
     add_paths = [p for p in pr["with"]["add-paths"].split("\n") if p.strip()]
     assert add_paths == ["models/**"]
+
+
+SYNC_NAME = "Merge main into the open research branch, never force-push"
+HEAD = "a" * 40
+STUB_GH = """#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$GH_LOG"
+case "$*" in
+  *"pulls?state=open"*) printf '%s' "$STUB_OPEN" ;;
+  *"/compare/main..."*) printf '%s\\n' "$STUB_BEHIND" ;;
+  *"-X PUT"*) exit "$STUB_PUT_EXIT" ;;
+  *) exit 99 ;;
+esac
+"""
+
+
+def _workflow() -> dict[str, Any]:
+    return yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+
+
+def _run_sync(tmp_path: Path, *, open_prs: str, behind: str = "0",
+              put_exit: int = 0) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    step = next(s for s in _workflow()["jobs"]["sync"]["steps"] if s.get("name") == SYNC_NAME)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(STUB_GH, encoding="utf-8")
+    gh.chmod(0o755)
+    log = tmp_path / "gh.log"
+    log.touch()
+    env = {
+        **os.environ,
+        **{key: value for key, value in step["env"].items() if "${{" not in value},
+        "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+        "REPO": "owner/data",
+        "OWNER": "owner",
+        "GH_LOG": str(log),
+        "STUB_OPEN": open_prs,
+        "STUB_BEHIND": behind,
+        "STUB_PUT_EXIT": str(put_exit),
+    }
+    result = subprocess.run(["bash", "-c", step["run"]], env=env, capture_output=True,
+                            text=True, check=False)
+    return result, log.read_text(encoding="utf-8").splitlines()
+
+
+def test_research_runs_on_its_schedule_and_the_sync_also_runs_on_every_push_to_main() -> None:
+    workflow = _workflow()
+    triggers = yaml.load(WORKFLOW_PATH.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)["on"]
+    assert triggers["push"] == {"branches": ["main"]}
+    assert workflow["jobs"]["research"]["if"] == "github.event_name != 'push'"
+    sync = workflow["jobs"]["sync"]
+    assert sync["needs"] == "research"
+    assert "github.event_name == 'push' && needs.research.result == 'skipped'" in sync["if"]
+    assert "!inputs.dry_run" in sync["if"]
+    assert [s.get("uses") for s in sync["steps"]] == [None]
+    assert sync["steps"][0]["env"]["BRANCH"] == "research/daily-models"
+
+
+def test_sync_merges_main_into_a_branch_that_is_behind(tmp_path: Path) -> None:
+    result, calls = _run_sync(tmp_path, open_prs=f"99 {HEAD}", behind="2")
+    assert result.returncode == 0, result.stderr
+    assert calls[-1] == (
+        f"api -X PUT repos/owner/data/pulls/99/update-branch -f expected_head_sha={HEAD}"
+    )
+    assert "Merged main into #99 (2 commits behind)." in result.stdout
+
+
+def test_sync_leaves_an_up_to_date_branch_alone(tmp_path: Path) -> None:
+    result, calls = _run_sync(tmp_path, open_prs=f"99 {HEAD}", behind="0")
+    assert result.returncode == 0, result.stderr
+    assert calls[-1] == f"api repos/owner/data/compare/main...{HEAD} --jq .behind_by"
+    assert "#99 already contains main." in result.stdout
+
+
+def test_sync_does_nothing_without_an_open_research_pull_request(tmp_path: Path) -> None:
+    result, calls = _run_sync(tmp_path, open_prs="")
+    assert result.returncode == 0, result.stderr
+    assert len(calls) == 1
+    assert "No open pull request from research/daily-models." in result.stdout
+
+
+def test_sync_fails_loudly_when_main_does_not_merge(tmp_path: Path) -> None:
+    result, calls = _run_sync(tmp_path, open_prs=f"99 {HEAD}", behind="3", put_exit=1)
+    assert result.returncode == 1
+    assert "::error::Could not merge main into research/daily-models (#99)." in result.stdout
+    assert sum("-X PUT" in call for call in calls) == 1
+
+
+def test_sync_refuses_to_choose_between_two_research_pull_requests(tmp_path: Path) -> None:
+    result, calls = _run_sync(tmp_path, open_prs=f"99 {HEAD}\n100 {'b' * 40}", behind="1")
+    assert result.returncode == 1
+    assert "::error::More than one open pull request from research/daily-models." in result.stdout
+    assert not any("-X PUT" in call for call in calls)

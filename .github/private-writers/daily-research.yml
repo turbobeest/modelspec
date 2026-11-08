@@ -2,12 +2,13 @@
 name: Daily model research
 permissions:
   contents: read
-concurrency:
-  group: daily-research
-  cancel-in-progress: false
 jobs:
   research:
     name: Look for new models
+    if: github.event_name != 'push'
+    concurrency:
+      group: daily-research
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -193,7 +194,57 @@ jobs:
     defaults:
       run:
         working-directory: data
+  sync:
+    # A pull_request check runs on the merge with main as it was when the branch
+    # was pushed. Merging main again after every research run and every push to
+    # main gives the required checks current workflows (data#99).
+    name: Bring the research pull request up to date with main
+    needs: research
+    if: ${{ !cancelled() && !inputs.dry_run && (needs.research.result == 'success' || (github.event_name == 'push' && needs.research.result == 'skipped')) }}
+    concurrency:
+      group: daily-research-sync
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge main into the open research branch, never force-push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          BRANCH: research/daily-models
+        run: |
+          set -euo pipefail
+          open="$(gh api "repos/$REPO/pulls?state=open&base=main&head=$OWNER:$BRANCH" \
+            --jq 'map("\(.number) \(.head.sha)") | join("\n")')"
+          if [ -z "$open" ]; then
+            echo "No open pull request from $BRANCH."
+            exit 0
+          fi
+          if [ "$(printf '%s\n' "$open" | wc -l)" -ne 1 ]; then
+            echo "::error::More than one open pull request from $BRANCH."
+            exit 1
+          fi
+          read -r number head <<< "$open"
+          behind="$(gh api "repos/$REPO/compare/main...$head" --jq .behind_by)"
+          if [ "$behind" = 0 ]; then
+            echo "#$number already contains main."
+            exit 0
+          fi
+          # update-branch merges and refuses a conflict or a head that moved.
+          if ! gh api -X PUT "repos/$REPO/pulls/$number/update-branch" \
+            -f expected_head_sha="$head" > /dev/null; then
+            echo "::error::Could not merge main into $BRANCH (#$number). Nothing was pushed; resolve it by hand."
+            exit 1
+          fi
+          echo "Merged main into #$number ($behind commits behind)."
 'on':
+  push:
+    branches:
+      - main
   schedule:
     - cron: 0 6 * * *
   workflow_dispatch:
