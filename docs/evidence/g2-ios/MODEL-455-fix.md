@@ -1,5 +1,40 @@
 # MODEL-455 verification
 
+## Round 3
+
+Every emitted path now receives an unconditional final scrub that replaces each
+run of 7 or more hexadecimal characters with `<hex>`. It ignores case and
+surrounding characters and does not depend on commit resolution or body
+findings. Existing whole-path redactions remain. Finding counts and body
+detection rules are unchanged.
+
+Two new workflow fixtures put one private revision in a filename and trigger a
+finding using either a different revision or only a private card-value row.
+Both initially leaked the filename revision through all 5 publication
+destinations and the local report artifact. The final replay verifies all 6
+outputs are safe. Existing same-revision tests remain.
+
+Additional CLI cases cover unresolved hex runs, public commits, mixed case,
+directory names, multiple runs, and the 7-character threshold. Before the fix,
+9 CLI cases and both workflow fixtures failed. The final data suite passed 83
+tests in 14.91 seconds. The new workflow mirror remains unchanged and
+byte-identical to the private workflow.
+
+Public validation ran serially after the data suite:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py tests/test_workflow_dependencies.py tests/test_removed_sources.py
+```
+
+It exited 0 with 389 passed and 1 skipped in 66.51 seconds. The skipped test
+requires a built dist. Versions were Python 3.14.4, pytest 9.1.1 and PyYAML
+6.0.3. The revised public handoff and ticket evidence had 0 findings; the
+returned report contained 0 paths with hexadecimal runs of length 7 or more.
+The pre-existing `model-week.yml` mismatch remains outside this change.
+
+No hosted workflow, real alert delivery, full suite or deployed behavior is
+claimed for this round. Older scan counts below remain historical.
+
 ## Round 2
 
 The guard now redacts a detected private revision in filenames regardless of
