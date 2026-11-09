@@ -12,6 +12,7 @@ its work. (Source: `pipeline/entity.py`.)
 ## Architecture
 
 - Sites: `pipeline/build.py` renders `modelspec.dev` on Cloudflare Pages from the frozen public data image in this repository, never from private data. With `DATA_SPLIT_ENABLED` on, `/api` keeps only `build.json`, `rank/profiles.json`, `rank/class-fit.json` and the feedback schema. No database on that path.
+- The public export list above also includes `coverage.json` and versioned public blog snapshots at `decision/snapshots/snap_<16 lowercase hex digits>.json.gz`; the feedback schema is `feedback/v1.schema.json`. The complete allowlist is `KEEP_API` plus `is_retained_snapshot` in [`pipeline/public_data.py`](pipeline/public_data.py).
 - Fresh curated data lives in the private `turbobeest/modelspec-data`. While `DATA_SPLIT_ENABLED` is on, main deploys of the Worker embed exports built from it (`api/worker/vendor.py --data-dir`).
 - The Python Worker on `api.modelspec.dev` (`api/worker/`) serves `/v1/decide`, `/v1/compare`, `/v1/rank`, `/v1/policy-check`, `/v1/feedback`, `/v1/vocabulary`, `/v1/health`, billing and credits, and the visit gate that admits site visitors. Its state: Workers KV (private policy determinations, API-key records) and Durable Objects (credit ledger, human gate).
 - Machines come in through the keyed CLI (`cli/modelspec`, `modelspec-dev` on PyPI; a thin client with no data download) and the remote MCP, a separate TypeScript Worker at `api.modelspec.dev/mcp` (`mcp/`).
@@ -30,6 +31,7 @@ its work. (Source: `pipeline/entity.py`.)
 - The sites stay on Cloudflare Pages (MODEL-3, Jamie).
 - Daily-research PRs (`modelspec-data` `research/*`) are never auto-merged; a human reviews each one (Jamie).
 - Open PRs as draft until reviewed: `automerge.yml` queues every green non-draft PR from this repository, except PRs that touch workflows and the `data-lag/image` branch, which a human merges.
+- Automerge implementation detail: `.github/workflows/automerge.yml` also excludes the exact branches `research/daily-models` and `data/weekly-price-reread`, and changes under `blog/*`. Its file exclusions cover `.github/workflows/*`, including previous filenames on renames. These PRs require human review and merge, as does `data-lag/image`.
 - The feedback digest runs on the operator's machine, never in CI (repo and logs are public).
 - One worktree and one session per ticket (Jamie). Give each worker its own scratch subdirectory; session scratchpads are shared.
 - Automate the human steps. Bring Jamie only a government ID value, a credential, a legal attestation, or an action a permission classifier refused, saying what was blocked.

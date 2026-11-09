@@ -2,7 +2,7 @@
 
 Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`. `git fetch origin main` confirmed this was current `origin/main` before changes.
 
-All checks ran serially in the `model-458-docs` worktree. Each regression ran against unchanged documentation before its correction. Existing behavior tests were preserved.
+All pytest invocations used serial execution in the `model-458-docs` worktree. Each regression ran against unchanged documentation before its correction. Existing behavior tests were preserved.
 
 Tool versions: Python 3.14.4, pytest 9.1.1, Node v22.22.3, git 2.50.1. Version commands: `python3 --version`, `/Users/terbeest/dev/modelspec/.venv/bin/python --version`, `/Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --version`, `/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --version`, `git --version`.
 
@@ -103,11 +103,11 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 
 Generation command: `env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write`; exit 0. The generated Worker change is only its same-width guide version. No schema or catalogue output changed.
 
-The broader guide run reported five capture-coherence failures because `qa/fixtures/mcp-tools.json` pins the two regenerated guide hashes. A two-hash patch was prepared in scratch; that fixture is outside the spec's named paths and awaits scope approval. The spec's focused guide checks and the complete legal test file passed.
+The broader guide run reported five capture-coherence failures because `qa/fixtures/mcp-tools.json` pins the two regenerated guide hashes. A combined metadata patch was prepared in scratch. It updates two guide-version strings in `api/worker/openapi.yaml` and three source hashes in `qa/fixtures/mcp-tools.json`. Both files are outside the spec's named edit paths and await scope approval. The spec's focused guide checks and the complete legal test file passed.
 
 The required private-data memory probe ran through `~/.codex-g2/heavy.sh` with a throwaway signing key, Python 3.14.4, Node v22.22.3 and Pyodide 0.28.3; exit 0. Current steady memory was 114269259 bytes (108.97566 MiB), successor 108793627 bytes (103.75369 MiB). Both passed 115 MiB. Public vendoring with `--check` passed. The private clone, generated bundles and raw private logs were removed. No production service was queried.
 
-The probe script was invoked as `/Users/terbeest/.codex-g2/heavy.sh /bin/bash /tmp/MODEL-458-DOCS-scratch/operations/memory/run-memory.sh`. Its exact commands follow; the clone was created with `git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/MODEL-458-DOCS-scratch/operations/memory/modelspec-data`.
+The probe script was invoked as `/Users/terbeest/.codex-g2/heavy.sh /bin/bash /tmp/MODEL-458-DOCS-scratch/operations/memory/run-memory.sh`. Its exact commands follow; setup ran `mkdir -p /tmp/MODEL-458-DOCS-scratch/operations/memory/tmp`, then `GIT_TERMINAL_PROMPT=0 git clone --depth 1 --single-branch https://github.com/turbobeest/modelspec-data.git /tmp/MODEL-458-DOCS-scratch/operations/memory/modelspec-data > /tmp/MODEL-458-DOCS-scratch/operations/memory/clone.log 2>&1`. Both returned 0.
 
 ```bash
 #!/bin/bash
@@ -363,3 +363,79 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 1 passed in 7.58s
 ```
+
+## AUD-09-F4
+
+Additive AGENTS descriptions list all public export classes and all automerge exceptions. Every original line, including all binding rules, remains unchanged.
+
+f4-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f4-red tests/test_reference_agent_entry.py
+```
+
+```text
+FAILED tests/test_reference_agent_entry.py::test_agent_entry_documents_public_export_exceptions
+FAILED tests/test_reference_agent_entry.py::test_agent_entry_documents_automerge_exceptions
+2 failed in 0.04s
+```
+
+f4-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f4-green tests/test_reference_agent_entry.py tests/test_worker_memory.py::test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above tests/test_worker_memory.py::test_public_memory_workflow_gates_and_compares_the_main_bundle tests/test_feedback_digest.py::test_no_workflow_runs_the_digest tests/test_data_freeze_guard.py::test_a_data_change_on_an_ordinary_branch_fails_and_names_the_file tests/test_blog_deployment.py::test_retained_snapshot_is_preserved_while_other_bulk_exports_are_removed tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next
+```
+
+```text
+31 passed in 0.77s
+```
+
+## Final validation
+
+After the local commit cleanup, all final documentation regressions, landing copy checks, source exclusions and billing-launch checks passed. The first final run was stopped during commit cleanup and is not used as evidence; the stable-tree rerun below is the measured result.
+
+f1-review-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f1-review-red tests/test_reference_decide.py::test_decide_reference_bundled_comparison_does_not_fetch_public_history tests/test_reference_decide.py::test_decide_reference_describes_bundled_successor_transition
+```
+
+```text
+FAILED tests/test_reference_decide.py::test_decide_reference_bundled_comparison_does_not_fetch_public_history
+FAILED tests/test_reference_decide.py::test_decide_reference_describes_bundled_successor_transition
+2 failed in 0.68s
+```
+
+f1-review-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f1-review-green tests/test_reference_decide.py tests/test_snapshot_successor.py
+```
+
+```text
+23 passed in 1.52s
+```
+
+final-focused; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-final-focused tests/test_reference_decide.py tests/test_reference_policy_transport.py tests/test_reference_access.py tests/test_reference_billing.py tests/test_reference_data_split.py tests/test_reference_holding.py tests/test_reference_contributions.py tests/test_reference_x402.py tests/test_reference_x402_launch.py tests/test_reference_policy_contract.py tests/test_reference_agent_entry.py tests/test_removed_sources.py tests/test_landing.py::test_the_positioning_copy_types_no_numbers tests/test_landing.py::test_every_analysis_row_links_to_a_proof_that_exists tests/test_landing.py::test_the_positioning_does_not_overclaim tests/test_billing_launch.py
+```
+
+```text
+98 passed, 1 skipped in 96.84s (0:01:36)
+```
+
+The final focused command above was invoked through `/Users/terbeest/.codex-g2/heavy.sh` because the landing fixtures build site data. The first overlapping attempt was terminated with exit 143 and discarded before the stable-tree rerun.
+
+Additional scope checks: `git diff --check 5dd0eb5a HEAD` exited 0. A line-subsequence check against `git show 5dd0eb5a:AGENTS.md` confirmed all 72 original lines remain. Inspection of `git diff --name-only 5dd0eb5a HEAD` confirmed no frozen data, legal files, workflows, prices, ranking floors or production configuration changed. `gh --version` reported 2.103.3.
+
+The branch contains exactly 12 finding commits in spec order. Local review corrections were folded into their finding commits with `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash 5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`; the final tree matches the pre-cleanup tree. No existing tests were weakened.
+
+Final tested implementation SHA: `9fbc8c457764bea0859c81456cd72c81128443aa`. The final evidence-only amendment changes this file; the submitted full head SHA is recorded in the PR body and executor completion marker, and can be reproduced with `git rev-parse model-458-docs`.
+
+Publication commands: `CI_LOCAL_SKIP=1 git push -u origin model-458-docs`, then from `/tmp`, `gh pr create -R turbobeest/modelspec --draft --base main --head model-458-docs --title "MODEL-458: reference docs match the running service" --body-file /tmp/MODEL-458-DOCS-scratch/root/pr-body.md`. No merge or ready action is authorized or performed.
+
+Remaining limitation: the requested scope does not name the two generated metadata files above. The actual worktree therefore retains five guide-capture coherence failures and one OpenAPI generation coherence failure. All permanent regression cases for the twelve findings pass. The draft is BLOCKED until that prepared metadata update is authorized and the affected existing checks are rerun. No runtime fix, schema-range widening, production switch, legal text, price or plan change is needed.
+
+The final focused skip is the optional built-dist source check, which requires `MODELSPEC_DIST`. The two earlier API-documentation skips require `MODELSPEC_LIVE_API=1`; no live probes ran.
