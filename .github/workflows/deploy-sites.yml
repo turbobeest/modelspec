@@ -175,6 +175,7 @@ jobs:
           MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
           MODELSPEC_SNAPSHOT_ED25519_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}
         run: |
+          set -o pipefail
           snapshot_args=()
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
             snapshot_args+=(--decision-snapshot-if-ready)

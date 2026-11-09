@@ -467,6 +467,34 @@ def test_site_build_guards_pages_limits_before_deploy() -> None:
     assert "if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'" in workflow
 
 
+@pytest.mark.parametrize("builder_status", [42, 0], ids=["failed", "successful"])
+def test_site_build_preserves_builder_status_and_summary(tmp_path: Path, builder_status: int) -> None:
+    import subprocess
+
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text())
+    step = next(s for s in workflow["jobs"]["build"]["steps"] if s.get("name") == "Build")
+    summary = tmp_path / "summary.md"
+    builder = (
+        'python() { mkdir -p dist/modelspec dist/benchgraph; '
+        f"printf '%s\\n' '{{\"built\": true}}'; return {builder_status}; }}\n"
+    )
+    result = subprocess.run(
+        ["bash", "-e", "-c", builder + step["run"]], cwd=tmp_path,
+        env=os.environ | {"GITHUB_STEP_SUMMARY": str(summary), "GITHUB_EVENT_NAME": "pull_request"},
+        capture_output=True, text=True,
+    )
+    assert result.returncode == builder_status, result.stdout + result.stderr
+    assert (tmp_path / "summary.json").read_text() == '{"built": true}\n'
+    if builder_status:
+        assert not summary.exists()
+    else:
+        assert '```json\n{"built": true}\n```' in summary.read_text()
+        assert "modelspec.dev:" in summary.read_text()
+        assert "benchgraph.dev:" in summary.read_text()
+
+
 def test_validation_workflow_checks_status_and_report_shape() -> None:
     workflow = (WORKFLOWS / "validate-cards.yml").read_text(encoding="utf-8")
     masked_validator = (
