@@ -5,9 +5,10 @@ account `43840d11…`, which dev-mux and personal sites also use, into a new
 ModelSpec-only account. The sites and the free decide page keep answering
 throughout. The API, keyless calls included, does not: on 2026-11-08
 `api.modelspec.dev` was down for 36 minutes around activation (see "What the
-2026-11-08 move found"); with the phase 8 `A` record, expect up to 15 minutes. Credit operations, which every keyed and
-paid call needs, freeze for the minutes between exporting the ledger and the
-zone turning active, and answer 503 meanwhile. No credit balance is lost or
+2026-11-08 move found"); with the phase 8 `A` record, expect up to 15
+minutes. Credit operations, which every keyed and paid call needs, freeze for
+the minutes between exporting the ledger and the zone turning active, and
+answer 503 meanwhile. No credit balance is lost or
 counted twice.
 Jamie's plan doc covers the account-level reasoning: "Cloudflare Account
 Separation: dev-mux & modelspec", <https://claude.ai/artifact/CmPqJyGpcDMY3T3iw2DQrC>.
