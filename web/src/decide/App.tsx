@@ -62,7 +62,7 @@ import { BoardIntro, FacetBoard, readEstate, writeEstate } from "./facet-board/F
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
   allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
-  sanitizeBoardState,
+  sanitizeBoardState, restoreBoardState,
   templateToBoard,
   toBoardDecisionSpec,
 } from "./facet-board/model";
@@ -636,13 +636,13 @@ export function DesignedApp({
       answeredNavigation.current = navigation;
       const legacyBoard = board ? null : legacySpecToBoard(decoded.spec, vocabulary, estate);
       const restoredBoard = board
-        ? sanitizeBoardState(board, vocabulary)
+        ? restoreBoardState(decoded.spec, board, vocabulary)
         : legacyBoard;
       if (!restoredBoard) {
         setInitialRestored(true);
         return;
       }
-      const restoredBase = legacyBoard ? legacyBoardBaseSpec(decoded.spec) : decoded.spec;
+      const restoredBase = legacyBoard ? legacyBoardBaseSpec(decoded.spec) : { ...decoded.spec, conds: [] };
       const restored = boardToSpec(
         restoredBase,
         vocabulary,

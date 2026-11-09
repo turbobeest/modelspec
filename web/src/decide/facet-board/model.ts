@@ -578,6 +578,39 @@ function legacyConditionSelection(condition: Cond): { facetId: string; selection
   }
 }
 
+/** Restore saved requirements through the same editable controls as the board. */
+export function restoreBoardState(spec: Spec, board: BoardUrlState, vocabulary: Vocabulary): SanitizedBoardState {
+  const owned = new Set(Object.keys(board.selections).flatMap((id) => [id, id.replace(/^capability\./, "")]));
+  const remaining = spec.conds.filter((condition) => {
+    const mapped = legacyConditionSelection(condition);
+    return !owned.has(condition.f === "facet" ? condition.facet : mapped?.facetId ?? "");
+  }).map((condition) => condition.f === "facet" && vocabulary.domains.some((domain) => domain.id === condition.facet)
+    ? { ...condition, facet: `capability.${condition.facet}` }
+    : condition);
+  const compatible = legacySpecToBoard(
+    { ...spec, conds: remaining, task: "", bar: undefined, w: { cap: 0, cost: 0, speed: 0 } },
+    vocabulary,
+    board.estate,
+  );
+  const notes = compatible.mustOrder.length
+    ? [...compatible.notes, "Additional saved requirements are shown as Must controls."]
+    : compatible.notes;
+  const previousByFacet = new Map<string, Cond>();
+  for (const condition of remaining) {
+    const mapped = legacyConditionSelection(condition);
+    if (!mapped) continue;
+    const previous = previousByFacet.get(mapped.facetId);
+    if (previous)
+      notes.push(`Your saved link also asked for ${contractCondition(previous)}; the board keeps only the last requirement for this facet, so that earlier condition is not applied.`);
+    previousByFacet.set(mapped.facetId, condition);
+  }
+  return sanitizeBoardState({
+    ...board,
+    selections: { ...compatible.selections, ...board.selections },
+    mustOrder: [...compatible.mustOrder, ...board.mustOrder],
+  }, vocabulary, notes);
+}
+
 /** Translate a permalink written by the retired composer into visible board state. */
 export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Estate): LegacyBoardState {
   const knownFacets = new Set([

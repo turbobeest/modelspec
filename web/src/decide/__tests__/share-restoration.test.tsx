@@ -4,7 +4,7 @@ import App from "../App";
 import { decisionSpecSchema, type DecisionSpec } from "../adapter/contract";
 import { prepareDecisionRequest } from "../adapter/request-spec";
 import { encodeBoardSpec } from "../facet-board/model";
-import { defaultChoices, selectJob } from "../simple/model";
+import { defaultChoices, evidenceLink, selectJob } from "../simple/model";
 import { baseSpec, encodeSpec } from "../state/spec";
 import { vocabularySchema } from "../vocabulary";
 import rawVocabulary from "../__fixtures__/live-vocabulary.json";
@@ -89,4 +89,55 @@ it("submits only the last board when two hashes arrive before vocabulary", async
   await pending.release();
   expect(pending.requests.filter((request) => request.explain === "summary"))
     .toEqual([prepareDecisionRequest(vocabulary, last.spec, "summary").decisionSpec]);
+});
+
+it.each(["initial", "hash"])("drops a removed evidence-link facet during %s restoration", async (navigation) => {
+  vi.useFakeTimers();
+  const selection = selectJob(vocabulary, { ...defaultChoices, limits: ["eu"], route: "own_software" });
+  if (!selection) throw new Error("EU fixture must be selectable");
+  const updatedVocabulary = { ...vocabulary, facets: vocabulary.facets.filter((facet) => facet.id !== "offering.region") };
+  const expected = prepareDecisionRequest(vocabulary, selection.spec, "summary").decisionSpec;
+  const requests: DecisionSpec[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("vocabulary")) return json(updatedVocabulary);
+    if (init?.body) requests.push(decisionSpecSchema.parse(JSON.parse(String(init.body))));
+    return json(rawDecision);
+  }));
+  if (navigation === "initial") history.replaceState(null, "", evidenceLink(selection));
+  render(<App />);
+  await settle();
+  if (navigation === "hash") {
+    requests.length = 0;
+    navigate(new URL(evidenceLink(selection), location.origin).hash);
+    await settle();
+  }
+  expect(screen.getByRole("note", { name: "Notes from your old decision link" }))
+    .toHaveTextContent("not editable in this snapshot, so it is not applied");
+  expect(requests.filter((request) => request.explain === "summary")).toEqual([{
+    ...expected,
+    where: expected.where?.filter((condition) => typeof condition !== "string" || !condition.startsWith("offering.region ")),
+  }]);
+});
+
+it.each(["initial", "hash"])("preserves supported evidence-link gates during %s restoration", async (navigation) => {
+  vi.useFakeTimers();
+  const selection = selectJob(vocabulary, { ...defaultChoices, limits: ["eu", "no-training"], route: "own_software" });
+  if (!selection) throw new Error("EU fixture must be selectable");
+  const expected = prepareDecisionRequest(vocabulary, selection.spec, "summary").decisionSpec;
+  const requests: DecisionSpec[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("vocabulary")) return json(vocabulary);
+    if (init?.body) requests.push(decisionSpecSchema.parse(JSON.parse(String(init.body))));
+    return json(rawDecision);
+  }));
+  if (navigation === "initial") history.replaceState(null, "", evidenceLink(selection));
+  render(<App />);
+  await settle();
+  if (navigation === "hash") {
+    requests.length = 0;
+    navigate(new URL(evidenceLink(selection), location.origin).hash);
+    await settle();
+  }
+  expect(requests.filter((request) => request.explain === "summary")).toEqual([expected]);
+  expect(screen.queryByRole("note", { name: "Notes from your old decision link" })).not.toBeInTheDocument();
 });

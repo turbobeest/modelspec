@@ -45,6 +45,45 @@ npm test -- src/decide/__tests__/share-restoration.test.tsx src/decide/__tests__
 
 Exit 0: four files, 64 tests passed.
 
+## AUD-12-F2
+
+Saved board selections own their copied base conditions, including selections
+absent from the current vocabulary. Other saved conditions pass through the
+existing compatibility conversion, with visible controls and omission notes.
+
+Red regressions: `drops a removed evidence-link facet during initial restoration`
+and `drops a removed evidence-link facet during hash restoration`.
+
+```sh
+npm test -- src/decide/__tests__/share-restoration.test.tsx --maxWorkers=1 --reporter=verbose
+```
+
+Before the F2 source change, exit 1: two failed, five passed. Both failures
+showed an extra `offering.region` condition in the request despite the omission
+note. Supported-link roundtrips already passed and remain unchanged.
+
+```sh
+npm test -- src/decide/__tests__/share-restoration.test.tsx src/decide/__tests__/real-app.test.tsx src/decide/__tests__/facet-board.test.tsx src/decide/__tests__/simple-decide.test.tsx --maxWorkers=1
+```
+
+Exit 0: four files, 137 tests passed. This also covers compatible base
+requirements becoming visible Must controls and unsupported requirements
+receiving notes.
+
+Review added two compatibility regressions in `facet-board.test.tsx`:
+`restores a supported capability requirement stored in the base spec` and
+`explains saved base requirements replaced by another requirement on the same control`.
+Each failed first, respectively with `expected undefined to deeply equal` the
+Must selection and a missing earlier-condition note. Exact focused commands:
+
+```sh
+npm test -- src/decide/__tests__/facet-board.test.tsx --maxWorkers=1 -t 'restores a supported capability requirement'
+npm test -- src/decide/__tests__/facet-board.test.tsx --maxWorkers=1 -t 'explains saved base requirements'
+npm test -- src/decide/__tests__/facet-board.test.tsx src/decide/__tests__/share-restoration.test.tsx --maxWorkers=1
+```
+
+After correction, exit 0: two files, 91 tests passed.
+
 ## Observation limits
 
 No production requests, deployments, paid-provider calls, or full local suite.
