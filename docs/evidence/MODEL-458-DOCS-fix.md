@@ -327,3 +327,39 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 38 passed in 1.50s
 ```
+
+## AUD-02-F6
+
+The literal policy-contract request returns HTTP 200 with nonempty rows against the frozen catalogue. The optional model filter is omitted and the example explains how to choose catalogue IDs. The broader API documentation check reports the separate guide-version metadata dependency noted under AUD-09-F3.
+
+aud02-f6-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-aud02-f6-red tests/test_reference_policy_contract.py
+```
+
+```text
+FAILED tests/test_reference_policy_contract.py::test_policy_contract_complete_request_returns_a_nonempty_answer
+1 failed in 8.81s
+```
+
+aud02-f6-green; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-aud02-f6-green tests/test_reference_policy_contract.py tests/test_api_docs.py
+```
+
+```text
+FAILED tests/test_api_docs.py::test_the_committed_spec_is_what_the_implementation_generates
+1 failed, 56 passed, 2 skipped in 12.73s
+```
+
+aud02-f6-focused; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-aud02-f6-focused tests/test_reference_policy_contract.py
+```
+
+```text
+1 passed in 7.58s
+```
