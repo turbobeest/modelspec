@@ -8,7 +8,6 @@ imported from `entry.py` so Wrangler can find it by `class_name`.
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import Any
 
 from credits import LedgerState
@@ -73,18 +72,19 @@ class CreditsObject(DurableObject):
         state.finish_claim(str(payment_id))
         self._save(state)
 
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "") -> dict[str, Any]:
+        state = self._stored()
+        result = state.fund_claim(str(holder), str(claim_id), str(invoice_id),
+                                  int(units), str(plan), str(customer_id))
+        self._save(state)
+        return result.to_json()
+
     async def claim_purchase(self, session_id: str, now: str) -> str:
-        from dataclasses import asdict
-        from access_billing import _consume_claim_serialized
-        from access_config import load_policy
-        from access_kv import CloudflareKV
+        from access_billing import claim_from_env
 
         async def claim():
-            result = await _consume_claim_serialized(
-                CloudflareKV(self.env.ACCESS), str(session_id),
-                now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
-                policy=load_policy(self.env), ledger=self)
-            return json.dumps(asdict(result) if result is not None else None)
+            return await claim_from_env(self, self.env, str(session_id), str(now))
 
         return await self.ctx.blockConcurrencyWhile(claim)
 
@@ -98,16 +98,10 @@ class CreditsObject(DurableObject):
         self._save(state)
 
     async def rotate_key(self, current_key: str, now: str) -> str:
-        from access_billing import _rotate_serialized
-        from access_config import load_policy
-        from access_kv import CloudflareKV
+        from access_billing import rotate_from_env
 
         async def rotate():
-            result = await _rotate_serialized(
-                CloudflareKV(self.env.ACCESS), str(current_key),
-                now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
-                policy=load_policy(self.env), ledger=self)
-            return json.dumps(None if result is None else [result[0], result[1].to_json()])
+            return await rotate_from_env(self, self.env, str(current_key), str(now))
 
         return await self.ctx.blockConcurrencyWhile(rotate)
 

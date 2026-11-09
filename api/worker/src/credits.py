@@ -791,6 +791,21 @@ class LedgerState:
         rec["claim"] = {"stage": "complete"}
         rec.pop("pending", None)
 
+    def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                   units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+        rec = self.payments.get(claim_id)
+        claim = rec.get("claim") if rec is not None else None
+        if claim is None or rec.get("holder") != holder:
+            return CreditResult(False, "conflict", 0)
+        if claim.get("stage") == "complete":
+            return CreditResult(False, "replay", int(rec.get("units") or 0))
+        if claim.get("holder") != holder:
+            return CreditResult(False, "conflict", 0)
+        result = self.set_monthly(holder, units, invoice_id, plan, customer_id)
+        if result.credited or result.reason == "replay":
+            self.finish_claim(claim_id)
+        return result
+
     def _pack_claim(self, tx: str) -> tuple[str, dict[str, Any]] | None:
         if not tx:
             return None
@@ -1522,6 +1537,9 @@ class Ledger(Protocol):
 
     async def finish_claim(self, payment_id: str) -> None: ...
 
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "") -> CreditResult: ...
+
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any: ...
 
@@ -1625,6 +1643,11 @@ class MemoryLedger:
     async def finish_claim(self, payment_id: str) -> None:
         async with self._lock:
             self.state.finish_claim(payment_id)
+
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+        async with self._lock:
+            return self.state.fund_claim(holder, claim_id, invoice_id, units, plan, customer_id)
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any:
@@ -1798,6 +1821,10 @@ class UnboundLedger:
     async def finish_claim(self, payment_id: str) -> None:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -1938,6 +1965,12 @@ class DurableLedger:
 
     async def finish_claim(self, payment_id: str) -> None:
         await self._call("finish_claim", payment_id)
+
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+        data = await self._call("fund_claim", holder, claim_id, invoice_id,
+                                int(units), plan, customer_id)
+        return CreditResult.from_json(dict(data))
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any:

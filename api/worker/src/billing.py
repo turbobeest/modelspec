@@ -605,6 +605,13 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         if not subscription_id:
             action = "ignored"
         else:
+            if type_ == "invoice.payment_failed":
+                period_start, period_end = _invoice_period(obj, policy)
+                await store.record_chronology(
+                    kv, subscription_id, now=now, policy=policy,
+                    customer_id=_id(obj.get("customer")),
+                    invoice_id=_id(obj.get("id")) or event_id,
+                    period_start=period_start, period_end=period_end, paid=False)
             action = await store.set_subscription_tier(
                 kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
             await store.clear_monthly(kv, subscription_id, ledger=ledger)
@@ -717,8 +724,12 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             service_commit=service_commit, endpoint=endpoint,
             detail={"price_id": price_id})
     existing = await store.load_subscription(kv, subscription_id)
+    initial_invoice = _id(obj.get("invoice"))
+    recovers_initial = (existing is not None and initial_invoice
+                        and initial_invoice == existing.invoice_id
+                        and not existing.invoice_paid)
     if existing is not None and (
-            existing.invoice_id or
+            (existing.invoice_id and not recovers_initial) or
             existing.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES):
         await store.link_current_checkout(
             kv, existing, session_id=session_id, key_fingerprint=fingerprint,
@@ -729,13 +740,19 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         kv, subscription_id=subscription_id,
         customer_id=_id(obj.get("customer")), price_id=price_id, tier=mapping.tier,
         session_id=session_id, now=now, policy=policy,
-        pending_monthly=mapping.credits, plan_name=mapping.name,
-        plan_credits=mapping.credits, key_fingerprint=fingerprint)
+        pending_monthly=mapping.credits,
+        pending_invoice_id=initial_invoice or f"checkout:{session_id}",
+        plan_name=mapping.name, plan_credits=mapping.credits, key_fingerprint=fingerprint)
     grant = await store.grant_monthly(
         kv, subscription_id, ledger=ledger, units=mapping.credits,
-        invoice_id=f"checkout:{session_id}", plan=mapping.name)
+        invoice_id=initial_invoice or f"checkout:{session_id}", plan=mapping.name)
     if grant == "granted":
         action = "credited" if action in {"entitled", "already_entitled"} else action
+    if recovers_initial:
+        await store.record_chronology(
+            kv, subscription_id, now=now, policy=policy,
+            invoice_id=initial_invoice, period_start=existing.invoice_period_start,
+            period_end=existing.invoice_period_end, paid=True)
     return action, None
 
 
@@ -776,8 +793,13 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         kv, subscription_id=subscription_id,
         customer_id=_id(obj.get("customer")), price_id=price_id, tier=mapping.tier,
         session_id="", now=now, policy=policy,
-        pending_monthly=mapping.credits, plan_name=mapping.name,
-        plan_credits=mapping.credits, key_fingerprint=fingerprint)
+        pending_monthly=mapping.credits, pending_invoice_id=invoice_id,
+        plan_name=mapping.name, plan_credits=mapping.credits, key_fingerprint=fingerprint)
+    period_start, period_end = _invoice_period(obj, policy)
+    await store.record_chronology(
+        kv, subscription_id, now=now, policy=policy,
+        customer_id=_id(obj.get("customer")), invoice_id=invoice_id,
+        period_start=period_start, period_end=period_end, paid=True)
     grant = await store.grant_monthly(
         kv, subscription_id, ledger=ledger, units=mapping.credits,
         invoice_id=invoice_id, plan=mapping.name)

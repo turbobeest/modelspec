@@ -73,4 +73,80 @@ when pending work resumes. The legal record-naming check passes.
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_credits.py tests/test_pricing_v2.py tests/test_friends_billing.py tests/test_legal.py
 ```
 
-Result: 375 passed, exit 0.
+Result: 377 passed, exit 0.
+
+
+## AUD-03-F8
+
+Checkout, pending allowance and the initial invoice share the invoice identity.
+Claim ownership uses a stable subscription selector; the invoice grant and
+claim completion are committed in one ledger write. Later renewal invoices
+retain their allowance reset. A paid Checkout can recover its own initial
+invoice. Legacy records remain readable.
+
+The supplied check failed before the change and passes after it. Initial
+permanent controls reported five failures and one passing control before the
+change. Both event orders, anonymous and bound purchases, spending between
+deliveries, replay and a later renewal now pass. Additional controls cover
+prepared claims, current subscription status, chronology before funding,
+stale legacy metadata and ledger write interruptions.
+
+## Final checks and scope blocker
+
+All seven supplied checks pass. Detailed reproduction output remained in the
+local ticket scratch directory and is excluded from this public evidence.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_credits.py tests/test_pricing_v2.py tests/test_friends_billing.py tests/test_friends_billing_wiring.py tests/test_legal.py tests/test_api_access.py tests/test_x402.py tests/test_exempt_credits.py
+```
+
+Result: 614 passed, one failed, exit 1. The remaining routed billing fixture
+in `tests/test_friends_billing_wiring.py` omits the CREDITS binding required by
+the serialized claim path. That file is outside the ticket's allowed edit
+paths and remains unchanged. A temporary fixture supplying a local
+CreditsObject with the same environment made both unchanged tests in that
+file pass, exit 0. No assertion was changed. The draft remains blocked until
+that fixture update is in scope.
+
+The final ledger and Durable Object focused run passed 29 tests, exit 0.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+env PYTHONPATH=$PWD MODELSPEC_SNAPSHOT_KEY=model-458-memory-fixture-key /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 8 --isolate tests/test_private_serving.py --isolate tests/test_social_cards.py --isolate tests/test_agent_ready.py --isolate tests/test_landing.py --summary
+git diff --check
+```
+
+All four commands exited 0. OpenAPI matches the implementation. The public
+bundle imports using its declared dependencies. The ordinary shard estimates
+remain balanced. No public contract range was widened.
+
+## Worker memory
+
+Node 22.22.3, npm 10.9.8, Pyodide 0.28.3. The private data checkout and generated
+bundle remained in ticket scratch. A synthetic signing key was used.
+The build and probe ran together through the required wrapper:
+
+```sh
+/Users/terbeest/.codex-g2/heavy.sh bash /tmp/MODEL-458-BILL-A-scratch/root/check-memory.sh
+```
+
+The script ran the following build and probe with the pinned Node directory
+on PATH and `PYTHONPATH=$PWD`. It copied the current runtime Python modules
+into the generated scratch bundle while retaining the generated data and
+policy modules.
+
+```sh
+export MODELSPEC_SNAPSHOT_KEY=model-458-memory-fixture-key
+/Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --data-dir /tmp/MODEL-458-BILL-A-scratch/root/modelspec-data --out /tmp/MODEL-458-BILL-A-scratch/root/private-bundle
+NODE_PATH=/tmp/MODEL-458-BILL-A-scratch/root/memory/node_modules node --expose-gc api/worker/measure_memory.cjs /tmp/MODEL-458-BILL-A-scratch/root/private-bundle --limit-mib 115 --output /tmp/MODEL-458-BILL-A-scratch/root/memory-result.json
+```
+
+Result: exit 0; steady memory 108,822,028 bytes, 103.78 MiB, below 115 MiB.
+The probe exercised decide, vocabulary, rank and policy-check with network
+requests disabled. No private data values or private commit identifiers are
+included here.
+
+No local full suite or site build was run. Production behavior, live payment
+processing and delivery of a one-time response over the network were not
+observed. No deployment was authorized or performed.

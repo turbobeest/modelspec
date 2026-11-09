@@ -21,14 +21,15 @@ import hashlib
 import hmac
 import json
 import secrets
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import access_keys as keys
 from access_keys import storage_name, storage_name_from_fingerprint
 import credits
-from access_config import AccessPolicy, PolicyError
+from access_config import AccessPolicy, PolicyError, load_policy
+from access_kv import CloudflareKV
 
 _EVENT_PREFIX = "event:"
 _SESSION_PREFIX = "session:"
@@ -180,6 +181,7 @@ class SubscriptionRecord:
     key_id: str
     created_at: str
     pending_monthly: int = 0
+    pending_invoice_id: str = ""
     plan_name: str = ""
     plan_credits: int = 0
     subscription_status: str = ""
@@ -201,6 +203,7 @@ class SubscriptionRecord:
             "key_id": self.key_id,
             "created_at": self.created_at,
             "pending_monthly": self.pending_monthly,
+            "pending_invoice_id": self.pending_invoice_id,
             "plan_name": self.plan_name,
             "plan_credits": self.plan_credits,
             "subscription_status": self.subscription_status,
@@ -224,6 +227,7 @@ class SubscriptionRecord:
             key_id=str(data.get("key_id") or ""),
             created_at=str(data.get("created_at") or ""),
             pending_monthly=int(data.get("pending_monthly") or 0),
+            pending_invoice_id=str(data.get("pending_invoice_id") or ""),
             plan_name=str(data.get("plan_name") or ""),
             plan_credits=int(data.get("plan_credits") or 0),
             subscription_status=str(data.get("subscription_status") or ""),
@@ -372,7 +376,8 @@ async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
 async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                              price_id: str, tier: str, session_id: str,
                              now: datetime, policy: AccessPolicy,
-                             pending_monthly: int = 0, plan_name: str = "",
+                             pending_monthly: int = 0, pending_invoice_id: str = "",
+                             plan_name: str = "",
                              plan_credits: int = 0, key_fingerprint: str = ""
                              ) -> tuple[str, SubscriptionRecord]:
     """Record (or refresh) the paid entitlement. Does not mint a key.
@@ -405,6 +410,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                 customer_id=customer_id or existing.customer_id,
                 price_id=price_id or existing.price_id,
                 pending_monthly=pending_monthly or existing.pending_monthly,
+                pending_invoice_id=pending_invoice_id or existing.pending_invoice_id,
                 plan_name=plan_name or existing.plan_name,
                 plan_credits=plan_credits or existing.plan_credits,
                 key_fingerprint=bound or existing.key_fingerprint,
@@ -418,6 +424,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                 fields["customer_id"] = customer_id
             if pending_monthly and not (bound or existing.key_fingerprint):
                 fields["pending_monthly"] = pending_monthly
+                fields["pending_invoice_id"] = pending_invoice_id or existing.pending_invoice_id
             if plan_name:
                 fields["plan_name"] = plan_name
             if plan_credits:
@@ -443,6 +450,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
         subscription_id=subscription_id, customer_id=customer_id, price_id=price_id,
         tier=tier, status=STATUS_ACTIVE, key_fingerprint="", key_id="",
         created_at=_iso(now), pending_monthly=pending_monthly,
+        pending_invoice_id=pending_invoice_id,
         plan_name=plan_name, plan_credits=plan_credits,
     )
     if key_fingerprint:
@@ -537,7 +545,7 @@ async def _grant_pending_monthly(ledger: Any, stored: SubscriptionRecord,
     holder = credits.holder_from_fingerprint(stored.key_fingerprint)
     try:
         await ledger.set_monthly(
-            holder, stored.pending_monthly, invoice_id,
+            holder, stored.pending_monthly, stored.pending_invoice_id or invoice_id,
             stored.plan_name, stored.customer_id)
     except credits.StoreNotConfigured:
         return
@@ -632,12 +640,16 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             created_at=_iso(now), label=(subscription_id if pack else
                                        f"subscription:{subscription_id}"))
     amount = (stored.plan_credits if pack else stored.pending_monthly)
-    if selected is not None:
+    if selected is not None and (pack or not stored.pending_monthly):
         amount = int(selected["units"])
+    if not pack and stored.status == STATUS_INACTIVE:
+        amount = 0
+    invoice_id = (stored.pending_invoice_id or
+                  (selected.get("invoice_id", "") if selected else "") or payment_id)
     holder = credits.holder_from_fingerprint(fingerprint_hex)
     stored = replace(stored, key_fingerprint=fingerprint_hex, key_id=record.key_id)
     await ledger.save_claim(payment_id, {
-        "holder": holder, "units": amount,
+        "holder": holder, "units": amount, "invoice_id": invoice_id,
         "stage": "prepared",
     }, kind="pack" if pack else "monthly", units=amount, tx=session_id)
 
@@ -661,8 +673,8 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             result = await ledger.credit(holder, payment_id, amount, session_id,
                                          expires_at=_pack_expiry(now, policy), source="pack")
         else:
-            result = await ledger.set_monthly(holder, amount, payment_id,
-                                              stored.plan_name, stored.customer_id)
+            result = await ledger.fund_claim(holder, payment_id, invoice_id, amount,
+                                             stored.plan_name, stored.customer_id)
         if isinstance(result, dict):
             result = credits.CreditResult.from_json(result)
         if not result.credited and result.reason not in {"replay", "refunded"}:
@@ -729,7 +741,11 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
         transition = {**transition, "stage": "transferred"}
     await kv.put(storage_name(current_key),
                  json.dumps(replace(record, active=False).to_json()))
-    await ledger.save_rotation(holder, {"stage": "complete"})
+    try:
+        await ledger.save_rotation(holder, {"stage": "complete"})
+    except Exception:
+        if (await ledger.rotation_state(holder) or {}).get("stage") != "complete":
+            raise
     return secret, issued
 
 
@@ -741,6 +757,12 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
         return "no_key"
     if stored.key_fingerprint and ledger is not None:
         try:
+            selected = await ledger.claim_state(f"claim:{subscription_id}")
+            if selected is not None and selected["stage"] == "prepared":
+                await _write_sub(kv, replace(
+                    stored, pending_monthly=units, pending_invoice_id=invoice_id,
+                    plan_name=plan or stored.plan_name, plan_credits=units))
+                return "pending"
             result = await ledger.set_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
                 units, invoice_id, plan, stored.customer_id)
@@ -751,7 +773,8 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
             return "granted" if result.credited else result.reason or "duplicate"
         except credits.StoreNotConfigured:
             return "store_unbound"
-    updated = replace(stored, pending_monthly=units, plan_name=plan or stored.plan_name,
+    updated = replace(stored, pending_monthly=units, pending_invoice_id=invoice_id,
+                      plan_name=plan or stored.plan_name,
                       plan_credits=units or stored.plan_credits)
     await _write_sub(kv, updated)
     return "pending"
@@ -770,3 +793,19 @@ async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any) -> str:
             return "store_unbound"
     await _write_sub(kv, replace(stored, pending_monthly=0))
     return "cleared"
+
+
+async def claim_from_env(ledger: Any, env: Any, session_id: str, now: str) -> str:
+    result = await _consume_claim_serialized(
+        CloudflareKV(env.ACCESS), str(session_id),
+        now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+        policy=load_policy(env), ledger=ledger)
+    return json.dumps(asdict(result) if result is not None else None)
+
+
+async def rotate_from_env(ledger: Any, env: Any, current_key: str, now: str) -> str:
+    result = await _rotate_serialized(
+        CloudflareKV(env.ACCESS), str(current_key),
+        now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+        policy=load_policy(env), ledger=ledger)
+    return json.dumps(None if result is None else [result[0], result[1].to_json()])

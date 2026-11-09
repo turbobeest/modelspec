@@ -452,3 +452,71 @@ def test_claim_requires_a_configured_ledger(explicit):
         assert not [name for name in kv.data if name.startswith("key:")]
 
     asyncio.run(scenario())
+
+
+def test_plan_claim_funds_invoice_and_completes_selection_together():
+    async def scenario():
+        ctx = Ctx(lambda value: {"v": value})
+        ledger = _ledger(credits_do.CreditsObject(ctx, env=None))
+        await ledger.save_claim("claim:subscription", {
+            "holder": "key:selected", "units": 100, "stage": "prepared"},
+            kind="monthly", units=100, tx="session")
+        refused = await ledger.fund_claim(
+            "key:other", "claim:subscription", "in_initial", 100, "Solo")
+        assert not refused.credited and refused.reason == "conflict"
+        result = await ledger.fund_claim(
+            "key:selected", "claim:subscription", "in_initial", 100, "Solo")
+        assert result.credited
+        restarted = _ledger(credits_do.CreditsObject(ctx, env=None))
+        assert await restarted.claim_state("claim:subscription") == {"stage": "complete"}
+        assert (await restarted.payment("in_initial"))["holder"] == "key:selected"
+        reserved = await restarted.reserve("key:selected", 10)
+        assert reserved.ok
+        assert (await restarted.commit("key:selected", reserved.reservation_id)).ok
+        replay = await restarted.set_monthly("key:selected", 100, "in_initial", "Solo")
+        assert not replay.credited
+        assert (await restarted.balance("key:selected")).monthly == 90
+
+    asyncio.run(scenario())
+
+
+def test_claim_completion_survives_earlier_checkout_metadata_reads():
+    from access_kv import MemoryKV
+    import tests.test_billing as t
+
+    class EarlierKV(MemoryKV):
+        def __init__(self):
+            super().__init__()
+            self.earlier = {}
+            self.replay_earlier = False
+
+        async def put(self, name, value, **kwargs):
+            if name.startswith(("sub:", "session:")) and name not in self.earlier:
+                earlier = json.loads(value)
+                earlier.pop("pending_invoice_id", None)
+                self.earlier[name] = json.dumps(earlier)
+            await super().put(name, value, **kwargs)
+
+        async def get(self, name):
+            if self.replay_earlier and name in self.earlier:
+                return self.earlier[name]
+            return await super().get(name)
+
+    async def scenario():
+        kv = EarlierKV()
+        ctx = Ctx(lambda value: {"v": value})
+        env = SimpleNamespace(ACCESS=kv)
+        ledger = _ledger(credits_do.CreditsObject(ctx, env))
+        policy = t.access_config.load_policy()
+        checkout = t.checkout_obj(invoice="in_initial")
+        assert (await t.apply(kv, policy, t.payload(
+            "checkout.session.completed", checkout, "evt_initial"), ledger=ledger)).status == 200
+        first = await _claim_purchase(t, policy, kv, ledger)
+        assert first.status == 200
+        kv.replay_earlier = True
+        restarted = _ledger(credits_do.CreditsObject(ctx, env))
+        second = await _claim_purchase(t, policy, kv, restarted)
+        assert second.status == 410
+        assert len([name for name in kv.data if name.startswith("key:")]) == 1
+
+    asyncio.run(scenario())
