@@ -201,3 +201,28 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 106 passed in 0.72s
 ```
+
+## AUD-09-F8
+
+The data-split guide documents both enforced 115 MiB PR periods, the separate growth warning, and every retained public export category. Synthetic export retention and the memory assessor agree with the guide.
+
+f8-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f8-red tests/test_reference_data_split.py
+```
+
+```text
+FAILED tests/test_reference_data_split.py::test_data_split_operating_guide_matches_memory_gate_and_retained_exports
+1 failed in 0.11s
+```
+
+f8-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f8-green tests/test_reference_data_split.py tests/test_worker_memory.py::test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above tests/test_worker_memory.py::test_public_memory_workflow_gates_and_compares_the_main_bundle tests/test_feedback_digest.py::test_no_workflow_runs_the_digest tests/test_data_freeze_guard.py::test_a_data_change_on_an_ordinary_branch_fails_and_names_the_file tests/test_blog_deployment.py::test_retained_snapshot_is_preserved_while_other_bulk_exports_are_removed tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next
+```
+
+```text
+30 passed in 0.83s
+```
