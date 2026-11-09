@@ -15,7 +15,7 @@ PRODUCTION_HOSTS = {
     "modelspec.dev",
     "www.modelspec.dev",
     "api.modelspec.dev",
-    "modelspec-7np.pages.dev",
+    "modelspec-ax6.pages.dev",
 }
 
 

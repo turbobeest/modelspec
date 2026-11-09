@@ -30,13 +30,14 @@
   // this value over CLOUDFLARE_ACCOUNT_ID, so deploy jobs rewrite it from
   // their GitHub environment first (.github/scripts/cloudflare_target.py,
   // MODEL-441). See docs/ops/cloudflare-account-move.md.
-  "account_id": "43840d11c8c4586acdba8b048414900a",
+  "account_id": "3032f56575e927ace4f57aff433aeac9",
   "workers_dev": false,
   // A Workers route, not a Custom Domain: the CI token
   // (CLOUDFLARE_API_MODELSPEC_TOKEN) has Workers Routes:Edit on the
   // modelspec.dev zone and no DNS permission at all. The route needs a proxied
   // DNS record for api.modelspec.dev, which is already in place
-  // (AAAA api -> 100::, proxied). See docs/rank-api.md.
+  // (AAAA api -> 100:: and A api -> 192.0.2.1, both proxied; without the A
+  // record IPv4 clients get no answer). See docs/rank-api.md.
   //
   // The whole host, not just `/v1/*`. A path outside the route has no origin —
   // `100::` is the discard prefix — so Cloudflare answers 522, which is
@@ -76,8 +77,8 @@
   // must never touch a key record. It is created and bound as part of the
   // launch Jamie signs off (docs/design/feedback-privacy.md).
   "kv_namespaces": [
-    { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" },
-    { "binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5" }
+    { "binding": "DETERMINATIONS", "id": "2835fdaee6bf4a7283c29ca006787a78" },
+    { "binding": "ACCESS", "id": "f7d2155e91e34ef99db4c7eb3408fb0e" }
   ],
   "observability": { "enabled": true },
   "vars": {

@@ -1174,7 +1174,7 @@ def _decision_worker(entry, env=None):
 @pytest.mark.parametrize("origin", [
     "https://modelspec.dev",
     "https://www.modelspec.dev",
-    "https://internal.modelspec-7np.pages.dev",
+    "https://internal.modelspec-ax6.pages.dev",
 ])
 def test_entry_site_origins_receive_the_free_tier_when_x402_is_on(entry, origin):
     response = asyncio.run(_decision_worker(entry).fetch(_decision_request(origin)))
