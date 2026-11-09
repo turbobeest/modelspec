@@ -1367,14 +1367,15 @@ class RankingEngine:
         # Stage 2: Score
         scored = [self._score(m, profile) for m in filtered]
 
-        # Stage 3: Rank (sort by score, tie-break by ELO then params)
+        # Stage 3: Rank (sort by score, tie-break by ELO, params, then model ID)
         ranked = [s for s in scored if s.rank_status == "ranked"]
         unranked = [s for s in scored if s.rank_status == "unranked"]
         ranked.sort(key=lambda s: (
-            s.score,
-            s.arena_elo_overall or 0,
-            s.total_parameters or 0,
-        ), reverse=True)
+            -s.score,
+            -(s.arena_elo_overall or 0),
+            -(s.total_parameters or 0),
+            s.model_id,
+        ))
         unranked.sort(key=lambda s: (s.display_name.lower(), s.model_id))
         for position, result in enumerate(ranked, 1):
             result.rank = position
