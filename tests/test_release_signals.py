@@ -18,6 +18,7 @@ from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError, sign
 from release_signals.pipeline import (
     ChangePolicy,
+    DraftResult,
     FetchResult,
     FirecrawlBudget,
     draft_signal,
@@ -209,6 +210,80 @@ def test_resolve_distinguishes_existing_new_and_uncertain_without_fuzzy_matching
     assert (new.status, new.model_id) == ("new", "acme/orbit-2")
     assert uncertain.status == "uncertain"
     assert uncertain.candidates == ("acme/shared-a", "acme/shared-b")
+
+
+def _draft_visible_signal(
+    tmp_path: Path, body: bytes, *, model_name: str = "Orbit 2",
+) -> DraftResult:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    primary_url = "https://acme.example/models"
+    models_dev_url = "https://models.dev/api.json"
+    catalogue = json.loads((FIXTURES / "models-dev-production.json").read_bytes())
+    catalogue["acme"]["models"]["orbit-2"]["name"] = model_name
+    replies = {
+        models_dev_url: FetchResult(
+            models_dev_url, json.dumps(catalogue).encode(), "application/json",
+        ),
+        primary_url: FetchResult(primary_url, body, "text/html"),
+    }
+    return draft_signal(
+        ReleaseSignal.parse(signal(model_name=model_name)),
+        root=tmp_path, fetch=lambda url: replies[url],
+        read_date=date(2026, 9, 26),
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<h1>Acme launches Orbit 20.</h1>",
+        b"<h1>NotAcme launches Orbit 2.</h1>",
+        b"<h1>Acme launches Orbit 2 Pro.</h1>",
+        b"<h1>Acme launches Orbit 2.1.</h1>",
+        b"<p>Orbit 20 by Acme.</p>",
+        b"<p>Orbit 2 Pro by Acme.</p>",
+        b"<p>Orbit 2 by Acme Labs.</p>",
+        b"<p>Acme launches Orbit 2.</p><p>Other Lab launches Orbit 2.</p>",
+        b"<p>Acme launches Orbit 2.</p><p>Orbit 2 by Other Lab.</p>",
+    ],
+)
+def test_similar_name_is_not_identity(tmp_path: Path, body: bytes) -> None:
+    result = _draft_visible_signal(tmp_path, body)
+
+    assert result.resolution.status == "uncertain"
+    assert result.card_path is None
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<h1>Acme announces Orbit 2.</h1>",
+        b"<h1>Acme introduces Orbit 2.</h1>",
+        b"<h1>Acme launches Orbit 2.</h1>",
+        b"<h1>Acme releases Orbit 2</h1>",
+        b"<p>Orbit 2 by Acme.</p>",
+        b"<h1>ACME launches <em>Orbit-2</em>.</h1>",
+    ],
+)
+def test_exact_visible_identity_drafts(tmp_path: Path, body: bytes) -> None:
+    result = _draft_visible_signal(tmp_path, body)
+
+    assert result.resolution.status == "new"
+    assert result.card_path == tmp_path / "models" / "acme" / "orbit-2.md"
+    assert result.card_path.is_file()
+
+
+def test_exact_visible_identity_preserves_model_version(tmp_path: Path) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.1.</h1>", model_name="Orbit 2.1",
+    )
+
+    assert result.resolution.status == "new"
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    front = yaml.safe_load(result.card_path.read_text().split("---", 2)[1])
+    assert front["display_name"] == "Orbit 2.1"
 
 
 def test_production_shaped_models_dev_drafts_only_primary_source_facts(

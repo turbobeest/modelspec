@@ -308,12 +308,10 @@ def _primary_identity(
         normalised_name = attribution.normalise(expected_name)
         normalised_provider = attribution.normalise(expected_provider)
         clauses = [
-            attribution.normalise(clause)
-            for clause in re.split(r"[.!?;:\n]+", text)
-            if attribution.normalise(clause)
+            clause.strip()
+            for clause in re.split(r"[!?;:\n]+|\.(?=\s|$)", text)
+            if clause.strip()
         ]
-        if not any(normalised_name in clause for clause in clauses):
-            raise IdentityUncertainError("the primary source does not name the model")
         explicit_publishers = re.findall(
             rf"\b{re.escape(expected_name)}\s+by\s+([^.!?;:\n]+)",
             text,
@@ -326,18 +324,22 @@ def _primary_identity(
             raise IdentityUncertainError(
                 "the primary source does not identify the stated lab"
             )
-        relationships = (
-            f"{normalised_name}-by-{normalised_provider}",
-            f"{normalised_provider}-announces-{normalised_name}",
-            f"{normalised_provider}-introduces-{normalised_name}",
-            f"{normalised_provider}-launches-{normalised_name}",
-            f"{normalised_provider}-releases-{normalised_name}",
-        )
-        if not any(
-            relationship in clause
-            for clause in clauses
-            for relationship in relationships
-        ):
+        publishers: set[str] = set()
+        for clause in clauses:
+            announcement = re.fullmatch(
+                r"(.+?)\s+(?:announces|introduces|launches|releases)\s+(.+)",
+                clause, flags=re.IGNORECASE,
+            )
+            credit = re.fullmatch(r"(.+?)\s+by\s+(.+)", clause, flags=re.IGNORECASE)
+            if announcement:
+                provider, name = announcement.groups()
+            elif credit:
+                name, provider = credit.groups()
+            else:
+                continue
+            if attribution.normalise(name) == normalised_name:
+                publishers.add(attribution.normalise(provider))
+        if publishers != {normalised_provider}:
             raise IdentityUncertainError(
                 "the primary source does not identify the stated lab"
             )
