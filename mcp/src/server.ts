@@ -568,6 +568,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
     "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
     "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "relax_single", "feedback",
     "reading", "coverage", "summary_for_user", "must_mention", "next_move", "member_evidence",
+    "with_estate", "relax_task_tokens", "excluded_plans",
   ]) {
     if (key in body) notice[key] = body[key];
   }
@@ -671,6 +672,14 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const fitted = { ...envelope, body: bare };
   if (withinBudget(fitted)) return fitted;
   const omitted = noticeOmitted(bare);
+  if (Array.isArray(bare.excluded_plans)) {
+    const plans = [...bare.excluded_plans];
+    bare.excluded_plans = plans;
+    while (plans.length > 0 && !withinBudget(fitted)) {
+      plans.pop();
+      addCount(omitted, "excluded_plans", 1);
+    }
+  }
   for (const key of ["reading", "feedback", "relax", "relax_to", "relax_task_tokens", "relax_single", "with_estate"]) {
     if (withinBudget({ ...envelope, body: bare })) break;
     if (!(key in bare)) continue;

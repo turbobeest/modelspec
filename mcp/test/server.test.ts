@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { workerFetch } from "../src/index";
 import { modelCardUrl, USER_AGENT } from "../src/origin";
-import { AGENT_BYTES, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
+import { AGENT_BYTES, decideReportContent, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
 // Real Worker bodies from the public catalogue (python -m qa.decide_budget).
 import budget from "./fixtures/decide-budget.json";
 
@@ -106,6 +106,35 @@ function envelopeFromCall(payload: Record<string, unknown>): {
     status: number;
     body: unknown;
   };
+}
+
+const recoveryFields = {
+  with_estate: { status: "no_feasible", answer: null,
+    gap: { same_answer: true, unreachable_models: [], summary: "Neither lineup qualifies." } },
+  relax_task_tokens: { condition: "offering.cost_per_task <= 0.01",
+    default: { input: 40_000, output: 4_000 }, admits_at: { input: 100, output: 10 },
+    message: "Set actual task tokens." },
+  excluded_plans: [{ plan: "example-plan", reason: "Not open to new buyers." }],
+};
+
+function recoveryDecision(overrides: Record<string, unknown> = {}) {
+  const root = new URL("../../", import.meta.url).pathname;
+  const output = execFileSync("python3", ["-c", `
+import sys
+from decision.contract import Decision
+print(Decision.model_validate_json(sys.stdin.read()).model_dump_json())
+`], { cwd: root, env: { ...process.env, PYTHONPATH: root }, encoding: "utf8",
+    input: JSON.stringify({ decision_id: "dec_recovery01", snapshot: "snap_test",
+      spec_hash: `sha256:${"0".repeat(64)}`, explain: "full", status: "no_feasible",
+      relax: ["offering.cost_per_task <= 0.01"], chart: "x".repeat(20_000),
+      ...recoveryFields, ...overrides }) });
+  return z.record(z.string(), z.unknown()).parse(JSON.parse(output));
+}
+
+function expectDecisionBudget(envelope: ReturnType<typeof fitDecideEnvelope>) {
+  const bytes = Buffer.byteLength(JSON.stringify(envelope), "utf8")
+    + Buffer.byteLength(decideReportContent(envelope.body).text, "utf8");
+  expect(bytes).toBeLessThanOrEqual(16_384);
 }
 
 describe("modelspec MCP worker", () => {
@@ -760,6 +789,77 @@ json.dump(result, sys.stdout)
     expect(envelope.body.explanation.fetch).toContain("POST /v1/decide without fields");
     expect(result.content[1].text).toContain("anthropic/claude-opus-5-5");
     expect(result.content[1].text).not.toContain("top models: none");
+  });
+
+  it("decide retains estate and recovery fields when the bounded notice has room", async () => {
+    const body = recoveryDecision();
+    originFetch.mockResolvedValueOnce(jsonResponse(200, body));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: {
+      spec_version: 1, optimize: { min: "offering.cost_per_task" }, fields: null,
+    } });
+    const envelope = envelopeFromCall(payload);
+    const fitted = z.record(z.string(), z.unknown()).parse(envelope.body);
+    for (const field of ["with_estate", "relax_task_tokens", "excluded_plans"]) {
+      expect(fitted[field]).toEqual(body[field]);
+    }
+    expect(fitted.status).toBe("no_feasible");
+    expect(fitted.answer).toBeNull();
+    expectDecisionBudget(envelope);
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("Expected a tool result");
+    expect(result.content.reduce((bytes, item) => bytes + (item.type === "text" ? Buffer.byteLength(item.text) : 0), 0))
+      .toBeLessThanOrEqual(16_384);
+  });
+
+  it.each(["with_estate", "relax_task_tokens"])("counts a whole oversized recovery section: %s", field => {
+    const pad = "🦦".repeat(6_000);
+    const body = recoveryDecision(field === "with_estate"
+      ? { with_estate: { ...recoveryFields.with_estate, gap: { ...recoveryFields.with_estate.gap, summary: pad } } }
+      : { relax_task_tokens: { ...recoveryFields.relax_task_tokens, message: pad } });
+    const before = JSON.stringify(body);
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    const fitted = z.object({ explanation: z.object({ omitted: z.record(z.string(), z.number()) }) })
+      .passthrough().parse(envelope.body);
+    expect(fitted).not.toHaveProperty(field);
+    expect(fitted.explanation.omitted[field]).toBe(1);
+    expectDecisionBudget(envelope);
+    expect(JSON.stringify(body)).toBe(before);
+  });
+
+  it("counts only whole excluded-plan records removed from an oversized recovery notice", () => {
+    const exclusions = [
+      { plan: "first", reason: "Not open to new buyers." },
+      { plan: "second", reason: "🦦".repeat(3_000) },
+      { plan: "third", reason: "🦦".repeat(3_000) },
+    ];
+    const body = recoveryDecision({ excluded_plans: exclusions });
+    const before = JSON.stringify(body);
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    expect(envelope.body).toMatchObject({
+      excluded_plans: exclusions.slice(0, 2),
+      with_estate: body.with_estate,
+      relax_task_tokens: body.relax_task_tokens,
+      explanation: { omitted: { excluded_plans: 1 } },
+    });
+    expectDecisionBudget(envelope);
+    expect(JSON.stringify(body)).toBe(before);
+  });
+
+  it("counts every excluded-plan record when none fits the recovery notice", () => {
+    const body = recoveryDecision({ excluded_plans: [{ plan: "huge", reason: "x".repeat(20_000) }] });
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    expect(envelope.body).toMatchObject({ excluded_plans: [], explanation: { omitted: { excluded_plans: 1 } } });
+    expectDecisionBudget(envelope);
+  });
+
+  it("keeps optional recovery fields absent when the complete decision omits them", () => {
+    const body = recoveryDecision({ with_estate: null, relax_task_tokens: null, excluded_plans: [] });
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    for (const field of ["with_estate", "relax_task_tokens", "excluded_plans"]) {
+      expect(body).not.toHaveProperty(field);
+      expect(envelope.body).not.toHaveProperty(field);
+    }
+    expectDecisionBudget(envelope);
   });
 
   it("decide passes member_evidence through when the body is inside the budget", async () => {
