@@ -105,6 +105,31 @@ npm test -- src/decide/__tests__/board-preferences.test.tsx src/decide/__tests__
 The combined focused run exited 0: four files, 133 tests passed, including
 existing template and refinement roundtrips.
 
+## AUD-12-F6
+
+The Why panel announces detail loading and failure before a model is selected.
+Its recovery control uses the existing lookup authorization path. The tied
+summary remains visible and neutral.
+
+Red regressions in `detail-recovery.test.tsx` run the same failure and recovery
+through automatic, manual and visit authorization:
+
+```sh
+npm test -- src/decide/__tests__/detail-recovery.test.tsx --maxWorkers=1 --reporter=verbose
+```
+
+Before the source change, exit 1: three failures, each
+`Unable to find an accessible element with the role "alert"`.
+
+```sh
+npm test -- src/decide/__tests__/detail-recovery.test.tsx src/decide/__tests__/tie-aware-answer.test.tsx src/decide/__tests__/compact.test.ts src/decide/__tests__/human-gate.test.tsx src/decide/__tests__/visit-gate.test.tsx --maxWorkers=1
+```
+
+Exit 0: five files, 59 tests passed. Recovery keeps neutral selection, clears
+the unavailable notice after success and creates a new action intent. Manual
+lookups use successive verification tokens; visit lookups retain valid visit
+admission. No real verification service is called.
+
 ## Observation limits
 
 No production requests, deployments, paid-provider calls, or full local suite.

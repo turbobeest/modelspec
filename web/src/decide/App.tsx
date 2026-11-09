@@ -907,6 +907,12 @@ export function DesignedApp({
     return requestState.message;
   };
   const boardShown = !!vocabulary && (initialRestored || gateStatus === null);
+  const retryControl = humanGateEnabled ? <p>Verify again above before your next lookup.</p> : (
+    <button className="ink-button" onClick={() => {
+      setRetried(true);
+      void runDecision(spec);
+    }}>Retry</button>
+  );
   const errorAlert = error ? (
             <div role="alert" className="error">
               <div>
@@ -922,16 +928,7 @@ export function DesignedApp({
                   </ul>
                 )}
               </div>
-              {!humanGateEnabled && <button
-                className="ink-button"
-                onClick={() => {
-                  setRetried(true);
-                  void runDecision(spec);
-                }}
-              >
-                Retry
-              </button>}
-              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
+              {retryControl}
             </div>
   ) : null;
   // The hand-off copies exactly the Spec the page POSTs for its summary answer.
@@ -1118,6 +1115,7 @@ export function DesignedApp({
                 row={row}
                 onRelax={relax}
                 details={requestState.kind === "success" ? requestState.details : "ready"}
+                recovery={retryControl}
                 onProvenance={(ev) => {
                   provTrigger.current =
                     document.activeElement instanceof HTMLElement
