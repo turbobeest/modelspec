@@ -461,6 +461,7 @@ class _Reservation:
     monthly: int = 0
     packs: list[tuple[str, int]] = field(default_factory=list)
     overage: int = 0
+    origin: tuple[str, int] | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -468,6 +469,7 @@ class _Reservation:
             "monthly": self.monthly,
             "packs": [[grant_id, amount] for grant_id, amount in self.packs],
             "overage": self.overage,
+            "origin": self.origin,
         }
 
     @classmethod
@@ -487,6 +489,7 @@ class _Reservation:
             monthly=int(data.get("monthly") or 0),
             packs=packs,
             overage=int(data.get("overage") or 0),
+            origin=tuple(data["origin"]) if data.get("origin") else None,
         )
 
 
@@ -504,6 +507,7 @@ class _TakenRead:
     block: int = 0
     block_succeeded: bool = False
     charge_token: int = 0
+    origin: tuple[str, int] | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -513,6 +517,7 @@ class _TakenRead:
             "block_before": self.block_before, "block_after": self.block_after,
             "block": self.block, "block_succeeded": self.block_succeeded,
             "charge_token": self.charge_token,
+            "origin": self.origin,
         }
 
     @classmethod
@@ -532,6 +537,7 @@ class _TakenRead:
             int(data.get("block") or 0),
             bool(data.get("block_succeeded", not data.get("block"))),
             int(data.get("charge_token") or 0),
+            tuple(data["origin"]) if data.get("origin") else None,
         )
 
 
@@ -683,13 +689,24 @@ class LedgerState:
         if acc is None:
             acc = _Account()
             self.accounts[holder] = acc
-            self.meter_aliases.pop(holder, None)
         return acc
 
     def _meter_acc(self, holder: str) -> _Account | None:
         """Resolve reporting state without granting a revoked holder access."""
         target, _meter_id = self.meter_aliases.get(holder, (holder, ""))
         return self.accounts.get(target)
+
+    def _finalization(self, holder: str, token: int, *, read: bool = False
+                      ) -> tuple[_Account | None, int]:
+        acc = self._meter_acc(holder)
+        if acc is not None:
+            pending = acc.taken_reads if read else acc.reservations
+            for current, record in pending.items():
+                if (record.origin == (holder, int(token)) or (
+                        record.origin is None and holder not in self.meter_aliases
+                        and current == int(token))):
+                    return acc, current
+        return None, int(token)
 
     def credit(self, holder: str, payment_id: str, units: int,
                tx: str, expires_at: str = "", source: str = "x402") -> CreditResult:
@@ -923,6 +940,12 @@ class LedgerState:
         acc = self.accounts.pop(src, None)
         if acc is None:
             return False
+        for token, reservation in acc.reservations.items():
+            if reservation.origin is None:
+                reservation.origin = (src, token)
+        for token, taken in acc.taken_reads.items():
+            if taken.origin is None:
+                taken.origin = (src, token)
         for alias, (target, meter_id) in list(self.meter_aliases.items()):
             if target == src:
                 self.meter_aliases[alias] = (dst, meter_id)
@@ -936,6 +959,8 @@ class LedgerState:
             _stamp_backlog_id(acc)
             self.accounts[dst] = acc
             return True
+        if existing.reservations or existing.taken_reads:
+            _ensure_meter_id(existing)
         existing.monthly += acc.monthly
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
@@ -975,6 +1000,8 @@ class LedgerState:
 
     def reserve(self, holder: str, units: int = 1, now: str = "",
                 overage_cap: int = 0) -> ReserveResult:
+        if holder in self.meter_aliases:
+            return ReserveResult(False)
         clock = now or _now_iso()
         acc = self._acc(holder)
         acc.drop_expired(clock)
@@ -1035,10 +1062,10 @@ class LedgerState:
 
     def commit(self, holder: str, reservation_id: int, *,
                record_meter: bool = True) -> CommitResult:
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, reservation_id)
         if acc is None:
             return CommitResult(False)
-        reservation = acc.reservations.pop(int(reservation_id), None)
+        reservation = acc.reservations.pop(current, None)
         if reservation is None:
             return CommitResult(False)
         acc.reserved -= reservation.units - reservation.overage
@@ -1046,7 +1073,7 @@ class LedgerState:
             acc.reserved = 0
         acc.overage_used += reservation.overage
         if reservation.overage and record_meter:
-            ident = f"{_ensure_meter_id(acc)}:res:{int(reservation_id)}"
+            ident = self.meter_identifier(holder, "res", reservation_id)
             if len(acc.overage_pending) < PENDING_METER_CAP:
                 acc.overage_pending.append((ident, reservation.overage, _unix_now()))
             else:
@@ -1055,10 +1082,10 @@ class LedgerState:
         return CommitResult(True, reservation.overage)
 
     def release(self, holder: str, reservation_id: int) -> bool:
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, reservation_id)
         if acc is None:
             return False
-        reservation = acc.reservations.pop(int(reservation_id), None)
+        reservation = acc.reservations.pop(current, None)
         if reservation is None:
             return False
         acc.reserved -= reservation.units - reservation.overage
@@ -1131,6 +1158,8 @@ class LedgerState:
         response then fails. Undo tickets from a previous UTC day are dropped
         here, without refunding them. The isolate that took them is gone.
         """
+        if holder in self.meter_aliases:
+            return ReadResult(False, "exhausted")
         clock = now or _now_iso()
         acc = self._acc(holder)
         day = clock[:10]
@@ -1193,10 +1222,10 @@ class LedgerState:
 
     def release_read(self, holder: str, token: int) -> bool:
         """Undo one read. Refund its block only after every read in it fails."""
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, token, read=True)
         if acc is None:
             return False
-        taken = acc.taken_reads.pop(int(token), None)
+        taken = acc.taken_reads.pop(current, None)
         if taken is None:
             return False
         if acc.read_day == taken.day and acc.read_count > 0:
@@ -1231,16 +1260,16 @@ class LedgerState:
 
     def keep_read(self, holder: str, token: int) -> bool:
         """Record a successful block read and drop its undo ticket."""
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, token, read=True)
         if acc is None:
             return False
-        taken = acc.taken_reads.pop(int(token), None)
+        taken = acc.taken_reads.pop(current, None)
         if taken is None:
             return False
         for pending in acc.taken_reads.values():
             if pending.block == taken.block:
                 pending.block_succeeded = True
-        if taken.overage and taken.charge_token and taken.charge_token != int(token):
+        if taken.overage and taken.charge_token and taken.charge_token != current:
             # This response did not draw the credit, so its caller has no
             # overage to report. The failed drawing read cannot report it.
             self.note_unreported(holder, taken.overage, "read")

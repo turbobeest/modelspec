@@ -21,6 +21,9 @@ sys.path.insert(0, str(REPO_ROOT / "api" / "worker" / "src"))
 
 import credits  # noqa: E402
 import credits_do  # noqa: E402
+import x402  # noqa: E402
+from tests.test_credits import _cfg, _ok, _boom, ENVELOPE, RESOURCE  # noqa: E402
+from x402_facilitator import StubFacilitator  # noqa: E402
 
 
 class JsObjectProxy:
@@ -142,3 +145,134 @@ def test_existing_state_survives_with_unused_move_and_lease_rows():
     assert asyncio.run(restarted.balance("key:a")).available == 7
     assert {key: ctx.storage.sql.table[key] for key in unused} == unused
     assert set(ctx.storage.sql.table) == {"state", "move", "leases"}
+
+
+def durable():
+    return _ledger(credits_do.CreditsObject(Ctx(lambda v: JsObjectProxy({"v": v})), None))
+
+
+@pytest.mark.parametrize('status', [200, 500])
+def test_key_rotation_during_response_finishes_reservation(status):
+    async def scenario():
+        ledger = durable()
+        src, dst = 'key:old', 'key:new'
+        assert (await ledger.set_monthly(src, 10, 'in_rotation', 'Solo')).credited
+        async def produce():
+            assert await ledger.transfer(src, dst)
+            return await (_ok() if status == 200 else _boom())
+        result = await x402.charge(
+            config=_cfg(enabled=False), ledger=ledger, facilitator=StubFacilitator(),
+            get_header=lambda _: None, holder=src, resource_url=RESOURCE,
+            envelope=ENVELOPE, produce=produce, units=5,
+        )
+        assert result[0] == status
+        actual = await ledger.balance(dst)
+        assert actual.reserved == 0, actual.to_json()
+        assert actual.available == (5 if status == 200 else 10)
+        assert (await ledger.balance(src)).available == 0
+    asyncio.run(scenario())
+
+def test_rotated_failed_catalog_read_returns_its_credit():
+    async def scenario():
+        ledger, src, dst = durable(), 'key:old-read', 'key:new-read'
+        assert (await ledger.set_monthly(src, 10, 'in_read_rotation', 'Solo')).credited
+        taken = await ledger.take_read(src, 10, 100, 10)
+        assert taken.ok and taken.token is not None
+        assert await ledger.transfer(src, dst)
+        released = await ledger.release_read(src, taken.token)
+        actual = await ledger.balance(dst)
+        assert actual.available == 10, (released, actual.to_json())
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["decision", "catalog"])
+@pytest.mark.parametrize("success", [True, False])
+def test_transferred_tokens_complete_once_across_merges(kind, success):
+    async def scenario():
+        ledger = durable()
+        holders = ["key:first", "key:second", "key:third"]
+        pending = []
+        for i, who in enumerate(holders):
+            await ledger.set_monthly(who, 10, f"in_merge_{i}", "Solo")
+            taken = (await ledger.reserve(who, 2) if kind == "decision"
+                     else await ledger.take_read(who, 10, 100, 100))
+            assert taken.ok
+            token = taken.reservation_id if kind == "decision" else taken.token
+            assert token is not None
+            pending.append((who, token))
+        assert await ledger.transfer(holders[0], holders[1])
+        assert await ledger.transfer(holders[1], holders[2])
+        for who in holders[:2]:
+            assert (await ledger.balance(who)).available == 0
+            assert not (await ledger.reserve(who, 1, overage_cap=100)).ok
+            assert not (await ledger.take_read(who, 10, 100, 100, overage_cap=100)).ok
+        complete = ((ledger.commit if success else ledger.release) if kind == "decision"
+                    else (ledger.keep_read if success else ledger.release_read))
+        for who, token in pending:
+            assert await complete(who, token)
+            assert not await complete(who, token)
+        actual = await ledger.balance(holders[-1])
+        assert actual.reserved == 0
+        expected = (24 if kind == "decision" else 27) if success else 30
+        assert actual.available == expected
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_charge_requires_a_confirmed_commit(enabled):
+    class UnconfirmedLedger(credits.MemoryLedger):
+        async def commit(self, holder, reservation_id):
+            return credits.CommitResult(False)
+
+    async def scenario():
+        ledger = UnconfirmedLedger()
+        await ledger.set_monthly("key:confirmation", 5, "in_confirmation", "Solo")
+        with pytest.raises(RuntimeError, match="credit reservation"):
+            await x402.charge(
+                config=_cfg(enabled=enabled), ledger=ledger, facilitator=StubFacilitator(),
+                get_header=lambda _: None, holder="key:confirmation", resource_url=RESOURCE,
+                envelope=ENVELOPE, produce=_ok)
+        assert (await ledger.balance("key:confirmation")).available == 5
+    asyncio.run(scenario())
+
+
+def test_merged_pending_overage_uses_distinct_meter_identities():
+    async def scenario():
+        ledger = durable()
+        pending = []
+        for who in ['key:meter-src', 'key:meter-dst']:
+            await ledger.set_monthly(who, 0, 'in_' + who, 'Scale', 'cus_test')
+            reservation = await ledger.reserve(who, 1, overage_cap=10)
+            assert reservation.ok and reservation.reservation_id is not None
+            pending.append((who, reservation.reservation_id))
+        assert await ledger.transfer('key:meter-src', 'key:meter-dst')
+        for who, token in pending:
+            assert await ledger.commit(who, token)
+        events = await ledger.open_meter_events('key:meter-dst')
+        assert len(events) == 2
+        assert len({row[0] for row in events}) == 2
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("funding", ["pack", "monthly"])
+def test_pending_completion_retains_routing_during_delayed_funding(funding):
+    async def scenario():
+        ledger = durable()
+        src, dst = "key:pending-source", "key:pending-destination"
+        await ledger.set_monthly(src, 0, "in_pending", "Scale", "cus_pending")
+        taken = await ledger.reserve(src, 5, overage_cap=10)
+        assert taken.ok and taken.reservation_id is not None
+        identifier = await ledger.meter_identifier(src, "res", taken.reservation_id)
+        assert await ledger.transfer(src, dst)
+        if funding == "pack":
+            await ledger.credit(src, "pack_delayed", 10, "pi_delayed")
+        else:
+            await ledger.set_monthly(src, 10, "in_delayed", "Solo")
+        assert not (await ledger.reserve(src, 1)).ok
+        assert not (await ledger.take_read(src, 10, 100, 10)).ok
+        assert await ledger.commit(src, taken.reservation_id)
+        assert not await ledger.commit(src, taken.reservation_id)
+        events = await ledger.open_meter_events(dst)
+        assert len(events) == 1 and events[0][:2] == (identifier, 5)
+        assert (await ledger.balance(dst)).overage_used == 5
+    asyncio.run(scenario())
