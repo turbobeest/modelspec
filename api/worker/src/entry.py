@@ -1737,10 +1737,31 @@ class Default(WorkerEntrypoint):
         envelope = service._envelope({}, service_commit, origin)
         envelope["endpoint"] = "credits"
         del envelope["deprecation"]  # rank's notice, not the balance's
+        api_key = access_keys.extract(lambda name: request.headers.get(name))
+        if api_key is None:
+            return _json_response(*x402._error(
+                envelope, 401, x402.MISSING_HOLDER,
+                "A credit balance requires an active live API key."))
+        try:
+            policy = access_config.load_policy(self.env)
+            if (access_keys.is_sandbox(api_key, policy)
+                    or not api_key.startswith(policy.live_prefix)):
+                return _json_response(*x402._error(
+                    envelope, 401, x402.MISSING_HOLDER,
+                    "A credit balance requires an active live API key."))
+            record = await access_keys.lookup(_access_store(self.env), api_key)
+        except Exception:
+            return _json_response(*x402._error(
+                envelope, 503, x402.CREDITS_STORE_NOT_CONFIGURED,
+                "The credit account could not be authenticated."))
+        if record is None or not record.active:
+            return _json_response(*x402._error(
+                envelope, 401 if record is None else 403, x402.MISSING_HOLDER,
+                "A credit balance requires an active live API key."))
         status, body = await x402.balance_query(
             config=x402.load_config(self.env),
             ledger=credits.ledger_from_env(self.env),
-            api_key=access_keys.extract(lambda name: request.headers.get(name)),
+            api_key=api_key,
             envelope=envelope,
         )
         return _json_response(status, body)

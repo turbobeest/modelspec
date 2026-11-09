@@ -58,3 +58,23 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 Checks include renewal, cancellation, current-period caps, meter identities, both shared-block completion orders, pack returns, merged accounts and legacy JSON. No price, plan, external response schema or production switch changed.
+
+## AUD-03-F9
+
+Credit balance GET and HEAD requests authenticate an active live key before reading the ledger. Valid balance reads consume neither quota nor credits. Sandbox balance requests consult neither store. Refusals retain the existing CreditsRefused codes, and all OpenAPI component schemas and the success response remain unchanged.
+
+The supplied cases reported `8 failed` before implementation. Permanent authentication and unmetered-read controls reported `18 failed, 3 passed` before implementation and `21 passed` afterward. The supplied cases then reported `8 passed`. Focused suite result:
+
+```text
+292 passed, 2 skipped in 7.49s
+```
+
+Commands:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_x402.py tests/test_access_wiring.py tests/test_api_access.py tests/test_api_docs.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+```
+
+The generated specification is current. Repeated and concurrent balance reads preserve both account balances and access counters. All authentication checks use local records; deployed storage was not observed.

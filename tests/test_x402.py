@@ -1497,12 +1497,15 @@ def test_entry_with_all_flags_off_preserves_the_producer_bytes(entry):
 
 
 def test_entry_credits_query(entry):
-    env = type("E", (), {})()
-    env.BUILD_COMMIT = "c0ffee"
-    env.EXPORT_ORIGIN = "https://modelspec.test"
-    env.X402_ENABLED = "false"
+    import access_config
+    import access_keys
+
+    env = _entry_env(X402_ENABLED="false")
     ledger = credits.MemoryLedger()
     key = "live_abc"
+    asyncio.run(access_keys.issue(
+        env.ACCESS.store, tier="paid", owner="fixture", now=datetime.now(UTC),
+        policy=access_config.load_policy(env), secret=key))
     asyncio.run(ledger.credit(x402.holder_from_key(key), "p", 7, "0x"))
     env.CREDITS = ledger
     worker = entry.Default()
@@ -1514,6 +1517,98 @@ def test_entry_credits_query(entry):
     # MODEL-316: the balance reuses rank's envelope but not its deprecation notice.
     assert response.json()["endpoint"] == "credits"
     assert "deprecation" not in response.json()
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("kind,expected", [
+    ("missing", 401), ("malformed", 401), ("unknown", 401),
+    ("revoked", 403), ("sandbox", 401), ("missing_store", 503),
+    ("store_failure", 503), ("invalid_record", 503),
+])
+def test_entry_credits_authenticates_before_reading_ledger(entry, method, kind, expected):
+    import access_config
+    import access_keys
+
+    env = _entry_env(ACCESS_ENFORCED="true", X402_ENABLED="false")
+    key = {"missing": None, "malformed": "not-a-key", "sandbox": "test_balance"}.get(
+        kind, "live_balance_fixture")
+    if kind in {"revoked", "store_failure"}:
+        asyncio.run(access_keys.issue(
+            env.ACCESS.store, tier="paid", owner="fixture", now=datetime.now(UTC),
+            policy=access_config.load_policy(env), secret=key))
+        asyncio.run(env.CREDITS.credit(x402.holder_from_key(key), "seed", 100, "fixture"))
+    if kind == "revoked":
+        asyncio.run(access_keys.revoke(env.ACCESS.store, key))
+    if kind == "invalid_record":
+        asyncio.run(env.ACCESS.store.put(access_keys.storage_name(key), "invalid-json"))
+
+    store = env.ACCESS.store
+    store.calls.clear()
+    if kind == "missing_store":
+        env.ACCESS = None
+    elif kind == "store_failure":
+        class UnavailableStore:
+            async def get(self, name):
+                raise OSError("fixture unavailable")
+        env.ACCESS = UnavailableStore()
+
+    ledger_reads = []
+    original_balance = env.CREDITS.balance
+
+    async def recorded_balance(holder):
+        ledger_reads.append(holder)
+        return await original_balance(holder)
+
+    env.CREDITS.balance = recorded_balance
+    worker = entry.Default()
+    worker.env = env
+    response = asyncio.run(worker.fetch(_Req(
+        "/v1/credits", method=method,
+        headers={"authorization": "Bearer " + key} if key is not None else {})))
+    assert response.status == expected
+    assert ledger_reads == []
+    if kind in {"missing", "malformed", "sandbox"}:
+        assert store.calls == []
+    if method == "HEAD":
+        assert response.body is None
+    else:
+        assert response.json()["error"]["code"] == (
+            "credits_store_not_configured" if expected == 503 else "missing_holder")
+        assert "available" not in response.json()
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("enforced", ["false", "true"])
+def test_entry_credits_reads_are_unmetered(entry, method, enforced):
+    import access_config
+    import access_keys
+
+    async def scenario():
+        env = _entry_env(ACCESS_ENFORCED=enforced, X402_ENABLED="false")
+        key = "live_balance_unmetered"
+        await access_keys.issue(
+            env.ACCESS.store, tier="free", owner="fixture", now=datetime.now(UTC),
+            policy=access_config.load_policy(env), secret=key)
+        holder = x402.holder_from_key(key)
+        await env.CREDITS.credit(holder, "seed", 100, "fixture")
+        stored = dict(env.ACCESS.store.data)
+        before = (await env.CREDITS.balance(holder)).to_json()
+        env.ACCESS.store.calls.clear()
+        worker = entry.Default()
+        worker.env = env
+        request = _Req("/v1/credits", method=method, headers={"X-API-Key": key})
+        responses = [await worker.fetch(request) for _ in range(12)]
+        responses.extend(await asyncio.gather(*(worker.fetch(request) for _ in range(8))))
+        assert [response.status for response in responses] == [200] * 20
+        if method == "HEAD":
+            assert all(response.body is None for response in responses)
+        else:
+            assert all(response.json()["available"] == 100 for response in responses)
+        assert env.ACCESS.store.data == stored
+        assert env.ACCESS.store.calls == [("get", access_keys.storage_name(key))] * 20
+        assert (await env.CREDITS.balance(holder)).to_json() == before
+
+    asyncio.run(scenario())
 
 
 def test_entry_billing_paths_are_not_x402_paid_resources(entry):

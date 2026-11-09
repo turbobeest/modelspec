@@ -200,13 +200,19 @@ paths:
               schema: {$ref: '#/components/schemas/CreditsBalance'}
           headers: *id001
         '401':
-          description: 'missing_holder: no API key presented.'
+          description: 'missing_holder: an active live API key is required; sandbox keys have no live balance.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreditsRefused'}
+          headers: *id001
+        '403':
+          description: 'missing_holder: the presented key is inactive.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/CreditsRefused'}
           headers: *id001
         '503':
-          description: 'credits_store_not_configured: the credit ledger is not bound.'
+          description: 'credits_store_not_configured: credit account authentication or the credit ledger is unavailable.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/CreditsRefused'}
