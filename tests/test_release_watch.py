@@ -18,7 +18,9 @@ from jsonschema import Draft202012Validator, FormatChecker
 from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError
 from release_signals.watch import (
+    Registry,
     Response,
+    Source,
     _normalise,
     discoveries,
     extract,
@@ -170,6 +172,33 @@ def test_huggingface_configured_author_maps_to_provider(world, owner: str) -> No
     assert signals[0].provider == "acme"
     assert signals[0].model_name == "Orbit-3"
     assert signals[0].first_seen_url == f"https://huggingface.co/{owner}/Orbit-3"
+
+
+@pytest.mark.parametrize(
+    ("body", "expected_status", "expected_names"),
+    [
+        (b"gpt-7-alpha\xff-pro", "parse_failed", ["orbit-3"]),
+        ("New model: gpt-7-alpha-pro. Café".encode(), "ok", ["gpt-7-alpha-pro", "orbit-3"]),
+    ],
+)
+def test_invalid_utf8_cannot_create_truncated_model_identity(
+    body: bytes, expected_status: str, expected_names: list[str],
+) -> None:
+    source = next(source for source in load_registry().sources if source.id == "openai-models")
+    healthy = Source("healthy", "page", PAGE, 0.9, provider="acme", pattern=r"orbit-[a-z0-9-]+")
+    registry = Registry("fixture", 30, r"gguf", r"sdk", (source, healthy))
+
+    def fetch(url: str) -> Response:
+        if url.endswith("/robots.txt"):
+            return Response(404, b"")
+        return Response(200, body if url == source.url else b"orbit-3")
+
+    runs = run_all(registry, {source.id: frozenset(), healthy.id: frozenset()}, fetch=fetch, now=NOW)
+
+    assert [run.status for run in runs] == [expected_status, "ok"]
+    assert [signal.model_name for signal in discoveries(runs, NOW)] == expected_names
+    if expected_status == "parse_failed":
+        assert "UnicodeDecodeError" in runs[0].detail
 
 
 def test_a_release_on_the_replayed_sources_becomes_one_discovery_per_model(world) -> None:

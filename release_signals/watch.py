@@ -159,7 +159,7 @@ def write_baseline(path: Path, baseline: Mapping[str, Iterable[str]], taken: dat
 
 def extract(source: Source, body: bytes, registry: Registry) -> dict[str, Seen]:
     if source.kind == "page":
-        return _page(source, body.decode("utf-8", errors="replace"), registry)
+        return _page(source, body.decode("utf-8"), registry)
     payload = json.loads(body)
     if source.kind == "openrouter":
         return _openrouter(source, payload, registry)

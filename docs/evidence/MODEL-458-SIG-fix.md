@@ -61,6 +61,24 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.v
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f2 tests/test_release_watch.py tests/test_release_watch_precision.py tests/test_release_watch_filter.py
 ```
 
+## AUD-14-F3
+
+Page extraction requires valid UTF-8. A decoding failure reports
+`parse_failed` for that source while later healthy sources continue.
+Valid UTF-8 retains the complete model ID.
+
+The retained reproduction returned `1 failed, 7 deselected`, exit 1.
+Permanent regression `test_invalid_utf8_cannot_create_truncated_model_identity`
+returned `1 failed, 1 passed, 35 deselected`, exit 1: the malformed input
+incorrectly reported `ok`. The focused watcher suites returned `175 passed`,
+exit 0, after the fix.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -s -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/repro-f3 /tmp/MODEL-458-SIG-scratch/executor/test_repro_F3.py -k test_invalid_utf8_cannot_create_truncated_model_identity
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/red-f3 tests/test_release_watch.py -k test_invalid_utf8_cannot_create_truncated_model_identity
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f3 tests/test_release_watch.py tests/test_release_watch_precision.py tests/test_release_watch_filter.py
+```
+
 ## Observation limits
 
 No live provider responses, production behavior, deployment or publication
