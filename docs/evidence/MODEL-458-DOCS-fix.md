@@ -175,3 +175,29 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 31 passed in 1.14s
 ```
+
+## AUD-09-F6
+
+Billing defaults match the shipped friends prefix and local stubbed Checkout request. Current x402 flags and generated policy delivery are documented without changing commercial terms.
+
+f6-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f6-red tests/test_reference_billing.py
+```
+
+```text
+FAILED tests/test_reference_billing.py::test_billing_reference_friends_defaults_match_checkout
+FAILED tests/test_reference_billing.py::test_billing_reference_current_x402_flags_and_policy_delivery
+2 failed in 0.10s
+```
+
+f6-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f6-green tests/test_reference_billing.py tests/test_friends_billing.py tests/test_tier_policy_bundle.py tests/test_billing.py
+```
+
+```text
+106 passed in 0.72s
+```
