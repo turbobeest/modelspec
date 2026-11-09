@@ -96,3 +96,18 @@ including multibyte text. Overflow sends no POST and writes no router file.
 After the change,
 `tests/test_cli_concierge.py tests/test_cli_compare.py tests/test_cli_compare_models.py tests/test_keyed_router_cli.py`
 recorded `353 passed, 1 skipped`, exit 0.
+
+## AUD-04-F13
+
+The active comparison paragraph now identifies repository package metadata as
+1.0.0 and leaves publication subject to operator review. Runtime versions and
+historical release headings are unchanged. No prose-only permanent test was added,
+as this finding explicitly excludes one.
+
+Command, before and after:
+`env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-CLI-scratch/root/AUD-04-F13-repro.py`
+using the ticket's one-time version probe. Before: `Current CLI paragraph claims
+0.4.0, package is 1.0.0`, exit 1. After: metadata, bundle, version flag and latest
+release heading all reported `1.0.0`, User-Agent reported `modelspec-cli/1.0.0`,
+the stale sentence was absent and the mocked vocab command exited 0. Probe exit 0.
+No PyPI publication was observed.

@@ -180,7 +180,8 @@ shows lifecycle and explicit unknown values, labels absent response records
 "not shown", keeps evidence with different measurement conditions on separate
 rows, and lists source URLs and omitted record counts.
 JSON output preserves the server body unchanged. This form is present in the
-repository; the CLI package version remains 0.4.0 pending release review.
+repository; its package metadata is 1.0.0. Release publication requires operator
+review and is not established by the repository version.
 
 The snapshot form of `compare` requires exactly one of `--spec` and
 `--template`, using the same Spec loading, validation and keyed template
