@@ -33,3 +33,30 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 368 passed in 3.89s
 ```
+
+## AUD-09-F2
+
+The worked policy request reaches the local enforced Worker with a fixture key. Pagination defaults and boundaries match the parser; sandbox recovery directs callers to a live key.
+
+f2-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f2-red tests/test_reference_policy_transport.py
+```
+
+```text
+FAILED tests/test_reference_policy_transport.py::test_policy_reference_worked_command_reaches_success
+FAILED tests/test_reference_policy_transport.py::test_policy_reference_pagination_defaults_match_parser[offset]
+FAILED tests/test_reference_policy_transport.py::test_policy_reference_sandbox_recovery_requires_a_live_key
+3 failed, 1 passed in 1.04s
+```
+
+f2-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f2-green tests/test_reference_policy_transport.py tests/test_api_docs.py
+```
+
+```text
+60 passed, 2 skipped in 17.39s
+```
