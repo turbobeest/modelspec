@@ -251,3 +251,28 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 71 passed in 62.64s (0:01:02)
 ```
+
+## AUD-09-F12
+
+The contribution entry routes fresh card edits to the private data repository and identifies the public image as frozen. The destination matches the executable Data freeze guard.
+
+f12-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f12-red tests/test_reference_contributions.py
+```
+
+```text
+FAILED tests/test_reference_contributions.py::test_readme_routes_fresh_card_contributions_to_private_data
+1 failed in 0.05s
+```
+
+f12-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f12-green tests/test_reference_contributions.py tests/test_data_freeze_guard.py
+```
+
+```text
+12 passed in 0.25s
+```
