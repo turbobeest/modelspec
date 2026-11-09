@@ -199,9 +199,8 @@ def test_blog_markdown_refuses_executable_or_disguised_external_urls(url, source
         render(f"[source]({url})", sources)
 
 
-def test_corrections_update_feed_timestamp_and_get_their_own_entries(blog_root, tmp_path):
-    publish(blog_root)
-    correction = {
+def _historical_correction():
+    return {
         "id": "c1",
         "date": date(2026, 10, 1),
         "revision": 1,
@@ -211,10 +210,16 @@ def test_corrections_update_feed_timestamp_and_get_their_own_entries(blog_root, 
         "effect": "The lab reading has a correction.",
         "fix_pr": "https://github.com/turbobeest/modelspec/pull/0#fixture-only",
     }
+
+
+def test_corrections_update_feed_timestamp_and_get_their_own_entries(blog_root, tmp_path):
+    publish(blog_root)
+    correction = _historical_correction()
     (blog_root / "blog" / "posts" / SLUG / "corrections.yaml").write_text(
         yaml.safe_dump([correction])
     )
-    write_blog(blog_root, tmp_path / "site")
+    from pipeline import blog
+    blog.write(tmp_path / "site", blog_root, BUILD, public_keys=KEYS, today=date(2026, 11, 9))
     feed = ET.parse(tmp_path / "site" / "blog" / "feed.xml").getroot()
     assert feed.findtext("a:updated", namespaces=ATOM) == "2026-10-01T00:00:00Z"
     entries = feed.findall("a:entry", ATOM)
@@ -222,6 +227,11 @@ def test_corrections_update_feed_timestamp_and_get_their_own_entries(blog_root, 
     assert entries[0].findtext("a:id", namespaces=ATOM) == f"https://modelspec.dev{POST}#c1"
     page = (tmp_path / "site" / "blog" / SLUG / "index.html").read_text()
     assert page.index("Corrections") < page.index("Claims and evidence")
+
+    assert f'href="{POST}r1/"' in page
+    assert (tmp_path / "site" / "blog" / SLUG / "r1/index.html").is_file()
+    for key in ("title", "description", "type", "url", "image"):
+        assert page.count(f'property="og:{key}"') == 1
 
 
 def test_preview_writes_draft_charts_and_breakdown_without_discovery(
@@ -261,3 +271,29 @@ def test_site_build_includes_fixture_blog_from_public_root_only(tmp_path, monkey
     assert f"https://modelspec.dev{POST}" in [
         node.text for node in sitemap.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
     ]
+
+
+@pytest.mark.parametrize("case", ["future_date", "absent_revision", "unpublished_revision"])
+def test_invalid_corrections_are_rejected_before_publishing(blog_root, tmp_path, case):
+    from pipeline import blog
+    publish(blog_root)
+    correction = _historical_correction()
+    if case == "future_date":
+        correction["date"] = "2999-01-01"
+    elif case == "absent_revision":
+        correction["revision"] = 99
+    else:
+        metadata_path = blog_root / "blog/posts" / SLUG / "post.yaml"
+        metadata = yaml.safe_load(metadata_path.read_text())
+        metadata["revisions"].append({
+            "revision": 2, "published": None, "approved_by": None, "approval": None,
+        })
+        metadata_path.write_text(yaml.safe_dump(metadata))
+        correction["revision"] = 2
+    (blog_root / "blog/posts" / SLUG / "corrections.yaml").write_text(yaml.safe_dump([correction]))
+    out = tmp_path / "site"
+    with pytest.raises(ValueError, match="correction.*(future|published revision)"):
+        blog.write(out, blog_root, BUILD, public_keys=KEYS, today=date(2026, 11, 9))
+    assert not list(out.rglob("*.html"))
+    assert not (out / "blog/feed.xml").exists()
+    assert not (out / "blog/rss.xml").exists()

@@ -161,3 +161,27 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f6-render-green: exit 0; `43 passed in 3.86s`.
 
+## AUD-05-F7
+
+Published corrections are validated before HTML or feeds are written. Dates cannot exceed the publication cutoff, and referenced revisions must be among those being published. The signed synthetic fixture rejected future, absent and unpublished revision cases; historical correction timestamps, links and append-only behavior remain valid. The original standalone probe exited 0 while printing ACCEPTED for invalid cases; the permanent red tests failed with DID NOT RAISE ValueError.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_blog.py -k 'invalid_corrections or corrections_update'
+```
+
+f7-red: exit 1; `3 failed, 1 passed, 19 deselected in 0.43s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_blog.py tests/test_blog_append_only.py -k 'not site_build_includes_fixture'
+```
+
+f7-green: exit 0; `54 passed, 1 deselected in 4.44s`.
+
+Standalone reproduction:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F7.py
+```
+
+Exit 0. Historical control: `feed.updated=2026-10-01T00:00:00Z`, target exists. Future case: `feed.updated=2999-01-01T00:00:00Z`. Missing revision case: `target_exists=False`, `revision_link_present=True`.
+
