@@ -67,3 +67,18 @@ def test_llms_txt_includes_the_generated_coverage_summary():
                     coverage=data.coverage)
     assert coverage.summary(data.coverage) in text
     assert coverage.provider_summary(data.coverage) in text
+
+
+def test_llms_does_not_claim_measured_nine_month_age_without_lag_manifest(tmp_path, monkeypatch):
+    from scripts.data_lag import LAG_MONTHS, read_manifest
+    monkeypatch.chdir(tmp_path)
+    assert read_manifest(tmp_path) is None
+    text = llms_txt(
+        site="ModelSpec", base="https://modelspec.test",
+        build=Build("fixture", "2026-11-09T00:00:00Z", date(2026, 11, 9)),
+    )
+    assert "about nine months old" not in text
+    assert "starts with a frozen image" in text
+    assert "at least nine months earlier once enough history exists" in text
+    assert "data-image.json records the provenance" in text
+    assert LAG_MONTHS == 9

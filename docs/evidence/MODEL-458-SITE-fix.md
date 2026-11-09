@@ -1,9 +1,9 @@
 # MODEL-458-SITE verification
 
 Base SHA: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`.
-Final SHA: the commit containing this report, reproducible with `git rev-parse HEAD` in the reviewed checkout. The executor completion line records the full SHA.
+Verified implementation SHA: `4b9f9ea26cdf1b88043d03d43aeac9e95f64617e`. The final commit only adds this verification record; its full SHA is reported in the executor completion line and can be read with `git rev-parse HEAD`. A commit cannot embed its own SHA in a tracked file.
 
-Environment: Python 3.14.4, pytest 9.1.1, git 2.50.1. Tests run serially from the assigned worktree, with `PYTHONPATH=$PWD` and `SOCIAL_CARDS_RENDER=false`. No local full pytest suite is run.
+Environment: Python 3.14.4, pytest 9.1.1, git 2.50.1, gh 2.103.3, Node v22.22.3 at `/Users/terbeest/.nvm/versions/node/v22.22.3/bin`. Tests run serially from the assigned worktree, with `PYTHONPATH=$PWD` and `SOCIAL_CARDS_RENDER=false`. No local full pytest suite is run.
 
 ## AUD-05-F3
 
@@ -119,7 +119,7 @@ f5-red-corrected: exit 1; `5 failed, 107 deselected in 0.59s`.
 env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_brand.py tests/test_method.py tests/test_about.py tests/test_pipeline.py tests/test_comparison_pages.py tests/test_guides.py tests/test_social_cards.py -k 'not renderer_writes and not chromium and not build_without and not build_with and not build_emits and not template_card_failures and not blog_fixture_is_readable'
 ```
 
-f5-green: exit 1; `2 failed, 151 passed, 9 deselected in 91.68s (0:01:31)`.
+Intermediate broad run, f5-green: exit 1; `2 failed, 151 passed, 9 deselected in 91.68s (0:01:31)`.
 
 ```sh
 env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py tests/test_feedback_page.py tests/test_brand_page.py tests/test_pricing_page.py tests/test_landing.py tests/test_orchestrators.py -k 'not renderer_writes and not chromium and not build_without and not build_with and not build_emits and not template_card_failures and not blog_fixture_is_readable and not behaviour_in_browser and not recipe_is_discoverable'
@@ -135,7 +135,7 @@ f5-regressions-green: exit 0; `8 passed, 130 deselected in 0.98s`.
 
 ## AUD-05-F6
 
-Provider sections use h2; ungrouped benchmark titles use h3 and grouped titles remain h4. Affected model pages extend existing strip styling to h3 without changing the no-evidence golden shell. Red assertions observed heading sequences 1→3 and 2→4. All instrument and model-guide tests, including the byte-identical golden fixture, pass.
+Provider sections use h2; ungrouped benchmark titles use h3 and grouped titles remain h4. Affected model pages extend existing strip styling to h3 without changing the no-evidence golden shell. Red assertions observed heading sequences `h1` followed by `h3`, and `h2` followed by `h4`. All instrument and model-guide tests, including the byte-identical golden fixture, pass.
 
 ```sh
 env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F6.py
@@ -185,3 +185,118 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-45
 
 Exit 0. Historical control: `feed.updated=2026-10-01T00:00:00Z`, target exists. Future case: `feed.updated=2999-01-01T00:00:00Z`. Missing revision case: `target_exists=False`, `revision_link_present=True`.
 
+## AUD-09-F9
+
+llms.txt describes the initial frozen image and the configured delayed-image policy, with data-image.json as provenance. It makes no measured age claim. The red regression found "about nine months old" despite the absence of a lag manifest. Existing lag, keyed access, snapshot and legal behavior checks remain green.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_llms_txt.py -k measured_nine_month
+```
+
+f9-red: exit 1; `1 failed, 5 deselected in 0.30s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_access_wiring.py::test_on_an_unkeyed_request_is_refused_and_told_how_to_get_a_key tests/test_agent_guide.py::test_generated_guide_and_constants_are_stable_and_within_budget tests/test_agent_guide.py::test_all_guide_specs_parse_against_the_registry tests/test_llms_txt.py
+```
+
+f9-green: exit 0; `10 passed in 1.61s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_data_lag.py::test_no_commit_old_enough_changes_nothing tests/test_data_lag.py::test_the_seed_publishes_on_the_ninth_month tests/test_decide_worker.py::test_a_requested_snapshot_must_be_the_loaded_snapshot tests/test_legal.py::test_the_commitment_rides_with_the_floors tests/test_legal.py::test_every_neutrality_assertion_is_false tests/test_legal.py::test_the_rule_and_the_pledge_appear_verbatim_in_the_commitment tests/test_legal.py::test_the_access_model_wording_is_in_the_terms_neutrality_and_licence tests/test_legal.py::test_the_privacy_statement_matches_what_the_worker_binds tests/test_legal.py::test_the_privacy_statement_discloses_cloudflare_observability tests/test_legal.py::test_the_terms_state_the_plans_and_packs_that_are_configured tests/test_legal.py::test_x402_privacy_moves_the_payment_disclosure_out_of_not_yet_live
+```
+
+f9-invariants-green: exit 0; `17 passed in 1.35s`.
+
+Standalone reproduction:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/f9-repro.py
+```
+
+Exit 0. No lag manifest; cutoff `2026-02-09`; 221 public cards were released after that cutoff, with latest public release date `2026-09-28`. The generated sentence claimed a measured age of about nine months.
+
+## Review regression checks
+
+Read-only review identified equivalent-origin URL forms and an exact-backtick-run Markdown case. Both gained failing regressions, were corrected, and were folded into their original finding commits.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py -k 'same_origin_missing or absolute_existing'
+```
+
+f1-origin-red: exit 1; `2 failed, 5 passed, 71 deselected in 0.43s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py -k href
+```
+
+f1-origin-green: exit 0; `10 passed, 68 deselected in 0.41s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_agent_ready.py -k benchmark_markdown_fact_destinations
+```
+
+f2-code-red: exit 1; `1 failed, 11 passed, 36 deselected in 0.42s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_benchmark_body_render.py tests/test_agent_ready.py -k 'not built'
+```
+
+f2-code-green: exit 0; `44 passed, 17 deselected in 1.28s`.
+
+## Final site verification
+
+The final focused site suite builds both output trees once through the required heavy wrapper. The original site probes then reuse that tree. All required new metadata fields, canonical identities, Markdown destinations, model heading levels and the full-tree surface lint pass.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SITE-scratch/root/pytest-final-site tests/test_agent_ready.py
+```
+
+final-site: exit 0; `48 passed in 66.99s (0:01:06)`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SITE-scratch/root/pytest-final-reproductions /tmp/MODEL-458-SITE-scratch/root/test_final_F3.py /tmp/MODEL-458-SITE-scratch/root/test_final_F1.py /tmp/MODEL-458-SITE-scratch/root/test_final_F2.py /tmp/MODEL-458-SITE-scratch/root/test_final_F4.py /tmp/MODEL-458-SITE-scratch/root/test_final_F5.py /tmp/MODEL-458-SITE-scratch/root/test_final_F6.py
+```
+
+final-reproductions: exit 0; `7 passed in 0.40s`.
+
+Baseline site generation, before implementation, exited 0:
+
+```sh
+/Users/terbeest/.codex-g2/heavy.sh env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out /tmp/MODEL-458-SITE-scratch/baseline
+```
+
+The generated-output inspection ran with:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/inspect_tree.py /tmp/MODEL-458-SITE-scratch/baseline
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/inspect_tree.py /tmp/MODEL-458-SITE-scratch/root/pytest-final-site/dist0
+```
+
+Both exited 0. The permanent built-tree tests enforce these output checks.
+
+| Output check | Baseline | Final |
+|---|---:|---:|
+| Benchmark Markdown twins checked | 1,153 | 1,153 |
+| Missing Markdown link occurrences | 33, comprising 27 distinct destinations across 23 pages | 0 |
+| Pages with a heading jump | 505 | 0 across 1,372 model pages and the model index |
+| Product/example/template pages missing OG fields | 132 | 0 |
+| Existing optional social images absent | 42 | 42 |
+
+Standalone corrected probes also exited 0:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/f7-final.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-SITE-scratch/root/f9-repro.py
+```
+
+The blog probe accepts the historical control and reports `REFUSED blog correction date is in the future` and `REFUSED blog correction must reference a published revision`. The llms.txt probe reports the policy statement, with no lag manifest and the same underlying public-image dates.
+
+## Unresolved acceptance item
+
+AUD-05-F5 asks that "each image resolves locally" while requiring preservation of the existing card registry, tests and optional rendering behavior, and forbidding browser image generation. The default build intentionally omits 42 referenced optional card files: the landing card, pricing card and 40 template cards. `test_build_without_the_flag_needs_no_npm_or_chromium` explicitly pins the missing files and registered image URLs. Universal image resolution therefore remains unmet under these constraints. All 85 newly introduced image references use the existing local fallback and pass resolution checks. No optional rendering or production switch was enabled.
+
+## Observation limits
+
+All observations are local. No production requests, social-service scrapes, browser image generation, paid-provider calls, deployment, Linear writes, merges or release actions were performed. External stylesheet cascades and runtime visibility were not evaluated. Blog behavior was observed using the signed synthetic fixture; the default build publishes no blog posts. Optional browser/layout suites and separate full-build fixtures were excluded; the final agent-readiness suite supplied the one final build. CI retains responsibility for the full repository suite and required remote checks.
+
+Frozen data, legal text, ranking floors, contract ranges, prices, plans, Worker variables and production switches are unchanged. The baseline build emitted existing public hardware source-registration warnings. No background process remains. Scratch probes and build output are removed after the draft PR is opened, as required by the executor overrides.
