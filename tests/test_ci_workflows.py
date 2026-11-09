@@ -154,6 +154,28 @@ def test_timing_tests_run_serially_exactly_once() -> None:
     assert any(step.get("run") == perf_command for step in perf_job["steps"])
 
 
+@pytest.mark.parametrize("marker,status", [("perf", 0), ("not perf", 5)])
+def test_wall_clock_cases_are_collected_only_by_the_serial_perf_job(marker: str, status: int) -> None:
+    import subprocess
+    import sys
+
+    nodes = [
+        "tests/test_decide_worker.py::test_explain_none_p95_is_under_200_ms",
+        "tests/test_decide_worker.py::test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget",
+        "tests/test_decision_summary.py::test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast",
+        "tests/test_speed_harness.py::test_the_live_transport_measures_a_stream_of_known_timing",
+    ]
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider",
+         "-p", "no:xdist", "-m", marker, *nodes],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert result.returncode == status, result.stdout + result.stderr
+    collected = [line for line in result.stdout.splitlines() if line.startswith("tests/")]
+    expected = nodes[:3] + [f"{nodes[3]}[{api}]" for api in ("anthropic", "openai", "gemini")]
+    assert collected == (expected if marker == "perf" else [])
+
+
 def test_workflow_shard_selection_covers_the_suite_once() -> None:
     import shlex
     import subprocess

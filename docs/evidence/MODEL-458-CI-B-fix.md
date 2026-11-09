@@ -134,3 +134,29 @@ python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py tests/test_c
 Green: 123 passed in 13.24s, exit 0, 13.526s process elapsed. These checks do
 not measure a real private bundle. No Pyodide load, network package install,
 private data access, credentials or deployment was involved.
+
+## AUD-08-F8
+
+Four functions, six collected cases, now have the perf marker. The collection
+regression checks all six exact IDs under `perf` and none under `not perf`.
+The existing workflow still runs one serial perf job. Timing assertions and
+all their limits are unchanged.
+
+The supplied reproduction exited 1 after its inner collection exited 5 with
+`no tests collected (6 deselected)`. Both cases of
+`test_wall_clock_cases_are_collected_only_by_the_serial_perf_job` failed before
+the marker change: perf selected none, while not-perf selected all six.
+
+```text
+python -m pytest -q -s -p no:cacheprovider /tmp/MODEL-458-CI-B-scratch/root/repro/F8/test_repro.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F8-repro
+python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py -k wall_clock --basetemp /tmp/MODEL-458-CI-B-scratch/root/F8-red
+python -m pytest -q -p no:cacheprovider -p no:xdist -m perf tests/test_decide_worker.py::test_explain_none_p95_is_under_200_ms tests/test_decide_worker.py::test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget tests/test_decision_summary.py::test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast tests/test_speed_harness.py::test_the_live_transport_measures_a_stream_of_known_timing --basetemp /tmp/MODEL-458-CI-B-scratch/root/F8-perf --junitxml=/tmp/MODEL-458-CI-B-scratch/root/F8-perf.xml
+python -m pytest -q -p no:cacheprovider -p no:xdist -m 'not perf' tests/test_ci_workflows.py tests/test_decide_worker.py tests/test_decision_summary.py tests/test_speed_harness.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F8-green
+```
+
+Perf: 6 passed in 16.96s, exit 0. Process elapsed was 17.285s; summed JUnit
+testcase time was 16.256s. Remaining focused tests: 315 passed, 1 skipped,
+6 deselected in 33.38s, exit 0, 33.705s process elapsed.
+The local runner was Darwin 27.2.0 arm64 with Python 3.14.4, rather than CI's
+Ubuntu runner. These timings do not predict GitHub runner performance. The
+stream fixtures use localhost; no provider API was called.
