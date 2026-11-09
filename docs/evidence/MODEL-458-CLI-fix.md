@@ -1,10 +1,11 @@
 # MODEL-458-CLI execution evidence
 
 Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`.
-Final implementation SHA: recorded below after the last implementation commit.
+Validated implementation SHA: `175737d51ee1e53565607b83a2cbddd290c77e37`.
+The final evidence-only commit is identified by the PR head and executor completion marker.
 
 Environment: Python 3.14.4, pytest 9.1.1, httpx 0.28.1, Typer 0.27.2,
-Git 2.50.1. Commands run from the assigned `model-458-cli` worktree.
+Git 2.50.1, Ruff 0.16.6. Commands run from the assigned `model-458-cli` worktree.
 All pytest runs use `env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD
 /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider`
 as the prefix. Tests run serially with synthetic credentials and local origins.
@@ -143,3 +144,38 @@ After the change,
 `tests/test_decision_verify.py::test_documented_maintenance_entry_point_has_verification_help tests/test_decision_verify.py::test_cli_verifies_what_is_queued_and_prints_a_summary tests/test_decision_verify.py::test_cli_claude_reader_uses_an_injected_extractor tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next`
 recorded `27 passed`, exit 0. Existing verifier tests use injected readers.
 No collector or subscription reader was run.
+
+
+## Final validation
+
+A further response-boundary regression recorded 2 failed before the adjustment
+and 263 concierge tests passed after it. The response representation preserves
+all JSON string members while masking credentials. An overflow-number check
+also verified the strict decoder: temporarily omitting its finite-float callback
+produced 10 failing checks, and restoring it produced 25 passing nonfinite-value
+checks. The callback was restored before the final run.
+
+The follow-up fixes were folded into their respective finding commits before
+this run. Append-only conflicts were resolved without dropping tests. A test-only
+formatting mistake was caught and corrected before final validation.
+
+Final focused command:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider -rs tests/test_cli_concierge.py tests/test_cli_compare.py tests/test_cli_compare_models.py tests/test_keyed_router_cli.py tests/test_cli_keyed_origin.py tests/test_pypi_packaging.py tests/test_api_docs.py::test_the_policy_example_is_a_request_the_endpoint_answers tests/test_api_docs.py::test_the_policy_reference_states_the_parsers_limits tests/test_api_docs.py::test_the_access_gate_is_wired_and_the_reference_says_it_is_enforced tests/test_decision_contract.py tests/test_hardware_fit_worker.py tests/test_feedback.py tests/test_decide_worker.py::test_entry_prepares_bundle_before_the_first_request tests/test_decision_verify.py::test_documented_maintenance_entry_point_has_verification_help tests/test_decision_verify.py::test_cli_verifies_what_is_queued_and_prints_a_summary tests/test_decision_verify.py::test_cli_claude_reader_uses_an_injected_extractor
+```
+
+Result: `759 passed, 1 skipped, 7 warnings`, exit 0. The skip is
+`tests/test_keyed_router_cli.py` because `litellm` is not installed. No dependency
+was installed for this optional check. Packaging metadata and the thin-client
+file list passed their existing checks. The isolated wheel build was not run.
+
+`git diff --check 5dd0eb5a..HEAD` exited 0. Ruff 0.16.6 was run over the four
+changed runtime modules and two changed test files. Comparing its diagnostics
+with the same files at the base found 41 existing findings and zero added
+findings. Raw Ruff remains nonzero for those existing findings.
+
+The final diff changes only the four CLI modules, two guides, two test files,
+and this evidence file. All subprocess and loopback-server tests completed and
+cleaned up their children. No background service was left running. CI and the
+independent review have not been observed.
