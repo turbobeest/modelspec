@@ -338,8 +338,17 @@ export function sanitizeBoardState(
   };
   for (const [id, choice] of Object.entries(state.selections)) {
     if (choice.mode === "off") continue;
-    if (editable.has(id)) selections[id] = choice;
-    else notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
+    if (!editable.has(id)) {
+      notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
+      continue;
+    }
+    const weightKey = id.startsWith("refinement.")
+      ? vocabulary.refinements?.find((row) => refinementSelectionId(row.id) === id)?.weight_key
+      : preferenceKey(id, vocabulary.facets.find((facet) => facet.id === id));
+    if (choice.weightKey !== undefined && weightKey !== undefined && choice.weightKey !== weightKey) {
+      selections[id] = { ...choice, weightKey };
+      notes.push(`${labels.get(id) ?? fallbackLabel(id)} preference now uses the dimension and direction shown by this board.`);
+    } else selections[id] = choice;
   }
   const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
     choice.mode === "must" || choice.mode === "both" ? [id] : [],
@@ -372,6 +381,11 @@ export function sanitizeBoardState(
     ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };
+}
+
+function preferenceKey(facetId: string, facet?: VocabFacet): string {
+  if (facetId.startsWith("capability.")) return facetId.slice("capability.".length);
+  return facet?.preference?.kind === "continuous" && lowerIsBetter(facet) ? `-${facetId}` : facetId;
 }
 
 export function boardWeights(
@@ -412,10 +426,7 @@ export function allocateBoardWeights(
       preference === null || preference === undefined
     ) return [];
     // A leading `-` is how the engine minimises an objective (MODEL-297).
-    const id = choice.weightKey ?? (facetId.startsWith("capability.")
-      ? facetId.slice("capability.".length)
-      : row && preference.kind === "continuous" && lowerIsBetter(row) ? `-${facetId}`
-      : facetId);
+    const id = preferenceKey(facetId, row);
     const weight = choice.weight ?? 0.5;
     if (preference.kind === "value") {
       const preferred = choice.value;

@@ -84,6 +84,27 @@ npm test -- src/decide/__tests__/facet-board.test.tsx src/decide/__tests__/share
 
 After correction, exit 0: two files, 91 tests passed.
 
+## AUD-12-F4
+
+Saved preferences use the displayed facet's canonical objective dimension and
+direction. Restoration reports normalization in a visible note. Registered
+refinement allocation and valid signed cost keys remain supported.
+
+`board-preferences.test.tsx` verifies this behavior through restored controls
+and outbound objectives. Before the change, exit 1: six assertion failures.
+After the change, exit 0: all six regressions pass. Detailed local diagnostics
+are excluded from public evidence.
+
+Validation commands:
+
+```sh
+npm test -- src/decide/__tests__/board-preferences.test.tsx --maxWorkers=1 --reporter=verbose
+npm test -- src/decide/__tests__/board-preferences.test.tsx src/decide/__tests__/facet-board.test.tsx src/decide/__tests__/real-app.test.tsx src/decide/__tests__/share-restoration.test.tsx --maxWorkers=1
+```
+
+The combined focused run exited 0: four files, 133 tests passed, including
+existing template and refinement roundtrips.
+
 ## Observation limits
 
 No production requests, deployments, paid-provider calls, or full local suite.
