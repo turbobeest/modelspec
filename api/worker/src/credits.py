@@ -169,13 +169,6 @@ class StoreNotConfigured(RuntimeError):
     """No Durable Object binding. Parallel to access_kv.StoreNotConfigured."""
 
 
-class LedgerUnavailable(RuntimeError):
-    """The ledger is frozen while it moves to a new account (MODEL-441).
-    Deliberately not a StoreNotConfigured: several callers treat an unbound
-    ledger as "carry on without credits", which here would lose a grant. It
-    propagates instead, and the webhook and the Worker answer 503."""
-
-
 def _now_iso(moment: datetime | None = None) -> str:
     clock = moment or datetime.now(UTC)
     if clock.tzinfo is None:
@@ -1029,9 +1022,8 @@ class LedgerState:
 
     def spend_paid(self, holder: str, payment_id: str, units: int, tx: str,
                    expires_at: str = "") -> CreditResult:
-        """An x402 one-shot: credit the payment and spend it in one step, so a
-        ledger frozen between the two (MODEL-441) cannot leave a paid unit
-        stranded under a holder nobody can reach."""
+        """Credit and spend an x402 one-shot payment in one operation so no
+        paid unit is stranded under a holder nobody can reach."""
         result = self.credit(holder, payment_id, units, tx, expires_at=expires_at,
                              source="x402")
         if not result.credited and result.reason == "conflict":
@@ -1796,31 +1788,7 @@ class DurableLedger:
         self._stub = namespace.get(namespace.idFromName("ledger"))
 
     async def _call(self, name: str, *args: Any) -> Any:
-        """One RPC to the ledger. A ledger frozen for a move (MODEL-441) fails
-        with a mark, but error text can echo caller input, so the mark is only
-        a hint: the object's own status decides."""
-        try:
-            return await getattr(self._stub, name)(*args)
-        except Exception as exc:
-            if "ledger-sealed" not in str(exc):
-                raise
-            status = await self._stub.move_status()
-            to_py = getattr(status, "to_py", None)
-            status = dict(to_py() if callable(to_py) else status)
-            if status.get("role") == "live":
-                raise
-            raise LedgerUnavailable(
-                "the credit ledger is frozen while it moves to a new account; retry shortly"
-            ) from None
-
-    async def admit(self) -> str:
-        return str(await self._call("admit"))
-
-    async def lease_ok(self, lease: str) -> bool:
-        return bool(await self._stub.lease_ok(lease))
-
-    async def release_lease(self, lease: str) -> None:
-        await self._stub.release_lease(lease)
+        return await getattr(self._stub, name)(*args)
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
@@ -1950,62 +1918,6 @@ class DurableLedger:
                        now: str = "") -> ReversalResult:
         data = await self._call("end_hold", tx, dispute_id, bool(restore), now)
         return ReversalResult.from_json(dict(data))
-
-
-class Admission:
-    """A billing mutation's lease on a live ledger (MODEL-441).
-
-    Entering raises LedgerUnavailable while the ledger is frozen for an
-    account move. The ledger will not export while a lease is open, and every
-    KV write made through `wrap(kv)` re-checks the lease, so a mutation that
-    outlives its lease is refused instead of writing after the copy. Ledgers
-    that cannot be frozen (memory, unbound) admit everything."""
-
-    def __init__(self, ledger: Any) -> None:
-        self._ledger = ledger
-        self._lease = ""
-
-    async def __aenter__(self) -> Admission:
-        admit = getattr(self._ledger, "admit", None)
-        if callable(admit):
-            self._lease = await admit()
-        return self
-
-    async def __aexit__(self, *_exc: Any) -> bool:
-        if self._lease:
-            try:
-                await self._ledger.release_lease(self._lease)
-            except Exception:
-                pass  # the lease expires on its own
-        return False
-
-    def wrap(self, kv: Any) -> Any:
-        return GuardedKV(kv, self._ledger, self._lease) if self._lease else kv
-
-
-class GuardedKV:
-    """KV whose writes need the caller's ledger lease to still hold."""
-
-    def __init__(self, kv: Any, ledger: Any, lease: str) -> None:
-        self._kv = kv
-        self._ledger = ledger
-        self._lease = lease
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._kv, name)
-
-    async def _check(self) -> None:
-        if not await self._ledger.lease_ok(self._lease):
-            raise LedgerUnavailable(
-                "the credit ledger froze for an account move during this request; retry shortly")
-
-    async def put(self, name: str, value: str, **options: Any) -> None:
-        await self._check()
-        await self._kv.put(name, value, **options)
-
-    async def delete(self, name: str) -> None:
-        await self._check()
-        await self._kv.delete(name)
 
 
 def ledger_from_env(env: Any) -> Ledger:

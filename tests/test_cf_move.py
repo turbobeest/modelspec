@@ -389,20 +389,6 @@ def test_zone_diff_reports_a_change_to_the_managed_ruleset_a_rule_executes():
     assert cf_move.zone_diff(dump("managed-a", "latest"), dump("managed-a", "12")) != []
 
 
-class FrozenOrNot(FakeCF):
-    """FakeCF plus the destination Worker's ledger status, role by role."""
-
-    def __init__(self, routes, roles):
-        super().__init__(routes)
-        self.roles = list(roles)
-
-    def __call__(self, method, url, headers, body):
-        if url.endswith("/internal/ledger/status"):
-            self.calls.append((method, url, headers, None))
-            return 200, json.dumps({"role": self.roles.pop(0)}).encode()
-        return super().__call__(method, url, headers, body)
-
-
 def _merge_routes():
     src_ns = "/accounts/old/storage/kv/namespaces/n1"
     dst_ns = "/accounts/new/storage/kv/namespaces/n2"
@@ -418,7 +404,6 @@ def _apply(monkeypatch, fake, *extra):
     monkeypatch.setattr(cf_move, "urllib_request", fake)
     monkeypatch.setenv("CF_SRC_API_TOKEN", "src-tok")
     monkeypatch.setenv("CF_DST_API_TOKEN", "dst-tok")
-    monkeypatch.setenv("LEDGER_ADMIN_SECRET", "admin-tok")
     return cf_move.main(["kv-merge", "--base", "empty", "--now", str(NOW),
                          "--src-account", "old", "--src-namespace", "n1",
                          "--dst-account", "new", "--dst-namespace", "n2", "--apply", *extra])
@@ -428,22 +413,12 @@ def _puts(fake):
     return [c for c in fake.calls if c[0] == "PUT"]
 
 
-def test_a_merge_never_writes_while_the_destination_worker_can_write_key_records(monkeypatch):
-    live = FrozenOrNot(_merge_routes(), ["live"])
-    unnamed = FrozenOrNot(_merge_routes(), [])
+def test_a_merge_applies_source_changes(monkeypatch):
+    fake = FakeCF(_merge_routes())
 
-    assert _apply(monkeypatch, live, "--dst-worker", "https://new.example") == 2
-    assert _apply(monkeypatch, unnamed) == 2
-    assert _puts(live) == _puts(unnamed) == []
-
-
-def test_a_merge_writes_into_a_frozen_destination_and_checks_it_stayed_frozen(monkeypatch):
-    frozen = FrozenOrNot(_merge_routes(), ["standby", "standby"])
-    thawed = FrozenOrNot(_merge_routes(), ["standby", "live"])
-
-    assert _apply(monkeypatch, frozen, "--dst-worker", "https://new.example") == 0
-    assert len(_puts(frozen)) == 1
-    assert _apply(monkeypatch, thawed, "--dst-worker", "https://new.example") == 2
+    assert _apply(monkeypatch, fake) == 0
+    assert len(_puts(fake)) == 1
+    assert _puts(fake)[0][3] == [{"key": "key:a", "value": "YQ==", "base64": True}]
 
 
 def test_the_route_probe_proves_write_access_and_leaves_no_route_behind():
@@ -454,19 +429,3 @@ def test_the_route_probe_proves_write_access_and_leaves_no_route_behind():
 
     assert done == ["probe ok: this token can write routes on modelspec.dev (pending)"]
     assert [w[0] for w in api.writes] == ["POST", "DELETE"]
-
-
-def test_the_final_merge_waits_until_the_source_has_been_sealed_long_enough(monkeypatch):
-    def status_of(role, sealed_at):
-        def request(method, url, headers, body):
-            assert url == "https://old.example/internal/ledger/status"
-            return 200, json.dumps({"role": role, "sealed_at": sealed_at}).encode()
-        return request
-
-    with pytest.raises(cf_move.UsageError, match="not sealed"):
-        cf_move.source_settled("https://old.example", "s", status_of("live", ""), now=NOW)
-    with pytest.raises(cf_move.UsageError, match="sealed 30s ago"):
-        cf_move.source_settled("https://old.example", "s", status_of("sealed", str(NOW - 30)),
-                               now=NOW)
-    cf_move.source_settled("https://old.example", "s",
-                           status_of("sealed", str(NOW - cf_move.FINAL_SETTLE_SECONDS)), now=NOW)

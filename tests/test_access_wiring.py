@@ -470,3 +470,20 @@ def test_on_a_valid_key_is_served(entry, data):
 def test_on_the_sandbox_still_needs_no_store(entry, data):
     response = _call(entry, _env(enforced="true"), Request(*RANK, key="test_on"))
     assert response.status == 200 and response.json()["sandbox"] is True
+
+
+@pytest.mark.parametrize("method", ["GET", "POST", "OPTIONS"])
+def test_retired_internal_paths_use_the_generic_not_found_response(entry, method):
+    env = _env()
+    unknown = Request("/unknown-path", {})
+    unknown.method = method
+    expected = _call(entry, env, unknown)
+    assert expected.status == 404
+    for action in ("status", "export", "import", "unseal", "transfer"):
+        request = Request(f"/internal/ledger/{action}", {})
+        request.method = method
+        response = _call(entry, env, request)
+        assert response.status == expected.status
+        body = expected.json()
+        body["error"]["message"] = f"no endpoint at /internal/ledger/{action}"
+        assert response.json() == body
