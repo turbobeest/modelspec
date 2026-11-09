@@ -133,3 +133,31 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f5-regressions-green: exit 0; `8 passed, 130 deselected in 0.98s`.
 
+## AUD-05-F6
+
+Provider sections use h2; ungrouped benchmark titles use h3 and grouped titles remain h4. Affected model pages extend existing strip styling to h3 without changing the no-evidence golden shell. Red assertions observed heading sequences 1→3 and 2→4. All instrument and model-guide tests, including the byte-identical golden fixture, pass.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F6.py
+```
+
+f6-repro: exit 1; `1 failed in 0.03s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py -k 'heading_follows or model_strips_group_subsets'
+```
+
+f6-red-corrected: exit 1; `2 failed, 1 passed, 73 deselected in 0.39s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py tests/test_instrument_render.py tests/test_model_guide_render.py -k 'model_strip or model_page or heading_follows or test_card_without or guided_card or guide or hardware or lineage or capability or platform or competitor or quantisation or chain'
+```
+
+f6-green: exit 0; `22 passed, 97 deselected in 5.26s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_instrument_render.py tests/test_model_guide_render.py
+```
+
+f6-render-green: exit 0; `43 passed in 3.86s`.
+

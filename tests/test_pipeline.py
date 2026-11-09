@@ -518,6 +518,7 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
 
     strips = model_benchmark_strips(model, pages, coverage)
 
+    assert re.findall(r"<h([1-6])\b", strips) == ["2", "3", "4", "4", "3", "4"]
     assert strips.count('class="benchmark-strip"') == 3
     assert strips.count('class="strip-point focus ') == 3
     assert strips.count('<object class="benchmark-strip-asset"') == 3
@@ -597,6 +598,7 @@ def test_model_page_passes_coverage_to_benchmark_strips() -> None:
         evidence_coverage=coverage,
     )
 
+    assert ".benchmark-strip :is(h3,h4){font-family:var(--sans);font-size:14px" in html
     assert "Benchmark standing" in html
     assert 'href="/b/b/"' in html
     assert html.count('class="strip-point focus ') == 1
@@ -1120,3 +1122,15 @@ def test_example_shell_has_complete_open_graph_metadata(article, indexable):
     assert meta['robots'] == ('index, follow' if indexable else 'noindex, follow')
     for key in ('title', 'description', 'type', 'url', 'image'):
         assert text.count(f'property="og:{key}"') == 1
+
+
+def test_ungrouped_benchmark_strip_heading_follows_its_section():
+    model = _card('demo/focus', evidence=(_evidence('b', 70.0),))
+    strips = model_benchmark_strips(model, {'b': _page('b')}, {'b': [_chart_row('demo/focus', 70.0)]})
+    assert re.findall(r'<h([1-6])\b', strips) == ['2', '3']
+
+
+def test_models_index_provider_heading_follows_page_title():
+    from pipeline.render import models_index
+    page = models_index([_card('demo/focus')], Build('fixture', '2026-09-23T00:00:00Z', date(2026, 9, 23)))
+    assert re.findall(r'<h([1-6])\b', page) == ['1', '2']

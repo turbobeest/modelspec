@@ -525,3 +525,16 @@ def test_built_product_pages_have_complete_social_metadata(dist: Path) -> None:
         assert page.meta["og:title"] in page.title, path
         if path.relative_to(tree).parts[0] in {"compare", "use-cases", "guides"}:
             assert (tree / urlsplit(page.meta["og:image"]).path.lstrip("/")).is_file(), path
+
+
+def test_built_model_heading_levels_are_sequential(dist: Path) -> None:
+    tree = dist / "modelspec"
+    pages = [tree / "models/index.html", *(tree / "m").rglob("index.html")]
+    assert len(pages) > 504
+    jumps = {}
+    for page in pages:
+        levels = [int(value) for value in re.findall(r"<h([1-6])\b", page.read_text())]
+        skipped = [(a, b) for a, b in zip(levels, levels[1:]) if b > a + 1]
+        if skipped:
+            jumps[page.relative_to(tree).as_posix()] = skipped
+    assert jumps == {}

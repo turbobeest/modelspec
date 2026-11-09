@@ -684,11 +684,12 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     blocks: list[str] = []
     for group, items in ordered_groups:
         items.sort(key=lambda item: (-sourced_model_count(item[1]), item[0].name.lower()))
+        level = "h4" if group else "h3"
         strips = "".join(
             '<article class="benchmark-strip">'
-            f'<h4><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
+            f'<{level}><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
             f'<span class="meta">{sourced_model_count(rows)} reporting models</span>'
-            f'</h4>{strip}</article>'
+            f'</{level}>{strip}</article>'
             for bench, rows, strip in items
         )
         heading = f'<h3>{esc(group)}</h3>' if group else ""
@@ -1476,12 +1477,15 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <p>{'' if private_serving() else f'<a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a>'} &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/{esc(model.path.relative_to(model.path.parents[2]))}">Edit on GitHub</a></p>
 """
-    return shell(
+    page = shell(
         title=f"{model.display_name} — ModelSpec",
         description=f"{model.display_name} by {model.provider_display}: benchmark scores, lineage, platforms and hardware fit, with the date on every number.",
         canonical=f"https://modelspec.dev/m/{model.model_id}/",
         body=body, build=build, site="ModelSpec", nav_links=MS_NAV,
     )
+    if strips:
+        page = page.replace(".benchmark-strip h4", ".benchmark-strip :is(h3,h4)")
+    return page
 
 
 def catalogue_freshness(models: list[Model], build: Build | None = None) -> dict[str, Any]:
@@ -1559,7 +1563,7 @@ def models_index(models: list[Model], build: Build) -> str:
             f'<li><a href="/m/{esc(m.model_id)}/">{esc(m.display_name)}</a></li>'
             for m in sorted(by_provider[provider], key=lambda m: m.display_name.lower())
         )
-        blocks.append(f'<h3>{esc(provider)}</h3><ul class="cols">{items}</ul>')
+        blocks.append(f'<h2>{esc(provider)}</h2><ul class="cols">{items}</ul>')
     body = (f'<h1>Every model</h1><p class="lede">{len(models)} cards across '
             f'{len(by_provider)} providers.</p>' + freshness_notice(models, build)
             + "".join(blocks))
