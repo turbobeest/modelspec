@@ -107,6 +107,7 @@ export function DesignedApp({
   const pendingSpec = useRef<Spec | null>(null);
   const [initial] = useState(() => decodeSpec(location.hash)),
     [initialBoard] = useState(() => decodeBoardState(location.hash)),
+    [navigation, setNavigation] = useState({ decoded: initial, board: initialBoard }),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardBaseSpec, setBoardBaseSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardSelections, setBoardSelections] = useState<BoardSelections>(initialBoard?.selections ?? {}),
@@ -145,7 +146,7 @@ export function DesignedApp({
     plotRequest = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
-    initialAnswered = useRef(false);
+    answeredNavigation = useRef<typeof navigation | null>(null);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
@@ -622,25 +623,26 @@ export function DesignedApp({
     if (pendingSpec.current) {
       const edited = pendingSpec.current;
       pendingSpec.current = null;
-      initialAnswered.current = true;
+      answeredNavigation.current = navigation;
       setInitialRestored(true);
       void runDecision(edited);
       return;
     }
-    if (initialAnswered.current) return;
-    if (initial) {
+    if (answeredNavigation.current === navigation) return;
+    const { decoded, board } = navigation;
+    if (decoded) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
       // Once: a vocabulary reloaded after a deploy must not answer it again.
-      initialAnswered.current = true;
-      const legacyBoard = initialBoard ? null : legacySpecToBoard(initial.spec, vocabulary, estate);
-      const restoredBoard = initialBoard
-        ? sanitizeBoardState(initialBoard, vocabulary)
+      answeredNavigation.current = navigation;
+      const legacyBoard = board ? null : legacySpecToBoard(decoded.spec, vocabulary, estate);
+      const restoredBoard = board
+        ? sanitizeBoardState(board, vocabulary)
         : legacyBoard;
       if (!restoredBoard) {
         setInitialRestored(true);
         return;
       }
-      const restoredBase = legacyBoard ? legacyBoardBaseSpec(initial.spec) : initial.spec;
+      const restoredBase = legacyBoard ? legacyBoardBaseSpec(decoded.spec) : decoded.spec;
       const restored = boardToSpec(
         restoredBase,
         vocabulary,
@@ -653,13 +655,19 @@ export function DesignedApp({
       setCanvasAxes(restoredBoard.canvas ?? null);
       setEstate(restoredBoard.estate);
       setLegacyNotes(restoredBoard.notes);
-      setSpec(restored);
+      setActiveTemplate(null);
+      setAxis(decoded.x);
+      setSelected(null);
       setInitialRestored(true);
-      void runDecision(restored);
+      if (humanGateEnabled) changeSpec(restored);
+      else {
+        setSpec(restored);
+        void runDecision(restored);
+      }
       return;
     }
     const base = realBaseSpec(vocabulary);
-    const template = openingTemplate(vocabulary, initial !== null, new URLSearchParams(location.search).get("template"));
+    const template = openingTemplate(vocabulary, false, new URLSearchParams(location.search).get("template"));
     const converted = template ? templateToBoard(template, vocabulary) : null;
     const openingBoard = sanitizeBoardState(
       { selections: converted?.selections ?? {}, mustOrder: converted?.mustOrder ?? [], estate },
@@ -683,11 +691,11 @@ export function DesignedApp({
       setActiveTemplate({ id: template.id, refinement: null });
       setCanvasAxes(templateCanvasAxes(template, vocabulary));
     }
-    initialAnswered.current = true;
+    answeredNavigation.current = navigation;
     void runDecision(openingSpec);
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary, gateStatus]);
+  }, [vocabulary, gateStatus, navigation]);
   useEffect(() => {
     if (requestTimer.current) return;
     const intentOptions = action.current;
@@ -809,29 +817,14 @@ export function DesignedApp({
     };
   }, [theme]);
   hashNavigation.current = () => {
-    const restored = decodeSpec(location.hash);
-    if (!restored) return;
-    const encodedBoard = decodeBoardState(location.hash);
-    const legacyBoard = !encodedBoard && vocabulary
-      ? legacySpecToBoard(restored.spec, vocabulary, estate)
-      : null;
-    const restoredBoard = encodedBoard && vocabulary
-      ? sanitizeBoardState(encodedBoard, vocabulary)
-      : legacyBoard;
-    const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
-    const nextSpec = vocabulary && restoredBoard
-      ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
-      : restored.spec;
-    setBoardBaseSpec(restoredBase);
-    setBoardSelections(restoredBoard?.selections ?? {});
-    setBoardMustOrder(restoredBoard?.mustOrder ?? []);
-    setCanvasAxes(restoredBoard?.canvas ?? null);
-    if (restoredBoard) setEstate(restoredBoard.estate);
-    setLegacyNotes(restoredBoard?.notes ?? []);
-    setActiveTemplate(null);
-    changeSpec(nextSpec);
-    setAxis(restored.x);
-    setSelected(null);
+    const decoded = decodeSpec(location.hash);
+    if (!decoded) return;
+    if (requestTimer.current) clearTimeout(requestTimer.current);
+    requestTimer.current = null;
+    requestAbort.current?.abort();
+    pendingSpec.current = null;
+    setInitialRestored(false);
+    setNavigation({ decoded, board: decodeBoardState(location.hash) });
   };
   useEffect(() => {
     const esc = (ev: KeyboardEvent) => {
