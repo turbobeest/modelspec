@@ -111,3 +111,17 @@ using the ticket's one-time version probe. Before: `Current CLI paragraph claims
 release heading all reported `1.0.0`, User-Agent reported `modelspec-cli/1.0.0`,
 the stale sentence was absent and the mocked vocab command exited 0. Probe exit 0.
 No PyPI publication was observed.
+
+## AUD-09-F7
+
+Skipped as a duplicate of AUD-04-F13 under the bundle's ordered reproduction rule.
+After that correction, the discrepancy no longer reproduced. The one-time
+active-declaration check compares the contract's package declarations before
+`## Release notes` with `pyproject.toml`, and confirms the operator-review statement.
+
+Command:
+`env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-CLI-scratch/root/AUD-09-F7-check.py`.
+Output: `AUD-09-F7 no longer reproduces after AUD-04-F13; active version declarations
+agree with metadata: 1.0.0`, exit 0. No second edit or permanent prose-only test.
+The first check script included sentence punctuation in its version match; its
+regex was corrected to match three numeric version components before this result.
