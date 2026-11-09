@@ -28,3 +28,18 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 No live provider request, private repository change, retained-private-data cleanup, deployment, production switch change or source-terms change was performed. Offline fixtures exercise engine-visible transport behavior. Provider-internal processing was not observed.
+
+## AUD-06-F2
+
+`CreditGuard` now reserves the request's worst-case cost before every POST attempt. The local reservation only increases. Provider balance deltas remain separate measurement fields. Cache hits require no reservation. Bounded PDF requests and permitted expensive formats share the same allowance check; unbounded cost is refused under a finite budget.
+
+The offline reproduction returned `cap=2, posts=5, successful_reads=5, reported_spent=0, stopped=false`. The regression selection reported `11 failed, 72 deselected`, exit 1, before implementation. Its tests exercise actual scrape requests with fake responses and cover constant or replenished balances, retry, timeout, unavailable usage, cache reuse, expensive formats and curation stop behavior.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_fetch.py tests/test_curation_loop.py -k 'local_allowance or reserves_each_retry or timeout_keeps or unavailable_usage or cache_hit_preserves or refuses_unbounded_cost or reserves_expensive or local_cap_stops or cached_reads_do_not_consume'
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_source_transports.py tests/test_fetch.py tests/test_curation_loop.py tests/test_curation_cite_only.py
+```
+
+The combined F1/F2 focused run reported `166 passed`, exit 0. The existing unbounded-request test now asserts refusal before a POST. The shrinking-page-cap fixture explicitly reserves seven credits first, then checks a remaining cap of three; its earlier first cap of ten was incompatible with a total reservation limit of ten. No configured cap increased.
+
+Unknown outcomes keep their full reservation. This can reduce completed work relative to measured provider usage. No live provider consumption was measured.
