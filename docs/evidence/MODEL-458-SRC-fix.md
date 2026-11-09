@@ -1,7 +1,7 @@
 # MODEL-458-SRC execution evidence
 
 Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`, confirmed against freshly fetched `origin/main`.
-The final revision is the head of `model-458-src`; resolve it with `git rev-parse HEAD` after checkout. The executor's final receipt records its full SHA.
+Final implementation SHA: `9b2b9847a345f25432937df83e93e4de2d3ba7f3`. The following evidence-only commit records this immutable tested revision. The executor's final receipt and draft PR identify the repository head, including that evidence update.
 
 Environment: Python 3.14.4, pytest 9.1.1, HTTPX 0.28.1, git 2.50.1, GitHub CLI 2.103.3. Python changes retain 3.11 syntax compatibility.
 
