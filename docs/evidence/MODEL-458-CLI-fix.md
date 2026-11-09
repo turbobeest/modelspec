@@ -125,3 +125,21 @@ Output: `AUD-09-F7 no longer reproduces after AUD-04-F13; active version declara
 agree with metadata: 1.0.0`, exit 0. No second edit or permanent prose-only test.
 The first check script included sentence punctuation in its version match; its
 regex was corrected to match three numeric version components before this result.
+
+## AUD-09-F13
+
+The verification guide uses the repository-only maintainer module with an explicit
+data root and source-checkout instructions. The two-key procedure is unchanged.
+The supplied one-time probe reported installed `verify --help` exit 1 and
+maintainer `verify --help` exit 0 before the documentation correction.
+
+With the pytest prefix above,
+`tests/test_decision_verify.py::test_documented_maintenance_entry_point_has_verification_help`
+recorded `1 failed`, exit 1. This permanent test resolves the documented entry
+points, runs help, checks the documented options and data root, and disables
+network connections, subprocess launches and verification work.
+
+After the change,
+`tests/test_decision_verify.py::test_documented_maintenance_entry_point_has_verification_help tests/test_decision_verify.py::test_cli_verifies_what_is_queued_and_prints_a_summary tests/test_decision_verify.py::test_cli_claude_reader_uses_an_injected_extractor tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next`
+recorded `27 passed`, exit 0. Existing verifier tests use injected readers.
+No collector or subscription reader was run.
