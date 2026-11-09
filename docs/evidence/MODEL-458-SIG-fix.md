@@ -24,6 +24,25 @@ The focused package tests then passed: `79 passed`, exit 0.
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f1 tests/test_release_signals.py tests/test_release_signal_prices.py
 ```
 
+## AUD-14-F10
+
+Optional Hugging Face search accepts a list of repository objects. Invalid
+response shapes produce a gather diagnostic while provider-verified cards
+still draft. Empty searches and exact repository ownership/name matching
+retain their behavior.
+
+The retained reproduction returned `3 failed, 11 deselected`, exit 1.
+The permanent regressions returned `6 failed, 4 passed, 73 deselected`, exit 1,
+before the fix. Non-object rows raised `AttributeError`; invalid top-level
+shapes lacked a failure diagnostic. The focused suites returned `89 passed`,
+exit 0, after the fix.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -s -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/repro-f10 /tmp/MODEL-458-SIG-scratch/executor/test_repro_F10.py -k test_malformed_optional_hf_does_not_block_card
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/red-f10 tests/test_release_signals.py -k 'test_malformed_optional_hf_does_not_block_card or test_valid_optional_hf'
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f10 tests/test_release_signals.py tests/test_release_signal_prices.py
+```
+
 ## Observation limits
 
 No live provider responses, production behavior, deployment or publication

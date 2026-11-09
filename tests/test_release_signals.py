@@ -214,6 +214,7 @@ def test_resolve_distinguishes_existing_new_and_uncertain_without_fuzzy_matching
 
 def _draft_visible_signal(
     tmp_path: Path, body: bytes, *, model_name: str = "Orbit 2",
+    huggingface: bytes | None = None,
 ) -> DraftResult:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
     primary_url = "https://acme.example/models"
@@ -226,10 +227,16 @@ def _draft_visible_signal(
         ),
         primary_url: FetchResult(primary_url, body, "text/html"),
     }
+    if huggingface is not None:
+        search_url = "https://huggingface.co/api/models?search=Orbit+2&limit=20"
+        repo_url = "https://huggingface.co/acme/orbit-2"
+        replies[search_url] = FetchResult(search_url, huggingface, "application/json")
+        replies[repo_url] = FetchResult(repo_url, b"Model card", "text/html")
     return draft_signal(
         ReleaseSignal.parse(signal(model_name=model_name)),
         root=tmp_path, fetch=lambda url: replies[url],
         read_date=date(2026, 9, 26),
+        discover_huggingface=huggingface is not None,
     )
 
 
@@ -284,6 +291,47 @@ def test_exact_visible_identity_preserves_model_version(tmp_path: Path) -> None:
     assert result.card_path.is_file()
     front = yaml.safe_load(result.card_path.read_text().split("---", 2)[1])
     assert front["display_name"] == "Orbit 2.1"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [b"[null]", b"[1]", b'["orbit-2"]', b"null", b"{}",
+     b'[{"id":"acme/orbit-2"},null]'],
+)
+def test_malformed_optional_hf_does_not_block_card(tmp_path: Path, payload: bytes) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.</h1>", huggingface=payload,
+    )
+
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    assert len(result.gather_failures) == 1
+    assert result.gather_failures[0].startswith("Hugging Face search failed:")
+    assert result.evidence_urls == ("https://acme.example/models", "https://models.dev/api.json")
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_supporting"),
+    [
+        (b"[]", ()),
+        (b'[{"id":"acme/orbit-2"}]', ("https://huggingface.co/acme/orbit-2",)),
+        (b'[{"id":"other-lab/orbit-2"}]', ()),
+        (b'[{"id":"acme/orbit-20"}]', ()),
+    ],
+)
+def test_valid_optional_hf_preserves_exact_identity_checks(
+    tmp_path: Path, payload: bytes, expected_supporting: tuple[str, ...],
+) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.</h1>", huggingface=payload,
+    )
+
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    assert result.gather_failures == ()
+    assert result.evidence_urls == (
+        "https://acme.example/models", "https://models.dev/api.json", *expected_supporting,
+    )
 
 
 def test_production_shaped_models_dev_drafts_only_primary_source_facts(

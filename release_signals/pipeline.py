@@ -405,12 +405,14 @@ def _huggingface_repo(
     })
     try:
         payload = json.loads(_fetch_allowed(fetch, search_url).body)
+        if not isinstance(payload, list) or any(not isinstance(row, Mapping) for row in payload):
+            raise ValueError("expected a list of repository objects")
     except Exception as exc:  # the optional source never blocks a provider-backed card
         return "", f"Hugging Face search failed: {type(exc).__name__}: {exc}"
     wanted_model = attribution.normalise(model_name)
     wanted_provider = attribution.normalise(provider)
     matches = []
-    for row in payload if isinstance(payload, list) else []:
+    for row in payload:
         model_id = str(row.get("id") or row.get("modelId") or "")
         author, separator, name = model_id.partition("/")
         if (
