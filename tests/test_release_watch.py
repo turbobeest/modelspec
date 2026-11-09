@@ -30,6 +30,7 @@ from release_signals.watch import (
 )
 from scripts import process_release_signals as processor
 from scripts import release_watch
+from scripts.release_watch_filter import filter_releases
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "release_watch"
@@ -128,6 +129,47 @@ def world(tmp_path: Path):
         for source in registry.sources
     }
     return registry, baseline, load_catalogue(root)
+
+
+@pytest.mark.parametrize("repos", [["other-lab/orbit-3"], ["acme-lab/orbit-3", "other-lab/orbit-4"]])
+def test_huggingface_foreign_owner_cannot_be_credited_to_requested_lab(world, repos) -> None:
+    registry, baseline, _ = world
+    normal_fetch = replay("before")
+
+    def fetch(url: str) -> Response:
+        if url == HF:
+            return Response(200, json.dumps([
+                {"id": repo, "createdAt": "2026-09-29T00:00:00Z"} for repo in repos
+            ]).encode())
+        return normal_fetch(url)
+
+    runs = run_all(registry, baseline, fetch=fetch, now=NOW)
+
+    assert filter_releases(runs, NOW)["signals"] == []
+    assert [run.status for run in runs] == ["ok", "parse_failed", "ok"]
+    assert "owner" in runs[1].detail
+
+
+@pytest.mark.parametrize("owner", ["acme-lab", "ACME-LAB"])
+def test_huggingface_configured_author_maps_to_provider(world, owner: str) -> None:
+    registry, baseline, _ = world
+    normal_fetch = replay("before")
+
+    def fetch(url: str) -> Response:
+        if url == HF:
+            return Response(200, json.dumps([
+                {"id": f"{owner}/Orbit-3", "createdAt": "2026-09-29T00:00:00Z"},
+            ]).encode())
+        return normal_fetch(url)
+
+    runs = run_all(registry, baseline, fetch=fetch, now=NOW)
+    signals = filter_releases(runs, NOW)["signals"]
+
+    assert [run.status for run in runs] == ["ok", "ok", "ok"]
+    assert len(signals) == 1
+    assert signals[0].provider == "acme"
+    assert signals[0].model_name == "Orbit-3"
+    assert signals[0].first_seen_url == f"https://huggingface.co/{owner}/Orbit-3"
 
 
 def test_a_release_on_the_replayed_sources_becomes_one_discovery_per_model(world) -> None:

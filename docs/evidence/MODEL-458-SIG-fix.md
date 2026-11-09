@@ -43,6 +43,24 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.v
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f10 tests/test_release_signals.py tests/test_release_signal_prices.py
 ```
 
+## AUD-14-F2
+
+Hugging Face repository owners must match the configured feed author before
+mapping to the registry's provider. Mismatches hold the source with a
+`parse_failed` diagnostic. Matching ignores author case and preserves explicit
+author-to-provider aliases.
+
+The retained reproduction returned `1 failed, 7 deselected`, exit 1.
+Permanent regressions returned `2 failed, 2 passed, 31 deselected`, exit 1,
+because the filter emitted signals from mismatched feeds. After the fix,
+the existing watcher, precision and filter suites returned `173 passed`, exit 0.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -s -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/repro-f2 /tmp/MODEL-458-SIG-scratch/executor/test_repro_F2.py -k test_huggingface_foreign_owner_cannot_be_credited_to_requested_lab
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/red-f2 tests/test_release_watch.py -k 'test_huggingface_foreign_owner or test_huggingface_configured_author'
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f2 tests/test_release_watch.py tests/test_release_watch_precision.py tests/test_release_watch_filter.py
+```
+
 ## Observation limits
 
 No live provider responses, production behavior, deployment or publication

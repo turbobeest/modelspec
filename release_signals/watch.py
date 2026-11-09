@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from urllib.robotparser import RobotFileParser
 
 import yaml
@@ -211,12 +211,18 @@ def _openrouter(source: Source, payload: Any, registry: Registry) -> dict[str, S
 
 
 def _huggingface(source: Source, payload: Any, registry: Registry) -> dict[str, Seen]:
+    authors = parse_qs(urlsplit(source.url).query, keep_blank_values=True).get("author", [])
+    if len(authors) != 1 or not authors[0]:
+        raise ValueError("Hugging Face source needs exactly one configured author")
+    author = authors[0].casefold()
     variant = re.compile(registry.variant_exclude, re.IGNORECASE)
     rejected = re.compile(source.exclude, re.IGNORECASE) if source.exclude else None
     found: dict[str, Seen] = {}
     for row in payload if isinstance(payload, list) else []:
         repo = str(row.get("id") or "")
-        _, _, name = repo.partition("/")
+        owner, _, name = repo.partition("/")
+        if owner.casefold() != author:
+            raise ValueError("Hugging Face repository owner does not match configured author")
         if not name or row.get("private") or variant.search(name):
             continue
         if rejected and rejected.search(name):
