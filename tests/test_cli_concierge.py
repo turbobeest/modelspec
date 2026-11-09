@@ -6,10 +6,12 @@ import copy
 import gzip
 import json
 import os
+import stat
 import subprocess
 import sys
-import stat
+import threading
 import tomllib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1354,3 +1356,59 @@ def test_fifo_credential_fails_promptly(tmp_path):
     assert payload["error"]["code"] == "auth_unreadable"
     assert payload["next"]
     assert "Traceback" not in stderr
+
+
+@pytest.fixture
+def loopback_response(monkeypatch):
+    state = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = state["body"].encode()
+            self.send_response(state["status"])
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+    thread.start()
+    monkeypatch.setitem(BUNDLE["urls"], "api", f"http://127.0.0.1:{server.server_port}")
+    monkeypatch.setattr(client, "_transport", None)
+    try:
+        yield state
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+@pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity", "1e999", "-1e999"])
+@pytest.mark.parametrize(
+    "http_status,exit_code", [(200, 1), (400, 1), (401, 5), (402, 6), (429, 6)]
+)
+def test_non_finite_response_is_not_successful_json(
+    loopback_response, literal, http_status, exit_code
+):
+    loopback_response.update(
+        status=http_status,
+        body=(
+            '{"error":{"code":"invalid_spec","message":"Refused","details":[{"value":'
+            + literal + '}]}}'
+            if http_status != 200 else '{"result":{"values":[' + literal + ']}}'
+        ),
+    )
+    result = run(["vocab", "--json"], keyed=True)
+
+    def reject_constant(value):
+        raise ValueError(value)
+
+    payload = json.loads(result.stdout, parse_constant=reject_constant)
+    assert result.exit_code == exit_code, result.output
+    expected = {200: "unexpected_response", 401: "invalid_api_key"}.get(http_status, "http_error")
+    assert payload["error"]["code"] == expected
+    assert payload["next"]
+    assert "Traceback" not in result.output

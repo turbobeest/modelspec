@@ -49,3 +49,18 @@ recorded `1 failed, 185 deselected`, exit 1. After the change,
 `tests/test_cli_concierge.py` recorded `186 passed`, exit 0, including the
 subprocess assertion for `auth_unreadable`, exit 5, and recovery steps.
 Windows was not executed locally.
+
+## AUD-04-F8
+
+HTTP JSON decoding rejects nonfinite constants and overflowing floating-point
+values before output. Generated error JSON also disables nonfinite serialization.
+The supplied reproduction printed `standard_json=false` for each of the three
+nonfinite literals under HTTP 200 and 400.
+
+The permanent `test_non_finite_response_is_not_successful_json` exercises nested
+values through a loopback HTTP server under HTTP 200, 400, 401, 402 and 429.
+With the pytest prefix above, `tests/test_cli_concierge.py -k non_finite_response`
+recorded `15 failed, 188 deselected`, exit 1. After the change,
+`tests/test_cli_concierge.py tests/test_cli_compare.py tests/test_cli_compare_models.py tests/test_keyed_router_cli.py`
+recorded `295 passed, 1 skipped`, exit 0. Status-based exits and recovery remain
+covered; successful finite JSON retains its original bytes.

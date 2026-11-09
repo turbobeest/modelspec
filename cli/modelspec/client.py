@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, NoReturn
 
 import httpx
 
@@ -11,6 +12,17 @@ from .errors import ClientError
 from .guidance import BUNDLE, TEXT, next_steps
 
 _transport: httpx.BaseTransport | None = None
+
+
+def _reject_constant(value: str) -> NoReturn:
+    raise ValueError("Nonfinite JSON constant")
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Nonfinite JSON number")
+    return number
 
 
 class Client:
@@ -65,7 +77,7 @@ class Client:
             text=self.credential.redact_json(response.text),
         )
         try:
-            payload = response.json()
+            payload = response.json(parse_constant=_reject_constant, parse_float=_finite_float)
         except ValueError:
             payload = None
         error = payload.get("error") if isinstance(payload, dict) else None
