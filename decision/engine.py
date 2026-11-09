@@ -1005,7 +1005,7 @@ def _decide(
 
         explain(
             decision, resolved, snapshot, filtered, ordered, selectors, domains,
-            comparison=comparison,
+            comparison=comparison, reach=_reach,
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)
