@@ -76,7 +76,10 @@ class ReleaseSignal:
         model_name = _text(value["model_name"], "model_name")
         provider = _text(value["provider"], "provider")
         first_seen_url = _text(value["first_seen_url"], "first_seen_url")
-        parsed_url = urlsplit(first_seen_url)
+        try:
+            parsed_url = urlsplit(first_seen_url)
+        except ValueError as exc:
+            raise SignalError("first_seen_url must be a valid https URL") from exc
         if discovered:
             _require_discovery_url(first_seen_url)
         elif (
@@ -90,16 +93,14 @@ class ReleaseSignal:
         if timestamp != value["timestamp"] or not RFC3339_DATE_TIME.fullmatch(timestamp):
             raise SignalError("timestamp must be an RFC 3339 date-time")
         try:
-            instant = datetime.fromisoformat(_normalise_utc_designator(timestamp))
-        except ValueError as exc:
+            datetime.fromisoformat(_normalise_utc_designator(timestamp)).astimezone(UTC)
+        except (ValueError, OverflowError) as exc:
             raise SignalError("timestamp must be an RFC 3339 date-time") from exc
-        if instant.tzinfo is None:
-            raise SignalError("timestamp must include a UTC offset")
 
         confidence = value["confidence"]
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
             raise SignalError("confidence must be a number from 0 through 1")
-        if not 0 <= float(confidence) <= 1:
+        if not 0 <= confidence <= 1:
             raise SignalError("confidence must be a number from 0 through 1")
 
         signal_id = _text(value["signal_id"], "signal_id")
@@ -132,7 +133,11 @@ class ReleaseSignal:
         cls, body: bytes, signature: str | None, secret: bytes
     ) -> ReleaseSignal:
         expected = sign(secret, body)
-        if not signature or not hmac.compare_digest(signature.strip(), expected):
+        if (
+            not signature
+            or re.fullmatch(r"sha256=[0-9a-f]{64}", signature.strip()) is None
+            or not hmac.compare_digest(signature.strip(), expected)
+        ):
             raise SignalError("the signal signature is invalid")
         try:
             payload = json.loads(body)

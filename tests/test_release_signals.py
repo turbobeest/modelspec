@@ -871,6 +871,71 @@ def test_replay_after_ack_is_still_duplicate(signals_service, legacy_pending, co
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize(
+    ("raw", "signature", "status"),
+    [
+        pytest.param(json.dumps(signal()).encode(), "sha256=é", 401, id="signature"),
+        pytest.param(json.dumps(signal(first_seen_url="https://[broken/")).encode(),
+                     None, 400, id="url"),
+        pytest.param(json.dumps(signal(confidence=10**400)).encode(),
+                     None, 400, id="confidence"),
+        pytest.param(json.dumps(signal(timestamp="0001-01-01T00:00:00+01:00")).encode(),
+                     None, 400, id="timestamp"),
+        pytest.param(b"[" * 1100 + b"]" * 1100, None, 400, id="json"),
+    ],
+)
+def test_invalid_input_returns_client_error(signals_service, raw, signature, status) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.intake(
+        raw=raw, signature=signature if signature is not None else sign(b"write-secret", raw),
+        secret=b"write-secret", enabled=True, kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == status
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize("endpoint", ["pending", "discovered", "acknowledge"])
+def test_non_ascii_read_key_returns_401(signals_service, endpoint) -> None:
+    kv = SignalKV()
+    kwargs = {"authorization": "Bearer é", "read_key": "read-secret", "kv": kv}
+    if endpoint == "discovered":
+        kwargs["raw"] = b"{}"
+    else:
+        kwargs["today"] = date(2026, 9, 26)
+    if endpoint == "acknowledge":
+        kwargs["payload"] = {"signal_id": signal()["signal_id"], "result": None}
+    result = asyncio.run(getattr(signals_service, endpoint)(**kwargs))
+
+    assert result.status == 401
+    assert result.body["error"]["code"] == "unauthorised"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"first_seen_url": "https://[broken/"}, id="url"),
+        pytest.param({"confidence": 10**400}, id="confidence"),
+        pytest.param({"timestamp": "0001-01-01T00:00:00+01:00"}, id="timestamp"),
+    ],
+)
+def test_invalid_discovery_returns_400(signals_service, changes) -> None:
+    payload = signal(signal_id="watch:acme:orbit-2", first_seen_url="https://acme.example/models")
+    payload.update(changes)
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=json.dumps(payload).encode(), authorization="Bearer read-secret",
+        read_key="read-secret", kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_signals_service", ROOT / "api" / "worker" / "src" / "signals_service.py"

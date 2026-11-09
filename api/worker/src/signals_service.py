@@ -63,8 +63,12 @@ def _authorised(authorization: str | None, read_key: str | None) -> bool:
     if not read_key or not authorization:
         return False
     scheme, separator, value = authorization.partition(" ")
-    return separator == " " and scheme.casefold() == "bearer" and hmac.compare_digest(
-        value.strip(), read_key
+    return (
+        separator == " "
+        and scheme.casefold() == "bearer"
+        and value.isascii()
+        and read_key.isascii()
+        and hmac.compare_digest(value.strip(), read_key)
     )
 
 
