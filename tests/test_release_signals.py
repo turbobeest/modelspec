@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import importlib.util
@@ -790,6 +791,84 @@ def test_score_only_evidence_refresh_is_auto_mergeable(tmp_path: Path) -> None:
     assert decision.changed
     assert decision.score_only
     assert decision.merge == "auto"
+
+
+@pytest.fixture
+def signals_service():
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_regression_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+    return service
+
+
+class SignalKV:
+    def __init__(self) -> None:
+        self.rows: dict[str, str] = {}
+        self.calls: list[tuple[str, str]] = []
+
+    async def get(self, key: str) -> str | None:
+        self.calls.append(("get", key))
+        return self.rows.get(key)
+
+    async def put(self, key: str, value: str) -> None:
+        self.calls.append(("put", key))
+        self.rows[key] = value
+
+    async def delete(self, key: str) -> None:
+        self.calls.append(("delete", key))
+        self.rows.pop(key, None)
+
+    async def list(self, options: dict[str, str]) -> dict[str, object]:
+        self.calls.append(("list", options["prefix"]))
+        return {"keys": [{"name": key} for key in self.rows if key.startswith(options["prefix"])]}
+
+
+@pytest.mark.parametrize("legacy_pending", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+def test_replay_after_ack_is_still_duplicate(signals_service, legacy_pending, conflicting) -> None:
+    async def scenario() -> None:
+        kv = SignalKV()
+        raw = json.dumps(signal()).encode()
+        if legacy_pending:
+            kv.rows[signals_service.PENDING_PREFIX + str(signal()["signal_id"])] = json.dumps(
+                signal(), separators=(",", ":"), sort_keys=True,
+            )
+        else:
+            accepted = await signals_service.intake(
+                raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+                enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+            )
+            assert (accepted.status, accepted.body["status"]) == (202, "accepted")
+        acknowledged = await signals_service.acknowledge(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            payload={"signal_id": signal()["signal_id"], "result": "new"},
+            today=date(2026, 9, 26),
+        )
+        assert acknowledged.status == 200
+        rows_after_ack = dict(kv.rows)
+        raw = json.dumps(signal(model_name="Orbit 3") if conflicting else signal(),
+                         sort_keys=True, separators=(",", ":")).encode()
+        replay = await signals_service.intake(
+            raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+            enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 16, tzinfo=UTC),
+        )
+        if conflicting:
+            assert replay.status == 409
+            assert replay.body["error"]["code"] == "signal_id_conflict"
+        else:
+            assert (replay.status, replay.body["status"]) == (200, "duplicate")
+        pending = await signals_service.pending(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            today=date(2026, 9, 26),
+        )
+        assert pending.body["signals"] == []
+        assert kv.rows == rows_after_ack
+
+    asyncio.run(scenario())
 
 
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
