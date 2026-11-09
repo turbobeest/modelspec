@@ -55,14 +55,14 @@ jobs:
       VITE_VISIT_GATE_ENABLED: ${{ matrix.visit_gate }}
       VITE_TURNSTILE_SITE_KEY: public-browser-test-key
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
           cache: 'pip'
       - name: Install dependencies
         run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -84,7 +84,7 @@ jobs:
         run: |
           npx vitest run
           npx playwright test --config=playwright.corpus.config.ts
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
           name: decide-browser-human-gate-${{ matrix.human_gate }}-visit-gate-${{ matrix.visit_gate }}
@@ -105,7 +105,7 @@ jobs:
           BROWSER_RESULT: ${{ needs.decide-browser.result }}
         run: test "$BROWSER_RESULT" = success
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # MODEL-253: each sitemap <lastmod> is its page's last source commit
           # (pipeline/live.py lastmod), so the build needs history. Treeless:
@@ -113,7 +113,7 @@ jobs:
           fetch-depth: 0
           filter: blob:none
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -124,7 +124,7 @@ jobs:
         # and publishes nothing (seen on 8e4660a9).
         run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
@@ -424,7 +424,7 @@ jobs:
             echo 'The store is the static tree, not R2 or D1.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sites
           path: dist
@@ -434,13 +434,13 @@ jobs:
           # from every deploy (MODEL-94).
           include-hidden-files: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sites-holding
           path: dist-holding
           retention-days: 7
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sites-internal
           path: dist-internal
@@ -478,27 +478,27 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: steps.creds.outputs.ready == 'true' && needs.build.outputs.mode == 'live' && vars.BLOG_ENABLED == 'true'
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         if: steps.creds.outputs.ready == 'true' && needs.build.outputs.mode == 'live' && vars.BLOG_ENABLED == 'true'
         with:
           python-version: '3.11'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         if: steps.creds.outputs.ready == 'true'
         with:
           name: sites
           path: dist
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         if: steps.creds.outputs.ready == 'true'
         with:
           name: sites-holding
           path: dist-holding
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         if: steps.creds.outputs.ready == 'true'
         with:
           name: sites-internal
@@ -509,7 +509,7 @@ jobs:
       # SITE_MODE is exactly `live` (the build job's summary names it).
       - name: Deploy modelspec.dev (${{ needs.build.outputs.mode }})
         if: steps.creds.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -518,7 +518,7 @@ jobs:
       # Redirect file in both modes: dist-holding/benchgraph is a copy of dist/benchgraph.
       - name: Deploy benchgraph.dev (${{ needs.build.outputs.mode }})
         if: steps.creds.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -533,7 +533,7 @@ jobs:
       # The same composition as live, always, on `internal` for testing.
       - name: Deploy the real modelspec site to the internal preview
         if: steps.creds.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -542,7 +542,7 @@ jobs:
       # Same redirect file production deploys. Benchmark pages preview on modelspec.
       - name: Deploy the real benchgraph site to the internal preview
         if: steps.creds.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -564,14 +564,14 @@ jobs:
     env:
       API: https://api.modelspec.dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm

@@ -20,6 +20,44 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 
 
+def _mutable_action_references(workflow: dict) -> list[str]:
+    import re
+
+    mutable = []
+    for job in workflow["jobs"].values():
+        for item in [job, *job.get("steps", [])]:
+            uses = item.get("uses", "")
+            if uses and not uses.startswith("./") and not re.fullmatch(r"[^@]+@[0-9a-fA-F]{40}", uses):
+                mutable.append(uses)
+    return mutable
+
+
+def test_external_workflow_actions_use_full_commit_references() -> None:
+    import yaml
+
+    failures = []
+    for path in sorted(WORKFLOWS.iterdir()):
+        if path.suffix not in {".yml", ".yaml"}:
+            continue
+        workflow = yaml.safe_load(path.read_text())
+        failures.extend(f"{path.name}: {uses}" for uses in _mutable_action_references(workflow))
+    assert not failures, "\n".join(failures)
+
+
+@pytest.mark.parametrize("uses,mutable", [
+    ("./.github/actions/local", False),
+    ("./.github/workflows/reusable.yml", False),
+    ("owner/action@" + "a" * 40, False),
+    ("owner/repo/.github/workflows/reusable.yml@" + "b" * 40, False),
+    ("owner/action@v4", True), ("owner/action@main", True),
+    ("owner/action@" + "a" * 39, True), ("owner/action@" + "a" * 41, True),
+])
+@pytest.mark.parametrize("location", ["job", "step"])
+def test_action_reference_guard_accepts_local_actions_and_full_commits(uses, mutable, location):
+    job = {"uses": uses} if location == "job" else {"steps": [{"uses": uses}]}
+    assert _mutable_action_references({"jobs": {"fixture": job}}) == ([uses] if mutable else [])
+
+
 def test_ci_failure_probe() -> None:
     """Fail only when the documented probe explicitly requests it."""
     if os.environ.get("MODELSPEC_CI_FAILURE_PROBE") == "1":
