@@ -78,3 +78,39 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/op
 ```
 
 The generated specification is current. Repeated and concurrent balance reads preserve both account balances and access counters. All authentication checks use local records; deployed storage was not observed.
+
+## AUD-03-F10
+
+The legacy human vocabulary meter runs only for keyless requests. Keyed requests retain access authentication and catalog credit metering. GET and HEAD work without the human secret, visitor identity secret or human storage binding. Repeated and concurrent requests remain subject to the catalog burst limit.
+
+Both supplied cases and eight additional controls failed before the change: `10 failed, 67 deselected`. After implementation:
+
+```text
+374 passed in 3.57s
+```
+
+Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_visit_gate.py tests/test_human_gate.py tests/test_pricing_v2.py tests/test_x402.py
+```
+
+The tests observe catalog credit consumption and no human visitor objects. Existing keyless visit and human-gate tests remain passing. Production flag values are unchanged.
+
+## Final verification
+
+The final history contains one commit per finding, in specification order. The final commit id is recorded in the PR and executor completion line; from this checkout, `git rev-parse HEAD` identifies that same revision.
+
+Additional compatibility controls reported `2 failed` before each change. Delayed funding preserves existing transfer routing and meter identity. Older terminal records accept the confirmed outcome when a signed event is replayed; loading does not infer an absent historical outcome. Their focused follow-up runs reported `38 passed` and `229 passed`, respectively.
+
+All 20 supplied cases pass unchanged against the final implementation. OpenAPI generation checks pass. A comparison with the base confirms identical OpenAPI components, identical credit-balance success schema and identical Worker imports. No exported data changed, so no Worker memory probe was required.
+
+The final serial integration command is:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -ra -p no:cacheprovider --tb=short tests/test_credits.py tests/test_credits_do.py tests/test_read_refunds.py tests/test_overage_durability.py tests/test_billing.py tests/test_billing_refunds.py tests/test_pricing_v2.py tests/test_x402.py tests/test_access_wiring.py tests/test_api_access.py tests/test_api_docs.py tests/test_visit_gate.py tests/test_human_gate.py tests/test_exempt_credits.py tests/test_friends_access.py tests/test_legal.py tests/test_removed_sources.py
+```
+
+Final integration result: `983 passed, 3 skipped in 72.16s`. Two skips are opt-in deployed-site/API checks; one requires a built site distribution, which this Worker-only change does not build.
+
+GitHub CLI version: 2.103.3. `git diff --check` passes. Full CI, deployment behavior, historical production records and live payment/meter delivery were not observed. No production switches, legal terms, prices, plans, release tags or frozen data changed.

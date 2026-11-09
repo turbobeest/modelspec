@@ -1035,7 +1035,7 @@ class Default(WorkerEntrypoint):
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
                     cors.update(outcome.headers)
-                if not visit_token.enabled(self.env) and human_gate.enabled(self.env):
+                if api_key is None and not visit_token.enabled(self.env) and human_gate.enabled(self.env):
                     try:
                         stub = human_gate.stub_for(request, self.env)
                         if stub is None:
