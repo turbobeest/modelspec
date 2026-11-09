@@ -2,7 +2,9 @@
 
 Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`, also `origin/main` after
 `git fetch origin main`. Worktree and branch: `model-458-web-a`.
-Final implementation SHA and delivery checks are recorded below at completion.
+Final implementation SHA: `2c2be73b1b9fc3936271e66287f63081e16cd722`.
+The following evidence-only commit records this tested SHA; the draft PR and
+executor completion line identify the delivery head, including that documentation.
 
 Tools: Node `v22.22.3`, npm `10.9.8`, Vitest `5.0.1`, Playwright `1.63.0`,
 Python `3.14.4`, Git `2.50.1`.
