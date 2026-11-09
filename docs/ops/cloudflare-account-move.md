@@ -455,9 +455,12 @@ next staging deploy provisions staging's KV in the new account.
    `TURNSTILE_SECRET` on the Worker and repo variable `TURNSTILE_SITE_KEY`
    together, then main redeploys the sites. Pages still cached with the old
    site key fail verification once and recover on reload.
-2. Remove `LEDGER_ADMIN_SECRET` from both Workers. Open the follow-up PR that
-   deletes `ledger_admin.py`, the export, import and unseal methods, and the
-   `cloudflare_environment` input.
+2. `LEDGER_ADMIN_SECRET` was removed from both Workers on 2026-11-09.
+   MODEL-441 PR-C removed `ledger_admin.py`, the export, import and unseal
+   methods, move roles, billing leases, KV merge ledger guards, and the
+   `cloudflare_environment` input and deployment overrides. The existing
+   SQLite `move` and `leases` rows remain unused; the `state` row and its
+   format are unchanged.
 3. When the Universal certificate is Active, cancel the Advanced certificate.
 4. sparksandsawdust.com, if Jamie assigns it here. Fetch the
    `sparksandsawdust-com` Worker's script with the read token, since its

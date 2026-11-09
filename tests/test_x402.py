@@ -1587,37 +1587,18 @@ def test_the_402_links_the_terms_of_service() -> None:
         "Paying accepts the terms at https://modelspec.dev/legal/terms/.")
 
 
-class _FreezesAfterSettlement(credits.MemoryLedger):
-    """MODEL-441: the ledger is exported between settlement and the credit."""
-
-    async def spend_paid(self, *args, **kwargs):
-        raise credits.LedgerUnavailable("the credit ledger is frozen")
-
-
-def test_a_one_shot_settled_just_before_a_ledger_freeze_is_still_served():
-    spy = StubFacilitator()
-    status, body = _run(x402.charge(
-        config=_cfg(), ledger=_FreezesAfterSettlement(), facilitator=spy,
-        get_header=_get_header(_header(_payload(nonce="0x" + "ef" * 32))), holder=None,
-        resource_url=RESOURCE, envelope=ENVELOPE, produce=_ok))
-
-    assert status == 200
-    assert body["result"]
-    assert [c[0] for c in spy.calls] == ["verify", "settle"]
-
-
-class _FreezesAfterTheCredit(credits.MemoryLedger):
-    """The export lands after the payment is credited, before it is spent."""
+class _AtomicOneShotLedger(credits.MemoryLedger):
+    """A one-shot payment must not use separate reserve and commit calls."""
 
     async def reserve(self, *args, **kwargs):
-        raise credits.LedgerUnavailable("the credit ledger is frozen")
+        raise AssertionError("one-shot payment must credit and spend atomically")
 
     async def commit(self, *args, **kwargs):
-        raise credits.LedgerUnavailable("the credit ledger is frozen")
+        raise AssertionError("one-shot payment must credit and spend atomically")
 
 
-def test_a_freeze_cannot_fall_between_a_one_shots_credit_and_its_spend():
-    ledger = _FreezesAfterTheCredit()
+def test_a_one_shot_credits_and_spends_in_one_operation():
+    ledger = _AtomicOneShotLedger()
     status, body = _run(x402.charge(
         config=_cfg(), ledger=ledger, facilitator=StubFacilitator(),
         get_header=_get_header(_header(_payload(nonce="0x" + "fe" * 32))), holder=None,
