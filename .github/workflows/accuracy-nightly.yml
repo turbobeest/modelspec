@@ -96,6 +96,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          set -o pipefail
           gh issue list --label alert --state open \
             --search 'in:title "Accuracy nightly failed"' --json number --jq '.[].number' |
           while read -r number; do

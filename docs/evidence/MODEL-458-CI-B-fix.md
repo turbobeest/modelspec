@@ -54,3 +54,24 @@ python -m pytest -q -p no:cacheprovider tests/test_data_workflows.py tests/test_
 
 Green: 177 passed in 1.85s, exit 0, 2.287s process elapsed. Only local jq and
 shell fixtures ran; no HTTP request or GitHub dispatch was sent.
+
+## AUD-08-F5
+
+The nightly close-alert step preserves issue-list and issue-close exit status.
+Its existing success condition is unchanged. Empty lists succeed and every
+listed issue is closed when all commands succeed.
+
+The supplied reproduction exited 1 with list status 42 and step status 0.
+`test_nightly_close_alert_propagates_command_results[list-failure]` failed with
+`assert 0 == 42`; the other three controls passed before the change.
+
+```text
+python -m pytest -q -s -p no:cacheprovider /tmp/MODEL-458-CI-B-scratch/root/repro/F5/test_repro.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F5-repro
+python -m pytest -q -p no:cacheprovider tests/test_accuracy_alert.py -k nightly_close --basetemp /tmp/MODEL-458-CI-B-scratch/root/F5-red
+python -m pytest -q -p no:cacheprovider tests/test_accuracy_alert.py tests/test_ci_workflows.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F5-green
+```
+
+All issue commands were shell function fixtures. No GitHub issue was listed,
+closed or commented on by these checks.
+
+Green: 79 passed in 2.00s, exit 0, 2.210s process elapsed.

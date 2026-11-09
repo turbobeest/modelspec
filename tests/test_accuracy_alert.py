@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import yaml
+import pytest
 
 from scripts import accuracy_alert
 
@@ -123,3 +124,40 @@ def test_the_nightly_opens_and_closes_the_alert_issue() -> None:
     assert "--jq '.[0].number // empty'" in alert["run"]
     clear = steps["Close the alert after a green night"]
     assert clear["if"] == "success() && github.ref == 'refs/heads/main'"
+
+
+@pytest.mark.parametrize("list_status,numbers,close_status,expected_status,closed", [
+    (42, "", 0, 42, []),
+    (0, "", 0, 0, []),
+    (0, "11\n22\n", 0, 0, ["11", "22"]),
+    (0, "11\n22\n", 43, 43, ["11"]),
+], ids=["list-failure", "empty", "closed", "close-failure"])
+def test_nightly_close_alert_propagates_command_results(
+    tmp_path, list_status, numbers, close_status, expected_status, closed,
+):
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(Path(".github/workflows/accuracy-nightly.yml").read_text())
+    step = next(s for s in workflow["jobs"]["accuracy"]["steps"]
+                if s.get("name") == "Close the alert after a green night")
+    stub = '''gh() {
+      if [ "$1 $2" = "issue list" ]; then
+        printf '%s' "$ISSUES"
+        return "$LIST_STATUS"
+      fi
+      if [ "$1 $2" = "issue close" ]; then
+        printf '%s\\n' "$3" >> closed
+        return "$CLOSE_STATUS"
+      fi
+      return 99
+    }
+'''
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"ISSUES": numbers, "LIST_STATUS": str(list_status),
+                          "CLOSE_STATUS": str(close_status), "RUN_URL": "offline"},
+    )
+    assert result.returncode == expected_status, result.stdout + result.stderr
+    calls = tmp_path / "closed"
+    assert (calls.read_text().splitlines() if calls.exists() else []) == closed
