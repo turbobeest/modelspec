@@ -33,3 +33,25 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f3-green: exit 0; `205 passed in 3.22s`.
 
+## AUD-05-F1
+
+Method downloads and availability copy follow files in the output tree, including either-file and neither-file cases. Same-origin absolute hrefs are checked with root-relative links; other origins remain excluded. The red build probe listed two absent decision artifacts. A test setup initially passed a nonexistent dataclass field; it was corrected to the existing environment boundary before implementation.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F1.py
+```
+
+f1-repro: exit 1; `1 failed in 0.02s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_method.py tests/test_pipeline.py -k 'method_downloads or method_private or same_origin_missing or absolute_existing'
+```
+
+f1-red-corrected: exit 1; `7 failed, 3 passed, 78 deselected in 0.90s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_method.py tests/test_pipeline.py -k 'not test_build_'
+```
+
+f1-green: exit 0; `88 passed in 27.28s`.
+

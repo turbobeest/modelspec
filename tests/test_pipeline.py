@@ -1080,3 +1080,25 @@ def test_cited_flat_score_stays_outside_evidence_charts(tmp_path: Path) -> None:
     assert rows[0]["citation"]["status"] == "cited"
     assert benchmark_strip_asset(rows) == ""
     assert benchmark_chart(_page("b"), rows * 20) == ""
+
+
+@pytest.mark.parametrize('href', [
+    '/api/missing.json', 'https://modelspec.dev/api/missing.json',
+    'https://modelspec.dev/api/missing.json?download=1#data',
+    '//modelspec.dev/api/missing.json',
+    'https://MODELSPEC.dev/api/missing.json',
+    'https://modelspec.dev:443/api/missing.json',
+])
+def test_same_origin_missing_href_is_reported(tmp_path, href):
+    (tmp_path / 'index.html').write_text(f'<a href="{href}">Download</a>')
+    assert builder.missing_internal_hrefs(tmp_path) == [('index.html', href)]
+
+
+def test_absolute_existing_and_external_hrefs_are_allowed(tmp_path):
+    (tmp_path / 'index.html').write_text(
+        '<a href="https://modelspec.dev/">Home</a>'
+        '<a href="https://example.org/missing/">External</a>'
+        '<a href="//example.org/missing/">External</a>'
+        '<a href="https://modelspec.dev:8443/missing/">Other port</a>'
+    )
+    assert builder.missing_internal_hrefs(tmp_path) == []

@@ -11,6 +11,7 @@ modelspec.dev.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -20,6 +21,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from decision import registry as decision_registry
 from pipeline import agent_copy, brand, card_ids, data_source
@@ -138,9 +140,14 @@ def missing_internal_hrefs(tree: Path) -> list[tuple[str, str]]:
             "", html_path.read_text(encoding="utf-8", errors="replace")
         )
         for href in _HREF.findall(text):
-            if not href.startswith("/") or href.startswith("//"):
+            parsed = urlsplit(html.unescape(href))
+            if parsed.netloc:
+                if (parsed.hostname != "modelspec.dev" or parsed.scheme not in {"", "https"}
+                        or parsed.port not in {None, 443}):
+                    continue
+            elif parsed.scheme or not parsed.path.startswith("/"):
                 continue
-            if _output_exists(tree, href):
+            if _output_exists(tree, parsed.path or "/"):
                 continue
             missing.append((html_path.relative_to(tree).as_posix(), href))
     return missing
