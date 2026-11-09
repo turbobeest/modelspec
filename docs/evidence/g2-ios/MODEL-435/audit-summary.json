@@ -1,0 +1,47 @@
+{
+  "as_of": "2026-10-20",
+  "available_source_bytes_digest": "e941e08a5ea6e15f98ade39dd64163687d447d4742664c9f23048a0b90f8f40c",
+  "comparison": {
+    "available_source_bytes_unchanged": true,
+    "candidate_outcome_changes": 0,
+    "changed_facts": 0,
+    "full_authored_facts_equal": true
+  },
+  "counts": {
+    "available_fact_citations": 35,
+    "candidate_original_mismatches": 10,
+    "candidate_original_mismatches_without_copies": 10,
+    "candidate_replay_status": {
+      "unavailable_no_retained_same_url_copy": 25
+    },
+    "candidates": 25,
+    "fact_citations": 809,
+    "facts": 430,
+    "facts_by_kind": {
+      "model": 147,
+      "offering": 221,
+      "subscription": 62
+    },
+    "replay_outcomes": {
+      "not_a_claim": 53,
+      "unreachable": 342,
+      "verified": 35
+    },
+    "unique_available_fact_snapshot_refs": 1,
+    "unique_fact_snapshot_refs": 46,
+    "unique_unavailable_fact_snapshot_refs": 45
+  },
+  "data_sha": "c62ce1e1b85dc3468d1e80e0b638e0cc25b3064e",
+  "engine_sha": "d9ed66aea52395b440bd72a94a109c159d4ea4c2",
+  "full_authored_facts_digest": "1def01f52bc94af96a62ae04777ea8894abbb6d7afc2f3c40865263df046327b",
+  "input_readiness_passed": false,
+  "limits": "Historical MODEL-430 outcomes used removed captures. Older same-URL copies can differ; historical outcomes are not reasserted.",
+  "retention": "Existing bytes read in place; no network, source copying, fact writes or verification-log writes.",
+  "scanned_files": 4713,
+  "scope": "All authored facts on Anthropic models, offerings of Anthropic models on every provider, and Anthropic subscriptions. Inherited and computed snapshot facts are outside authored reader replay.",
+  "targeted_source_coverage": {
+    "available_snapshot_refs": 0,
+    "historical_and_current_unique_snapshot_refs": 91,
+    "registered_platform_privacy_sources": 27
+  }
+}
