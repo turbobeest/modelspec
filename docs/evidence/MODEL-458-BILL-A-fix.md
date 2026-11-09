@@ -40,3 +40,16 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p n
 ```
 
 Result: 183 passed, exit 0.
+
+## AUD-03-F3
+
+Subscription status and invoice billing periods are retained separately.
+Sequential delivery permutations preserve current entitlement, including
+cancellation recorded before a purchase entitlement. Checkout links preserve
+the current invoice plan. Legacy records remain readable.
+
+The two supplied checks and 12 permanent controls failed before the change
+and pass after it. The billing/pricing command above passed 195 tests, exit 0.
+The controls cover both invoice event timestamps, paid recovery, cancellation,
+checkout linking and replay. This verifies sequential event permutations;
+concurrent webhook ordering through KV was not measured.

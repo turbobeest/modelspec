@@ -1831,3 +1831,114 @@ def test_renewal_and_downgrade_follow_current_subscription_key(policy, downgrade
         assert (await ledger.balance(_billing_holder(key))).monthly == 0
         assert not (await keys.lookup(kv, key)).active
     run(scenario())
+
+
+@pytest.mark.parametrize("late_created", [150, 900])
+def test_subscription_cancellation_remains_current(policy, late_created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel", created=300)).status == 200
+        invoice = invoice_obj(id="in_delayed", created=100, period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_delayed", created=late_created)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_delayed", created=late_created)).body["duplicate"]
+    run(scenario())
+
+
+@pytest.mark.parametrize("late_kind", ["invoice.payment_failed", "invoice.paid"])
+@pytest.mark.parametrize("late_created", [150, 900])
+def test_current_invoice_period_retains_its_allowance(policy, late_kind, late_created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_new", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_new", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        older = invoice_obj(id="in_old", paid=late_kind == "invoice.paid", created=100,
+                            period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, late_kind, older,
+                                   "evt_old", created=late_created)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
+@pytest.mark.parametrize("order", [("checkout", "invoice"), ("invoice", "checkout")])
+@pytest.mark.parametrize("bound", [False, True])
+def test_cancellation_before_first_entitlement_stays_inactive(policy, order, bound):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = ""
+        meta = {"modelspec_price_id": PRICE}
+        if bound:
+            key, _ = await keys.issue(kv, tier="free", owner="fixture", now=T0, policy=policy)
+            meta["modelspec_key_fingerprint"] = keys.fingerprint(key)
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   {"id": SUB, "status": "canceled", "canceled_at": 300},
+                                   "evt_cancel_first", created=300)).status == 200
+        for kind in order:
+            obj = (checkout_obj(invoice="in_initial", metadata=meta, created=100)
+                   if kind == "checkout" else invoice_obj(
+                       id="in_initial", metadata=meta, period_start=100, period_end=200))
+            type_ = "checkout.session.completed" if kind == "checkout" else "invoice.paid"
+            assert (await _dated_event(kv, ledger, policy, type_, obj,
+                                       "evt_" + kind, created=150)).status == 200
+        active = {"id": SUB, "status": "active", "items": {"data": [{"price": {"id": PRICE}}]}}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                   active, "evt_old_active", created=100)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None and sub.status == "inactive" and sub.pending_monthly == 0
+        if key:
+            assert (await ledger.balance(_billing_holder(key))).monthly == 0
+            assert (await keys.lookup(kv, key)).tier == "free"
+    run(scenario())
+
+
+def test_paid_invoice_recovers_its_period_once(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        invoice = invoice_obj(id="in_recovery", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", invoice,
+                                   "evt_failed", created=300)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_paid", created=310)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", invoice,
+                                   "evt_delayed_failure", created=300)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+        newer = invoice_obj(id="in_next", period_start=400, period_end=500)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", newer,
+                                   "evt_next", created=400)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_checkout_link_retains_current_invoice_plan(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        current = invoice_obj(id="in_team", period_start=300, period_end=400,
+                              lines={"data": [{"price": {"id": TEAM_PRICE},
+                                                "period": {"start": 300, "end": 400}}]})
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", current,
+                                   "evt_team", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        old_checkout = checkout_obj(id="cs_delayed", invoice="in_initial", created=100,
+                                    metadata={"modelspec_price_id": PRICE,
+                                              "modelspec_key_fingerprint": keys.fingerprint(key)})
+        assert (await _dated_event(kv, ledger, policy, "checkout.session.completed", old_checkout,
+                                   "evt_checkout_delayed", created=900)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.plan_name == "Team" and sub.plan_credits == 30000
+        assert (await ledger.balance(_billing_holder(key))).monthly == 29900
+        assert await billing.store.load_session(kv, "cs_delayed") is not None
+    run(scenario())

@@ -181,6 +181,12 @@ class SubscriptionRecord:
     pending_monthly: int = 0
     plan_name: str = ""
     plan_credits: int = 0
+    subscription_status: str = ""
+    subscription_updated_at: int = 0
+    invoice_id: str = ""
+    invoice_period_start: int = 0
+    invoice_period_end: int = 0
+    invoice_paid: bool = False
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -196,6 +202,12 @@ class SubscriptionRecord:
             "pending_monthly": self.pending_monthly,
             "plan_name": self.plan_name,
             "plan_credits": self.plan_credits,
+            "subscription_status": self.subscription_status,
+            "subscription_updated_at": self.subscription_updated_at,
+            "invoice_id": self.invoice_id,
+            "invoice_period_start": self.invoice_period_start,
+            "invoice_period_end": self.invoice_period_end,
+            "invoice_paid": self.invoice_paid,
         }
 
     @classmethod
@@ -213,6 +225,12 @@ class SubscriptionRecord:
             pending_monthly=int(data.get("pending_monthly") or 0),
             plan_name=str(data.get("plan_name") or ""),
             plan_credits=int(data.get("plan_credits") or 0),
+            subscription_status=str(data.get("subscription_status") or ""),
+            subscription_updated_at=int(data.get("subscription_updated_at") or 0),
+            invoice_id=str(data.get("invoice_id") or ""),
+            invoice_period_start=int(data.get("invoice_period_start") or 0),
+            invoice_period_end=int(data.get("invoice_period_end") or 0),
+            invoice_paid=bool(data.get("invoice_paid", False)),
         )
 
 
@@ -249,6 +267,30 @@ async def _write_sub(kv: Any, record: SubscriptionRecord) -> None:
     await kv.put(subscription_name(record.subscription_id), json.dumps(record.to_json()))
 
 
+async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
+                            policy: AccessPolicy, customer_id: str = "",
+                            subscription_status: str = "", updated_at: int = 0,
+                            invoice_id: str = "", period_start: int = 0,
+                            period_end: int = 0, paid: bool = False) -> None:
+    """Retain accepted subscription status and invoice periods on the billing row."""
+    stored = await load_subscription(kv, subscription_id)
+    if stored is None:
+        stored = SubscriptionRecord(
+            subscription_id=subscription_id, customer_id=customer_id, price_id="",
+            tier=policy.billing.downgrade_tier, status=STATUS_INACTIVE,
+            key_fingerprint="", key_id="", created_at=_iso(now))
+    if subscription_status:
+        stored = replace(
+            stored, subscription_status=subscription_status,
+            subscription_updated_at=max(updated_at, stored.subscription_updated_at))
+    if invoice_id and (period_start or period_end or not (
+            stored.invoice_period_start or stored.invoice_period_end)):
+        stored = replace(
+            stored, invoice_id=invoice_id, invoice_period_start=period_start,
+            invoice_period_end=period_end, invoice_paid=paid)
+    await _write_sub(kv, stored)
+
+
 async def _write_session(kv: Any, record: SessionRecord) -> None:
     await kv.put(session_name(record.session_id), json.dumps(record.to_json()))
 
@@ -274,6 +316,28 @@ async def _link_session(kv: Any, session_id: str, subscription_id: str, *,
         session_id=session_id, subscription_id=subscription_id, claimed=False,
         product_kind="plan", price_id=price_id, credits=credits_amount,
         customer_id=customer_id, key_fingerprint=bound))
+
+
+async def link_current_checkout(kv: Any, stored: SubscriptionRecord, *,
+                                session_id: str, key_fingerprint: str,
+                                policy: AccessPolicy, ledger: Any) -> None:
+    """Link Checkout using the subscription's current entitlement."""
+    if key_fingerprint and not stored.key_fingerprint:
+        attached = await attach_existing_key(
+            kv, fingerprint_hex=key_fingerprint,
+            subscription_id=stored.subscription_id, tier=stored.tier, policy=policy)
+        if attached is not None:
+            stored = replace(stored, key_fingerprint=key_fingerprint,
+                             key_id=attached.key_id)
+            await _write_sub(kv, stored)
+            await _grant_pending_monthly(
+                ledger, stored, invoice_id=f"claim:{stored.subscription_id}")
+            stored = replace(stored, pending_monthly=0)
+            await _write_sub(kv, stored)
+    await _link_session(
+        kv, session_id, stored.subscription_id, price_id=stored.price_id,
+        credits_amount=stored.plan_credits, customer_id=stored.customer_id,
+        key_fingerprint=stored.key_fingerprint)
 
 
 async def attach_existing_key(kv: Any, *, fingerprint_hex: str,

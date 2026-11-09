@@ -464,6 +464,64 @@ def _billing_ledger(ledger: Any, kv: Any) -> Any:
 
 
 _SALE_ACTIONS = frozenset({"entitled", "credited"})
+_TERMINAL_SUBSCRIPTION_STATUSES = frozenset({"canceled", "incomplete_expired"})
+
+
+def _timestamp(value: Any) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _invoice_period(obj: dict[str, Any], policy: AccessPolicy) -> tuple[int, int]:
+    price_id = _price_from_invoice(obj, _metered_price_ids(policy))
+    lines = obj.get("lines")
+    rows = lines.get("data") if isinstance(lines, dict) else []
+    if isinstance(rows, list):
+        matching = [row for row in rows if isinstance(row, dict)
+                    and _line_price_id(row) == price_id and _line_amount(row) >= 0]
+        regular = [row for row in matching if not _line_is_proration(row)]
+        for row in regular or matching:
+            period = row.get("period")
+            if isinstance(period, dict):
+                start, end = _timestamp(period.get("start")), _timestamp(period.get("end"))
+                if start or end:
+                    return start, end
+    return _timestamp(obj.get("period_start")), _timestamp(obj.get("period_end"))
+
+
+def _event_subscription(type_: str, obj: dict[str, Any]) -> str:
+    if type_.startswith("customer.subscription."):
+        return _id(obj.get("id"))
+    if type_.startswith("invoice."):
+        return _subscription_from_invoice(obj)
+    return ""
+
+
+def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
+                              stored: store.SubscriptionRecord | None,
+                              policy: AccessPolicy) -> bool:
+    if stored is None:
+        return False
+    if stored.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES:
+        return type_ != "customer.subscription.deleted" and not (
+            type_ == "customer.subscription.updated"
+            and obj.get("status") in _TERMINAL_SUBSCRIPTION_STATUSES)
+    if type_.startswith("customer.subscription."):
+        return bool(created and stored.subscription_updated_at
+                    and created < stored.subscription_updated_at)
+    if type_ not in {"invoice.paid", "invoice.payment_failed"}:
+        return False
+    period = _invoice_period(obj, policy)
+    current_period = (stored.invoice_period_start, stored.invoice_period_end)
+    if any(period) and any(current_period):
+        if period < current_period:
+            return True
+        if (_id(obj.get("id")) == stored.invoice_id and stored.invoice_paid
+                and type_ == "invoice.payment_failed"):
+            return True
+    return False
 
 
 def _sale_notice(type_: str, obj: dict[str, Any], policy: AccessPolicy
@@ -511,9 +569,16 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
     if not isinstance(obj, dict):
         obj = {}
 
+    subscription_id = _event_subscription(type_, obj)
+    stored = await store.load_subscription(kv, subscription_id) if subscription_id else None
+    created = _timestamp(event.get("created"))
+    stale = _stale_entitlement_event(
+        type_, obj, created=created, stored=stored, policy=policy)
     action = "ignored"
     extra: dict[str, Any] = {}
-    if type_ in REVERSAL_TYPES:
+    if stale:
+        pass
+    elif type_ in REVERSAL_TYPES:
         try:
             action, extra = await billing_reversals.apply(
                 type_, obj, ledger=ledger, now=now)
@@ -571,6 +636,25 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                     kv, subscription_id, mapping.tier if mapping else "", policy=policy)
                 if action == "tier_set":
                     action = "restored"
+
+    if subscription_id and not stale:
+        if type_ == "invoice.payment_failed" or (type_ == "invoice.paid"
+                                                 and action != "ignored"):
+            period_start, period_end = _invoice_period(obj, policy)
+            await store.record_chronology(
+                kv, subscription_id, now=now, policy=policy,
+                customer_id=_id(obj.get("customer")),
+                invoice_id=_id(obj.get("id")) or event_id,
+                period_start=period_start, period_end=period_end,
+                paid=type_ == "invoice.paid")
+        elif type_ == "customer.subscription.deleted" or (
+                type_ == "customer.subscription.updated"
+                and obj.get("status") in EXPIRED_STATUSES | {"active"}):
+            await store.record_chronology(
+                kv, subscription_id, now=now, policy=policy,
+                customer_id=_id(obj.get("customer")),
+                subscription_status=("canceled" if type_ == "customer.subscription.deleted"
+                                     else str(obj.get("status"))), updated_at=created)
 
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
     if action in _SALE_ACTIONS and type_ in PROVISION_TYPES:
@@ -632,6 +716,15 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             f"Stripe price {price_id!r} is not a plan; subscription Checkout cannot grant it",
             service_commit=service_commit, endpoint=endpoint,
             detail={"price_id": price_id})
+    existing = await store.load_subscription(kv, subscription_id)
+    if existing is not None and (
+            existing.invoice_id or
+            existing.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES):
+        await store.link_current_checkout(
+            kv, existing, session_id=session_id, key_fingerprint=fingerprint,
+            policy=policy, ledger=ledger)
+        return ("already_entitled" if existing.status == store.STATUS_ACTIVE
+                else "ignored"), None
     action, record = await store.record_entitlement(
         kv, subscription_id=subscription_id,
         customer_id=_id(obj.get("customer")), price_id=price_id, tier=mapping.tier,
