@@ -2,9 +2,10 @@
 
 This runbook moves every ModelSpec resource out of the shared Cloudflare
 account `43840d11…`, which dev-mux and personal sites also use, into a new
-ModelSpec-only account. The free decide page and keyless API calls keep
-answering throughout, apart from a route gap of a few seconds at activation
-that phase 5 may remove (below). Credit operations, which every keyed and
+ModelSpec-only account. The sites and the free decide page keep answering
+throughout. The API, keyless calls included, does not: on 2026-11-08
+`api.modelspec.dev` was down for 36 minutes around activation (see "What the
+2026-11-08 move found"); with the phase 8 `A` record, expect up to 15 minutes. Credit operations, which every keyed and
 paid call needs, freeze for the minutes between exporting the ledger and the
 zone turning active, and answer 503 meanwhile. No credit balance is lost or
 counted twice.
@@ -32,10 +33,11 @@ Workers routes need an active zone
 and the moved zone stays Pending in the new account until the move. So the new
 account's Workers deploy without routes (`CF_ROUTES=off`), and
 `scripts/cf_move.py attach-routes --wait-active` adds them about a second after
-the zone turns Active. Expect a few seconds of 522 on `api.modelspec.dev` at
-that moment. That is the one API gap this plan cannot remove. Phase 5 checks
-whether a Pending zone accepts routes after all. If it does, the gap
-disappears.
+the zone turns Active. Phase 4 checks whether a Pending zone accepts routes
+after all; on 2026-11-08 it did, so no route gap occurred. The API gap that
+remains is the Pending window: Cloudflare's nameservers can answer from the
+new zone before it is Active, and a Pending zone serves records unproxied, so
+no Worker runs. Expect up to 15 minutes without the API.
 
 ## Inventory
 
@@ -256,7 +258,8 @@ an agent session with the tokens Jamie hands it, never printing them.
 6. Create Pages projects `modelspec` and `benchgraph` (production branch
    `main`). Dispatch `deploy-sites.yml` on main with
    `cloudflare_environment=cloudflare-modelspec`. Add the custom domains
-   `modelspec.dev`, `www.modelspec.dev` and `benchgraph.dev`. They stay pending
+   `modelspec.dev`, `www.modelspec.dev`, `benchgraph.dev` and
+   `www.benchgraph.dev`. They stay pending
    until their zones activate. Note the new `*.pages.dev` subdomains.
 
 ### Phase 4. Deploy the Workers into the new account (A dispatches, J sets secrets)
@@ -281,7 +284,10 @@ the same commit.
    Then dispatch `mcp.yml` with the same input.
 4. Check: `/v1/health`, decide, rank, policy-check and the MCP `tools/list` on
    the workers.dev hosts, and `GET /internal/ledger/status` on both Workers with
-   the admin secret: old `live`, new `standby`.
+   the admin secret: old `live`, new `standby`. MCP refuses any `Host` but
+   `api.modelspec.dev` and localhost (`mcp/src/server.ts`), so on workers.dev
+   its smoke answers 403 "Invalid Host" until the allowlist names that host.
+   Without that change, check MCP through `api.modelspec.dev` after phase 8.
 
 ### Phase 5. Copy KV (A, read token on the old side, migration token on the new)
 
@@ -331,8 +337,8 @@ leave `api.modelspec.dev` without its Workers after the irreversible move.
 
 Pre-flight (A posts the evidence on MODEL-441 before step 2): every host
 served only by a Worker has a proxied `A` record as well as its `AAAA`
-(`api` → `192.0.2.1` and `100::`); the new Workers
-pass smoke on workers.dev; the new ledger is `standby`; `zone-diff` is clean;
+(`api` → `192.0.2.1` and `100::`); the new rank Worker passes smoke on
+workers.dev (MCP only if its allowlist names that host, phase 4 step 4); the new ledger is `standby`; `zone-diff` is clean;
 the route probe passed; the Advanced certificate is waiting for deployment;
 Email Routing destinations are verified; Pages custom domains are pending; the
 rehearsal showed no unexplained gap. Run steps 2 to 5 in the quietest hour,
@@ -515,8 +521,9 @@ phases above; the list is the record.
 
 ## Residual risks
 
-- A few seconds of 522 on `api.modelspec.dev` while `attach-routes` reacts to
-  activation, unless phase 5 shows that a Pending zone accepts routes.
+- Up to 15 minutes without `api.modelspec.dev` while Cloudflare answers from
+  the Pending zone, which serves records unproxied. A few seconds of 522 at
+  activation as well, if a Pending zone refuses routes (phase 4 step 1).
 - The Pages sites get their certificates from Pages after activation. Advanced
   certificates do not apply to Pages custom domains
   (<https://developers.cloudflare.com/pages/platform/known-issues/>), so the
