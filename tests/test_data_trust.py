@@ -1077,3 +1077,68 @@ def test_mixed_fact_is_dated_by_its_logged_verification(
     # cite-only ref's newer retrieval (2026-09-19), so nothing is flagged.
     assert served["read_date"] == "2026-09-17"
     assert invariants.run(catalogue, registry, TODAY)["findings"] == []
+
+
+@pytest.fixture
+def balance_catalogue(catalogue):
+    catalogue.boards['balance'] = {'metric': {'name': 'balance', 'unit': 'USD', 'max_score': None}}
+    catalogue.facts = [{**catalogue.facts[1], 'kind': 'evidence', 'id': 'balance-record',
+                        'field': 'balance', 'unit': 'USD', 'value': -1.0}]
+    return catalogue
+
+
+@pytest.mark.parametrize('score', [-1.0, -20.0, -300.0])
+def test_trust_audit_agrees_with_open_scale_admission(balance_catalogue, registry, score):
+    from schema.benchmark_values import validate_value
+
+    c = balance_catalogue
+    c.facts[0]['value'] = score
+    validate_value(score, 'USD', c.boards['balance']['metric'])
+    assert 'benchmark_range' not in rules(c, registry)
+
+
+def test_trust_range_classes_agree_with_open_scale_admission(balance_catalogue):
+    rows = [{**balance_catalogue.facts[0], 'value': score} for score in [-1.0, -20.0, -300.0]]
+    assert invariants.range_classes(rows, balance_catalogue) == {}
+
+
+@pytest.mark.parametrize('metric,score,accepted', [
+    ({'unit': 'fraction', 'max_score': 1}, -0.1, False),
+    ({'unit': '%', 'max_score': 100}, -1, False),
+    ({'unit': 'USD', 'min_score': -2}, -3, False),
+    ({'unit': 'USD', 'min_score': -2}, -2, True),
+    ({'unit': 'USD', 'max_score': 10}, 11, False),
+    ({'unit': 'USD', 'max_score': 10}, -20, True),
+    ({'unit': 'USD', 'min_score': None, 'max_score': None}, -20, True),
+    ({'unit': 'p-MRR (x100)'}, -100, True),
+    ({'unit': 'p-MRR (x100)', 'min_score': -200, 'max_score': 200}, -101, False),
+    ({'unit': 'p-MRR (x100)', 'min_score': -5, 'max_score': 5}, -6, False),
+    ({'unit': 'p-MRR (x100)', 'min_score': -5, 'max_score': 5}, 6, False),
+])
+@pytest.mark.parametrize('boundary', ['served', 'classes'])
+def test_trust_range_matches_declared_bounds(balance_catalogue, registry, metric, score, accepted, boundary):
+    from schema.benchmark_values import validate_value
+
+    c = balance_catalogue
+    c.boards['balance']['metric'] = metric
+    c.facts[0].update(value=score, unit=metric['unit'])
+    if accepted:
+        validate_value(score, metric['unit'], metric)
+    else:
+        with pytest.raises(ValueError, match='range'):
+            validate_value(score, metric['unit'], metric)
+    if boundary == 'served':
+        assert ('benchmark_range' in rules(c, registry)) is not accepted
+    else:
+        assert invariants.range_classes(c.facts, c) == ({} if accepted else {'balance': 1})
+
+
+@pytest.mark.parametrize('value', [float('nan'), float('inf'), float('-inf')])
+def test_trust_open_scale_keeps_nonfinite_diagnostics(balance_catalogue, registry, value):
+    balance_catalogue.facts[0]['value'] = value
+    assert 'finite_number' in rules(balance_catalogue, registry)
+
+
+def test_trust_open_scale_keeps_unit_diagnostic(balance_catalogue, registry):
+    balance_catalogue.facts[0].update(value=1, unit='fraction')
+    assert 'benchmark_unit' in rules(balance_catalogue, registry)

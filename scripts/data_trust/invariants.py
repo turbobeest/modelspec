@@ -16,6 +16,7 @@ from decision.model import Fact, Model, Offering, Source, verification_counts
 from decision.registry import Registry, UnknownIdError
 from decision.verify import unit_id
 from schema.benchmark import Metric
+from schema.benchmark_values import effective_range
 from scripts.data_trust.catalogue import Catalogue, Finding, cited, day, only_cite_only_sources
 from scripts.slo.report import load_config
 
@@ -206,10 +207,10 @@ def run(c: Catalogue, registry: Registry, as_of: date, snapshot: dict | None = N
                 add(f, "benchmark_resolves")
             else:
                 metric = board.get("metric") or {}
-                low, high = metric.get("min_score", 0), metric.get("max_score")
+                low, high = effective_range(metric)
                 if not isinstance(value, (int, float)) or isinstance(value, bool):
                     add(f, "benchmark_numeric")
-                elif value < low or high is not None and value > high:
+                elif low is not None and value < low or high is not None and value > high:
                     add(f, "benchmark_range")
                 elif high is None:
                     add(f, "benchmark_range_unbounded", "warning")
@@ -359,11 +360,11 @@ def range_classes(rows: list[dict], c: Catalogue) -> dict:
             continue
         bid = name.removeprefix("benchmarks.scores.")
         metric = c.boards.get(bid, {}).get("metric", {})
-        high = metric.get("max_score")
+        low, high = effective_range(metric)
         if (
             isinstance(value, (int, float))
             and not isinstance(value, bool)
-            and (value < metric.get("min_score", 0) or high is not None and value > high)
+            and (low is not None and value < low or high is not None and value > high)
         ):
             counts[bid] += 1
     return dict(sorted(counts.items()))
