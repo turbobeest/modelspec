@@ -22,3 +22,21 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 The checks exercise persisted JSON, a SQLite-backed CreditsObject restart, repeated completion, account merges, and local meter acknowledgements. No deployed Worker, provider, payment service, production configuration change, or full CI run was observed.
+
+## AUD-03-F6
+
+Terminal dispute outcomes are stored with the payment and applied once to claimed and pending-claim packs. Returned draws honor that outcome. Successful dispute outcomes retain the existing expiry and refund behavior.
+
+The supplied cases reported `2 failed` before implementation. Additional terminal-outcome controls reported `4 failed, 16 passed` on the unchanged implementation. After implementation:
+
+```text
+197 passed in 0.91s
+```
+
+Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_billing_refunds.py tests/test_billing.py tests/test_credits.py tests/test_credits_do.py tests/test_read_refunds.py
+```
+
+Signed local webhook fixtures cover event ordering, replay, pending claims, decision/catalog completion and expiry. Existing spent-credit and unmatched-subscription tests remain passing. Published terms and webhook response fields are unchanged. No live payment or webhook delivery was observed.

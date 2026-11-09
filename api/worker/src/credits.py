@@ -871,15 +871,19 @@ class LedgerState:
         purchased = int(rec.get("units") or 0)
         pending = bool(rec.get("pending"))
         closed = list(rec.get("closed_disputes") or [])
+        if dispute_id in (rec.get("dispute_outcomes") or {}):
+            return ReversalResult(True, payment_id, pending, purchased)
         if dispute_id not in closed:
             closed.append(dispute_id)
         rec["closed_disputes"] = closed
-        if rec.get("hold") != dispute_id:
+        rec.setdefault("dispute_outcomes", {})[dispute_id] = "restore" if restore else "forfeit"
+        if restore and rec.get("hold") != dispute_id:
             return ReversalResult(True, payment_id, pending, purchased)
         rec.pop("hold", None)
         if pending:
             # A refund since the hold may have shrunk what claim would grant.
-            units = min(int(rec.pop("held", 0) or 0), _grantable(rec))
+            held = int(rec.pop("held", 0) or 0)
+            units = min(held, _grantable(rec)) if restore else _grantable(rec)
             if restore:
                 return ReversalResult(True, payment_id, True, purchased, restored=units)
             rec["forfeited"] = int(rec.get("forfeited") or 0) + units
@@ -888,10 +892,11 @@ class LedgerState:
         grant = self._grant(payment_id)
         if grant is None:
             return ReversalResult(True, payment_id, False, purchased)
-        units = grant.held
+        units = grant.held if restore else grant.held + grant.remaining
         grant.held = 0
         grant.hold_id = ""
         if not restore:
+            grant.remaining = 0
             rec["forfeited"] = int(rec.get("forfeited") or 0) + units
             return ReversalResult(True, payment_id, False, purchased, forfeited=units)
         if _expired(grant.expires_at, clock):
@@ -1132,6 +1137,9 @@ class LedgerState:
                 absorbed = min(owed, amount)
                 rec["owed"] = owed - absorbed
                 amount -= absorbed
+            if int(rec.get("forfeited") or 0) or "forfeit" in (rec.get("dispute_outcomes") or {}).values():
+                rec["forfeited"] = int(rec.get("forfeited") or 0) + amount
+                continue
             if amount <= 0:
                 continue
             grant = by_id.get(grant_id)
