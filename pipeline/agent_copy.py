@@ -512,8 +512,11 @@ Minimal valid Spec, minimizing cost without claiming a quality ranking:
 {json.dumps(MINIMAL_SPEC, separators=(',', ':'))}
 ```
 
-`spec_version` is 1. `snapshot` defaults to latest; save the returned snapshot
-and decision_id, and set snapshot to that exact ID for a reproducible retry.
+`spec_version` is 1. `snapshot` defaults to latest. Save the Spec, snapshot ID,
+decision_id and answer. Pinning repeats an answer only while that snapshot is
+available. The hosted API serves only its current snapshot; after replacement,
+a pin returns `409 snapshot_not_loaded`. Retry with `latest` for a new answer,
+not the saved answer.
 Over HTTP, `explain` defaults to summary and returns full rows; full includes
 every eliminated candidate and can be large. A Spec has one optimize objective: min, max, or weights.
 A negative numeric weight key prefers less, for example `-offering.cost_per_task`.

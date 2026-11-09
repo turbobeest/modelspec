@@ -60,3 +60,91 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 60 passed, 2 skipped in 17.39s
 ```
+
+## AUD-09-F3
+
+Public replay guidance distinguishes deterministic evaluation from hosted snapshot availability. The synthetic pinned request returns 200 before replacement, 409 afterward, and 200 with latest. Generated guide outputs were refreshed.
+
+f3-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f3-red tests/test_reference_decide.py::test_public_snapshot_replay_guidance_discloses_current_only_availability
+```
+
+```text
+FAILED tests/test_reference_decide.py::test_public_snapshot_replay_guidance_discloses_current_only_availability
+1 failed in 0.87s
+```
+
+f3-green; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f3-green tests/test_reference_decide.py tests/test_access_wiring.py::test_on_an_unkeyed_request_is_refused_and_told_how_to_get_a_key tests/test_agent_guide.py tests/test_llms_txt.py tests/test_decide_worker.py::test_a_requested_snapshot_must_be_the_loaded_snapshot
+```
+
+```text
+FAILED tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[mcp-True]
+FAILED tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-True]
+5 failed, 25 passed in 30.27s
+```
+
+f3-focused; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f3-focused tests/test_reference_decide.py tests/test_access_wiring.py::test_on_an_unkeyed_request_is_refused_and_told_how_to_get_a_key tests/test_agent_guide.py::test_generated_guide_and_constants_are_stable_and_within_budget tests/test_agent_guide.py::test_all_guide_specs_parse_against_the_registry tests/test_llms_txt.py tests/test_data_lag.py::test_no_commit_old_enough_changes_nothing tests/test_data_lag.py::test_the_seed_publishes_on_the_ninth_month tests/test_decide_worker.py::test_a_requested_snapshot_must_be_the_loaded_snapshot tests/test_legal.py
+```
+
+```text
+106 passed in 3.46s
+```
+
+Generation command: `env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write`; exit 0. The generated Worker change is only its same-width guide version. No schema or catalogue output changed.
+
+The broader guide run reported five capture-coherence failures because `qa/fixtures/mcp-tools.json` pins the two regenerated guide hashes. A two-hash patch was prepared in scratch; that fixture is outside the spec's named paths and awaits scope approval. The spec's focused guide checks and the complete legal test file passed.
+
+The required private-data memory probe ran through `~/.codex-g2/heavy.sh` with a throwaway signing key, Python 3.14.4, Node v22.22.3 and Pyodide 0.28.3; exit 0. Current steady memory was 114269259 bytes (108.97566 MiB), successor 108793627 bytes (103.75369 MiB). Both passed 115 MiB. Public vendoring with `--check` passed. The private clone, generated bundles and raw private logs were removed. No production service was queried.
+
+The probe script was invoked as `/Users/terbeest/.codex-g2/heavy.sh /bin/bash /tmp/MODEL-458-DOCS-scratch/operations/memory/run-memory.sh`. Its exact commands follow; the clone was created with `git clone --depth 1 https://github.com/turbobeest/modelspec-data.git /tmp/MODEL-458-DOCS-scratch/operations/memory/modelspec-data`.
+
+```bash
+#!/bin/bash
+set -euo pipefail
+cd /Users/terbeest/dev/worktrees/model-458-docs
+scratch=/tmp/MODEL-458-DOCS-scratch/operations/memory
+export PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH
+export PYTHONPATH=$PWD
+export PYTHONDONTWRITEBYTECODE=1
+export TMPDIR=$scratch/tmp
+export MODELSPEC_SNAPSHOT_KEY=model458-docs-memory-fixture-key
+export MODELSPEC_REQUIRE_DATA_DIR=0
+python=/Users/terbeest/dev/modelspec/.venv/bin/python
+"$python" api/worker/vendor.py --out "$scratch/public-bundle" --check > "$scratch/public-vendor.log" 2>&1
+export MODELSPEC_REQUIRE_DATA_DIR=1
+"$python" api/worker/vendor.py --data-dir "$scratch/modelspec-data" --out "$scratch/private-bundle" > "$scratch/private-vendor.log" 2>&1
+"$python" - <<'PY'
+import shutil, subprocess
+from pathlib import Path
+scratch=Path('/tmp/MODEL-458-DOCS-scratch/operations/memory')
+paths=subprocess.run(['git','ls-files','api/worker/src/*.py'],check=True,capture_output=True,text=True).stdout.splitlines()
+for name in paths:
+    path=Path(name)
+    if path.parent == Path('api/worker/src'):
+        shutil.copyfile(path,scratch/'private-bundle'/path.name)
+assert (scratch/'private-bundle/agent_guide.py').read_bytes() == Path('api/worker/src/agent_guide.py').read_bytes()
+PY
+npm install --prefix "$scratch/runtime" --no-save pyodide@0.28.3 > "$scratch/npm.log" 2>&1
+export NODE_PATH=$scratch/runtime/node_modules
+node --expose-gc api/worker/measure_memory.cjs "$scratch/private-bundle" --limit-mib 115 --output "$scratch/current.json" > "$scratch/current.log" 2>&1
+node --expose-gc api/worker/measure_memory.cjs "$scratch/private-bundle" --successor --limit-mib 115 --output "$scratch/successor.json" > "$scratch/successor.log" 2>&1
+"$python" - <<'PY'
+import json
+from pathlib import Path
+scratch=Path('/tmp/MODEL-458-DOCS-scratch/operations/memory')
+for period in ('current','successor'):
+    data=json.loads((scratch/f'{period}.json').read_text())
+    print(json.dumps({key:data[key] for key in ('period','steady_bytes','steady_mib')} | {'limit_mib':115}))
+PY
+```

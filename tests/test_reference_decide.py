@@ -104,3 +104,35 @@ def test_decide_reference_describes_bundled_successor_transition(
     assert 'successor' in refresh
     assert 'without a deploy' in refresh
     assert 'current valid period' in refresh
+
+
+def test_public_snapshot_replay_guidance_discloses_current_only_availability():
+    from datetime import date
+
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from pipeline.agent_copy import MINIMAL_SPEC, guide
+    from pipeline.landing import ANALYSIS
+    from tests.snapshot_records import SOURCES, model, offering
+    from tests.test_decide_worker import _load_service
+
+    inputs = SnapshotInputs(models=[model('lab/a')], offerings=[offering('lab/a')], sources=SOURCES)
+    old, new = [load_built_snapshot(build_snapshot(inputs, as_of=day), source='replay fixture')
+                for day in (date(2026, 9, 25), date(2026, 9, 26))]
+    service = _load_service()
+    pinned = MINIMAL_SPEC | {'snapshot': old.snapshot_id}
+    first = service.decide(pinned, old)
+    assert first[0] == 200
+    assert service.decide(pinned, old) == first
+    status, body = service.decide(pinned, new)
+    assert status == 409
+    assert body['error']['code'] == 'snapshot_not_loaded'
+    assert service.decide(pinned | {'snapshot': 'latest'}, new)[0] == 200
+
+    landing = next(text for name, text, _ in ANALYSIS if name == 'Audit trail')
+    for text in (guide()[1], (ROOT / 'docs/agents.md').read_text(), landing):
+        assert 'current snapshot' in text.lower()
+        assert 'latest' in text
+        assert 'next quarter' not in text
+    for text in (guide()[1], (ROOT / 'docs/agents.md').read_text()):
+        assert str(status) in text and body['error']['code'] in text
+    assert 'older pin is refused' in landing
