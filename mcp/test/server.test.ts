@@ -12,6 +12,14 @@ const ENV: Env = {
   RANK_API_ORIGIN: "https://api.modelspec.dev",
   BUILD_COMMIT: "test-commit-sha",
 };
+const STATIC_HEADERS = { authorization: "Bearer issued_live_key" };
+const STATIC_ENV: Env = {
+  ...ENV,
+  RANK: { async fetch(input) {
+    expect(String(input)).toBe("https://api.modelspec.dev/v1/auth-check");
+    return jsonResponse(200, { authenticated: true });
+  } },
+};
 
 function testCtx(): ExecutionContext {
   return {
@@ -321,7 +329,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "model_info",
       arguments: { model_id: "deepseek/deepseek-v3-2" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/models/deepseek/deepseek-v3-2.json",
@@ -335,7 +343,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "model_info",
       arguments: { model_id: "missing/model" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.status).toBe(404);
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
@@ -347,7 +355,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "list_use_cases",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe("https://modelspec.dev/api/rank/profiles.json");
     expect(envelope.body).toEqual(originBody);
@@ -358,7 +366,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "list_use_cases",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe("https://modelspec.dev/api/rank/profiles.json");
     expect(envelope.status).toBe(0);
@@ -911,7 +919,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "vocab",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/decision/vocabulary.json",
@@ -929,7 +937,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "vocab",
       arguments: { section: "facets" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     expect(envelopeFromCall(payload).body).toEqual({ facets,
       next: "next: call decide using these ids; refine from reading" });
   });
@@ -982,7 +990,7 @@ describe("compact HTTP vocabulary requests", () => {
         { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, vocabulary)));
       try {
-        const exported = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } });
+        const exported = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } }, 1, STATIC_HEADERS, STATIC_ENV);
         expect(envelopeFromCall(split.payload).body).toEqual(body);
         expect(envelopeFromCall(exported.payload).body).toEqual(body);
       } finally {

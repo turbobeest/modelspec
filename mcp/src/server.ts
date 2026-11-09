@@ -780,6 +780,26 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     if (refusal) return refusal;
     return fetchOrigin(origin, postInit(body, authorization), env.RANK);
   }
+  async function fetchStaticData(origin: string) {
+    const refusal = missingKey(origin);
+    if (refusal) return refusal;
+    const authOrigin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/auth-check`;
+    const headers = new Headers({ "cache-control": "no-store" });
+    if (authorization) headers.set("authorization", authorization);
+    const checked = await fetchOrigin(authOrigin, { headers }, env.RANK);
+    if (checked.status === 0 || checked.status >= 400) return checked;
+    if (checked.status !== 200 || !z.strictObject({ authenticated: z.literal(true) }).safeParse(checked.body).success) {
+      return {
+        origin: authOrigin,
+        status: 502,
+        body: { error: {
+          code: "authentication_unavailable",
+          message: "The origin did not confirm live data authorization. Retry later.",
+        } },
+      };
+    }
+    return fetchOrigin(origin);
+  }
 
   const serverInfo = { name: "modelspec", version: env.BUILD_COMMIT };
   const mcpServer = new McpServer(
@@ -834,9 +854,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         }
         return asToolResult(envelope);
       }
-      const refusal = missingKey(located.origin);
-      if (refusal) return asToolResult(refusal);
-      return asToolResult(await fetchOrigin(located.origin));
+      return asToolResult(await fetchStaticData(located.origin));
     },
   );
 
@@ -848,9 +866,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async () => {
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/rank/profiles.json`;
-      const refusal = missingKey(origin);
-      if (refusal) return asToolResult(refusal);
-      return asToolResult(await fetchOrigin(origin));
+      return asToolResult(await fetchStaticData(origin));
     },
   );
 
@@ -930,12 +946,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       if (args.offset !== undefined) query.set("offset", String(args.offset));
       if (args.limit !== undefined) query.set("limit", String(args.limit));
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
-      if (!split) {
-        const refusal = missingKey(origin);
-        if (refusal) return asToolResult(refusal);
-      }
-      const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchOrigin(origin);
-      if (envelope.status < 400 && isRecord(envelope.body)) {
+      const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchStaticData(origin);
+      if (envelope.status > 0 && envelope.status < 400 && isRecord(envelope.body)) {
         // Older Workers ignore lookup parameters and return the full vocabulary.
         // Keep agent responses compact while the two Workers roll out independently.
         const selected = split && !("vocabulary_version" in envelope.body)

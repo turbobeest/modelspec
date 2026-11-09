@@ -158,7 +158,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/hardware-fit", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status",
+    "GET /v1/credits", "GET /v1/human-status", "GET /v1/auth-check",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -959,6 +959,29 @@ class Default(WorkerEntrypoint):
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
+
+        if path == "/v1/auth-check":
+            if method != "GET":
+                return self._method_not_allowed(service_commit, path, "GET", method)
+
+            async def authenticated(*args):
+                return 200, {"authenticated": True}
+
+            async def skip_auth_limits(record, tier):
+                return True
+
+            outcome = await access.gate(
+                api_key=access_keys.extract(lambda name: request.headers.get(name)),
+                enforced=True, require_key=True, require_live_data=True,
+                kv=_access_store(self.env),
+                load_policy=lambda: access_config.load_policy(self.env),
+                anonymous=authenticated, live=authenticated,
+                sandbox=lambda: access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "Use a key authorized for live catalogue data.", envelope={}),
+                skip_limits=skip_auth_limits,
+            )
+            return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if path == "/v1/decision-link" and decision_link.enabled(self.env):
             return await self._decision_link(request, method, origin, service_commit)
