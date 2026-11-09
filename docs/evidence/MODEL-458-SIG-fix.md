@@ -3,8 +3,23 @@
 Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`, also the fetched
 `origin/main` before implementation. The assigned branch is `model-458-sig`.
 
+Final implementation SHA: `33a4ca8eccfb4eee9a6dd73cabdca7f165e41b50`.
+The subsequent commit records only this evidence provenance. The submitted
+head SHA is available in the PR and with `git rev-parse model-458-sig`.
+
 Environment: Python 3.14.4, pytest 9.1.1, httpx 0.28.1, PyYAML 6.0.3,
 Git 2.50.1, GitHub CLI 2.103.3. Tests use offline fixtures and run serially.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import sys, pytest, httpx, yaml
+print(sys.version)
+for module in (pytest, httpx, yaml):
+    print(module.__name__, module.__version__)
+PY
+git --version
+gh --version
+```
 
 ## AUD-14-F1
 
