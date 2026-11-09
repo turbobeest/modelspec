@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isCallToolResult } from "@modelcontextprotocol/server";
+import { execFileSync } from "node:child_process";
+import { z } from "zod";
 
 import { workerFetch } from "../src/index";
 import { USER_AGENT } from "../src/origin";
@@ -321,6 +323,68 @@ describe("modelspec MCP worker", () => {
     expect(envelope.status).toBe(400);
     expect(envelope.body).toEqual(originBody);
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
+  });
+
+  it.each([
+    { name: "rank", arguments: {
+      use_case: "coding", environment: { hardware: null, hosting: "local", runtime: "ollama" },
+      constraints: { open_weights: true, max_cost_per_million_input_tokens: 2,
+        price_sensitivity: 0.25, include_rehosts: false }, limit: 1,
+    } },
+    { name: "policy_check", arguments: { policy: {
+      name: "Example", licence: { allowed: ["mit"], prohibited: ["cc-by-nc-4.0"] },
+      origin: { permitted_countries: ["US"], prohibited_countries: ["XX"] },
+      residency: { required_regions: ["EU", "US"], match: "all" },
+      commercial_use: { required: true, accept_restricted: false },
+    }, limit: 1 } },
+    { name: "rank", arguments: { use_case: "coding", extra: "forwarded" } },
+    { name: "policy_check", arguments: { policy: { extra: "forwarded" }, extra: "forwarded" } },
+  ])("forwards $name fields without changing the existing outer-object behavior", async params => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { result: [] }));
+    const { payload } = await rpc("tools/call", params);
+    expect(envelopeFromCall(payload).status).toBe(200);
+    expect(originFetch).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(originFetch.mock.calls[0]?.[1]?.body))).toEqual(params.arguments);
+  });
+
+  it.each([
+    { name: "rank", arguments: { use_case: "coding", environment: { hardware: "example", memory_gb: 8 } } },
+    { name: "rank", arguments: { use_case: "coding", constraints: { max_cost_per_million_input_token: 0 } } },
+    { name: "policy_check", arguments: { policy: { licence: { allowed: ["mit"], allow: ["apache-2.0"] } } } },
+    { name: "policy_check", arguments: { policy: { origin: { permitted_countries: ["US"], prohibited_coutnries: ["US"] } } } },
+    { name: "policy_check", arguments: { policy: { residency: { required_regions: ["EU", "US"], match_mode: "all" } } } },
+    { name: "policy_check", arguments: { policy: { commercial_use: { required: true, accept_restrictions: false } } } },
+  ])("preserves or refuses every nested $name field: $arguments", async (params) => {
+    let forwarded: unknown;
+    originFetch.mockImplementation(async (_url: unknown, init: RequestInit) => {
+      forwarded = JSON.parse(String(init.body));
+      const root = new URL("../../", import.meta.url).pathname;
+      const output = execFileSync("python3", ["-c", `
+import json, sys
+from api.worker.src import rank_service, policy_service
+request = json.load(sys.stdin)
+service = rank_service if request["name"] == "rank" else policy_service
+try:
+    service.parse_request(request["body"], set())
+    result = {"status": 200, "body": {}}
+except service.RequestError as exc:
+    result = {"status": 400, "body": {"error": {"code": exc.code}}}
+json.dump(result, sys.stdout)
+`], { cwd: root, env: { ...process.env, PYTHONPATH: root },
+        input: JSON.stringify({ name: params.name, body: forwarded }), encoding: "utf8" });
+      const answer = z.object({ status: z.number(), body: z.unknown() }).parse(JSON.parse(output));
+      return jsonResponse(answer.status, answer.body);
+    });
+    const { payload } = await rpc("tools/call", params);
+    if (originFetch.mock.calls.length > 0) {
+      expect(forwarded).toEqual(params.arguments);
+      expect(envelopeFromCall(payload)).toMatchObject({
+        status: 400, body: { error: { code: "invalid_request" } },
+      });
+    } else {
+      expect(isCallToolResult(payload.result)).toBe(true);
+      expect(payload.result).toMatchObject({ isError: true, content: expect.any(Array) });
+    }
   });
 
   it("model_info happy path reads /api/models/<id>.json", async () => {

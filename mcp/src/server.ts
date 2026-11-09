@@ -87,6 +87,7 @@ const rankInput = z
         hosting: z.enum(["local", "self_hosted", "managed_api"]).nullable().optional(),
         runtime: z.string().nullable().optional(),
       })
+      .strict()
       .optional(),
     constraints: z
       .object({
@@ -95,6 +96,7 @@ const rankInput = z
         price_sensitivity: z.number().nullable().optional(),
         include_rehosts: z.boolean().nullable().optional(),
       })
+      .strict()
       .optional(),
     limit: z.number().int().min(0).max(100).optional(),
   })
@@ -110,24 +112,28 @@ const policyInput = z
             allowed: z.array(z.string()).optional(),
             prohibited: z.array(z.string()).optional(),
           })
+          .strict()
           .optional(),
         origin: z
           .object({
             permitted_countries: z.array(z.string()).optional(),
             prohibited_countries: z.array(z.string()).optional(),
           })
+          .strict()
           .optional(),
         residency: z
           .object({
             required_regions: z.array(z.string()).optional(),
             match: z.enum(["any", "all"]).optional(),
           })
+          .strict()
           .optional(),
         commercial_use: z
           .object({
             required: z.boolean().optional(),
             accept_restricted: z.boolean().optional(),
           })
+          .strict()
           .optional(),
       })
       .passthrough(),
