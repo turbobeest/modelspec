@@ -1076,6 +1076,44 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "Flag a new-model PR closed without merge" in workflow
 
 
+@pytest.mark.parametrize("signals,rechecks,count", [([], [], 0), ([{}], [], 1), ([], [{}], 1), ([{}, {}], [{}], 3)])
+def test_pending_gate_counts_valid_queues_and_dispatches_once(tmp_path, signals, rechecks, count):
+    import os
+    import subprocess
+
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release-signals-gate.yml").read_text())
+    pending, dispatch = workflow["jobs"]["pending"]["steps"]
+    assert workflow["jobs"]["pending"]["if"] == "vars.SIGNALS_ENABLED == 'true'"
+    assert dispatch["if"] == "steps.pending.outputs.count != '0'"
+    source = pending["run"][pending["run"].index("count=$(jq "):]
+    (tmp_path / "pending.json").write_text(json.dumps({
+        "schema_version": "2", "service_commit": "fixture", "endpoint": "signals.pending",
+        "signals": signals, "rechecks": rechecks,
+    }))
+    output = tmp_path / "output"
+    result = subprocess.run(
+        ["bash", "-e", "-c", source], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output)},
+    )
+    assert result.returncode == 0, result.stderr
+    assert output.read_text() == f"count={count}\n"
+    assert not result.stdout and not result.stderr
+    stub = 'gh() { printf "%s\\n" "$*" >> calls; }\n'
+    dispatch_result = subprocess.run(
+        ["bash", "-e", "-c", stub + '. "$GITHUB_OUTPUT"\nif [ "$count" != 0 ]; then\n' + dispatch["run"] + "fi\n"],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"GITHUB_OUTPUT": str(output), "GH_TOKEN": "offline-fixture"},
+    )
+    assert dispatch_result.returncode == 0, dispatch_result.stderr
+    calls = tmp_path / "calls"
+    if count:
+        assert calls.read_text().splitlines() == ["workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main"]
+    else:
+        assert not calls.exists()
+
+
 def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:
     wrangler = (ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     vendor = (ROOT / "api" / "worker" / "vendor.py").read_text(encoding="utf-8")

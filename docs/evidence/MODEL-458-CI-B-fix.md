@@ -32,3 +32,25 @@ Red: 1 failed, 1 passed, exit 1. Green: 78 passed in 3.38s, exit 0,
 
 Only the workflow shell ran with an offline builder fixture. No site build,
 production request, deployment, private data read or credential operation ran.
+
+## AUD-08-F4
+
+The pending-work count requires one JSON object with array-valued `signals` and
+`rechecks`. Invalid shapes fail with a body-free diagnostic. Empty arrays count
+as zero; nonempty queues trigger one dispatch through the existing condition.
+The response shape was checked against `docs/grok-bot-signals.md` and
+`docs/release-watch.md`; no API contract changed.
+
+The supplied reproduction had 5 failures, exit 1. Permanent regressions
+`test_pending_gate_rejects_malformed_response_without_publishing_body` and
+`test_pending_gate_counts_valid_queues_and_dispatches_once` had 9 failures and
+9 passes before the fix. The failures returned zero for malformed input.
+
+```text
+python -m pytest -q -s -p no:cacheprovider /tmp/MODEL-458-CI-B-scratch/root/repro/F4/test_repro.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F4-repro
+python -m pytest -q -p no:cacheprovider tests/test_data_workflows.py tests/test_release_signals.py -k pending_gate --basetemp /tmp/MODEL-458-CI-B-scratch/root/F4-red
+python -m pytest -q -p no:cacheprovider tests/test_data_workflows.py tests/test_release_signals.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F4-green
+```
+
+Green: 177 passed in 1.85s, exit 0, 2.287s process elapsed. Only local jq and
+shell fixtures ran; no HTTP request or GitHub dispatch was sent.
