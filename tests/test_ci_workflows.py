@@ -512,6 +512,114 @@ def test_validation_workflow_checks_status_and_report_shape() -> None:
     assert "2>/dev/null" not in workflow
 
 
+@pytest.mark.parametrize("case,validator_status,passed", [
+    ("incomplete", 42, False), ("incomplete", 0, False),
+    ("valid", 42, False), ("valid", 0, True), ("empty", 0, True),
+    ("invalid", 1, False), ("regression", 1, False),
+    ("bad-json", 42, False), ("null", 42, False), ("bad-results", 42, False),
+    ("null-row", 42, False), ("bad-fields", 42, False),
+    ("bad-error", 42, False), ("bad-regression", 42, False),
+    ("incomplete-row", 0, False), ("bad-fields", 0, False),
+    ("bad-error", 0, False), ("bad-regression", 0, False),
+])
+@pytest.mark.parametrize("existing_comment", [False, True], ids=["create", "update"])
+def test_validation_comment_agrees_with_gate_and_renders_tables(
+    tmp_path: Path, case: str, validator_status: int, passed: bool, existing_comment: bool,
+) -> None:
+    import json
+    import shlex
+    import subprocess
+    import sys
+
+    import yaml
+
+    data = {
+        "mode": "pr", "total": 1, "valid": 1, "invalid": 0, "new_cards": 0,
+        "results": [{"status": "valid", "model_id": "fixture/model", "completeness": 90,
+                     "completeness_delta": 5, "fields_added": ["model.context"]}],
+        "regression_errors": [], "labels": [], "total_fields_added": 1,
+    }
+    if case == "empty":
+        data.update(total=0, valid=0, results=[])
+    elif case in {"invalid", "bad-error"}:
+        data.update(valid=0, invalid=1, results=[{
+            "status": "invalid", "file": "fixture.md", "error": "Invalid fixture",
+        }])
+        if case == "bad-error":
+            data["results"][0]["error"] = 42
+    elif case in {"regression", "bad-regression"}:
+        data["regression_errors"] = [{"file": "old.md", "error": "Regression fixture"}]
+        if case == "bad-regression":
+            data["regression_errors"][0]["error"] = 42
+    elif case == "bad-results":
+        data["results"] = {}
+    elif case == "null-row":
+        data["results"] = [None]
+    elif case == "incomplete-row":
+        data["results"] = [{"status": "valid"}]
+    elif case == "bad-fields":
+        data["results"][0]["fields_added"] = [42]
+    elif case == "incomplete":
+        data = {}
+    elif case == "null":
+        data = None
+    (tmp_path / "fixture.json").write_text("{" if case == "bad-json" else json.dumps(data))
+    workflow = yaml.safe_load((WORKFLOWS / "validate-cards.yml").read_text())
+    steps = {s.get("name"): s for s in workflow["jobs"]["validate"]["steps"]}
+    stub = (
+        'python() { if [ "$1" = scripts/validate_pr.py ]; then cat fixture.json; '
+        f'return {validator_status}; else {shlex.quote(sys.executable)} "$@"; fi; }}\n'
+    )
+    output = tmp_path / "output"
+    validated = subprocess.run(
+        ["bash", "-e", "-c", stub + steps["Run validation"]["run"]], cwd=tmp_path,
+        capture_output=True, text=True, env=os.environ | {"GITHUB_OUTPUT": str(output)},
+    )
+    assert validated.returncode == 0, validated.stderr
+    assert f"passed={str(passed).lower()}" in output.read_text()
+    comment = steps["Build and post PR comment"]
+    script = '''const posted = [];
+const github = {rest: {issues: {
+  listComments: async () => ({data: process.env.EXISTING_COMMENT === 'true'
+    ? [{id: 7, user: {type: 'Bot'}, body: '## ModelSpec Card Validation'}] : []}),
+  createComment: async item => posted.push({method: 'create', ...item}),
+  updateComment: async item => posted.push({method: 'update', ...item}),
+}}};
+const context = {repo: {owner: 'fixture', repo: 'fixture'}, issue: {number: 1}};
+(async () => {
+''' + comment["with"]["script"] + '''
+process.stdout.write(JSON.stringify(posted));
+})().catch(e => {console.error(e); process.exit(1);});
+'''
+    rendered = subprocess.run(
+        ["node", "-e", script], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"VALIDATION_PASSED": str(passed).lower(),
+                          "EXISTING_COMMENT": str(existing_comment).lower()},
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    posts = json.loads(rendered.stdout)
+    assert len(posts) == 1
+    assert posts[0]["method"] == ("update" if existing_comment else "create")
+    body = posts[0]["body"]
+    assert ("All cards valid" in body) is passed
+    if not passed:
+        assert "fail" in body.lower() or "have errors" in body
+        gate = steps["Fail if validation errors"]
+        assert gate["if"] == "steps.validate.outputs.passed == 'false'"
+        failed = subprocess.run(["bash", "-e", "-c", gate["run"]], cwd=tmp_path,
+                                capture_output=True, text=True)
+        assert failed.returncode == 1
+    if case in {"valid", "invalid", "regression"}:
+        assert "| Card | Completeness | Fields Added | Status |" in body
+    if case == "valid":
+        assert "| fixture/model | 90% (+5%) | context |" in body
+    if case == "invalid":
+        assert "Invalid fixture" in body
+    if case == "regression":
+        assert "Regression fixture" in body
+    assert comment.get("env", {}).get("VALIDATION_PASSED") == "${{ steps.validate.outputs.passed }}"
+
+
 def test_workflow_failure_masking_is_explicitly_audited() -> None:
     """Every failed validation step must gate CI."""
     unexpected: list[str] = []

@@ -75,3 +75,37 @@ All issue commands were shell function fixtures. No GitHub issue was listed,
 closed or commented on by these checks.
 
 Green: 79 passed in 2.00s, exit 0, 2.210s process elapsed.
+
+## AUD-08-F6
+
+The card-validation comment takes its success state from the validation step.
+Report structure is checked before tables render. Complete valid, invalid and
+regression reports retain their tables. Both new-comment and update-comment
+paths are exercised against in-memory GitHub fixtures. The final failure gate
+is unchanged and is executed for failing validation fixtures.
+
+The supplied reproduction exited 1. Permanent test
+`test_validation_comment_agrees_with_gate_and_renders_tables` produced 28 red
+cases before the fix, including an incorrect success message after validator
+exit 42, unsafe table rendering, and missing pass-flag wiring.
+
+```text
+python -m pytest -q -s -p no:cacheprovider /tmp/MODEL-458-CI-B-scratch/root/repro/F6/test_repro.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F6-repro
+python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py -k validation_comment --basetemp /tmp/MODEL-458-CI-B-scratch/root/F6-red
+python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py tests/test_validate_pr.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F6-green
+```
+
+Green: 131 passed in 38.17s, exit 0, 38.420s process elapsed. No comment or
+label was sent to GitHub. The renderer ran on Node v22.22.3.
+
+A follow-up review added zero-exit incomplete-row controls. Four failed because
+the pass flag was true for rows lacking required display data. The validation
+step now rejects those rows too, so the comment and final gate agree.
+
+```text
+python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py -k validation_comment --basetemp /tmp/MODEL-458-CI-B-scratch/root/F6-row-red
+python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py tests/test_validate_pr.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F6-row-green
+```
+
+Follow-up red: 4 failed, 32 passed, exit 1. Green: 139 passed in 33.40s,
+exit 0, 33.646s process elapsed.

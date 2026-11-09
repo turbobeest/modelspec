@@ -63,6 +63,7 @@ jobs:
           # defaults: a valid JSON object such as {} is not a validation pass.
           if VALIDATOR_STATUS="$validation_status" python - <<'PY'
           import json
+          import math
           import os
           import sys
 
@@ -105,6 +106,19 @@ jobs:
           for result in report["results"]:
               if not isinstance(result, dict) or result.get("status") not in {"valid", "invalid"}:
                   sys.exit(1)
+              if result["status"] == "valid":
+                  if not isinstance(result.get("model_id"), str):
+                      sys.exit(1)
+                  numbers = [result.get("completeness")]
+                  if result.get("completeness_delta") is not None:
+                      numbers.append(result["completeness_delta"])
+                  if any(type(value) not in (int, float) or not math.isfinite(value) for value in numbers):
+                      sys.exit(1)
+                  fields = result.get("fields_added")
+                  if fields is not None and (
+                      not isinstance(fields, list) or any(not isinstance(field, str) for field in fields)
+                  ):
+                      sys.exit(1)
               statuses.append(result["status"])
           if statuses.count("valid") != counts["valid"]:
               sys.exit(1)
@@ -123,6 +137,8 @@ jobs:
 
       - name: Build and post PR comment
         uses: actions/github-script@v7
+        env:
+          VALIDATION_PASSED: ${{ steps.validate.outputs.passed }}
         with:
           script: |
             const fs = require('fs');
@@ -133,20 +149,40 @@ jobs:
               data = null;
             }
 
+            const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+            const isCount = value => Number.isInteger(value) && value >= 0;
+            const renderable = isObject(data) && data.mode === 'pr'
+              && ['total', 'valid', 'invalid', 'new_cards'].every(key => isCount(data[key]))
+              && Array.isArray(data.results) && Array.isArray(data.regression_errors)
+              && Array.isArray(data.labels)
+              && data.valid + data.invalid === data.total && data.results.length === data.total
+              && data.results.every(r => isObject(r) && (
+                r.status === 'valid'
+                  ? typeof r.model_id === 'string' && Number.isFinite(r.completeness)
+                    && (r.completeness_delta == null || Number.isFinite(r.completeness_delta))
+                    && (r.fields_added == null || (Array.isArray(r.fields_added)
+                      && r.fields_added.every(f => typeof f === 'string')))
+                  : r.status === 'invalid' && typeof r.file === 'string'
+                    && (r.error == null || typeof r.error === 'string')
+              ))
+              && data.regression_errors.every(err => isObject(err)
+                && typeof err.file === 'string' && typeof err.error === 'string');
+
             let body;
-            if (!data) {
-              body = '## ModelSpec Card Validation\n\n**Status**: Failed to parse validation output.\n\nCheck the workflow logs for details.';
+            if (!renderable) {
+              body = '## ModelSpec Card Validation\n\n**Status**: Validation failed. Output is missing, malformed or incomplete.\n\nCheck the workflow logs for details.';
             } else {
-              const results = data.results || [];
-              const regressionErrors = data.regression_errors || [];
-              const total = data.total || 0;
-              const invalid = data.invalid || 0;
-              const newCards = data.new_cards || 0;
+              const results = data.results;
+              const regressionErrors = data.regression_errors;
+              const total = data.total;
+              const invalid = data.invalid;
+              const newCards = data.new_cards;
               const totalFieldsAdded = data.total_fields_added || 0;
 
-              const allValid = invalid === 0 && regressionErrors.length === 0;
+              const allValid = process.env.VALIDATION_PASSED === 'true';
               const statusEmoji = allValid ? '\u2705' : '\u274c';
-              const statusText = allValid ? 'All cards valid' : `${invalid} card(s) have errors`;
+              const statusText = allValid ? 'All cards valid'
+                : invalid > 0 ? `${invalid} card(s) have errors` : 'Validation failed';
 
               body = `## ModelSpec Card Validation\n\n`;
               body += `**Status**: ${statusEmoji} ${statusText}\n`;
