@@ -38,7 +38,7 @@ jobs:
         run: python -m pipeline.live crawler-probe --origin https://modelspec.dev
 
       # MODEL-317, MODEL-323: catch edge rules that refuse a common client's default User-Agent.
-      # modelspec.pages.dev is outside the zone and stays blocked by design; do not probe it.
+      # modelspec-ax6.pages.dev is outside the zone and stays blocked by design; do not probe it.
       - name: Probe the API and site as common HTTP clients
         if: ${{ !cancelled() }}
         run: python -m pipeline.live client-probe --origin https://api.modelspec.dev --site https://modelspec.dev

@@ -8,13 +8,13 @@ name: Build and deploy the sites
 # switch. The full v1 tree is built first because holding derives its API and
 # legal files from it. The workflow then replaces `dist` with the decide-only
 # live composition and copies that tree byte for byte to the Pages preview
-# branch `internal` (https://internal.modelspec-7np.pages.dev). Production
+# branch `internal` (https://internal.modelspec-ax6.pages.dev). Production
 # (`--branch=main`) gets that composition only when SITE_MODE is
 # exactly `live`; unset, empty or anything else gets the modelspec holding tree
 # (pipeline/holding.py): a holding page, with /api/**, /legal/** and openapi.yaml
 # byte for byte as the real build has them. A missing variable fails closed.
 # benchgraph.dev (MODEL-126) is the same `_redirects` file in both modes, on
-# `main` and on `internal` (https://internal.benchgraph.pages.dev). It has no
+# `main` and on `internal` (https://internal.benchgraph-et2.pages.dev). It has no
 # holding page. Its paths redirect to modelspec.dev, so the dark 404 and the
 # live /api/** are the modelspec tree the redirect lands on.
 # Relaunch, go dark again, test: docs/handoff/holding-mode.md.
@@ -620,7 +620,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           status=0
-          python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev || status=1
+          python -m pipeline.live smoke --origin https://internal.modelspec-ax6.pages.dev || status=1
           if [ "${{ needs.build.outputs.mode }}" = "live" ]; then
             python -m pipeline.live smoke --origin https://modelspec.dev || status=1
           fi
@@ -633,7 +633,7 @@ jobs:
           CI: true
         run: |
           npx playwright install --with-deps chromium
-          urls="https://internal.modelspec-7np.pages.dev/decide/"
+          urls="https://internal.modelspec-ax6.pages.dev/decide/"
           if [ "${{ needs.build.outputs.mode }}" = "live" ]; then urls="$urls https://modelspec.dev/decide/"; fi
           status=0
           for url in $urls; do

@@ -428,9 +428,14 @@ DNS record and the CI token has no DNS permission. Zone `modelspec.dev`:
 | Type | Name | Content | Proxy |
 |---|---|---|---|
 | `AAAA` | `api` | `100::` | Proxied |
+| `A` | `api` | `192.0.2.1` | Proxied |
 
-`100::` is the discard prefix: nothing listens there, and a request Cloudflare
-cannot match to a Worker route is proxied to it and answered `522`.
+`100::` is the discard prefix and `192.0.2.1` a documentation address:
+nothing listens at either, and a request Cloudflare cannot match to a Worker
+route is proxied to them and answered `522`. The `A` record was added on
+2026-11-08 (MODEL-441). After the account move, the new zone answered IPv4
+lookups for an AAAA-only host with no address, and `api.modelspec.dev` was
+down for IPv4 clients until the record existed.
 
 The route is therefore `api.modelspec.dev/*`, the whole host, and **not**
 `/v1/*`. A narrower route would leave the bare root — and every typo, crawler and

@@ -8,7 +8,7 @@ schema_version: 1
 
 # The daily report's published home: a Pages branch of the modelspec project,
 # deployed by .github/workflows/coverage-slo.yml. Never linked from the site.
-report_url: https://coverage.modelspec-7np.pages.dev/
+report_url: https://coverage.modelspec-ax6.pages.dev/
 
 # Who a breach older than `escalate_after_hours` notifies, by GitHub mention.
 notify: ["@turbobeest"]

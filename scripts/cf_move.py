@@ -138,6 +138,8 @@ def summarize(plan: Plan) -> list[str]:
 def urllib_request(
     method: str, url: str, headers: dict[str, str], body: bytes | None
 ) -> tuple[int, bytes]:
+    # Cloudflare answers Python-urllib's default agent with error 1010 (MODEL-441).
+    headers = {"User-Agent": "modelspec-cf-move/1", **headers}
     req = urllib.request.Request(url, data=body, method=method, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:

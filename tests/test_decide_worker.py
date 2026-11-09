@@ -863,7 +863,7 @@ def test_cors_is_for_the_production_site_and_the_preview_only() -> None:
     wildcard origin is allowed."""
     source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
     for origin in ("https://modelspec.dev", "https://www.modelspec.dev",
-                   "https://internal.modelspec-7np.pages.dev"):
+                   "https://internal.modelspec-ax6.pages.dev"):
         assert f'"{origin}"' in source
     assert '"access-control-allow-origin": "*"' not in source.lower()
 

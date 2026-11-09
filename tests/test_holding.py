@@ -601,7 +601,7 @@ def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text
     assert "python -m pipeline.live smoke --origin https://modelspec.dev" in text
-    assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text
+    assert "python -m pipeline.live smoke --origin https://internal.modelspec-ax6.pages.dev" in text
 
 
 def test_each_headers_file_has_one_star_rule_carrying_everything(trees):

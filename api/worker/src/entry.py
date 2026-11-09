@@ -184,7 +184,7 @@ POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/compare-models",
 CORS_ORIGINS = frozenset({
     "https://modelspec.dev",
     "https://www.modelspec.dev",
-    "https://internal.modelspec-7np.pages.dev",
+    "https://internal.modelspec-ax6.pages.dev",
 })
 
 #: How long a fetched export is reused inside one isolate. Short enough that a

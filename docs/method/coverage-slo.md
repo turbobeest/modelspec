@@ -5,10 +5,10 @@ daily report measures each target and states every breach. Release-stage
 alerts keep one issue per late release and stage. Other targets keep one
 issue per target.
 
-- **Report page:** <https://coverage.modelspec-7np.pages.dev/> (a preview branch
+- **Report page:** <https://coverage.modelspec-ax6.pages.dev/> (a preview branch
   of the modelspec Pages project; no page on the site links to it, and it is
   served `noindex`)
-- **JSON:** <https://coverage.modelspec-7np.pages.dev/coverage.json>
+- **JSON:** <https://coverage.modelspec-ax6.pages.dev/coverage.json>
 - **Workflow:** [`.github/workflows/coverage-slo.yml`](../../.github/workflows/coverage-slo.yml),
   daily at 09:37 UTC, with the report also kept as a 14-day run artifact
 - **Code:** [`scripts/slo/`](../../scripts/slo/). Thresholds live in

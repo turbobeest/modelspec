@@ -312,7 +312,7 @@ Access enforcement supplies no anonymous visitor id for a site Origin, including
 when x402 is on and the visit gate is off.
 
 Browser access is allowed only from `https://modelspec.dev`,
-`https://www.modelspec.dev` and the preview `https://internal.modelspec-7np.pages.dev`.
+`https://www.modelspec.dev` and the preview `https://internal.modelspec-ax6.pages.dev`.
 The Worker echoes the exact requesting origin from that list and handles its
 `OPTIONS` preflight. It does not send a wildcard CORS header.
 

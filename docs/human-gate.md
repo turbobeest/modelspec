@@ -341,7 +341,7 @@ npx wrangler secret put TURNSTILE_SECRET --config api/worker/wrangler.jsonc
 For an isolated staging check, use those commands with `--env staging` and
 staging-specific values. The staging Worker is
 `https://modelspec-rank-staging.flat-snowflake-881f.workers.dev`; it allows
-`Origin: https://internal.modelspec-7np.pages.dev`. The current Rank API
+`Origin: https://internal.modelspec-ax6.pages.dev`. The current Rank API
 workflow deploys staging only on `workflow_dispatch`, so dispatch it on `main`
 after the merge before verifying the gate. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview

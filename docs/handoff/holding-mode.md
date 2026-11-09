@@ -80,13 +80,13 @@ keys keep their credits on `/v1/rank` and `/v1/policy-check`. Details:
 
 The real modelspec site from `main` is always on the preview branch:
 
-- https://internal.modelspec-7np.pages.dev
+- https://internal.modelspec-ax6.pages.dev
 
 It is byte-identical to the live production tree. `/` is the landing and
 `/decide/` is the simple chooser, while `/decide/details/` is the detailed board.
 Their canonical URLs name `modelspec.dev`.
 
-https://internal.benchgraph.pages.dev serves the same redirect file as
+https://internal.benchgraph-et2.pages.dev serves the same redirect file as
 production. It does not host the benchmark pages.
 
 To check production is dark:

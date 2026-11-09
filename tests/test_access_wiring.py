@@ -250,7 +250,7 @@ def test_the_shipped_configuration_is_enforced_and_bound():
 
     live = parse_jsonc(config)
     assert live["vars"]["ACCESS_ENFORCED"] == "true"
-    assert {"binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5"} in live["kv_namespaces"]
+    assert {"binding": "ACCESS", "id": "f7d2155e91e34ef99db4c7eb3408fb0e"} in live["kv_namespaces"]
     assert live["env"]["staging"]["vars"]["ACCESS_ENFORCED"] == "false"
 
 

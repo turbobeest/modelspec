@@ -323,9 +323,9 @@ invented in code. With enforcement off, anonymous requests never load the table.
 
 ## Turning it on
 
-1. **Done 2026-09-18.** The `ACCESS` namespace
-   (`ef86b7ce138d4891b3eb630cdd2ba4e5`) is bound in
-   `api/worker/wrangler.jsonc`.
+1. **Done 2026-09-18.** The `ACCESS` namespace is bound in
+   `api/worker/wrangler.jsonc` (`f7d2155e91e34ef99db4c7eb3408fb0e` since the
+   account move of 2026-11-08, MODEL-441).
 2. Issue keys: Stripe Checkout (`docs/billing.md`, MODEL-73) records the
    entitlement from the webhook. `GET`/`POST /v1/billing/claim` calls
    `access_keys.issue` once. Rotation is `POST /v1/billing/rotate`.
