@@ -279,3 +279,11 @@ def test_method_private_serving_keeps_service_links(data, tmp_path, monkeypatch)
     assert 'https://api.modelspec.dev/v1/vocabulary' in HREF.findall(text)
     assert 'href="/openapi.yaml"' in text
     assert 'https://modelspec.dev/api/decision/' not in text
+
+
+def test_method_open_graph_url_matches_its_canonical(data):
+    from pipeline.surface_lint import Page
+    text = method.page(data, method.SigningState((), None))
+    assert '<link rel="canonical" href="https://modelspec.dev/method/">' in text
+    assert Page(text).meta['og:url'] == 'https://modelspec.dev/method/'
+    assert Page(text).meta['og:image'] == 'https://modelspec.dev/og-card.png'

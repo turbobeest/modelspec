@@ -77,3 +77,25 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f2-green: exit 0; `44 passed, 15 deselected in 1.82s`.
 
+## AUD-05-F4
+
+The method page Open Graph URL matches its canonical `/method/` URL and retains the existing fallback image. The red assertion compared the homepage URL to the method URL.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F4.py
+```
+
+f4-repro: exit 1; `1 failed in 0.02s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_method.py -k method_open_graph
+```
+
+f4-red: exit 1; `1 failed, 17 deselected in 0.84s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_method.py tests/test_brand.py
+```
+
+f4-green: exit 0; `27 passed in 1.54s`.
+
