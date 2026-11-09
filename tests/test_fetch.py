@@ -61,8 +61,8 @@ def test_remaining_credits_reads_v2_team_endpoint() -> None:
         captured["auth"] = req.get_header("Authorization") or req.headers.get("Authorization")
         return _FakeResp(_credit_payload(5569))
 
-    # urllib.request.urlopen is used; Request stores headers with header_items
-    with patch("scripts.benchmarks.fetch.urllib.request.urlopen", side_effect=fake_urlopen):
+    # Request stores headers with header_items.
+    with patch("scripts.benchmarks.fetch.open_source_request", side_effect=fake_urlopen):
         assert remaining_credits("sk-test") == 5569
     assert captured["url"] == "https://api.firecrawl.dev/v2/team/credit-usage"
 
@@ -123,7 +123,7 @@ def test_scrape_does_not_call_firecrawl_when_named_cache_exists(tmp_path: Path) 
         tmp_path,
         fetched_at="2026-09-02",
     )
-    with patch("scripts.benchmarks.fetch.urllib.request.urlopen") as mocked:
+    with patch("scripts.benchmarks.fetch.open_source_request") as mocked:
         data = scrape("https://example.com/board", named_cache_dir=tmp_path)
     mocked.assert_not_called()
     assert data["markdown"] == "cached markdown"
@@ -177,7 +177,7 @@ def _scrape_harness(tmp_path: Path, mock: _FirecrawlMock):
     with (
         patch("scripts.benchmarks.fetch.HASH_CACHE", tmp_path / "hash"),
         patch("scripts.benchmarks.fetch.resolve_key", return_value="sk-test"),
-        patch("scripts.benchmarks.fetch.urllib.request.urlopen", side_effect=mock.urlopen),
+        patch("scripts.benchmarks.fetch.open_source_request", side_effect=mock.urlopen),
     ):
         yield mock
 
@@ -343,7 +343,7 @@ def test_hash_cache_hit_needs_no_key_and_no_network(tmp_path: Path) -> None:
     with (
         patch("scripts.benchmarks.fetch.HASH_CACHE", hash_dir),
         patch("scripts.benchmarks.fetch.resolve_key", return_value=None),
-        patch("scripts.benchmarks.fetch.urllib.request.urlopen") as mocked,
+        patch("scripts.benchmarks.fetch.open_source_request") as mocked,
     ):
         data = scrape(url, formats=formats)
     mocked.assert_not_called()

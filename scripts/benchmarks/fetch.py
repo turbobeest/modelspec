@@ -49,6 +49,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from decision.retention import citation_metadata, cite_only_origin_restrictive, is_cite_only_restrictive, metadata_origins
+from decision.sources import ExcludedSource, require_allowed_source_urls
 
 ROOT = Path(__file__).resolve().parents[2]
 HASH_CACHE = ROOT / "benchmarks" / "_census" / "cache"
@@ -222,7 +223,7 @@ def remaining_credits(key: str) -> int:
         headers={"Authorization": f"Bearer {key}"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with open_source_request(req, timeout=30) as resp:
             payload = json.load(resp)
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"credit-usage HTTP {exc.code}") from exc
@@ -317,6 +318,7 @@ def write_named_cache(
     suffix: str = ".md",
     extra_meta: dict[str, Any] | None = None,
 ) -> CachedPage:
+    require_allowed_source_urls(url, metadata_origins(extra_meta or {}))
     cache_dir.mkdir(parents=True, exist_ok=True)
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
     now = datetime.now(UTC)
@@ -340,14 +342,17 @@ def write_named_cache(
 
 
 def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPage | None:
-    if is_cite_only_restrictive(url):
+    try:
+        require_allowed_source_urls(url)
+    except ExcludedSource:
         return None
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
-    if not path.is_file():
-        return None
     meta: dict[str, Any] = {}
     if meta_path.is_file():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    require_allowed_source_urls(url, metadata_origins(meta))
+    if not path.is_file():
+        return None
     if cite_only_origin_restrictive(url, metadata_origins(meta)):
         return None
     text = path.read_text(encoding="utf-8")
@@ -382,6 +387,7 @@ def scrape(
     allow_unbounded: bool = False,
 ) -> dict:
     """Scrape `url` as markdown. Honours the credit guard. Caches before return."""
+    require_allowed_source_urls(url)
     formats = list(formats or ["markdown"])
     if not allow_expensive:
         refuse_expensive_formats(formats)
@@ -396,8 +402,13 @@ def scrape(
     # the time, and a later call may have room for the whole document.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
     key_path = hash_cache_path(url, formats, max_pages=max_pages)
+    citation_path = key_path.with_suffix(".citation.json")
+    if citation_path.exists():
+        citation = json.loads(citation_path.read_text(encoding="utf-8"))
+        require_allowed_source_urls(url, metadata_origins(citation))
     if key_path.exists() and not is_cite_only_restrictive(url) and not key_path.with_suffix(".citation.json").exists():
         cached_raw = json.loads(key_path.read_text(encoding="utf-8"))
+        require_allowed_source_urls(url, metadata_origins(cached_raw.get("metadata") or {}))
         if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False) and not cite_only_origin_restrictive(
                 url, metadata_origins(cached_raw.get("metadata") or {})):
             return cached_raw
@@ -450,7 +461,7 @@ def scrape(
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with open_source_request(req, timeout=120) as resp:
                 payload = json.load(resp)
             if payload.get("success"):
                 data = payload.get("data") or {}
@@ -471,6 +482,7 @@ def scrape(
         remaining_after,
     )
     metadata = data.get("metadata") or {}
+    require_allowed_source_urls(url, metadata_origins(metadata))
     content_type = str(metadata.get("contentType") or "")
     is_pdf = looks_like_pdf(url) or "pdf" in content_type.lower()
     kind = "pdf" if is_pdf else "page"
@@ -539,20 +551,28 @@ class _RedirectHistory(urllib.request.HTTPRedirectHandler):
         self.urls: list[str] = []
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        require_allowed_source_urls(newurl)
         self.urls.append(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def open_source_request(req: urllib.request.Request, timeout: int = 120):
+    require_allowed_source_urls(req.full_url)
+    return urllib.request.build_opener(_RedirectHistory()).open(req, timeout=timeout)
+
+
 def http_get(url: str, timeout: int = 120) -> tuple[str, str, tuple[str, ...]]:
     """Direct GET. Zero Firecrawl credits. Follows redirects."""
+    require_allowed_source_urls(url)
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "ModelSpecCensus/1.0 (+https://github.com/modelspec)"},
     )
     history = _RedirectHistory()
     with urllib.request.build_opener(history).open(req, timeout=timeout) as resp:
-        raw = resp.read()
         final = resp.geturl()
+        require_allowed_source_urls(url, (*history.urls, final))
+        raw = resp.read()
     return raw.decode("utf-8", errors="replace"), final, tuple(history.urls)
 
 
@@ -564,6 +584,7 @@ def load_or_get(
     suffix: str = ".html",
 ) -> CachedPage:
     """Cache-first page load. Direct GET, not Firecrawl."""
+    require_allowed_source_urls(url)
     cached = load_named_cache(url, cache_dir, suffix=suffix)
     if cached is not None:
         return cached
