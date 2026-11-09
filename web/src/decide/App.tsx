@@ -1,7 +1,7 @@
 import { VISIT_GATE_ENABLED, prepareVisit } from "./adapter/visit";
 import { VisitGate, HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
 import { decisionAction } from "./adapter/hosted";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   hostedEngine,
   retryOnSnapshotChange,
@@ -145,6 +145,7 @@ export function DesignedApp({
     // leave its key unchanged (the full explanation replacing the summary).
     plotRequest = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
+    thresholdFocus = useRef<{ label: string | null; orientation: string | null } | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
     answeredNavigation = useRef<typeof navigation | null>(null);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
@@ -347,9 +348,22 @@ export function DesignedApp({
     [requestState],
   );
   const specIssues = placed.filter((issue) => issue.target.kind === "spec");
+  useLayoutEffect(() => {
+    if (loading) return;
+    const target = thresholdFocus.current;
+    thresholdFocus.current = null;
+    if (!target?.label || error || document.activeElement !== document.body) return;
+    const slider = [...document.querySelectorAll<HTMLElement>(".free-axis-canvas .handle[role=slider]")]
+      .find((element) => element.getAttribute("aria-label") === target.label
+        && element.getAttribute("aria-orientation") === target.orientation);
+    slider?.focus({ preventScroll: true });
+  }, [loading, error, decision]);
 
   async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
     if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
+    const active = document.activeElement;
+    thresholdFocus.current = active instanceof HTMLElement && active.matches(".free-axis-canvas .handle[role=slider]")
+      ? { label: active.getAttribute("aria-label"), orientation: active.getAttribute("aria-orientation") } : null;
     const intentOptions = decisionAction(humanToken, onRemaining);
     action.current = intentOptions;
     requestAbort.current?.abort();
