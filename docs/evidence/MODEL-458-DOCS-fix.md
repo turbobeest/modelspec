@@ -148,3 +148,30 @@ for period in ('current','successor'):
     print(json.dumps({key:data[key] for key in ('period','steady_bytes','steady_mib')} | {'limit_mib':115}))
 PY
 ```
+
+## AUD-09-F5
+
+The access guide uses the workflow deploy command, documents generated tier-policy fallback and matches checked-in access, visit and friends configuration.
+
+f5-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f5-red tests/test_reference_access.py
+```
+
+```text
+FAILED tests/test_reference_access.py::test_access_reference_deploy_command_matches_workflow
+FAILED tests/test_reference_access.py::test_access_reference_explains_generated_policy_fallback
+FAILED tests/test_reference_access.py::test_access_reference_shipped_settings_match_configuration
+3 failed in 0.09s
+```
+
+f5-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f5-green tests/test_reference_access.py tests/test_tier_policy_bundle.py tests/test_friends_billing.py tests/test_x402.py::test_enforcement_refuses_a_spoofed_site_origin_when_x402_is_on tests/test_access_wiring.py::test_on_an_unkeyed_request_is_refused_and_told_how_to_get_a_key tests/test_visit_gate.py::test_spoofed_origin_with_no_token_gets_no_answer
+```
+
+```text
+31 passed in 1.14s
+```
