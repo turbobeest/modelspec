@@ -5,6 +5,9 @@ from __future__ import annotations
 import copy
 import gzip
 import json
+import os
+import subprocess
+import sys
 import stat
 import tomllib
 from pathlib import Path
@@ -1322,3 +1325,32 @@ def test_setup_toml_literal_secret_is_redacted(tmp_path, quote, json_mode):
     assert tomllib.loads(path.read_text())["mcp_servers"]["modelspec"] == (
         BUNDLE["clients"]["codex"]["server"]
     )
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="POSIX named pipe")
+def test_fifo_credential_fails_promptly(tmp_path):
+    config = tmp_path / "fifo-config"
+    key = config / "modelspec" / "api-key"
+    key.parent.mkdir(parents=True)
+    os.mkfifo(key, 0o600)
+    root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ, XDG_CONFIG_HOME=str(config), PYTHONPATH=str(root))
+    env.pop("MODELSPEC_API_KEY", None)
+    process = subprocess.Popen(
+        [sys.executable, "-m", "cli.modelspec.cli", "vocab", "--json"],
+        cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        try:
+            stdout, stderr = process.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            pytest.fail("Reading a nonregular credential file did not finish within 3 seconds")
+    finally:
+        if process.poll() is None:
+            process.kill()
+        process.communicate()
+    assert process.returncode == 5, stdout + stderr
+    payload = json.loads(stdout)
+    assert payload["error"]["code"] == "auth_unreadable"
+    assert payload["next"]
+    assert "Traceback" not in stderr

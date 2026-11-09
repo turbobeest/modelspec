@@ -93,7 +93,8 @@ use an explicit credential placeholder; complete it in the client's secret setti
 Otherwise the CLI reads `api-key` under the user's config directory: XDG when
 set, `~/Library/Application Support/modelspec` on macOS, `%APPDATA%/modelspec`
 on Windows, and `~/.config/modelspec` on other platforms. A stored key must be a
-regular file. POSIX requires mode 0600; Windows relies on the user-profile
+regular file. Nonregular files are refused without waiting for a writer.
+POSIX requires mode 0600; Windows relies on the user-profile
 directory ACL because it cannot report POSIX modes. `auth set` accepts a
 hidden prompt or `--stdin`, writes atomically with 0600 permissions where
 supported, and never echoes the key. There is no key

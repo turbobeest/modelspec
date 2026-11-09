@@ -35,3 +35,17 @@ change, exit 0. Detailed reproduction material is private.
 An additional AUD-04-F10 review check covers masking existing argument values.
 It recorded 2 failed and 10 passed before the adjustment; the full concierge
 file then recorded 188 passed, exit 0.
+
+## AUD-04-F7
+
+Saved credential files open without blocking before descriptor validation.
+The existing no-follow, regular-file and permission checks remain in place.
+The supplied subprocess reproduction exceeded its 3-second deadline before the
+change, and its child was killed and reaped. The permanent
+`test_fifo_credential_fails_promptly` test failed for the same deadline.
+
+With the pytest prefix above, `tests/test_cli_concierge.py -k fifo_credential`
+recorded `1 failed, 185 deselected`, exit 1. After the change,
+`tests/test_cli_concierge.py` recorded `186 passed`, exit 0, including the
+subprocess assertion for `auth_unreadable`, exit 5, and recovery steps.
+Windows was not executed locally.
