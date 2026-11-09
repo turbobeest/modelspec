@@ -64,7 +64,10 @@ that config. Setup never copies a saved or environment key into the config.
 
 Without `--write`, no file is read or changed. With `--write`, the CLI reads
 the target JSON or TOML config, prepares a change to only `modelspec`, and
-prints a redacted unified diff to stderr. It writes atomically after interactive
+prints a unified diff of the parsed `modelspec` entry to stderr, with credential
+values redacted. The review uses a JSON representation for both JSON and TOML
+configs and excludes unrelated entries. Redaction affects the display only.
+It writes atomically after interactive
 confirmation or `--yes`. JSON mode requires `--yes` to write; it keeps stdout a
 single JSON document. Other servers and settings retain their values and bytes.
 An unusual inline TOML definition is refused with manual setup as the next step.

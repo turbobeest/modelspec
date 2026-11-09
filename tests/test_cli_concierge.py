@@ -1259,3 +1259,66 @@ def test_response_redaction_preserves_duplicate_members(monkeypatch, escaped):
     assert KEY not in result.stdout + result.stderr
     assert json.loads(result.stdout, object_pairs_hook=list) == [
         ("echo", "[redacted]"), ("echo", "safe")]
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+@pytest.mark.parametrize("field,value", [
+    ("headers", {"x-api-key": KEY}),
+    ("headers", {"authorization": "bearer " + KEY}),
+    ("headers", {"X-ToKeN": KEY}),
+    ("env", {"custom_api_key": KEY, "AUTH_HEADER": "bearer " + KEY}),
+    ("args", ["--header", "authorization: bearer " + KEY]),
+    ("args", ["--header", "x-api-key: " + KEY]),
+])
+def test_setup_diff_redacts_supported_header_forms(tmp_path, json_mode, field, value):
+    path = tmp_path / "mcp.json"
+    original = json.dumps({"mcpServers": {"modelspec": {"url": "old", field: value}}})
+    original = original.replace(KEY[0], f"\\u{ord(KEY[0]):04x}")
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "cursor", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "[redacted]" in result.stderr
+    assert "@@" in result.stderr
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+    assert json.loads(path.read_text())["mcpServers"]["modelspec"] == (
+        BUNDLE["clients"]["cursor"]["server"]
+    )
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_setup_minified_config_diff_does_not_disclose_other_server_credentials(tmp_path, json_mode):
+    path = tmp_path / "mcp.json"
+    neighbor = '"other":{"url":"https://other.invalid/mcp","headers":{"X-Token":"' + KEY + '"}}'
+    original = '{"mcpServers":{"modelspec":{"url":"old"},' + neighbor + '}}'
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "cursor", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "other.invalid" not in result.stderr
+    assert neighbor in path.read_text()
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_setup_toml_literal_secret_is_redacted(tmp_path, quote, json_mode):
+    path = tmp_path / "config.toml"
+    neighbor = f"[mcp_servers.other.http_headers]\nX-Token = '{KEY}'\n"
+    original = (
+        "[mcp_servers.modelspec]\nurl = 'old'\n"
+        f"[mcp_servers.modelspec.http_headers]\nx-api-key = {quote}{KEY}{quote}\n" + neighbor
+    )
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "codex", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "[redacted]" in result.stderr
+    assert neighbor in path.read_text()
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+    assert tomllib.loads(path.read_text())["mcp_servers"]["modelspec"] == (
+        BUNDLE["clients"]["codex"]["server"]
+    )

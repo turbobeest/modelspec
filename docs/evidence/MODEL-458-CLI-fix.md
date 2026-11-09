@@ -23,3 +23,15 @@ No production request, provider call, deployment, package publication, release
 tag or full local suite was run. No production switch, price, ranking floor,
 legal text, frozen data or contract field range was changed. CI and independent
 review are pending.
+
+## AUD-04-F10
+
+Setup review diffs show the parsed selected entry with credentials masked.
+Native config content and exact original backups retain their intended bytes.
+The focused setup-boundary regression selection recorded 14 failed and 2 passed
+before the change. `tests/test_cli_concierge.py` recorded 185 passed after the
+change, exit 0. Detailed reproduction material is private.
+
+An additional AUD-04-F10 review check covers masking existing argument values.
+It recorded 2 failed and 10 passed before the adjustment; the full concierge
+file then recorded 188 passed, exit 0.
