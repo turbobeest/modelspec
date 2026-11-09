@@ -501,3 +501,27 @@ def test_built_benchmark_markdown_destinations_resolve(dist: Path) -> None:
                 if not (local.is_file() or (local / 'index.html').is_file()):
                     missing.append((page.relative_to(tree).as_posix(), href))
     assert missing == []
+
+
+def test_built_product_pages_have_complete_social_metadata(dist: Path) -> None:
+    from pipeline.surface_lint import Page
+    from urllib.parse import urlsplit
+    tree = dist / "modelspec"
+    paths = [tree / "index.html"]
+    for family in ("about", "brand", "feedback", "method", "orchestrators", "pricing",
+                   "decide/templates", "compare", "use-cases", "guides"):
+        paths.extend((tree / family).rglob("*.html"))
+    assert len(paths) >= 132
+    for path in paths:
+        text = path.read_text()
+        page = Page(text)
+        for key in ("title", "type", "url", "image", "description"):
+            assert page.meta.get("og:" + key), (path, key)
+            assert text.count(f'property="og:{key}"') == 1, (path, key)
+        canonical = re.search(r'<link rel="canonical" href="([^"]+)"', text)
+        assert canonical, path
+        assert page.meta["og:url"] == canonical[1], path
+        assert page.meta["og:description"] == page.meta["description"], path
+        assert page.meta["og:title"] in page.title, path
+        if path.relative_to(tree).parts[0] in {"compare", "use-cases", "guides"}:
+            assert (tree / urlsplit(page.meta["og:image"]).path.lstrip("/")).is_file(), path

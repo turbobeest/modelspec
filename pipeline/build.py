@@ -526,7 +526,7 @@ def _use_case_shell(title: str, description: str, path: str, body: str,
 <meta name="description" content="{r.esc(description)}">
 <meta name="robots" content="{robots}">
 <link rel="canonical" href="https://modelspec.dev{r.esc(path)}">
-{brand.head_links()}{r.FONTS}
+{brand.head_links()}{brand.social_meta(title, path=path, description=description, page_type="article" if article else "website")}{r.FONTS}
 <style>{r.CSS}
 .use-case-table{{overflow-x:auto}}.use-case-table table{{min-width:720px}}
 .use-case-table td{{vertical-align:top}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}

@@ -1102,3 +1102,21 @@ def test_absolute_existing_and_external_hrefs_are_allowed(tmp_path):
         '<a href="https://modelspec.dev:8443/missing/">Other port</a>'
     )
     assert builder.missing_internal_hrefs(tmp_path) == []
+
+
+@pytest.mark.parametrize('article,indexable', [(True, True), (False, True), (True, False)])
+def test_example_shell_has_complete_open_graph_metadata(article, indexable):
+    from pipeline.surface_lint import Page
+    title = 'Tools <choices> & "budget"'
+    description = 'Costs < $1 & enough context for "code".'
+    text = builder._use_case_shell(title, description, '/guides/example/', '<p>Example</p>',
+                                   date(2026, 9, 23), article=article, indexable=indexable)
+    meta = Page(text).meta
+    assert meta.get('og:title') == title
+    assert meta.get('og:description') == description
+    assert meta.get('og:type') == ('article' if article else 'website')
+    assert meta.get('og:url') == 'https://modelspec.dev/guides/example/'
+    assert meta.get('og:image') == 'https://modelspec.dev/og-card.png'
+    assert meta['robots'] == ('index, follow' if indexable else 'noindex, follow')
+    for key in ('title', 'description', 'type', 'url', 'image'):
+        assert text.count(f'property="og:{key}"') == 1

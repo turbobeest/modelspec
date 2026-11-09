@@ -99,3 +99,37 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f4-green: exit 0; `27 passed in 1.54s`.
 
+## AUD-05-F5
+
+Generated product, template, comparison, use-case and guide pages receive page-specific Open Graph fields. Attribute escaping happens once. Existing static registrations and blog shell ownership remain compatible. Baseline output reported 132 incomplete pages, including 85 without any of the five fields. The first broad run found two old raw-attribute assertions; they now compare escaped/decoded content. Existing optional card-rendering behavior remains unchanged; only newly introduced image references use the locally available fallback.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F5.py
+```
+
+f5-repro: exit 1; `1 failed in 0.17s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_brand.py tests/test_pipeline.py tests/test_social_cards.py -k 'escapes_complete or example_shell_has or template_card_and_page_preserve'
+```
+
+f5-red-corrected: exit 1; `5 failed, 107 deselected in 0.59s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_brand.py tests/test_method.py tests/test_about.py tests/test_pipeline.py tests/test_comparison_pages.py tests/test_guides.py tests/test_social_cards.py -k 'not renderer_writes and not chromium and not build_without and not build_with and not build_emits and not template_card_failures and not blog_fixture_is_readable'
+```
+
+f5-green: exit 1; `2 failed, 151 passed, 9 deselected in 91.68s (0:01:31)`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_social_cards.py tests/test_feedback_page.py tests/test_brand_page.py tests/test_pricing_page.py tests/test_landing.py tests/test_orchestrators.py -k 'not renderer_writes and not chromium and not build_without and not build_with and not build_emits and not template_card_failures and not blog_fixture_is_readable and not behaviour_in_browser and not recipe_is_discoverable'
+```
+
+f5-caller-green: exit 0; `91 passed, 22 deselected in 89.45s (0:01:29)`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_brand.py tests/test_method.py tests/test_about.py tests/test_pipeline.py tests/test_social_cards.py -k 'escapes_complete or example_shell_has or template_card_and_page_preserve or registry_drives or landing_card_html or each_page_points'
+```
+
+f5-regressions-green: exit 0; `8 passed, 130 deselected in 0.98s`.
+

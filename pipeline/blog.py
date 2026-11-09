@@ -350,17 +350,19 @@ def _post_page(post: Post, revisions: list[Post], path: str, build: Build, *, pr
     html = html.replace(
         'property="og:type" content="website"', 'property="og:type" content="article"'
     )
-    # The document shell already owns og:title and og:url.
+    # The document shell already owns the page identity and description.
     meta = brand.social_meta(
-        r.esc(post.title),
+        post.title,
         path=path,
+        description=post.title,
+        page_type="article",
         image_name=(post.path + "og-card.png").lstrip("/"),
-        image_alt=r.esc(post.title),
+        image_alt=post.title,
     )
     meta = "\n".join(
         line
         for line in meta.splitlines()
-        if 'property="og:title"' not in line and 'property="og:url"' not in line
+        if not any(f'property="og:{key}"' in line for key in ("title", "url", "type", "description"))
     )
     return html.replace("</head>", meta + structured_data.script(nodes) + "</head>")
 

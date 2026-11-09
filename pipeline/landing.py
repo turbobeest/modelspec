@@ -438,8 +438,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
 <meta name="description" content="{DESCRIPTION}">
-<meta property="og:description" content="{DESCRIPTION}">
-{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
+{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data, description=DESCRIPTION)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
