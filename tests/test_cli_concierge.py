@@ -1412,3 +1412,31 @@ def test_non_finite_response_is_not_successful_json(
     assert payload["error"]["code"] == expected
     assert payload["next"]
     assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("issues", [
+    None, 5, "invalid", {"path": "where"}, [{"path": "where", "message": "Choose a facet"}],
+])
+@pytest.mark.parametrize("http_status,exit_code", [(400, 1), (401, 5), (402, 6), (429, 6)])
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_malformed_hosted_issues_do_not_crash_human_mode(
+    monkeypatch, issues, http_status, exit_code, json_mode
+):
+    body = {"error": {"code": "invalid_spec", "message": "Synthetic refusal", "issues": issues}}
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(http_status, json=body)))
+    result = run(["vocab", *(["--json"] if json_mode else [])], keyed=True)
+    assert result.exit_code == exit_code, result.output
+    assert isinstance(result.exception, SystemExit), repr(result.exception)
+    assert "Traceback" not in result.output
+    if json_mode:
+        payload = assert_error(result, "invalid_spec")
+        assert payload["error"] == body["error"]
+    else:
+        assert result.stdout == ""
+        assert "Synthetic refusal" in result.stderr
+        assert "Next steps:" in result.stderr
+        if isinstance(issues, list):
+            assert json.dumps(issues[0]) in result.stderr
+        else:
+            assert result.stderr.splitlines()[1] == "Next steps:"

@@ -64,3 +64,18 @@ recorded `15 failed, 188 deselected`, exit 1. After the change,
 `tests/test_cli_concierge.py tests/test_cli_compare.py tests/test_cli_compare_models.py tests/test_keyed_router_cli.py`
 recorded `295 passed, 1 skipped`, exit 0. Status-based exits and recovery remain
 covered; successful finite JSON retains its original bytes.
+
+## AUD-04-F9
+
+Human error rendering prints issue lists and skips unsupported issue values;
+it always reaches the hosted message and next steps. JSON retains the hosted body.
+The supplied subprocess reproduction reported a traceback and no next steps
+for null and integer issue values before the change.
+
+With the pytest prefix above,
+`tests/test_cli_concierge.py -k malformed_hosted_issues` recorded
+`16 failed, 24 passed, 203 deselected`, exit 1. The permanent
+`test_malformed_hosted_issues_do_not_crash_human_mode` checks null, integer,
+string, object and valid list values in human and JSON modes under HTTP
+400, 401, 402 and 429. After the change, `tests/test_cli_concierge.py`
+recorded `243 passed`, exit 0.

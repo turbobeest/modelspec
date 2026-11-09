@@ -77,8 +77,10 @@ def fail(error: ClientError, *, command: str, as_json: bool) -> NoReturn:
         typer.echo(json.dumps(payload, ensure_ascii=False, allow_nan=False))
     else:
         typer.echo(payload["error"].get("message") or TEXT["errors"]["http_error"], err=True)
-        for issue in error.issues or payload["error"].get("issues", []):
-            typer.echo(json.dumps(issue, ensure_ascii=False, allow_nan=False), err=True)
+        issues = error.issues or payload["error"].get("issues", [])
+        if isinstance(issues, list):
+            for issue in issues:
+                typer.echo(json.dumps(issue, ensure_ascii=False, allow_nan=False), err=True)
         typer.echo(TEXT["next_label"], err=True)
         for step in payload["next"]:
             typer.echo(step, err=True)
