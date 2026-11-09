@@ -10,6 +10,7 @@ import httpx
 from .auth import Credential
 from .errors import ClientError
 from .guidance import BUNDLE, TEXT, next_steps
+from .spec import MAX_BYTES
 
 _transport: httpx.BaseTransport | None = None
 
@@ -53,9 +54,12 @@ class Client:
                 follow_redirects=False,
                 headers=headers,
             ) as session:
-                response = session.request(
+                request = session.build_request(
                     method, BUNDLE["urls"]["api"] + path, json=body, params=params
                 )
+                if path in {"/v1/decide", "/v1/compare"} and len(request.content) > MAX_BYTES:
+                    raise ClientError("spec_too_large", recovery="spec")
+                response = session.send(request)
         except (httpx.HTTPError, ValueError):
             raise ClientError(
                 "network_error",

@@ -133,7 +133,10 @@ the bounded row list (`model_rank`, `cost_per_task`, `estimates`, `p_best`,
 plus `contributions` and `evidence` when `explain` is omitted, `summary`, or
 `full`). An omitted `explain` is the server default, summary. An explicit
 `fields` value, including null, is sent unchanged. The server validates
-semantics and is the authority. The request is at most 64 KB. A template comes
+semantics and is the authority. Spec input and the final UTF-8 request body are
+each at most 64 KiB, or 65,536 bytes. The CLI checks the serialized body after
+adding defaults, router controls or the snapshot-comparison wrapper, before
+sending it. Overflow returns `spec_too_large`, exit 1. A template comes
 from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
 cached registry. Its Spec is validated the same way, and `fields` is added

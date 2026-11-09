@@ -79,3 +79,20 @@ With the pytest prefix above,
 string, object and valid list values in human and JSON modes under HTTP
 400, 401, 402 and 429. After the change, `tests/test_cli_concierge.py`
 recorded `243 passed`, exit 0.
+
+## AUD-04-F12
+
+The HTTP boundary builds the request once, measures those exact bytes, and sends
+that same request only within the 65,536-byte ceiling. Input bounds remain intact.
+The supplied reproduction recorded a 65,536-byte input and a 65,618-byte request
+before the change, then failed its size assertion.
+
+With the pytest prefix above,
+`tests/test_cli_concierge.py -k final_request_body` recorded
+`6 failed, 12 passed, 243 deselected`, exit 1. The permanent
+`test_final_request_body_obeys_wire_limit` checks 65,535, 65,536 and 65,537 bytes
+for decide, router output and snapshot comparison, from stdin and templates,
+including multibyte text. Overflow sends no POST and writes no router file.
+After the change,
+`tests/test_cli_concierge.py tests/test_cli_compare.py tests/test_cli_compare_models.py tests/test_keyed_router_cli.py`
+recorded `353 passed, 1 skipped`, exit 0.

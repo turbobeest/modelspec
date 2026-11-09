@@ -1440,3 +1440,57 @@ def test_malformed_hosted_issues_do_not_crash_human_mode(
             assert json.dumps(issues[0]) in result.stderr
         else:
             assert result.stderr.splitlines()[1] == "Next steps:"
+
+
+@pytest.mark.parametrize("wire_bytes", [65535, 65536, 65537])
+@pytest.mark.parametrize("command", ["decide", "router", "compare"])
+@pytest.mark.parametrize("source", ["stdin", "template"])
+def test_final_request_body_obeys_wire_limit(monkeypatch, tmp_path, wire_bytes, command, source):
+    spec = {"spec_version": 1, "where": ["model.class = \u2003text-generator"],
+            "optimize": {"min": "offering.cost_per_task"}}
+    if command == "compare":
+        expected = {"compare_to": "snap_test", "spec": spec}
+        args = ["compare", "--to", "snap_test"]
+        endpoint = "/v1/compare"
+    else:
+        expected = {**spec, "fields": ["model_rank", "cost_per_task", "estimates", "p_best",
+                                       "contributions", "evidence"]}
+        args = ["decide"]
+        endpoint = "/v1/decide"
+        if command == "router":
+            expected["router_config"] = {
+                "format": "json", "include_rest": True, "include_thin": True,
+            }
+            args += ["--emit-router-config", "json", "--include-rest", "--include-thin",
+                     "--out", str(tmp_path / "router.json")]
+    initial_bytes = len(json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode())
+    spec["where"][0] = (
+        "model.class = \u2003" + " " * (wire_bytes - initial_bytes) + "text-generator"
+    )
+    expected_bytes = json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
+    assert len(expected_bytes) == wire_bytes
+    text = json.dumps(spec, ensure_ascii=False)
+    assert len(text.encode()) <= 65536
+    posted = []
+
+    def origin(request):
+        if request.method == "GET":
+            assert source == "template"
+            return httpx.Response(200, json={"templates": [{"id": "test", "spec": spec}]})
+        posted.append(request)
+        return httpx.Response(200, json={"router_config": "{}"})
+
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(origin))
+    args += ["--spec", "-"] if source == "stdin" else ["--template", "test"]
+    result = run([*args, "--json"], keyed=True, input=text if source == "stdin" else None)
+    if wire_bytes > 65536:
+        assert posted == []
+        assert result.exit_code == 1, result.output
+        assert_error(result, "spec_too_large")
+        assert not (tmp_path / "router.json").exists()
+    else:
+        assert result.exit_code == 0, result.output
+        assert len(posted) == 1
+        assert posted[0].url.path == endpoint
+        assert posted[0].headers["content-type"] == "application/json"
+        assert posted[0].content == expected_bytes
