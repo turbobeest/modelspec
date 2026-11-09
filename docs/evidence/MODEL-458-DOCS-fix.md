@@ -226,3 +226,28 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 30 passed in 0.83s
 ```
+
+## AUD-09-F10
+
+The holding runbook separates SITE_MODE from Checkout and describes the current CLI and bundled Worker. Its documented command resolves through the installed CLI command tree; existing holding tests pass.
+
+f10-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f10-red tests/test_reference_holding.py
+```
+
+```text
+FAILED tests/test_reference_holding.py::test_holding_runbook_matches_checkout_flag_and_current_cli
+1 failed in 0.12s
+```
+
+f10-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f10-green tests/test_reference_holding.py tests/test_holding.py tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next
+```
+
+```text
+71 passed in 62.64s (0:01:02)
+```
