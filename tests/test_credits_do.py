@@ -272,3 +272,183 @@ def test_rotation_resumes_after_object_restart(after_write):
         assert await restarted.rotation_state(holder) == {"stage": "complete"}
 
     asyncio.run(scenario())
+
+
+async def _paid_claim(kind, kv):
+    import tests.test_billing as billing_tests
+
+    policy = billing_tests.access_config.load_policy()
+    ctx = Ctx(lambda value: {"v": value})
+    env = SimpleNamespace(ACCESS=kv)
+    obj = credits_do.CreditsObject(ctx, env)
+    ledger = _ledger(obj)
+    checkout = billing_tests.checkout_obj()
+    if kind == "pack":
+        checkout.update(mode="payment", subscription="", payment_intent="pi_claim_fixture",
+                        metadata={"modelspec_price_id": billing_tests.PACK5})
+    result = await billing_tests.apply(
+        kv, policy, billing_tests.payload("checkout.session.completed", checkout, "evt_claim"),
+        ledger=ledger)
+    assert result.status == 200
+    return billing_tests, policy, ctx, env, obj, ledger
+
+
+async def _claim_purchase(billing_tests, policy, kv, ledger):
+    return await billing_tests.billing.claim(
+        session_id=billing_tests.SESSION, kv=kv, policy=policy,
+        now=billing_tests.T0, service_commit=billing_tests.COMMIT, ledger=ledger)
+
+
+@pytest.mark.parametrize("kind,units", [("plan", 4000), ("pack", 1250)])
+def test_independent_clients_claim_one_funded_key(kind, units):
+    from access_kv import MemoryKV
+    import access_billing
+
+    class YieldingKV(MemoryKV):
+        async def get(self, name):
+            result = await super().get(name)
+            await asyncio.sleep(0)
+            return result
+
+        async def put(self, name, value, **kwargs):
+            await super().put(name, value, **kwargs)
+            await asyncio.sleep(0)
+
+    async def scenario():
+        kv = YieldingKV()
+        t, policy, ctx, env, obj, ledger = await _paid_claim(kind, kv)
+        results = await asyncio.gather(*(
+            _claim_purchase(t, policy, kv, _ledger(obj)) for _ in range(2)))
+        assert sorted(result.status for result in results) == [200, 410]
+        successes = [result for result in results if result.status == 200]
+        assert len(successes) == 1
+        key = successes[0].body["key"]
+        fingerprint = t.keys.fingerprint(key)
+        holder = credits.holder_from_fingerprint(fingerprint)
+        assert (await ledger.balance(holder)).available == units
+        sub_id = t.SUB if kind == "plan" else f"pack:{t.SESSION}"
+        subscription = await access_billing.load_subscription(kv, sub_id)
+        assert subscription.key_fingerprint == fingerprint
+        assert key not in json.dumps(ctx.storage.sql.table)
+        assert key not in json.dumps(kv.data)
+        restarted = _ledger(credits_do.CreditsObject(ctx, env))
+        assert (await _claim_purchase(t, policy, kv, restarted)).status == 410
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("kind,units", [("plan", 4000), ("pack", 1250)])
+def test_claim_resumes_unfunded_selection_after_restart(kind, units):
+    from access_kv import MemoryKV
+    import access_billing
+
+    class InterruptedKV(MemoryKV):
+        fail = False
+
+        async def put(self, name, value, **kwargs):
+            if self.fail and name.startswith("keyref:"):
+                raise OSError("fixture claim metadata unavailable")
+            await super().put(name, value, **kwargs)
+
+    async def scenario():
+        kv = InterruptedKV()
+        t, policy, ctx, env, obj, ledger = await _paid_claim(kind, kv)
+        kv.fail = True
+        with pytest.raises(OSError, match="fixture claim metadata"):
+            await _claim_purchase(t, policy, kv, ledger)
+        kv.fail = False
+        restarted = _ledger(credits_do.CreditsObject(ctx, env))
+        result = await _claim_purchase(t, policy, kv, restarted)
+        assert result.status == 200
+        fingerprint = t.keys.fingerprint(result.body["key"])
+        holder = credits.holder_from_fingerprint(fingerprint)
+        assert (await restarted.balance(holder)).available == units
+        sub_id = t.SUB if kind == "plan" else f"pack:{t.SESSION}"
+        subscription = await access_billing.load_subscription(kv, sub_id)
+        assert subscription.key_fingerprint == fingerprint
+        active = [json.loads(value) for name, value in kv.data.items()
+                  if name.startswith("key:") and json.loads(value)["active"]]
+        assert len(active) == 1
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("kind,units", [("plan", 4000), ("pack", 1250)])
+def test_completed_claim_keeps_its_owner_after_restart(kind, units):
+    from access_kv import MemoryKV
+    import access_billing
+
+    async def scenario():
+        kv = MemoryKV()
+        t, policy, ctx, env, obj, ledger = await _paid_claim(kind, kv)
+        execute = ctx.storage.sql.exec
+
+        def interrupted_save(query, *params):
+            result = execute(query, *params)
+            if query.startswith("INSERT"):
+                state = json.loads(params[1])
+                if any(payment.get("claim", {}).get("stage") == "complete"
+                       for payment in state["payments"].values()):
+                    raise OSError("fixture completion response unavailable")
+            return result
+
+        ctx.storage.sql.exec = interrupted_save
+        with pytest.raises(OSError, match="fixture completion response"):
+            await _claim_purchase(t, policy, kv, ledger)
+        ctx.storage.sql.exec = execute
+        restarted = _ledger(credits_do.CreditsObject(ctx, env))
+        replay = await _claim_purchase(t, policy, kv, restarted)
+        assert replay.status == 410
+        sub_id = t.SUB if kind == "plan" else f"pack:{t.SESSION}"
+        subscription = await access_billing.load_subscription(kv, sub_id)
+        holder = credits.holder_from_fingerprint(subscription.key_fingerprint)
+        assert (await restarted.balance(holder)).available == units
+        assert len([name for name in kv.data if name.startswith("key:")]) == 1
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["monthly", "pack"])
+def test_selected_claim_holder_is_the_only_funding_owner(kind):
+    async def scenario():
+        ctx = Ctx(lambda value: {"v": value})
+        ledger = _ledger(credits_do.CreditsObject(ctx, env=None))
+        payment_id = "claim_selected"
+        await ledger.save_claim(payment_id, {
+            "holder": "key:selected", "record": {}, "stage": "prepared"},
+            kind=kind, units=100, tx="fixture")
+        if kind == "monthly":
+            rejected = await ledger.set_monthly("key:other", 100, payment_id)
+            accepted = await ledger.set_monthly("key:selected", 100, payment_id)
+        else:
+            rejected = await ledger.credit("key:other", payment_id, 100, "fixture")
+            accepted = await ledger.credit("key:selected", payment_id, 100, "fixture")
+        assert rejected.credited is False and rejected.reason == "conflict"
+        assert accepted.credited is True
+        await ledger.save_claim(payment_id, {
+            "holder": "key:other", "record": {}, "stage": "prepared"},
+            kind=kind, units=100, tx="fixture")
+        restarted = _ledger(credits_do.CreditsObject(ctx, env=None))
+        assert await restarted.claim_state(payment_id) == {"stage": "complete"}
+        assert (await restarted.payment(payment_id))["holder"] == "key:selected"
+        assert (await restarted.balance("key:selected")).available == 100
+        assert (await restarted.balance("key:other")).available == 0
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_claim_requires_a_configured_ledger(explicit):
+    from access_kv import CloudflareKV, MemoryKV
+
+    async def scenario():
+        kv = MemoryKV()
+        t, policy, ctx, env, obj, ledger = await _paid_claim("plan", kv)
+        result = await t.billing.claim(
+            session_id=t.SESSION, kv=kv if explicit else CloudflareKV(kv),
+            policy=policy, now=t.T0, service_commit=t.COMMIT,
+            ledger=credits.UnboundLedger() if explicit else None)
+        assert result.status == 503
+        assert not [name for name in kv.data if name.startswith("key:")]
+
+    asyncio.run(scenario())

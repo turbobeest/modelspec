@@ -498,11 +498,13 @@ def test_expired_pack_refund_removes_nothing_and_says_so(policy):
 class _Namespace:
     """The CREDITS binding: one CreditsObject, reached through DurableLedger's RPC."""
 
-    def __init__(self) -> None:
+    def __init__(self, kv) -> None:
         import credits_do
+        from types import SimpleNamespace
 
         from tests.test_credits_do import Ctx
-        self.obj = credits_do.CreditsObject(Ctx(lambda v: {"v": v}), env=None)
+        self.obj = credits_do.CreditsObject(Ctx(lambda v: {"v": v}),
+                                            env=SimpleNamespace(ACCESS=kv))
 
     def idFromName(self, name: str) -> str:  # noqa: N802 - the Workers API name
         return name
@@ -512,7 +514,8 @@ class _Namespace:
 
 
 def test_refund_and_dispute_through_the_durable_object(policy):
-    kv, ledger = MemoryKV(), credits.DurableLedger(_Namespace())
+    kv = MemoryKV()
+    ledger = credits.DurableLedger(_Namespace(kv))
     apply(kv, policy, "checkout.session.completed", pack_session(), "evt_anon", ledger)
     assert run(ledger.payment(f"pack:{SESSION}"))["pending"] is True
     key = claim(kv, policy, ledger).body["key"]

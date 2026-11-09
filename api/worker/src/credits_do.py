@@ -57,6 +57,37 @@ class CreditsObject(DurableObject):
     def _save(self, state: LedgerState) -> None:
         self._put(_STATE_KEY, json.dumps(state.to_json()))
 
+    async def claim_state(self, payment_id: str, encoded: bool = False) -> Any:
+        data = self._stored().claim_state(str(payment_id))
+        return json.dumps(data) if encoded else data
+
+    async def save_claim(self, payment_id: str, data: Any,
+                         kind: str, units: int, tx: str) -> None:
+        state = self._stored()
+        state.save_claim(str(payment_id), json.loads(data) if isinstance(data, str) else data,
+                         kind=str(kind), units=int(units), tx=str(tx))
+        self._save(state)
+
+    async def finish_claim(self, payment_id: str) -> None:
+        state = self._stored()
+        state.finish_claim(str(payment_id))
+        self._save(state)
+
+    async def claim_purchase(self, session_id: str, now: str) -> str:
+        from dataclasses import asdict
+        from access_billing import _consume_claim_serialized
+        from access_config import load_policy
+        from access_kv import CloudflareKV
+
+        async def claim():
+            result = await _consume_claim_serialized(
+                CloudflareKV(self.env.ACCESS), str(session_id),
+                now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+                policy=load_policy(self.env), ledger=self)
+            return json.dumps(asdict(result) if result is not None else None)
+
+        return await self.ctx.blockConcurrencyWhile(claim)
+
     async def rotation_state(self, holder: str, encoded: bool = False) -> Any:
         data = self._stored().rotation_state(str(holder))
         return json.dumps(data) if encoded else data

@@ -705,6 +705,9 @@ class LedgerState:
         """
         rec = self.payments.get(payment_id)
         if rec is not None and rec.get("pending"):
+            claim = rec.get("claim")
+            if claim is not None and claim.get("holder") != holder:
+                return CreditResult(False, "conflict", int(rec.get("units") or 0))
             return self._grant_pending(holder, payment_id, rec, expires_at, source)
         if rec is not None:
             reason = "replay" if rec.get("holder") == holder else "conflict"
@@ -727,6 +730,8 @@ class LedgerState:
         expiry = expires_at or LEGACY_EXPIRY
         rec.pop("pending", None)
         rec.update({"holder": holder, "expires_at": expiry})
+        if "claim" in rec:
+            rec["claim"] = {"stage": "complete"}
         if units < 1:
             return CreditResult(False, "refunded", 0)
         grant = _PackGrant(grant_id=payment_id, remaining=units, expires_at=expiry,
@@ -758,6 +763,33 @@ class LedgerState:
     def payment(self, payment_id: str) -> dict[str, Any] | None:
         rec = self.payments.get(payment_id)
         return dict(rec) if rec is not None else None
+
+    def claim_state(self, payment_id: str) -> dict[str, Any] | None:
+        rec = self.payments.get(payment_id)
+        claim = rec.get("claim") if rec is not None else None
+        return json.loads(json.dumps(claim)) if claim is not None else None
+
+    def save_claim(self, payment_id: str, data: dict[str, Any], *,
+                   kind: str, units: int, tx: str) -> None:
+        rec = self.payments.get(payment_id)
+        if rec is None:
+            rec = {"holder": "", "units": int(units), "tx": tx,
+                   "kind": kind, "pending": True}
+            self.payments[payment_id] = rec
+        previous = rec.get("claim")
+        if previous is not None and previous.get("stage") == "complete":
+            return
+        if (not rec.get("pending") and rec.get("holder")
+                and rec["holder"] != data["holder"]):
+            raise ValueError("payment holder is already assigned")
+        rec["claim"] = json.loads(json.dumps(data))
+        if rec.get("pending"):
+            rec["holder"] = data["holder"]
+
+    def finish_claim(self, payment_id: str) -> None:
+        rec = self.payments[payment_id]
+        rec["claim"] = {"stage": "complete"}
+        rec.pop("pending", None)
 
     def _pack_claim(self, tx: str) -> tuple[str, dict[str, Any]] | None:
         if not tx:
@@ -895,14 +927,20 @@ class LedgerState:
         """
         rec = self.payments.get(invoice_id)
         if rec is not None:
-            reason = "replay" if rec.get("holder") == holder else "conflict"
-            return CreditResult(False, reason, int(rec.get("units") or 0))
+            claim = rec.get("claim")
+            if (not rec.get("pending") or rec.get("kind") != "monthly"
+                    or (claim is not None and claim.get("holder") != holder)):
+                reason = "replay" if rec.get("holder") == holder else "conflict"
+                return CreditResult(False, reason, int(rec.get("units") or 0))
         if units < 0:
             return CreditResult(False, "zero", 0)
-        self.payments[invoice_id] = {
+        updated = {
             "holder": holder, "units": int(units), "tx": invoice_id,
             "kind": "monthly", "plan": plan,
         }
+        if rec is not None and "claim" in rec:
+            updated["claim"] = {"stage": "complete"}
+        self.payments[invoice_id] = updated
         acc = self._acc(holder)
         acc.monthly = int(units)
         acc.overage_used = 0
@@ -1477,6 +1515,16 @@ class LedgerState:
 
 
 class Ledger(Protocol):
+    async def claim_state(self, payment_id: str) -> dict[str, Any] | None: ...
+
+    async def save_claim(self, payment_id: str, data: dict[str, Any], *,
+                         kind: str, units: int, tx: str) -> None: ...
+
+    async def finish_claim(self, payment_id: str) -> None: ...
+
+    async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
+                             policy: Any) -> Any: ...
+
     async def rotation_state(self, holder: str) -> dict[str, Any] | None: ...
 
     async def save_rotation(self, holder: str, data: dict[str, Any]) -> None: ...
@@ -1563,7 +1611,28 @@ class MemoryLedger:
     def __init__(self, state: LedgerState | None = None) -> None:
         self.state = state or LedgerState()
         self._lock = asyncio.Lock()
-        self._rotation_lock = asyncio.Lock()
+        self._billing_lock = asyncio.Lock()
+
+    async def claim_state(self, payment_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            return self.state.claim_state(payment_id)
+
+    async def save_claim(self, payment_id: str, data: dict[str, Any], *,
+                         kind: str, units: int, tx: str) -> None:
+        async with self._lock:
+            self.state.save_claim(payment_id, data, kind=kind, units=units, tx=tx)
+
+    async def finish_claim(self, payment_id: str) -> None:
+        async with self._lock:
+            self.state.finish_claim(payment_id)
+
+    async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
+                             policy: Any) -> Any:
+        from access_billing import _consume_claim_serialized
+
+        async with self._billing_lock:
+            return await _consume_claim_serialized(
+                kv, session_id, now=now, policy=policy, ledger=self)
 
     async def rotation_state(self, holder: str) -> dict[str, Any] | None:
         async with self._lock:
@@ -1577,7 +1646,7 @@ class MemoryLedger:
                          policy: Any) -> Any:
         from access_billing import _rotate_serialized
 
-        async with self._rotation_lock:
+        async with self._billing_lock:
             return await _rotate_serialized(
                 kv, current_key, now=now, policy=policy, ledger=self)
 
@@ -1719,6 +1788,20 @@ class MemoryLedger:
 class UnboundLedger:
     """No Durable Object on this deployment. Reads as empty; writes refuse."""
 
+    async def claim_state(self, payment_id: str) -> dict[str, Any] | None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def save_claim(self, payment_id: str, data: dict[str, Any], *,
+                         kind: str, units: int, tx: str) -> None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def finish_claim(self, payment_id: str) -> None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
+                             policy: Any) -> Any:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def rotation_state(self, holder: str) -> dict[str, Any] | None:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
@@ -1844,6 +1927,28 @@ class DurableLedger:
 
     async def _call(self, name: str, *args: Any) -> Any:
         return await getattr(self._stub, name)(*args)
+
+    async def claim_state(self, payment_id: str) -> dict[str, Any] | None:
+        text = await self._call("claim_state", payment_id, True)
+        return json.loads(str(text))
+
+    async def save_claim(self, payment_id: str, data: dict[str, Any], *,
+                         kind: str, units: int, tx: str) -> None:
+        await self._call("save_claim", payment_id, json.dumps(data), kind, units, tx)
+
+    async def finish_claim(self, payment_id: str) -> None:
+        await self._call("finish_claim", payment_id)
+
+    async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
+                             policy: Any) -> Any:
+        from access_billing import ClaimResult, SubscriptionRecord
+
+        text = await self._call("claim_purchase", session_id, _now_iso(now))
+        data = json.loads(str(text))
+        if data is None:
+            return None
+        record = SubscriptionRecord.from_json(json.dumps(data.pop("record")))
+        return ClaimResult(record=record, **data)
 
     async def rotation_state(self, holder: str) -> dict[str, Any] | None:
         text = await self._call("rotation_state", holder, True)

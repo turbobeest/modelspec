@@ -879,8 +879,8 @@ async def claim(*, session_id: str, kv: Any, policy: AccessPolicy,
             service_commit=service_commit, endpoint=endpoint)
     try:
         result = await store.consume_claim(
-            kv, session_id, now=now, policy=policy, ledger=_ledger(ledger))
-    except StoreNotConfigured as exc:
+            kv, session_id, now=now, policy=policy, ledger=_billing_ledger(ledger, kv))
+    except (StoreNotConfigured, credits.StoreNotConfigured) as exc:
         return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
     except PolicyError as exc:

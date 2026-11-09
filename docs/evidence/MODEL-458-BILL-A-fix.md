@@ -53,3 +53,24 @@ and pass after it. The billing/pricing command above passed 195 tests, exit 0.
 The controls cover both invoice event timestamps, paid recovery, cancellation,
 checkout linking and replay. This verifies sequential event permutations;
 concurrent webhook ordering through KV was not measured.
+
+## AUD-03-F4
+
+Purchase claims select one owner through the ledger Durable Object before
+key issuance. Metadata completes before funding. The existing payment claim
+records completion atomically with funding. Retries preserve the funded
+owner, and completed records retain only a completion marker. The refund
+Durable Object fixture now supplies its ACCESS binding; assertions remain intact.
+
+The supplied check, two permanent billing controls and four initial Durable
+Object controls failed before the change and pass after it. Added controls
+cover subscriptions and packs, independent clients, metadata interruptions,
+funding interruptions, restart, replay and absent ledger bindings. Review
+also added a rotation control that preserves current subscription status
+when pending work resumes. The legal record-naming check passes.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_credits.py tests/test_pricing_v2.py tests/test_friends_billing.py tests/test_legal.py
+```
+
+Result: 375 passed, exit 0.
