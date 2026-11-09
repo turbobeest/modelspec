@@ -463,3 +463,41 @@ def test_documented_mcp_tools_match_registered_tools() -> None:
     registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
     assert set(ar.MCP_TOOLS) == set(registered)
     assert len(ar.MCP_TOOLS) == len(registered) == 9
+
+
+@pytest.mark.parametrize('source,expected', [
+    ('See [BEIR](beir.md).', 'See [BEIR](/b/beir/).'),
+    ('[Spec](../docs/agentic-latency-benchmark.md)', '[Spec](https://github.com/turbobeest/modelspec/blob/main/docs/agentic-latency-benchmark.md)'),
+    ('[Source](https://example.org/path?q=1&b=2)', '[Source](https://example.org/path?q=1&b=2)'),
+    ('[Bad](javascript:bad)', 'Bad'),
+    ('[Bad](data:text/plain,bad)', 'Bad'),
+    ('[Bad](//example.org/path)', 'Bad'),
+    ('[Bad](../../outside.md)', 'Bad'),
+    ('`[BEIR](beir.md)`', '`[BEIR](beir.md)`'),
+    ('`literal `` [BEIR](beir.md)`', '`literal `` [BEIR](beir.md)`'),
+    ('``a `[BEIR](beir.md)` example``', '``a `[BEIR](beir.md)` example``'),
+    (r'\[BEIR](beir.md)', r'\[BEIR](beir.md)'),
+    ('**See** [BEIR](beir.md) or `[example](beir.md)`.', '**See** [BEIR](/b/beir/) or `[example](beir.md)`.'),
+])
+def test_benchmark_markdown_fact_destinations(source, expected):
+    from pipeline.load import Catalogue
+    bench = _bench('demo', contamination={'note': source})
+    text = ar.benchmark_markdown(bench, Catalogue(as_of=date(2026, 9, 23)))
+    assert f'- Contamination note: {expected}\n' in text
+
+
+def test_built_benchmark_markdown_destinations_resolve(dist: Path) -> None:
+    from urllib.parse import urljoin, urlsplit
+    tree = dist / 'modelspec'
+    pages = list((tree / 'b').glob('*/index.md'))
+    assert pages
+    missing = []
+    for page in pages:
+        origin = 'https://modelspec.dev/' + page.relative_to(tree).as_posix()
+        for href in re.findall(r'(?<!!)\[[^\]]+\]\(([^)\s]+)\)', page.read_text()):
+            target = urlsplit(urljoin(origin, href))
+            if target.netloc == 'modelspec.dev':
+                local = tree / target.path.lstrip('/')
+                if not (local.is_file() or (local / 'index.html').is_file()):
+                    missing.append((page.relative_to(tree).as_posix(), href))
+    assert missing == []

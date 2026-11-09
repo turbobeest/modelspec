@@ -55,3 +55,25 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.ven
 
 f1-green: exit 0; `88 passed in 27.28s`.
 
+## AUD-05-F2
+
+Benchmark fact Markdown uses the existing HTML-body destination policy. Sibling and repository paths are normalized, disallowed destinations become plain labels, and escaped examples and code spans retain their text. The red reproduction emitted `beir.md`; the expected published destination is `/b/beir/`. A permanent output-tree test checks every benchmark twin.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F2.py
+```
+
+f2-repro: exit 1; `1 failed in 0.16s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_agent_ready.py -k benchmark_markdown_fact_destinations
+```
+
+f2-red: exit 1; `7 failed, 4 passed, 34 deselected in 0.45s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_benchmark_body_render.py tests/test_agent_ready.py /tmp/MODEL-458-SITE-scratch/root/test_AUD_05_F2.py -k 'not built'
+```
+
+f2-green: exit 0; `44 passed, 15 deselected in 1.82s`.
+

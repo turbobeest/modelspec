@@ -1675,6 +1675,24 @@ def _body_href(url: str) -> str | None:
     return GITHUB_BLOB + resolved + (f"#{frag}" if frag else "")
 
 
+_MARKDOWN_DESTINATION = re.compile(
+    r"\\.|(?<!`)(?P<ticks>`+)(?!`).*?(?<!`)(?P=ticks)(?!`)|\[(?P<label>[^\]\n]+)\]\((?P<href>[^)\s]*)\)",
+    re.S,
+)
+
+
+def normalize_benchmark_markdown_links(text: str) -> str:
+    """Apply the HTML body's destination policy, preserving Markdown and code spans."""
+    def replace(match: re.Match[str]) -> str:
+        if match.group("href") is None:
+            return match.group()
+        href = _body_href(match.group("href"))
+        label = match.group("label")
+        return f"[{label}]({href})" if href else label
+
+    return _MARKDOWN_DESTINATION.sub(replace, text)
+
+
 def _emphasis(escaped: str) -> str:
     escaped = _STRONG.sub(r"<strong>\1</strong>", escaped)
     return _EM.sub(lambda m: f"<em>{m.group(1) or m.group(2)}</em>", escaped)
