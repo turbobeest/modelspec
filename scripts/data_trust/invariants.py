@@ -91,7 +91,7 @@ def source_urls(f: dict, c: Catalogue) -> list[str]:
 
 
 def run(c: Catalogue, registry: Registry, as_of: date, snapshot: dict | None = None) -> dict:
-    findings = list(c.findings)
+    findings = [*c.inventory_findings, *c.findings]
 
     def add(f, rule, severity="error"):
         findings.append(Finding(str(f["id"]), str(f.get("field") or "record"), rule, severity))

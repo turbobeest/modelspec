@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from schema.benchmark import unknown_key_paths
 from decision.labs import Lab
 from decision.model import (
     evidence_verification_value,
@@ -47,6 +48,8 @@ class Catalogue:
     claims: dict = field(default_factory=dict)
     served_counts: dict = field(default_factory=dict)
     findings: list[Finding] = field(default_factory=list)
+    # Authoring/storage diagnostics cover every file, independent of admission.
+    inventory_findings: list[Finding] = field(default_factory=list)
     verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
     # The verification log as read, kept after calibration for cited records.
     logged_verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
@@ -124,6 +127,10 @@ def load(root: Path) -> Catalogue:
             continue
         row = read(path)
         if isinstance(row, dict) and row.get("id"):
+            c.inventory_findings.extend(
+                Finding(str(path.relative_to(root)), field, "unknown_benchmark_key")
+                for field in unknown_key_paths(row)
+            )
             add(c.boards, row["id"], row)
     for path in sorted((root / "offerings").rglob("*.yaml")):
         rows = read(path)

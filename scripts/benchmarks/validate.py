@@ -13,7 +13,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from schema.benchmark import BenchmarkCard, REQUIRED_SECTIONS  # noqa: E402
+from schema.benchmark import BenchmarkCard, REQUIRED_SECTIONS, unknown_key_paths  # noqa: E402
 
 PLACEHOLDERS = re.compile(r"\b(TODO|TBD|lorem ipsum|placeholder|FIXME)\b", re.I)
 
@@ -28,6 +28,10 @@ def check(path: Path) -> list[str]:
         fm = yaml.safe_load(m.group(1)) or {}
     except yaml.YAMLError as e:
         return [f"front matter is not valid YAML: {e}"]
+    if not isinstance(fm, dict):
+        return ["front matter is not a mapping"]
+    if paths := unknown_key_paths(fm):
+        return [f"unknown_benchmark_key: {path}" for path in paths]
     if "models_covered" in fm:
         errs.append("models_covered must not be authored (derived from the cards)")
     try:
