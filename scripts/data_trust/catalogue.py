@@ -67,7 +67,7 @@ def _document(path: Path) -> Any:
     return load_yaml(text)
 
 
-def load(root: Path) -> Catalogue:
+def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
     c = Catalogue()
 
     def read(path):
@@ -162,6 +162,9 @@ def load(root: Path) -> Catalogue:
                 c.findings.append(Finding(str(path.relative_to(root)), "offering", "missing_id"))
     if not c.models:
         c.findings.append(Finding("catalogue", "models", "empty_catalogue"))
+    from scripts.data_trust.retention import inventory
+
+    c.inventory_findings.extend(inventory(source_root if source_root is not None else root))
     return c
 
 

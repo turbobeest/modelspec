@@ -411,7 +411,7 @@ def test_sample_mismatch_does_not_fail_command(tmp_path, catalogue, registry, mo
     from scripts.data_trust import __main__ as command
 
     monkeypatch.setattr(command, "load_registry", lambda *a, **kw: registry)
-    monkeypatch.setattr(command, "load", lambda *a: catalogue)
+    monkeypatch.setattr(command, "load", lambda root, *, source_root: catalogue)
     monkeypatch.setattr(command, "calibrate", lambda *a: None)
     original = sample.run
 

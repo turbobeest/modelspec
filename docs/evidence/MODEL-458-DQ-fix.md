@@ -89,3 +89,38 @@ unchanged; the ticket does not authorize its correction.
 
 No private pages were changed. No live source reads, provider calls, production
 changes, or local full-suite runs were performed.
+
+## AUD-07-F2
+
+The offline inventory checks manifest-attributed retained files against the
+existing restrictive source policy. It handles requested and redirect origins,
+deduplicates files, and reports missing, unattributed or bounded-out inputs as
+coverage limitations. Paths stay within the supplied data root. The composed
+audit root uses that original data root for retained-file inventory.
+
+Red command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_data_trust_retention.py
+```
+
+Result: `38 failed, 2 passed in 6.88s`. The reproduction returned zero errors;
+`test_audit_reports_retained_copy_from_cite_only_host` lacked the specific
+`retained_cite_only_copy` finding. Controls cover retainable origins,
+metadata-only records, duplicate manifests, redirects and bounded file handling.
+The initial focused green run returned `40 passed in 12.29s`.
+
+Review added regressions for valid parent-relative paths, malformed paths and
+JSON-body attribution. No source-body decompression or source fetch is needed.
+The private inventory identifies 22 unique retained files under the existing
+policy. This is a count-only check; no retained file or policy class changed.
+
+Green command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_data_trust_retention.py tests/test_data_trust.py tests/test_cite_only_retention.py
+```
+
+Result: `151 passed in 19.32s`. Private coverage limitations are 87 unattributed
+files, seven missing references and four manifests exceeding the 2 MiB read
+bound. The check does not inspect or expand source archives to determine origin.
