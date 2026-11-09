@@ -862,8 +862,11 @@ class _Compiler:
         still be this set's: the verdict is then unsure, and the value is held.
         """
         inline_record = None if inline is None else _as_dict(inline)
-        if inline_record is not None and not _counts(inline_record):
-            inline_record = None
+        if inline_record is not None:
+            target = inline_record.get("target") or {}
+            if (rid is None or target.get("kind") != kind or target.get("id") != rid
+                    or not _counts(inline_record)):
+                inline_record = None
         inline_hash = (None if inline_record is None
                        else inline_record.get("target", {}).get("value_hash"))
         logged = (self.logged_hashes.get((kind, str(rid)), [])
@@ -1008,6 +1011,16 @@ class _Compiler:
 
     # subjects ----------------------------------------------------------------
 
+    @staticmethod
+    def _authored_facts(sid: str, kind: str, facts: Iterable[Any] | None) -> list[dict]:
+        records = [_as_dict(raw) for raw in facts or ()]
+        for record in records:
+            subject = record.get("subject") or {}
+            if subject.get("kind") != kind or subject.get("id") != sid:
+                raise SnapshotBuildError(
+                    f"{sid}: fact {record.get('id')!r} must name its actual owner as subject")
+        return records
+
     def _check_facet(self, facet_id: str, kind: str) -> None:
         if self.registry is not None:
             try:
@@ -1130,7 +1143,8 @@ class _Compiler:
         if mid in self.subjects:
             raise SnapshotBuildError(f"model {mid} appears twice")
         self.subjects[mid] = {"kind": "model", "model": mid, "lifecycle": lifecycle}
-        facts = self._inherit_jurisdiction(mid, list(m.get("facts") or []))
+        facts = self._inherit_jurisdiction(
+            mid, self._authored_facts(mid, "model", m.get("facts")))
         self._add_facts(mid, "model", facts)
 
     def _inherit_jurisdiction(self, mid: str, facts: list[Any]) -> list[Any]:
@@ -1182,7 +1196,7 @@ class _Compiler:
             raise SnapshotBuildError(f"offering {oid} appears twice")
         self.subjects[oid] = {"kind": "offering", "model": mid,
                               "lifecycle": self.subjects[mid]["lifecycle"]}
-        self._add_facts(oid, "offering", o.get("facts"))
+        self._add_facts(oid, "offering", self._authored_facts(oid, "offering", o.get("facts")))
         # An offering's identity is its provider, region and tier: structural,
         # not a sourced claim, so they carry no source. They still name
         # registered values (MODEL-324). The stored region stays the
@@ -1223,7 +1237,8 @@ class _Compiler:
             "plan": str(subscription["plan"]),
             "name": str(subscription["name"]),
         }
-        self._add_facts(sid, "offering", subscription.get("facts"))
+        self._add_facts(
+            sid, "offering", self._authored_facts(sid, "offering", subscription.get("facts")))
 
     def add_evidence(self, raw: Any) -> None:
         e = _as_dict(raw)

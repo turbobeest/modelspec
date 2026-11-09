@@ -688,13 +688,13 @@ def test_an_offering_of_an_unknown_model_fails_loudly():
     ("tier", "Tier0"),
 ])
 def test_an_offering_identity_outside_the_registry_fails_loudly(part, value):
-    row = {**offering("lab/alpha"), part: value}
+    row = {**offering("lab/alpha", facts=[]), part: value}
     with pytest.raises(SnapshotBuildError, match=f"offering.{part} '{value}' is not registered"):
         build_snapshot(inputs(offerings=[row]), registry=REGISTRY, as_of=AS_OF)
 
 
 def test_an_offering_region_is_the_providers_own_name(tmp_path):
-    row = {**offering("lab/alpha"), "region": "singapore"}
+    row = {**offering("lab/alpha", facts=[]), "region": "singapore"}
     index = load(build(tmp_path, offerings=[row]))
     assert index.fact("sambanova/lab/alpha/singapore/standard", "offering.region") == FactValue(
         "known", "singapore", ())
