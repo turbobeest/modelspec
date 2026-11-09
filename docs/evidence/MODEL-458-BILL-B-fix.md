@@ -40,3 +40,21 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 Signed local webhook fixtures cover event ordering, replay, pending claims, decision/catalog completion and expiry. Existing spent-credit and unmatched-subscription tests remain passing. Published terms and webhook response fields are unchanged. No live payment or webhook delivery was observed.
+
+## AUD-03-F7
+
+Decision reservations and catalog draws retain their allowance generation. Completion updates the matching generation, preserves pack returns, and retains meter records. Account merges preserve the distinction between current and prior allowances. Legacy JSON defaults to a common initial generation.
+
+The supplied cases reported `10 failed` across the memory and durable adapters before implementation. Additional period controls reported `6 failed, 4 passed`. After implementation:
+
+```text
+254 passed in 2.86s
+```
+
+Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_credits.py tests/test_credits_do.py tests/test_read_refunds.py tests/test_pricing_v2.py tests/test_overage_durability.py tests/test_billing_refunds.py
+```
+
+Checks include renewal, cancellation, current-period caps, meter identities, both shared-block completion orders, pack returns, merged accounts and legacy JSON. No price, plan, external response schema or production switch changed.
