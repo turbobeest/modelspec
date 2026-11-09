@@ -55,14 +55,14 @@ class Client:
         # A broken server must not be able to echo the presented credential.
         # response.text is already decoded; encoding headers would decode it again.
         kept = [
-            (name, value)
+            (name, self.credential.redact(value))
             for name, value in response.headers.multi_items()
             if name.lower() not in {"content-encoding", "content-length", "transfer-encoding"}
         ]
         response = httpx.Response(
             response.status_code,
             headers=kept,
-            text=self.credential.redact(response.text),
+            text=self.credential.redact_json(response.text),
         )
         try:
             payload = response.json()

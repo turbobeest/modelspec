@@ -1198,3 +1198,64 @@ def test_gzip_rate_limit_keeps_retry_after_and_guide_version(monkeypatch):
     assert result.exit_code == 6
     assert payload["retry_after"] == "60"
     assert any("pipx upgrade modelspec-dev" in line for line in payload["next"])
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+@pytest.mark.parametrize("http_status", [200, 401])
+@pytest.mark.parametrize("mixed", [False, True])
+def test_unicode_escaped_reflected_key_is_redacted(monkeypatch, json_mode, http_status, mixed):
+    escaped = "".join(
+        char if mixed and index % 2 else f"\\u{ord(char):04x}"
+        for index, char in enumerate(KEY)
+    )
+    body = '{"nested":[{"' + escaped + '":"' + escaped + '"}]}'
+    if http_status == 401:
+        body = (
+            '{"error":{"code":"invalid_api_key","message":"'
+            + escaped + '","details":' + body + '}}'
+        )
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(http_status, text=body)))
+    result = run(["vocab", *(["--json"] if json_mode else [])], keyed=True)
+    assert result.exit_code == (0 if http_status == 200 else 5), result.output
+    assert KEY not in result.stdout + result.stderr
+    if json_mode or http_status == 200:
+        payload = json.loads(result.stdout)
+        assert KEY not in json.dumps(payload)
+        details = payload if http_status == 200 else payload["error"]["details"]
+        assert details["nested"] == [{"[redacted]": "[redacted]"}]
+    else:
+        assert "[redacted]" in result.stderr
+
+
+def test_retry_after_reflected_key_is_redacted(monkeypatch):
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(
+            429, json={"error": {"code": "rate_limited", "message": "Try later"}},
+            headers={"Retry-After": KEY})))
+    result = run(["vocab", "--json"], keyed=True)
+    payload = assert_error(result, "rate_limited")
+    assert result.exit_code == 6
+    assert payload["retry_after"] == "[redacted]"
+
+
+def test_response_without_credentials_preserves_json_bytes(monkeypatch):
+    body = ' { "nested" : [{"\\u0061":"\\u0062"}], "count":1.00 }\n'
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, text=body)))
+    result = run(["vocab", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    assert result.stdout == body
+
+
+@pytest.mark.parametrize("escaped", [False, True])
+def test_response_redaction_preserves_duplicate_members(monkeypatch, escaped):
+    value = "".join(f"\\u{ord(char):04x}" for char in KEY) if escaped else KEY
+    body = '{"echo":"' + value + '","echo":"safe"}'
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, text=body)))
+    result = run(["vocab", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert json.loads(result.stdout, object_pairs_hook=list) == [
+        ("echo", "[redacted]"), ("echo", "safe")]

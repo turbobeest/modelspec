@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -40,6 +41,18 @@ class Credential:
     def redact(self, text: str) -> str:
         escaped = json.dumps(self.secret)[1:-1]
         return text.replace(escaped, "[redacted]").replace(self.secret, "[redacted]")
+
+    def redact_json(self, text: str) -> str:
+        def scrub(match: re.Match[str]) -> str:
+            value = json.loads(match[0])
+            redacted = self.redact(value)
+            return match[0] if redacted == value else json.dumps(redacted, ensure_ascii=False)
+
+        try:
+            redacted = re.sub(r'"(?:[^"\\]|\\.)*"', scrub, text)
+        except ValueError:
+            return self.redact(text)
+        return self.redact(redacted)
 
 
 def require_key() -> Credential:
