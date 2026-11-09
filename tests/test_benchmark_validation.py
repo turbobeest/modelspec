@@ -95,3 +95,47 @@ sources: [{id: source-id, url: 'https://example.test'}]
 ---
 """)
     assert load(tmp_path).findings == []
+
+
+def test_benchmark_validator_reports_duplicate_aliases(page):
+    insert_mapping(page, "aliases: [first]\naliases: [second]")
+    assert check(page) == ["duplicate_yaml_key: line 10, column 1"]
+
+
+@pytest.mark.parametrize("relative,content", [
+    ("models/example.md", "---\nmodel_id: test/model\naliases: [first]\naliases: [second]\n---\n"),
+    ("benchmarks/example.md", "---\nid: example\naliases: [first]\naliases: [second]\n---\n"),
+    ("registry/sources.yaml", "sources: []\nsources: []\n"),
+    ("registry/harnesses.yaml", "harnesses: []\nharnesses: []\n"),
+    ("offerings/example.yaml", "- provider: test\n  facts: []\n  facts: []\n"),
+    ("premier/example.yaml", "models: []\nmodels: []\n"),
+])
+def test_trust_duplicate_diagnostic_survives_calibration(tmp_path, monkeypatch, relative, content):
+    from decision import snapshot
+
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    path.write_text(content)
+    c = load(tmp_path)
+    inputs = snapshot.SnapshotInputs()
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    registry = load_registry()
+    calibrate(c, tmp_path, registry, date(2026, 11, 9))
+    findings = [f for f in run(c, registry, date(2026, 11, 9))["findings"]
+                if f["rule"] == "duplicate_yaml_key"]
+    assert len(findings) == 1
+    assert findings[0]["id"].startswith(relative + ":")
+    assert findings[0]["field"] == "document"
+    assert "first" not in str(findings)
+
+
+def test_calibration_reports_duplicate_collection_failure(tmp_path):
+    (tmp_path / "models").mkdir()
+    (tmp_path / "models/example.md").write_text("---\nmodel_id: test/model\n---\n")
+    (tmp_path / "benchmarks").mkdir()
+    (tmp_path / "benchmarks/example.md").write_text("---\nid: example\naliases: []\naliases: []\n---\n")
+    c = load(tmp_path)
+    registry = load_registry()
+    calibrate(c, tmp_path, registry, date(2026, 11, 9))
+    rules = {f["rule"] for f in run(c, registry, date(2026, 11, 9))["findings"]}
+    assert {"duplicate_yaml_key", "snapshot_build"} <= rules

@@ -14,6 +14,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from schema.benchmark import BenchmarkCard, REQUIRED_SECTIONS, unknown_key_paths  # noqa: E402
+from schema.yaml_loader import DuplicateKeyError, load_yaml  # noqa: E402
 
 PLACEHOLDERS = re.compile(r"\b(TODO|TBD|lorem ipsum|placeholder|FIXME)\b", re.I)
 
@@ -25,7 +26,9 @@ def check(path: Path) -> list[str]:
     if not m:
         return ["no YAML front matter"]
     try:
-        fm = yaml.safe_load(m.group(1)) or {}
+        fm = load_yaml(m.group(1)) or {}
+    except DuplicateKeyError as e:
+        return [e.diagnostic(line_offset=1)]
     except yaml.YAMLError as e:
         return [f"front matter is not valid YAML: {e}"]
     if not isinstance(fm, dict):

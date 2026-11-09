@@ -33,5 +33,59 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 
 Result: `164 passed in 19.64s`.
 
+The private offline audit returned exit 1 with 41 structural findings on 32
+benchmark pages. Known parent counts: `freshness` 32, `dataset` 3,
+`contamination` 3, `saturation` 3. Multiple parents can occur on one page.
+
+## AUD-07-F3
+
+The shared safe YAML loader rejects repeated authored mapping keys before
+construction. Diagnostics retain line and column without authored text. Valid
+anchors, explicit merge overrides, merge-sequence precedence, Boolean values,
+dates, sets and binary tags retain their supported behavior. The audit checks
+registry and lineup documents and preserves duplicate diagnostics through
+calibration, including collection failure.
+
+Red command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py tests/test_benchmark_validation.py
+```
+
+Result: `18 failed, 26 passed in 4.02s`. `test_duplicate_aliases_are_rejected`
+and `test_nested_duplicate_mapping_is_rejected` did not raise on either loader.
+Validator and audit regressions lacked `duplicate_yaml_key`, including after
+calibration. The safe-tag and merge controls passed before the change.
+
+Green command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py tests/test_benchmark_validation.py tests/test_data_trust.py tests/test_card_yaml_roundtrip.py
+```
+
+Result: `115 passed in 15.24s`.
+
+Review added `test_quoted_merge_key_is_distinct_from_merge_directive` on both
+loaders. The two controls initially failed, then passed after using a distinct
+merge-tag identity. Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py -k quoted_merge
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py
+```
+
+The private audit returned exit 1 and retained 10 duplicate-key diagnostics,
+41 structural diagnostics on 32 pages, and one collection-failure diagnostic.
+
+Broader loader check:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py tests/test_model_191_refinements.py
+```
+
+Result: `11 failed, 59 passed in 21.30s`. Each failure reaches the new duplicate
+mapping-key boundary in the frozen benchmark data. Existing data remains
+unchanged; the ticket does not authorize its correction.
+
 No private pages were changed. No live source reads, provider calls, production
 changes, or local full-suite runs were performed.

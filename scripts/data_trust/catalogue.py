@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 
 from schema.benchmark import unknown_key_paths
+from schema.yaml_loader import DuplicateKeyError, load_yaml
 from decision.labs import Lab
 from decision.model import (
     evidence_verification_value,
@@ -63,7 +64,7 @@ def _document(path: Path) -> Any:
             raise ValueError("missing front matter")
         end = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
         text = "\n".join(lines[1:end])
-    return yaml.safe_load(text)
+    return load_yaml(text)
 
 
 def load(root: Path) -> Catalogue:
@@ -72,6 +73,13 @@ def load(root: Path) -> Catalogue:
     def read(path):
         try:
             return _document(path)
+        except DuplicateKeyError as exc:
+            line = exc.problem_mark.line + 1 + (path.suffix == ".md")
+            c.inventory_findings.append(Finding(
+                f"{path.relative_to(root)}:{line}:{exc.problem_mark.column + 1}",
+                "document", "duplicate_yaml_key",
+            ))
+            return None
         except (ValueError, StopIteration, yaml.YAMLError, OSError):
             c.findings.append(Finding(str(path.relative_to(root)), "document", "parse"))
             return None
@@ -86,6 +94,10 @@ def load(root: Path) -> Catalogue:
             if row["id"] in c.sources:
                 c.findings.append(Finding(row["id"], "id", "duplicate_id"))
             c.sources[row["id"]] = row
+    for directory in ("registry", "premier"):
+        for path in sorted((root / directory).rglob("*.yaml")):
+            if path != source_path:
+                read(path)
     log = root / "verification/log.jsonl"
     if log.exists():
         for index, line in enumerate(log.read_text().splitlines(), 1):
@@ -326,7 +338,14 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     from decision.snapshot import _compile, collect_repo
     from scripts.accuracy import _latest_collected_claims
 
-    inputs = collect_repo(root)
+    from pipeline.load import LoadError
+
+    try:
+        inputs = collect_repo(root)
+    except (LoadError, yaml.YAMLError):
+        c.legacy, c.facts = c.facts, []
+        c.findings.append(Finding("snapshot", "build", "snapshot_build"))
+        return
     compiler = _compile(inputs, registry, excluded_sources(), as_of, False)
     # Successful serving compilation supersedes diagnostics on ignored prose,
     # files outside the collector globs, and records admission kept back.
