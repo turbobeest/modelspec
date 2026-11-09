@@ -109,3 +109,28 @@ python -m pytest -q -p no:cacheprovider tests/test_ci_workflows.py tests/test_va
 
 Follow-up red: 4 failed, 32 passed, exit 1. Green: 139 passed in 33.40s,
 exit 0, 33.646s process elapsed.
+
+## AUD-08-F2
+
+Both private deployment jobs check current and successor memory before deploy.
+The deployment ceiling remains 120 MiB; the public ceiling remains 115 MiB.
+Synthetic measurements use the real `assessMemory` function. The actual gate
+and deploy run blocks execute with offline installation/deployment fixtures.
+
+The supplied current-failure control exited 0, observing a failing step for
+both jobs. The successor-failure reproduction exited 1 because each step ran
+only the current period. Permanent regression
+`test_private_deploy_requires_memory_for_both_periods` had 4 failures and
+2 passes before the fix. Afterward it checks both periods, failure propagation,
+no deploy after failure, and both-pass controls exactly at 120 MiB.
+
+```text
+python /tmp/MODEL-458-CI-B-scratch/root/repro/F2/probe_deploy.py current
+python /tmp/MODEL-458-CI-B-scratch/root/repro/F2/probe_deploy.py successor
+python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py -k private_deploy --basetemp /tmp/MODEL-458-CI-B-scratch/root/F2-red
+python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py tests/test_ci_workflows.py --basetemp /tmp/MODEL-458-CI-B-scratch/root/F2-green
+```
+
+Green: 123 passed in 13.24s, exit 0, 13.526s process elapsed. These checks do
+not measure a real private bundle. No Pyodide load, network package install,
+private data access, credentials or deployment was involved.

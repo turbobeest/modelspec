@@ -220,3 +220,64 @@ def test_private_memory_workflow_patch_gates_and_compares_both_periods():
     assert all("--limit-mib 115" in command and "--baseline" in command
                for command in commands[2:])
     assert "--baseline \"$RUNNER_TEMP/private-main-successor-memory.json\"" in commands[-1]
+
+
+@pytest.mark.parametrize("job_name", ["deploy-staging", "deploy"])
+@pytest.mark.parametrize("current,successor,expected_status,periods", [
+    (110, 121, 1, ["current", "successor"]),
+    (121, 110, 1, ["current"]),
+    (120, 120, 0, ["current", "successor"]),
+], ids=["successor-failure", "current-failure", "both-pass"])
+def test_private_deploy_requires_memory_for_both_periods(
+    tmp_path, job_name, current, successor, expected_status, periods,
+):
+    workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
+    job = workflow["jobs"][job_name]
+    steps = job["steps"]
+    gate = next(s for s in steps if s.get("name") == "Check private steady bundle memory against 120 MiB")
+    deploy = next(s for s in steps if s.get("name") == ("Deploy staging" if job_name == "deploy-staging" else "Deploy"))
+    assert steps.index(gate) < steps.index(deploy)
+    assert gate["if"] == "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'"
+    assert not gate.get("continue-on-error") and not job.get("continue-on-error")
+    assert "if" not in deploy
+    real_node = shutil.which("node")
+    assert real_node is not None, "Node is required for the workflow memory regression"
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    node = binaries / "node"
+    node.write_text(f"#!{sys.executable}\n" + '''import json, os, subprocess, sys
+from pathlib import Path
+args = sys.argv[1:]
+assert '--measure-only' not in args
+period = 'successor' if '--successor' in args else 'current'
+mib = float(os.environ[period.upper() + '_MIB'])
+limit = args[args.index('--limit-mib') + 1] if '--limit-mib' in args else '120'
+assert limit == '120'
+with Path('periods').open('a') as calls:
+    calls.write(period + '\\n')
+program = "const {assessMemory}=require(process.argv[1]); const result=assessMemory({steady_bytes:Number(process.argv[2])*1048576},{limitMiB:Number(process.argv[3])}); process.exit(result.passed ? 0 : 1);"
+result = subprocess.run([os.environ['REAL_NODE'], '-e', program, os.environ['ASSESS_MODULE'], str(mib), limit])
+sys.exit(result.returncode)
+''')
+    node.chmod(0o755)
+    stub = '''npm() { return 0; }
+uv() { printf '%s\\n' "$*" >> deployed; }
+'''
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + gate["run"] + "\n" + deploy["run"]],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"RUNNER_TEMP": str(tmp_path), "GITHUB_SHA": "fixture",
+                          "PATH": str(binaries) + os.pathsep + os.environ["PATH"],
+                          "REAL_NODE": real_node, "ASSESS_MODULE": str(ROOT / "api/worker/measure_memory.cjs"),
+                          "CURRENT_MIB": str(current), "SUCCESSOR_MIB": str(successor)},
+    )
+    assert result.returncode == expected_status, result.stdout + result.stderr
+    assert (tmp_path / "periods").read_text().splitlines() == periods
+    deployed = tmp_path / "deployed"
+    if expected_status:
+        assert not deployed.exists()
+    else:
+        expected = 'run --project . pywrangler deploy'
+        if job_name == "deploy-staging":
+            expected += ' --env staging'
+        assert deployed.read_text().splitlines() == [expected + ' --var BUILD_COMMIT:fixture']

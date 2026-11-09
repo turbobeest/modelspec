@@ -283,6 +283,7 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -370,6 +371,7 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
 
       - name: Resolve the Worker's Python dependencies
         run: |
