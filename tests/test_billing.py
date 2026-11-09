@@ -1654,3 +1654,112 @@ def test_the_claim_page_escapes_everything():
 def test_prefers_html_is_an_explicit_preference(accept, html):
     import billing_page
     assert billing_page.prefers_html(accept) is html
+
+
+class RotationKV(MemoryKV):
+    fail_name = ""
+    fail_after = False
+    failure_seen = False
+
+    async def get(self, name):
+        value = await super().get(name)
+        await asyncio.sleep(0)
+        return value
+
+    async def put(self, name, value, **kwargs):
+        selected = self.fail_name and name.startswith(self.fail_name) and not self.failure_seen
+        if selected and not self.fail_after:
+            self.failure_seen = True
+            raise OSError("fixture rotation write unavailable")
+        await super().put(name, value, **kwargs)
+        if selected:
+            self.failure_seen = True
+            raise OSError("fixture rotation write unavailable")
+        await asyncio.sleep(0)
+
+
+def test_rotation_keeps_source_funded_until_keyref_is_written(policy):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        holder = credits.holder_from_fingerprint(keys.fingerprint(key))
+        await ledger.set_monthly(holder, 100, "rotation-invoice", "fixture")
+        kv.fail_name = "keyref:"
+        with pytest.raises(OSError, match="rotation write"):
+            await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=ledger)
+        assert (await keys.lookup(kv, key)).active
+        assert (await ledger.balance(holder)).available == 100
+        retried = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        successor = credits.holder_from_fingerprint(keys.fingerprint(retried.body["key"]))
+        assert (await ledger.balance(successor)).available == 100
+        assert (await ledger.balance(holder)).available == 0
+    run(scenario())
+
+
+def test_overlapping_rotations_return_one_funded_successor(policy):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        holder = credits.holder_from_fingerprint(keys.fingerprint(key))
+        await ledger.set_monthly(holder, 100, "overlap-invoice", "fixture")
+        results = await asyncio.gather(*(billing.rotate(
+            api_key=key, kv=kv, policy=policy, now=T0,
+            service_commit=COMMIT, ledger=ledger) for _ in range(2)))
+        assert sorted(result.status for result in results) == [200, 403]
+        successful = next(result for result in results if result.status == 200)
+        successor = credits.holder_from_fingerprint(keys.fingerprint(successful.body["key"]))
+        assert (await ledger.balance(successor)).available == 100
+        assert not (await keys.lookup(kv, key)).active
+        assert (await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                    service_commit=COMMIT, ledger=ledger)).status == 403
+    run(scenario())
+
+
+@pytest.mark.parametrize("write_number", [1, 2, 3, 4])
+@pytest.mark.parametrize("after_write", [False, True])
+def test_rotation_resumes_each_metadata_write(policy, write_number, after_write):
+    class InterruptedKV(MemoryKV):
+        writes = 0
+        armed = False
+
+        async def put(self, name, value, **kwargs):
+            if self.armed:
+                self.writes += 1
+                selected = self.writes == write_number
+            else:
+                selected = False
+            if selected and not after_write:
+                raise OSError("fixture metadata interruption")
+            await super().put(name, value, **kwargs)
+            if selected:
+                raise OSError("fixture metadata interruption")
+
+    async def scenario():
+        kv, ledger = InterruptedKV(), credits.MemoryLedger()
+        await apply(kv, policy, payload("checkout.session.completed", checkout_obj(),
+                                       "evt_rotation_resume"), ledger=ledger)
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy,
+                                      now=T0, service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        key = claimed.body["key"]
+        kv.armed = True
+        with pytest.raises(OSError, match="metadata interruption"):
+            await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=ledger)
+        retried = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        successor_key = retried.body["key"]
+        successor = keys.fingerprint(successor_key)
+        assert (await ledger.balance(credits.holder_from_fingerprint(successor))).monthly == 4000
+        assert not (await keys.lookup(kv, key)).active
+        assert (await billing.store.load_subscription(kv, SUB)).key_fingerprint == successor
+        again = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                     service_commit=COMMIT, ledger=ledger)
+        assert again.status == 403
+        persisted = json.dumps(kv.data) + json.dumps(ledger.state.to_json())
+        assert key not in persisted and successor_key not in persisted
+    run(scenario())

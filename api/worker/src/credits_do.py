@@ -8,6 +8,7 @@ imported from `entry.py` so Wrangler can find it by `class_name`.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Any
 
 from credits import LedgerState
@@ -55,6 +56,29 @@ class CreditsObject(DurableObject):
 
     def _save(self, state: LedgerState) -> None:
         self._put(_STATE_KEY, json.dumps(state.to_json()))
+
+    async def rotation_state(self, holder: str, encoded: bool = False) -> Any:
+        data = self._stored().rotation_state(str(holder))
+        return json.dumps(data) if encoded else data
+
+    async def save_rotation(self, holder: str, data: Any) -> None:
+        state = self._stored()
+        state.save_rotation(str(holder), json.loads(data) if isinstance(data, str) else data)
+        self._save(state)
+
+    async def rotate_key(self, current_key: str, now: str) -> str:
+        from access_billing import _rotate_serialized
+        from access_config import load_policy
+        from access_kv import CloudflareKV
+
+        async def rotate():
+            result = await _rotate_serialized(
+                CloudflareKV(self.env.ACCESS), str(current_key),
+                now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+                policy=load_policy(self.env), ledger=self)
+            return json.dumps(None if result is None else [result[0], result[1].to_json()])
+
+        return await self.ctx.blockConcurrencyWhile(rotate)
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",

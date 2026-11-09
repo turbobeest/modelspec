@@ -17,7 +17,10 @@ same four kinds.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import secrets
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -653,37 +656,51 @@ async def _consume_pack_claim(kv: Any, session: SessionRecord, *, now: datetime,
 async def rotate(kv: Any, current_key: str, *, now: datetime,
                  policy: AccessPolicy, ledger: Any = None
                  ) -> tuple[str, keys.KeyRecord] | None:
-    """Issue a replacement, revoke the current key. `None` if the key is unknown."""
-    record = await keys.lookup(kv, current_key)
-    if record is None:
-        return None
+    return await ledger.rotate_key(kv, current_key, now=now, policy=policy)
+
+
+async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
+                             policy: AccessPolicy, ledger: Any
+                             ) -> tuple[str, keys.KeyRecord] | None:
+    """Resume a rotation inside the ledger's serialized billing operation."""
     fingerprint_hex = keys.fingerprint(current_key)
-    ref_raw = await kv.get(keyref_name(fingerprint_hex))
-    subscription_id = ""
-    sub: SubscriptionRecord | None = None
-    if ref_raw is not None:
-        ref = KeyRef.from_json(ref_raw)
-        subscription_id = ref.subscription_id
-        sub = await load_subscription(kv, subscription_id)
-    owner = record.owner
-    label = record.label
-    secret, issued = await keys.issue(
-        kv, tier=record.tier, owner=owner, now=now, policy=policy, label=label)
+    holder = credits.holder_from_fingerprint(fingerprint_hex)
+    transition = await ledger.rotation_state(holder)
+    if transition is None:
+        record = await keys.lookup(kv, current_key)
+        if record is None or not record.active:
+            return None
+        ref_raw = await kv.get(keyref_name(fingerprint_hex))
+        subscription_id = KeyRef.from_json(ref_raw).subscription_id if ref_raw else ""
+        sub = await load_subscription(kv, subscription_id) if subscription_id else None
+        transition = {
+            "nonce": secrets.token_hex(32), "stage": "prepared",
+            "key_record": record.to_json(),
+            "subscription": sub.to_json() if sub else None,
+            "subscription_id": subscription_id, "created_at": _iso(now),
+        }
+        await ledger.save_rotation(holder, transition)
+    if transition["stage"] == "complete":
+        return None
+    record = keys.KeyRecord.from_json(json.dumps(transition["key_record"]))
+    secret = policy.live_prefix + hmac.new(
+        current_key.encode(), ("modelspec.rotation:" + transition["nonce"]).encode(),
+        hashlib.sha256).hexdigest()
     new_fp = keys.fingerprint(secret)
-    # The balance moves before the old key is revoked: a ledger that cannot
-    # answer (MODEL-441) then fails the rotation with the old key still valid.
-    if ledger is not None:
-        try:
-            await ledger.transfer(
-                credits.holder_from_fingerprint(fingerprint_hex),
-                credits.holder_from_fingerprint(new_fp))
-        except credits.StoreNotConfigured:
-            pass
-    await keys.revoke(kv, current_key)
-    await _write_keyref(kv, new_fp, subscription_id)
-    if sub is not None:
-        await _write_sub(kv, replace(
-            sub, key_fingerprint=new_fp, key_id=issued.key_id, tier=record.tier))
+    issued = replace(record, key_id=keys.key_id(secret),
+                     created_at=transition["created_at"], active=True)
+    if transition["stage"] == "prepared":
+        await kv.put(keys.storage_name(secret), json.dumps(issued.to_json()))
+        await _write_keyref(kv, new_fp, transition["subscription_id"])
+        if transition["subscription"] is not None:
+            sub = SubscriptionRecord.from_json(json.dumps(transition["subscription"]))
+            await _write_sub(kv, replace(sub, key_fingerprint=new_fp,
+                                        key_id=issued.key_id, tier=record.tier))
+        await ledger.transfer(holder, credits.holder_from_fingerprint(new_fp))
+        transition = {**transition, "stage": "transferred"}
+    await kv.put(keys.storage_name(current_key),
+                 json.dumps(replace(record, active=False).to_json()))
+    await ledger.save_rotation(holder, {"stage": "complete"})
     return secret, issued
 
 

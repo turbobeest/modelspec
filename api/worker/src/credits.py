@@ -33,6 +33,7 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
+import json
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -562,6 +563,7 @@ class _Account:
     overage_uncertain: list[tuple[str, int, int]] = field(default_factory=list)
     overage_pending: list[tuple[str, int, int]] = field(default_factory=list)
     overage_unreconciled: int = 0
+    rotation: dict[str, Any] | None = None
 
     def overage_open(self) -> int:
         return sum(item.overage for item in self.reservations.values())
@@ -613,6 +615,7 @@ class _Account:
                 for ident, units, created_at in self.overage_pending
             ],
             "overage_unreconciled": self.overage_unreconciled,
+            **({"rotation": self.rotation} if self.rotation is not None else {}),
         }
 
     @classmethod
@@ -667,6 +670,7 @@ class _Account:
             overage_uncertain=uncertain,
             overage_pending=pending,
             overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
+            rotation=data.get("rotation"),
         )
 
 
@@ -920,9 +924,16 @@ class LedgerState:
         """Move an account to a new holder (key rotation)."""
         if not src or src == dst:
             return False
-        acc = self.accounts.pop(src, None)
+        acc = self.accounts.get(src)
         if acc is None:
             return False
+        rotation = acc.rotation
+        if rotation is not None and rotation.get("stage") != "prepared":
+            return False
+        self.accounts.pop(src)
+        if rotation is not None:
+            acc.rotation = None
+            self.accounts[src] = _Account(rotation={**rotation, "stage": "transferred"})
         for alias, (target, meter_id) in list(self.meter_aliases.items()):
             if target == src:
                 self.meter_aliases[alias] = (dst, meter_id)
@@ -972,6 +983,16 @@ class LedgerState:
         existing.next_read = read_offset + max(acc.next_read, 1)
         _move_meter_tail(existing, acc)
         return True
+
+    def rotation_state(self, holder: str) -> dict[str, Any] | None:
+        acc = self.accounts.get(holder)
+        return (json.loads(json.dumps(acc.rotation))
+                if acc is not None and acc.rotation is not None else None)
+
+    def save_rotation(self, holder: str, data: dict[str, Any]) -> None:
+        self._acc(holder).rotation = (
+            {"stage": "complete"} if data.get("stage") == "complete"
+            else json.loads(json.dumps(data)))
 
     def reserve(self, holder: str, units: int = 1, now: str = "",
                 overage_cap: int = 0) -> ReserveResult:
@@ -1456,6 +1477,13 @@ class LedgerState:
 
 
 class Ledger(Protocol):
+    async def rotation_state(self, holder: str) -> dict[str, Any] | None: ...
+
+    async def save_rotation(self, holder: str, data: dict[str, Any]) -> None: ...
+
+    async def rotate_key(self, kv: Any, current_key: str, *, now: datetime,
+                         policy: Any) -> Any: ...
+
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult: ...
@@ -1535,6 +1563,23 @@ class MemoryLedger:
     def __init__(self, state: LedgerState | None = None) -> None:
         self.state = state or LedgerState()
         self._lock = asyncio.Lock()
+        self._rotation_lock = asyncio.Lock()
+
+    async def rotation_state(self, holder: str) -> dict[str, Any] | None:
+        async with self._lock:
+            return self.state.rotation_state(holder)
+
+    async def save_rotation(self, holder: str, data: dict[str, Any]) -> None:
+        async with self._lock:
+            self.state.save_rotation(holder, data)
+
+    async def rotate_key(self, kv: Any, current_key: str, *, now: datetime,
+                         policy: Any) -> Any:
+        from access_billing import _rotate_serialized
+
+        async with self._rotation_lock:
+            return await _rotate_serialized(
+                kv, current_key, now=now, policy=policy, ledger=self)
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
@@ -1674,6 +1719,16 @@ class MemoryLedger:
 class UnboundLedger:
     """No Durable Object on this deployment. Reads as empty; writes refuse."""
 
+    async def rotation_state(self, holder: str) -> dict[str, Any] | None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def save_rotation(self, holder: str, data: dict[str, Any]) -> None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def rotate_key(self, kv: Any, current_key: str, *, now: datetime,
+                         policy: Any) -> Any:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> CreditResult:
@@ -1789,6 +1844,23 @@ class DurableLedger:
 
     async def _call(self, name: str, *args: Any) -> Any:
         return await getattr(self._stub, name)(*args)
+
+    async def rotation_state(self, holder: str) -> dict[str, Any] | None:
+        text = await self._call("rotation_state", holder, True)
+        return json.loads(str(text))
+
+    async def save_rotation(self, holder: str, data: dict[str, Any]) -> None:
+        await self._call("save_rotation", holder, json.dumps(data))
+
+    async def rotate_key(self, kv: Any, current_key: str, *, now: datetime,
+                         policy: Any) -> Any:
+        from access_keys import KeyRecord
+
+        text = await self._call("rotate_key", current_key, _now_iso(now))
+        data = json.loads(str(text))
+        if data is None:
+            return None
+        return data[0], KeyRecord.from_json(json.dumps(data[1]))
 
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",

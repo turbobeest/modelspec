@@ -24,7 +24,7 @@ import billing_stripe
 import credits
 import sale_alerts
 from access_config import AccessPolicy, PolicyError, PriceMapping, friends_price
-from access_kv import StoreNotConfigured, UnboundKV
+from access_kv import MemoryKV, StoreNotConfigured, UnboundKV
 from billing_stripe import SignatureError
 
 HTTP_OK = 200
@@ -455,6 +455,14 @@ def _ledger(ledger: Any) -> Any:
     return ledger if ledger is not None else credits.UnboundLedger()
 
 
+def _billing_ledger(ledger: Any, kv: Any) -> Any:
+    if ledger is None and isinstance(kv, MemoryKV):
+        if not hasattr(kv, "billing_ledger"):
+            kv.billing_ledger = credits.MemoryLedger()
+        return kv.billing_ledger
+    return _ledger(ledger)
+
+
 _SALE_ACTIONS = frozenset({"entitled", "credited"})
 
 
@@ -859,13 +867,14 @@ async def rotate(*, api_key: str | None, kv: Any, policy: AccessPolicy,
     if record is None:
         return _refusal(INVALID_KEY, "that API key is not recognised",
                         service_commit=service_commit, endpoint=endpoint)
-    if not record.active:
-        return _refusal(REVOKED_KEY, "that API key has been revoked",
+    try:
+        rotated = await store.rotate(
+            kv, key, now=now, policy=policy, ledger=_billing_ledger(ledger, kv))
+    except credits.StoreNotConfigured as exc:
+        return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
-    rotated = await store.rotate(
-        kv, key, now=now, policy=policy, ledger=_ledger(ledger))
     if rotated is None:
-        return _refusal(INVALID_KEY, "that API key is not recognised",
+        return _refusal(REVOKED_KEY, "that API key has been revoked",
                         service_commit=service_commit, endpoint=endpoint)
     secret, issued = rotated
     return Outcome(HTTP_OK, _envelope(endpoint, service_commit, {

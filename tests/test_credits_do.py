@@ -68,6 +68,11 @@ class Sql:
 class Ctx:
     def __init__(self, row_type):
         self.storage = type("Storage", (), {"sql": Sql(row_type)})()
+        self._gate = asyncio.Lock()
+
+    async def blockConcurrencyWhile(self, callback):
+        async with self._gate:
+            return await callback()
 
 
 def _round_trip(row_type) -> dict:
@@ -142,3 +147,128 @@ def test_existing_state_survives_with_unused_move_and_lease_rows():
     assert asyncio.run(restarted.balance("key:a")).available == 7
     assert {key: ctx.storage.sql.table[key] for key in unused} == unused
     assert set(ctx.storage.sql.table) == {"state", "move", "leases"}
+
+
+def test_rotation_transfer_progress_survives_restart():
+    async def scenario():
+        ctx = Ctx(lambda v: {"v": v})
+        first = _ledger(credits_do.CreditsObject(ctx, env=None))
+        await first.set_monthly("key:first", 100, "in_rotation", "Solo")
+        await first.save_rotation("key:first", {
+            "nonce": "fixture-nonce", "stage": "prepared"})
+        assert await first.transfer("key:first", "key:second")
+
+        restarted = _ledger(credits_do.CreditsObject(ctx, env=None))
+        assert await restarted.rotation_state("key:first") == {
+            "nonce": "fixture-nonce", "stage": "transferred"}
+        assert await restarted.rotation_state("key:second") is None
+        assert (await restarted.balance("key:first")).available == 0
+        assert (await restarted.balance("key:second")).available == 100
+        assert not await restarted.transfer("key:first", "key:second")
+        assert (await restarted.balance("key:second")).available == 100
+
+    asyncio.run(scenario())
+
+
+def test_independent_clients_rotate_one_key():
+    import access_config
+    import access_keys
+    import billing
+    from access_kv import MemoryKV
+    from datetime import UTC, datetime
+
+    class YieldingKV(MemoryKV):
+        async def get(self, name):
+            value = await super().get(name)
+            await asyncio.sleep(0)
+            return value
+
+        async def put(self, name, value, **kwargs):
+            await super().put(name, value, **kwargs)
+            await asyncio.sleep(0)
+
+    async def scenario():
+        kv = YieldingKV()
+        policy = access_config.load_policy()
+        now = datetime(2026, 9, 17, tzinfo=UTC)
+        key, _ = await access_keys.issue(
+            kv, tier="paid", owner="fixture", now=now, policy=policy)
+        holder = credits.holder_from_fingerprint(access_keys.fingerprint(key))
+        ctx = Ctx(lambda v: {"v": v})
+        obj = credits_do.CreditsObject(ctx, SimpleNamespace(ACCESS=kv))
+        clients = [_ledger(obj), _ledger(obj)]
+        await clients[0].set_monthly(holder, 100, "in_clients", "Solo")
+
+        results = await asyncio.gather(*(
+            billing.rotate(api_key=key, kv=kv, policy=policy, now=now,
+                           service_commit="test", ledger=client)
+            for client in clients))
+        assert sorted(result.status for result in results) == [200, 403]
+        successes = [result for result in results if result.status == 200]
+        assert len(successes) == 1
+        new_key = successes[0].body["key"]
+        new_holder = credits.holder_from_fingerprint(access_keys.fingerprint(new_key))
+        assert (await clients[0].balance(new_holder)).available == 100
+        persisted = json.dumps(ctx.storage.sql.table)
+        assert key not in persisted and new_key not in persisted
+
+        restarted = _ledger(credits_do.CreditsObject(ctx, SimpleNamespace(ACCESS=kv)))
+        replay = await billing.rotate(
+            api_key=key, kv=kv, policy=policy, now=now,
+            service_commit="test", ledger=restarted)
+        assert replay.status == 403
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("after_write", [False, True])
+def test_rotation_resumes_after_object_restart(after_write):
+    import access_config
+    import access_keys
+    import billing
+    from access_kv import MemoryKV
+    from datetime import UTC, datetime
+
+    class InterruptedKV(MemoryKV):
+        failed_name = ""
+
+        async def put(self, name, value, **kwargs):
+            interrupted = name == self.failed_name
+            if interrupted and not after_write:
+                raise OSError("fixture write unavailable")
+            await super().put(name, value, **kwargs)
+            if interrupted:
+                raise OSError("fixture write unavailable")
+
+    async def scenario():
+        kv = InterruptedKV()
+        policy = access_config.load_policy()
+        now = datetime(2026, 9, 17, tzinfo=UTC)
+        key, _ = await access_keys.issue(
+            kv, tier="paid", owner="fixture", now=now, policy=policy)
+        holder = credits.holder_from_fingerprint(access_keys.fingerprint(key))
+        ctx = Ctx(lambda v: {"v": v})
+        env = SimpleNamespace(ACCESS=kv)
+        ledger = _ledger(credits_do.CreditsObject(ctx, env))
+        await ledger.set_monthly(holder, 100, "in_restart", "Solo")
+        kv.failed_name = access_keys.storage_name(key)
+
+        with pytest.raises(OSError, match="fixture write"):
+            await billing.rotate(
+                api_key=key, kv=kv, policy=policy, now=now,
+                service_commit="test", ledger=ledger)
+
+        kv.failed_name = ""
+        restarted = _ledger(credits_do.CreditsObject(ctx, env))
+        result = await billing.rotate(
+            api_key=key, kv=kv, policy=policy, now=now,
+            service_commit="test", ledger=restarted)
+        assert result.status == 200
+        new_holder = credits.holder_from_fingerprint(
+            access_keys.fingerprint(result.body["key"]))
+        assert (await restarted.balance(holder)).available == 0
+        assert (await restarted.balance(new_holder)).available == 100
+        assert not (await access_keys.lookup(kv, key)).active
+        assert await restarted.rotation_state(holder) == {"stage": "complete"}
+
+    asyncio.run(scenario())
