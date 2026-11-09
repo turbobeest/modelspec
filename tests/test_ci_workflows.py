@@ -375,6 +375,24 @@ norecursedirs = ["generated"]
     assert test_files(tmp_path) == [expected]
 
 
+def test_policy_shape_collection_does_not_parse_catalogue(monkeypatch) -> None:
+    import importlib.util
+
+    import schema.card
+    import yaml
+
+    def unexpected_parse(*args, **kwargs):
+        raise AssertionError("catalogue parsed while importing test definitions")
+
+    monkeypatch.setattr(yaml, "safe_load", unexpected_parse)
+    spec = importlib.util.spec_from_file_location(
+        "policy_shape_collection_probe", REPO_ROOT / "tests/test_policy_shape.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+
 def test_file_splitter_assigns_discovered_set_once(tmp_path: Path) -> None:
     from scripts.pytest_shards import DEFAULT_SHARD_COUNT, partition_files, test_files
 
