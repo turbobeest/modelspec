@@ -27,3 +27,16 @@ Result: 137 passed, exit 0.
 
 No production requests, payments, deployment or provider calls were made.
 No production flags, prices, plans, legal text or frozen data changed.
+
+## AUD-03-F2
+
+Renewals retain the stored current subscription key. Failed payments and
+subscription expiry update that same key. The supplied check failed before
+the change and passes after it. Three permanent controls failed before the
+change and pass after it.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_pricing_v2.py
+```
+
+Result: 183 passed, exit 0.

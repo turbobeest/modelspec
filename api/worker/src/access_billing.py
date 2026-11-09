@@ -323,7 +323,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
     if existing is not None:
         action = "already_entitled"
         updated = existing
-        bound = key_fingerprint or existing.key_fingerprint
+        bound = existing.key_fingerprint or key_fingerprint
         attached = None
         if bound and not existing.key_fingerprint:
             attached = await attach_existing_key(

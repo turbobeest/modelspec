@@ -1763,3 +1763,71 @@ def test_rotation_resumes_each_metadata_write(policy, write_number, after_write)
         persisted = json.dumps(kv.data) + json.dumps(ledger.state.to_json())
         assert key not in persisted and successor_key not in persisted
     run(scenario())
+
+
+def _billing_holder(key):
+    return credits.holder_from_fingerprint(keys.fingerprint(key))
+
+
+async def _dated_event(kv, ledger, policy, kind, obj, event_id, *, created=100):
+    body = json.dumps({"id": event_id, "type": kind, "created": created,
+                       "data": {"object": obj}})
+    return await apply(kv, policy, body, ledger=ledger)
+
+
+async def _billing_purchase(kv, ledger, policy, *, bound=False):
+    obj = checkout_obj(invoice="in_initial", created=100)
+    if bound:
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        obj["metadata"]["modelspec_key_fingerprint"] = keys.fingerprint(key)
+    assert (await _dated_event(kv, ledger, policy, "checkout.session.completed", obj,
+                               "evt_initial")).status == 200
+    if not bound:
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy,
+                                      now=T0, service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        key = claimed.body["key"]
+    return key
+
+
+async def _spend_billing_credits(ledger, key, units):
+    reservation = await ledger.reserve(_billing_holder(key), units)
+    assert reservation.ok
+    assert await ledger.commit(_billing_holder(key), reservation.reservation_id)
+
+
+@pytest.mark.parametrize("downgrade", ["invoice.payment_failed", "customer.subscription.deleted",
+                                       "customer.subscription.updated"])
+def test_renewal_and_downgrade_follow_current_subscription_key(policy, downgrade):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        successor = rotated.body["key"]
+        await _spend_billing_credits(ledger, successor, 500)
+        fields = urllib.parse.parse_qs(billing_stripe.checkout_form(
+            price_id=PRICE, success_url="https://local.test/success",
+            cancel_url="https://local.test/cancel", terms_url="https://local.test/terms",
+            key_fingerprint=keys.fingerprint(key)))
+        metadata = {name: fields[f"subscription_data[metadata][{name}]"][0]
+                    for name in ("modelspec_price_id", "modelspec_key_fingerprint")}
+        renewal = dahlia_invoice_obj(id="in_renewal", parent={
+            "type": "subscription_details", "subscription_details": {
+                "subscription": SUB, "metadata": metadata}})
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", renewal,
+                                   "evt_renewal", created=200)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await ledger.balance(_billing_holder(successor))).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.key_fingerprint == keys.fingerprint(successor)
+        obj = (renewal if downgrade == "invoice.payment_failed" else
+               {"id": SUB, "status": "canceled", "metadata": metadata})
+        assert (await _dated_event(kv, ledger, policy, downgrade, obj,
+                                   "evt_downgrade", created=300)).status == 200
+        assert (await keys.lookup(kv, successor)).tier == "free"
+        assert (await ledger.balance(_billing_holder(successor))).monthly == 0
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert not (await keys.lookup(kv, key)).active
+    run(scenario())
