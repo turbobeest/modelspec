@@ -302,3 +302,28 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 183 passed in 2.11s
 ```
+
+## AUD-09-F15
+
+The x402 runbook identifies the completed checked-in mainnet rollout and separates staging procedures from historical preparation. Configuration tests retain the existing production and staging values.
+
+f15-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f15-red tests/test_reference_x402_launch.py
+```
+
+```text
+FAILED tests/test_reference_x402_launch.py::test_x402_launch_reference_matches_completed_configuration
+1 failed in 0.05s
+```
+
+f15-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f15-green tests/test_reference_x402_launch.py tests/test_x402.py::test_production_x402_config_is_live tests/test_x402.py::test_wrangler_enables_x402_on_base_mainnet tests/test_release_signals.py::test_v1_schema_accepts_the_documented_contract tests/test_release_signals.py::test_parser_accepts_rfc3339_and_rejects_instances_outside_the_contract tests/test_release_signals.py::test_hmac_signature_covers_the_exact_request_body tests/test_release_signals.py::test_worker_intake_authenticates_deduplicates_and_lists_pending tests/test_release_signals.py::test_pending_work_includes_every_signal_and_due_recheck tests/test_release_signals.py::test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender tests/test_release_signals.py::test_worker_endpoint_ships_off_and_vendors_the_shared_contract tests/test_decision_verify.py::test_cli_verifies_what_is_queued_and_prints_a_summary tests/test_decision_verify.py::test_cli_claude_reader_uses_an_injected_extractor tests/test_cli_concierge.py::test_local_and_usage_errors_always_carry_next
+```
+
+```text
+38 passed in 1.50s
+```
