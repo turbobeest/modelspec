@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { z } from "zod";
 
 import { workerFetch } from "../src/index";
-import { USER_AGENT } from "../src/origin";
+import { modelCardUrl, USER_AGENT } from "../src/origin";
 import { AGENT_BYTES, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
 // Real Worker bodies from the public catalogue (python -m qa.decide_budget).
 import budget from "./fixtures/decide-budget.json";
@@ -400,6 +400,36 @@ json.dump(result, sys.stdout)
     );
     expect(envelope.status).toBe(200);
     expect(envelope.body).toEqual(originBody);
+  });
+
+  it.each([
+    "openai/gpt-5-6", "lab/model.v2_1", "lab-dev/model-2", "123/9b",
+  ])("resolves catalogue model ids under the configured model directory: %s", modelId => {
+    const located = modelCardUrl("https://exports.invalid/catalogue/", modelId);
+    expect(located).toEqual({ origin: `https://exports.invalid/catalogue/api/models/${modelId}.json` });
+    if (!("origin" in located)) throw new Error("Expected a model URL");
+    expect(new URL(located.origin).pathname).toBe(`/catalogue/api/models/${modelId}.json`);
+  });
+
+  describe.each(["true", "false"])("model ids with split=%s", split => {
+    it.each([
+      "%2e%2e/rank/profiles", "%2E%2E/rank/profiles", "%252e%252e/model",
+      "lab/%2e%2e", "lab/%2fmodel", "lab%2fother/model", "lab/%5cmodel",
+      "lab/model?other=1", "lab/model#part", "lab/model/other", "lab/model\\other",
+      "/lab/model", "../model", "lab/..", "lab/model..old", "lab", "lab/",
+      "lab/model\n", " lab/model", "lab/model ", "lab/MODEL", "lab/modél",
+    ])("refuses non-catalogue ids before origin I/O: %j", async modelId => {
+      const via = { fetch: vi.fn(async () => jsonResponse(200, { authenticated: true })) };
+      originFetch.mockResolvedValue(jsonResponse(200, { models: {} }));
+      const located = modelCardUrl(ENV.EXPORT_ORIGIN, modelId);
+      expect(located).toHaveProperty("error");
+      const { payload } = await rpc("tools/call", {
+        name: "model_info", arguments: { model_id: modelId },
+      }, 1, STATIC_HEADERS, { ...ENV, DATA_SPLIT_ENABLED: split, RANK: via });
+      expect(payload.result).toMatchObject({ isError: true });
+      expect(originFetch).not.toHaveBeenCalled();
+      expect(via.fetch).not.toHaveBeenCalled();
+    });
   });
 
   it("model_info error path returns the origin 404", async () => {
