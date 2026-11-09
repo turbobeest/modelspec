@@ -4,7 +4,7 @@ Base: `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`, also the fetched
 `origin/main` before implementation. The assigned branch is `model-458-sig`.
 
 Environment: Python 3.14.4, pytest 9.1.1, httpx 0.28.1, PyYAML 6.0.3,
-Git 2.50.1. Tests use offline fixtures and run serially.
+Git 2.50.1, GitHub CLI 2.103.3. Tests use offline fixtures and run serially.
 
 ## AUD-14-F1
 
@@ -78,6 +78,44 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.v
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/red-f3 tests/test_release_watch.py -k test_invalid_utf8_cannot_create_truncated_model_identity
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f3 tests/test_release_watch.py tests/test_release_watch_precision.py tests/test_release_watch_filter.py
 ```
+
+## AUD-14-F8
+
+OpenRouter timestamps must be finite numeric values within the platform's
+supported conversion range. Invalid supplied values report `parse_failed`
+for that source; they do not become undated discoveries. Later healthy
+sources continue. Valid timestamps retain their precision and recency
+filtering. The existing null/missing-date behavior remains unchanged.
+
+The retained reproduction returned `1 failed, 7 deselected`, exit 1, with
+`OverflowError: timestamp out of range for platform time_t`. Permanent
+regressions returned `11 failed, 6 passed, 37 deselected`, exit 1, before the
+fix. They cover numeric overflow, nonfinite values, invalid value types,
+simulated platform conversion failures, valid dates and recency filtering.
+After the fix, `17 passed, 37 deselected`, exit 0.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -s -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/repro-f8 /tmp/MODEL-458-SIG-scratch/executor/test_repro_F8.py -k test_out_of_range_created_is_one_source_outage
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp /tmp/MODEL-458-SIG-scratch/executor/red-f8 tests/test_release_watch.py -k 'test_out_of_range_created or test_timestamp_platform_failure or test_valid_created_timestamp'
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-f8-focused tests/test_release_watch.py -k 'test_out_of_range_created or test_timestamp_platform_failure or test_valid_created_timestamp'
+```
+
+## Final verification
+
+The combined focused run returned `327 passed, 1 skipped`, exit 0. The skipped
+check requires a built site via `MODELSPEC_DIST`; this ticket does not build
+or change the site. All nine selected cases from the retained reproductions
+also passed on the fixed implementation, exit 0. The local reproduction
+files and detailed logs remained outside the repository.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp /tmp/MODEL-458-SIG-scratch/executor/green-final tests/test_release_signals.py tests/test_release_signal_prices.py tests/test_release_watch.py tests/test_release_watch_precision.py tests/test_release_watch_filter.py tests/test_removed_sources.py
+git diff --check
+```
+
+The final diff changes only the two release-signal implementation modules,
+their two focused test files and this evidence file. A read-only second-agent
+review found no actionable issues. Independent review remains pending.
 
 ## Observation limits
 

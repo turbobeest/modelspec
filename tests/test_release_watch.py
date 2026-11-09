@@ -17,10 +17,12 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError
+from release_signals import watch
 from release_signals.watch import (
     Registry,
     Response,
     Source,
+    SourceRun,
     _normalise,
     discoveries,
     extract,
@@ -199,6 +201,77 @@ def test_invalid_utf8_cannot_create_truncated_model_identity(
     assert [signal.model_name for signal in discoveries(runs, NOW)] == expected_names
     if expected_status == "parse_failed":
         assert "UnicodeDecodeError" in runs[0].detail
+
+
+def _watch_created_timestamp(created: object) -> list[SourceRun]:
+    router = Source("router", "openrouter", OPENROUTER, 0.8, providers={"acme": "acme"})
+    healthy = Source("healthy", "page", PAGE, 0.9, provider="acme", pattern=r"orbit-[a-z0-9-]+")
+    registry = Registry("fixture", 30, r"gguf", r"sdk", (router, healthy))
+
+    def fetch(url: str) -> Response:
+        if url.endswith("/robots.txt"):
+            return Response(404, b"")
+        if url == OPENROUTER:
+            return Response(200, json.dumps({
+                "data": [{"id": "acme/orbit-3", "created": created}],
+            }).encode())
+        assert url == PAGE
+        return Response(200, b"orbit-4")
+
+    return run_all(
+        registry, {router.id: frozenset(), healthy.id: frozenset()}, fetch=fetch, now=NOW,
+    )
+
+
+@pytest.mark.parametrize(
+    "created",
+    [1e100, -1e100, float("nan"), float("inf"), float("-inf"), 10**100,
+     True, "not-a-timestamp", {}, []],
+    ids=["overflow", "negative-overflow", "nan", "infinity", "negative-infinity",
+         "large-integer", "boolean", "string", "object", "array"],
+)
+def test_out_of_range_created_is_one_source_outage(created: object) -> None:
+    runs = _watch_created_timestamp(created)
+
+    assert [run.status for run in runs] == ["parse_failed", "ok"]
+    assert runs[0].detail
+    assert [signal.model_name for signal in discoveries(runs, NOW)] == ["orbit-4"]
+
+
+@pytest.mark.parametrize("error", [OverflowError, OSError, ValueError])
+def test_timestamp_platform_failure_is_one_source_outage(monkeypatch, error) -> None:
+    class PlatformDatetime(datetime):
+        @classmethod
+        def fromtimestamp(cls, value, tz=None):
+            raise error("fixture platform conversion failure")
+
+    monkeypatch.setattr(watch, "datetime", PlatformDatetime)
+
+    runs = _watch_created_timestamp(1790712000)
+
+    assert [run.status for run in runs] == ["parse_failed", "ok"]
+    assert runs[0].detail
+    assert [signal.model_name for signal in discoveries(runs, NOW)] == ["orbit-4"]
+
+
+@pytest.mark.parametrize(
+    ("created", "expected_created", "expected_names"),
+    [
+        (1790712000, datetime(2026, 9, 29, 20, tzinfo=UTC), ["orbit-3", "orbit-4"]),
+        (1790712000.5, datetime(2026, 9, 29, 20, 0, 0, 500000, tzinfo=UTC), ["orbit-3", "orbit-4"]),
+        (0, None, ["orbit-4"]),
+        (None, None, ["orbit-3", "orbit-4"]),
+    ],
+)
+def test_valid_created_timestamp_preserves_recency(created, expected_created, expected_names) -> None:
+    runs = _watch_created_timestamp(created)
+
+    assert [run.status for run in runs] == ["ok", "ok"]
+    assert runs[0].listed == 1
+    assert [signal.model_name for signal in discoveries(runs, NOW)] == expected_names
+    if created != 0:
+        assert len(runs[0].new) == 1
+        assert runs[0].new[0].created == expected_created
 
 
 def test_a_release_on_the_replayed_sources_becomes_one_discovery_per_model(world) -> None:

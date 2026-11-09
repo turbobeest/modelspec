@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -203,9 +204,21 @@ def _openrouter(source: Source, payload: Any, registry: Registry) -> dict[str, S
         if not provider or not name or variant.search(name):
             continue
         created = row.get("created")
+        created_at = None
+        if created is not None:
+            if (
+                isinstance(created, bool)
+                or not isinstance(created, (int, float))
+                or (isinstance(created, float) and not math.isfinite(created))
+            ):
+                raise ValueError("OpenRouter created must be a finite Unix timestamp")
+            try:
+                created_at = datetime.fromtimestamp(created, UTC)
+            except (OverflowError, OSError, ValueError) as exc:
+                raise ValueError("OpenRouter created is outside the supported timestamp range") from exc
         found[listed] = Seen(
             listed, name, provider, f"https://openrouter.ai/{listed}",
-            datetime.fromtimestamp(created, UTC) if isinstance(created, (int, float)) else None,
+            created_at,
         )
     return found
 
