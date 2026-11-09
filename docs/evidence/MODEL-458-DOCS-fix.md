@@ -276,3 +276,29 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 ```text
 12 passed in 0.25s
 ```
+
+## AUD-09-F14
+
+The x402 reference matches local Worker admission under checked-in flags, limits the verified visit exception to decide and vocabulary, and distinguishes production, staging and legacy enforcement-off behavior.
+
+f14-red; exit 1.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f14-red tests/test_reference_x402.py
+```
+
+```text
+FAILED tests/test_reference_x402.py::test_x402_reference_origin_admission_matches_shipped_flags
+FAILED tests/test_reference_x402.py::test_x402_reference_settings_match_production_and_staging
+2 failed in 0.56s
+```
+
+f14-green; exit 0.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-f14-green tests/test_reference_x402.py tests/test_x402.py tests/test_visit_gate.py
+```
+
+```text
+183 passed in 2.11s
+```
