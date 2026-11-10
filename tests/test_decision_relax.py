@@ -276,7 +276,7 @@ def _resolved(where):
     }, facets=facets), facets=facets)
 
 
-def _per_index(resolved, snapshot) -> list[str]:
+def _per_index(resolved, snapshot, domains=frozenset()) -> list[str]:
     """The old search: size ascending, caps first, then index order."""
     from itertools import combinations
 
@@ -286,7 +286,7 @@ def _per_index(resolved, snapshot) -> list[str]:
     from decision.resolve import without
 
     conditions = resolved.conditions
-    hard = _relaxable(resolved, frozenset())
+    hard = _relaxable(resolved, domains)
     for size in range(1, len(hard) + 1):
         groups = sorted(
             combinations(hard, size),
@@ -437,19 +437,43 @@ def test_fewest_matches_the_per_index_search_on_generated_cases():
             "lab/b": {"model.context_window": 20, "licence.commercial_use": "prohibited"},
         }, lifecycle={"lab/a": "retired"}),
     ]
+    wide = loaded_index({
+        f"lab/w{i}": {
+            "model.context_window": 10 + i * 15,
+            "licence.commercial_use": "permitted" if i % 2 == 0 else "prohibited",
+        }
+        for i in range(24)
+    })
+    requested = frozenset({"licence.commercial_use"})
+
+    def draw(rng):
+        count = rng.randint(1, 4)
+        where = [rng.choice(pool) for _ in range(count)]
+        if rng.random() < 0.4:
+            where.append(rng.choice(where))
+        return where
+
+    def check(lineup, where, domains, mismatches):
+        resolved = _resolved(where)
+        got = relax.fewest(resolved, lineup, domains)
+        expected = _per_index(resolved, lineup, domains)
+        if got != expected:
+            mismatches.append((where, got, expected))
+
     rng = random.Random(458)
     mismatches = []
     for lineup in lineups:
         for _ in range(240):
-            count = rng.randint(1, 4)
-            where = [rng.choice(pool) for _ in range(count)]
-            if rng.random() < 0.4:
-                where.append(rng.choice(where))
-            resolved = _resolved(where)
-            got = relax.fewest(resolved, lineup, frozenset())
-            expected = _per_index(resolved, lineup)
-            if got != expected:
-                mismatches.append((where, got, expected))
+            check(lineup, draw(rng), frozenset(), mismatches)
+        for _ in range(40):
+            check(
+                lineup,
+                ["licence.commercial_use = permitted", *draw(rng)],
+                requested,
+                mismatches,
+            )
+    for _ in range(30):
+        check(wide, draw(rng), frozenset(), mismatches)
     assert mismatches == []
 
 
