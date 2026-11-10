@@ -152,6 +152,57 @@ def test_import_graph_reports_a_function_local_missing_import(
     ]
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "def answer(value):\n"
+        "    match value:\n"
+        "        case 1:\n"
+        "            from missing_runtime_package import answer\n"
+        "            return answer()\n",
+        "def answer():\n"
+        "    for _unused in (None,):\n"
+        "        _unused = None\n"
+        "    else:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    with contextlib.nullcontext():\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    def middle():\n"
+        "        def inner():\n"
+        "            from missing_runtime_package import answer\n"
+        "            return answer()\n"
+        "        return inner()\n"
+        "    return middle()\n",
+        "def answer():\n"
+        "    from .missing_runtime_package import answer\n"
+        "    return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n"
+        "    except ImportError:\n"
+        "        return None\n",
+    ],
+    ids=["match", "loop-else", "with-body", "three-levels", "relative", "try-except-import"],
+)
+def test_import_graph_reports_a_function_local_import_in_each_block(
+    tmp_path: Path, source: str,
+) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("import service\n", encoding="utf-8")
+    (tmp_path / "service.py").write_text(source, encoding="utf-8")
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "service")
+    ]
+
+
 def test_annotation_only_import_inside_a_function_is_not_a_bundle_dependency(
     tmp_path: Path,
 ) -> None:
