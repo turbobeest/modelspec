@@ -1478,6 +1478,16 @@ _PRIMARY = "https://acme.example/models"
             b'{"name":"Orbit 2","publisher":{"name":"Acme"},'
             b'"datePublished":"2026-09-26T00:30:00+02:00"}</script>',
         ),
+        pytest.param(
+            _MODELS_DEV,
+            b'{"acme":' + b"1" * 5000 + b"}",
+            id="five-thousand-digit-integer",
+        ),
+        pytest.param(
+            _MODELS_DEV,
+            b"[" * 200000,
+            id="two-hundred-thousand-nested-brackets",
+        ),
     ],
 )
 def test_bad_required_source_exits_with_controlled_failure(

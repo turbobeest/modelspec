@@ -458,7 +458,7 @@ def _load_required_json(page: FetchResult) -> object:
     """Read one mandatory JSON body, naming that source when the bytes are unusable."""
     try:
         return json.loads(page.body)
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (ValueError, RecursionError) as exc:
         raise RequiredSourceError(page.url, f"{type(exc).__name__}: {exc}") from exc
 
 
