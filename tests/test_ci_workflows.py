@@ -20,6 +20,44 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 
 
+def _mutable_action_references(workflow: dict) -> list[str]:
+    import re
+
+    mutable = []
+    for job in workflow["jobs"].values():
+        for item in [job, *job.get("steps", [])]:
+            uses = item.get("uses", "")
+            if uses and not uses.startswith("./") and not re.fullmatch(r"[^@]+@[0-9a-fA-F]{40}", uses):
+                mutable.append(uses)
+    return mutable
+
+
+def test_external_workflow_actions_use_full_commit_references() -> None:
+    import yaml
+
+    failures = []
+    for path in sorted(WORKFLOWS.iterdir()):
+        if path.suffix not in {".yml", ".yaml"}:
+            continue
+        workflow = yaml.safe_load(path.read_text())
+        failures.extend(f"{path.name}: {uses}" for uses in _mutable_action_references(workflow))
+    assert not failures, "\n".join(failures)
+
+
+@pytest.mark.parametrize("uses,mutable", [
+    ("./.github/actions/local", False),
+    ("./.github/workflows/reusable.yml", False),
+    ("owner/action@" + "a" * 40, False),
+    ("owner/repo/.github/workflows/reusable.yml@" + "b" * 40, False),
+    ("owner/action@v4", True), ("owner/action@main", True),
+    ("owner/action@" + "a" * 39, True), ("owner/action@" + "a" * 41, True),
+])
+@pytest.mark.parametrize("location", ["job", "step"])
+def test_action_reference_guard_accepts_local_actions_and_full_commits(uses, mutable, location):
+    job = {"uses": uses} if location == "job" else {"steps": [{"uses": uses}]}
+    assert _mutable_action_references({"jobs": {"fixture": job}}) == ([uses] if mutable else [])
+
+
 def test_ci_failure_probe() -> None:
     """Fail only when the documented probe explicitly requests it."""
     if os.environ.get("MODELSPEC_CI_FAILURE_PROBE") == "1":
@@ -152,6 +190,28 @@ def test_timing_tests_run_serially_exactly_once() -> None:
     assert workflow_text.count("name: Run timing tests serially") == 1
     assert workflow_text.count(perf_command) == 1
     assert any(step.get("run") == perf_command for step in perf_job["steps"])
+
+
+@pytest.mark.parametrize("marker,status", [("perf", 0), ("not perf", 5)])
+def test_wall_clock_cases_are_collected_only_by_the_serial_perf_job(marker: str, status: int) -> None:
+    import subprocess
+    import sys
+
+    nodes = [
+        "tests/test_decide_worker.py::test_explain_none_p95_is_under_200_ms",
+        "tests/test_decide_worker.py::test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget",
+        "tests/test_decision_summary.py::test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast",
+        "tests/test_speed_harness.py::test_the_live_transport_measures_a_stream_of_known_timing",
+    ]
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider",
+         "-p", "no:xdist", "-m", marker, *nodes],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert result.returncode == status, result.stdout + result.stderr
+    collected = [line for line in result.stdout.splitlines() if line.startswith("tests/")]
+    expected = nodes[:3] + [f"{nodes[3]}[{api}]" for api in ("anthropic", "openai", "gemini")]
+    assert collected == (expected if marker == "perf" else [])
 
 
 def test_workflow_shard_selection_covers_the_suite_once() -> None:
@@ -537,6 +597,34 @@ def test_site_build_guards_pages_limits_before_deploy() -> None:
     assert "if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'" in workflow
 
 
+@pytest.mark.parametrize("builder_status", [42, 0], ids=["failed", "successful"])
+def test_site_build_preserves_builder_status_and_summary(tmp_path: Path, builder_status: int) -> None:
+    import subprocess
+
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text())
+    step = next(s for s in workflow["jobs"]["build"]["steps"] if s.get("name") == "Build")
+    summary = tmp_path / "summary.md"
+    builder = (
+        'python() { mkdir -p dist/modelspec dist/benchgraph; '
+        f"printf '%s\\n' '{{\"built\": true}}'; return {builder_status}; }}\n"
+    )
+    result = subprocess.run(
+        ["bash", "-e", "-c", builder + step["run"]], cwd=tmp_path,
+        env=os.environ | {"GITHUB_STEP_SUMMARY": str(summary), "GITHUB_EVENT_NAME": "pull_request"},
+        capture_output=True, text=True,
+    )
+    assert result.returncode == builder_status, result.stdout + result.stderr
+    assert (tmp_path / "summary.json").read_text() == '{"built": true}\n'
+    if builder_status:
+        assert not summary.exists()
+    else:
+        assert '```json\n{"built": true}\n```' in summary.read_text()
+        assert "modelspec.dev:" in summary.read_text()
+        assert "benchgraph.dev:" in summary.read_text()
+
+
 def test_validation_workflow_checks_status_and_report_shape() -> None:
     workflow = (WORKFLOWS / "validate-cards.yml").read_text(encoding="utf-8")
     masked_validator = (
@@ -552,6 +640,114 @@ def test_validation_workflow_checks_status_and_report_shape() -> None:
     assert "data.get('invalid',0)" not in workflow
     assert "continue-on-error" not in workflow
     assert "2>/dev/null" not in workflow
+
+
+@pytest.mark.parametrize("case,validator_status,passed", [
+    ("incomplete", 42, False), ("incomplete", 0, False),
+    ("valid", 42, False), ("valid", 0, True), ("empty", 0, True),
+    ("invalid", 1, False), ("regression", 1, False),
+    ("bad-json", 42, False), ("null", 42, False), ("bad-results", 42, False),
+    ("null-row", 42, False), ("bad-fields", 42, False),
+    ("bad-error", 42, False), ("bad-regression", 42, False),
+    ("incomplete-row", 0, False), ("bad-fields", 0, False),
+    ("bad-error", 0, False), ("bad-regression", 0, False),
+])
+@pytest.mark.parametrize("existing_comment", [False, True], ids=["create", "update"])
+def test_validation_comment_agrees_with_gate_and_renders_tables(
+    tmp_path: Path, case: str, validator_status: int, passed: bool, existing_comment: bool,
+) -> None:
+    import json
+    import shlex
+    import subprocess
+    import sys
+
+    import yaml
+
+    data = {
+        "mode": "pr", "total": 1, "valid": 1, "invalid": 0, "new_cards": 0,
+        "results": [{"status": "valid", "model_id": "fixture/model", "completeness": 90,
+                     "completeness_delta": 5, "fields_added": ["model.context"]}],
+        "regression_errors": [], "labels": [], "total_fields_added": 1,
+    }
+    if case == "empty":
+        data.update(total=0, valid=0, results=[])
+    elif case in {"invalid", "bad-error"}:
+        data.update(valid=0, invalid=1, results=[{
+            "status": "invalid", "file": "fixture.md", "error": "Invalid fixture",
+        }])
+        if case == "bad-error":
+            data["results"][0]["error"] = 42
+    elif case in {"regression", "bad-regression"}:
+        data["regression_errors"] = [{"file": "old.md", "error": "Regression fixture"}]
+        if case == "bad-regression":
+            data["regression_errors"][0]["error"] = 42
+    elif case == "bad-results":
+        data["results"] = {}
+    elif case == "null-row":
+        data["results"] = [None]
+    elif case == "incomplete-row":
+        data["results"] = [{"status": "valid"}]
+    elif case == "bad-fields":
+        data["results"][0]["fields_added"] = [42]
+    elif case == "incomplete":
+        data = {}
+    elif case == "null":
+        data = None
+    (tmp_path / "fixture.json").write_text("{" if case == "bad-json" else json.dumps(data))
+    workflow = yaml.safe_load((WORKFLOWS / "validate-cards.yml").read_text())
+    steps = {s.get("name"): s for s in workflow["jobs"]["validate"]["steps"]}
+    stub = (
+        'python() { if [ "$1" = scripts/validate_pr.py ]; then cat fixture.json; '
+        f'return {validator_status}; else {shlex.quote(sys.executable)} "$@"; fi; }}\n'
+    )
+    output = tmp_path / "output"
+    validated = subprocess.run(
+        ["bash", "-e", "-c", stub + steps["Run validation"]["run"]], cwd=tmp_path,
+        capture_output=True, text=True, env=os.environ | {"GITHUB_OUTPUT": str(output)},
+    )
+    assert validated.returncode == 0, validated.stderr
+    assert f"passed={str(passed).lower()}" in output.read_text()
+    comment = steps["Build and post PR comment"]
+    script = '''const posted = [];
+const github = {rest: {issues: {
+  listComments: async () => ({data: process.env.EXISTING_COMMENT === 'true'
+    ? [{id: 7, user: {type: 'Bot'}, body: '## ModelSpec Card Validation'}] : []}),
+  createComment: async item => posted.push({method: 'create', ...item}),
+  updateComment: async item => posted.push({method: 'update', ...item}),
+}}};
+const context = {repo: {owner: 'fixture', repo: 'fixture'}, issue: {number: 1}};
+(async () => {
+''' + comment["with"]["script"] + '''
+process.stdout.write(JSON.stringify(posted));
+})().catch(e => {console.error(e); process.exit(1);});
+'''
+    rendered = subprocess.run(
+        ["node", "-e", script], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"VALIDATION_PASSED": str(passed).lower(),
+                          "EXISTING_COMMENT": str(existing_comment).lower()},
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    posts = json.loads(rendered.stdout)
+    assert len(posts) == 1
+    assert posts[0]["method"] == ("update" if existing_comment else "create")
+    body = posts[0]["body"]
+    assert ("All cards valid" in body) is passed
+    if not passed:
+        assert "fail" in body.lower() or "have errors" in body
+        gate = steps["Fail if validation errors"]
+        assert gate["if"] == "steps.validate.outputs.passed == 'false'"
+        failed = subprocess.run(["bash", "-e", "-c", gate["run"]], cwd=tmp_path,
+                                capture_output=True, text=True)
+        assert failed.returncode == 1
+    if case in {"valid", "invalid", "regression"}:
+        assert "| Card | Completeness | Fields Added | Status |" in body
+    if case == "valid":
+        assert "| fixture/model | 90% (+5%) | context |" in body
+    if case == "invalid":
+        assert "Invalid fixture" in body
+    if case == "regression":
+        assert "Regression fixture" in body
+    assert comment.get("env", {}).get("VALIDATION_PASSED") == "${{ steps.validate.outputs.passed }}"
 
 
 def test_workflow_failure_masking_is_explicitly_audited() -> None:

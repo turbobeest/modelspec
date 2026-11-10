@@ -19,7 +19,7 @@ export type VocabInput = z.infer<typeof vocabInput>;
 type Section = NonNullable<VocabInput["section"]>;
 const searchSections: Section[] = ["facets", "domains", "refinements", "benchmarks", "templates", "task_types",
   "estate", "providers", "vendors", "models", "template_categories", "template_tiers"];
-type EstateGroup = "providers" | "devices" | "plans";
+type EstateGroup = "providers" | "devices" | "plans" | "plan_facets";
 type Entry = { id: string; row: unknown; group: EstateGroup | null };
 type Match = { section: Section; id: string; label?: string; via?: "synonym"; matched_tokens?: string[] } & (
   { matched: "id" | "label" | "definition" } | { matched: "value"; value: unknown }
@@ -69,7 +69,8 @@ function compact(row: unknown, section: Section): unknown {
     else if (Array.isArray(row.values)) result.allowed_values = row.values.filter(isRecord).map((value) => value.value);
     return result;
   }
-  return pick(row, section === "models" ? ["display_name"] : ["id", "name", "label"]);
+  return pick(row, section === "models" ? ["display_name"]
+    : section === "estate" ? ["id", "name", "label", "availability"] : ["id", "name", "label"]);
 }
 
 function normalize(value: unknown) {
@@ -80,7 +81,7 @@ function sectionRows(vocabulary: Record<string, unknown>, section: Section): Ent
   const source = vocabulary[section] ?? {};
   if (section === "estate" && isRecord(source)) {
     const entries: Entry[] = [];
-    for (const group of ["providers", "devices", "plans"] satisfies EstateGroup[]) {
+    for (const group of ["providers", "devices", "plans", "plan_facets"] satisfies EstateGroup[]) {
       const rows = source[group];
       if (Array.isArray(rows)) {
         entries.push(...rows.map((row): Entry => ({ id: String(isRecord(row) ? row.id ?? "" : row), row, group })));
@@ -480,7 +481,9 @@ function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
 
 function selectRows(entries: Entry[], section: Section, full: boolean): unknown {
   if (section === "estate") {
-    return Object.fromEntries((["providers", "devices", "plans"] satisfies EstateGroup[]).map((group) =>
+    const groups: EstateGroup[] = ["providers", "devices", "plans"];
+    if (entries.some(({ group }) => group === "plan_facets")) groups.push("plan_facets");
+    return Object.fromEntries(groups.map((group) =>
       [group, entries.filter((entry) => entry.group === group).map(({ row }) => full ? row : compact(row, section))]));
   }
   const selected = entries.map(({ id, row }) => [id, full ? row : compact(row, section)]);
@@ -596,7 +599,12 @@ export function lookupVocabulary(vocabulary: Record<string, unknown>, args: Voca
   let source = vocabulary[section] ?? [];
   if (section === "coverage" && !full) return vocabularyResponse({}, args);
   if (section === "estate" && !full) {
-    source = isRecord(vocabulary.estate) ? pick(vocabulary.estate, ["providers", "devices"]) : {};
+    const estate = isRecord(vocabulary.estate) ? vocabulary.estate : {};
+    source = {
+      providers: estate.providers ?? [], devices: estate.devices ?? [],
+      ...(Array.isArray(estate.plan_facets) && estate.plan_facets.length > 0
+        ? { plan_facets: estate.plan_facets } : {}),
+    };
   }
   if (section === "starter") {
     const starters = starterIds(vocabulary);

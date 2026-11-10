@@ -3399,6 +3399,43 @@ def build_spec() -> dict[str, Any]:
             **_feedback_paths(),
             **_signal_paths(),
             **_billing_paths(),
+            "/v1/auth-check": {
+                "get": {
+                    "operationId": "authCheck",
+                    "summary": "Verify an active key authorized for live catalogue data.",
+                    "description": (
+                        "Returns authentication status only. Always requires an API key; "
+                        "sandbox credentials and tiers without live-data access are refused. "
+                        "Does not read catalogue data, consume request limits, or access the "
+                        "credit ledger. Every response is Cache-Control: no-store."
+                    ),
+                    "security": [{"bearer": []}, {"apiKey": []}],
+                    "responses": {
+                        "200": _json_body("The key is authorized for live data.", {
+                            "type": "object",
+                            "required": ["authenticated"],
+                            "additionalProperties": False,
+                            "properties": {
+                                "authenticated": {"type": "boolean", "enum": [True]},
+                            },
+                        }),
+                        **{
+                            str(status): _json_body(description, {
+                                "$ref": "#/components/schemas/AuthCheckRefused",
+                            })
+                            for status, description in (
+                                (400, "sandbox_not_available: use a key authorized for live data."),
+                                (401, "missing_api_key or invalid_api_key: present a valid key."),
+                                (403, "key_revoked: obtain an active key."),
+                                (500, "access_not_configured or tier_not_configured: retry later."),
+                                (503, "access_store_not_configured: retry later."),
+                            )
+                        },
+                        "405": transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/auth-check takes GET.")[1],
+                    },
+                },
+            },
         },
         "components": {
             "securitySchemes": security_schemes,
@@ -3706,6 +3743,15 @@ def _catalog_read_note() -> str:
 
 def render() -> str:
     spec = apply_agent_copy(build_spec())
+    # Added after schema sharing so this one definition does not renumber anchors.
+    spec["components"]["schemas"]["AuthCheckRefused"] = {
+        "type": "object",
+        "required": ["error", "result"],
+        "properties": {
+            "error": {"$ref": "#/components/schemas/AccessRefused/properties/error"},
+            "result": {"type": "array", "items": {}, "maxItems": 0},
+        },
+    }
     if not x402_enabled():
         # Remove the dormant payment-rail offers. The machine-credit refusal
         # below is a separate 402 and still applies with the rail off.

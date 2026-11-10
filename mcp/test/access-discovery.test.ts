@@ -135,6 +135,82 @@ describe("MCP API-key headers and discovery", () => {
     });
   });
 
+  describe.each([
+    { name: "list_use_cases", arguments: {}, split: "true" },
+    { name: "list_use_cases", arguments: {}, split: "false" },
+    { name: "model_info", arguments: { model_id: "lab/model" }, split: "false" },
+    { name: "vocab", arguments: { section: "models" }, split: "false" },
+  ])("static data authorization for $name with split=$split", ({ name, arguments: args, split }) => {
+    const headers = { authorization: "Bearer issued_live_key" };
+    const params = { name, arguments: args };
+    const env = { ...ENV, DATA_SPLIT_ENABLED: split, RANK: via };
+
+    it.each([
+      { status: 401, code: "invalid_api_key" },
+      { status: 403, code: "key_revoked" },
+      { status: 400, code: "sandbox_not_available" },
+      { status: 503, code: "access_store_not_configured" },
+      { status: 500, code: "tier_not_configured" },
+    ])("preserves the API's $code refusal before reading data", async ({ status, code }) => {
+      const body = { error: { code }, result: [] };
+      via.fetch.mockImplementation(async () => Response.json(body, { status }));
+      const { payload } = await rpc({ params, headers, env });
+      const { result, value } = readEnvelope(payload);
+      expect(value).toEqual({ status, body });
+      expect(result.isError).toBe(true);
+      expect(via.fetch).toHaveBeenCalledOnce();
+      expect(originFetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { status: 200, body: {} },
+      { status: 200, body: { authenticated: false } },
+      { status: 200, body: { authenticated: "true" } },
+      { status: 200, body: { authenticated: true, sandbox: true } },
+      { status: 200, body: "not JSON" },
+      { status: 201, body: { authenticated: true } },
+      { status: 500, body: { authenticated: true } },
+    ])("requires a successful authentication result ($status, $body)", async ({ status, body }) => {
+      via.fetch.mockImplementation(async () => Response.json(body, { status }));
+      const { payload } = await rpc({ params, headers, env });
+      expect(readEnvelope(payload).result.isError).toBe(true);
+      expect(originFetch).not.toHaveBeenCalled();
+    });
+
+    it("refuses an unavailable authentication origin without exposing credentials", async () => {
+      via.fetch.mockRejectedValue(new Error("Authorization: Bearer issued_live_key"));
+      const { payload, text } = await rpc({ params, headers, env });
+      expect(readEnvelope(payload)).toMatchObject({
+        result: { isError: true }, value: { status: 0, body: { error: { code: "origin_unreachable" } } },
+      });
+      expect(text).not.toContain("issued_live_key");
+      expect(originFetch).not.toHaveBeenCalled();
+    });
+
+    it("checks authorization for each read and keeps credentials off the static origin", async () => {
+      via.fetch.mockImplementation(async () => Response.json({ authenticated: true }));
+      originFetch.mockImplementation(async () => {
+        expect(via.fetch).toHaveBeenCalledOnce();
+        return Response.json({ models: {}, profiles: {} });
+      });
+      const admitted = await rpc({ params, headers, env });
+      expect(readEnvelope(admitted.payload).result.isError).toBe(false);
+      expect(via.fetch).toHaveBeenCalledWith("https://api.modelspec.dev/v1/auth-check", expect.any(Object));
+      const authHeaders = new Headers(via.fetch.mock.calls[0]?.[1]?.headers);
+      expect(authHeaders.get("authorization")).toBe("Bearer issued_live_key");
+      expect(authHeaders.get("cache-control")).toBe("no-store");
+      const staticHeaders = new Headers(originFetch.mock.calls[0]?.[1]?.headers);
+      expect(staticHeaders.has("authorization")).toBe(false);
+      expect(staticHeaders.has("x-api-key")).toBe(false);
+
+      via.fetch.mockImplementation(async () => Response.json({ error: { code: "key_revoked" } }, { status: 403 }));
+      const refused = await rpc({ params, headers, env });
+      expect(readEnvelope(refused.payload).value.status).toBe(403);
+      expect(via.fetch).toHaveBeenCalledTimes(2);
+      expect(originFetch).toHaveBeenCalledOnce();
+    });
+  });
+
   it("never includes header keys in auth errors or logs", async () => {
     const logs = ["log", "info", "debug", "warn", "error", "trace"] as const;
     const spies = logs.map(method => vi.spyOn(console, method).mockImplementation(() => {}));
