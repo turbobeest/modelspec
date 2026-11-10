@@ -146,6 +146,20 @@ def test_audit_does_not_note_arena_when_the_legacy_cache_holds_it():
     assert not any(item["field"] == "arena_elo_overall" for item in findings)
 
 
+def test_audit_skips_benchmark_and_arena_notes_for_image_generation():
+    empty = _card(model_type="image-generation")
+    assert empty.benchmarks.scores == {}
+    assert empty.benchmarks.evidence == []
+    empty_findings = audit_card(empty, Path("example.md"))
+    assert not any(item["field"] == "benchmarks" for item in empty_findings)
+    assert not any(item["field"] == "arena_elo_overall" for item in empty_findings)
+    scored = _card(scores={"cached_score": 10}, model_type="image-generation")
+    assert scored.benchmarks.evidence == []
+    scored_findings = audit_card(scored, Path("example.md"))
+    assert not any(item["field"] == "benchmarks" for item in scored_findings)
+    assert not any(item["field"] == "arena_elo_overall" for item in scored_findings)
+
+
 def _write_card(directory, relative, text):
     path = directory / relative
     path.parent.mkdir(parents=True, exist_ok=True)

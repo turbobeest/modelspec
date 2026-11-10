@@ -149,3 +149,27 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 Result: `1 passed in 0.14s`, exit 0.
 
 Temporary edit, reverted before the commit: the skip applied only when the file's parent was the scan root. The same command then failed, exit 1. `run_audit` returned four `yaml` / `parse` findings, one for each non-content name under `acme/`. After `git checkout -- scripts/audit_data_quality.py`, the same command passed: `1 passed in 0.11s`, exit 0.
+
+### Benchmark notes stay on LLM and VLM cards
+
+`image-generation` is a `model_type` the card schema accepts. `test_audit_skips_benchmark_and_arena_notes_for_image_generation` checks two image-generation cards. The first has an empty legacy cache and no evidence, and must get no finding whose field is `benchmarks` and none whose field is `arena_elo_overall`. The second has one cached score, `cached_score`, and no evidence. The Arena note still requires a non-empty legacy cache, so the empty card stays green when only the Arena type gate is removed. The second card is what makes that edit fail the test.
+
+Before either edit:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py::test_audit_skips_benchmark_and_arena_notes_for_image_generation
+```
+
+Result: `1 passed in 0.11s`, exit 0.
+
+Temporary edit, reverted before the next edit: the coverage finding no longer required an LLM or VLM type. The same command failed, exit 1, on the empty card's `benchmarks` assertion.
+
+Temporary edit, reverted before the commit: the Arena note no longer required an LLM or VLM type. The same command failed, exit 1, on the scored card's `arena_elo_overall` assertion.
+
+After both edits were reverted:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py
+```
+
+Result: `10 passed in 0.26s`, exit 0.
