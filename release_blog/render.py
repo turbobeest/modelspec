@@ -382,6 +382,31 @@ def _setup(setup: Any) -> str:
     return _code(text) if any(ch.isdigit() for ch in text) else text
 
 
+def _record_text(text: str) -> str:
+    """Verbatim record text. A digit stays inside a code span, as a setup version does."""
+    return _code(text) if any(character.isdigit() for character in text) else text
+
+
+def _caveat_lines(rows: Sequence[Any], notes: Footnotes) -> list[str]:
+    """Lab limitations, reading limitations and quality flags, each with its record."""
+    lines = []
+    for row in rows:
+        if row.limitations:
+            lines.append(f"- {_code(row.benchmark)}, lab figure: "
+                         f"{_record_text(row.limitations)}{notes.ref(row.claim)}")
+        for reading in row.readings:
+            parts = []
+            if reading.limitations:
+                parts.append(_record_text(reading.limitations))
+            if reading.quality_flags:
+                flags = ", ".join(_code(flag) for flag in reading.quality_flags)
+                parts.append("quality flags: " + flags)
+            if parts:
+                lines.append(f"- {_code(row.benchmark)}, independent reading: "
+                             + "; ".join(parts) + notes.ref(reading.value))
+    return lines
+
+
 def _claims(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
     out = ["## Claims and evidence"]
     rows = b.claims_vs_evidence.claims
@@ -413,10 +438,10 @@ def _claims(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
                               _setup(r.setup), sentence])
         out.append(_table(["Benchmark", "Lab-reported", "Independent reading", "Measured by",
                            "Setup", "Comparison"], table))
-        notes = [f"- {_code(row.benchmark)}, lab figure: {row.limitations}" for row in rows
-                 if row.limitations and not any(ch.isdigit() for ch in row.limitations)]
-        if notes:
-            out.append("Limitations the records state, verbatim:\n\n" + "\n".join(notes))
+        caveats = _caveat_lines(rows, n)
+        if caveats:
+            out.append("Limitations and quality flags the records state, verbatim:\n\n"
+                       + "\n".join(caveats))
         if chart:
             out.append("![Lab-reported and independent readings](charts/claims.svg)")
     out.append("### Not in the announcement")

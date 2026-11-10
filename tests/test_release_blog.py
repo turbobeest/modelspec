@@ -637,3 +637,47 @@ def test_not_comparable_reading_does_not_receive_shared_scale(breakdown) -> None
     terminal = svg.split(">terminal_bench</text>", 1)[1]
     assert len(_chart_bars(terminal)) == 2
     assert "The setups differ in effort" in post
+
+
+def test_qualified_readings_keep_limits_and_flags_in_post(tmp_path) -> None:
+    rows = _new_rows()
+    claim = next(r for r in rows if r["benchmark_id"] == "swe_bench_pro"
+                 and r["measured_by"] == "provider_self_report")
+    reading = next(r for r in rows if r["benchmark_id"] == "swe_bench_pro"
+                   and r["measured_by"] == "independent_evaluator")
+    claim["limitations"] = "Evaluated on only 20 tasks."
+    reading["limitations"] = "The sample excludes difficult tasks."
+    reading["quality_flags"] = ["small_sample"]
+    for row in (claim, reading):
+        row["verification"] = verification(
+            "evidence", row["id"], value=evidence_verification_value(row))
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)], offerings=[_offering(NEW, 2.0)],
+        evidence=rows, sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "qualified.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC, include_archive=True)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    result = next(r for r in built.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    assert result.limitations == claim["limitations"]
+    assert len(result.readings) == 1
+    assert result.readings[0].limitations == reading["limitations"]
+    assert result.readings[0].quality_flags == ["small_sample"]
+    post, _charts = render(built)
+    expected = [claim["limitations"], reading["limitations"], "small_sample"]
+    missing = [text for text in expected if text not in post]
+    assert missing == []
+    lab_line = next(line for line in post.splitlines() if claim["limitations"] in line)
+    reading_line = next(line for line in post.splitlines() if reading["limitations"] in line)
+    assert "small_sample" in reading_line
+    for line, record_id in ((lab_line, result.claim.record_id),
+                            (reading_line, result.readings[0].value.record_id)):
+        marker = re.search(r"\[\^(\d+)\]", line)
+        assert marker is not None, line
+        definition = next(item for item in post.splitlines()
+                          if item.startswith(f"[^{marker.group(1)}]"))
+        assert record_id in definition
