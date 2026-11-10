@@ -1,6 +1,6 @@
 # ModelSpec agent guide
 
-Guide version: 1-c4f2f540f115f438.
+Guide version: 1-d71e83841e122452.
 Canonical URL: https://modelspec.dev/agents.md
 Full API reference: https://modelspec.dev/openapi.yaml
 Coverage: https://modelspec.dev/api/coverage.json
@@ -31,10 +31,8 @@ Minimal valid Spec, minimizing cost without claiming a quality ranking:
 ```
 
 `spec_version` is 1. `snapshot` defaults to latest. Save the Spec, snapshot ID,
-decision_id and answer. Pinning repeats an answer only while that snapshot is
-available. The hosted API serves only its current snapshot; after replacement,
-a pin returns `409 snapshot_not_loaded`. Retry with `latest` for a new answer,
-not the saved answer.
+decision_id and answer. A pin repeats an answer only for the current snapshot.
+Replacement returns `409 snapshot_not_loaded`. Retry with `latest` for a new answer.
 Over HTTP, `explain` defaults to summary and returns full rows; full includes
 every eliminated candidate and can be large. A Spec has one optimize objective: min, max, or weights.
 A negative numeric weight key prefers less, for example `-offering.cost_per_task`.
