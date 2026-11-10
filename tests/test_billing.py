@@ -2767,3 +2767,107 @@ def test_unclaimed_subscription_downgrade_reaches_the_claim(policy, kind):
         assert stored.status == "inactive"
         assert stored.key_fingerprint == keys.fingerprint(key)
     run(scenario())
+
+
+class _FailKeyTierPut(MemoryKV):
+    """Fail the next key-record put. The allowance write has already landed."""
+
+    armed = False
+
+    async def put(self, name, value, **kwargs):
+        if self.armed and name.startswith("key:"):
+            self.armed = False
+            raise OSError("fixture key tier write unavailable")
+        await super().put(name, value, **kwargs)
+
+
+def test_redelivered_invoice_repairs_the_key_tier(policy):
+    """The first redelivery of a paid invoice copies the granted tier onto the key."""
+    async def scenario():
+        kv, ledger = _FailKeyTierPut(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        failed = invoice_obj(id="in_recover", paid=False, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                   "evt_fail_tier", created=300)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        paid = invoice_obj(id="in_recover", period_start=300, period_end=400)
+        kv.armed = True
+        with pytest.raises(OSError, match="key tier write"):
+            await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                               "evt_pay_tier", created=310)
+        holder = _billing_holder(key)
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+        repaired = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_pay_tier", created=310)
+        assert repaired.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.tier == "paid" and sub.status == "active"
+    run(scenario())
+
+
+def test_first_invoice_for_a_new_subscription_repairs_the_key_tier(policy):
+    """A redelivered first invoice for a bound free key copies the granted tier."""
+    async def scenario():
+        kv, ledger = _FailKeyTierPut(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="free", owner="fixture", now=T0, policy=policy)
+        meta = {"modelspec_price_id": PRICE,
+                "modelspec_key_fingerprint": keys.fingerprint(key)}
+        paid = invoice_obj(id="in_first", metadata=meta, period_start=100, period_end=200)
+        kv.armed = True
+        with pytest.raises(OSError, match="key tier write"):
+            await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                               "evt_first_tier", created=100)
+        holder = _billing_holder(key)
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(holder)).monthly == 4000
+        repaired = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_first_tier", created=100)
+        assert repaired.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.tier == "paid" and sub.status == "active"
+    run(scenario())
+
+
+def test_replayed_invoice_keeps_a_pre_round_account_on_the_paid_tier(policy):
+    """An account stored before the entitled flag stays paid when the invoice is replayed."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        raw = ledger.state.accounts[holder].to_json()
+        raw.pop("monthly_entitled", None)
+        ledger.state.accounts[holder] = credits._Account.from_json(raw)
+        replayed = invoice_obj(id="in_initial")
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", replayed,
+                                     "evt_pre_round_replay", created=200)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+    run(scenario())
+
+
+def test_entitlement_view_derives_an_account_without_the_flag():
+    holder = "holder-old"
+    ledger = credits.MemoryLedger(credits.LedgerState.from_json({
+        "accounts": {
+            holder: {"monthly": 4000, "invoice_period_watermark": 400},
+            "spent": {"monthly": 0, "invoice_period_watermark": 400},
+            "cancelled": {
+                "monthly": 0, "invoice_period_watermark": 400, "canceled_at": 50,
+            },
+            "empty": {"monthly": 0},
+            "closed": {"monthly": 4000, "monthly_entitled": False},
+        },
+    }))
+    assert run(ledger.entitlement_view(holder))["entitled"] is True
+    assert run(ledger.entitlement_view("spent"))["entitled"] is True
+    assert run(ledger.entitlement_view("cancelled"))["entitled"] is False
+    assert run(ledger.entitlement_view("empty"))["entitled"] is False
+    assert run(ledger.entitlement_view("closed"))["entitled"] is False

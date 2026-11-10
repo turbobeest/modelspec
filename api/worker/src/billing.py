@@ -599,6 +599,22 @@ async def _sync_entitlement_tier(kv: Any, subscription_id: str, *, ledger: Any,
     raise EntitlementUnsettled("the entitlement tier did not settle")
 
 
+# A rejected grant, a grant for another holder, or a grant with nothing to
+# copy leaves the key tier alone. Replay copies the ledger's current tier.
+_GRANT_SKIPS_TIER = frozenset({
+    "", "stale", "conflict", "zero", "pending", "no_key", "store_unbound", "skipped",
+})
+
+
+async def _copy_grant_tier(kv: Any, subscription_id: str, *, ledger: Any,
+                           policy: AccessPolicy, grant: str) -> None:
+    """Copy the ledger tier after a grant the row's key can hold."""
+    if grant in _GRANT_SKIPS_TIER or isinstance(ledger, credits.UnboundLedger):
+        return
+    await _sync_entitlement_tier(
+        kv, subscription_id, ledger=ledger, policy=policy)
+
+
 async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
                             policy: AccessPolicy, cleared: str) -> str:
     """Write a tier only after the ledger accepts the clear."""
@@ -843,9 +859,9 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             policy=policy, ledger=ledger)
         if linked == "stale":
             return "ignored", None
-        if linked == "granted" and not isinstance(ledger, credits.UnboundLedger):
-            await _sync_entitlement_tier(
-                kv, subscription_id, ledger=ledger, policy=policy)
+        await _copy_grant_tier(
+            kv, subscription_id, ledger=ledger, policy=policy, grant=linked)
+        if linked == "granted":
             return "credited", None
         return ("already_entitled" if existing.status == store.STATUS_ACTIVE
                 else "ignored"), None
@@ -879,9 +895,9 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         invoice_id=invoice_id, plan=mapping.name)
     if (probed is not None and probed.credited) or grant == "granted":
         action = "credited" if action in {"entitled", "already_entitled"} else action
-        if not isinstance(ledger, credits.UnboundLedger):
-            await _sync_entitlement_tier(
-                kv, subscription_id, ledger=ledger, policy=policy)
+    await _copy_grant_tier(
+        kv, subscription_id, ledger=ledger, policy=policy,
+        grant="granted" if probed is not None and probed.credited else grant)
     if recovers_initial:
         await store.record_chronology(
             kv, subscription_id, now=now, policy=policy,
@@ -956,11 +972,10 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         return "ignored", None
     if grant == "granted":
         action = "credited"
-        if not isinstance(ledger, credits.UnboundLedger):
-            await _sync_entitlement_tier(
-                kv, subscription_id, ledger=ledger, policy=policy)
     elif grant == "pending" and action == "entitled":
         action = "entitled"
+    await _copy_grant_tier(
+        kv, subscription_id, ledger=ledger, policy=policy, grant=grant)
     return action, None
 
 

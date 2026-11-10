@@ -563,10 +563,9 @@ class _Account:
     # Subscription that cancellation belongs to. Empty means the id was not stored.
     canceled_subscription_id: str = ""
     # Accepted set_monthly opens the entitlement; accepted clear_monthly closes it.
-    # The generation increases on each of those, so one read is the implied tier
-    # and whether a later allowance write has landed.
+    # None means the account was stored before this field. The view derives it.
     entitlement_generation: int = 0
-    monthly_entitled: bool = False
+    monthly_entitled: bool | None = None
     reserved: int = 0
     next_res: int = 1
     reservations: dict[int, _Reservation] = field(default_factory=dict)
@@ -611,7 +610,7 @@ class _Account:
                       if (g.remaining > 0 or g.held > 0) and not _expired(g.expires_at, now)]
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        body = {
             "monthly": self.monthly,
             "allowance_generation": self.allowance_generation,
             "invoice_period_watermark": self.invoice_period_watermark,
@@ -653,6 +652,9 @@ class _Account:
             "overage_unreconciled": self.overage_unreconciled,
             **({"rotation": self.rotation} if self.rotation is not None else {}),
         }
+        if self.monthly_entitled is None:
+            body.pop("monthly_entitled", None)
+        return body
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> _Account:
@@ -688,7 +690,8 @@ class _Account:
             canceled_at=int(data.get("canceled_at") or 0),
             canceled_subscription_id=str(data.get("canceled_subscription_id") or ""),
             entitlement_generation=int(data.get("entitlement_generation") or 0),
-            monthly_entitled=bool(data.get("monthly_entitled") or False),
+            monthly_entitled=(bool(data["monthly_entitled"])
+                              if "monthly_entitled" in data else None),
             reserved=int(data.get("reserved") or 0),
             next_res=int(data.get("next_res") or 1),
             reservations=reservations,
@@ -729,6 +732,19 @@ def _period_predates_cancellation(period_start: int, period_end: int,
     if period_start:
         return period_start < canceled_at
     return period_end <= canceled_at
+
+
+def _implied_entitled(acc: _Account) -> bool:
+    """Whether the ledger's current state is a paid entitlement.
+
+    An explicit flag wins. An account stored before the flag is entitled when
+    it still holds monthly units, or when a paid watermark has no cancellation.
+    """
+    if acc.monthly_entitled is not None:
+        return bool(acc.monthly_entitled)
+    if acc.monthly > 0:
+        return True
+    return acc.invoice_period_watermark > 0 and not acc.canceled_at
 
 
 def _cancellation_blocks_grant(period_start: int, period_end: int, canceled_at: int,
@@ -1174,7 +1190,7 @@ class LedgerState:
             return {"generation": 0, "entitled": False}
         return {
             "generation": int(acc.entitlement_generation),
-            "entitled": bool(acc.monthly_entitled),
+            "entitled": _implied_entitled(acc),
         }
 
     def transfer(self, src: str, dst: str) -> bool:
