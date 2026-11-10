@@ -44,7 +44,7 @@ from decision.contract import (
 )
 from decision.explain import facet_unit
 from decision.filter import _has_best, _Run, apply
-from decision.resolve import asks_for_retired
+from decision.resolve import asks_for_retired, without
 
 #: Facets that say what kind of model the question is about.
 QUESTION_FACETS = frozenset({"model.class"})
@@ -116,10 +116,7 @@ def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> Rel
     relaxable = _relaxable(resolved, domains)
 
     def admits_without(index: int) -> int:
-        trial = replace(
-            resolved,
-            conditions=tuple(cond for i, cond in enumerate(conditions) if i != index),
-        )
+        trial = without(resolved, (index,))
         return _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
 
     found: list[tuple[int, int, str]] = []
@@ -132,11 +129,7 @@ def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> Rel
     gates = [SingleGate(condition=text, admits=admits) for admits, _, text in found]
     together = 0
     if relaxable:
-        dropped = set(relaxable)
-        trial = replace(
-            resolved,
-            conditions=tuple(cond for i, cond in enumerate(conditions) if i not in dropped),
-        )
+        trial = without(resolved, relaxable)
         together = _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
     question_admits = any(
         admits_without(index) >= 1
@@ -159,13 +152,8 @@ def _equivalent_groups(conditions, hard: list[int]) -> list[tuple[int, ...]]:
     return [tuple(indexes) for indexes in grouped.values()]
 
 
-def _dropped_admits(resolved, snapshot, conditions, dropped: tuple[int, ...]) -> bool:
-    omit = set(dropped)
-    trial = replace(
-        resolved,
-        conditions=tuple(cond for index, cond in enumerate(conditions) if index not in omit),
-    )
-    return bool(apply(trial, snapshot).feasible)
+def _dropped_admits(resolved, snapshot, dropped: tuple[int, ...]) -> bool:
+    return bool(apply(without(resolved, dropped), snapshot).feasible)
 
 
 def _fewest_from_groups(resolved, snapshot, conditions, groups: list[tuple[int, ...]]) -> list[str]:
@@ -178,7 +166,7 @@ def _fewest_from_groups(resolved, snapshot, conditions, groups: list[tuple[int, 
             proposals.append((len(indexes), -cap, indexes))
     proposals.sort()
     for _, _, indexes in proposals:
-        if _dropped_admits(resolved, snapshot, conditions, indexes):
+        if _dropped_admits(resolved, snapshot, indexes):
             return [render_condition(conditions[index]) for index in indexes]
     return []
 
@@ -276,7 +264,7 @@ def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
         return _fewest_from_groups(resolved, snapshot, conditions, groups)
     proposals = _failure_proposals(resolved, snapshot, conditions, hard, groups)
     for indexes in proposals:
-        if indexes and _dropped_admits(resolved, snapshot, conditions, indexes):
+        if indexes and _dropped_admits(resolved, snapshot, indexes):
             return [render_condition(conditions[index]) for index in indexes]
     if any(not indexes for indexes in proposals) and apply(resolved, snapshot).feasible:
         return _fewest_from_groups(resolved, snapshot, conditions, groups)
