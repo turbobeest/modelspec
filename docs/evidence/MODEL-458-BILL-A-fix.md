@@ -642,3 +642,7 @@ After the change, the focused billing command was 304 passed, exit 0.
 The round-4 remaining note now names that round as the one whose `no_key`
 answer left the row's tier. Round 5 writes the downgrade tier and inactive
 status.
+
+Both older review probes passed after these changes: 7 passed, exit 0, and
+2 passed, exit 0. No contract file, OpenAPI file, or `contract_version`
+changed. No production flag, price, plan, legal text, or frozen data changed.
