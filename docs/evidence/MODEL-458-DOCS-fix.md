@@ -479,3 +479,39 @@ env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/b
 An earlier run of the reference modules plus the same harness tests, before the sentence shorten, was 1 failed, 55 passed in 16.83s. The failure was Gemini at 9,614 tokens. That run's JUnit supplied the reference-module timings.
 
 Tool versions unchanged from round 1: Python 3.14.4, pytest 9.1.1, Node v22.22.3, git 2.50.1. `git diff --check` exited 0. No legal text, ranking floors, production switches, prices, workflows, or frozen data were edited in the round 2 commits. The private memory probe, live service, and payment calls were not run. The submitted head is the commit that adds this section.
+
+## Round 3
+
+Merged `origin/main` `3f7d050deeaff49045a7898105dc52c4a9e72363` into the branch. That main contains #1006 (`09c0d1282e8d1ec82325a3043fda649d42c283ac`) and the later commits `c0ce12b2e8ff1ce5a34e7ccd50a0e855d62bdffa`, `4a0d67b239e15c633397e6b3b09a99e7caa7835c`, `d9e8deddeab9ce86ecce42c7fbd4e0cf76e0b6b2`, and `3f7d050deeaff49045a7898105dc52c4a9e72363`. Merge commit `6571996951c8a6a171223c7048770b326878fc8c`. Parents: `2952cfe5d2446ca2b8cf4a28e93783355debde96` and `3f7d050deeaff49045a7898105dc52c4a9e72363`. The only conflict was the `api/worker/openapi.yaml` hash in `qa/fixtures/mcp-tools.json`.
+
+`api/worker/openapi.yaml` auto-merged. It keeps guide version `1-d71e83841e122452` and the intake 200 text "The identical payload is already stored for this signal_id." sha256 `7bafbe19874d65c5f1ac5b11070f096f22b75bed0aad48b12800af5ef20ef41e`.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+```
+
+Exit 0: `api/worker/openapi.yaml matches the implementation`. The generator was not rerun.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+Exit 0. The regenerated fixture's OpenAPI hash is that sha256. The other source hashes are unchanged from this branch. The regenerated file is in the merge commit. The hash was not edited by hand.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --check
+```
+
+`pipeline.agent_copy check` exited 0. `vendor.py --check` exited 0: 129 files, bundle imports cleanly. `cli/modelspec/agent-bundle.json` was not regenerated. The public Worker bundle was not re-vendored into git.
+
+No sentence this bundle wrote describes signal acknowledgement or input handling. `docs/grok-bot-signals.md` came from main with the updated idempotency sentence. No documentation sentence was rewritten.
+
+Focused serial result, exit 0: 482 passed, 2 skipped in 35.71s. The two skips are the `MODELSPEC_LIVE_API` checks in `tests/test_api_docs.py`. Shard timing coverage: 1 passed in 0.14s.
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=line --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-r3 tests/test_api_docs.py tests/test_generated_pins.py tests/test_agent_copy.py tests/test_mcp_schema_compaction.py tests/test_decision_contract.py tests/test_decision_bands.py tests/test_decision_link.py tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources tests/test_reference_decide.py tests/test_reference_policy_transport.py tests/test_reference_access.py tests/test_reference_billing.py tests/test_reference_data_split.py tests/test_reference_holding.py tests/test_reference_contributions.py tests/test_reference_x402.py tests/test_reference_x402_launch.py tests/test_reference_policy_contract.py tests/test_reference_agent_entry.py
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-r3-shard tests/test_ci_workflows.py::test_shard_timings_cover_the_current_suite_and_browser_modules
+```
+
+Tool versions: Python 3.14.4, pytest 9.1.1, Node v22.22.3, git 2.50.1. `git diff --check` exited 0 before the merge commit. No legal text, ranking floors, production switches, prices, workflows, contract version, or frozen data were edited. The private memory probe, live service, and payment calls were not run. CI on this round is checked after the push. The submitted head is the commit that adds this section.
