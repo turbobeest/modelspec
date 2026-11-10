@@ -22,6 +22,7 @@ def test_cite_only_policy_contains_exactly_the_approved_hosts():
     assert set(cite_only_hosts()) == {
         "x.ai", "docs.x.ai", "perplexity.ai", "www.anthropic.com",
         "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
+        "platform.claude.com", "privacy.claude.com",
     }
 
 
@@ -32,6 +33,8 @@ def test_cite_only_policy_contains_exactly_the_approved_hosts():
     "https://help.openai.com/models", "https://sub.HELP.OPENAI.COM.:443/models",
     "https://chatgpt.com/models", "https://sub.CHATGPT.COM.:443/models",
     "https://cursor.com/models", "https://sub.CURSOR.COM.:443/models",
+    "https://platform.claude.com/models", "https://sub.PLATFORM.CLAUDE.COM.:443/models",
+    "https://privacy.claude.com/models", "https://sub.PRIVACY.CLAUDE.COM.:443/models",
 ])
 def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
     store = CopyStore(tmp_path)
@@ -48,13 +51,17 @@ def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
 
 @pytest.mark.parametrize("host", [
     "www.anthropic.com", "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
+    "platform.claude.com", "privacy.claude.com",
 ])
 def test_new_cite_only_hosts_require_a_label_boundary(host):
     assert cite_only_status(f"https://not{host}/models") is False
     assert cite_only_status(f"https://{host}.example/models") is False
 
 
-@pytest.mark.parametrize("host", ["anthropic.com", "docs.anthropic.com", "openai.com", "api.openai.com"])
+@pytest.mark.parametrize("host", [
+    "anthropic.com", "docs.anthropic.com", "openai.com", "api.openai.com",
+    "claude.com", "support.claude.com",
+])
 def test_new_cite_only_hosts_do_not_include_parents_or_siblings(host):
     assert cite_only_status(f"https://{host}/models") is False
 

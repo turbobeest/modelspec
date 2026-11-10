@@ -96,6 +96,7 @@ def test_cite_run_checks_queue_without_verification_or_recrawl(tmp_path):
 @pytest.mark.parametrize("url", [
     CITE_URL, "https://www.anthropic.com/models", "https://developers.openai.com/models",
     "https://help.openai.com/models", "https://chatgpt.com/models", "https://cursor.com/models",
+    "https://platform.claude.com/models", "https://privacy.claude.com/models",
 ])
 def test_cite_facts_satisfy_premier_completeness_without_verification(outcome, url):
     index = loaded(snapshot_input(outcome=outcome, url=url), premier=["lab/alpha"],
