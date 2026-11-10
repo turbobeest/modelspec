@@ -1790,7 +1790,7 @@ def _feedback_paths() -> dict[str, Any]:
                 },
                 "responses": {
                     "200": _json_body("Deleted.", {"$ref": "#/components/schemas/FeedbackResult"}),
-                    **{s: e for s, e in errors.items() if s in {"400", "403", "404", "413", "429"}},
+                    **{s: e for s, e in errors.items() if s in {"400", "403", "404", "413", "429", "503"}},
                     "405": method,
                 },
             },

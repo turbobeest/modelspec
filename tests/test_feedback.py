@@ -18,6 +18,7 @@ from typing import Any
 
 import jsonschema
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKER_SRC = REPO_ROOT / "api" / "worker" / "src"
@@ -362,6 +363,15 @@ def test_the_schema_and_the_validator_refuse_the_same_bodies(body) -> None:
     assert isinstance(fb.parse(body), fb.Outcome)
 
 
+def test_withdrawal_storage_failure_uses_the_feedback_error_schema() -> None:
+    spec = yaml.safe_load((REPO_ROOT / "api/worker/openapi.yaml").read_text(encoding="utf-8"))
+    feedback = spec["paths"]["/v1/feedback"]
+    delete_503 = feedback["delete"]["responses"]["503"]
+    assert delete_503["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/FeedbackError"}
+    assert delete_503["content"] == feedback["post"]["responses"]["503"]["content"]
+
+
 def test_every_refusal_has_a_documented_fix() -> None:
     doc = (REPO_ROOT / "docs/feedback-api.md").read_text(encoding="utf-8")
     for code, (status, fix) in fb.ERRORS.items():
@@ -464,6 +474,30 @@ def test_the_worker_stores_when_switched_on_and_bound(entry) -> None:
                     FEEDBACK_ENABLED="true", FEEDBACK=kv, FEEDBACK_LIMIT_PEPPER="x" * 32)
     assert deleted.json()["status"] == "deleted"
     assert not any(k.startswith(fb.RECORD_PREFIX) for k in kv.values)
+
+
+@pytest.mark.parametrize("method,broken", [("POST", "get"), ("DELETE", "get"), ("DELETE", "delete")])
+def test_feedback_storage_failures_are_json_refusals(entry, method, broken) -> None:
+    class FailingKV(WorkersKV):
+        async def get(self, name):
+            if broken == "get":
+                raise RuntimeError("synthetic KV GET outage")
+            return "{}"
+
+        async def delete(self, name):
+            raise RuntimeError("synthetic KV DELETE outage")
+
+    body = ({"rating": "reliable", "client": "agent"} if method == "POST"
+            else {"receipt": "fbr_20261109_" + "a" * 32})
+    response = _call(entry, Request(method, body, {"CF-Connecting-IP": ADDRESS}),
+                     FEEDBACK_ENABLED="true", FEEDBACK=FailingKV(),
+                     FEEDBACK_LIMIT_PEPPER="p" * 32)
+    assert response.status == 503
+    payload = response.json()
+    assert payload["error"]["code"] == "feedback_store_unavailable"
+    assert "retry" in payload["error"]["message"].lower()
+    assert "receipt" not in payload
+    assert payload.get("status") != "deleted"
 
 
 def test_the_worker_answers_a_site_preflight_and_refuses_another(entry) -> None:
