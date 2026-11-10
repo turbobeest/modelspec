@@ -26,7 +26,7 @@ from release_blog.__main__ import main
 from release_blog.breakdown import build_breakdown, to_bytes
 from release_blog.gates import BreakdownError, guard_output, load_signed
 from release_blog.model import SCHEMA_PATH, Breakdown, Cited, schema
-from release_blog.render import render, untraced_numbers
+from release_blog.render import claims_chart, render, untraced_numbers
 from release_blog.tone import refused_words
 from release_blog.wording import headline
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering, verification
@@ -681,3 +681,71 @@ def test_qualified_readings_keep_limits_and_flags_in_post(tmp_path) -> None:
         definition = next(item for item in post.splitlines()
                           if item.startswith(f"[^{marker.group(1)}]"))
         assert record_id in definition
+
+
+def _finite_widths(svg: str) -> None:
+    widths = [float(match) for match in re.findall(r'width="([0-9.eE+-]+)"', svg)]
+    assert widths
+    assert "NaN" not in svg and "Infinity" not in svg
+    assert all(width == width and width >= 0 and width != float("inf") for width in widths)
+
+
+def test_zero_cost_offering_renders(tmp_path) -> None:
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)], offerings=[_offering(NEW, 0.0)],
+        evidence=_new_rows(), sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "free.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    assert built.cost.offerings[0].cost_per_task.value == 0
+    post, charts = render(built)
+    assert "$0.00" in post
+    _finite_widths(charts["cost.svg"])
+
+
+def _tiered_offering(mid: str, tier: str, price: float) -> dict:
+    oid = f"sambanova/{mid}/global/{tier}"
+    return {"model": mid, "provider": "sambanova", "region": "global", "tier": tier, "facts": [
+        fact("offering", oid, "offering.price.input", price, source="src-pricing"),
+        fact("offering", oid, "offering.price.output", price * 4, source="src-pricing"),
+    ]}
+
+
+def test_mixed_free_and_paid_offerings_keep_their_costs(tmp_path) -> None:
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)],
+        offerings=[_tiered_offering(NEW, "standard", 0.0), _tiered_offering(NEW, "enterprise", 2.0)],
+        evidence=_new_rows(), sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "mixed.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    costs = sorted(row.cost_per_task.value for row in built.cost.offerings
+                   if row.task.basis == "contract_default" and row.cost_per_task is not None)
+    assert costs == [0.0, 0.112]
+    post, charts = render(built)
+    assert "$0.00" in post and "$0.112" in post
+    _finite_widths(charts["cost.svg"])
+    assert "$0.00" in charts["cost.svg"] and "$0.112" in charts["cost.svg"]
+
+
+def test_all_zero_non_percent_claims_stay_finite(breakdown) -> None:
+    row = breakdown.claims_vs_evidence.claims[0]
+    zero = row.model_copy(update={
+        "claim": row.claim.model_copy(update={"value": 0.0, "unit": "score"}),
+        "readings": [],
+        "status": "no_independent_reading_yet",
+    })
+    section = breakdown.claims_vs_evidence.model_copy(update={"claims": [zero], "unreported": []})
+    svg = claims_chart(breakdown.model_copy(update={"claims_vs_evidence": section}))
+    assert svg is not None
+    _finite_widths(svg)

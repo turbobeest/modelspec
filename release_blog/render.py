@@ -231,6 +231,11 @@ def _bar(x: float, y: float, w: float, h: float, fill: str, tip: str) -> str:
             f'height="{h:.1f}" rx="4"><title>{escape(tip)}</title></rect>')
 
 
+def _extent(top: float) -> float:
+    """A positive axis length. An all-zero series still gets finite coordinates."""
+    return top if top > 0 else 1.0
+
+
 def _shares_scale(claim_unit: str | None, reading: Any) -> bool:
     """A reading shares the claim's axis only when the units are the same."""
     return reading.value.unit == claim_unit
@@ -257,8 +262,7 @@ def claims_chart(b: Breakdown) -> str | None:
     values = [row.claim.value for row in rows]
     values += [reading.value.value for row in rows for reading in kept[id(row)]]
     units = {row.claim.unit for row in rows}
-    top = max(values) if units == {"percent"} else max(values) * 1.1
-    top = 100.0 if units == {"percent"} else top
+    top = 100.0 if units == {"percent"} else _extent(max(values) * 1.1)
     left, width, bar = 200, 420, 14
     y, body = 64, [
         f'<rect class="f-s2" x="{left}" y="38" width="10" height="10" rx="2"/>'
@@ -349,15 +353,16 @@ def cost_chart(b: Breakdown) -> str | None:
             if o.task.basis == "contract_default" and o.cost_per_task is not None]
     if not rows:
         return None
-    top = max(o.cost_per_task.value for o in rows) * 1.15  # type: ignore[union-attr]
+    top = _extent(max(o.cost_per_task.value for o in rows) * 1.15)  # type: ignore[union-attr]
     left, width, y, body = 300, 300, 44, []
     for o in rows:
         v = o.cost_per_task.value  # type: ignore[union-attr]
+        span = width * v / top
         label = f"{o.provider} · {o.region} · {o.tier}"
         body.append(f'<text class="v" x="16" y="{y + 11}">{escape(label)}</text>')
         tip = f"{o.offering}: {_number(v, 'USD')}"
-        body.append(_bar(left, y, width * v / top, 14, "s1", tip))
-        body.append(f'<text x="{left + width * v / top + 6:.1f}" y="{y + 11}">'
+        body.append(_bar(left, y, span, 14, "s1", tip))
+        body.append(f'<text x="{left + span + 6:.1f}" y="{y + 11}">'
                     f"{escape(_number(v, 'USD'))}</text>")
         y += 24
     return _svg(680, y + 8, "Cost per task, list price", body)
