@@ -2837,6 +2837,36 @@ def test_checkout_link_and_replay_copy_the_ledger_tier(policy):
     run(scenario())
 
 
+def test_replayed_link_grant_copies_the_tier(policy):
+    """A link whose grant is a replay copies the tier the same way a first grant does."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        holder = _billing_holder(key)
+        primed = await ledger.set_monthly(
+            holder, 4000, "in_replay_link", "Solo", CUS, subscription_id=SUB2)
+        assert primed.credited
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier=policy.billing.downgrade_tier, pending=4000,
+            invoice_id="in_row_replay", pending_invoice_id="in_replay_link"))
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_replay_link", subscription=SUB2, invoice="in_other_replay", metadata=meta)
+        linked = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_replay_link", created=1000)
+        assert linked.status == 200
+        assert linked.body["action"] == "already_entitled"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None and stored.tier == "paid"
+        assert stored.key_fingerprint == fingerprint
+    run(scenario())
+
+
 def _unclaimed_downgrade_event(kind: str) -> tuple[str, dict]:
     if kind == "invoice.payment_failed":
         return kind, invoice_obj(id="in_unclaimed_fail", paid=False, period_start=100, period_end=200)
