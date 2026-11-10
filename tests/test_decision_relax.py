@@ -468,75 +468,278 @@ def test_a_negated_best_gate_on_a_requested_domain_matches_the_per_index_search(
     assert got == literals
 
 
+def test_not_around_any_best_matches_the_per_index_search():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {
+            "model.context_window": 100,
+            "model.max_output_tokens": 30,
+            "licence.commercial_use": "permitted",
+        },
+        "lab/b": {
+            "model.context_window": 40,
+            "model.max_output_tokens": 90,
+            "licence.commercial_use": "prohibited",
+        },
+    })
+    where = [
+        "not(any(model.max_output_tokens >= best(0); model.context_window <= 30))",
+        "not(any(model.max_output_tokens >= best(0); model.context_window <= 30))",
+        "model.max_output_tokens <= 40",
+    ]
+    resolved = _resolved(where)
+    answer = relax.fewest(resolved, index, frozenset())
+    assert answer == _per_index(resolved, index)
+    assert answer == ["model.max_output_tokens <= 40"]
+
+
+def test_a_confirmed_relaxation_is_kept_when_a_later_set_is_larger():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {"model.context_window": 200, "model.max_output_tokens": 10},
+        "lab/b": {"model.context_window": 180, "model.max_output_tokens": 90},
+        "lab/c": {"model.context_window": 50, "model.max_output_tokens": 95},
+        "lab/d": {"model.context_window": 40, "model.max_output_tokens": 20},
+    })
+    where = [
+        "model.max_output_tokens >= best(0)",
+        "model.context_window >= 90",
+        "model.context_window >= best(0)",
+    ]
+    domains = frozenset({"model.max_output_tokens"})
+    resolved = _resolved(where)
+    answer = relax.fewest(resolved, index, domains)
+    assert answer == _per_index(resolved, index, domains)
+    assert answer == ["model.context_window >= best(0.0)"]
+
+
+def test_a_requested_domain_best_gate_is_left_out_of_the_anchor():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {"model.context_window": 200, "model.max_output_tokens": 10},
+        "lab/b": {"model.context_window": 180, "model.max_output_tokens": 90},
+        "lab/c": {"model.context_window": 50, "model.max_output_tokens": 95},
+        "lab/d": {"model.context_window": 40, "model.max_output_tokens": 20},
+    })
+    where = [
+        "model.max_output_tokens >= best(40)",
+        "model.context_window >= best(0)",
+        "model.context_window >= best(40)",
+        "model.max_output_tokens >= best(40)",
+    ]
+    domains = frozenset({"model.max_output_tokens"})
+    resolved = _resolved(where)
+    answer = relax.fewest(resolved, index, domains)
+    assert answer == _per_index(resolved, index, domains)
+    assert answer == ["model.context_window >= best(0.0)"]
+
+
+def test_relaxable_best_gates_are_left_out_of_their_own_anchor():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {
+            "model.context_window": 100,
+            "model.max_output_tokens": 30,
+            "licence.commercial_use": "permitted",
+        },
+        "lab/b": {
+            "model.context_window": 40,
+            "model.max_output_tokens": 90,
+            "licence.commercial_use": "prohibited",
+        },
+        "lab/c": {
+            "model.context_window": 70,
+            "model.max_output_tokens": 60,
+            "licence.commercial_use": "permitted",
+        },
+    })
+    where = [
+        "licence.commercial_use = permitted",
+        "model.max_output_tokens >= best(10)",
+        "model.context_window >= best(10)",
+    ]
+    domains = frozenset({"licence.commercial_use"})
+    resolved = _resolved(where)
+    answer = relax.fewest(resolved, index, domains)
+    assert answer == _per_index(resolved, index, domains)
+    assert answer == ["model.max_output_tokens >= best(10.0)"]
+
+
+def test_an_empty_proposal_still_searches_within_a_fixed_call_count(monkeypatch):
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {
+            "model.context_window": 100,
+            "model.max_output_tokens": 30,
+            "licence.commercial_use": "permitted",
+        },
+        "lab/b": {
+            "model.context_window": 40,
+            "model.max_output_tokens": 90,
+            "licence.commercial_use": "prohibited",
+        },
+    })
+    where = [
+        "all(model.context_window >= best(0); model.max_output_tokens >= 40)",
+        "model.context_window >= 150",
+        "model.lifecycle = retired",
+        "model.max_output_tokens >= best(10)",
+    ]
+    domains = frozenset({"model.max_output_tokens"})
+    resolved = _resolved(where)
+    calls = _counted_apply(monkeypatch)
+    answer = relax.fewest(resolved, index, domains)
+    assert answer == _per_index(resolved, index, domains)
+    assert answer == []
+    assert calls["n"] == 5
+
+
+_GENERATED_POOL = (
+    "model.context_window >= 50",
+    "model.context_window >= 80",
+    "model.context_window >= 150",
+    "model.context_window <= 30",
+    "model.context_window <= 90",
+    "model.context_window <= 200",
+    "model.max_output_tokens >= 40",
+    "model.max_output_tokens >= 80",
+    "model.max_output_tokens <= 40",
+    "model.max_output_tokens <= 90",
+    "licence.commercial_use = permitted",
+    "licence.commercial_use = prohibited",
+    "model.context_window >= best(0)",
+    "model.context_window >= best(10)",
+    "model.context_window >= best(40)",
+    "model.max_output_tokens >= best(0)",
+    "model.max_output_tokens >= best(10)",
+    "model.max_output_tokens >= best(40)",
+    "not(model.context_window >= best(0))",
+    "not(model.context_window >= best(30))",
+    "not(model.max_output_tokens >= best(0))",
+    "not(model.max_output_tokens >= best(10))",
+    "not(model.max_output_tokens >= best(40))",
+    "any(not(model.context_window >= best(0)); model.context_window <= 30)",
+    "any(not(model.max_output_tokens >= best(0)); model.max_output_tokens <= 40)",
+    "not(any(model.context_window >= best(0); model.max_output_tokens <= 30))",
+    "not(any(model.max_output_tokens >= best(0); model.context_window <= 30))",
+    "not(any(model.context_window >= best(10); model.max_output_tokens >= 80))",
+    "not(any(model.max_output_tokens >= best(10); model.context_window >= 50))",
+)
+
+
+def _draw_domain_best(rng, negated):
+    """A best gate on a requested domain beside one relaxable best gate."""
+    facet, other = rng.choice((
+        ("model.context_window", "model.max_output_tokens"),
+        ("model.max_output_tokens", "model.context_window"),
+    ))
+    gate = f"{facet} >= best({rng.choice(('0', '10', '40'))})"
+    if negated:
+        gate = f"not({gate})"
+    where = [gate, f"{other} >= best({rng.choice(('0', '10', '40'))})"]
+    if rng.random() < 0.5:
+        where.append(rng.choice(_GENERATED_POOL))
+    if len(where) < 4 and rng.random() < 0.3:
+        where.append(rng.choice(where))
+    return where, frozenset({facet})
+
+
+def _draw_generated(rng):
+    """At most four gates. The draw covers both numeric facets and ``not(any(best))``."""
+    roll = rng.randrange(10)
+    if roll < 2:
+        return _draw_domain_best(rng, negated=False)
+    if roll < 4:
+        return _draw_domain_best(rng, negated=True)
+    if roll < 6:
+        facet, other, bound = rng.choice((
+            ("model.context_window", "model.max_output_tokens", "30"),
+            ("model.max_output_tokens", "model.context_window", "40"),
+            ("model.context_window", "model.max_output_tokens", "80"),
+            ("model.max_output_tokens", "model.context_window", "50"),
+        ))
+        margin = rng.choice(("0", "10", "40"))
+        where = [f"not(any({facet} >= best({margin}); {other} <= {bound}))"]
+        for _ in range(rng.randint(0, 2)):
+            where.append(rng.choice(_GENERATED_POOL))
+        if len(where) < 4 and rng.random() < 0.4:
+            where.append(where[0])
+        return where, frozenset()
+    count = rng.randint(1, 4)
+    where = [rng.choice(_GENERATED_POOL) for _ in range(count)]
+    if len(where) < 4 and rng.random() < 0.4:
+        where.append(rng.choice(where))
+    return where, frozenset()
+
+
+def _generated_lineups():
+    from tests.snapshot_records import loaded_index
+
+    return [
+        loaded_index({
+            "lab/a": {
+                "model.context_window": 100,
+                "model.max_output_tokens": 30,
+                "licence.commercial_use": "permitted",
+            },
+            "lab/b": {
+                "model.context_window": 40,
+                "model.max_output_tokens": 90,
+                "licence.commercial_use": "prohibited",
+            },
+        }),
+        loaded_index({
+            "lab/a": {
+                "model.context_window": 10,
+                "model.max_output_tokens": 80,
+                "licence.commercial_use": "prohibited",
+            },
+            "lab/b": {
+                "model.context_window": 20,
+                "model.max_output_tokens": 15,
+                "licence.commercial_use": "prohibited",
+            },
+        }, lifecycle={"lab/a": "retired"}),
+        loaded_index({
+            f"lab/w{i}": {
+                "model.context_window": 10 + i * 15,
+                "model.max_output_tokens": 20 + (23 - i) * 8,
+                "licence.commercial_use": "permitted" if i % 2 == 0 else "prohibited",
+            }
+            for i in range(24)
+        }),
+    ]
+
+
 def test_fewest_matches_the_per_index_search_on_generated_cases():
     import random
 
     from decision import relax
-    from tests.snapshot_records import loaded_index
-
-    pool = [
-        "model.context_window >= 50",
-        "model.context_window >= 80",
-        "model.context_window >= 150",
-        "model.context_window <= 30",
-        "model.context_window <= 90",
-        "model.context_window <= 200",
-        "licence.commercial_use = permitted",
-        "licence.commercial_use = prohibited",
-        "model.context_window >= best(0)",
-        "model.context_window >= best(10)",
-        "model.context_window >= best(40)",
-        "not(model.context_window >= best(0))",
-        "not(model.context_window >= best(30))",
-        "any(not(model.context_window >= best(0)); model.context_window <= 30)",
-    ]
-    lineups = [
-        loaded_index({
-            "lab/a": {"model.context_window": 100, "licence.commercial_use": "permitted"},
-            "lab/b": {"model.context_window": 40, "licence.commercial_use": "prohibited"},
-        }),
-        loaded_index({
-            "lab/a": {"model.context_window": 10, "licence.commercial_use": "prohibited"},
-            "lab/b": {"model.context_window": 20, "licence.commercial_use": "prohibited"},
-        }, lifecycle={"lab/a": "retired"}),
-    ]
-    wide = loaded_index({
-        f"lab/w{i}": {
-            "model.context_window": 10 + i * 15,
-            "licence.commercial_use": "permitted" if i % 2 == 0 else "prohibited",
-        }
-        for i in range(24)
-    })
-    requested = frozenset({"licence.commercial_use"})
-
-    def draw(rng):
-        count = rng.randint(1, 4)
-        where = [rng.choice(pool) for _ in range(count)]
-        if rng.random() < 0.4:
-            where.append(rng.choice(where))
-        return where
 
     def check(lineup, where, domains, mismatches):
         resolved = _resolved(where)
         got = relax.fewest(resolved, lineup, domains)
         expected = _per_index(resolved, lineup, domains)
         if got != expected:
-            mismatches.append((where, got, expected))
+            mismatches.append((where, sorted(domains), got, expected))
 
     rng = random.Random(458)
     mismatches = []
-    for lineup in lineups:
-        for _ in range(240):
-            check(lineup, draw(rng), frozenset(), mismatches)
-        for _ in range(40):
-            check(
-                lineup,
-                ["licence.commercial_use = permitted", *draw(rng)],
-                requested,
-                mismatches,
-            )
-    for _ in range(30):
-        check(wide, draw(rng), frozenset(), mismatches)
+    pair, retired, wide = _generated_lineups()
+    for lineup, count in ((pair, 80), (retired, 80), (wide, 24)):
+        for _ in range(count):
+            where, domains = _draw_generated(rng)
+            check(lineup, where, domains, mismatches)
     assert mismatches == []
 
 
