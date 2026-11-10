@@ -333,6 +333,33 @@ def test_public_watchers_dispatch_private_workflows_with_only_dispatch_credentia
     assert "steps.pending.outputs.count != '0'" in gate
 
 
+@pytest.mark.parametrize("body", [
+    "{}", '{"error":{"message":"private-fixture-content"}}', "null",
+    '{"signals":null,"rechecks":null}', '{"signals":{},"rechecks":{}}',
+    '{"signals":[],"rechecks":null}', '{"signals":null,"rechecks":[]}',
+    '"private-fixture-content"', "[]", "42", "true", "", "{",
+    '{"signals":[],"rechecks":[]}\n{"signals":[],"rechecks":[]}',
+])
+def test_pending_gate_rejects_malformed_response_without_publishing_body(tmp_path, body):
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release-signals-gate.yml").read_text())
+    step = workflow["jobs"]["pending"]["steps"][0]
+    source = step["run"][step["run"].index("count=$(jq "):]
+    (tmp_path / "pending.json").write_text(body)
+    output = tmp_path / "output"
+    result = subprocess.run(
+        ["bash", "-e", "-c", source], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output)},
+    )
+    assert result.returncode != 0, "malformed pending response must fail the step"
+    assert not output.exists()
+    assert result.stderr
+    assert not result.stdout
+    assert "private-fixture-content" not in result.stderr
+
+
 @pytest.mark.parametrize(
     "uses",
     [
