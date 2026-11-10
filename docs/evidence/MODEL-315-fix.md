@@ -66,7 +66,11 @@ env SPIKE_IMAGE=modelspec-model-315-spike /Users/terbeest/dev/modelspec/.venv/bi
 ```
 
 The same three named probes passed: `Ran 2 tests in 0.396s / OK`, then
-`Ran 1 test in 0.561s / OK`. The final probes also require empty stderr.
+`Ran 1 test in 0.561s / OK`. The version probe, the round-trip probe, and
+the restart probe's positive commands require empty stderr. The original
+negative lookup checked exit code 1 and empty stdout only. The review fix
+round adds an empty-stderr assertion to that lookup.
+
 An earlier run passed with a D-Bus runtime-directory warning. Mounting the
 private runtime tmpfs before D-Bus started removed that warning. The first
 keyring-only successes were also measured on the inspector image before the
@@ -261,6 +265,7 @@ class RestartProbe(unittest.TestCase):
                                     capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertEqual(result.stdout, '')
+            self.assertEqual(result.stderr, '')
         finally:
             self.command(['docker', 'volume', 'rm', VOLUME])
 
@@ -351,3 +356,60 @@ CI_LOCAL_SKIP=1 git push -u origin model-315-agy-spike
 The draft PR uses the exact ticket title, base `main`, head
 `model-315-agy-spike`, and the ModelSpec executor footer. No merge or readiness
 change is part of this task.
+
+## Review fix round
+
+Reviewed head: `8039507c0c99cbb07994afe4a72f50df9fc690ca`. Python 3.14.4.
+Neither check started Docker or touched a keyring.
+
+### Finding 1: empty stderr on the absent-volume lookup
+
+Before this edit, the published `RestartProbe` treated exit code 1 and empty
+stdout as a successful absent-volume lookup. It did not check stderr. A mocked
+lookup that prints `secret-tool: Could not connect to Secret Service` on
+stderr still passed.
+
+Reproduction, run from this worktree against the reviewed head. The script
+extracts the published `RestartProbe` and mocks all six subprocess calls:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-315-scratch/reproduce_negative_control.py
+```
+
+Exit 0. Output: `mocked_subprocess_calls: 6`,
+`published_probe_accepts_keyring_error: True`, and `Ran 1 test ... OK`.
+
+Change: the negative lookup now includes `self.assertEqual(result.stderr, '')`.
+The runtime section no longer says every final probe required empty stderr.
+The version probe, the round-trip probe, and the restart probe's positive
+commands did. The original negative lookup did not.
+
+The same reproduction script, run after the edit, exits 1. The published test
+fails with `AssertionError: 'secret-tool: Could not connect to Secret Service\n' != ''`.
+The script then prints `published_probe_accepts_keyring_error: False` and
+`mocked_subprocess_calls: 6`. Its own closing assertion expects the old
+acceptance, so the process exit code is 1.
+
+A second offline run checks both outcomes against the corrected probe:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-315-scratch/corrected_negative_control.py
+```
+
+Exit 0. `mocked_subprocess_calls_error: 6`. `mocked_subprocess_calls_clean: 6`.
+`published_probe_accepts_keyring_error: False`.
+`published_probe_accepts_empty_stderr: True`.
+`keyring_error_failed_on_stderr_assertion: True`.
+
+The original container run was not repeated. Its recorded result remains exit
+1 and empty stdout for the unmounted HOME. The published probe now rejects the
+connection error that the old check accepted. The research note keeps the
+absence claim and records this offline result.
+
+Focused document suites, serial, after this edit:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py tests/test_api_docs.py tests/test_surface_lint.py
+```
+
+Exit 0. `280 passed, 3 skipped in 66.11s`.

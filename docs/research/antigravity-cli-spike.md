@@ -28,7 +28,11 @@ probe used `--network=none`, dropped all capabilities and prevented privilege
 escalation. The test volume was removed afterward. The saved-image scan found
 no dummy value in any of 19 saved-image files, including gzip-decoded layer data.
 A new container without the volume also returned no dummy value. No real
-credential was present anywhere in this experiment.
+credential was present anywhere in this experiment. The published negative
+lookup requires exit code 1, empty stdout, and empty stderr. An offline rerun
+of that lookup, with all six subprocess calls mocked and no Docker, rejects a
+Secret Service connection error on stderr. The container run itself was not
+repeated in the review fix.
 
 `dbus-run-session` wraps a shell that starts `gnome-keyring-daemon --unlock
 --components=secrets`. Its storage is under `/home/agent/.local/share/keyrings`
