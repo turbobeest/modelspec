@@ -105,7 +105,12 @@ async function call(method: "POST" | "DELETE", body: unknown): Promise<FeedbackR
         signal: timeout.signal,
       });
     } catch {
-      throw new FeedbackError("Feedback could not be sent. Check your connection and try again.", null);
+      throw new FeedbackError(
+        method === "DELETE"
+          ? "Feedback could not be deleted. Check your connection and try again."
+          : "Feedback could not be sent. Check your connection and try again.",
+        null,
+      );
     }
     const payload: unknown = await response.json().catch(() => null);
     if (response.ok) {

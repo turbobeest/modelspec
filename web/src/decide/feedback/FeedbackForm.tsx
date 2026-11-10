@@ -8,11 +8,13 @@ import {
 } from "./client";
 import type { FeedbackRating, FeedbackResult } from "./client";
 
+type Recorded = Extract<FeedbackResult, { status: "recorded" }>;
 type Sent =
   | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "done"; result: FeedbackResult }
   | { kind: "withdrawn" }
+  | { kind: "withdraw-failed"; result: Recorded; message: string }
   | { kind: "error"; message: string };
 
 /**
@@ -66,35 +68,40 @@ export function FeedbackForm({
     }
   };
 
-  const undo = async (receipt: string) => {
+  const undo = async (result: Recorded) => {
     try {
-      await withdrawFeedback(receipt);
+      await withdrawFeedback(result.receipt);
       setSent({ kind: "withdrawn" });
     } catch (error) {
       setSent({
-        kind: "error",
+        kind: "withdraw-failed",
+        result,
         message: error instanceof FeedbackError ? error.message : "It could not be deleted.",
       });
     }
   };
 
-  if (sent.kind === "done" || sent.kind === "withdrawn") {
+  if (sent.kind === "done" || sent.kind === "withdrawn" || sent.kind === "withdraw-failed") {
+    const recorded = sent.kind !== "withdrawn" && sent.result.status === "recorded" ? sent.result : null;
     return (
       <div className="feedback-form feedback-sent">
-        <p ref={status} tabIndex={-1} role="status">
+        <p ref={sent.kind === "withdraw-failed" ? undefined : status} tabIndex={sent.kind === "withdraw-failed" ? undefined : -1} role="status">
           {sent.kind === "withdrawn"
             ? "Deleted. Nothing of it is kept."
             : sent.result.status === "recorded"
               ? "Thank you. Your feedback was recorded."
               : "Thank you. Feedback storage is not switched on yet, so nothing was kept."}
-          {sent.kind === "done" && sent.result.status !== "deleted" && sent.result.redacted.length > 0 &&
+          {sent.kind !== "withdrawn" && sent.result.status !== "deleted" && sent.result.redacted.length > 0 &&
             ` We removed what looked like ${sent.result.redacted.map((kind) => kind.replaceAll("_", " ")).join(", ")} before it was kept.`}
         </p>
-        {sent.kind === "done" && sent.result.status === "recorded" && (
-          <button type="button" className="text-button" onClick={() => {
-            if (sent.result.status === "recorded") void undo(sent.result.receipt);
-          }}>
-            Undo and delete it
+        {sent.kind === "withdraw-failed" && (
+          <p ref={status} tabIndex={-1} role="alert" className="feedback-error">
+            {sent.message}
+          </p>
+        )}
+        {recorded && (
+          <button type="button" className="text-button" onClick={() => void undo(recorded)}>
+            {sent.kind === "withdraw-failed" ? "Retry deleting it" : "Undo and delete it"}
           </button>
         )}
       </div>
