@@ -320,3 +320,19 @@ def test_cli_report_is_explicit_in_json_and_text(monkeypatch, capsys):
     assert '1. ' in output and '  measured  coverage 100%' in output
     assert 'UNRANKED  Absent' in output
     assert 'not ranked low' in output
+
+
+def test_disabled_benchmark_does_not_raise_required_measurement_count():
+    row = score(Candidate(
+        'synthetic', 'Synthetic', 'Example', 'llm-code',
+        benchmark_scores={'a': 50},
+    ), {
+        'benchmark_weights': {'a': 1.0, 'disabled': 0.0},
+        'cost_weight': 0,
+        'context_weight': 0,
+    })
+    assert row['rank_status'] == 'ranked'
+    assert row['required_benchmark_count'] == row['benchmark_count'] == 1
+    assert row['benchmark_coverage'] == 1.0
+    assert row['score'] == 20.0
+    assert row['missing_benchmarks'] == []
