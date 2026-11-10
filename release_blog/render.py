@@ -391,8 +391,10 @@ def _record_text(text: str) -> str:
     """A quotation of record text: one code span, never markup.
 
     A backtick would end that span, so the quotation uses an apostrophe there.
+    Line breaks are flattened first so the span stays one line.
     """
-    return _code(text.replace("`", "'"))
+    flat = " ".join(text.split())
+    return _code(flat.replace("`", "'"))
 
 
 def _caveat_lines(rows: Sequence[Any], notes: Footnotes) -> list[str]:
