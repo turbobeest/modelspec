@@ -242,6 +242,24 @@ def test_router_export_never_admits_a_keyless_machine_or_site_credential(
     assert worker.env.ACCESS.store.data == {}
 
 
+def test_a_keyed_router_config_replays_on_the_same_snapshot(entry, service, snapshot):
+    import decision_link
+
+    payload = _request()
+    status, body = service.decide(payload, snapshot)
+    assert status == 200, body
+    assert "router_config" in body
+    page = decision_link.replay({
+        "snapshot": snapshot.snapshot_id,
+        "content_hash": snapshot.content_hash,
+        "service_commit": "c0ffee",
+        "decision_id": body["decision_id"],
+        "inputs": payload,
+    }, snapshot, "c0ffee")
+    assert page["decision_id"] == body["decision_id"]
+    assert page["summary_for_user"] == body["summary_for_user"]
+
+
 def test_keyed_router_export_uses_the_signed_snapshot_at_the_entry_boundary(entry, monkeypatch):
     import access_keys
 

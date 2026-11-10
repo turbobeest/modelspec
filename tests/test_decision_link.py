@@ -215,6 +215,18 @@ def test_complete_and_drill_down_keep_their_budgets(entry, snapshot, monkeypatch
     assert mcp_text_bytes(drill) <= AGENT_BYTES
 
 
+def test_link_round_trip_accepts_explicit_null_router_config(entry, snapshot, monkeypatch):
+    worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED="true")
+    response = decide(worker, router_config=None)
+    assert response.status == 200, response.body
+    body = response.json()
+    assert body.get("decision_url"), body
+    token = parse_qs(urlparse(body["decision_url"]).query)["token"][0]
+    page = view(worker, body["decision_id"], token)
+    assert page.status == 200, page.body
+    assert page.json()["summary_for_user"] == body["summary_for_user"]
+
+
 def test_page_discloses_benchmark_exclusions_and_unapplied_task_type(entry, snapshot, monkeypatch):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED="true")
     body = decide(worker, exclude_benchmarks=["swe_bench_pro"], task_type="docs",

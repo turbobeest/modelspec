@@ -121,7 +121,8 @@ def replay(capsule: dict, snapshot, service_commit: str) -> dict:
             or body.get("decision_id") != capsule["decision_id"]:
         raise LinkRefusal(404, "This decision link cannot be reproduced.")
     spec = contract.parse_spec({key: value for key, value in capsule["inputs"].items()
-                                if key not in ("fields", "evidence_for")}, facets=None)
+                                if key not in ("fields", "evidence_for", "router_config")},
+                               facets=None)
     normalized = spec.model_dump(mode="json")
     applied = {key: normalized[key] for key in ("where", "optimize", "unknowns", "task_tokens")}
     if applied["task_tokens"] is None:
