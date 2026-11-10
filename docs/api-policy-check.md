@@ -27,7 +27,8 @@ bytes.
 | `require_no_undetermined` | `true` turns any undetermined row into a 422 |
 | `models`, `platforms` | narrow the check; an unknown id is a 400 |
 | `verdicts` | filter returned rows; counts are unaffected |
-| `limit`, `offset` | 0–500, default 50; page `result` only |
+| `limit` | integer 0–500, default 50; page `result` only |
+| `offset` | nonnegative integer, default 0; page `result` only |
 
 Regions match literally. No country is mapped onto a cloud region.
 
@@ -77,6 +78,7 @@ in [`api.md`](api.md#keys-limits-and-the-sandbox). Use an existing key, or see
 ```bash
 curl -sS -X POST https://api.modelspec.dev/v1/policy-check \
   -H 'content-type: application/json' \
+  -H 'Authorization: Bearer <key>' \
   -d '{"policy":{"licence":{"allowed":["apache-2.0","mit"]},
                  "residency":{"required_regions":["eu-west-1"]}},
        "models":["deepcogito/cogito-671b-v2-1"],"platforms":["together_ai"]}'
@@ -202,5 +204,5 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 413 | `payload_too_large` | body over 262144 bytes | omit `models` and page with `limit` and `offset` |
 | 422 | `undetermined_present` | `require_no_undetermined` and some rows are unknown | narrow with `models` or `platforms`, or drop the flag. `error.examples` holds up to ten rows |
 | 502 | `export_unavailable` | the policy export could not be read | retry; not your request |
-| 400 | `sandbox_not_available` | a `test_` key: the sandbox answers `/v1/rank` only | call without a key, or with a live key |
+| 400 | `sandbox_not_available` | a `test_` key: the sandbox answers `/v1/rank` only | call with a live key |
 | 503 | `determinations_unavailable` | a paid-tier key, and the store could not be read | retry. Never downgraded to the free answer |

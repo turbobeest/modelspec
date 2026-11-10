@@ -52,7 +52,12 @@ FalkorDB is optional local graph exploration only. It is not required to rank, f
 
 Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Sign off commits (`git commit -s`) to certify the [`DCO`](DCO) — not a copyright assignment. Every fact carries a source and the date it was read; unknown means an empty field.
 
-Cards live in `models/{provider}/{model-slug}.md`. Edit and open a PR.
+The public catalogue is a frozen data image. Fresh card edits belong in the
+private [`turbobeest/modelspec-data`](https://github.com/turbobeest/modelspec-data)
+repository, under `models/{provider}/{model-slug}.md`; open the data PR there.
+The public repository's Data freeze check rejects ordinary fresh-card PRs.
+See the [data-split process](docs/design/data-split.md) for the data paths and
+publication flow. Code and documentation changes belong in this repository.
 
 ## License
 

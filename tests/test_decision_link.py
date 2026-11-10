@@ -84,9 +84,10 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
 
 def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
-    # Reviewed hardware-fit copy and MODEL-404's detailed-board links and guide version.
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "8bc2672473af4b9e4c1709b923c4be95b98e89b1c1a42e391cd323c37f5468c8"
-    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "6fc541536d3d18442ac260767d254fc02216577951fac36aae92de700ae27a37"
+    # Reviewed hardware-fit copy and MODEL-404's detailed-board links.
+    # MODEL-458 refreshed the guide hash when hosted snapshot replay was qualified.
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "e96214d3414d787ac61b8a5e2f1ac8060d18766bde74a66a8c2b1c0551d5b96a"
+    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "f388412bbb28eaece530bae22ffed2822b7480f36302b4e05916c8c6f9439028"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86"
 
