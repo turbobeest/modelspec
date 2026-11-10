@@ -878,6 +878,70 @@ def test_the_band_compares_each_model_to_the_leader_by_probability_not_overlap()
     assert gamma.score_interval[1] >= alpha.score_interval[0]  # the old rule tied them
 
 
+
+@pytest.mark.parametrize("access, estate", [
+    (None, None), ("own_software", None),
+    ("own_software", {"providers": ["sambanova"]}), ("chat_app", None),
+])
+@pytest.mark.parametrize("price, speed, cheapest, fastest", [
+    (None, None, None, None), (None, 50, None, "lab/a"),
+    (4, None, "lab/a", None), (4, 50, "lab/a", "lab/a"),
+    (2, 100, None, None),
+])
+def test_tie_extrema_require_known_values_for_every_member(
+    access, estate, price, speed, cheapest, fastest,
+):
+    from tests.snapshot_records import subscription
+
+    models, offers, plans = [], [], []
+    for mid, cost, throughput in [("lab/a", 2, 100), ("lab/b", price, speed)]:
+        models.append(model(mid, facts=[
+            fact("model", mid, "model.context_window", 128000),
+            fact("model", mid, "model.weights_openness", "closed_weights"),
+        ]))
+        oid = f"sambanova/{mid}/global/standard"
+        facts = []
+        if cost is not None:
+            facts.extend(fact("offering", oid, facet, cost, source="src-pricing")
+                         for facet in ["offering.price.input", "offering.price.output"])
+        if throughput is not None:
+            facts.append(fact("offering", oid, "offering.speed.throughput", throughput))
+        offers.append(offering(mid, facts=facts))
+        name = mid.split("/")[1]
+        sid = f"sambanova/subscription/{name}"
+        facts = [fact("offering", sid, "offering.subscription." + facet, value,
+                      source="src-pricing") for facet, value in [
+            ("models_covered", [mid]), ("surfaces", ["chat_app"]),
+            ("billing_period", "monthly"),
+        ]]
+        if cost is not None:
+            facts.append(fact("offering", sid, "offering.subscription.price", cost,
+                              source="src-pricing"))
+        plans.append(subscription(plan=name, facts=facts))
+    index = load_built_snapshot(build_snapshot(
+        SnapshotInputs(models=models, offerings=offers, subscriptions=plans, sources=SOURCES),
+        registry=default_registry(), as_of=AS_OF,
+    ))
+    request = {"spec_version": 1, "optimize": {"max": "model.context_window"},
+               "explain": "full"}
+    if access is not None:
+        request["access"] = access
+    if estate is not None:
+        request["estate"] = estate
+    result = decide(parse_spec(request, facets=default_registry().facet), index,
+                    facets=default_registry().facet)
+    answers = [result.answer]
+    if estate is not None:
+        assert result.with_estate is not None
+        answers.append(result.with_estate.answer)
+    for answer in answers:
+        assert answer is not None and answer.kind == "tied"
+        assert set(answer.members) == {"lab/a", "lab/b"}
+        assert (answer.tie_breakers.cheapest, answer.tie_breakers.fastest) == (cheapest, fastest)
+    costs = {row.model: row.cost_per_task for row in result.results}
+    assert costs == ({"lab/a": None, "lab/b": None} if access == "chat_app" else
+                     {"lab/a": 0.088, "lab/b": {None: None, 2: 0.088, 4: 0.176}[price]})
+
 def test_one_models_offerings_never_tie_with_each_other_in_the_answer() -> None:
     rows = [
         evidence("lab/alpha", "quality", 90, interval=[89, 91]),

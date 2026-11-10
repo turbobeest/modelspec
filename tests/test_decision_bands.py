@@ -73,6 +73,52 @@ def test_the_width_threshold_is_strict() -> None:
     assert bands.thin(_row("lab/over", 0.0, width=bands.THIN_INTERVAL_WIDTH + 1e-9, sd=1.0))
 
 
+
+@pytest.mark.parametrize("leader_value, challenger_value, joins", [
+    (1.0, 0.3254, False),
+    (0.6744897601960818, 0.0, False),
+    (0.6744897401960817, 0.0, True),
+])
+def test_best_band_membership_precedes_probability_rounding(leader_value, challenger_value, joins):
+    rows = [_row("lab/a", leader_value), _row("lab/b", challenger_value)]
+    result = bands.band(rows, {
+        "lab/a": Distribution(leader_value, 0.0),
+        "lab/b": Distribution(challenger_value, 1.0),
+    }, lambda cid: cid, {})
+    assert result.p_beats["lab/b"] == 0.25
+    assert [row.candidate_id for row in result.best] == (["lab/a", "lab/b"] if joins else ["lab/a"])
+    assert [row.candidate_id for row in result.rest] == ([] if joins else ["lab/b"])
+
+
+def test_best_band_includes_probability_exactly_at_threshold(monkeypatch):
+    # Pin the numerical boundary independently of platform libm rounding.
+    monkeypatch.setattr(bands, "erfc", lambda _: 0.5)
+    rows = [_row("lab/a", 1.0), _row("lab/b", 0.0)]
+    result = bands.band(rows, {"lab/a": Distribution(1.0, 0.0),
+                               "lab/b": Distribution(0.0, 1.0)}, lambda cid: cid, {})
+    assert result.p_beats["lab/b"] == 0.25
+    assert [row.candidate_id for row in result.best] == ["lab/a", "lab/b"]
+    assert result.rest == ()
+
+
+@pytest.mark.parametrize("low, high, is_thin", [
+    (-0.1, 2.7, False), (0.2, 3.0, False), (-3.0, -0.2, False),
+    (-0.1, 2.699999999, False), (-0.1, 2.700000001, True),
+    (0.2, 3.000000001, True), (-3.0, -0.199999999, True),
+])
+def test_band_and_blend_width_boundaries_ignore_interval_offset(low, high, is_thin):
+    value = (low + high) / 2
+    estimate = CapabilityEstimateValue(value, low, high, 1.0)
+    part = DimensionContribution("software_engineering", value, value, 1.0,
+                                 Normalisation(0.0, 1.0, "max"), estimate=estimate)
+    row = OptimisedResult("lab/a", (part,), value, 0.0, ())
+    assert bands.thin(row) is is_thin
+    banded = bands.band([row], {"lab/a": Distribution(value, 1.0)}, lambda cid: cid, {})
+    assert [item.candidate_id for item in banded.thin] == (["lab/a"] if is_thin else [])
+    (term,) = bands.blend([row], lambda cid: cid, lambda _: {"lab/a": 1.0})
+    assert term.thin == (["lab/a"] if is_thin else [])
+    assert term.order == ([] if is_thin else ["lab/a"])
+
 def test_when_every_model_is_thin_there_is_no_leader() -> None:
     rows = [_row("lab/a", 0.9, width=4.0, sd=1.5), _row("lab/b", 0.5, width=4.0, sd=1.5)]
 
