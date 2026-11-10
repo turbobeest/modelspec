@@ -87,6 +87,22 @@ def normalize(text: str) -> str:
     return " ".join(html.unescape(text).split())
 
 
+def _inline_visibility(style: str) -> dict[str, str]:
+    """Explicit inline declarations only; no stylesheet or selector evaluation."""
+    declarations: dict[str, tuple[bool, str]] = {}
+    for declaration in style.split(";"):
+        match = re.fullmatch(
+            r"\s*(display|visibility)\s*:\s*([a-z-]+)\s*(!\s*important)?\s*",
+            declaration, re.I,
+        )
+        if match:
+            prop, value, important = match.groups()
+            prop = prop.lower()
+            if prop not in declarations or important or not declarations[prop][0]:
+                declarations[prop] = (bool(important), value.lower())
+    return {prop: value for prop, (_, value) in declarations.items()}
+
+
 class Page(HTMLParser):
     """Rendered text, metadata and JSON-LD; inline links preserve word spacing."""
 
@@ -121,7 +137,7 @@ class Page(HTMLParser):
         self.links: list[str] = []
         self.attribute_values: list[str] = []
         self.ld: list[str] = []
-        self.hidden: list[str] = []
+        self.visibility: list[tuple[str, bool, bool]] = []
         self.in_title = False
         self.in_ld = False
         self.paragraphs: list[str] = []
@@ -145,19 +161,23 @@ class Page(HTMLParser):
         if tag == "script" and (attributes.get("type") or "").lower() == "application/ld+json":
             self.in_ld = True
             self.ld.append("")
-        if (
-            tag in self.INVISIBLE
-            or self.hidden
-            or "hidden" in attributes
-            or attributes.get("aria-hidden") == "true"
-        ):
-            if tag not in self.VOID:
-                self.hidden.append(tag)
-        elif tag in self.BLOCKS:
+        style = _inline_visibility(attributes.get("style") or "")
+        _, excluded, invisible = self.visibility[-1] if self.visibility else ("", False, False)
+        excluded = (excluded or tag in self.INVISIBLE or "hidden" in attributes
+                    or attributes.get("aria-hidden") == "true" or style.get("display") == "none")
+        if style.get("visibility") in {"hidden", "collapse", "visible"}:
+            invisible = style["visibility"] != "visible"
+        if tag not in self.VOID:
+            self.visibility.append((tag, excluded, invisible))
+        if not excluded and not invisible and tag in self.BLOCKS:
             self.parts.append(" ")
             if tag == "p":
                 self.paragraph = len(self.paragraphs)
                 self.paragraphs.append("")
+
+    @property
+    def hidden(self) -> bool:
+        return bool(self.visibility and any(self.visibility[-1][1:]))
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "p":
@@ -166,9 +186,10 @@ class Page(HTMLParser):
             self.in_title = False
         if tag == "script":
             self.in_ld = False
-        if tag in self.hidden:
-            at = len(self.hidden) - 1 - self.hidden[::-1].index(tag)
-            del self.hidden[at:]
+        for at in range(len(self.visibility) - 1, -1, -1):
+            if self.visibility[at][0] == tag:
+                del self.visibility[at:]
+                break
         if tag in self.BLOCKS and not self.hidden:
             self.parts.append(" ")
 

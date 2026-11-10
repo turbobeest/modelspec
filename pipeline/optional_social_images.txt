@@ -1,0 +1,45 @@
+# count: 42
+# Optional social images the default build references and does not write.
+# Remove a line when that file is part of the default build. Do not add a line.
+og-card-landing.png
+og-card-pricing.png
+og-card-template-assistant-balanced.png
+og-card-template-assistant-best.png
+og-card-template-assistant-budget.png
+og-card-template-assistant-fastest.png
+og-card-template-budget-coding.png
+og-card-template-coding-balanced.png
+og-card-template-coding-best.png
+og-card-template-coding-fastest.png
+og-card-template-coding-private.png
+og-card-template-documents-best.png
+og-card-template-documents-budget.png
+og-card-template-documents-fastest.png
+og-card-template-documents-private.png
+og-card-template-eu-data.png
+og-card-template-high-volume-balanced.png
+og-card-template-high-volume-best.png
+og-card-template-high-volume-fastest.png
+og-card-template-high-volume.png
+og-card-template-long-documents.png
+og-card-template-maths-reasoning-balanced.png
+og-card-template-maths-reasoning-budget.png
+og-card-template-maths-reasoning-fastest.png
+og-card-template-maths-reasoning-private.png
+og-card-template-maths.png
+og-card-template-private-self-host.png
+og-card-template-regional-best.png
+og-card-template-regional-budget.png
+og-card-template-regulated-best.png
+og-card-template-regulated-budget.png
+og-card-template-regulated-data.png
+og-card-template-retrieval-balanced.png
+og-card-template-retrieval-budget.png
+og-card-template-retrieval-embeddings.png
+og-card-template-retrieval-fastest.png
+og-card-template-retrieval-private.png
+og-card-template-writing-balanced.png
+og-card-template-writing-best.png
+og-card-template-writing-budget.png
+og-card-template-writing-fastest.png
+og-card-template-writing-private.png
