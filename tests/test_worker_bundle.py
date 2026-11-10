@@ -362,6 +362,92 @@ def test_worker_snapshot_callers_stay_on_the_hmac_path() -> None:
             service.load_snapshot(b"unused", key=empty)
 
 
+def _snapshot_loader_bindings(tree: ast.AST) -> tuple[set[str], set[str]]:
+    imported: set[str] = set()
+    modules: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "decision.snapshot":
+            for alias in node.names:
+                if alias.name == "load_snapshot":
+                    imported.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ImportFrom) and node.module == "decision":
+            for alias in node.names:
+                if alias.name == "snapshot":
+                    modules.add(alias.asname or alias.name)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "decision.snapshot" and alias.asname:
+                    modules.add(alias.asname)
+    return imported, modules
+
+
+def _snapshot_call_kind(
+    func: ast.expr, imported: set[str], modules: set[str],
+) -> str | None:
+    if isinstance(func, ast.Name):
+        if func.id == "load_snapshot_bytes":
+            return "load_snapshot_bytes"
+        if func.id in imported:
+            return "load_snapshot"
+        return None
+    if not isinstance(func, ast.Attribute):
+        return None
+    if func.attr == "load_snapshot_bytes":
+        return "load_snapshot_bytes"
+    if func.attr != "load_snapshot":
+        return None
+    value = func.value
+    if (
+        isinstance(value, ast.Attribute)
+        and value.attr == "snapshot"
+        and isinstance(value.value, ast.Name)
+        and value.value.id == "decision"
+    ):
+        return "load_snapshot"
+    if isinstance(value, ast.Name) and value.id in modules:
+        return "load_snapshot"
+    return None
+
+
+def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
+    sites: list[tuple[str, str, str]] = []
+    root = WORKER_ROOT / "src"
+
+    def walk(
+        node: ast.AST, scope: str, imported: set[str], modules: set[str], rel: str,
+    ) -> None:
+        if isinstance(node, ast.Call):
+            kind = _snapshot_call_kind(node.func, imported, modules)
+            if kind is not None:
+                sites.append((rel, scope, kind))
+        for child in ast.iter_child_nodes(node):
+            child_scope = (
+                child.name
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                else scope
+            )
+            walk(child, child_scope, imported, modules, rel)
+
+    for path in sorted(root.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        imported, modules = _snapshot_loader_bindings(tree)
+        walk(tree, "<module>", imported, modules, path.relative_to(root).as_posix())
+    return sites
+
+
+def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
+    sites = _worker_snapshot_call_sites()
+    defining = "decision/snapshot.py"
+    assert sorted(site for site in sites if site[0] != defining) == [
+        ("decide_service.py", "load_snapshot", "load_snapshot_bytes"),
+        ("entry.py", "<module>", "load_snapshot_bytes"),
+    ]
+    assert sorted(site for site in sites if site[0] == defining) == [
+        ("decision/snapshot.py", "load_built_snapshot", "load_snapshot_bytes"),
+        ("decision/snapshot.py", "load_snapshot", "load_snapshot_bytes"),
+    ]
+
+
 def test_decision_startup_does_not_load_the_full_card_schema() -> None:
     result = subprocess.run(
         [sys.executable, "-c", "import sys; import decision.model; "
