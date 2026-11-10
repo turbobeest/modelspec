@@ -137,9 +137,10 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ### AUD-01-F4
 
 A dropped gate kept the retired-model opt-in from the condition it removed, so
-a reported admission did not replay. `include_retired` is now derived from the
-conditions still on the resolved spec. Dropping the only opt-in admits nobody.
-A lifecycle opt-in that remains still admits retired models.
+a reported admission did not replay. In this round `include_retired` was
+derived from the conditions still on the resolved spec. Dropping the only
+opt-in admits nobody. A lifecycle opt-in that remains still admits retired
+models. Round 3 stores the field again; see below.
 
 The new regressions failed before the change (exit 1, `2 failed`). This
 command then returned exit 0, `95 passed in 2.59s`:
@@ -152,9 +153,9 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 
 Relaxation search stays exact: the fewest relaxable gates, caps and floors
 before spec order. Equivalent gates are one choice. A candidate's failing
-gates name the set, and the filter confirms it. A `best(m)` gate still
-searches those choices because its threshold depends on the gates that remain.
-No previously accepted spec is refused.
+gates name the set, and the filter confirms it. The search spends a bounded
+number of filter runs. Round 3 caps that spend at 64 calls. No previously
+accepted spec is refused.
 
 The new work-budget regressions failed before the change. The cap-preference
 test passed on the old search. After the change this command returned exit 0,
@@ -170,13 +171,15 @@ On the pre-change code, spec numbers that are not finite were accepted, and
 finite weights whose products overflow produced scores that are not JSON.
 Finite constraint values, including very large finite values, zero, negative
 limits, and integers that do not fit in a float, already returned a valid
-decision and still do. Non-finite spec numbers are now rejected. Overflowing
+decision and still do. This round rejected non-finite spec numbers. Round 3
+narrows that refusal to the classes the base already failed. Overflowing
 finite weights still return a decision; one common scale keeps every score and
 score interval finite and preserves order. When every product and sum is
 already finite, the score expression is unchanged. An ordinary max of two
 finite values still scores 1.0 and 0.0.
 
-The new module failed before the change (exit 1, `11 failed, 7 passed`).
+The new module failed before the change. Re-measured on the base, that run
+returned exit 1, `10 failed, 8 passed`.
 After the change:
 
 ```sh
@@ -203,6 +206,72 @@ and produced the existing warning. No gate was raised.
 | --- | ---: | ---: | ---: | --- |
 | Current | 114273370 | 108.979578 | 115 | Pass |
 | Successor | 109756866 | 104.672304 | 115 | Pass |
+
+`vendor.py --check` restored the public bundle and returned exit 0. The
+worktree was clean afterward. No production settings, ranking floors, legal
+text, frozen data, prices, plans, or release tags were changed.
+
+## Round 3
+
+`origin/main` was merged before these fixes. `contract_version` stays 2.19.
+No contract field changes type or range. `decision/engine.py`,
+`decision/explain.py`, `decision/filter.py`, `decision/bands.py` and
+`api/ranking/engine.py` were not edited.
+
+### AUD-01-F6
+
+Round 2 rejected every non-finite spec number. That refused specs the base
+already answered. Measured on the base, a class is refused only when that
+same request already failed. A weight that is not finite is rejected. Compact
+`NaN`, `Infinity` and `-Infinity` tokens stay rejected. Compare values,
+windows, set values, best margins, tolerances, memory sizes and budgets that
+already decided still decide, with the same status and ranks. A non-finite
+near-miss distance is omitted, so the full explanation is strict JSON and
+round-trips through `Decision`. Scores that would overflow are reported on a
+common power-of-two scale. Reported weights and penalties stay the caller's.
+A zero shift leaves the finite score expression unchanged.
+
+Weights `{context: 1e308, max_output: 1e308}` with `soft(0.5)` report weight
+`1e308` and `soft_penalty` 0.5. Order is unchanged. The response round-trips.
+
+### AUD-01-F4
+
+`include_retired` is a stored field again. `without()` drops gates and
+recomputes it from the conditions that remain. A trial that only reorders or
+rewrites a condition keeps the stored opt-in. A retired `lab/old` at context
+64, asked for by `model.lifecycle = retired` and eliminated by
+`model.context_window >= 128`, explains one context row: value 64, unit
+tokens, record `lab/old#model.context_window`, basis `snapshot measurement`.
+
+### AUD-01-F7
+
+`fewest` spends at most 64 filter calls. When that budget is spent it returns
+no relaxation. That empty result is deterministic. An already feasible spec
+uses the old size, cap and index order and stops at the first drop that
+confirms. Generated cases, 240 on each of two lineups with seed 458, matched
+that search with 0 mismatches. Twelve, fourteen and sixteen caps beside one
+best margin each stayed within 32 filter calls.
+
+### Focused tests
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_numeric_bounds.py tests/test_decision_relax.py tests/test_relax_single.py tests/test_decision_filter.py tests/test_decision_explain.py tests/test_decision_optimise.py --tb=line
+```
+
+Exit 0, `206 passed in 21.22s`.
+
+### Deployment-path validation, round 3
+
+The same private checkout, throwaway key, Pyodide 0.28.3, and probe commands
+as round 1. The private build vendored 129 files. Every command returned exit
+0. Both steady readings are under the unchanged 115 MiB gate. The
+current-period noisy peak was 112.527243 MiB and produced the existing 112
+MiB warning. Its steady-state gate passed. No gate was raised.
+
+| Period | Steady bytes | Steady MiB | Limit MiB | Result |
+| --- | ---: | ---: | ---: | --- |
+| Current | 114281838 | 108.987654 | 115 | Pass |
+| Successor | 109763062 | 104.678213 | 115 | Pass |
 
 `vendor.py --check` restored the public bundle and returned exit 0. The
 worktree was clean afterward. No production settings, ranking floors, legal
