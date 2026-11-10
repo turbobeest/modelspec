@@ -2056,6 +2056,54 @@ def test_invoice_starting_after_cancellation_applies_when_event_is_later(policy)
     run(scenario())
 
 
+def test_second_invoice_with_the_same_period_end_applies(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        first = invoice_obj(id="in_a", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", first,
+                                   "evt_a", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        second = invoice_obj(id="in_b", created=350, period_start=350, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", second,
+                                     "evt_b", created=350)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        replay = await _dated_event(kv, ledger, policy, "invoice.paid", second,
+                                    "evt_b_replay", created=350)
+        assert replay.status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        await _spend_billing_credits(ledger, key, 100)
+        earlier = invoice_obj(id="in_c", created=360, period_start=100, period_end=400)
+        again = await _dated_event(kv, ledger, policy, "invoice.paid", earlier,
+                                   "evt_c", created=360)
+        assert again.status == 200
+        assert again.body["action"] == "credited"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_payment_failed_at_the_stored_period_end_stays_paid(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_a", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_a", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        failed = invoice_obj(id="in_fail", paid=False, created=350,
+                             period_start=350, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                     "evt_fail", created=350)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
 def test_invoice_without_period_after_cancellation_stays_free(policy):
     async def scenario():
         kv, ledger = MemoryKV(), credits.MemoryLedger()

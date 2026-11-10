@@ -529,7 +529,12 @@ def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
                 and stored.invoice_paid and any(current_period)):
             return True
         if any(period) and any(current_period):
-            if period < current_period:
+            stored_end = current_period[1]
+            if (type_ == "invoice.paid" and period[1] and stored_end
+                    and period[1] < stored_end):
+                return True
+            if (type_ == "invoice.payment_failed" and period[1] and stored_end
+                    and period[1] <= stored_end):
                 return True
             if (_id(obj.get("id")) == stored.invoice_id and stored.invoice_paid
                     and type_ == "invoice.payment_failed"):
@@ -899,7 +904,7 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
                 credits.holder_from_fingerprint(existing.key_fingerprint))
         except credits.StoreNotConfigured:
             mark = 0
-        if int(mark or 0) and period_end <= int(mark or 0):
+        if int(mark or 0) and period_end < int(mark or 0):
             return "ignored", None
     action, _ = await store.record_entitlement(
         kv, subscription_id=subscription_id,

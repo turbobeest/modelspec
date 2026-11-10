@@ -1043,8 +1043,9 @@ class LedgerState:
 
         A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
-        `period_end` is the invoice period. A period that ends at or before the
-        stored watermark is stale and does not change the allowance.
+        `period_end` is the invoice period. A period that ends before the stored
+        watermark is stale and does not change the allowance. An equal end with
+        a different invoice id applies. The same invoice id is a replay.
         `period_start` of 0 leaves a stored start alone.
         A period that starts before `canceled_at` is stale. With no start, a
         period that ends at or before `canceled_at` is stale. No period at all
@@ -1063,7 +1064,7 @@ class LedgerState:
         current = self.accounts.get(holder)
         mark = current.invoice_period_watermark if current is not None else 0
         canceled = current.canceled_at if current is not None else 0
-        if period_end and mark and period_end <= mark:
+        if period_end and mark and period_end < mark:
             return CreditResult(False, "stale", 0)
         if canceled and _period_predates_cancellation(period_start, period_end, canceled):
             return CreditResult(False, "stale", 0)
