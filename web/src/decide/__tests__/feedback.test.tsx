@@ -93,6 +93,53 @@ describe("the per-answer prompt", () => {
     expect(JSON.parse(String(calls[1].init.body))).toEqual({ receipt: RECORDED.receipt });
   });
 
+  it("keeps the same receipt and retries deletion after a connection failure", async () => {
+    const calls: { method: string; body: unknown }[] = [];
+    let deletes = 0;
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
+      calls.push({ method: init.method ?? "GET", body: JSON.parse(String(init.body)) });
+      if (init.method === "DELETE") {
+        deletes += 1;
+        if (deletes === 1) throw new TypeError("Failed to fetch");
+        return new Response(JSON.stringify({
+          schema_version: "1.0", endpoint: "feedback", status: "deleted", recorded: false, service_commit: "c0ffee",
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify(RECORDED), { status: 202 });
+    }));
+    const user = userEvent.setup();
+    render(<FeedbackForm question="Was this answer reliable?" page="/decide/details/" />);
+    await user.click(screen.getByRole("radio", { name: "Confusing" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
+    await user.click(await screen.findByRole("button", { name: "Undo and delete it" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Feedback could not be deleted. Check your connection and try again.");
+    expect(alert).not.toHaveTextContent(/could not be sent|nothing was kept|Nothing of it is kept/);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Your feedback was recorded.");
+    expect(status).not.toHaveTextContent(/Nothing of it is kept/);
+    expect(screen.queryByRole("button", { name: "Send feedback" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Retry deleting it" }));
+    expect(await screen.findByText("Deleted. Nothing of it is kept.")).toBeInTheDocument();
+    expect(calls.map((call) => call.method)).toEqual(["POST", "DELETE", "DELETE"]);
+    expect(calls[1].body).toEqual({ receipt: RECORDED.receipt });
+    expect(calls[2].body).toEqual({ receipt: RECORDED.receipt });
+  });
+
+  it("keeps the redaction note when deleting a recorded receipt fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
+      if (init.method === "DELETE") throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify(RECORDED), { status: 202 });
+    }));
+    const user = userEvent.setup();
+    render(<FeedbackForm question="Was this answer reliable?" page="/decide/details/" />);
+    await user.click(screen.getByRole("radio", { name: "Confusing" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
+    await user.click(await screen.findByRole("button", { name: "Undo and delete it" }));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("status")).toHaveTextContent("We removed what looked like email before it was kept.");
+  });
+
   it("shows the Worker's refusal instead of pretending", async () => {
     answering(undefined);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({

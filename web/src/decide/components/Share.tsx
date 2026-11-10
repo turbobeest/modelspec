@@ -8,6 +8,42 @@ import type { Axis } from "../state/spec";
 import { toDecisionSpec } from "../adapter/view-model";
 import { boardHasPreference, encodeBoardSpec, toBoardDecisionSpec } from "../facet-board/model";
 import type { BoardUrlState } from "../facet-board/model";
+
+function yamlScalar(value: unknown): string {
+  if (typeof value === "string" && /^[A-Za-z0-9_./:-]+$/.test(value)) return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value === null) return "null";
+  return JSON.stringify(value);
+}
+
+function yamlField(key: string, value: unknown): string[] {
+  if (key === "where" && Array.isArray(value)) {
+    // A bare "where:" parses as null. An empty list has to print as [].
+    if (value.length === 0) return ["where: []"];
+    return ["where:", ...value.map((item) => `  - ${JSON.stringify(item)}`)];
+  }
+  return [`${key}: ${yamlScalar(value)}`];
+}
+
+/** Every field of the shared contract, in object order. Comments are lines, not fields. */
+function contractYaml(spec: object, notes: {
+  canvas?: { x: string; y: string };
+  unranked: boolean;
+  refinementsFolded: boolean;
+}): string {
+  const lines = ["# ModelSpec decision contract 1.3"];
+  if (notes.canvas) lines.push(`# canvas x: ${notes.canvas.x}`, `# canvas y: ${notes.canvas.y}`);
+  for (const [key, value] of Object.entries(spec)) {
+    if (value === undefined) continue;
+    if (key === "optimize") {
+      if (notes.unranked) lines.push("# unranked: no Prefer set; this objective only lets the spec run, it does not rank");
+      if (notes.refinementsFolded) lines.push("# refinement weights folded into their parent domains until nested ranking is available");
+    }
+    lines.push(...yamlField(key, value));
+  }
+  return lines.join("\n");
+}
+
 const baseTabs = [
   "Permalink",
   "API call",
@@ -87,38 +123,11 @@ export function Share({
             (condition.soft ? " # soft" : ""),
         ),
       ].join("\n")
-    : [
-        "# ModelSpec decision contract 1.3",
-        ...(boardPermalink?.state.canvas
-          ? [
-              `# canvas x: ${boardPermalink.state.canvas.x}`,
-              `# canvas y: ${boardPermalink.state.canvas.y}`,
-            ]
-          : []),
-        `spec_version: ${contractSpec.spec_version}`,
-        `snapshot: ${contractSpec.snapshot ?? "latest"}`,
-        ...(contractSpec.task_type
-          ? [`task_type: ${contractSpec.task_type}`]
-          : []),
-        ...(contractSpec.capabilities
-          ? [`capabilities: ${JSON.stringify(contractSpec.capabilities)}`]
-          : []),
-        // An empty list must print as [] — a bare "where:" parses as null.
-        (contractSpec.where ?? []).length ? "where:" : "where: []",
-        ...(contractSpec.where ?? []).map(
-          (condition) => `  - ${JSON.stringify(condition)}`,
-        ),
-        ...(unrankedBoard
-          ? ["# unranked: no Prefer set; this objective only lets the spec run, it does not rank"]
-          : []),
-        ...(refinementsFolded
-          ? ["# refinement weights folded into their parent domains until nested ranking is available"]
-          : []),
-        `optimize: ${JSON.stringify(contractSpec.optimize)}`,
-        `unknowns: ${contractSpec.unknowns ?? "default"}`,
-        `explain: ${contractSpec.explain ?? "full"}`,
-        `limit: ${contractSpec.limit ?? 500}`,
-      ].join("\n");
+    : contractYaml(sharedContractSpec, {
+        canvas: boardPermalink?.state.canvas,
+        unranked: unrankedBoard,
+        refinementsFolded,
+      });
   const code =
     tab === "Template preview"
       ? templateLink
