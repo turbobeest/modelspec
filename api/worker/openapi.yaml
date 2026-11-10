@@ -1029,7 +1029,7 @@ paths:
             schema: {$ref: '#/components/schemas/ReleaseSignal'}
       responses:
         '200':
-          description: The identical signal was already pending.
+          description: The identical payload is already stored for this signal_id.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
