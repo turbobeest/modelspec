@@ -213,6 +213,12 @@ def validate_card(filepath: str, compute_diff: bool = True) -> dict:
         entry["error"] = str(e)
         return entry
 
+    errors = card.modality_errors()
+    if errors:
+        entry["status"] = "invalid"
+        entry["error"] = "; ".join(errors)
+        return entry
+
     entry["status"] = "valid"
     entry["model_id"] = card.identity.model_id
     entry["completeness"] = card.card_completeness
