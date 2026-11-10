@@ -13,8 +13,10 @@
   against a compliance policy:
   [`api-policy-check.md`](api-policy-check.md).
 * `GET /v1/health` — [version and counts](rank-api.md#catalogue-counts).
-* Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
-  the implementation.
+* `GET /v1/auth-check` — active live-key validation; returns `{"authenticated": true}`.
+  Always keyed; sandbox/non-live tiers receive `sandbox_not_available`.
+  Responses are `no-store`; no data reads, request metering or credit ledger access.
+* Generated spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml).
 
 ## Request
 
@@ -37,7 +39,7 @@ At most 16384 bytes.
 
 ## Response
 
-`result` is the shortlist, best first, never empty on a `200`. Read:
+`result` is nonempty on `200`, best first. Read:
 
 * `applied.unbound` — fields accepted and recorded that **filtered nothing**,
   with the reason (e.g. `environment.runtime: "together_ai"`).
@@ -230,7 +232,7 @@ Captured 2026-09-17; `unranked_candidates` 2026-09-23. Scores move; the shape do
 
 ## Every error, and the fix
 
-Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
+Refusals carry `error.code`, `error.message` and `result: []`.
 
 | Status | `error.code` | Cause | Fix |
 |---|---|---|---|
@@ -273,11 +275,11 @@ A no-match is an answer, not an empty list:
 
 ## Keys, limits and the sandbox
 
-**Machine data access needs an API key.** `ACCESS_ENFORCED` is on.
-Keyless machine requests get 401 `missing_api_key`.
-The ACCESS store is bound; invalid or revoked keys are refused.
-Buy a plan or pack at [/pricing/](https://modelspec.dev/pricing/) and claim
-your key at Checkout's success link. `BILLING_ENABLED` is on.
+**Machine data access needs an API key.** `ACCESS_ENFORCED` is on;
+keyless requests get 401 `missing_api_key`.
+The bound ACCESS store refuses invalid or revoked keys.
+Buy at [/pricing/](https://modelspec.dev/pricing/); claim your key at Checkout's
+success link. `BILLING_ENABLED` is on.
 The free decide page uses a Turnstile-verified visit token for decide and
 vocabulary. Health and feedback stay keyless.
 [`api-access.md`](api-access.md) describes the access implementation.
@@ -313,8 +315,7 @@ daily limit. Visit tokens are free. Prices:
 
 `schema_version` (`"1.0"`) versions this envelope; `build.export_schema_version`
 the catalogue. Widening a field's range bumps that contract's major
-([`cli-contract.md`](cli-contract.md)). Fields may be added within a major:
-ignore what you do not know.
+([`cli-contract.md`](cli-contract.md)). Ignore added fields within a major.
 
 A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 

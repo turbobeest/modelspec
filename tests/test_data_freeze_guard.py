@@ -101,3 +101,36 @@ def test_collect_reads_the_three_dot_diff_from_git(tmp_path, monkeypatch):
     assert added["models/a.md"] == "seen: 2026-10-03"
     assert as_of == date(2026, 9, 30)
     assert not judge(changed, added, as_of, "data-lag/image", TODAY).ok
+
+
+@pytest.mark.parametrize("name", ["plain", "café", "with\ttab", "with\nnewline", "with\rcarriage"])
+def test_collect_preserves_frozen_paths(tmp_path, monkeypatch, name):
+    repo = tmp_path
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "research").mkdir()
+    paths = {kind: f"research/{kind}-{name}.json" for kind in ("added", "modified", "deleted", "old", "new")}
+    for kind in ("modified", "deleted", "old"):
+        (repo / paths[kind]).write_text('{"observed_on":"2020-01-01"}\n')
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    _git(repo, "branch", "base")
+    for kind in ("added", "modified"):
+        (repo / paths[kind]).write_text('{"observed_on":"2026-10-03"}\n')
+    (repo / paths["deleted"]).unlink()
+    (repo / paths["old"]).rename(repo / paths["new"])
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "head")
+    monkeypatch.setattr(guard, "REPO_ROOT", repo)
+
+    changed, added, as_of = guard.collect("base", "HEAD")
+
+    assert sorted(changed) == sorted(paths.values())
+    assert added == {
+        paths["added"]: '{"observed_on":"2026-10-03"}',
+        paths["modified"]: '{"observed_on":"2026-10-03"}',
+        paths["deleted"]: "",
+        paths["old"]: "",
+        paths["new"]: '{"observed_on":"2020-01-01"}',
+    }
+    assert as_of is None
+    assert not judge(changed, added, as_of, "feature/update", TODAY).ok

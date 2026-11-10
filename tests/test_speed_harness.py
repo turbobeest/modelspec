@@ -142,6 +142,7 @@ class _KnownStream(BaseHTTPRequestHandler):
 
 
 @pytest.mark.parametrize("api", ["anthropic", "openai", "gemini"])
+@pytest.mark.perf
 def test_the_live_transport_measures_a_stream_of_known_timing(api):
     """The answer to the cancelled 2026-09 programme: the timing path itself,
     real sockets, chunked transfer and each real parser, against a known truth."""

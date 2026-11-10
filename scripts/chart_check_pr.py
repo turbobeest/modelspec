@@ -215,6 +215,7 @@ def changed_paths(
         "diff",
         "--name-status",
         "--find-renames",
+        "-z",
         sha,
         "HEAD",
         "--",
@@ -228,11 +229,19 @@ def changed_paths(
     removed_cards: list[str] = []
     # (head path, base path). An empty string means that side has no file.
     fixtures: list[tuple[str, str]] = []
-    for line in proc.stdout.splitlines():
-        parsed = _split_status(line)
-        if parsed is None:
+    fields = iter(proc.stdout.split("\0"))
+    for status in fields:
+        if not status:
             continue
-        status, old, new = parsed
+        old = next(fields)
+        if status.startswith(("R", "C")):
+            new = next(fields)
+        elif status.startswith("A"):
+            old, new = None, old
+        elif status.startswith("D"):
+            new = None
+        else:
+            new = old
         head = new or old or ""
         if _is_card_path(head) or _is_card_path(old or ""):
             if status.startswith("D"):
@@ -246,22 +255,6 @@ def changed_paths(
         elif new and _is_fixture_path(new):
             fixtures.append((new, old or ""))
     return cards, removed_cards, fixtures
-
-
-def _split_status(line: str) -> tuple[str, str | None, str | None] | None:
-    parts = line.split("\t")
-    if len(parts) < 2 or not parts[0]:
-        return None
-    status = parts[0]
-    if status.startswith(("R", "C")):
-        if len(parts) < 3:
-            return None
-        return status, parts[1], parts[2]
-    if status.startswith("D"):
-        return status, parts[1], None
-    if status.startswith("A"):
-        return status, None, parts[1]
-    return status, parts[1], parts[1]
 
 
 def _is_card_path(path: str) -> bool:
@@ -988,14 +981,14 @@ def git_show(root: Path, rev: str, path: str) -> str | None:
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(
+        proc = subprocess.run(
             ["git", *args],
             cwd=root,
             capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
             check=False,
+        )
+        return subprocess.CompletedProcess(
+            proc.args, proc.returncode, os.fsdecode(proc.stdout), os.fsdecode(proc.stderr),
         )
     except OSError as exc:
         raise UsageError(f"git failed: {exc}") from exc

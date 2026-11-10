@@ -44,6 +44,15 @@ somebody else's logs.
 purchase to that key (pack credits ADD, a plan attaches). An unknown or
 revoked key is `401`, never treated as anonymous. See [`billing.md`](billing.md).
 
+`GET /v1/credits` and `HEAD /v1/credits` authenticate an active live key before
+reading its balance, without consuming credits or access quota. The balance
+endpoint retains its own refusal codes: `401 missing_holder` when no valid
+live key is presented, `403 missing_holder` for an inactive key, and
+`503 credits_store_not_configured` when credit account authentication or the
+credit ledger is unavailable. Sandbox keys have no live credit balance and
+receive `401 missing_holder` without reading either store. `HEAD` has the same
+status and headers as `GET`, with no response body.
+
 ## Tiers
 
 The table is `api/worker/tiers.json`. It is data: changing a limit is an edit
@@ -87,8 +96,10 @@ including with x402 enabled. Its daily limit is unlimited, and its burst cap
 is 60/minute, matching the highest finite paid-tier burst. Every admitted call
 uses the access counters, including vocabulary reads. Revocation uses the
 same key record and refusal as every other live key. Friends access always
-requires a key. Stripe issuance is inert until Jamie configures the mappings
-described in [billing](billing.md#friends-and-family-model-282).
+requires a key. The shipped `friends_promotion_code_prefix` is `"FRIENDS-"`;
+`friends_price_ids` remains `[]`. Plan Checkout accepts promotion codes, and
+a qualifying invitation maps to friends access as described in
+[billing](billing.md#friends-and-family-model-282).
 
 A funded paid key's catalog read is `GET /v1/vocabulary`. It skips the shared
 daily and burst counters above while the key can pay (remaining credits, or
@@ -142,7 +153,7 @@ would be swapped behind.
 | 403 | `key_revoked` | a key we know and will not serve. Retrying will not help |
 | 429 | `rate_limited` | a window is spent |
 | 500 | `tier_not_configured` | the key names a tier the table does not carry. Ours, not the caller's |
-| 500 | `access_not_configured` | a key was presented and the deployment has no tier table (`TIER_POLICY` unset). Ours |
+| 500 | `access_not_configured` | a key was presented and no applicable tier-table source is available, including the generated bundle. Ours |
 | 503 | `access_store_not_configured` | a live key was presented and no `ACCESS` KV namespace is bound, so it cannot be checked. Refused, never served as anonymous |
 | 400 | `sandbox_not_available` | a `test_` key on `/v1/policy-check`. The sandbox holds no synthetic policy data and touches no live data |
 
@@ -246,7 +257,7 @@ accepts any id and filters nothing by it.
 The gate is handed no part of the body — only the key, read off the headers.
 `tests/test_legal.py` checks that from the syntax tree.
 
-MODEL-292 adds an optional verified page exception, shipping off. With
+MODEL-292 adds a verified page exception, enabled in production. With
 `VISIT_GATE_ENABLED` on, a keyless decide or Worker vocabulary request with a
 valid visitor-and-origin-bound visit token uses the HumanGate allowance before
 this key gate. A presented key always wins. Origin alone grants no admission
@@ -271,7 +282,7 @@ the free answer without being told.
 else reads as on**, so a typo made while switching it on cannot leave it off.
 
 `BILLING_ENABLED` is also `"true"` in production, so self-serve issuance is open.
-`VISIT_GATE_ENABLED` must stay on to keep the decide page free: a valid,
+The checked-in visit setting is `VISIT_GATE_ENABLED=true`. It must stay on to keep the decide page free: a valid,
 Turnstile-verified visit token admits only decide and vocabulary. An allowlisted
 Origin alone does not admit a keyless request, including when x402 is on and
 the visit gate is off. Invalid or expired visit tokens
@@ -281,9 +292,10 @@ receive 401; they do not fall through to anonymous data access.
 
 Key records and counters live in their own KV namespace, bound as `ACCESS` —
 never in `DETERMINATIONS`, which holds our research and is only ever read. The
-namespace was created 2026-09-18 and is bound in `wrangler.jsonc`. Enforcement
-stays off; no key has been issued (issuance is MODEL-73). A presented live key
-is checked against the store; none are issued, so it is unknown.
+namespace was created 2026-09-18 and is bound in `wrangler.jsonc`. Production
+`ACCESS_ENFORCED=true` and `BILLING_ENABLED=true`; Checkout claim issues keys
+through MODEL-73. A presented live key is checked against the store. These
+configuration values do not describe the current inventory of issued keys.
 
 With no `ACCESS` binding the Worker would hand the gate `access_kv.UnboundKV`,
 which refuses every read. A presented live key is then refused 503
@@ -308,18 +320,30 @@ shared module), so every caller — lookup, revoke, both counters — sees `None
 binding that returns a `jsnull` stand-in, `""` and `None`, and assert an unknown
 key is a clean 401 under each.
 
-## The tier table in the isolate: `TIER_POLICY`
+## The tier table in the isolate
 
-The deploy (`.github/workflows/rank-api.yml`) passes the table:
+`api/worker/vendor.py` generates `tier_policy.py` from `tiers.json` and includes
+it in the Worker bundle. The table exceeds the Worker text-variable size limit,
+so the deploy does not pass it as `TIER_POLICY`. The Deploy step in
+`.github/workflows/rank-api.yml` runs from `api/worker`:
 
+```sh
+uv run --project . pywrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
 ```
-wrangler deploy --var "BUILD_COMMIT:$GITHUB_SHA" --var "TIER_POLICY:$(jq -c . tiers.json)"
-```
 
-The disk fallback in `load_policy` is for this repository's tests; the isolate
-has no copy of `tiers.json`. A Worker without the variable refuses a presented
-key with `access_not_configured` rather than metering it against numbers
-invented in code. With enforcement off, anonymous requests never load the table.
+`access_config.load_policy` resolves the table in this order:
+
+1. A nonempty `TIER_POLICY` on the supplied environment.
+2. Explicit JSON `text` supplied by the caller.
+3. An explicit `path`, or the local `api/worker/tiers.json` file.
+4. The generated `tier_policy.TEXT`, if no explicit path was supplied and the
+   local file could not be read.
+
+The deployed isolate uses the generated module without a `TIER_POLICY`
+variable or filesystem table. A missing explicit path does not fall back to
+that module. If no applicable source is available, a presented key receives
+`access_not_configured`; invalid policy content also fails validation. With
+enforcement off, anonymous requests never load the table.
 
 ## Turning it on
 

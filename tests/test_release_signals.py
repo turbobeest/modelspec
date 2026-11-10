@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import importlib.util
@@ -18,6 +19,7 @@ from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError, sign
 from release_signals.pipeline import (
     ChangePolicy,
+    DraftResult,
     FetchResult,
     FirecrawlBudget,
     draft_signal,
@@ -209,6 +211,128 @@ def test_resolve_distinguishes_existing_new_and_uncertain_without_fuzzy_matching
     assert (new.status, new.model_id) == ("new", "acme/orbit-2")
     assert uncertain.status == "uncertain"
     assert uncertain.candidates == ("acme/shared-a", "acme/shared-b")
+
+
+def _draft_visible_signal(
+    tmp_path: Path, body: bytes, *, model_name: str = "Orbit 2",
+    huggingface: bytes | None = None,
+) -> DraftResult:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    primary_url = "https://acme.example/models"
+    models_dev_url = "https://models.dev/api.json"
+    catalogue = json.loads((FIXTURES / "models-dev-production.json").read_bytes())
+    catalogue["acme"]["models"]["orbit-2"]["name"] = model_name
+    replies = {
+        models_dev_url: FetchResult(
+            models_dev_url, json.dumps(catalogue).encode(), "application/json",
+        ),
+        primary_url: FetchResult(primary_url, body, "text/html"),
+    }
+    if huggingface is not None:
+        search_url = "https://huggingface.co/api/models?search=Orbit+2&limit=20"
+        repo_url = "https://huggingface.co/acme/orbit-2"
+        replies[search_url] = FetchResult(search_url, huggingface, "application/json")
+        replies[repo_url] = FetchResult(repo_url, b"Model card", "text/html")
+    return draft_signal(
+        ReleaseSignal.parse(signal(model_name=model_name)),
+        root=tmp_path, fetch=lambda url: replies[url],
+        read_date=date(2026, 9, 26),
+        discover_huggingface=huggingface is not None,
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<h1>Acme launches Orbit 20.</h1>",
+        b"<h1>NotAcme launches Orbit 2.</h1>",
+        b"<h1>Acme launches Orbit 2 Pro.</h1>",
+        b"<h1>Acme launches Orbit 2.1.</h1>",
+        b"<p>Orbit 20 by Acme.</p>",
+        b"<p>Orbit 2 Pro by Acme.</p>",
+        b"<p>Orbit 2 by Acme Labs.</p>",
+        b"<p>Acme launches Orbit 2.</p><p>Other Lab launches Orbit 2.</p>",
+        b"<p>Acme launches Orbit 2.</p><p>Orbit 2 by Other Lab.</p>",
+    ],
+)
+def test_similar_name_is_not_identity(tmp_path: Path, body: bytes) -> None:
+    result = _draft_visible_signal(tmp_path, body)
+
+    assert result.resolution.status == "uncertain"
+    assert result.card_path is None
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<h1>Acme announces Orbit 2.</h1>",
+        b"<h1>Acme introduces Orbit 2.</h1>",
+        b"<h1>Acme launches Orbit 2.</h1>",
+        b"<h1>Acme releases Orbit 2</h1>",
+        b"<p>Orbit 2 by Acme.</p>",
+        b"<h1>ACME launches <em>Orbit-2</em>.</h1>",
+    ],
+)
+def test_exact_visible_identity_drafts(tmp_path: Path, body: bytes) -> None:
+    result = _draft_visible_signal(tmp_path, body)
+
+    assert result.resolution.status == "new"
+    assert result.card_path == tmp_path / "models" / "acme" / "orbit-2.md"
+    assert result.card_path.is_file()
+
+
+def test_exact_visible_identity_preserves_model_version(tmp_path: Path) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.1.</h1>", model_name="Orbit 2.1",
+    )
+
+    assert result.resolution.status == "new"
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    front = yaml.safe_load(result.card_path.read_text().split("---", 2)[1])
+    assert front["display_name"] == "Orbit 2.1"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [b"[null]", b"[1]", b'["orbit-2"]', b"null", b"{}",
+     b'[{"id":"acme/orbit-2"},null]'],
+)
+def test_malformed_optional_hf_does_not_block_card(tmp_path: Path, payload: bytes) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.</h1>", huggingface=payload,
+    )
+
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    assert len(result.gather_failures) == 1
+    assert result.gather_failures[0].startswith("Hugging Face search failed:")
+    assert result.evidence_urls == ("https://acme.example/models", "https://models.dev/api.json")
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_supporting"),
+    [
+        (b"[]", ()),
+        (b'[{"id":"acme/orbit-2"}]', ("https://huggingface.co/acme/orbit-2",)),
+        (b'[{"id":"other-lab/orbit-2"}]', ()),
+        (b'[{"id":"acme/orbit-20"}]', ()),
+    ],
+)
+def test_valid_optional_hf_preserves_exact_identity_checks(
+    tmp_path: Path, payload: bytes, expected_supporting: tuple[str, ...],
+) -> None:
+    result = _draft_visible_signal(
+        tmp_path, b"<h1>Acme launches Orbit 2.</h1>", huggingface=payload,
+    )
+
+    assert result.card_path is not None
+    assert result.card_path.is_file()
+    assert result.gather_failures == ()
+    assert result.evidence_urls == (
+        "https://acme.example/models", "https://models.dev/api.json", *expected_supporting,
+    )
 
 
 def test_production_shaped_models_dev_drafts_only_primary_source_facts(
@@ -792,6 +916,210 @@ def test_score_only_evidence_refresh_is_auto_mergeable(tmp_path: Path) -> None:
     assert decision.merge == "auto"
 
 
+@pytest.fixture
+def signals_service():
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_regression_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+    return service
+
+
+class SignalKV:
+    def __init__(self) -> None:
+        self.rows: dict[str, str] = {}
+        self.calls: list[tuple[str, str]] = []
+
+    async def get(self, key: str) -> str | None:
+        self.calls.append(("get", key))
+        return self.rows.get(key)
+
+    async def put(self, key: str, value: str) -> None:
+        self.calls.append(("put", key))
+        self.rows[key] = value
+
+    async def delete(self, key: str) -> None:
+        self.calls.append(("delete", key))
+        self.rows.pop(key, None)
+
+    async def list(self, options: dict[str, str]) -> dict[str, object]:
+        self.calls.append(("list", options["prefix"]))
+        return {"keys": [{"name": key} for key in self.rows if key.startswith(options["prefix"])]}
+
+
+@pytest.mark.parametrize("legacy_pending", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+def test_replay_after_ack_is_still_duplicate(signals_service, legacy_pending, conflicting) -> None:
+    async def scenario() -> None:
+        kv = SignalKV()
+        raw = json.dumps(signal()).encode()
+        if legacy_pending:
+            kv.rows[signals_service.PENDING_PREFIX + str(signal()["signal_id"])] = json.dumps(
+                signal(), separators=(",", ":"), sort_keys=True,
+            )
+        else:
+            accepted = await signals_service.intake(
+                raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+                enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+            )
+            assert (accepted.status, accepted.body["status"]) == (202, "accepted")
+        acknowledged = await signals_service.acknowledge(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            payload={"signal_id": signal()["signal_id"], "result": "new"},
+            today=date(2026, 9, 26),
+        )
+        assert acknowledged.status == 200
+        rows_after_ack = dict(kv.rows)
+        raw = json.dumps(signal(model_name="Orbit 3") if conflicting else signal(),
+                         sort_keys=True, separators=(",", ":")).encode()
+        replay = await signals_service.intake(
+            raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+            enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 16, tzinfo=UTC),
+        )
+        if conflicting:
+            assert replay.status == 409
+            assert replay.body["error"]["code"] == "signal_id_conflict"
+        else:
+            assert (replay.status, replay.body["status"]) == (200, "duplicate")
+        pending = await signals_service.pending(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            today=date(2026, 9, 26),
+        )
+        assert pending.body["signals"] == []
+        assert kv.rows == rows_after_ack
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("raw", "signature", "status"),
+    [
+        pytest.param(json.dumps(signal()).encode(), "sha256=é", 401, id="signature"),
+        pytest.param(json.dumps(signal(first_seen_url="https://[broken/")).encode(),
+                     None, 400, id="url"),
+        pytest.param(json.dumps(signal(confidence=10**400)).encode(),
+                     None, 400, id="confidence"),
+        pytest.param(json.dumps(signal(timestamp="0001-01-01T00:00:00+01:00")).encode(),
+                     None, 400, id="timestamp"),
+        pytest.param(b"[" * 1100 + b"]" * 1100, None, 400, id="json"),
+    ],
+)
+def test_invalid_input_returns_client_error(signals_service, raw, signature, status) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.intake(
+        raw=raw, signature=signature if signature is not None else sign(b"write-secret", raw),
+        secret=b"write-secret", enabled=True, kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == status
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize("endpoint", ["pending", "discovered", "acknowledge"])
+def test_non_ascii_read_key_returns_401(signals_service, endpoint) -> None:
+    kv = SignalKV()
+    kwargs = {"authorization": "Bearer é", "read_key": "read-secret", "kv": kv}
+    if endpoint == "discovered":
+        kwargs["raw"] = b"{}"
+    else:
+        kwargs["today"] = date(2026, 9, 26)
+    if endpoint == "acknowledge":
+        kwargs["payload"] = {"signal_id": signal()["signal_id"], "result": None}
+    result = asyncio.run(getattr(signals_service, endpoint)(**kwargs))
+
+    assert result.status == 401
+    assert result.body["error"]["code"] == "unauthorised"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"first_seen_url": "https://[broken/"}, id="url"),
+        pytest.param({"confidence": 10**400}, id="confidence"),
+        pytest.param({"timestamp": "0001-01-01T00:00:00+01:00"}, id="timestamp"),
+    ],
+)
+def test_invalid_discovery_returns_400(signals_service, changes) -> None:
+    payload = signal(signal_id="watch:acme:orbit-2", first_seen_url="https://acme.example/models")
+    payload.update(changes)
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=json.dumps(payload).encode(), authorization="Bearer read-secret",
+        read_key="read-secret", kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_discovery_json_returns_client_error(signals_service) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=b"[" * 1100 + b"]" * 1100,
+        authorization="Bearer read-secret",
+        read_key="read-secret",
+        kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_acknowledgement_json_returns_client_error(signals_service) -> None:
+    import ast
+
+    tree = ast.parse((ROOT / "api/worker/src/entry.py").read_text())
+    function = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_signals"
+    )
+    kv = SignalKV()
+    namespace = {
+        "json": json,
+        "datetime": datetime,
+        "UTC": UTC,
+        "signals_service": signals_service,
+        "SIGNALS_ENABLED_VAR": "SIGNALS_ENABLED",
+        "SIGNALS_READ_KEY_VAR": "SIGNALS_READ_KEY",
+        "_access_store": lambda _env: kv,
+        "_json_response": lambda status, body: (status, body),
+    }
+    compiled = compile(
+        ast.Module(body=[function], type_ignores=[]), "entry.py::_signals", "exec",
+    )
+    exec(compiled, namespace)
+
+    class Env:
+        SIGNALS_ENABLED = "true"
+        SIGNALS_READ_KEY = "read-secret"
+
+    class Request:
+        headers = {"authorization": "Bearer read-secret"}
+
+        async def text(self) -> str:
+            return "[" * 1100 + "]" * 1100
+
+    class Worker:
+        env = Env()
+
+    status, body = asyncio.run(namespace["_signals"](
+        Worker(), Request(), "/v1/signals/ack", "POST", "audit",
+    ))
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_request"
+    assert kv.calls == []
+
+
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_signals_service", ROOT / "api" / "worker" / "src" / "signals_service.py"
@@ -1074,6 +1402,44 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert 'git push --set-upstream origin "HEAD:$branch"' in workflow
     assert 'gh pr comment "$EXISTING_PR_URL"' in workflow
     assert "Flag a new-model PR closed without merge" in workflow
+
+
+@pytest.mark.parametrize("signals,rechecks,count", [([], [], 0), ([{}], [], 1), ([], [{}], 1), ([{}, {}], [{}], 3)])
+def test_pending_gate_counts_valid_queues_and_dispatches_once(tmp_path, signals, rechecks, count):
+    import os
+    import subprocess
+
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/release-signals-gate.yml").read_text())
+    pending, dispatch = workflow["jobs"]["pending"]["steps"]
+    assert workflow["jobs"]["pending"]["if"] == "vars.SIGNALS_ENABLED == 'true'"
+    assert dispatch["if"] == "steps.pending.outputs.count != '0'"
+    source = pending["run"][pending["run"].index("count=$(jq "):]
+    (tmp_path / "pending.json").write_text(json.dumps({
+        "schema_version": "2", "service_commit": "fixture", "endpoint": "signals.pending",
+        "signals": signals, "rechecks": rechecks,
+    }))
+    output = tmp_path / "output"
+    result = subprocess.run(
+        ["bash", "-e", "-c", source], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output)},
+    )
+    assert result.returncode == 0, result.stderr
+    assert output.read_text() == f"count={count}\n"
+    assert not result.stdout and not result.stderr
+    stub = 'gh() { printf "%s\\n" "$*" >> calls; }\n'
+    dispatch_result = subprocess.run(
+        ["bash", "-e", "-c", stub + '. "$GITHUB_OUTPUT"\nif [ "$count" != 0 ]; then\n' + dispatch["run"] + "fi\n"],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"GITHUB_OUTPUT": str(output), "GH_TOKEN": "offline-fixture"},
+    )
+    assert dispatch_result.returncode == 0, dispatch_result.stderr
+    calls = tmp_path / "calls"
+    if count:
+        assert calls.read_text().splitlines() == ["workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main"]
+    else:
+        assert not calls.exists()
 
 
 def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:

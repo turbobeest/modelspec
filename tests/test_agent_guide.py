@@ -70,12 +70,16 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
 
 
 def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
-    """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
+    """Each provider's first MCP turn stays within the MODEL-359 headroom.
+
+    MODEL-458 advertises the six strict nested blocks. Measured totals:
+    Claude 9,372, OpenAI 9,464, Gemini 9,567. The 10,000 cap is unchanged.
+    """
     from qa.agent_harness import main
     assert main(["--first-turn-breakdown"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert set(report) == {"claude", "openai", "gemini"}
-    assert all(row["total"] <= 9_500 for row in report.values()), report
+    assert all(row["total"] <= 9_600 for row in report.values()), report
     guide = agent_copy.copy()["context_guide"]
     assert guide.count("https://modelspec.dev/api/coverage.json") == 1
     assert "catalogued_not_decidable" not in guide
@@ -159,8 +163,10 @@ def test_openapi_size_and_all_response_header_descriptions():
     # MODEL-308 adds the typed aggregate coverage block, about 1.8 KB.
     # MODEL-316 adds rank's deprecation block and decide's relax_task_tokens,
     # about 1.3 KB and 300 tokens.
-    assert len(text.encode()) <= 233_000
-    assert tokens(text) <= 58_300
+    # MODEL-458 adds GET /v1/auth-check. Measured file: 235,366 bytes
+    # and 58,838 tokens.
+    assert len(text.encode()) <= 236_000
+    assert tokens(text) <= 59_000
     spec = yaml.safe_load(text)
     assert agent_copy.GUIDE_URL in spec['info']['description']
     for path, operations in spec['paths'].items():

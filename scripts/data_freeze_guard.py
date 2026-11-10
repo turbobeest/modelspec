@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -93,14 +94,15 @@ def judge(
 
 
 def _git(*args: str) -> str:
-    return subprocess.run(["git", "-C", str(REPO_ROOT), *args], capture_output=True,
-                          text=True, check=True, errors="replace").stdout
+    return os.fsdecode(subprocess.run(
+        ["git", "-C", str(REPO_ROOT), *args], capture_output=True, check=True,
+    ).stdout)
 
 
 def collect(base: str, head: str) -> tuple[list[str], dict[str, str], date | None]:
     """Read the three-dot diff from git; the merge-base keeps unrelated main moves out."""
     span = f"{base}...{head}"
-    changed = [p for p in _git("diff", "--name-only", "--no-renames", span).split("\n") if p]
+    changed = [p for p in _git("diff", "--name-only", "--no-renames", "-z", span).split("\0") if p]
     added: dict[str, str] = {}
     for path in changed:
         if not is_data_path(path):

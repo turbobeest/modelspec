@@ -449,7 +449,8 @@ export function FreeAxisCanvas({
                 pointerThreshold(xAxis, event.clientX, false);
               }}
               onKeyDown={(event) => {
-                if (event.key === "ArrowLeft" || event.key === "ArrowRight")
+                if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                  event.preventDefault();
                   setThreshold(
                     xAxis,
                     (xMust ?? xScale.from(0.5)) +
@@ -457,6 +458,7 @@ export function FreeAxisCanvas({
                         (xScale.max - xScale.min) *
                         0.05,
                   );
+                }
               }}
             >
               <span>{mustTag(xAxis)}</span>
@@ -481,7 +483,8 @@ export function FreeAxisCanvas({
                 pointerThreshold(yAxis, event.clientY, true);
               }}
               onKeyDown={(event) => {
-                if (event.key === "ArrowDown" || event.key === "ArrowUp")
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                  event.preventDefault();
                   setThreshold(
                     yAxis,
                     (yMust ?? yScale.from(0.5)) +
@@ -489,6 +492,7 @@ export function FreeAxisCanvas({
                         (yScale.max - yScale.min) *
                         0.05,
                   );
+                }
               }}
             >
               <span>{mustTag(yAxis)}</span>

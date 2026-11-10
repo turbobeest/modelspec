@@ -166,10 +166,14 @@ def capture_tools() -> dict:
 
         convert(value)
         value["additionalProperties"] = True
-        for key in ("environment", "constraints", "policy"):
-            if key in value.get("properties", {}):
-                # Unknown nested Zod object fields are stripped, not refused.
-                value["properties"][key].pop("additionalProperties", None)
+        for key in ("environment", "constraints"):
+            nested = value.get("properties", {}).get(key)
+            if isinstance(nested, dict):
+                # Rank's nested blocks are strict. The outer object stays open.
+                nested["additionalProperties"] = False
+        policy_node = value.get("properties", {}).get("policy")
+        if isinstance(policy_node, dict):
+            policy_node.pop("additionalProperties", None)
         return value
 
     rank = schema("RankRequest", nullable=True)
@@ -189,7 +193,9 @@ def capture_tools() -> dict:
     commercial = policy["properties"]["policy"]["properties"]["commercial_use"]
     commercial["properties"]["required"] = {"type": "boolean"}
     for block in policy["properties"]["policy"]["properties"].values():
-        block.pop("additionalProperties", None)
+        if block.get("type") == "object":
+            # Policy clause objects are strict. The policy object stays open.
+            block["additionalProperties"] = False
     feedback = copy.deepcopy(schemas["FeedbackRequest"])
     feedback["properties"] = {
         k: v

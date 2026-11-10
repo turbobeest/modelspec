@@ -158,7 +158,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/hardware-fit", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status",
+    "GET /v1/credits", "GET /v1/human-status", "GET /v1/auth-check",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -960,6 +960,29 @@ class Default(WorkerEntrypoint):
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
 
+        if path == "/v1/auth-check":
+            if method != "GET":
+                return self._method_not_allowed(service_commit, path, "GET", method)
+
+            async def authenticated(*args):
+                return 200, {"authenticated": True}
+
+            async def skip_auth_limits(record, tier):
+                return True
+
+            outcome = await access.gate(
+                api_key=access_keys.extract(lambda name: request.headers.get(name)),
+                enforced=True, require_key=True, require_live_data=True,
+                kv=_access_store(self.env),
+                load_policy=lambda: access_config.load_policy(self.env),
+                anonymous=authenticated, live=authenticated,
+                sandbox=lambda: access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "Use a key authorized for live catalogue data.", envelope={}),
+                skip_limits=skip_auth_limits,
+            )
+            return _json_response(outcome.status, outcome.body, outcome.headers)
+
         if path == "/v1/decision-link" and decision_link.enabled(self.env):
             return await self._decision_link(request, method, origin, service_commit)
 
@@ -1035,7 +1058,7 @@ class Default(WorkerEntrypoint):
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
                     cors.update(outcome.headers)
-                if not visit_token.enabled(self.env) and human_gate.enabled(self.env):
+                if api_key is None and not visit_token.enabled(self.env) and human_gate.enabled(self.env):
                     try:
                         stub = human_gate.stub_for(request, self.env)
                         if stub is None:
@@ -1583,7 +1606,9 @@ class Default(WorkerEntrypoint):
                 return self._method_not_allowed(service_commit, path, "POST", method)
             try:
                 payload = json.loads(await request.text())
-            except ValueError as exc:
+            except (ValueError, RecursionError) as exc:
+                # ValueError covers JSONDecodeError. RecursionError is the
+                # decoder's nesting limit, and it is still invalid input.
                 outcome = signals_service._error(
                     400, "invalid_request", f"the body is not valid JSON: {exc}"
                 )
@@ -1737,10 +1762,31 @@ class Default(WorkerEntrypoint):
         envelope = service._envelope({}, service_commit, origin)
         envelope["endpoint"] = "credits"
         del envelope["deprecation"]  # rank's notice, not the balance's
+        api_key = access_keys.extract(lambda name: request.headers.get(name))
+        if api_key is None:
+            return _json_response(*x402._error(
+                envelope, 401, x402.MISSING_HOLDER,
+                "A credit balance requires an active live API key."))
+        try:
+            policy = access_config.load_policy(self.env)
+            if (access_keys.is_sandbox(api_key, policy)
+                    or not api_key.startswith(policy.live_prefix)):
+                return _json_response(*x402._error(
+                    envelope, 401, x402.MISSING_HOLDER,
+                    "A credit balance requires an active live API key."))
+            record = await access_keys.lookup(_access_store(self.env), api_key)
+        except Exception:
+            return _json_response(*x402._error(
+                envelope, 503, x402.CREDITS_STORE_NOT_CONFIGURED,
+                "The credit account could not be authenticated."))
+        if record is None or not record.active:
+            return _json_response(*x402._error(
+                envelope, 401 if record is None else 403, x402.MISSING_HOLDER,
+                "A credit balance requires an active live API key."))
         status, body = await x402.balance_query(
             config=x402.load_config(self.env),
             ledger=credits.ledger_from_env(self.env),
-            api_key=access_keys.extract(lambda name: request.headers.get(name)),
+            api_key=api_key,
             envelope=envelope,
         )
         return _json_response(status, body)
