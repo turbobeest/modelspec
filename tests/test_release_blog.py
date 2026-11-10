@@ -849,6 +849,15 @@ def test_mixed_free_and_paid_offerings_keep_their_costs(tmp_path) -> None:
     assert "$0.00" in post and "$0.112" in post
     _finite_widths(charts["cost.svg"])
     assert "$0.00" in charts["cost.svg"] and "$0.112" in charts["cost.svg"]
+    bars = _chart_bars(charts["cost.svg"])
+    free = float(next(width for width, tip in bars if "$0.00" in tip))
+    paid = float(next(width for width, tip in bars if "$0.112" in tip))
+    # cost_chart draws offering bars on a 300-wide span. An axis fixed at 1
+    # draws the paid bar near 34, which is under half of that span.
+    span = 300.0
+    assert paid > free
+    assert paid <= span
+    assert paid > span / 2
 
 
 def test_all_zero_non_percent_claims_stay_finite(breakdown) -> None:
