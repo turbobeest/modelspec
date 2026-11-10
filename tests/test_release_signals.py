@@ -2115,6 +2115,30 @@ def test_json_ld_one_level_past_the_depth_bound_is_skipped(tmp_path: Path) -> No
     assert _release_date(result) == "2026-09-26"
 
 
+@pytest.mark.parametrize("width", [2000, 5000])
+def test_json_ld_integer_longer_than_the_digit_bound_is_skipped(
+    tmp_path: Path, width: int,
+) -> None:
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","n":' + ("9" * width) + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_two_thousand_level_nest_is_skipped(tmp_path: Path) -> None:
+    nested = '{"a":' * 2000 + "1" + "}" * 2000
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","extra":' + nested + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
 def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> None:
     note = 'quote \\" then ' + ("{[" * 80) + ("}]" * 80)
     payload = json.dumps({
