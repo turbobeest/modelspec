@@ -51,7 +51,14 @@ class RequiredSourceError(Exception):
 
     def __init__(self, url: str, detail: str) -> None:
         self.url = url
-        super().__init__(f"required source {url} failed: {detail}")
+        limit = 500
+        flat = detail.replace("\r", " ").replace("\n", " ")
+        prefix = f"required source {url} failed: "
+        if len(prefix) <= limit:
+            message = (prefix + flat)[:limit]
+        else:
+            message = prefix
+        super().__init__(message)
 
 
 @dataclass(frozen=True)

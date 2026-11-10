@@ -1558,3 +1558,82 @@ def test_bad_required_source_exits_with_controlled_failure(
     assert card.read_text() == original
     assert json.loads(pending.read_text()) == {"signals": [queued]}
     assert not result_path.exists()
+
+
+def test_long_date_published_diagnostic_is_bounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    original = (
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    card.write_text(original)
+    queued = {
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [queued]}))
+    published = "x" * 100000
+    primary = (
+        '<script type="application/ld+json">'
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        f'"datePublished":"{published}"}}</script>'
+    ).encode()
+    replies = {
+        _MODELS_DEV: json.dumps({
+            "acme": {
+                "name": "Acme",
+                "models": {
+                    "orbit-2": {
+                        "id": "orbit-2",
+                        "name": "Orbit 2",
+                        "release_url": _PRIMARY,
+                    },
+                },
+            },
+        }).encode(),
+        _PRIMARY: primary,
+    }
+
+    def fetch(url: str) -> FetchResult:
+        assert url in replies, f"unexpected fetch: {url}"
+        content_type = "application/json" if url == _MODELS_DEV else "text/html"
+        return FetchResult(url, replies[url], content_type)
+
+    def refuse_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("leaderboard refresh must not run")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", refuse_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 2
+    output = capsys.readouterr()
+    rendered = output.out + output.err
+    assert _PRIMARY in rendered
+    assert len(rendered) < 600
+    assert "\n" not in rendered.strip()
+    assert "Traceback" not in rendered
+    assert card.read_text() == original
+    assert json.loads(pending.read_text()) == {"signals": [queued]}
+    assert not result_path.exists()
