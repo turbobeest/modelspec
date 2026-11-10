@@ -110,20 +110,28 @@ def audit_card(card: ModelCard, path: Path) -> list[dict]:
             add("warning", "missing", "context_window",
                 "Text model with no context window — affects ranking and filtering")
 
-    # Benchmarks
-    bench_count = card.benchmarks.filled_count()
+    # Benchmarks. filled_count() stays the legacy cache. Authored evidence is a
+    # separate list, and neither count decides admission or query qualification.
+    legacy_count = card.benchmarks.filled_count()
+    authored = card.benchmarks.evidence
+    authored_count = len(authored)
+    covered_ids = set(card.benchmarks.scores) | {record.benchmark_id for record in authored}
     is_llm = any(t.startswith("llm") or t == "vlm" for t in all_types)
-    if is_llm and bench_count == 0:
-        add("info", "missing", "benchmarks",
-            "LLM with zero benchmark scores — invisible to ranking engine")
-    elif is_llm and bench_count < 3:
-        add("info", "sparse", "benchmarks",
-            f"Only {bench_count} benchmark scores — may rank poorly due to missing data")
+    if is_llm and len(covered_ids) < 3:
+        add("info", "missing" if not covered_ids else "sparse", "benchmarks",
+            f"Legacy cached scores: {legacy_count}. "
+            f"Authored evidence records: {authored_count}. "
+            "Evidence admission is not decided by this audit. "
+            "Query qualification is not decided by this audit.")
 
-    # Arena ELO — important for ranking
-    if is_llm and bench_count > 0 and "arena_elo_overall" not in card.benchmarks.scores:
+    has_arena = (
+        "arena_elo_overall" in card.benchmarks.scores
+        or any(record.benchmark_id == "arena_elo_overall" for record in authored)
+    )
+    if is_llm and legacy_count > 0 and not has_arena:
         add("info", "missing", "arena_elo_overall",
-            "Has benchmarks but no Arena ELO — missing from preference-based ranking")
+            "Legacy cached scores and authored evidence records do not include arena_elo_overall. "
+            "Query qualification is not decided by this audit.")
 
     # Cost
     if is_llm and card.cost.input is None and not card.licensing.open_weights:
@@ -131,7 +139,7 @@ def audit_card(card: ModelCard, path: Path) -> list[dict]:
             "API model with no pricing — can't be filtered by cost")
 
     # Capability tiers
-    if is_llm and bench_count > 5:
+    if is_llm and legacy_count > 5:
         if not any(True for cap_name in ["coding", "reasoning", "tool_use"]
                    for _ in []
                    if getattr(getattr(card.capabilities, cap_name, None), "overall", None)):
