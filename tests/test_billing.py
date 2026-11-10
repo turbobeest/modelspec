@@ -3511,3 +3511,109 @@ def test_rotation_and_terminal_event_agree_on_the_newest_key(policy, kind):
         assert seen == 54
 
     run(scenario())
+
+
+class _BindingGapLedger:
+    """The first binding read is empty. The next read finishes one rotation."""
+
+    def __init__(self, inner: credits.MemoryLedger, kv: MemoryKV, key: str,
+                 policy: access_config.AccessPolicy) -> None:
+        self._inner = inner
+        self._kv = kv
+        self._key = key
+        self._policy = policy
+        self.reads = 0
+        self.rotated = None
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    async def key_binding(self, holder: str) -> str:
+        self.reads += 1
+        if self.reads == 1:
+            return ""
+        if self.rotated is None:
+            self.rotated = await billing.rotate(
+                api_key=self._key, kv=self._kv, policy=self._policy, now=T0,
+                service_commit=COMMIT, ledger=self._inner)
+        return await self._inner.key_binding(holder)
+
+
+class _OpenBindingLedger:
+    """Every binding read names a fingerprint the key store does not hold."""
+
+    def __init__(self, inner: credits.MemoryLedger) -> None:
+        self._inner = inner
+        self.reads = 0
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    async def key_binding(self, holder: str) -> str:
+        self.reads += 1
+        return "f" * 64
+
+
+def test_chronology_write_follows_a_binding_noted_on_the_second_read(policy):
+    """A chronology write names the key recorded on the second binding read."""
+
+    async def scenario():
+        kv, inner = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, inner, policy, bound=True)
+        original = keys.fingerprint(key)
+        ledger = _BindingGapLedger(inner, kv, key, policy)
+        await billing.store.record_chronology(
+            kv, SUB, now=T0, policy=policy, subscription_status="active",
+            updated_at=900, ledger=ledger)
+        assert ledger.rotated is not None and ledger.rotated.status == 200
+        newest = ledger.rotated.body["key"]
+        stored = await billing.store.load_subscription(kv, SUB)
+        record = await keys.lookup(kv, newest)
+        assert stored is not None and record is not None
+        assert stored.key_fingerprint == keys.fingerprint(newest)
+        assert stored.key_fingerprint != original
+        assert stored.key_id == record.key_id
+        assert stored.subscription_status == "active"
+        assert stored.subscription_updated_at == 900
+
+    run(scenario())
+
+
+def test_tier_write_follows_a_binding_noted_on_the_second_read(policy):
+    """A tier write names the key recorded on the second binding read."""
+
+    async def scenario():
+        kv, inner = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, inner, policy, bound=True)
+        original = keys.fingerprint(key)
+        ledger = _BindingGapLedger(inner, kv, key, policy)
+        action = await billing.store.set_subscription_tier(
+            kv, SUB, policy.billing.downgrade_tier, policy=policy, ledger=ledger)
+        assert action == "tier_set"
+        assert ledger.rotated is not None and ledger.rotated.status == 200
+        newest = ledger.rotated.body["key"]
+        stored = await billing.store.load_subscription(kv, SUB)
+        record = await keys.lookup(kv, newest)
+        assert stored is not None and record is not None
+        assert stored.key_fingerprint == keys.fingerprint(newest)
+        assert stored.key_fingerprint != original
+        assert stored.key_id == record.key_id
+        assert record.tier == policy.billing.downgrade_tier
+
+    run(scenario())
+
+
+def test_unsettled_binding_reports_at_the_pass_bound(policy):
+    """An open binding is reported by the writer at the fourth pass."""
+
+    async def scenario():
+        kv, inner = MemoryKV(), credits.MemoryLedger()
+        await _billing_purchase(kv, inner, policy, bound=True)
+        ledger = _OpenBindingLedger(inner)
+        with pytest.raises(RuntimeError, match="the key binding did not settle"):
+            await billing.store.record_chronology(
+                kv, SUB, now=T0, policy=policy, subscription_status="active",
+                updated_at=900, ledger=ledger)
+        assert ledger.reads == 8
+
+    run(scenario())
