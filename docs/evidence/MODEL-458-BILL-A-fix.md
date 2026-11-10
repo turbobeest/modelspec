@@ -583,7 +583,7 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 - The stale grant still attaches the key: 1 failed, 1 passed, exit 1. The key moved to the paid tier.
-- The stale grant zeroes `pending_monthly`: 1 failed, 1 passed, exit 1. `pending_monthly` was 0.
+- Setting `pending_monthly` to 0 on the stale return: 1 failed, 1 passed, exit 1.
 - The link step no longer returns the rejected answer: 1 failed, 1 passed, exit 1. The action was `already_entitled`.
 - The copy after the link path is removed: 1 failed, 1 passed, exit 1. The linked key stayed on the downgrade tier.
 - The later copy runs only on a first grant: 1 failed, 1 passed, exit 1. The replayed key stayed on the paid tier.

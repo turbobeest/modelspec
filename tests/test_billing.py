@@ -2768,6 +2768,32 @@ def test_stale_checkout_link_leaves_the_row_and_the_allowance(policy):
     run(scenario())
 
 
+def test_unbound_checkout_link_keeps_the_pending_allowance(policy):
+    """A link whose grant is neither accepted nor stale keeps the pending allowance."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.UnboundLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        pending = 4000
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier="paid", pending=pending, invoice_id="in_row_unbound",
+            pending_invoice_id="in_pending_unbound"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_unbound_link", subscription=SUB2, invoice="in_other_unbound", metadata=meta)
+        outcome = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_unbound_link", created=1000)
+        assert outcome.status == 200
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None
+        assert stored.pending_monthly == pending
+        assert stored.key_fingerprint == fingerprint
+        assert (await keys.lookup(kv, key)) is not None
+    run(scenario())
+
+
 def test_checkout_link_and_replay_copy_the_ledger_tier(policy):
     """Link copies the paid tier. A replay after cancellation copies the downgrade."""
     async def scenario():
