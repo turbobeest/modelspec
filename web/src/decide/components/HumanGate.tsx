@@ -4,6 +4,8 @@ import { VISIT_GATE_ENABLED, registerChallenge, type Challenge } from "../adapte
 import { DECIDE_ENDPOINT } from "../adapter/hosted";
 
 export const HUMAN_GATE_ENABLED = import.meta.env.VITE_HUMAN_GATE_ENABLED === "true";
+/** Bounds the status exchange. A person solving the widget has no deadline. */
+export const HUMAN_STATUS_TIMEOUT_MS = 15_000;
 const SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "";
 const statusSchema = z.union([
   z.object({ enabled: z.literal(false) }),
@@ -26,6 +28,22 @@ interface Turnstile {
 
 declare global {
   interface Window { turnstile?: Turnstile }
+}
+
+function aborted(signal: AbortSignal): Promise<never> {
+  const pending = new Promise<never>((_, reject) => {
+    const fail = () => reject(new DOMException("Aborted", "AbortError"));
+    if (signal.aborted) fail();
+    else signal.addEventListener("abort", fail, { once: true });
+  });
+  void pending.catch(() => undefined);
+  return pending;
+}
+
+async function statusPayload(response: Response, signal: AbortSignal): Promise<unknown> {
+  const body = response.json();
+  void body.catch(() => undefined);
+  return Promise.race([body, aborted(signal)]);
 }
 
 let scriptReady: Promise<void> | null = null;
@@ -56,28 +74,46 @@ export function HumanGate({ onLookup, onEnabled, disabled = false }: {
   const [challenge, setChallenge] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
-    void fetch(DECIDE_ENDPOINT.replace(/\/v1\/decide\/?$/, "/v1/human-status"), {
-      mode: "cors", signal: controller.signal,
-    }).then(async (response) => {
-      if (!response.ok) throw new Error("Unavailable");
-      const status = statusSchema.parse(await response.json());
-      if (controller.signal.aborted) return;
-      if (status.enabled && "mode" in status) {
-        if (!VISIT_GATE_ENABLED) throw new Error("Visit verification requires a new page build");
-        setEnabled(false);
-        setUnavailable(false);
-        onEnabled?.(false);
-        return;
+    let disposed = false;
+    const timer = setTimeout(() => controller.abort(), HUMAN_STATUS_TIMEOUT_MS);
+    void (async () => {
+      try {
+        const response = await fetch(DECIDE_ENDPOINT.replace(/\/v1\/decide\/?$/, "/v1/human-status"), {
+          mode: "cors", signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Unavailable");
+        const payload = await statusPayload(response, controller.signal);
+        if (disposed) return;
+        if (controller.signal.aborted) {
+          setUnavailable(true);
+          return;
+        }
+        clearTimeout(timer);
+        const status = statusSchema.parse(payload);
+        if (status.enabled && "mode" in status) {
+          if (!VISIT_GATE_ENABLED) throw new Error("Visit verification requires a new page build");
+          setEnabled(false);
+          setUnavailable(false);
+          onEnabled?.(false);
+          return;
+        }
+        setEnabled(status.enabled);
+        onEnabled?.(status.enabled);
+        if (status.enabled) {
+          setRemaining(status.remaining);
+          setUnavailable(!SITE_KEY);
+        }
+        else setUnavailable(false);
+      } catch {
+        clearTimeout(timer);
+        if (!disposed) setUnavailable(true);
       }
-      setEnabled(status.enabled);
-      onEnabled?.(status.enabled);
-      if (status.enabled) {
-        setRemaining(status.remaining);
-        setUnavailable(!SITE_KEY);
-      }
-      else setUnavailable(false);
-    }).catch(() => { if (!controller.signal.aborted) setUnavailable(true); });
-    return () => controller.abort();
+    })();
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [challenge, onEnabled]);
   const canVerify = enabled === true && !!SITE_KEY && !unavailable && remaining !== null && remaining > 0;
   useEffect(() => {
