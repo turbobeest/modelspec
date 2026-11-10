@@ -719,7 +719,10 @@ def _tiered_offering(mid: str, tier: str, price: float) -> dict:
 def test_mixed_free_and_paid_offerings_keep_their_costs(tmp_path) -> None:
     source = build_snapshot(SnapshotInputs(
         models=[_model(NEW)],
-        offerings=[_tiered_offering(NEW, "standard", 0.0), _tiered_offering(NEW, "enterprise", 2.0)],
+        offerings=[
+            _tiered_offering(NEW, "standard", 0.0),
+            _tiered_offering(NEW, "enterprise", 2.0),
+        ],
         evidence=_new_rows(), sources=SOURCES_ALL, benchmark_domains=TAGS,
         benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
     ), gate=False, as_of=AS_OF)
@@ -749,3 +752,56 @@ def test_all_zero_non_percent_claims_stay_finite(breakdown) -> None:
     svg = claims_chart(breakdown.model_copy(update={"claims_vs_evidence": section}))
     assert svg is not None
     _finite_widths(svg)
+
+
+def _render_serialized(data: dict, tmp_path: Path, name: str) -> tuple[int, Path]:
+    path, out = tmp_path / f"{name}.json", tmp_path / f"{name}.md"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return main(["render", "--breakdown", str(path), "--out", str(out)]), out
+
+
+def test_render_cli_rejects_excluded_source(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = "https://" + "zap" + "ier.com/audit-fixture"
+    code, out = _render_serialized(data, tmp_path, "excluded")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("host", REMOVED_HOSTS)
+def test_render_cli_rejects_each_excluded_host(breakdown, tmp_path, host) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = "https://" + host + "/audit-fixture"
+    code, out = _render_serialized(data, tmp_path, "host")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("url", ("https://x.com/lab/status/1", "https://twitter.com/lab/status/1"))
+def test_render_cli_rejects_signal_only_source(breakdown, tmp_path, url) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = url
+    code, out = _render_serialized(data, tmp_path, "signal")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("text", ("Zap" + "\n" + "ier", "Artificial" + "\n" + "Analysis"))
+def test_render_cli_rejects_excluded_publisher_text(breakdown, tmp_path, text) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["disclosures"]["supplier"] = "Noted by " + text
+    code, out = _render_serialized(data, tmp_path, "publisher")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+def test_render_cli_writes_a_valid_serialized_breakdown(breakdown, tmp_path) -> None:
+    code, out = _render_serialized(
+        breakdown.model_dump(mode="json", by_alias=True), tmp_path, "valid")
+    assert code == 0
+    assert out.is_file()
+    assert list((tmp_path / "charts").glob("*.svg"))

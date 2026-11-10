@@ -737,11 +737,18 @@ def render(b: Breakdown) -> tuple[str, dict[str, str]]:
 
 
 def write(b: Breakdown, out: Any) -> Mapping[str, Any]:
-    """Write ``post.md`` at ``out`` and its charts in ``charts/`` beside it."""
+    """Write ``post.md`` at ``out`` and its charts in ``charts/`` beside it.
+
+    The same exclusion check the signed build uses runs before either file exists.
+    """
     from pathlib import Path
 
+    from release_blog.gates import guard_output
+
+    guard_output(b.sources, b.model_dump(mode="json", by_alias=True))
     out = Path(out)
     post, made = render(b)
+    guard_output(b.sources, post)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(post, encoding="utf-8")
     written = {"post": str(out), "charts": []}
