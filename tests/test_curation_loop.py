@@ -1,6 +1,7 @@
 """MODEL-10 parts 1 and 2: curation watcher, classifier, drafter and PR gate. No network, no git, no gh."""
 from __future__ import annotations
 
+import io
 import json
 import subprocess
 import sys
@@ -17,6 +18,52 @@ from scripts.curation.classify import classify  # noqa: E402
 
 PAGE_ID = "arena_elo"
 LB = "https://lmarena.ai/leaderboard"
+
+
+@pytest.mark.parametrize("balance_increment", [0, 5], ids=["constant", "replenished"])
+def test_firecrawl_local_cap_stops_actual_scrape_calls(tmp_path, monkeypatch, balance_increment):
+    from scripts.benchmarks import fetch as fc
+
+    posts = []
+
+    def urlopen(req, **kwargs):
+        assert req.get_method() == "POST"
+        posts.append(json.loads(req.data))
+        return io.BytesIO(json.dumps({"success": True, "data": {"markdown": "fixture"}}).encode())
+
+    monkeypatch.setattr(fc, "resolve_key", lambda: "fixture-key")
+    monkeypatch.setattr(fc, "remaining_credits", lambda _: 100 + balance_increment * len(posts))
+    monkeypatch.setattr(fc, "HASH_CACHE", tmp_path / "hash")
+    monkeypatch.setattr(fc, "open_source_request", urlopen)
+    budget = watch.FirecrawlBudget(cap=2, allow={"example.test"})
+    results = [budget.fetch(f"https://example.test/page-{index}") for index in range(5)]
+    assert len(posts) == 2
+    assert sum(result is not None and result.ok for result in results) == 2
+    assert budget.stopped
+
+
+def test_firecrawl_cached_reads_do_not_consume_cap(tmp_path, monkeypatch):
+    from scripts.benchmarks import fetch as fc
+
+    posts = []
+
+    def urlopen(req, **kwargs):
+        assert req.get_method() == "POST"
+        posts.append(json.loads(req.data))
+        return io.BytesIO(json.dumps({"success": True, "data": {"markdown": "fixture"}}).encode())
+
+    monkeypatch.setattr(fc, "resolve_key", lambda: "fixture-key")
+    monkeypatch.setattr(fc, "remaining_credits", lambda _: 100)
+    monkeypatch.setattr(fc, "HASH_CACHE", tmp_path / "hash")
+    monkeypatch.setattr(fc, "open_source_request", urlopen)
+    budget = watch.FirecrawlBudget(cap=2, allow={"example.test"})
+    first = budget.fetch("https://example.test/cached")
+    cached = budget.fetch("https://example.test/cached")
+    second = budget.fetch("https://example.test/second")
+    assert all(result is not None and result.ok for result in (first, cached, second))
+    assert budget.fetch("https://example.test/third") is None
+    assert len(posts) == 2
+    assert budget.stopped
 
 
 @pytest.fixture
