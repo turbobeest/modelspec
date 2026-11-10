@@ -1,10 +1,17 @@
-# Put x402 live
+# x402 rollout status and staging operations
 
-This checklist is for Jamie. Complete the Base Sepolia smoke test on the
-`modelspec-rank-staging` Worker. Do not enable x402 on the production Worker.
-The repository keeps production `X402_ENABLED` and `X402_MAINNET` off, with
-an empty production `X402_PAY_TO`. `ACCESS_ENFORCED` and `BILLING_ENABLED`
-are on (MODEL-96): machines need a key and Stripe Checkout is open.
+The production configuration rollout was completed in MODEL-333 on
+2026-10-13. Checked-in production settings are `X402_ENABLED=true` and
+`X402_MAINNET=true`, with a configured, nonempty `X402_PAY_TO`.
+`ACCESS_ENFORCED` and `BILLING_ENABLED` are on (MODEL-96): machines need a key
+and Stripe Checkout is open. This status describes repository configuration,
+not a new live payment or deployment check.
+
+The Stage 1 sequence below is for Jamie's Base Sepolia checks on the separate
+`modelspec-rank-staging` Worker. Its setup steps originated in the prelaunch
+checklist; confirm existing staging credentials and resources before creating
+replacements. Stage 2 records the completed production configuration change.
+Staging work does not authorize production changes.
 
 ## Mainnet blocker resolved by MODEL-185
 
@@ -16,9 +23,9 @@ gets `401 missing_api_key`; an allowed `Origin` alone grants no answer. The
 visit token admits decide and vocabulary only. With x402 enabled, keyed
 callers without credits still receive the pack offer.
 
-This resolves the page-traffic blocker. It does not turn on production x402 or
-approve the mainnet receiver and payment check. The checked-in production flags
-for x402 remain off, and Jamie must approve the separate production change.
+This resolved the page-traffic blocker before rollout. The later MODEL-333
+change enabled both production x402 flags and configured the confirmed
+receiver. Future production configuration or payment actions remain Jamie's.
 
 Sources checked 2026-09-26:
 
@@ -58,9 +65,10 @@ Run these steps in order from the repository root.
    https://modelspec-rank-staging.<account-subdomain>.workers.dev
    ```
 
-2. In the CDP Portal, create an Ed25519 Secret API Key. The corresponding
-   1Password item does not exist yet: create it in the AI-LAN vault, then
-   replace `<CDP item>` below with its item ID, not its title. Item titles that
+2. For initial staging setup, create an Ed25519 Secret API Key in the CDP
+   Portal and store it in an AI-LAN 1Password item. For an existing setup, use
+   the current staging credential item. Replace `<CDP item>` below with its
+   item ID, not its title. Item titles that
    contain `//` cannot be used safely in an `op://` path.
 
    Pipe both fields from 1Password into staging secrets. Do not omit
@@ -119,17 +127,19 @@ Run these steps in order from the repository root.
    pack (250 credits), at least 250 credits before the decision, and a
    one-credit decrease after the summary decision.
 
-## Stage 2: Base mainnet
+## Stage 2: Base mainnet, completed configuration change
 
-MODEL-185 resolved the keyless `/v1/decide` page-traffic blocker. Production
-x402 remains off pending Jamie's approval of the mainnet receiver and payment
-check. Do not change the production x402 variables, receiver, route, KV
-bindings, or credit ledger as part of the Sepolia test.
+The preparation commit `e8eaa9ce` staged Base mainnet with the switches off.
+The subsequent `faed1e6a` change enabled `X402_ENABLED` and `X402_MAINNET` with
+the confirmed receiving address and approved legal text. Production now names
+network `eip155:8453` and Base native USDC
+`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`. The original flip sequence,
+verification probes and rollback are recorded in
+[x402-mainnet-flip.md](x402-mainnet-flip.md).
 
-The production network `eip155:8453` and Base native USDC
-`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` are checked in with both switches
-off (MODEL-333). The flip, its order, the verification probes and the rollback
-are in [x402-mainnet-flip.md](x402-mainnet-flip.md).
+Staging remains on `eip155:84532` with `X402_MAINNET=false`. Do not change the
+production x402 variables, receiver, route, KV bindings, or credit ledger as
+part of a Sepolia test.
 
 ## Switch staging x402 off
 

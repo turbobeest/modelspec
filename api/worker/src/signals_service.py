@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
-from release_signals.contract import SIGNAL_ID, ReleaseSignal, SignalError
+from release_signals.contract import SIGNAL_ID, WATCH_PREFIX, ReleaseSignal, SignalError
 
 SCHEMA_VERSION = "1"
 #: The pending queue's own version. 2 since MODEL-216: a queued row can now be a
@@ -25,6 +25,7 @@ SCHEMA_VERSION = "1"
 #: this repository's `release-signals.yml`.
 PENDING_SCHEMA_VERSION = "2"
 PENDING_PREFIX = "release-signals/v1/pending/"
+SEEN_PREFIX = "release-signals/v1/seen/"
 #: One permanent key per discovery the watcher ever filed. The watcher re-posts
 #: every uncatalogued discovery on every run; this is what makes that a no-op
 #: after the first, including once the pending row is acknowledged and gone.
@@ -62,8 +63,12 @@ def _authorised(authorization: str | None, read_key: str | None) -> bool:
     if not read_key or not authorization:
         return False
     scheme, separator, value = authorization.partition(" ")
-    return separator == " " and scheme.casefold() == "bearer" and hmac.compare_digest(
-        value.strip(), read_key
+    return (
+        separator == " "
+        and scheme.casefold() == "bearer"
+        and value.isascii()
+        and read_key.isascii()
+        and hmac.compare_digest(value.strip(), read_key)
     )
 
 
@@ -146,8 +151,11 @@ async def intake(
         return _error(400, "stale_signal", "timestamp is outside the accepted intake window")
 
     key = PENDING_PREFIX + signal.signal_id
+    marker = SEEN_PREFIX + signal.signal_id
     serialised = json.dumps(signal.to_dict(), separators=(",", ":"), sort_keys=True)
-    existing = await kv.get(key)
+    existing = await kv.get(marker)
+    if existing is None:
+        existing = await kv.get(key)
     if existing is not None:
         if str(existing) != serialised:
             return _error(409, "signal_id_conflict", "signal_id already names another payload")
@@ -158,6 +166,7 @@ async def intake(
             "signal_id": signal.signal_id,
         })
     await kv.put(key, serialised)
+    await kv.put(marker, serialised)
     return Outcome(202, {
         "schema_version": SCHEMA_VERSION,
         "endpoint": "signals",
@@ -182,9 +191,11 @@ async def discovered(
     if len(raw) > MAX_BODY_BYTES:
         return _error(413, "payload_too_large", f"the body must be at most {MAX_BODY_BYTES} bytes")
     try:
-        signal = ReleaseSignal.parse(json.loads(raw), discovered=True)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         return _error(400, "invalid_signal", f"the body is not valid JSON: {exc}")
+    try:
+        signal = ReleaseSignal.parse(payload, discovered=True)
     except SignalError as exc:
         return _error(400, "invalid_signal", str(exc))
     observed = (now or datetime.now(UTC)).astimezone(UTC)
@@ -298,6 +309,11 @@ async def acknowledge(
         "pr_url": payload.get("pr_url"),
     }
     audit_key = f"{AUDIT_PREFIX}{signal_id}/{today.isoformat()}/{recheck_day or 'initial'}"
+    if recheck is None and not signal_id.startswith(WATCH_PREFIX):
+        await kv.put(
+            SEEN_PREFIX + signal_id,
+            json.dumps(audit["signal"], separators=(",", ":"), sort_keys=True),
+        )
     await kv.put(audit_key, json.dumps(audit, separators=(",", ":")))
     if recheck is None:
         for days in (1, 7, 30):

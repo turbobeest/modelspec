@@ -17,6 +17,7 @@ from pathlib import Path
 
 import httpx
 
+from decision.sources import get_source_response
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import (
     FetchResult,
@@ -34,12 +35,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _fetch(url: str) -> FetchResult:
     require_allowed_source(url)
-    response = httpx.get(
-        url,
-        headers={"User-Agent": "ModelSpec-Release-Signals/1.0"},
-        follow_redirects=True,
-        timeout=60,
-    )
+    with httpx.Client() as client:
+        response = get_source_response(
+            client, url,
+            headers={"User-Agent": "ModelSpec-Release-Signals/1.0"},
+            timeout=60,
+        )
     response.raise_for_status()
     result = FetchResult(
         url=str(response.url),

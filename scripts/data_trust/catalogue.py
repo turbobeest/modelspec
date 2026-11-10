@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from schema.benchmark import unknown_key_paths
+from schema.yaml_loader import duplicate_key_diagnostics, load_yaml
 from decision.labs import Lab
 from decision.model import (
     evidence_verification_value,
@@ -47,12 +49,14 @@ class Catalogue:
     claims: dict = field(default_factory=dict)
     served_counts: dict = field(default_factory=dict)
     findings: list[Finding] = field(default_factory=list)
+    # Authoring/storage diagnostics cover every file, independent of admission.
+    inventory_findings: list[Finding] = field(default_factory=list)
     verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
     # The verification log as read, kept after calibration for cited records.
     logged_verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
 
 
-def _document(path: Path) -> Any:
+def _yaml_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     if path.suffix == ".md":
         lines = text.splitlines()
@@ -60,15 +64,23 @@ def _document(path: Path) -> Any:
             raise ValueError("missing front matter")
         end = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
         text = "\n".join(lines[1:end])
-    return yaml.safe_load(text)
+    return text
 
 
-def load(root: Path) -> Catalogue:
+def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
     c = Catalogue()
 
     def read(path):
         try:
-            return _document(path)
+            text = _yaml_text(path)
+            line_offset = path.suffix == ".md"
+            for item in duplicate_key_diagnostics(text):
+                mark = item.problem_mark
+                c.inventory_findings.append(Finding(
+                    f"{path.relative_to(root)}:{mark.line + 1 + line_offset}:{mark.column + 1}",
+                    "document", "duplicate_yaml_key",
+                ))
+            return load_yaml(text)
         except (ValueError, StopIteration, yaml.YAMLError, OSError):
             c.findings.append(Finding(str(path.relative_to(root)), "document", "parse"))
             return None
@@ -83,6 +95,10 @@ def load(root: Path) -> Catalogue:
             if row["id"] in c.sources:
                 c.findings.append(Finding(row["id"], "id", "duplicate_id"))
             c.sources[row["id"]] = row
+    for directory in ("registry", "premier"):
+        for path in sorted((root / directory).rglob("*.yaml")):
+            if path != source_path:
+                read(path)
     log = root / "verification/log.jsonl"
     if log.exists():
         for index, line in enumerate(log.read_text().splitlines(), 1):
@@ -124,6 +140,10 @@ def load(root: Path) -> Catalogue:
             continue
         row = read(path)
         if isinstance(row, dict) and row.get("id"):
+            c.inventory_findings.extend(
+                Finding(str(path.relative_to(root)), field, "unknown_benchmark_key")
+                for field in unknown_key_paths(row)
+            )
             add(c.boards, row["id"], row)
     for path in sorted((root / "offerings").rglob("*.yaml")):
         rows = read(path)
@@ -143,6 +163,9 @@ def load(root: Path) -> Catalogue:
                 c.findings.append(Finding(str(path.relative_to(root)), "offering", "missing_id"))
     if not c.models:
         c.findings.append(Finding("catalogue", "models", "empty_catalogue"))
+    from scripts.data_trust.retention import inventory
+
+    c.inventory_findings.extend(inventory(source_root if source_root is not None else root))
     return c
 
 
@@ -319,7 +342,14 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     from decision.snapshot import _compile, collect_repo
     from scripts.accuracy import _latest_collected_claims
 
-    inputs = collect_repo(root)
+    from pipeline.load import LoadError
+
+    try:
+        inputs = collect_repo(root)
+    except (LoadError, yaml.YAMLError):
+        c.legacy, c.facts = c.facts, []
+        c.findings.append(Finding("snapshot", "build", "snapshot_build"))
+        return
     compiler = _compile(inputs, registry, excluded_sources(), as_of, False)
     # Successful serving compilation supersedes diagnostics on ignored prose,
     # files outside the collector globs, and records admission kept back.

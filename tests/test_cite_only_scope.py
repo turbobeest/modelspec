@@ -88,7 +88,7 @@ def test_ordinary_benchmark_scrape_preserves_provider_failure_message(tmp_path, 
     monkeypatch.setattr(benchmark_fetch, "HASH_CACHE", tmp_path)
     monkeypatch.setattr(benchmark_fetch, "resolve_key", lambda: "synthetic-key")
     monkeypatch.setattr(benchmark_fetch, "remaining_credits", lambda _key: 100)
-    monkeypatch.setattr(benchmark_fetch.urllib.request, "urlopen",
+    monkeypatch.setattr(benchmark_fetch, "open_source_request",
                         lambda *args, **kwargs: _FakeResp(payload))
     with pytest.raises(RuntimeError) as raised:
         benchmark_fetch.scrape("https://pricing.example/prices")
