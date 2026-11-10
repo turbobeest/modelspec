@@ -1466,6 +1466,65 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/TransportError'}
           headers: *id001
+  /v1/auth-check:
+    get:
+      operationId: authCheck
+      summary: Verify an active key authorized for live catalogue data.
+      description: 'Returns authentication status only. Always requires an API key; sandbox credentials and tiers without live-data access are refused. Does not read
+        catalogue data, consume request limits, or access the credit ledger. Every response is Cache-Control: no-store.'
+      security:
+      - bearer: []
+      - apiKey: []
+      responses:
+        '200':
+          description: The key is authorized for live data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authenticated]
+                additionalProperties: false
+                properties:
+                  authenticated:
+                    type: boolean
+                    enum: [true]
+          headers: *id001
+        '400':
+          description: 'sandbox_not_available: use a key authorized for live data.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthCheckRefused'}
+          headers: *id001
+        '401':
+          description: 'missing_api_key or invalid_api_key: present a valid key.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthCheckRefused'}
+          headers: *id001
+        '403':
+          description: 'key_revoked: obtain an active key.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthCheckRefused'}
+          headers: *id001
+        '500':
+          description: 'access_not_configured or tier_not_configured: retry later.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthCheckRefused'}
+          headers: *id001
+        '503':
+          description: 'access_store_not_configured: retry later.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthCheckRefused'}
+          headers: *id001
+        '405':
+          description: /v1/auth-check takes GET.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TransportError'}
+          headers: *id001
   /v1/visit-token:
     post:
       operationId: verifyVisit
@@ -5753,6 +5812,15 @@ components:
               enum: [feedback_store_unavailable, invalid_request, origin_not_allowed, payload_too_large, rate_limited, receipt_not_found]
             message: {type: string}
             retry_after: {type: integer}
+    AuthCheckRefused:
+      type: object
+      required: [error, result]
+      properties:
+        error: {$ref: '#/components/schemas/AccessRefused/properties/error'}
+        result:
+          type: array
+          items: {}
+          maxItems: 0
     Shared4ff9f6a29ddb:
       properties:
         accept_restricted: {type: boolean}
