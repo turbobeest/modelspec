@@ -311,6 +311,56 @@ def test_caps_with_a_best_margin_stay_within_the_filter_budget(count, monkeypatc
     assert calls["n"] <= 32
 
 
+def _many_blocking_sets(copies: int):
+    from tests.snapshot_records import loaded_index
+
+    levels = (500, 1500, 2500, 3500, 4500, 5500, 6500, 7500)
+    floors = (1000, 2000, 3000, 4000, 5000, 6000, 7000)
+    rows = {
+        f"lab/m{i}{j}": {"model.context_window": ctx, "model.max_output_tokens": out}
+        for i, ctx in enumerate(levels)
+        for j, out in enumerate(levels)
+        if not (ctx == levels[-1] and out == levels[-1])
+    }
+    base = list(rows.items())
+    extra = 0
+    while len(rows) < copies:
+        for key, value in base:
+            if len(rows) >= copies:
+                break
+            rows[f"lab/e{extra}"] = value
+            extra += 1
+    where = [f"model.context_window >= {bound}" for bound in floors]
+    where += [f"model.max_output_tokens >= {bound}" for bound in floors]
+    where.append("model.max_output_tokens >= best(10000)")
+    return where, loaded_index(rows)
+
+
+@pytest.mark.parametrize("copies", [63, 120])
+def test_one_gate_among_many_blocking_sets_stays_inside_a_fixed_bound(copies, monkeypatch):
+    from decision import relax
+    from decision.filter import _has_best
+    from decision.relax import _candidate_blocks, _equivalent_groups, _relaxable
+
+    where, index = _many_blocking_sets(copies)
+    resolved = _resolved(where)
+    hard = _relaxable(resolved, frozenset())
+    groups = [
+        group for group in _equivalent_groups(resolved.conditions, hard)
+        if not _has_best(resolved.conditions[group[0]])
+    ]
+    blocking = {
+        indexes
+        for indexes, _bit in _candidate_blocks(
+            resolved, index, resolved.conditions, hard, groups,
+        )
+    }
+    assert len(blocking) >= 63
+    calls = _counted_apply(monkeypatch)
+    assert relax.fewest(resolved, index, frozenset()) == ["model.context_window >= 7000"]
+    assert calls["n"] <= 8
+
+
 def test_a_feasible_duplicate_gate_drops_one_copy():
     from decision import relax
     from tests.snapshot_records import loaded_index

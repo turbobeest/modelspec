@@ -308,11 +308,12 @@ def _anchor_bits(resolved, snapshot, candidate_ids) -> tuple[int, _Run]:
 
 
 def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard: list[int],
-                    groups: list[tuple[int, ...]]):
-    """Best conditions are scored against the lineup left by the other gates.
+                    groups: list[tuple[int, ...]]) -> list[str] | None:
+    """Confirm plain blocking sets in size and cap order.
 
-    One trial per blocking set, then the same size and cap order as before.
-    None when the filter budget is spent.
+    Each proposal is checked as it is built. The walk stops once no remaining
+    set can sort ahead of a confirmed relaxation. None when the filter budget
+    is spent. An empty list means nothing confirmed and the budget remains.
     """
     plain = [group for group in groups if not _has_best(conditions[group[0]])]
     best_groups = [group for group in groups if _has_best(conditions[group[0]])]
@@ -330,9 +331,12 @@ def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard:
             order.append(indexes)
             by_plain[indexes] = []
         by_plain[indexes].append(bit)
-    proposals: list[tuple[int, ...]] = []
-    seen: set[tuple[int, ...]] = set()
+    order.sort(key=lambda indexes: _sort_key(conditions, indexes))
+    confirmed: tuple[tuple, list[str]] | None = None
     for plain_indexes in order:
+        plain_key = _sort_key(conditions, plain_indexes)
+        if confirmed is not None and plain_key >= confirmed[0]:
+            break
         dropped = tuple(sorted(set(plain_indexes) | set(best_indexes)))
         # The anchor is the lineup before any best condition. A non-relaxable
         # best gate stays in the question, so the measurement only omits it.
@@ -351,6 +355,8 @@ def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard:
         for cond in fixed:
             fixed_blocks |= _blocked_bits(run, cond)
         best_blocks = [_blocked_bits(run, conditions[group[0]]) for group in best_groups]
+        proposals: list[tuple[int, ...]] = []
+        seen: set[tuple[int, ...]] = set()
         for bit in by_plain[plain_indexes]:
             if fixed_blocks & bit:
                 continue
@@ -364,8 +370,26 @@ def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard:
             if proposal not in seen:
                 seen.add(proposal)
                 proposals.append(proposal)
-    proposals.sort(key=lambda indexes: _sort_key(conditions, indexes))
-    return proposals
+        proposals.sort(key=lambda indexes: _sort_key(conditions, indexes))
+        for proposal in proposals:
+            proposal_key = _sort_key(conditions, proposal)
+            if confirmed is not None and proposal_key >= confirmed[0]:
+                break
+            if not proposal:
+                continue
+            if not fixed and proposal == dropped:
+                check_feasible = trial.feasible
+            else:
+                check = budget.apply(without(resolved, proposal), snapshot)
+                if check is None:
+                    return None
+                check_feasible = check.feasible
+            if check_feasible:
+                confirmed = (proposal_key, _render(conditions, proposal))
+                break
+    if confirmed is None:
+        return []
+    return confirmed[1]
 
 
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
@@ -394,21 +418,23 @@ def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
         return [] if found is None else found
     groups = _equivalent_groups(conditions, hard)
     if any(_has_best(cond) for cond in conditions):
-        proposals = _best_proposals(budget, resolved, snapshot, conditions, hard, groups)
-        if proposals is None:
+        found = _best_proposals(budget, resolved, snapshot, conditions, hard, groups)
+        if found is None:
             return []
+        if found:
+            return found
     else:
         proposals = _failure_proposals(resolved, snapshot, conditions, hard, groups)
-    for indexes in proposals:
-        if not indexes:
-            continue
-        trial = budget.apply(without(resolved, indexes), snapshot)
-        if trial is None:
+        for indexes in proposals:
+            if not indexes:
+                continue
+            trial = budget.apply(without(resolved, indexes), snapshot)
+            if trial is None:
+                return []
+            if trial.feasible:
+                return _render(conditions, indexes)
+        if not proposals or not any(proposals):
             return []
-        if trial.feasible:
-            return _render(conditions, indexes)
-    if not proposals or not any(proposals):
-        return []
     found = _search_indexes(budget, resolved, snapshot, conditions, hard)
     return [] if found is None else found
 
