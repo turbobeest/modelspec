@@ -803,8 +803,33 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
         sub = await load_subscription(kv, transition["subscription_id"])
         owns_subscription = sub is not None and sub.key_fingerprint in {fingerprint_hex, new_fp}
         if owns_subscription:
-            issued = replace(issued, tier=sub.tier)
-            if sub.status == STATUS_INACTIVE:
+            tier = sub.tier
+            entitled = None
+            try:
+                view = await ledger.entitlement_view(holder)
+            except credits.StoreNotConfigured:
+                view = None
+            if isinstance(view, dict):
+                from billing import _plan_tier
+                entitled = bool(view.get("entitled"))
+                # The row can already name the successor before the balance
+                # moves. A cancellation then clears that successor, and the
+                # source account still looks open. That written successor wins.
+                if (entitled and sub.status == STATUS_INACTIVE
+                        and sub.key_fingerprint
+                        and sub.key_fingerprint != fingerprint_hex):
+                    try:
+                        other = await ledger.entitlement_view(
+                            credits.holder_from_fingerprint(sub.key_fingerprint))
+                    except credits.StoreNotConfigured:
+                        other = None
+                    if (isinstance(other, dict) and not other.get("entitled")
+                            and int(other.get("generation") or 0) > 0):
+                        entitled = False
+                tier = (_plan_tier(policy, sub) if entitled
+                        else policy.billing.downgrade_tier)
+            issued = replace(issued, tier=tier)
+            if sub.status == STATUS_INACTIVE and entitled is not True:
                 await ledger.clear_monthly(holder)
         await kv.put(storage_name(secret), json.dumps(issued.to_json()))
         await _write_keyref(kv, new_fp, transition["subscription_id"])

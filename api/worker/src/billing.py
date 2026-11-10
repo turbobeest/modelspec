@@ -941,8 +941,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
     fingerprint = _fingerprint_from_obj(obj)
     period_start, period_end = _invoice_period(obj, policy)
     existing = await store.load_subscription(kv, subscription_id)
-    # The allowance write is after chronology: a failed chronology put must
-    # leave the current allowance alone. The watermark read is only a reject.
+    # A rejected grant must not store its period or move the row. The watermark
+    # read is that reject when the period ended early; it writes nothing.
     if (existing is not None and existing.key_fingerprint and period_end
             and ledger is not None):
         try:
@@ -951,6 +951,24 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         except credits.StoreNotConfigured:
             mark = 0
         if int(mark or 0) and period_end < int(mark or 0):
+            return "ignored", None
+    probed = None
+    bound = existing.key_fingerprint if existing is not None else ""
+    if (bound and ledger is not None
+            and not isinstance(ledger, credits.UnboundLedger)):
+        try:
+            probed = await ledger.set_monthly(
+                credits.holder_from_fingerprint(bound),
+                mapping.credits, invoice_id, mapping.name,
+                _id(obj.get("customer")),
+                period_end=int(period_end or 0),
+                period_start=int(period_start or 0),
+                subscription_id=subscription_id)
+        except credits.StoreNotConfigured:
+            probed = None
+        if isinstance(probed, dict):
+            probed = credits.CreditResult.from_json(probed)
+        if probed is not None and probed.reason == "stale":
             return "ignored", None
     action, _ = await store.record_entitlement(
         kv, subscription_id=subscription_id,
@@ -970,12 +988,14 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         period_start=period_start)
     if grant == "stale":
         return "ignored", None
-    if grant == "granted":
+    accepted = (probed is not None and probed.credited) or grant == "granted"
+    if accepted:
         action = "credited"
     elif grant == "pending" and action == "entitled":
         action = "entitled"
     await _copy_grant_tier(
-        kv, subscription_id, ledger=ledger, policy=policy, grant=grant)
+        kv, subscription_id, ledger=ledger, policy=policy,
+        grant="granted" if accepted else grant)
     return action, None
 
 

@@ -1941,15 +1941,20 @@ def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
         await asyncio.gather(*calls)
         record = await keys.lookup(_ScheduledKV(data, 0), key)
         balance = await real.balance(_billing_holder(key))
-        return record.tier, balance.monthly
+        sub = await billing.store.load_subscription(_ScheduledKV(data, 0), SUB)
+        return record.tier, balance.monthly, sub.tier, sub.status
 
     async def scenario():
         mismatches = []
-        for kind, expect in (("failure", ("paid", 4000)), ("cancellation", ("free", 0))):
+        for kind, expect in (
+                ("failure", ("paid", 4000)),
+                ("cancellation", ("free", 0, "free", "inactive"))):
             for paid_first in (True, False):
                 for pauses_paid in (1, 2, 3):
                     for pauses_other in (1, 2, 3):
                         got = await overlapped(kind, pauses_paid, pauses_other, paid_first)
+                        if kind == "failure":
+                            got = got[:2]
                         if got != expect:
                             mismatches.append(
                                 (kind, paid_first, pauses_paid, pauses_other, got))
@@ -2568,7 +2573,7 @@ def test_prepared_claim_respects_current_billing_state(policy, canceled):
     run(scenario())
 
 
-def test_invoice_period_is_recorded_before_its_allowance(policy):
+def test_a_failed_period_write_does_not_grant_the_allowance_twice(policy):
     class InterruptedChronologyKV(MemoryKV):
         armed = False
 
@@ -2587,7 +2592,8 @@ def test_invoice_period_is_recorded_before_its_allowance(policy):
         with pytest.raises(OSError, match="chronology write"):
             await _dated_event(kv, ledger, policy, "invoice.paid", current,
                                "evt_current", created=300)
-        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+        # The allowance lands before the period write. The retry is a replay.
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
         assert (await _dated_event(kv, ledger, policy, "invoice.paid", current,
                                    "evt_current", created=300)).status == 200
         await _spend_billing_credits(ledger, key, 100)
@@ -2871,3 +2877,70 @@ def test_entitlement_view_derives_an_account_without_the_flag():
     assert run(ledger.entitlement_view("cancelled"))["entitled"] is False
     assert run(ledger.entitlement_view("empty"))["entitled"] is False
     assert run(ledger.entitlement_view("closed"))["entitled"] is False
+
+
+def test_a_rejected_invoice_period_does_not_block_the_next_renewal(policy):
+    """A grant the ledger rejects does not store its period or move the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_paid_period", created=300)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel_period", created=350)).status == 200
+        active = {"id": SUB, "status": "active", "customer": CUS,
+                  "items": {"data": [{"price": {"id": PRICE}}]}}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                   active, "evt_restore_period", created=400)).status == 200
+        before = await billing.store.load_subscription(kv, SUB)
+        overlap = invoice_obj(id="in_overlap", period_start=340, period_end=600)
+        rejected = await _dated_event(kv, ledger, policy, "invoice.paid", overlap,
+                                     "evt_overlap", created=410)
+        assert rejected.status == 200
+        assert rejected.body["action"] == "ignored"
+        after = await billing.store.load_subscription(kv, SUB)
+        assert (after.invoice_period_start, after.invoice_period_end) == (300, 400)
+        assert after.tier == before.tier
+        assert after.status == before.status
+        assert after.key_fingerprint == before.key_fingerprint
+        later = invoice_obj(id="in_next", period_start=360, period_end=500)
+        applied = await _dated_event(kv, ledger, policy, "invoice.paid", later,
+                                    "evt_next_period", created=420)
+        assert applied.status == 200
+        assert applied.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.tier == "paid" and stored.status == "active"
+        assert (stored.invoice_period_start, stored.invoice_period_end) == (360, 500)
+    run(scenario())
+
+
+def test_rotation_copies_the_ledger_tier(policy):
+    """The new key takes the tier the ledger implies, not the tier stored on the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_rot", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_rot_paid", created=300)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        await billing.store._write_sub(kv, replace(sub, tier="free", status="inactive"))
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == "paid"
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = False
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == policy.billing.downgrade_tier
+    run(scenario())
