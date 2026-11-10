@@ -196,6 +196,7 @@ class SubscriptionRecord:
     invoice_period_start: int = 0
     invoice_period_end: int = 0
     invoice_paid: bool = False
+    canceled_at: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -218,6 +219,7 @@ class SubscriptionRecord:
             "invoice_period_start": self.invoice_period_start,
             "invoice_period_end": self.invoice_period_end,
             "invoice_paid": self.invoice_paid,
+            "canceled_at": self.canceled_at,
         }
 
     @classmethod
@@ -242,6 +244,7 @@ class SubscriptionRecord:
             invoice_period_start=int(data.get("invoice_period_start") or 0),
             invoice_period_end=int(data.get("invoice_period_end") or 0),
             invoice_paid=bool(data.get("invoice_paid", False)),
+            canceled_at=int(data.get("canceled_at") or 0),
         )
 
 
@@ -282,7 +285,8 @@ async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
                             policy: AccessPolicy, customer_id: str = "",
                             subscription_status: str = "", updated_at: int = 0,
                             invoice_id: str = "", period_start: int = 0,
-                            period_end: int = 0, paid: bool = False) -> None:
+                            period_end: int = 0, paid: bool = False,
+                            canceled_at: int = 0) -> None:
     """Retain accepted subscription status and invoice periods on the billing row."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
@@ -294,6 +298,10 @@ async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
         stored = replace(
             stored, subscription_status=subscription_status,
             subscription_updated_at=max(updated_at, stored.subscription_updated_at))
+        if subscription_status == "active":
+            stored = replace(stored, canceled_at=0)
+        elif canceled_at:
+            stored = replace(stored, canceled_at=max(int(canceled_at), stored.canceled_at))
     if invoice_id:
         incoming = (period_start, period_end)
         stored_period = (stored.invoice_period_start, stored.invoice_period_end)

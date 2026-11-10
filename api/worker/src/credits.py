@@ -552,12 +552,14 @@ class _TakenRead:
 class _Account:
     monthly: int = 0
     allowance_generation: int = 0
-    # Period end of the last applied paid invoice, or a cancellation time.
+    # Period end of the last applied paid invoice.
     # Absent on rows written before this field: from_json loads that as 0.
     invoice_period_watermark: int = 0
     # Start of the paid period whose end is the watermark. 0 means a row stored
     # before this field, so the start is unknown.
     paid_period_start: int = 0
+    # Terminal cancellation time. 0 means this row has no cancellation.
+    canceled_at: int = 0
     # Accepted set_monthly opens the entitlement; accepted clear_monthly closes it.
     # The generation increases on each of those, so one read is the implied tier
     # and whether a later allowance write has landed.
@@ -612,6 +614,7 @@ class _Account:
             "allowance_generation": self.allowance_generation,
             "invoice_period_watermark": self.invoice_period_watermark,
             "paid_period_start": self.paid_period_start,
+            "canceled_at": self.canceled_at,
             "entitlement_generation": self.entitlement_generation,
             "monthly_entitled": self.monthly_entitled,
             "available": self.monthly + sum(g.remaining for g in self.packs if g.remaining > 0),
@@ -679,6 +682,7 @@ class _Account:
             allowance_generation=int(data.get("allowance_generation") or 0),
             invoice_period_watermark=int(data.get("invoice_period_watermark") or 0),
             paid_period_start=int(data.get("paid_period_start") or 0),
+            canceled_at=int(data.get("canceled_at") or 0),
             entitlement_generation=int(data.get("entitlement_generation") or 0),
             monthly_entitled=bool(data.get("monthly_entitled") or False),
             reserved=int(data.get("reserved") or 0),
@@ -707,6 +711,20 @@ class _Account:
             overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
             rotation=data.get("rotation"),
         )
+
+
+def _period_predates_cancellation(period_start: int, period_end: int,
+                                  canceled_at: int) -> bool:
+    """Whether this invoice period is stale against a terminal cancellation.
+
+    No period end stays stale. A known start is stale when it is before the
+    cancellation. An unknown start is stale when the period ended at or before it.
+    """
+    if not period_end:
+        return True
+    if period_start:
+        return period_start < canceled_at
+    return period_end <= canceled_at
 
 
 def _completed_claim(claim: dict[str, Any] | None) -> dict[str, Any]:
@@ -1028,6 +1046,9 @@ class LedgerState:
         `period_end` is the invoice period. A period that ends at or before the
         stored watermark is stale and does not change the allowance.
         `period_start` of 0 leaves a stored start alone.
+        A period that starts before `canceled_at` is stale. With no start, a
+        period that ends at or before `canceled_at` is stale. No period at all
+        is stale while a cancellation is stored. An accepted period clears it.
         """
         holder = self._funding_holder(holder)
         rec = self.payments.get(invoice_id)
@@ -1041,7 +1062,10 @@ class LedgerState:
         period_start = int(period_start or 0)
         current = self.accounts.get(holder)
         mark = current.invoice_period_watermark if current is not None else 0
+        canceled = current.canceled_at if current is not None else 0
         if period_end and mark and period_end <= mark:
+            return CreditResult(False, "stale", 0)
+        if canceled and _period_predates_cancellation(period_start, period_end, canceled):
             return CreditResult(False, "stale", 0)
         if units < 0:
             return CreditResult(False, "zero", 0)
@@ -1062,6 +1086,7 @@ class LedgerState:
             acc.invoice_period_watermark = max(acc.invoice_period_watermark, period_end)
         if period_start:
             acc.paid_period_start = period_start
+        acc.canceled_at = 0
         if plan:
             acc.plan = plan
         if customer_id:
@@ -1076,7 +1101,7 @@ class LedgerState:
         same period can still be paid afterwards. `watermark` is a cancellation
         time. It is stale only when it is before the stored paid period start.
         A stored watermark with no start still clears. An accepted cancellation
-        stores that time on the watermark.
+        stores that time on `canceled_at` and leaves the paid-period watermark.
         """
         holder = self._funding_holder(holder)
         period_end = int(period_end or 0)
@@ -1091,7 +1116,7 @@ class LedgerState:
             return CreditResult(False, "stale", 0)
         acc = self._acc(holder)
         if watermark:
-            acc.invoice_period_watermark = max(acc.invoice_period_watermark, watermark)
+            acc.canceled_at = max(acc.canceled_at, watermark)
         acc.monthly = 0
         acc.allowance_generation += 1
         acc.entitlement_generation += 1
@@ -1162,6 +1187,7 @@ class LedgerState:
         if acc.entitlement_generation >= existing.entitlement_generation:
             existing.entitlement_generation = acc.entitlement_generation
             existing.monthly_entitled = acc.monthly_entitled
+            existing.canceled_at = acc.canceled_at
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
         offset = existing.next_res

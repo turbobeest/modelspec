@@ -467,6 +467,11 @@ _SALE_ACTIONS = frozenset({"entitled", "credited"})
 _TERMINAL_SUBSCRIPTION_STATUSES = frozenset({"canceled", "incomplete_expired"})
 
 
+def _cancellation_time(stored: store.SubscriptionRecord) -> int:
+    """Terminal time on the subscription row. Older rows use the stored event time."""
+    return int(stored.canceled_at or stored.subscription_updated_at or 0)
+
+
 def _timestamp(value: Any) -> int:
     try:
         return max(0, int(value or 0))
@@ -510,9 +515,11 @@ def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
                     and created < stored.subscription_updated_at)
     if type_ in {"invoice.paid", "invoice.payment_failed"}:
         period = _invoice_period(obj, policy)
-        # A cancellation stores its time, not an invoice period. An invoice
-        # that ended at or before that time stays stale; a later period does not.
-        if terminal and (not period[1] or period[1] <= stored.subscription_updated_at):
+        # Cancellation time is canceled_at, else the stored subscription time
+        # on a row that has no canceled_at. Compare the period start to that
+        # time. An invoice with no period end stays stale.
+        cancelled = _cancellation_time(stored) if terminal else 0
+        if cancelled and credits._period_predates_cancellation(period[0], period[1], cancelled):
             return True
         current_period = (stored.invoice_period_start, stored.invoice_period_end)
         # A failed invoice with no period at all is not a newer period. When a
@@ -742,11 +749,15 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         elif type_ == "customer.subscription.deleted" or (
                 type_ == "customer.subscription.updated"
                 and obj.get("status") in EXPIRED_STATUSES | {"active"}):
+            status = ("canceled" if type_ == "customer.subscription.deleted"
+                      else str(obj.get("status")))
+            terminal_at = (_timestamp(obj.get("canceled_at")) or created
+                           if status in _TERMINAL_SUBSCRIPTION_STATUSES else 0)
             await store.record_chronology(
                 kv, subscription_id, now=now, policy=policy,
                 customer_id=_id(obj.get("customer")),
-                subscription_status=("canceled" if type_ == "customer.subscription.deleted"
-                                     else str(obj.get("status"))), updated_at=created)
+                subscription_status=status, updated_at=created,
+                canceled_at=terminal_at)
 
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
     if action in _SALE_ACTIONS and type_ in PROVISION_TYPES:
