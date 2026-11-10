@@ -141,7 +141,9 @@ class ReleaseSignal:
             raise SignalError("the signal signature is invalid")
         try:
             payload = json.loads(body)
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+            # Past the decoder's nesting limit, CPython raises RecursionError.
+            # That is invalid input, the same as a JSON syntax error.
             raise SignalError(f"the body is not valid JSON: {exc}") from exc
         return cls.parse(payload)
 

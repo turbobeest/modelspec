@@ -191,9 +191,11 @@ async def discovered(
     if len(raw) > MAX_BODY_BYTES:
         return _error(413, "payload_too_large", f"the body must be at most {MAX_BODY_BYTES} bytes")
     try:
-        signal = ReleaseSignal.parse(json.loads(raw), discovered=True)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         return _error(400, "invalid_signal", f"the body is not valid JSON: {exc}")
+    try:
+        signal = ReleaseSignal.parse(payload, discovered=True)
     except SignalError as exc:
         return _error(400, "invalid_signal", str(exc))
     observed = (now or datetime.now(UTC)).astimezone(UTC)

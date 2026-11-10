@@ -1583,7 +1583,9 @@ class Default(WorkerEntrypoint):
                 return self._method_not_allowed(service_commit, path, "POST", method)
             try:
                 payload = json.loads(await request.text())
-            except ValueError as exc:
+            except (ValueError, RecursionError) as exc:
+                # ValueError covers JSONDecodeError. RecursionError is the
+                # decoder's nesting limit, and it is still invalid input.
                 outcome = signals_service._error(
                     400, "invalid_request", f"the body is not valid JSON: {exc}"
                 )

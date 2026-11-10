@@ -936,6 +936,67 @@ def test_invalid_discovery_returns_400(signals_service, changes) -> None:
     assert kv.calls == []
 
 
+def test_nested_discovery_json_returns_client_error(signals_service) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=b"[" * 1100 + b"]" * 1100,
+        authorization="Bearer read-secret",
+        read_key="read-secret",
+        kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_acknowledgement_json_returns_client_error(signals_service) -> None:
+    import ast
+
+    tree = ast.parse((ROOT / "api/worker/src/entry.py").read_text())
+    function = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_signals"
+    )
+    kv = SignalKV()
+    namespace = {
+        "json": json,
+        "datetime": datetime,
+        "UTC": UTC,
+        "signals_service": signals_service,
+        "SIGNALS_ENABLED_VAR": "SIGNALS_ENABLED",
+        "SIGNALS_READ_KEY_VAR": "SIGNALS_READ_KEY",
+        "_access_store": lambda _env: kv,
+        "_json_response": lambda status, body: (status, body),
+    }
+    compiled = compile(
+        ast.Module(body=[function], type_ignores=[]), "entry.py::_signals", "exec",
+    )
+    exec(compiled, namespace)
+
+    class Env:
+        SIGNALS_ENABLED = "true"
+        SIGNALS_READ_KEY = "read-secret"
+
+    class Request:
+        headers = {"authorization": "Bearer read-secret"}
+
+        async def text(self) -> str:
+            return "[" * 1100 + "]" * 1100
+
+    class Worker:
+        env = Env()
+
+    status, body = asyncio.run(namespace["_signals"](
+        Worker(), Request(), "/v1/signals/ack", "POST", "audit",
+    ))
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_request"
+    assert kv.calls == []
+
+
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_signals_service", ROOT / "api" / "worker" / "src" / "signals_service.py"
