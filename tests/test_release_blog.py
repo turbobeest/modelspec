@@ -784,6 +784,47 @@ def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
     assert "<a " not in re.sub(r"<sup>.*?</sup>", "", item)
 
 
+def test_record_text_with_a_line_break_is_one_code_span(breakdown) -> None:
+    raw = "alpha line\nbeta line 4"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert "`alpha line beta line 4`" in post
+    html = _site_html(post, built.sources)
+    codes = re.findall(r"<code>(.*?)</code>", html)
+    assert any(
+        "alpha line" in code and "beta line 4" in code and "\n" not in code for code in codes
+    )
+
+
+def test_record_text_with_a_blank_line_does_not_open_a_heading_or_list(breakdown) -> None:
+    raw = "keeper\n\n# Extra title\n- extra item"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert not any(line.startswith("# Extra title") for line in post.splitlines())
+    assert not any(line.startswith("- extra item") for line in post.splitlines())
+    html = _site_html(post, built.sources)
+    visible = re.sub(r"<code>.*?</code>", "", html, flags=re.DOTALL)
+    assert "Extra title" not in visible
+    assert "extra item" not in visible
+    assert "keeper" in html
+
+
+def test_record_text_with_a_line_break_before_a_link_adds_no_outbound_link(breakdown) -> None:
+    raw = "see the note\n[more](https://other.example/record)"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={"limitations": raw, "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading], "limitations": None})
+    built = _with_claim(breakdown, changed)
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    hrefs = re.findall(r'href="([^"]*)"', html)
+    assert all("other.example" not in href for href in hrefs)
+    assert "see the note" in html
+    assert "other.example/record" in html
+
+
 def test_refused_word_in_an_independent_reading_blocks_the_render(breakdown) -> None:
     row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
     reading = row.readings[0].model_copy(update={
