@@ -1148,3 +1148,36 @@ def test_filtering_a_30_candidate_index_is_sub_millisecond(tmp_path) -> None:
         gc.enable()
     best = min(samples)
     assert best < 0.001, f"filtering took {best * 1000:.3f} ms (best of 200)"
+
+
+def test_strict_capability_ceiling_excludes_estimate_at_threshold() -> None:
+    """software_engineering < lab/b's fitted value keeps lab/a and drops lab/b."""
+    from decision.engine import decide
+    from decision.registry import facet
+    from decision.snapshot import SnapshotInputs, load_built_snapshot
+    from tests.snapshot_records import SOURCES, evidence, model
+
+    metadata = {"direction": "higher_is_better", "sample_size": 500, "random_baseline": 0}
+    snapshot = load_built_snapshot(build_snapshot(SnapshotInputs(
+        models=[model("lab/a", context=8000), model("lab/b", context=16000)],
+        evidence=[
+            evidence("lab/a", "swe_bench_pro", 60),
+            evidence("lab/b", "swe_bench_pro", 70),
+        ],
+        sources=SOURCES,
+        benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        benchmark_metadata={"swe_bench_pro": metadata},
+    ), as_of=date(2026, 9, 25)))
+    estimate = snapshot.capability_estimate("lab/b", "software_engineering")
+    assert estimate is not None
+    assert estimate.value == 0.585283977
+    spec = c.parse_spec({
+        "spec_version": 1,
+        "where": [{"facet": "software_engineering", "op": "<", "value": estimate.value}],
+        "optimize": {"max": "model.context_window"},
+        "explain": "none",
+    }, facets=facet)
+    answer = decide(spec, snapshot, facets=facet)
+    assert answer.status == "answered"
+    assert answer.answer.members == ["lab/a"]
+    assert [row.offering.model for row in answer.results] == ["lab/a"]
