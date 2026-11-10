@@ -105,6 +105,50 @@ def _engine_snapshot(
     return load_built_snapshot(built, include_archive=True, source="comparison test build")
 
 
+def _priced_lineup(sellers, *, modalities=None, record_suffix=""):
+    """Priced synthetic lineup: one row per (model, provider, input price)."""
+    model_ids = sorted({mid for mid, _provider, _price in sellers})
+    models = []
+    for mid in model_ids:
+        records = [
+            fact("model", mid, "model.context_window", 128000),
+            fact("model", mid, "model.class", "text-generator"),
+        ]
+        if modalities is not None:
+            records.append(fact("model", mid, "model.input_modalities", modalities))
+        models.append(model(mid, facts=records))
+    offerings = []
+    for mid, provider, price in sellers:
+        offering_id = f"{provider}/{mid}/global/standard"
+        rows = [
+            fact("offering", offering_id, f"offering.price.{side}", price, source="src-pricing")
+            for side in ("input", "output")
+        ]
+        if record_suffix:
+            for row in rows:
+                row["id"] += record_suffix
+                row["verification"]["target"]["id"] = row["id"]
+        offerings.append(offering(mid, provider, facts=rows))
+    built = build_snapshot(
+        SnapshotInputs(models=models, offerings=offerings, sources=SOURCES),
+        gate=False,
+        as_of=date(2026, 10, 1),
+    )
+    return load_built_snapshot(built, include_archive=True, source="comparison test build")
+
+
+def _cost_decision(index, *, where=None, optimize=None):
+    request = {
+        "spec_version": 1,
+        "optimize": optimize or {"min": "offering.cost_per_task"},
+        "explain": "full",
+        "limit": 20,
+    }
+    if where is not None:
+        request["where"] = where
+    return decide(parse_spec(request, facets=facet), index, facets=facet)
+
+
 def test_price_change_and_new_model_name_exactly_those_models():
     old_index = _engine_snapshot({"a": 1.0, "b": 2.0}, date(2026, 9, 26))
     new_index = _engine_snapshot({"a": 1.2, "b": 2.0, "new": 3.0}, date(2026, 9, 27))
@@ -425,3 +469,26 @@ def test_unknown_snapshot_lists_the_cached_ids(tmp_path, monkeypatch):
     with pytest.raises(ValueError) as caught:
         resolve_decision_generation("snap_missing", tmp_path)
     assert first in str(caught.value) and second in str(caught.value)
+
+
+def test_compare_uses_best_offering_rank_when_another_offering_moves():
+    before = [("lab/a", "p1", 1), ("lab/b", "p1", 2), ("lab/a", "p2", 3), ("lab/c", "p1", 4)]
+    after = [("lab/a", "p1", 1), ("lab/b", "p1", 2), ("lab/a", "p2", 3), ("lab/c", "p1", 2.5)]
+    old = _cost_decision(_priced_lineup(before))
+    new = _cost_decision(_priced_lineup(after))
+
+    assert [row.rank for row in old.results if row.offering.model == "lab/a"] == [1, 3]
+    assert [row.rank for row in new.results if row.offering.model == "lab/a"] == [1, 4]
+    compared = compare(old, new)
+    assert [row for row in compared["models"] if row["model"] == "lab/a"] == []
+
+
+def test_compare_does_not_pair_multiple_replacement_offerings():
+    old = _cost_decision(_priced_lineup([("lab/a", "p1", 1), ("lab/a", "p2", 2)]))
+    new = _cost_decision(_priced_lineup([("lab/a", "p3", 1), ("lab/a", "p4", 2)]))
+
+    assert [row.offering.provider for row in old.results] == ["p1", "p2"]
+    assert [row.offering.provider for row in new.results] == ["p3", "p4"]
+    compared = compare(old, new)
+    assert compared["changed"] is False
+    assert compared["models"] == []
