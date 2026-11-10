@@ -589,3 +589,30 @@ def test_all_evidence_selectors_exclude_other_measurement_conditions():
                       domains={"coding"}, evidence_selectors={"coding": selector})
     assert ids(result) == ["a", "b"]
     assert result.results[0].contributions[0].raw_value == 40
+
+
+def test_span_exactly_at_reference_epsilon_is_not_degenerate():
+    maximised = run({"a": {"x": 0.0}, "b": {"x": 1e-9}}, {"max": "x"})
+    assert ids(maximised) == ["b", "a"]
+    assert [row.score for row in maximised.results] == [1.0, 0.0]
+    minimised = run({"a": {"x": 0.0}, "b": {"x": 1e-9}}, {"min": "x"})
+    assert ids(minimised) == ["a", "b"]
+    assert [row.score for row in minimised.results] == [1.0, 0.0]
+
+
+def test_weight_tipping_points_exclude_zero_thresholds():
+    result = run({"a": {"x": 1.0}, "b": {"x": 0.0}}, {"weights": {"x": 1.0}})
+    assert result.tipping_points == ()
+
+
+def test_multiple_soft_penalties_accumulate_and_can_change_the_winner():
+    result = run(
+        {"a": {"x": 1.0}, "b": {"x": 0.5}},
+        {"max": "x"},
+        penalties={"a": {"gate1": 0.6, "gate2": 0.6}},
+    )
+    assert ids(result) == ["b", "a"]
+    penalised = result.results[1]
+    assert penalised.candidate_id == "a"
+    assert penalised.score == pytest.approx(-0.2)
+    assert penalised.soft_penalty == 1.2
