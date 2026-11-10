@@ -622,8 +622,26 @@ def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
             "decision.snapshot.load_built_snapshot()\n",
             "load_built_snapshot",
         ),
+        (
+            "from decision.snapshot import load_built_snapshot\n"
+            "load_built_snapshot()\n",
+            "load_built_snapshot",
+        ),
+        (
+            "from decision.snapshot import load_built_snapshot as y\n"
+            "y()\n",
+            "load_built_snapshot",
+        ),
     ],
-    ids=["aliased-import", "aliased-import-other-module", "getattr", "importlib", "unsigned-loader"],
+    ids=[
+        "aliased-import",
+        "aliased-import-other-module",
+        "getattr",
+        "importlib",
+        "unsigned-loader",
+        "unsigned-loader-bare",
+        "unsigned-loader-alias",
+    ],
 )
 def test_the_snapshot_census_reports_an_indirect_loader_call(source: str, kind: str) -> None:
     assert _snapshot_sites_in_tree(ast.parse(source), "probe.py") == [
