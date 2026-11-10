@@ -194,6 +194,16 @@ def resolve_signal(signal, root: Path) -> Resolution:
     return Resolution("new", model_id, (), "no exact catalogue alias matched")
 
 
+def _absolute_https_url(value: object) -> str | None:
+    """An absolute https URL with a host, or None when the value is not one."""
+    if not isinstance(value, str):
+        return None
+    parsed = urlsplit(value)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return None
+    return value
+
+
 def require_allowed_source(url: str) -> str:
     parsed = urlsplit(url)
     if parsed.scheme not in {"http", "https"}:
@@ -503,10 +513,16 @@ def gather_signal(
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates, str(exc)
         ))
-    primary_candidates = [
-        require_allowed_source(str(listing[field]))
-        for field in PRIMARY_URL_FIELDS if listing.get(field)
-    ]
+    primary_candidates = []
+    for field in PRIMARY_URL_FIELDS:
+        value = listing.get(field)
+        if not value:
+            continue
+        if field == "release_url":
+            value = _absolute_https_url(value)
+            if value is None:
+                continue
+        primary_candidates.append(require_allowed_source(str(value)))
     primary_candidates = list(dict.fromkeys(primary_candidates))
     if not primary_candidates:
         primary_candidates = [

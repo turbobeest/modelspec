@@ -1879,3 +1879,122 @@ def test_required_source_error_keeps_a_short_url_message() -> None:
     error = RequiredSourceError(url, detail)
     assert error.url == url
     assert str(error) == f"required source {url} failed: {detail}"
+
+
+_HOMEPAGE = "https://acme.example/models/orbit-1"
+_HF_ORBIT_1 = "https://huggingface.co/api/models?search=Orbit+1&limit=20"
+_MALFORMED_RELEASE_URLS = [
+    pytest.param("/orbit/notes", id="relative-path"),
+    pytest.param("javascript:alert(1)", id="javascript"),
+    pytest.param("https:///orbit", id="no-host"),
+    pytest.param({"href": "https://acme.example/not-a-string"}, id="non-string"),
+    pytest.param("q" * 100000, id="hundred-thousand-characters"),
+]
+
+
+def _listing_payload(release_url: object, *, homepage: str | None) -> dict:
+    listing: dict[str, object] = {
+        "id": "orbit-1", "name": "Orbit 1", "release_url": release_url,
+    }
+    if homepage is not None:
+        listing["homepage"] = homepage
+    return {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": listing,
+                "orbit-9": {
+                    "id": "orbit-9",
+                    "name": "Orbit 9",
+                    "release_url": "q" * 100000,
+                },
+            },
+        }
+    }
+
+
+@pytest.mark.parametrize("release_url", _MALFORMED_RELEASE_URLS)
+def test_malformed_release_url_is_not_a_primary_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, release_url: object,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    payload = _listing_payload(release_url, homepage=_HOMEPAGE)
+    replies = {
+        _MODELS_DEV: FetchResult(
+            _MODELS_DEV, json.dumps(payload).encode(), "application/json",
+        ),
+        _HOMEPAGE: FetchResult(
+            _HOMEPAGE, b"<html><body>Acme releases Orbit 1.</body></html>", "text/html",
+        ),
+        _HF_ORBIT_1: FetchResult(_HF_ORBIT_1, b"[]", "application/json"),
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        requested.append(url)
+        assert url in replies, url
+        return replies[url]
+
+    def run_refresh(**_kwargs: object):
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 0
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert result["status"] == "existing"
+    assert result["sources"][0] == _HOMEPAGE
+    assert release_url not in requested
+    assert _HOMEPAGE in requested
+
+
+@pytest.mark.parametrize("release_url", _MALFORMED_RELEASE_URLS)
+def test_malformed_release_url_matches_a_missing_field(
+    tmp_path: Path, release_url: object,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    present = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-2": {"id": "orbit-2", "name": "Orbit 2", "release_url": release_url},
+            },
+        }
+    }
+    absent = {
+        "acme": {
+            "name": "Acme",
+            "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+        }
+    }
+
+    def fetch_for(body: dict):
+        encoded = json.dumps(body).encode()
+
+        def fetch(url: str) -> FetchResult:
+            assert url == _MODELS_DEV, url
+            return FetchResult(url, encoded, "application/json")
+
+        return fetch
+
+    with pytest.raises(ValueError, match="does not name a primary provider source") as bad:
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=fetch_for(present),
+            read_date=date(2026, 9, 26),
+        )
+    with pytest.raises(ValueError, match="does not name a primary provider source") as gone:
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=fetch_for(absent),
+            read_date=date(2026, 9, 26),
+        )
+    assert str(bad.value) == str(gone.value)
