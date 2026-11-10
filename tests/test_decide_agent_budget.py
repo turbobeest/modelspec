@@ -638,3 +638,99 @@ def test_default_decide_request_matches_the_shared_fixture():
         assert mcp_default_request(case["spec"]) == case["request"], case["name"]
     for case in fixture["summaries"]:
         assert agent_summary(case["body"]) == case["text"], case["name"]
+
+
+def _quality_evidence(record_id, *, direct="direct"):
+    return {
+        "record_id": record_id,
+        "benchmark": "quality",
+        "value": 80,
+        "unit": "percent",
+        "date": "2026-10-01",
+        "date_type": "observed",
+        "source": "https://example.org/results",
+        "measured_by": "independent",
+        "directness": direct,
+        "estimate_weight": 1,
+        "requested_domain": "software_engineering",
+    }
+
+
+def _project_tied_members(member_evidence):
+    from decision import bounded
+    from decision.contract import Decision, ResponseOptions, parse_spec
+
+    decision = Decision.model_validate({
+        "decision_id": "dec_audit00000000",
+        "snapshot": "snap_" + "a" * 64,
+        "spec_hash": "sha256:" + "0" * 64,
+        "explain": "full",
+        "status": "answered",
+        "results": [{"rank": 1, "offering": {"model": "lab/a"}}],
+        "answer": {
+            "kind": "tied",
+            "members": ["lab/a", "lab/b"],
+            "basis": "overlapping intervals",
+            "tie_breakers": {},
+            "deterministic_order": ["lab/a", "lab/b"],
+        },
+    })
+    spec = parse_spec(
+        {"spec_version": 1, "optimize": {"max": "software_engineering"}},
+        facets=None,
+    )
+    return bounded.project(
+        decision,
+        ResponseOptions(fields=["model"]),
+        not_applied=[],
+        spec=spec,
+        member_evidence=member_evidence,
+    )
+
+
+def test_member_evidence_keeps_direct_before_proxy_on_equal_weight():
+    """Equal weights keep the direct record and drop the later proxy under the three-item cap."""
+    captured = [
+        ["lab/a", [
+            _quality_evidence("lab/a#a", direct="proxy"),
+            _quality_evidence("lab/a#b", direct="proxy"),
+            _quality_evidence("lab/a#c", direct="proxy"),
+            _quality_evidence("lab/a#z", direct="direct"),
+        ]],
+        ["lab/b", [_quality_evidence("lab/b#1"), _quality_evidence("lab/b#2")]],
+    ]
+    result = _project_tied_members(captured)
+    members = {entry["model"]: entry for entry in result["member_evidence"]}
+    assert _ids(members["lab/a"]) == ["lab/a#z", "lab/a#a", "lab/a#b"]
+    assert members["lab/a"]["omitted_items"] == 1
+    assert _ids(members["lab/b"]) == ["lab/b#1", "lab/b#2"]
+    assert members["lab/b"]["omitted_items"] == 0
+    assert result["explanation"]["omitted"] == {"member_evidence.items": 1}
+
+
+def test_one_budget_trim_prefers_later_member_on_equal_counts(monkeypatch):
+    """At equal item counts, one real-budget trim removes an item from the later member."""
+    from decision import bounded
+
+    captured = [
+        ["lab/a", [_quality_evidence("lab/a#1"), _quality_evidence("lab/a#2")]],
+        ["lab/b", [_quality_evidence("lab/b#1"), _quality_evidence("lab/b#2")]],
+    ]
+    real_limit = bounded.RESPONSE_BYTES
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", 1_000_000)
+    unpadded = _project_tied_members(captured)
+    pad = max(1, (real_limit - compact_bytes(unpadded)) // 3 - 100)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", real_limit)
+    for _model_id, items in captured:
+        for item in items:
+            item["source"] += "x" * pad
+    result = _project_tied_members(captured)
+    assert bounded.RESPONSE_BYTES == real_limit
+    assert compact_bytes(result) <= real_limit
+    members = {entry["model"]: entry for entry in result["member_evidence"]}
+    assert _ids(members["lab/a"]) == ["lab/a#1", "lab/a#2"]
+    assert members["lab/a"]["omitted_items"] == 0
+    assert _ids(members["lab/b"]) == ["lab/b#1"]
+    assert members["lab/b"]["omitted_items"] == 1
+    assert result["explanation"]["omitted"].get("member_evidence.items") == 1
+    assert sum(entry["omitted_items"] for entry in result["member_evidence"]) == 1
