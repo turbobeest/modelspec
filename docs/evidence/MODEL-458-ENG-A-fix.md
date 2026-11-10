@@ -326,7 +326,10 @@ text, frozen data, prices, plans, or release tags were changed.
 
 ## Round 4
 
-`origin/main` was merged as `c9712670680bce41c9562b8ab452aaadbbcaa1cd`.
+`origin/main` was merged as `c9712670680bce41c9562b8ab452aaadbbcaa1cd`, then
+again at `d9e8deddeab9ce86ecce42c7fbd4e0cf76e0b6b2` and
+`3f7d050deeaff49045a7898105dc52c4a9e72363`. Those two commits add tests and
+their evidence only.
 `contract_version` stays 2.19. `decision/engine.py`, `decision/explain.py`,
 `decision/filter.py`, `decision/bands.py` and `api/ranking/engine.py` were
 not edited. The round is `decision/relax.py`, its tests, and this file.
