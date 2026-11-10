@@ -334,6 +334,27 @@ def test_a_feasible_tie_prefers_the_numeric_cap():
     assert relax.fewest(_resolved(where), index, frozenset()) == ["model.context_window >= 10"]
 
 
+def test_a_negated_best_gate_matches_the_per_index_search():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {"model.context_window": 100, "licence.commercial_use": "permitted"},
+        "lab/b": {"model.context_window": 40, "licence.commercial_use": "prohibited"},
+    })
+    specs = (
+        ["model.context_window <= 50", "not(model.context_window >= best(30))"],
+        ["not(model.context_window >= best(30))", "model.context_window <= 50"],
+        [
+            "model.context_window <= 50",
+            "any(not(model.context_window >= best(30)); licence.commercial_use = permitted)",
+        ],
+    )
+    for where in specs:
+        resolved = _resolved(where)
+        assert relax.fewest(resolved, index, frozenset()) == _per_index(resolved, index)
+
+
 def test_fewest_matches_the_per_index_search_on_generated_cases():
     import random
 
@@ -352,6 +373,9 @@ def test_fewest_matches_the_per_index_search_on_generated_cases():
         "model.context_window >= best(0)",
         "model.context_window >= best(10)",
         "model.context_window >= best(40)",
+        "not(model.context_window >= best(0))",
+        "not(model.context_window >= best(30))",
+        "any(not(model.context_window >= best(0)); model.context_window <= 30)",
     ]
     lineups = [
         loaded_index({

@@ -76,6 +76,16 @@ def _cap_or_floor(cond: Any) -> bool:
     return isinstance(cond, Compare) and cond.op in _LOOSENS and _numeric(cond.value)
 
 
+def _best_is_negated(cond: Any, under_not: bool = False) -> bool:
+    """True when a best reference sits under ``not``, at any depth."""
+    if isinstance(cond, NotOf):
+        return _best_is_negated(cond.not_, True)
+    if isinstance(cond, AnyOf | AllOf):
+        children = cond.any if isinstance(cond, AnyOf) else cond.all
+        return any(_best_is_negated(child, under_not) for child in children)
+    return under_not and _has_best(cond)
+
+
 def _relaxable(resolved, domains: frozenset[str]) -> list[int]:
     return [
         i for i, cond in enumerate(resolved.conditions)
@@ -375,6 +385,11 @@ def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
     if current is None:
         return []
     if current.feasible:
+        found = _search_indexes(budget, resolved, snapshot, conditions, hard)
+        return [] if found is None else found
+    # A larger lineup can make a negated best gate pass, so the anchored
+    # proposal is not exact. The budgeted per-index search is.
+    if any(_best_is_negated(conditions[index]) for index in hard):
         found = _search_indexes(budget, resolved, snapshot, conditions, hard)
         return [] if found is None else found
     groups = _equivalent_groups(conditions, hard)
