@@ -1,34 +1,4 @@
-"""Prepaid credit ledger (MODEL-75, MODEL-93).
-
-Workers KV is eventually consistent and has no compare-and-set, so it cannot
-keep a balance non-negative under concurrent requests. This module does not
-use it. Mutations go through `LedgerState`, which is serial: `MemoryLedger`
-holds an asyncio lock for tests; production wraps the same state in one
-Durable Object (`CreditsObject`, `docs/x402.md`).
-
-Record kinds, both JSON inside the object:
-
-* a balance per holder — monthly remaining, pack grants (remaining + expiry),
-  and reserved units for in-flight requests
-* a payment claim per payment id (holder, units, settlement tx / invoice id)
-
-A payment id is credited at most once. Reserve-before-produce is what makes a
-4xx/5xx/no-match cost nothing, and what stops two in-flight requests spending
-the same last unit.
-
-Draw order: monthly allowance first, then pack grants, oldest expiry first.
-Monthly SET (a paid invoice) replaces remaining monthly; it does not add.
-Pack credits ADD and expire. Cancellation zeros monthly and leaves packs.
-
-Reversals (MODEL-106). A card pack's payment claim stores the Stripe
-PaymentIntent id as its `tx`, which is how a refund or a dispute finds it: a
-refund removes the refunded share of the pack's unspent credits, a dispute
-holds them until it closes. Spent credits are never clawed back. An anonymous
-pack is `pending` (no holder yet) from payment until claim, so a refund or
-dispute that arrives first is applied when the claim grants it.
-
-The unit is a credit.
-"""
+"""Prepaid credit ledger."""
 
 from __future__ import annotations
 
@@ -591,6 +561,8 @@ class _Account:
     overage_pending: list[tuple[str, int, int]] = field(default_factory=list)
     overage_unreconciled: int = 0
     rotation: dict[str, Any] | None = None
+    # Fingerprint of the key this account funds. Empty on a row stored before the field.
+    bound_fingerprint: str = ""
 
     def overage_open(self) -> int:
         return sum(item.overage for item in self.reservations.values()
@@ -654,6 +626,8 @@ class _Account:
         }
         if self.monthly_entitled is None:
             body.pop("monthly_entitled", None)
+        if self.bound_fingerprint:
+            body["bound_fingerprint"] = self.bound_fingerprint
         return body
 
     @classmethod
@@ -717,6 +691,7 @@ class _Account:
             overage_pending=pending,
             overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
             rotation=data.get("rotation"),
+            bound_fingerprint=str(data.get("bound_fingerprint") or ""),
         )
 
 
@@ -1194,6 +1169,17 @@ class LedgerState:
             "canceled_at": int(acc.canceled_at),
         }
 
+    def note_key_binding(self, holder: str, fingerprint: str) -> None:
+        """Record the key fingerprint this account funds."""
+        self._acc(self._funding_holder(holder)).bound_fingerprint = str(fingerprint or "")
+
+    def key_binding(self, holder: str) -> str:
+        """The key fingerprint this account funds, or empty when none is recorded."""
+        acc = self.accounts.get(self._funding_holder(holder))
+        if acc is None:
+            return ""
+        return str(acc.bound_fingerprint or "")
+
     def transfer(self, src: str, dst: str) -> bool:
         """Move an account to a new holder (key rotation)."""
         if not src or src == dst:
@@ -1280,6 +1266,8 @@ class LedgerState:
             existing.taken_reads[read_offset + token] = taken
         existing.next_read = read_offset + max(acc.next_read, 1)
         _move_meter_tail(existing, acc)
+        if acc.bound_fingerprint:
+            existing.bound_fingerprint = acc.bound_fingerprint
         return True
 
     def rotation_state(self, holder: str) -> dict[str, Any] | None:
@@ -1833,6 +1821,10 @@ class Ledger(Protocol):
 
     async def entitlement_view(self, holder: str) -> dict[str, Any]: ...
 
+    async def note_key_binding(self, holder: str, fingerprint: str) -> None: ...
+
+    async def key_binding(self, holder: str) -> str: ...
+
     async def transfer(self, src: str, dst: str) -> bool: ...
 
     async def reserve(self, holder: str, units: int = 1, now: str = "",
@@ -1990,6 +1982,14 @@ class MemoryLedger:
     async def entitlement_view(self, holder: str) -> dict[str, Any]:
         async with self._lock:
             return self.state.entitlement_view(holder)
+
+    async def note_key_binding(self, holder: str, fingerprint: str) -> None:
+        async with self._lock:
+            self.state.note_key_binding(holder, fingerprint)
+
+    async def key_binding(self, holder: str) -> str:
+        async with self._lock:
+            return self.state.key_binding(holder)
 
     async def transfer(self, src: str, dst: str) -> bool:
         async with self._lock:
@@ -2163,6 +2163,12 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def note_key_binding(self, holder: str, fingerprint: str) -> None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def key_binding(self, holder: str) -> str:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def transfer(self, src: str, dst: str) -> bool:
@@ -2355,6 +2361,12 @@ class DurableLedger:
             "entitled": bool(row["entitled"]),
             "canceled_at": int(row.get("canceled_at") or 0),
         }
+
+    async def note_key_binding(self, holder: str, fingerprint: str) -> None:
+        await self._call("note_key_binding", holder, fingerprint)
+
+    async def key_binding(self, holder: str) -> str:
+        return str(await self._call("key_binding", holder) or "")
 
     async def transfer(self, src: str, dst: str) -> bool:
         return bool(await self._call("transfer", src, dst))

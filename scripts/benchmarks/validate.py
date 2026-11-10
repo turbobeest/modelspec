@@ -31,11 +31,13 @@ def check(path: Path) -> list[str]:
     except yaml.YAMLError as e:
         return [f"front matter is not valid YAML: {e}"]
     if duplicates:
-        return [item.diagnostic(line_offset=1) for item in duplicates]
+        errs.extend(item.diagnostic(line_offset=1) for item in duplicates)
     if not isinstance(fm, dict):
-        return ["front matter is not a mapping"]
+        return errs + ["front matter is not a mapping"]
     if paths := unknown_key_paths(fm):
-        return [f"unknown_benchmark_key: {path}" for path in paths]
+        errs.extend(f"unknown_benchmark_key: {path}" for path in paths)
+    if errs:
+        return errs
     if "models_covered" in fm:
         errs.append("models_covered must not be authored (derived from the cards)")
     try:

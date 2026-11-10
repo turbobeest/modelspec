@@ -102,6 +102,18 @@ def test_benchmark_validator_reports_duplicate_aliases(page):
     assert check(page) == ["duplicate_yaml_key: line 10, column 1"]
 
 
+def test_benchmark_validator_reports_duplicate_and_unknown_keys(page):
+    insert_mapping(
+        page,
+        "aliases: [first]\naliases: [second]\n"
+        "dataset: {splits: train, private prose, test}",
+    )
+    assert check(page) == [
+        "duplicate_yaml_key: line 10, column 1",
+        "unknown_benchmark_key: dataset",
+    ]
+
+
 @pytest.mark.parametrize("relative,content", [
     ("models/example.md", "---\nmodel_id: test/model\naliases: [first]\naliases: [second]\n---\n"),
     ("benchmarks/example.md", "---\nid: example\naliases: [first]\naliases: [second]\n---\n"),

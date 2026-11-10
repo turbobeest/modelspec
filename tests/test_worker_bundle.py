@@ -220,10 +220,26 @@ def test_import_graph_reports_a_function_local_missing_import(
         "    except* Exception:\n"
         "        from missing_runtime_package import answer\n"
         "        return answer()\n",
+        "def answer():\n"
+        "    if True:\n"
+        "        return None\n"
+        "    else:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    def outer():\n"
+        "        def middle():\n"
+        "            def inner():\n"
+        "                from missing_runtime_package import answer\n"
+        "                return answer()\n"
+        "            return inner()\n"
+        "        return middle()\n"
+        "    return outer()\n",
     ],
     ids=[
         "match", "loop-else", "with-body", "three-levels", "relative", "try-except-import",
         "except-handler", "try-else", "try-finally", "while", "async-with", "except-star",
+        "if-else", "four-levels",
     ],
 )
 def test_import_graph_reports_a_function_local_import_in_each_block(
@@ -238,6 +254,24 @@ def test_import_graph_reports_a_function_local_import_in_each_block(
     assert [(item.module, item.imported_by) for item in missing] == [
         ("missing_runtime_package", "service")
     ]
+
+
+def test_from_import_reaches_a_present_submodule(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("from repo import engine\n", encoding="utf-8")
+    (tmp_path / "repo").mkdir()
+    (tmp_path / "repo" / "__init__.py").touch()
+    (tmp_path / "repo" / "engine.py").write_text(
+        "import missing_runtime_package\n",
+        encoding="utf-8",
+    )
+
+    missing, visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "repo.engine")
+    ]
+    assert visited == {"entry", "repo", "repo.engine"}
 
 
 def test_annotation_only_import_inside_a_function_is_not_a_bundle_dependency(
@@ -371,6 +405,46 @@ def test_signature_exemption_does_not_apply_in_another_module(tmp_path: Path) ->
     assert sorted((item.module, item.imported_by) for item in missing) == [
         ("cryptography.exceptions", "entry"),
         ("cryptography.hazmat.primitives.asymmetric.ed25519", "entry"),
+    ]
+
+
+def test_signature_exemption_does_not_follow_a_module_suffix(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("import other.snapshot\n", encoding="utf-8")
+    package = tmp_path / "other"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "snapshot.py").write_text(
+        "def load_snapshot_bytes():\n"
+        "    from cryptography.exceptions import InvalidSignature\n"
+        "    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert sorted((item.module, item.imported_by) for item in missing) == [
+        ("cryptography.exceptions", "other.snapshot"),
+        ("cryptography.hazmat.primitives.asymmetric.ed25519", "other.snapshot"),
+    ]
+
+
+def test_builder_exclusion_does_not_follow_the_top_level_package(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("import decision.other\n", encoding="utf-8")
+    package = tmp_path / "decision"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "other.py").write_text(
+        "def collect_repo():\n"
+        "    import missing_runtime_package\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "decision.other")
     ]
 
 
@@ -584,12 +658,17 @@ def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         sites.extend(_snapshot_sites_in_tree(tree, path.relative_to(root).as_posix()))
+    repo_snapshot = REPO_ROOT / "decision" / "snapshot.py"
+    tree = ast.parse(repo_snapshot.read_text(encoding="utf-8"), filename=str(repo_snapshot))
+    sites.extend(_snapshot_sites_in_tree(tree, "decision/snapshot.py"))
     return sites
 
 
 def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
     assert sorted(_worker_snapshot_call_sites()) == [
         ("decide_service.py", "load_snapshot", "load_snapshot_bytes"),
+        ("decision/snapshot.py", "load_built_snapshot", "load_snapshot_bytes"),
+        ("decision/snapshot.py", "load_snapshot", "load_snapshot_bytes"),
         ("entry.py", "<module>", "load_snapshot_bytes"),
     ]
 
@@ -622,8 +701,26 @@ def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
             "decision.snapshot.load_built_snapshot()\n",
             "load_built_snapshot",
         ),
+        (
+            "from decision.snapshot import load_built_snapshot\n"
+            "load_built_snapshot()\n",
+            "load_built_snapshot",
+        ),
+        (
+            "from decision.snapshot import load_built_snapshot as y\n"
+            "y()\n",
+            "load_built_snapshot",
+        ),
     ],
-    ids=["aliased-import", "aliased-import-other-module", "getattr", "importlib", "unsigned-loader"],
+    ids=[
+        "aliased-import",
+        "aliased-import-other-module",
+        "getattr",
+        "importlib",
+        "unsigned-loader",
+        "unsigned-loader-bare",
+        "unsigned-loader-alias",
+    ],
 )
 def test_the_snapshot_census_reports_an_indirect_loader_call(source: str, kind: str) -> None:
     assert _snapshot_sites_in_tree(ast.parse(source), "probe.py") == [
