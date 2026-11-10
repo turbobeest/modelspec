@@ -130,3 +130,14 @@ it("a fast human-status success leaves no timer pending", async () => {
   expect(screen.getByText(/12 decisions remaining today/)).toBeVisible();
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it("a human-status request that rejects leaves no timer pending", async () => {
+  vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
+  const onEnabled = vi.fn();
+  const { HumanGate } = await import("../components/HumanGate");
+  render(<HumanGate onLookup={vi.fn()} onEnabled={onEnabled} />);
+  await act(async () => {});
+  expect(screen.getByRole("status")).toHaveTextContent("Manual decisions are temporarily unavailable. Please try again later.");
+  expect(vi.getTimerCount()).toBe(0);
+  expect(onEnabled).not.toHaveBeenCalled();
+});
