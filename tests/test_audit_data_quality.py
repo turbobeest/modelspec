@@ -225,6 +225,27 @@ def test_audit_ignores_noncontent_documents():
     assert findings[0]["model_id"] == "acme/broken.md"
 
 
+def test_audit_reads_a_card_whose_file_name_is_all_capitals():
+    capitals = _VALID_CARD.replace("model_id: acme/ok", "model_id: acme/GPT")
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        _write_card(root, "acme/ok.md", _VALID_CARD)
+        _write_card(root, "acme/GPT.md", capitals)
+        findings = run_audit(root)
+    lower = [(item["field"], item["category"]) for item in findings if item["model_id"] == "acme/ok"]
+    upper = [(item["field"], item["category"]) for item in findings if item["model_id"] == "acme/GPT"]
+    assert lower == _VALID_FINDINGS
+    assert upper == _VALID_FINDINGS
+
+
+def test_audit_skips_a_noncontent_name_whose_body_parses_as_a_card():
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        for name in sorted(NOT_CONTENT):
+            (root / name).write_text(_VALID_CARD)
+        assert run_audit(root) == []
+
+
 def test_audit_provider_filter_keeps_valid_card_findings():
     with TemporaryDirectory() as directory:
         root = Path(directory)

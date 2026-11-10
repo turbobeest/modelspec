@@ -152,7 +152,7 @@ Temporary edit, reverted before the commit: the skip applied only when the file'
 
 ### Benchmark notes stay on LLM and VLM cards
 
-`image-generation` is a `model_type` the card schema accepts. `test_audit_skips_benchmark_and_arena_notes_for_image_generation` checks two image-generation cards. The first has an empty legacy cache and no evidence, and must get no finding whose field is `benchmarks` and none whose field is `arena_elo_overall`. The second has one cached score, `cached_score`, and no evidence. The Arena note still requires a non-empty legacy cache, so the empty card stays green when only the Arena type gate is removed. The second card is what makes that edit fail the test.
+`image-generation` is a `model_type` the card schema accepts. `test_audit_skips_benchmark_and_arena_notes_for_image_generation` checks two image-generation cards. The first has an empty legacy cache and no evidence, and must get no finding whose field is `benchmarks` and none whose field is `arena_elo_overall`. The second has one cached score, `cached_score`, and no evidence. During this check the Arena note still required a non-empty legacy cache, so the empty card stayed green when only the Arena type gate was removed. The second card is what made that edit fail the test. The later evidence-only change is recorded below.
 
 Before either edit:
 
@@ -208,3 +208,21 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 ```
 
 Result: `11 passed in 0.26s`, exit 0.
+
+### File names
+
+`test_audit_reads_a_card_whose_file_name_is_all_capitals` writes the same kind of valid card to `acme/ok.md` and to `acme/GPT.md`. Both produce the same field and category list. `test_audit_skips_a_noncontent_name_whose_body_parses_as_a_card` writes each name in `pipeline.load.NOT_CONTENT` with a body that parses as a card. The audit returns no findings. Both tests passed on the head that already contained the evidence-only Arena change. No audit code changed for them.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py::test_audit_reads_a_card_whose_file_name_is_all_capitals tests/test_audit_data_quality.py::test_audit_skips_a_noncontent_name_whose_body_parses_as_a_card
+```
+
+Result: `2 passed in 0.11s`, exit 0.
+
+Focused suite after these tests:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py tests/test_ci_workflows.py
+```
+
+Result: `143 passed in 6.99s`, exit 0.
