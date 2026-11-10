@@ -2060,11 +2060,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **MODEL-458, under 2.19 without a version change:** A spec number that is
-  not finite is rejected. Those values are not JSON numbers. Finite weights
-  whose products overflow still return a decision, and the scores and score
-  intervals stay finite. No field changes type or range, so `contract_version`
-  stays 2.19.
+- **MODEL-458, under 2.19 without a version change:** A weight that is not
+  finite is rejected. Compact `NaN`, `Infinity` and `-Infinity` tokens were
+  already rejected and still are. Every spec that returned a decision before
+  still does, including a non-finite compare value, window, set value, best
+  margin, tolerance, memory size or budget. Finite weights whose products
+  overflow still return a decision, and the scores and score intervals stay
+  finite. No field changes type or range, so `contract_version` stays 2.19.
 
 - **MODEL-440, under 2.19 without a version change:** `p_best` and
   `top3_stability` are integrated at fixed quantile nodes instead of drawn

@@ -177,15 +177,7 @@ def _iso_date(value: Any) -> Any:
     return value
 
 
-def _finite_scalar(value: Any) -> Any:
-    """Dates stay dates. Floats must be finite; integers are not floats."""
-    value = _iso_date(value)
-    if isinstance(value, float) and not math.isfinite(value):
-        raise ValueError("a number must be finite")
-    return value
-
-
-Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_finite_scalar)]
+Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_iso_date)]
 #: For a field named ``date``, whose default would shadow the type in its class.
 Day = date
 
@@ -263,8 +255,6 @@ class BestRef(_Strict):
         # missing model(…) by the value union.
         if isinstance(value, bool) or not isinstance(value, int | float) or value < 0:
             raise ValueError(f"the margin in best(m) is a number, 0 or more; got {value!r}")
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError(f"the margin in best(m) is a finite number, 0 or more; got {value!r}")
         return value
 
 
@@ -878,9 +868,6 @@ class Tolerance(_Strict):
     def _one(self) -> Tolerance:
         if (self.relative is None) == (self.absolute is None):
             raise ValueError("a tolerance is exactly one of relative, absolute")
-        number = self.absolute if self.absolute is not None else self.relative
-        if isinstance(number, float) and not math.isfinite(number):
-            raise ValueError("a tolerance must be finite")
         return self
 
 
@@ -1083,13 +1070,6 @@ class Hardware(_Strict):
     count: int = Field(default=1, ge=1)
     memory_gb: float | None = Field(default=None, gt=0)
 
-    @field_validator("memory_gb")
-    @classmethod
-    def _finite_memory(cls, value: float | None) -> float | None:
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError("memory_gb must be finite")
-        return value
-
 
 class LocalModel(_Strict):
     model: ModelId
@@ -1099,13 +1079,6 @@ class LocalModel(_Strict):
 
 class Budget(_Strict):
     max_cost_per_task_usd: float | None = Field(default=None, gt=0)
-
-    @field_validator("max_cost_per_task_usd")
-    @classmethod
-    def _finite_budget(cls, value: float | None) -> float | None:
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError("max_cost_per_task_usd must be finite")
-        return value
 
 
 class InventoryProfile(_Strict):
@@ -1768,6 +1741,15 @@ class NearMiss(_Strict):
     value: Scalar | None = None
     distance: float | None = None
     unit: str | None = None
+
+    @field_validator("distance", mode="before")
+    @classmethod
+    def _omit_nonfinite_distance(cls, value: Any) -> Any:
+        # A non-finite distance is not strict JSON. Null is already the
+        # absent distance, so the response stays a decision.
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        return value
     records: list[str] = Field(default_factory=list)
     #: How a computed value was reached, with the numbers. Added in 1.3.
     formula: str | None = None
