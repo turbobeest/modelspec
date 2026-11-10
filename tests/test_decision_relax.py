@@ -124,3 +124,92 @@ def test_an_answered_decision_suggests_nothing():
 
 def test_relax_to_remains_in_the_current_contract():
     assert CONTRACT_VERSION == "2.19"
+
+
+def _counted_apply(monkeypatch):
+    from decision import relax
+
+    original = relax.apply
+    calls = {"n": 0}
+
+    def counted(*args, **kwargs):
+        calls["n"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(relax, "apply", counted)
+    return calls
+
+
+def test_duplicate_gates_stay_within_a_quadratic_filter_budget(monkeypatch):
+    from decision import relax
+    from decision.resolve import resolve
+    from tests.snapshot_records import loaded_index
+
+    count = 12
+    where = ["model.context_window >= 100"] * count
+    index = loaded_index({"lab/a": {"model.context_window": 1}})
+    resolved = resolve(parse_spec({
+        "spec_version": 1,
+        "where": where,
+        "optimize": {"max": "model.context_window"},
+        "explain": "full",
+    }, facets=facets), facets=facets)
+    calls = _counted_apply(monkeypatch)
+    assert relax.fewest(resolved, index, frozenset()) == where
+    assert calls["n"] <= count * count
+
+
+def test_distinct_gates_stay_within_a_quadratic_filter_budget(monkeypatch):
+    from decision import relax
+    from decision.resolve import resolve
+    from tests.snapshot_records import loaded_index
+
+    count = 12
+    where = [f"model.context_window >= {100 + i}" for i in range(count)]
+    index = loaded_index({"lab/a": {"model.context_window": 1}})
+    resolved = resolve(parse_spec({
+        "spec_version": 1,
+        "where": where,
+        "optimize": {"max": "model.context_window"},
+        "explain": "none",
+    }, facets=facets), facets=facets)
+    calls = _counted_apply(monkeypatch)
+    assert relax.fewest(resolved, index, frozenset()) == where
+    assert calls["n"] <= count * count
+
+
+def test_a_best_margin_does_not_change_which_gate_is_fewest():
+    from decision import relax
+    from decision.resolve import resolve
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/high": {"model.context_window": 50},
+        "lab/low": {"model.context_window": 10},
+    })
+    resolved = resolve(parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 100", "model.context_window >= best(0)"],
+        "optimize": {"max": "model.context_window"},
+        "explain": "none",
+    }, facets=facets), facets=facets)
+    assert relax.fewest(resolved, index, frozenset()) == ["model.context_window >= 100"]
+
+
+def test_equally_few_relaxations_prefer_a_numeric_cap():
+    from decision import relax
+    from decision.resolve import resolve
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/wide": {"model.context_window": 200, "licence.commercial_use": "prohibited"},
+        "lab/permitted": {"model.context_window": 10, "licence.commercial_use": "permitted"},
+    })
+    where = ["model.context_window >= 100", "licence.commercial_use = permitted"]
+    resolved = resolve(parse_spec({
+        "spec_version": 1,
+        "where": where,
+        "optimize": {"max": "model.context_window"},
+        "explain": "none",
+    }, facets=facets), facets=facets)
+    assert relax.fewest(resolved, index, frozenset()) == ["model.context_window >= 100"]

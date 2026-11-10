@@ -24,8 +24,8 @@ when removing one of those alone would admit a model.
 from __future__ import annotations
 
 from dataclasses import replace
-from itertools import combinations
 from fractions import Fraction
+from itertools import combinations
 from math import ceil, floor
 from typing import Any
 
@@ -43,7 +43,8 @@ from decision.contract import (
     render_condition,
 )
 from decision.explain import facet_unit
-from decision.filter import apply
+from decision.filter import _has_best, _Run, apply
+from decision.resolve import asks_for_retired
 
 #: Facets that say what kind of model the question is about.
 QUESTION_FACETS = frozenset({"model.class"})
@@ -150,24 +151,140 @@ def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> Rel
     )
 
 
+def _equivalent_groups(conditions, hard: list[int]) -> list[tuple[int, ...]]:
+    """Indexes that render alike. The filter ignores extra copies of one gate."""
+    grouped: dict[str, list[int]] = {}
+    for index in hard:
+        grouped.setdefault(render_condition(conditions[index]), []).append(index)
+    return [tuple(indexes) for indexes in grouped.values()]
+
+
+def _dropped_admits(resolved, snapshot, conditions, dropped: tuple[int, ...]) -> bool:
+    omit = set(dropped)
+    trial = replace(
+        resolved,
+        conditions=tuple(cond for index, cond in enumerate(conditions) if index not in omit),
+    )
+    return bool(apply(trial, snapshot).feasible)
+
+
+def _fewest_from_groups(resolved, snapshot, conditions, groups: list[tuple[int, ...]]) -> list[str]:
+    """Exact search over equivalent gates, caps and floors before spec order."""
+    proposals: list[tuple[int, int, tuple[int, ...]]] = []
+    for size in range(1, len(groups) + 1):
+        for chosen in combinations(range(len(groups)), size):
+            indexes = tuple(sorted(index for group in chosen for index in groups[group]))
+            cap = sum(_cap_or_floor(conditions[index]) for index in indexes)
+            proposals.append((len(indexes), -cap, indexes))
+    proposals.sort()
+    for _, _, indexes in proposals:
+        if _dropped_admits(resolved, snapshot, conditions, indexes):
+            return [render_condition(conditions[index]) for index in indexes]
+    return []
+
+
+def _excluded_bits(run: _Run) -> tuple[int, int]:
+    """Retired bits, and bits that no dropped gate can put in the lineup.
+
+    ``fewest`` reruns the filter without a reach, so a bare model that has an
+    offering, and a bare model without open weights, stay out.
+    """
+    index = run.index
+    sold = {index.model_of(cid) for cid in run.ids if index.kind(cid) == "offering"}
+    retired = structural = 0
+    for position, cid in enumerate(run.ids):
+        bit = 1 << position
+        if cid in sold:
+            structural |= bit
+        elif run._life(cid) == "retired":
+            retired |= bit
+        if index.kind(cid) == "model" and cid not in sold:
+            weights = index.fact(cid, "model.weights_openness")
+            if weights.state != "known" or weights.value != "open_weights":
+                structural |= bit
+    return retired, structural
+
+
+def _blocked_bits(run: _Run, cond) -> int:
+    """Candidates this hard condition keeps out of ``feasible``."""
+    raw = run._eval(cond)
+    unknown = run.universe & ~raw.passing & ~raw.failing
+    as_pass, _, _ = run._unknown_disposition(cond, unknown)
+    return run.universe & ~(raw.passing | as_pass)
+
+
+def _failure_proposals(resolved, snapshot, conditions, hard: list[int],
+                       groups: list[tuple[int, ...]]) -> list[tuple[int, ...]]:
+    """Smallest index sets that would qualify some candidate, best key first.
+
+    A ``best(m)`` threshold depends on which other gates remain, so callers
+    skip this when any condition uses one.
+    """
+    run = _Run(resolved, snapshot)
+    retired, structural = _excluded_bits(run)
+    hard_set = set(hard)
+    always = [
+        index for index, cond in enumerate(conditions)
+        if cond.soft is None and index not in hard_set
+    ]
+    always_blocks = 0
+    for index in always:
+        always_blocks |= _blocked_bits(run, conditions[index])
+    group_blocks = [_blocked_bits(run, conditions[group[0]]) for group in groups]
+    group_retired = [
+        any(asks_for_retired(conditions[index]) for index in group) for group in groups
+    ]
+    fixed_retired = any(asks_for_retired(cond) for index, cond in enumerate(conditions)
+                        if index not in hard_set)
+    eligible = run.universe & ~structural
+    seen: set[tuple[int, ...]] = set()
+    proposals: list[tuple[int, ...]] = []
+    bit = 1
+    while bit <= eligible:
+        if not eligible & bit or always_blocks & bit:
+            bit <<= 1
+            continue
+        chosen = [group for group, blocks in enumerate(group_blocks) if blocks & bit]
+        if bit & retired and not fixed_retired and not any(
+            group_retired[group] and group not in chosen for group in range(len(groups))
+        ):
+            bit <<= 1
+            continue
+        indexes = tuple(sorted(index for group in chosen for index in groups[group]))
+        if indexes not in seen:
+            seen.add(indexes)
+            proposals.append(indexes)
+        bit <<= 1
+    proposals.sort(key=lambda indexes: (
+        len(indexes),
+        -sum(_cap_or_floor(conditions[index]) for index in indexes),
+        indexes,
+    ))
+    return proposals
+
+
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
     """The fewest relaxable conditions whose removal gives a feasible answer."""
     conditions = resolved.conditions
     hard = _relaxable(resolved, domains)
-    for size in range(1, len(hard) + 1):
-        # Stable: caps and floors first, then the spec's order.
-        groups = sorted(
-            combinations(hard, size),
-            key=lambda group: -sum(_cap_or_floor(conditions[i]) for i in group),
-        )
-        for dropped in groups:
-            trial = replace(
-                resolved,
-                conditions=tuple(c for i, c in enumerate(conditions) if i not in dropped),
-            )
-            if apply(trial, snapshot).feasible:
-                return [render_condition(conditions[i]) for i in dropped]
-    return []
+    if not hard:
+        return []
+    groups = _equivalent_groups(conditions, hard)
+    # best(m) is relative to whoever survived the other gates, so failure sets
+    # are not fixed. Equivalent gates still search as one choice.
+    if any(_has_best(cond) for cond in conditions):
+        return _fewest_from_groups(resolved, snapshot, conditions, groups)
+    proposals = _failure_proposals(resolved, snapshot, conditions, hard, groups)
+    for indexes in proposals:
+        if indexes and _dropped_admits(resolved, snapshot, conditions, indexes):
+            return [render_condition(conditions[index]) for index in indexes]
+    if any(not indexes for indexes in proposals) and apply(resolved, snapshot).feasible:
+        return _fewest_from_groups(resolved, snapshot, conditions, groups)
+    if proposals and not any(indexes for indexes in proposals):
+        return []
+    if not proposals:
+        return []
+    return _fewest_from_groups(resolved, snapshot, conditions, groups)
 
 
 def _unit(resolved, snapshot, facet_id: str, candidates) -> str | None:
