@@ -250,6 +250,38 @@ def test_ed25519_imports_stay_excluded_only_inside_load_snapshot_bytes(
     ]
 
 
+def test_excluded_function_name_in_another_module_is_reported(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text(
+        "def main():\n"
+        "    import missing_runtime_package\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "entry")
+    ]
+
+
+def test_signature_exemption_does_not_apply_in_another_module(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text(
+        "def load_snapshot_bytes():\n"
+        "    from cryptography.exceptions import InvalidSignature\n"
+        "    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert sorted((item.module, item.imported_by) for item in missing) == [
+        ("cryptography.exceptions", "entry"),
+        ("cryptography.hazmat.primitives.asymmetric.ed25519", "entry"),
+    ]
+
+
 def test_literal_dynamic_import_inside_a_function_stays_reachable(tmp_path: Path) -> None:
     checker = _load_checker()
     (tmp_path / "entry.py").write_text(
