@@ -1,34 +1,4 @@
-"""Prepaid credit ledger (MODEL-75, MODEL-93).
-
-Workers KV is eventually consistent and has no compare-and-set, so it cannot
-keep a balance non-negative under concurrent requests. This module does not
-use it. Mutations go through `LedgerState`, which is serial: `MemoryLedger`
-holds an asyncio lock for tests; production wraps the same state in one
-Durable Object (`CreditsObject`, `docs/x402.md`).
-
-Record kinds, both JSON inside the object:
-
-* a balance per holder — monthly remaining, pack grants (remaining + expiry),
-  and reserved units for in-flight requests
-* a payment claim per payment id (holder, units, settlement tx / invoice id)
-
-A payment id is credited at most once. Reserve-before-produce is what makes a
-4xx/5xx/no-match cost nothing, and what stops two in-flight requests spending
-the same last unit.
-
-Draw order: monthly allowance first, then pack grants, oldest expiry first.
-Monthly SET (a paid invoice) replaces remaining monthly; it does not add.
-Pack credits ADD and expire. Cancellation zeros monthly and leaves packs.
-
-Reversals (MODEL-106). A card pack's payment claim stores the Stripe
-PaymentIntent id as its `tx`, which is how a refund or a dispute finds it: a
-refund removes the refunded share of the pack's unspent credits, a dispute
-holds them until it closes. Spent credits are never clawed back. An anonymous
-pack is `pending` (no holder yet) from payment until claim, so a refund or
-dispute that arrives first is applied when the claim grants it.
-
-The unit is a credit.
-"""
+"""Prepaid credit ledger."""
 
 from __future__ import annotations
 

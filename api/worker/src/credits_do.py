@@ -1,9 +1,4 @@
-"""Durable Object wrapping `credits.LedgerState` (MODEL-75).
-
-Bound as `CREDITS`. One instance, id `ledger`. SQLite holds a single JSON
-document so a mutation is one write, not a cross-key KV race. The class is
-imported from `entry.py` so Wrangler can find it by `class_name`.
-"""
+"""Durable Object wrapping the credit ledger."""
 
 from __future__ import annotations
 

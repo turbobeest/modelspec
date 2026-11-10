@@ -1,19 +1,4 @@
-"""ACCESS records MODEL-73 adds: Stripe events, subscriptions, sessions, keyrefs.
-
-The key itself is stored only as a SHA-256 lookup in `access_keys`. These
-records are the billing index on top of that: which Stripe event we have
-already applied, which subscription is entitled to which tier, which Checkout
-session points at that subscription, and (after claim) which fingerprint the
-subscription currently owns.
-
-The webhook never mints a key. Anonymous claim calls `access_keys.issue`,
-returns the plaintext once, and writes only the hash. An authenticated Checkout
-(the request carried a live key) stores that key's SHA-256 fingerprint on the
-session — never the key — and payment credits that key; claim does not mint.
-Every `.put` below names a record through one of the `*_name` functions so
-`tests/test_legal.py` can see what we write. The privacy statement lists the
-same four kinds.
-"""
+"""Stripe billing records on the access index."""
 
 from __future__ import annotations
 

@@ -1,12 +1,4 @@
-"""Stripe Checkout, webhook, claim and rotation (MODEL-73, MODEL-93).
-
-Hosted Checkout collects the card on Stripe's origin. This module never sees
-card data. It verifies webhook signatures in process (HMAC-SHA256 over
-`t.payload`), records the paid entitlement, and either credits an existing
-key (Checkout carried a live key; only its SHA-256 fingerprint is stored) or
-mints a key at claim for an anonymous purchase — the plaintext is returned
-once and never stored. KV writes go through `access_billing`; this file decides.
-"""
+"""Stripe Checkout, webhook, claim and rotation."""
 
 from __future__ import annotations
 

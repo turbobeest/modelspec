@@ -66,3 +66,7 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 316 passed, exit 0.
 
 Four billing probes passed: 7, 2, 8, and 4, each exit 0.
+
+## Worker memory
+
+Module notes in `billing.py`, `access_billing.py`, `credits.py` and `credits_do.py` are one line. Successor steady 104.75 MiB, under 115 MiB.
