@@ -619,6 +619,13 @@ def _chart_bars(svg: str) -> list[tuple[str, str]]:
     return re.findall(r'<rect[^>]*width="([^"]+)"[^>]*><title>([^<]*)</title>', svg)
 
 
+def _with_claim(breakdown: Breakdown, row) -> Breakdown:
+    claims = [row if item.benchmark == row.benchmark else item
+              for item in breakdown.claims_vs_evidence.claims]
+    section = breakdown.claims_vs_evidence.model_copy(update={"claims": claims})
+    return breakdown.model_copy(update={"claims_vs_evidence": section})
+
+
 def test_not_comparable_reading_does_not_receive_shared_scale(breakdown) -> None:
     row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "mmlu_pro")
     assert row.claim.value == 80 and row.claim.unit == "percent"
@@ -632,11 +639,22 @@ def test_not_comparable_reading_does_not_receive_shared_scale(breakdown) -> None
     assert len(bars) == 1, mmlu
     assert bars[0][1] == "80% lab-reported"
     assert "omitted from this scale" in mmlu
+    assert "unit fraction is not percent" in mmlu
     swe = svg.split(">swe_bench_pro</text>", 1)[1].split(">terminal_bench</text>", 1)[0]
     assert len(_chart_bars(swe)) == 2
     terminal = svg.split(">terminal_bench</text>", 1)[1]
     assert len(_chart_bars(terminal)) == 2
     assert "The setups differ in effort" in post
+
+
+def test_omitted_note_states_the_subcategory_difference(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "mmlu_pro")
+    reading = row.readings[0].model_copy(update={"differs_in": ["unit", "subcategory"]})
+    changed = row.model_copy(update={"readings": [reading]})
+    _post, charts = render(_with_claim(breakdown, changed))
+    note = charts["claims.svg"].split(">mmlu_pro</text>", 1)[1]
+    assert "unit fraction is not percent" in note
+    assert "subcategory differs" in note
 
 
 def test_qualified_readings_keep_limits_and_flags_in_post(tmp_path) -> None:
