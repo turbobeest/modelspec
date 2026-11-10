@@ -402,3 +402,37 @@ MiB warning. Its steady-state gate passed. No gate was raised.
 worktree was clean of vendored private data afterward. No production
 settings, ranking floors, legal text, frozen data, prices, plans, or release
 tags were changed.
+
+## Round 5
+
+`origin/main` moved after round 4. The branch merged it at
+`6721afe4990f8844d6c3b87ad74eb494862e3762`, then again at
+`bc5dff4a896072a0f73181ad15ebd0b048d99a4a` so the branch contains
+`origin/main`. The first merge had one conflict, in the change log of
+`docs/decision-contract.md`. Both sides added a note that begins
+`**MODEL-458, under 2.19 without a version change:**`. Both notes stay, word
+for word. The note on band membership and the reported probability comes
+first. The note on non-finite weights comes second. `contract_version` stays
+2.19. The second merge had no conflict. `git diff origin/main...HEAD` names
+the same 14 files as before this round. Against `origin/main`,
+`docs/decision-contract.md` adds the non-finite-weight note.
+
+Companion checks returned exit 0. Nothing was regenerated.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources
+```
+
+OpenAPI reported that `api/worker/openapi.yaml` matches the implementation.
+The MCP capture check returned `1 passed in 0.39s`.
+
+Focused tests returned exit 0, `577 passed in 26.30s`:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_relax.py tests/test_decision_contract.py tests/test_data_trust.py tests/test_decision_explain.py tests/test_decision_numeric_bounds.py tests/test_decision_snapshot.py tests/test_relax_single.py tests/test_snapshot_provenance.py
+```
+
+No assertion was removed or loosened. No production settings, ranking floors,
+legal text, frozen data, prices, plans, or release tags were changed.
