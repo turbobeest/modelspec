@@ -441,6 +441,89 @@ def test_same_price_without_a_qualifying_promotion_stays_paid():
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_cancelled_promotion_resubscribe_invoice_keeps_friends(kind):
+    """A later paid period writes the event mapping after the row was downgraded."""
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = real_ledger(kind, kv)
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_friends_before_cancel", ledger=ledger)).status == 200
+        canceled = await hook(
+            kv, cfg, {"id": "sub_fixture_friends", "status": "canceled",
+                      "customer": "cus_fixture_friends", "canceled_at": 300},
+            kind="customer.subscription.deleted", event_id="evt_friends_resub_cancel",
+            ledger=ledger)
+        assert canceled.status == 200, canceled.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == cfg.billing.downgrade_tier
+        assert row.tier == cfg.billing.downgrade_tier
+        later = friends_invoice(id="in_friends_later", period_start=400, period_end=500)
+        paid = await hook(kv, cfg, later, kind="invoice.paid",
+                          event_id="evt_friends_later", ledger=ledger)
+        assert paid.status == 200, paid.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == "friends"
+        assert row.tier == "friends" and row.status == "active"
+
+    asyncio.run(scenario())
+
+
+def test_cancelled_promotion_checkout_link_keeps_friends():
+    """A Checkout that links a downgraded key writes the event mapping."""
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        fingerprint = access_keys.fingerprint(key)
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_link_before_cancel", ledger=ledger)).status == 200
+        canceled = await hook(
+            kv, cfg, {"id": "sub_fixture_friends", "status": "canceled",
+                      "customer": "cus_fixture_friends", "canceled_at": 300},
+            kind="customer.subscription.deleted", event_id="evt_link_cancel",
+            ledger=ledger)
+        assert canceled.status == 200, canceled.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == cfg.billing.downgrade_tier
+        assert row.tier == cfg.billing.downgrade_tier
+        opened = friends_invoice(
+            id="in_open_paid", subscription="sub_open_friends",
+            period_start=100, period_end=200, discounts=[])
+        assert (await hook(kv, cfg, opened, kind="invoice.paid",
+                           event_id="evt_open_paid", ledger=ledger)).status == 200
+        open_row = await billing.store.load_subscription(kv, "sub_open_friends")
+        assert open_row is not None and open_row.tier == "paid"
+        assert open_row.key_fingerprint == ""
+        link = session(
+            id="cs_friends_link", subscription="sub_open_friends",
+            discounts=[{"promotion_code": promotion()}],
+            metadata={"modelspec_price_id": PAID_PRICE,
+                      "modelspec_key_fingerprint": fingerprint})
+        linked = await hook(kv, cfg, link, event_id="evt_friends_link", ledger=ledger)
+        assert linked.status == 200, linked.body
+        record = await access_keys.lookup(kv, key)
+        open_row = await billing.store.load_subscription(kv, "sub_open_friends")
+        assert record.tier == "friends"
+        assert open_row.tier == "friends" and open_row.status == "active"
+        assert open_row.key_fingerprint == fingerprint
+
+    asyncio.run(scenario())
+
+
 def test_friends_price_is_neither_advertised_nor_sold_by_public_checkout():
     async def scenario():
         cfg = policy(friends_price_ids=[FRIENDS_PRICE])
