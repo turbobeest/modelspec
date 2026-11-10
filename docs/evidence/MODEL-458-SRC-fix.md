@@ -74,3 +74,21 @@ Final focused result: `140 passed`, exit 0. No live token usage, provider billin
 The two final focused suite invocations total `469 passed, 2 skipped`. All changed Python files parse with Python 3.11 grammar under Python 3.14.4; a Python 3.11 runtime was not used locally. `git diff --check` passed. No frozen data, source-retention class, legal text, API contract, Worker variable or release tag changed. `release_signals/pipeline.py` remains unchanged.
 
 The private workflow pin update is separate work after engine review and merge. Full CI and independent review remain pending on the draft PR.
+
+## Round 2
+
+Pytest shard 5/8 failed `tests/test_cite_only_scope.py::test_ordinary_benchmark_scrape_preserves_provider_failure_message` on run 42718979221, job 129507768503. The failure is `urllib.error.HTTPError: HTTP Error 401: Unauthorized`, raised from `open_source_request` in `scripts/benchmarks/fetch.py` (`build_opener(...).open`). The test replaced `urllib.request.urlopen`. `scrape` opens through `open_source_request`, so the fixture did not run and the request left the process. The other required checks on that push were green. No other check failed.
+
+Local reproduction blocked `socket.create_connection` and `socket.socket.connect` with `OSError("network disabled")`, then ran that one test through `pytest.main` with `-q -p no:cacheprovider`. It failed with `urllib.error.URLError: <urlopen error network disabled>`, exit 1. Same missed fixture. No provider call completed.
+
+The expected text is unchanged: `RuntimeError` equal to `str(payload)[:300]`. The fixture now replaces `open_source_request`. Production code is unchanged from `9b2b9847a345f25432937df83e93e4de2d3ba7f3`.
+
+With the same socket block, `tests/test_cite_only_scope.py` reported `8 passed`, exit 0.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_cite_only_scope.py tests/test_fetch.py tests/test_source_transports.py tests/test_curation_loop.py
+```
+
+Result: `127 passed`, exit 0. Environment: Python 3.14.4, pytest 9.1.1, HTTPX 0.28.1, git 2.50.1, GitHub CLI 2.103.3. `git diff --check` passed. No frozen data, source-retention class, legal text, contract, Worker variable, or release tag changed. No live provider call in these runs.
+
+CI recheck follows this push.
