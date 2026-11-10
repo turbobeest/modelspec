@@ -336,7 +336,14 @@ def _post_page(post: Post, revisions: list[Post], path: str, build: Build, *, pr
         + _reproduce(post)
         + "</article>"
     )
-    image = BASE + post.path + "og-card.png"
+    # The per-post card exists only when rendering is on. Otherwise the page
+    # uses the site card the build copies, so the image URL resolves.
+    image_name = (
+        (post.path + "og-card.png").lstrip("/")
+        if social_cards.render_enabled()
+        else "og-card.png"
+    )
+    image = f"{BASE}/{image_name}"
     nodes = [
         {
             "@type": "Article",
@@ -366,7 +373,7 @@ def _post_page(post: Post, revisions: list[Post], path: str, build: Build, *, pr
         path=path,
         description=post.title,
         page_type="article",
-        image_name=(post.path + "og-card.png").lstrip("/"),
+        image_name=image_name,
         image_alt=post.title,
     )
     meta = "\n".join(

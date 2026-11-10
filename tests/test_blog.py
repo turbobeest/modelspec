@@ -58,7 +58,10 @@ def write_blog(root, out):
     return blog.write(out, root, BUILD, public_keys=KEYS)
 
 
-def test_published_markdown_renders_sections_provenance_tags_and_feeds(blog_root, tmp_path):
+def test_published_markdown_renders_sections_provenance_tags_and_feeds(
+    blog_root, tmp_path, monkeypatch
+):
+    monkeypatch.delenv("MODELSPEC_RENDER_SOCIAL_CARDS", raising=False)
     publish(blog_root)
     out = tmp_path / "site"
     result = write_blog(blog_root, out)
@@ -118,7 +121,7 @@ def test_published_markdown_renders_sections_provenance_tags_and_feeds(blog_root
     assert article["headline"] == "Alpha model release breakdown"
     assert article["datePublished"] == "2026-09-26"
     assert article["mainEntityOfPage"] == f"https://modelspec.dev{POST}"
-    assert article["image"] == f"https://modelspec.dev{POST}r1/og-card.png"
+    assert article["image"] == "https://modelspec.dev/og-card.png"
     assert f'property="og:image" content="{article["image"]}"' in page
 
 
