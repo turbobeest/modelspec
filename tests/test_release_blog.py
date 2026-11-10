@@ -764,6 +764,14 @@ def test_record_text_with_a_backtick_and_a_digit_is_one_code_span(breakdown) -> 
     assert any("Run with" in code and "20" in code and "flag" in code for code in codes)
 
 
+def test_record_text_replaces_a_backtick_with_an_apostrophe(breakdown) -> None:
+    raw = "use a `tick` here"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert "`use a 'tick' here`" in post
+
+
 def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
     raw = (
         "See <https://other.example/page> and [a note](https://other.example/note) "
