@@ -185,6 +185,7 @@ def test_audit_ignores_noncontent_documents():
         root = Path(directory)
         for name in sorted(NOT_CONTENT):
             (root / name).write_text("Catalogue licence notice.\n")
+            _write_card(root, f"acme/{name}", "Catalogue licence notice.\n")
         assert run_audit(root) == []
         _write_card(root, "acme/broken.md", _BROKEN_CARD)
         findings = run_audit(root)

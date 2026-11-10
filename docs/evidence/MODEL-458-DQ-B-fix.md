@@ -135,3 +135,17 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 Result: `1 passed in 0.12s`, exit 0.
 
 Temporary edit, reverted before the commit: the Arena check kept only the authored-evidence membership and dropped the legacy-cache membership. The same command then failed, exit 1, at the assertion that no finding has field `arena_elo_overall`. After `git checkout -- scripts/audit_data_quality.py`, the same command passed: `1 passed in 0.10s`, exit 0.
+
+### Non-content names inside a provider directory
+
+`test_audit_ignores_noncontent_documents` still writes each name in `pipeline.load.NOT_CONTENT` at the scan root. It also writes each of those names under `acme/`. The outcomes stay an empty finding list, then one `yaml` / `parse` finding for `acme/broken.md`.
+
+Before the temporary edit:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py::test_audit_ignores_noncontent_documents
+```
+
+Result: `1 passed in 0.14s`, exit 0.
+
+Temporary edit, reverted before the commit: the skip applied only when the file's parent was the scan root. The same command then failed, exit 1. `run_audit` returned four `yaml` / `parse` findings, one for each non-content name under `acme/`. After `git checkout -- scripts/audit_data_quality.py`, the same command passed: `1 passed in 0.11s`, exit 0.
