@@ -454,6 +454,45 @@ def test_unknown_policy_override() -> None:
     assert listed.eliminated == ()
 
 
+
+@pytest.mark.parametrize("condition, disposition", [
+    ("all(licence.commercial_use = permitted unknown(pass); model.context_window >= 1)", "maybe"),
+    ("all(licence.commercial_use = permitted unknown(fail); model.context_window >= 1)", "eliminated"),
+    ("any(licence.commercial_use = permitted unknown(pass); model.context_window >= 1)", "feasible"),
+    ("any(licence.commercial_use = permitted unknown(fail); model.context_window >= 1)", "maybe"),
+    ("not(licence.commercial_use = permitted unknown(pass))", "eliminated"),
+    ("not(licence.commercial_use = permitted unknown(fail))", "feasible"),
+    ("all(not(licence.commercial_use = permitted unknown(fail)); model.context_window >= 1)", "maybe"),
+    ("any(not(licence.commercial_use = permitted unknown(pass)); model.context_window >= 1)", "maybe"),
+    ("not(any(licence.commercial_use = permitted unknown(fail); model.context_window >= 1))", "maybe"),
+    ("all(any(licence.commercial_use = permitted; model.max_output_tokens >= 1) unknown(pass); model.context_window >= 1)", "maybe"),
+])
+def test_nested_unknown_overrides_preserve_boolean_participation(condition, disposition):
+    result, _, _ = run(condition, rows={"lab/a": {
+        "model.context_window": FactValue("unknown"),
+        "licence.commercial_use": FactValue("unknown"),
+        "model.max_output_tokens": FactValue("unknown"),
+    }})
+    assert names(result, disposition) == ["lab/a"]
+    assert_partition(result, ["lab/a"])
+    if disposition == "maybe":
+        assert result.may_qualify[0].unknown == ("model.context_window",)
+
+
+@pytest.mark.parametrize("condition", [
+    "licence.commercial_use = permitted",
+    "offering.data.retention = 0",
+    "offering.region in {US}",
+])
+def test_nested_missing_governance_remains_fail_closed(condition):
+    result, _, _ = run(f"all({condition}; model.context_window >= 1)", rows={
+        "lab/a": {"model.context_window": FactValue("unknown")},
+    })
+    assert result.feasible == ()
+    assert result.may_qualify == ()
+    assert names(result, "eliminated") == ["lab/a"]
+    assert result.eliminated[0].unverified
+
 def test_all_with_a_governance_unknown_does_not_pass() -> None:
     rows = {"lab/gap": {"licence.commercial_use": FactValue("unknown"), "model.context_window": FactValue("unknown")}}
     result, _, _ = run("all(licence.commercial_use = permitted; model.context_window >= 1)", rows=rows)
