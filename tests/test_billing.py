@@ -2730,6 +2730,89 @@ def test_unknown_cancellation_subscription_rejects_a_no_period_grant(policy):
     run(scenario())
 
 
+def _row(subscription_id: str, *, tier: str, pending: int, invoice_id: str,
+         pending_invoice_id: str) -> billing.store.SubscriptionRecord:
+    return billing.store.SubscriptionRecord(
+        subscription_id=subscription_id, customer_id=CUS, price_id=PRICE,
+        tier=tier, status="active", key_fingerprint="", key_id="",
+        created_at="2026-09-17T14:30:00Z", pending_monthly=pending,
+        pending_invoice_id=pending_invoice_id, plan_name="Solo",
+        plan_credits=pending, invoice_id=invoice_id, invoice_paid=True)
+
+
+def test_stale_checkout_link_leaves_the_row_and_the_allowance(policy):
+    """A stale link is the rejected-event answer and changes nothing on the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        holder = _billing_holder(key)
+        assert (await ledger.clear_monthly(holder, watermark=300, subscription_id="")).reason == "cleared"
+        pending = 4000
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier="paid", pending=pending, invoice_id="in_row_stale",
+            pending_invoice_id="in_pending_stale"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_stale_link", subscription=SUB2, invoice="in_other_stale", metadata=meta)
+        outcome = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_stale_link", created=1000)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None
+        assert stored.key_fingerprint == ""
+        assert stored.pending_monthly == pending
+        assert (await ledger.balance(holder)).monthly == 0
+    run(scenario())
+
+
+def test_checkout_link_and_replay_copy_the_ledger_tier(policy):
+    """Link copies the paid tier. A replay after cancellation copies the downgrade."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier=policy.billing.downgrade_tier, pending=4000,
+            invoice_id="in_row_link", pending_invoice_id="in_pending_link"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_link_copy", subscription=SUB2, invoice="in_link_other", metadata=meta)
+        linked = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_link_copy", created=1000)
+        assert linked.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None and stored.key_fingerprint == fingerprint
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        first = checkout_obj(id="cs_replay_copy", metadata=meta)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", first,
+            "evt_replay_first", created=100)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        holder = _billing_holder(key)
+        assert (await ledger.clear_monthly(
+            holder, watermark=300, subscription_id=SUB)).reason == "cleared"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        replay = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", first,
+            "evt_replay_second", created=400)
+        assert replay.status == 200
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+    run(scenario())
+
+
 def _unclaimed_downgrade_event(kind: str) -> tuple[str, dict]:
     if kind == "invoice.payment_failed":
         return kind, invoice_obj(id="in_unclaimed_fail", paid=False, period_start=100, period_end=200)

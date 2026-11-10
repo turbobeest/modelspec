@@ -560,3 +560,31 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 - `transfer` does not copy the id onto an existing holder: 3 failed, 1 passed, exit 1. The grant after the transfer was `stale`.
 
 After each revert the same command passed: 4 passed, exit 0. No production file kept an edit.
+
+### A stale Checkout link leaves the row, and a replay copies the tier
+
+A cancellation stored with no subscription id, then a Checkout that would
+link a key onto a row that still holds a pending allowance: the answer is
+`ignored`, the key stays on the downgrade tier, the row has no key, and
+`pending_monthly` is unchanged.
+
+A Checkout that links a key copies the tier after the link. The row's tier
+in that case is the downgrade tier, so attaching alone would leave the key
+there; the copy writes the paid tier. A replayed Checkout copies the tier
+the ledger's current state implies. After a cancellation the key has not
+yet copied, that tier is the downgrade tier.
+
+These tests pass with no production change. Each temporary edit is reverted.
+Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_stale_checkout_link_leaves_the_row_and_the_allowance tests/test_billing.py::test_checkout_link_and_replay_copy_the_ledger_tier
+```
+
+- The stale grant still attaches the key: 1 failed, 1 passed, exit 1. The key moved to the paid tier.
+- The stale grant zeroes `pending_monthly`: 1 failed, 1 passed, exit 1. `pending_monthly` was 0.
+- The link step no longer returns the rejected answer: 1 failed, 1 passed, exit 1. The action was `already_entitled`.
+- The copy after the link path is removed: 1 failed, 1 passed, exit 1. The linked key stayed on the downgrade tier.
+- The later copy runs only on a first grant: 1 failed, 1 passed, exit 1. The replayed key stayed on the paid tier.
+
+After each revert the same command passed: 2 passed, exit 0.
