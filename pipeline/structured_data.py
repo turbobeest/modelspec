@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from pipeline import entity
+from pipeline.build import DELAYED_IMAGE_POLICY
 from pipeline.social_profiles import profile_urls
 
 BASE = "https://modelspec.dev"
@@ -92,9 +93,8 @@ def dataset(tree: Path) -> dict[str, Any]:
         "name": "ModelSpec catalogue and decision snapshot",
         "description": (
             f"Sourced evidence on {count} AI models: model cards, benchmark "
-            "results, prices, licences and where each model runs. Current data is served by "
-            "the hosted API and MCP server; the public copy is a delayed image "
-            "about nine months old. A null field means not yet researched, "
+            "results, prices, licences and where each model runs. "
+            f"{DELAYED_IMAGE_POLICY} A null field means not yet researched, "
             "never a guess."
         ) if count is not None else (
             "The frozen public image of ModelSpec model cards and benchmark evidence. "

@@ -44,6 +44,14 @@ MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
 MODEL_PAGE_MAX_BYTES = 512 * 1024
 
+#: Policy sentence for the public image. Shared by llms.txt, pricing and homepage JSON-LD.
+DELAYED_IMAGE_POLICY = (
+    "Current data is only available through the service. The public repository "
+    "starts with a frozen image. The delayed image policy selects data from "
+    "at least nine months earlier once enough history exists; "
+    "data-image.json records the provenance of each published delayed image."
+)
+
 
 def write_model_page(destination: Path, page: str) -> None:
     """Write one model page only when it remains suitable for static delivery."""
@@ -73,10 +81,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
         f"{agent_copy.install_markdown()}\n"
         f"{agent_copy.key_procurement()}\n"
         f"{' '.join(agent_copy.CONDUCT_RULES)}\n\n"
-        f"Current data is only available through the service. The public repository "
-        f"starts with a frozen image. The delayed image policy selects data from "
-        f"at least nine months earlier once enough history exists; "
-        f"data-image.json records the provenance of each published delayed image.\n\n"
+        f"{DELAYED_IMAGE_POLICY}\n\n"
         f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
         f"- About: {base}/about/\n"
