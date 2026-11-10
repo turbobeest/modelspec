@@ -374,6 +374,46 @@ def test_signature_exemption_does_not_apply_in_another_module(tmp_path: Path) ->
     ]
 
 
+def test_signature_exemption_does_not_follow_a_module_suffix(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("import other.snapshot\n", encoding="utf-8")
+    package = tmp_path / "other"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "snapshot.py").write_text(
+        "def load_snapshot_bytes():\n"
+        "    from cryptography.exceptions import InvalidSignature\n"
+        "    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert sorted((item.module, item.imported_by) for item in missing) == [
+        ("cryptography.exceptions", "other.snapshot"),
+        ("cryptography.hazmat.primitives.asymmetric.ed25519", "other.snapshot"),
+    ]
+
+
+def test_builder_exclusion_does_not_follow_the_top_level_package(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("import decision.other\n", encoding="utf-8")
+    package = tmp_path / "decision"
+    package.mkdir()
+    (package / "__init__.py").touch()
+    (package / "other.py").write_text(
+        "def collect_repo():\n"
+        "    import missing_runtime_package\n",
+        encoding="utf-8",
+    )
+
+    missing, _visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "decision.other")
+    ]
+
+
 def test_literal_dynamic_import_inside_a_function_stays_reachable(tmp_path: Path) -> None:
     checker = _load_checker()
     (tmp_path / "entry.py").write_text(
