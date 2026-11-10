@@ -460,9 +460,21 @@ def _snapshot_call_kind(
     return None
 
 
+def _generated_worker_packages() -> set[str]:
+    """Directories vendor.py writes beside the entry point. Gitignore omits them, and CI has none."""
+    prefix = "api/worker/src/"
+    names: set[str] = set()
+    for line in (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix) and stripped.endswith("/"):
+            names.add(stripped.removeprefix(prefix).split("/", 1)[0])
+    return names
+
+
 def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
     sites: list[tuple[str, str, str]] = []
     root = WORKER_ROOT / "src"
+    generated = _generated_worker_packages()
 
     def walk(
         node: ast.AST, scope: str, imported: set[str], modules: set[str], rel: str,
@@ -480,6 +492,8 @@ def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
             walk(child, child_scope, imported, modules, rel)
 
     for path in sorted(root.rglob("*.py")):
+        if path.relative_to(root).parts[0] in generated:
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         imported, modules = _snapshot_loader_bindings(tree)
         walk(tree, "<module>", imported, modules, path.relative_to(root).as_posix())
@@ -487,15 +501,9 @@ def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
 
 
 def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
-    sites = _worker_snapshot_call_sites()
-    defining = "decision/snapshot.py"
-    assert sorted(site for site in sites if site[0] != defining) == [
+    assert sorted(_worker_snapshot_call_sites()) == [
         ("decide_service.py", "load_snapshot", "load_snapshot_bytes"),
         ("entry.py", "<module>", "load_snapshot_bytes"),
-    ]
-    assert sorted(site for site in sites if site[0] == defining) == [
-        ("decision/snapshot.py", "load_built_snapshot", "load_snapshot_bytes"),
-        ("decision/snapshot.py", "load_snapshot", "load_snapshot_bytes"),
     ]
 
 
