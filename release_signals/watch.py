@@ -17,13 +17,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from urllib.robotparser import RobotFileParser
 
 import yaml
@@ -159,7 +160,7 @@ def write_baseline(path: Path, baseline: Mapping[str, Iterable[str]], taken: dat
 
 def extract(source: Source, body: bytes, registry: Registry) -> dict[str, Seen]:
     if source.kind == "page":
-        return _page(source, body.decode("utf-8", errors="replace"), registry)
+        return _page(source, body.decode("utf-8"), registry)
     payload = json.loads(body)
     if source.kind == "openrouter":
         return _openrouter(source, payload, registry)
@@ -203,20 +204,38 @@ def _openrouter(source: Source, payload: Any, registry: Registry) -> dict[str, S
         if not provider or not name or variant.search(name):
             continue
         created = row.get("created")
+        created_at = None
+        if created is not None:
+            if (
+                isinstance(created, bool)
+                or not isinstance(created, (int, float))
+                or (isinstance(created, float) and not math.isfinite(created))
+            ):
+                raise ValueError("OpenRouter created must be a finite Unix timestamp")
+            try:
+                created_at = datetime.fromtimestamp(created, UTC)
+            except (OverflowError, OSError, ValueError) as exc:
+                raise ValueError("OpenRouter created is outside the supported timestamp range") from exc
         found[listed] = Seen(
             listed, name, provider, f"https://openrouter.ai/{listed}",
-            datetime.fromtimestamp(created, UTC) if isinstance(created, (int, float)) else None,
+            created_at,
         )
     return found
 
 
 def _huggingface(source: Source, payload: Any, registry: Registry) -> dict[str, Seen]:
+    authors = parse_qs(urlsplit(source.url).query, keep_blank_values=True).get("author", [])
+    if len(authors) != 1 or not authors[0]:
+        raise ValueError("Hugging Face source needs exactly one configured author")
+    author = authors[0].casefold()
     variant = re.compile(registry.variant_exclude, re.IGNORECASE)
     rejected = re.compile(source.exclude, re.IGNORECASE) if source.exclude else None
     found: dict[str, Seen] = {}
     for row in payload if isinstance(payload, list) else []:
         repo = str(row.get("id") or "")
-        _, _, name = repo.partition("/")
+        owner, _, name = repo.partition("/")
+        if owner.casefold() != author:
+            raise ValueError("Hugging Face repository owner does not match configured author")
         if not name or row.get("private") or variant.search(name):
             continue
         if rejected and rejected.search(name):
