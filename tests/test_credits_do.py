@@ -956,3 +956,52 @@ def test_stored_alias_accepts_later_funding_on_the_live_account():
     assert restored.set_monthly("key:dst", 4, "in_later", "Solo").reason == "replay"
     assert restored.balance("key:dst").monthly == 4
     assert restored.set_monthly("key:src", 8, "in_old", "Solo").reason == "replay"
+
+
+def test_durable_ledger_notes_and_reads_the_binding():
+    """DurableLedger notes a binding and reads that binding back."""
+
+    async def scenario():
+        obj = credits_do.CreditsObject(Ctx(lambda value: {"v": value}), env=None)
+        ledger = _ledger(obj)
+        await ledger.note_key_binding("key:holder", "abc123")
+        assert await ledger.key_binding("key:holder") == "abc123"
+
+    asyncio.run(scenario())
+
+
+def test_account_json_round_trips_the_binding():
+    """Stored account JSON carries the binding through a round trip."""
+    account = credits._Account(monthly=4, bound_fingerprint="abc123")
+    restored = credits._Account.from_json(json.loads(json.dumps(account.to_json())))
+    assert restored.bound_fingerprint == "abc123"
+    assert restored.monthly == 4
+
+
+def test_account_json_without_the_binding_field_loads_empty():
+    """An account stored without the field loads an empty binding."""
+    loaded = credits._Account.from_json({"monthly": 4})
+    assert loaded.bound_fingerprint == ""
+    assert loaded.monthly == 4
+
+
+def test_transfer_onto_an_existing_account_keeps_the_binding():
+    """A transfer onto an existing account carries the binding."""
+    state = credits.LedgerState()
+    assert state.set_monthly("key:dst", 1, "in_dst", "Solo").credited
+    state.note_key_binding("key:src", "abc123")
+    assert state.transfer("key:src", "key:dst")
+    assert state.key_binding("key:dst") == "abc123"
+
+
+def test_unbound_ledger_refuses_the_binding_note_and_read():
+    """UnboundLedger refuses the binding note and the binding read."""
+
+    async def scenario():
+        ledger = credits.UnboundLedger()
+        with pytest.raises(credits.StoreNotConfigured):
+            await ledger.note_key_binding("key:holder", "abc123")
+        with pytest.raises(credits.StoreNotConfigured):
+            await ledger.key_binding("key:holder")
+
+    asyncio.run(scenario())
