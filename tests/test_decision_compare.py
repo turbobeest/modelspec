@@ -492,3 +492,76 @@ def test_compare_does_not_pair_multiple_replacement_offerings():
     compared = compare(old, new)
     assert compared["changed"] is False
     assert compared["models"] == []
+
+
+def _task_cost_records(decision):
+    return [
+        part.records
+        for row in decision.results
+        for part in row.contributions
+        if part.dimension == "-offering.cost_per_task"
+    ]
+
+
+def test_compare_ignores_rotated_records_for_unchanged_values():
+    sellers = [("lab/a", "p1", 1)]
+    old = _cost_decision(_priced_lineup(sellers))
+    new = _cost_decision(_priced_lineup(sellers, record_suffix="@reread"))
+    old_cost = next(
+        part for row in old.results for part in row.contributions
+        if part.dimension == "-offering.cost_per_task"
+    )
+    new_cost = next(
+        part for row in new.results for part in row.contributions
+        if part.dimension == "-offering.cost_per_task"
+    )
+
+    assert old.results[0].offering.provider == new.results[0].offering.provider == "p1"
+    assert old_cost.raw_value == new_cost.raw_value == 0.044
+    assert _task_cost_records(old) == [[
+        "p1/lab/a/global/standard#offering.price.input",
+        "p1/lab/a/global/standard#offering.price.output",
+    ]]
+    assert _task_cost_records(new) == [[
+        "p1/lab/a/global/standard#offering.price.input@reread",
+        "p1/lab/a/global/standard#offering.price.output@reread",
+    ]]
+    compared = compare(old, new)
+    assert compared["changed"] is False
+    assert compared["models"] == []
+
+
+def test_compare_tracks_changed_collection_must_values():
+    sellers = [("lab/a", "p1", 1)]
+    where = ["model.input_modalities in {audio}"]
+    optimize = {"max": "model.context_window"}
+    old = _cost_decision(
+        _priced_lineup(sellers, modalities=["text"]), where=where, optimize=optimize,
+    )
+    new = _cost_decision(
+        _priced_lineup(sellers, modalities=["image"]), where=where, optimize=optimize,
+    )
+
+    compared = compare(old, new)
+    assert compared["models"] == [{
+        "model": "lab/a",
+        "entered": False,
+        "left": None,
+        "rank_changed": None,
+        "may_qualify": None,
+        "values": [{
+            "kind": "facet",
+            "facet": "model.input_modalities",
+            "offering": {
+                "model": "lab/a", "provider": "p1", "region": "global", "tier": "standard",
+            },
+            "old": {
+                "value": ["text"], "unit": None,
+                "records": ["lab/a#model.input_modalities"],
+            },
+            "new": {
+                "value": ["image"], "unit": None,
+                "records": ["lab/a#model.input_modalities"],
+            },
+        }],
+    }]
