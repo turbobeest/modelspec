@@ -90,11 +90,11 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | --- | --- |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=subscription` | map the Price → plan; record the entitlement; SET monthly to the plan amount. If Checkout metadata carries `modelspec_key_fingerprint`, attach and SET on that existing key. Otherwise pending until claim mints. |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=payment` | map the Price → pack. Fingerprint present: ADD pack credits to that key immediately (claim is confirmation, not a mint). Anonymous: link the session so claim can mint and ADD. |
-| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. A row with no key is written paid and active with the pending allowance, and claim mints that tier with the allowance. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
+| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. A row with no key is written paid and active with the pending allowance, and claim mints that tier with the allowance. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. An `invoice.paid` with `billing_reason` `subscription_create`, after Checkout granted that subscription with no invoice id, records the invoice id and period and does not grant again. A `subscription_create` invoice for another subscription, or for a later period, grants on the ordinary path. |
 | `invoice.payment_failed` | **immediate** zero of monthly when the ledger accepts the failure; the key's access row goes to `billing.downgrade_tier` (`free`). A stale failure leaves the row unchanged. A row with no key takes the downgrade tier and inactive status, and claim mints that tier. Packs stay |
 | `customer.subscription.deleted` | same as failed payment, and stores `canceled_at` with `canceled_subscription_id` |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
-| `customer.subscription.updated` with `active` | restore the mapped Price's tier. **No credits**: a plan change, coupon or cancel toggle is not a payment; the next `invoice.paid` sets the allowance |
+| `customer.subscription.updated` with `active` | set the row status to `active`. The tier follows the ledger: the mapped Price's tier when the ledger says the key is entitled, and the downgrade tier otherwise. **No credits**: a plan change, coupon or cancel toggle is not a payment; an accepted `invoice.paid` sets the allowance |
 | `charge.refunded` | a **pack**: remove the refunded share of its **unspent** credits (`refunded` / `refunded_partially`). Spent credits stay spent. See [Refunds and disputes](#refunds-and-disputes) |
 | `charge.dispute.created` | a **pack**: **hold** its unspent credits while the dispute is open (`held`) |
 | `charge.dispute.closed` | `won` or `warning_closed`: give the held credits back (`restored`). `lost`: forfeit them (`forfeited`). Any other status: stay held (`held_for_review`) |
@@ -444,7 +444,9 @@ again on the same key. An `invoice.paid` whose period starts before the
 cancellation is ignored, including a period that ended at or before the
 cancellation. An invoice with no period end does not reopen a terminal
 subscription. A later `customer.subscription.updated` with status `active` and
-a later `created` restores the tier.
+a later `created` sets the row status to `active`. The tier follows the
+ledger: the mapped tier when the ledger says the key is entitled, and the
+downgrade tier otherwise.
 
 A paid invoice is stale only when its period end is before the stored paid
 period end. A different invoice id with the same period end applies. The same
