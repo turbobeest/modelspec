@@ -74,12 +74,14 @@ def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
 
     MODEL-458 advertises the six strict nested blocks. Measured totals:
     Claude 9,372, OpenAI 9,464, Gemini 9,567. The 10,000 cap is unchanged.
+    Stating the rank and policy request ranges raised the tool schemas.
+    Measured totals: Claude 9,484, OpenAI 9,576, Gemini 9,679.
     """
     from qa.agent_harness import main
     assert main(["--first-turn-breakdown"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert set(report) == {"claude", "openai", "gemini"}
-    assert all(row["total"] <= 9_600 for row in report.values()), report
+    assert all(row["total"] <= 9_800 for row in report.values()), report
     guide = agent_copy.copy()["context_guide"]
     assert guide.count("https://modelspec.dev/api/coverage.json") == 1
     assert "catalogued_not_decidable" not in guide
@@ -165,8 +167,10 @@ def test_openapi_size_and_all_response_header_descriptions():
     # about 1.3 KB and 300 tokens.
     # MODEL-458 adds GET /v1/auth-check. Measured file: 235,366 bytes
     # and 58,838 tokens.
-    assert len(text.encode()) <= 236_000
-    assert tokens(text) <= 59_000
+    # MODEL-458 states the omitted rank, policy, and decide ranges.
+    # Measured file: 239,349 bytes and 59,834 tokens.
+    assert len(text.encode()) <= 240_000
+    assert tokens(text) <= 60_000
     spec = yaml.safe_load(text)
     assert agent_copy.GUIDE_URL in spec['info']['description']
     for path, operations in spec['paths'].items():
