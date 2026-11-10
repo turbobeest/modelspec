@@ -14,7 +14,7 @@ PDF parsing is billed 1 credit per page. Firecrawl v2 accepts
 `parsers: [{type: "pdf", maxPages: N}]` (N in 1..10000) and that N is this
 process's worst-case cost. The guard refuses a request whose worst case would
 exceed remaining `--budget`, and every scrape is sent with `maxPages` set to
-at most that remainder unless `--allow-unbounded-cost` is passed.
+at most that remainder. Unbounded requests cannot use a finite budget.
 
 A capped PDF that has more pages than `maxPages` comes back truncated, not
 failed. Firecrawl's response reports `metadata.numPages` (pages parsed) and
@@ -25,10 +25,9 @@ was billed at or above its own page cap) so a partial document is never
 mistaken for a complete one downstream, and never replayed as one from
 cache once more budget becomes available.
 
-The credit guard reads https://api.firecrawl.dev/v2/team/credit-usage before
-the first scrape, records remainingCredits, and aborts when spend since that
-opening snapshot reaches the budget. A number in a prompt is not a budget;
-this check is.
+The credit guard reserves each attempt's worst-case cost locally before
+sending it. Reservations are never refunded. Account balance reads remain
+a separate health check and measurement of provider consumption.
 """
 from __future__ import annotations
 
@@ -49,6 +48,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from decision.retention import citation_metadata, cite_only_origin_restrictive, is_cite_only_restrictive, metadata_origins
+from decision.sources import ExcludedSource, require_allowed_source_urls
 
 ROOT = Path(__file__).resolve().parents[2]
 HASH_CACHE = ROOT / "benchmarks" / "_census" / "cache"
@@ -84,7 +84,7 @@ _MULTI_HYPHEN = re.compile(r"-+")
 
 
 class CreditBudgetExceeded(RuntimeError):
-    """Spend since the opening snapshot has reached the configured budget."""
+    """A request cannot fit the configured credit allowance."""
 
     def __init__(
         self,
@@ -94,6 +94,8 @@ class CreditBudgetExceeded(RuntimeError):
         budget: int,
         url: str | None = None,
         estimated: int | None = None,
+        reserved: int = 0,
+        reason: str = "",
     ) -> None:
         self.opening = opening
         self.remaining = remaining
@@ -101,22 +103,20 @@ class CreditBudgetExceeded(RuntimeError):
         self.budget = budget
         self.url = url
         self.estimated = estimated
+        self.reserved = reserved
         where = f" before {url}" if url else ""
         estimate = f" estimated={estimated}" if estimated is not None else ""
         super().__init__(
             f"Firecrawl credit budget exceeded{where}: "
             f"opening={opening} remaining={remaining} spent={spent} "
-            f"budget={budget}{estimate}"
+            f"budget={budget} reserved={reserved}{estimate}"
+            + (f" ({reason})" if reason else "")
         )
 
 
 @dataclass
 class CreditGuard:
-    """Abort a run when Firecrawl spend since start reaches `budget`.
-
-    `start()` must be called once, before the first scrape. Every scrape calls
-    `assert_within_budget` which re-reads remainingCredits.
-    """
+    """Reserve worst-case credits per attempt, separately from measured spend."""
 
     key: str
     budget: int
@@ -124,6 +124,7 @@ class CreditGuard:
     last_remaining: int | None = None
     last_request_cost: int | None = None
     request_costs: list[tuple[str, int]] = field(default_factory=list)
+    reserved: int = field(default=0, init=False)
 
     def start(self) -> int:
         remaining = remaining_credits(self.key)
@@ -145,7 +146,7 @@ class CreditGuard:
         return self.opening - remaining
 
     def remaining_budget(self) -> int:
-        return max(0, self.budget - self.spent())
+        return max(0, self.budget - max(self.reserved, self.spent()))
 
     def record_request_cost(self, url: str, remaining_before: int, remaining_after: int) -> int:
         cost = max(0, remaining_before - remaining_after)
@@ -159,7 +160,8 @@ class CreditGuard:
             self.start()
         remaining = self.refresh()
         spent = self.opening - remaining
-        if spent >= self.budget or spent + estimated > self.budget or remaining < estimated:
+        if (max(self.reserved, spent) + estimated > self.budget
+                or remaining < estimated):
             raise CreditBudgetExceeded(
                 opening=self.opening,
                 remaining=remaining,
@@ -167,7 +169,12 @@ class CreditGuard:
                 budget=self.budget,
                 url=url,
                 estimated=estimated,
+                reserved=self.reserved,
             )
+
+    def reserve(self, url: str, estimated: int) -> None:
+        self.assert_within_budget(url=url, estimated=estimated)
+        self.reserved += estimated
 
 
 @dataclass
@@ -222,7 +229,7 @@ def remaining_credits(key: str) -> int:
         headers={"Authorization": f"Bearer {key}"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with open_source_request(req, timeout=30) as resp:
             payload = json.load(resp)
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"credit-usage HTTP {exc.code}") from exc
@@ -317,6 +324,7 @@ def write_named_cache(
     suffix: str = ".md",
     extra_meta: dict[str, Any] | None = None,
 ) -> CachedPage:
+    require_allowed_source_urls(url, metadata_origins(extra_meta or {}))
     cache_dir.mkdir(parents=True, exist_ok=True)
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
     now = datetime.now(UTC)
@@ -340,14 +348,17 @@ def write_named_cache(
 
 
 def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPage | None:
-    if is_cite_only_restrictive(url):
+    try:
+        require_allowed_source_urls(url)
+    except ExcludedSource:
         return None
     path, meta_path = named_paths(url, cache_dir, suffix=suffix)
-    if not path.is_file():
-        return None
     meta: dict[str, Any] = {}
     if meta_path.is_file():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    require_allowed_source_urls(url, metadata_origins(meta))
+    if not path.is_file():
+        return None
     if cite_only_origin_restrictive(url, metadata_origins(meta)):
         return None
     text = path.read_text(encoding="utf-8")
@@ -382,6 +393,7 @@ def scrape(
     allow_unbounded: bool = False,
 ) -> dict:
     """Scrape `url` as markdown. Honours the credit guard. Caches before return."""
+    require_allowed_source_urls(url)
     formats = list(formats or ["markdown"])
     if not allow_expensive:
         refuse_expensive_formats(formats)
@@ -396,8 +408,13 @@ def scrape(
     # the time, and a later call may have room for the whole document.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
     key_path = hash_cache_path(url, formats, max_pages=max_pages)
+    citation_path = key_path.with_suffix(".citation.json")
+    if citation_path.exists():
+        citation = json.loads(citation_path.read_text(encoding="utf-8"))
+        require_allowed_source_urls(url, metadata_origins(citation))
     if key_path.exists() and not is_cite_only_restrictive(url) and not key_path.with_suffix(".citation.json").exists():
         cached_raw = json.loads(key_path.read_text(encoding="utf-8"))
+        require_allowed_source_urls(url, metadata_origins(cached_raw.get("metadata") or {}))
         if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False) and not cite_only_origin_restrictive(
                 url, metadata_origins(cached_raw.get("metadata") or {})):
             return cached_raw
@@ -419,25 +436,23 @@ def scrape(
     else:
         guard.refresh()
 
-    # Bound the worst case BEFORE sending. Firecrawl bills PDF parsing at
-    # 1 credit per page up to parsers[].maxPages; a non-PDF page is 1 credit,
-    # which maxPages >= 1 also covers. So page_cap is the worst-case cost.
-    page_cap: int | None
     if allow_unbounded:
-        # Explicit opt-in: no maxPages, so only the 1-credit floor is checked
-        # up front and the real cost is read from the balance afterwards.
-        page_cap = None
-        estimated = 1
+        raise CreditBudgetExceeded(
+            opening=guard.opening,
+            remaining=guard.last_remaining,
+            spent=guard.spent(),
+            budget=guard.budget,
+            url=url,
+            reserved=guard.reserved,
+            reason="unbounded cost cannot be reserved",
+        )
+    credits_per_page = 1 + 4 * sum(fmt.split(":")[0] in EXPENSIVE_FORMATS for fmt in formats)
+    if max_pages is None:
+        page_cap = min(guard.remaining_budget() // credits_per_page, FIRECRAWL_PDF_MAX_PAGES)
     else:
-        if max_pages is None:
-            page_cap = min(guard.remaining_budget(), FIRECRAWL_PDF_MAX_PAGES)
-        else:
-            page_cap = min(max_pages, FIRECRAWL_PDF_MAX_PAGES)
-        # A zero cap means the budget is spent; the check below refuses it.
-        estimated = max(1, page_cap)
-        page_cap = estimated
-
-    guard.assert_within_budget(url=url, estimated=estimated)
+        page_cap = min(max_pages, FIRECRAWL_PDF_MAX_PAGES)
+    page_cap = max(1, page_cap)
+    estimated = page_cap * credits_per_page
 
     remaining_before = guard.last_remaining
     body = json.dumps(scrape_payload(url, formats, wait_for_ms, page_cap)).encode()
@@ -449,8 +464,9 @@ def scrape(
             method="POST",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
         )
+        guard.reserve(url, estimated)
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with open_source_request(req, timeout=120) as resp:
                 payload = json.load(resp)
             if payload.get("success"):
                 data = payload.get("data") or {}
@@ -471,21 +487,21 @@ def scrape(
         remaining_after,
     )
     metadata = data.get("metadata") or {}
+    require_allowed_source_urls(url, metadata_origins(metadata))
     content_type = str(metadata.get("contentType") or "")
     is_pdf = looks_like_pdf(url) or "pdf" in content_type.lower()
     kind = "pdf" if is_pdf else "page"
     truncated, total_pages, num_pages = detect_truncation(metadata, page_cap, cost, is_pdf)
-    worst_case = estimated if page_cap is not None else "unbounded"
     print(
-        f"credits request cost={cost} worst_case={worst_case} "
+        f"credits request cost={cost} worst_case={estimated} reserved={guard.reserved} "
         f"max_pages={page_cap} kind={kind} url={url} "
         f"remaining={remaining_after} spent={guard.spent()}",
         file=sys.stderr,
     )
-    if page_cap is not None and cost > page_cap:
+    if cost > estimated:
         # Balance deltas include any concurrent spend on the same team key.
         print(
-            f"credits WARNING request cost={cost} exceeded max_pages={page_cap}; "
+            f"credits WARNING request cost={cost} exceeded worst_case={estimated}; "
             "another process may be spending on this key",
             file=sys.stderr,
         )
@@ -539,20 +555,28 @@ class _RedirectHistory(urllib.request.HTTPRedirectHandler):
         self.urls: list[str] = []
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        require_allowed_source_urls(newurl)
         self.urls.append(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def open_source_request(req: urllib.request.Request, timeout: int = 120):
+    require_allowed_source_urls(req.full_url)
+    return urllib.request.build_opener(_RedirectHistory()).open(req, timeout=timeout)
+
+
 def http_get(url: str, timeout: int = 120) -> tuple[str, str, tuple[str, ...]]:
     """Direct GET. Zero Firecrawl credits. Follows redirects."""
+    require_allowed_source_urls(url)
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "ModelSpecCensus/1.0 (+https://github.com/modelspec)"},
     )
     history = _RedirectHistory()
     with urllib.request.build_opener(history).open(req, timeout=timeout) as resp:
-        raw = resp.read()
         final = resp.geturl()
+        require_allowed_source_urls(url, (*history.urls, final))
+        raw = resp.read()
     return raw.decode("utf-8", errors="replace"), final, tuple(history.urls)
 
 
@@ -564,6 +588,7 @@ def load_or_get(
     suffix: str = ".html",
 ) -> CachedPage:
     """Cache-first page load. Direct GET, not Firecrawl."""
+    require_allowed_source_urls(url)
     cached = load_named_cache(url, cache_dir, suffix=suffix)
     if cached is not None:
         return cached
@@ -615,7 +640,7 @@ def main(argv: list[str] | None = None) -> int:
     bound.add_argument(
         "--allow-unbounded-cost",
         action="store_true",
-        help="omit the PDF page cap; a multi-page document may exceed --budget",
+        help="unsupported with a finite credit budget; uncached requests are refused",
     )
     parser.add_argument("--formats", default="markdown", help="comma-separated Firecrawl formats")
     args = parser.parse_args(argv)

@@ -414,3 +414,208 @@ def test_weekly_reread_checks_future_row_and_proposes_a_change_without_writing(t
     altered = reread(ARGON.replace("$4.00", "$5.00")).facts[0]
     assert altered.status == price_reread.Status.NOT_REREAD
     assert altered.reason == "the fact differs from its filed claim"
+
+
+_VERTEX_SUBJECT = "google-vertex-ai/google/gemini-3-7-flash/global/standard"
+_VERTEX_URL = "https://cloud.google.com/vertex-ai/generative-ai/pricing"
+_VERTEX_HTML_HEADERS = [
+    "Model",
+    "Type",
+    "Region",
+    "Price (/1M tokens) &lt;= 200K input tokens",
+    "Price (/1M tokens) &gt; 200K input tokens",
+    "Price (/1M tokens) &lt;= 200K cached input tokens",
+    "Price (/1M tokens) &gt; 200K cached input tokens",
+]
+
+
+def _vertex_price_row(region="Global"):
+    return [
+        "Gemini 3.7 Flash through December 31, 2026",
+        "Input (text, image, video, audio)",
+        region,
+        "$0.75",
+        "$0.99",
+        "$0.075",
+        "$0.099",
+    ]
+
+
+def _vertex_table(rows):
+    head = "".join(f"<th>{cell}</th>" for cell in _VERTEX_HTML_HEADERS)
+    body = "".join(
+        "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in rows
+    )
+    return f"<table><tr>{head}</tr>{body}</table>"
+
+
+def _read_vertex(html, facet):
+    from decision.dated_prices import read_dated_prices
+    from decision.normalise import NORMALISERS, Locator, normalise_document
+
+    body = html.encode()
+    document = normalise_document(body, NORMALISERS["html-default"])
+    return read_dated_prices(
+        document,
+        Locator(kind="page", value=""),
+        names=("Gemini 3.7 Flash",),
+        subject=_VERTEX_SUBJECT,
+        facet=facet,
+        url=_VERTEX_URL,
+        body=body,
+    )
+
+
+def _pin_price_clock(monkeypatch):
+    """Keep 2026-11-09 as today so a 2026-12-31 synthetic price stays current."""
+    import decision.snapshot as snapshot
+
+    class Pinned(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            instant = cls(2026, 11, 9, 12, tzinfo=UTC)
+            if tz is not None:
+                return instant.astimezone(tz)
+            return instant.replace(tzinfo=None)
+
+    monkeypatch.setattr(snapshot, "datetime", Pinned)
+
+
+def _decide_dated_readings(readings, kind, monkeypatch):
+    from decision.contract import parse_spec
+    from decision.engine import decide
+    from decision.registry import facet
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from tests.snapshot_records import SOURCES, fact, model, offering, verification
+
+    _pin_price_clock(monkeypatch)
+    mid = "google/gemini-3-7-flash"
+    provider = "google-vertex-ai"
+    offering_id = f"{provider}/{mid}/global/standard"
+    parsed_facet = "offering.price." + kind
+    other_facet = "offering.price.input" if kind == "output" else "offering.price.output"
+    facts = [fact("offering", offering_id, other_facet, 1.0, source="src-pricing")]
+    for number, reading in enumerate(readings):
+        value = float(reading.value)
+        row = fact("offering", offering_id, parsed_facet, value, source="src-pricing")
+        row["id"] += f"@synthetic-{number}"
+        row["effective_from"] = reading.effective_from
+        row["effective_until"] = reading.effective_until
+        row["verification"] = verification(
+            "fact",
+            row["id"],
+            value={
+                "value": value,
+                "effective_from": reading.effective_from,
+                "effective_until": reading.effective_until,
+            },
+        )
+        facts.append(row)
+    other = "lab/comparator"
+    other_id = f"{provider}/{other}/global/standard"
+    fixed = [
+        fact("offering", other_id, "offering.price." + side, 10.0, source="src-pricing")
+        for side in ("input", "output")
+    ]
+    index = load_built_snapshot(
+        build_snapshot(
+            SnapshotInputs(
+                models=[model(mid), model(other)],
+                offerings=[
+                    offering(mid, provider, facts=facts),
+                    offering(other, provider, facts=fixed),
+                ],
+                sources=SOURCES,
+            ),
+            gate=False,
+            as_of=date(2026, 11, 9),
+        ),
+        include_archive=True,
+        source="synthetic parsed-price ingestion",
+    )
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "where": ["offering.provider = google-vertex-ai"],
+            "optimize": {"min": "offering.cost_per_task"},
+            "task_tokens": {"input": 1000, "output": 1000},
+            "explain": "full",
+        },
+        facets=facet,
+    )
+    return index.fact(offering_id, parsed_facet), decide(spec, index, facets=facet)
+
+
+def _assert_only_comparator_priced(parsed, decision):
+    assert parsed.state == "unknown"
+    assert parsed.value is None
+    assert decision.status == "partial"
+    assert len(decision.results) == 1
+    assert decision.results[0].model == "lab/comparator"
+    assert decision.results[0].rank == 1
+    assert decision.results[0].cost_per_task == pytest.approx(0.02)
+    assert [item.model for item in decision.may_qualify] == ["google/gemini-3-7-flash"]
+    assert decision.may_qualify[0].unknown == ["offering.cost_per_task"]
+
+
+def test_vertex_rejects_non_global_price_rows_for_global_offering(monkeypatch):
+    """A Europe row on a global Vertex offering yields no dated price."""
+    readings = _read_vertex(_vertex_table([_vertex_price_row("Europe")]), "offering.price.input")
+    assert readings == []
+    parsed, decision = _decide_dated_readings(readings, "input", monkeypatch)
+    _assert_only_comparator_priced(parsed, decision)
+
+
+def test_vertex_clears_owner_after_malformed_intervening_row(monkeypatch):
+    """A malformed row clears the model and date before a blank-owner output row."""
+    rows = [
+        _vertex_price_row(),
+        ["Foreign ownership boundary"],
+        ["", "Text output (response and reasoning)", "Global", "$3.75", "$4.99", "N/A", "N/A"],
+    ]
+    readings = _read_vertex(_vertex_table(rows), "offering.price.output")
+    assert readings == []
+    parsed, decision = _decide_dated_readings(readings, "output", monkeypatch)
+    _assert_only_comparator_priced(parsed, decision)
+
+
+def test_vertex_rejects_multiple_eligible_pricing_tables(monkeypatch):
+    """Two eligible Vertex pricing tables yield no dated price."""
+    table = _vertex_table([_vertex_price_row()])
+    readings = _read_vertex(table + table, "offering.price.input")
+    assert readings == []
+    parsed, decision = _decide_dated_readings(readings, "input", monkeypatch)
+    _assert_only_comparator_priced(parsed, decision)
+
+
+def test_vertex_reads_short_context_input_when_columns_differ(monkeypatch):
+    """The short-context input price is 0.75 when the long-context column is 0.99."""
+    row = _vertex_price_row()
+    readings = _read_vertex(_vertex_table([row]), "offering.price.input")
+    assert [reading.value for reading in readings] == ["0.75"]
+    assert readings[0].effective_until == "2026-12-31"
+    assert readings[0].effective_from is None
+    assert readings[0].subject == "Gemini 3.7 Flash"
+    parsed, decision = _decide_dated_readings(readings, "input", monkeypatch)
+    assert parsed.state == "known"
+    assert parsed.value == pytest.approx(0.75)
+    assert decision.status == "answered"
+    assert [(item.model, item.rank) for item in decision.results] == [
+        ("google/gemini-3-7-flash", 1),
+        ("lab/comparator", 2),
+    ]
+    # 1000 input tokens at 0.75 and 1000 output tokens at 1.0, per 1M tokens.
+    assert decision.results[0].cost_per_task == pytest.approx(0.00175)
+    assert decision.results[1].cost_per_task == pytest.approx(0.02)
+    assert decision.may_qualify == []
+
+
+def test_vertex_reads_short_context_cached_input_when_columns_differ():
+    """The short-context cached input is 0.075 when the long-context column is 0.099."""
+    row = _vertex_price_row()
+    assert row[5] == "$0.075"
+    assert row[6] == "$0.099"
+    readings = _read_vertex(_vertex_table([row]), "offering.price.cached_input")
+    assert [reading.value for reading in readings] == ["0.075"]
+    assert readings[0].subject == "Gemini 3.7 Flash"
+    assert readings[0].effective_until == "2026-12-31"

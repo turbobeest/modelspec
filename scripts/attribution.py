@@ -610,6 +610,7 @@ class TypeSafeJudge:
         self._config = config
         self.model = config.model
         self._client = client or httpx.Client(timeout=config.timeout_seconds)
+        self.budget = Budget(config.max_input_tokens_per_run)
 
     @classmethod
     def from_env(cls, config: Config) -> TypeSafeJudge | None:
@@ -617,17 +618,39 @@ class TypeSafeJudge:
         return cls(key, config) if key else None
 
     def evaluate(self, state: dict, questions: dict) -> dict:
+        if (
+            self.model != "jev-1.13.0"
+            or self._config.endpoint != "https://api.typesafe.ai/v1/systemone"
+        ):
+            raise JudgeUnavailable("no verified input-token bound for this judge configuration")
         body = {"state": state, "model": self.model, "questions": questions}
-        headers = {"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {self._key}",
+            "Content-Type": "application/json",
+        }
         delay = 1.0
         for attempt in range(self._config.max_retries + 1):
+            request = self._client.build_request(
+                "POST", self._config.endpoint, json=body, headers=headers
+            )
+            request.headers.pop("TypeSafe-Danger-Zone-Long-Context", None)
+            # The pinned model admits at most 64k input tokens per request,
+            # state plus all questions: https://docs.typesafe.ai/models.
+            # Reserve that full bound, including for uncertain retry outcomes.
+            self.budget.reserve(65_536)
             try:
-                resp = self._client.post(self._config.endpoint, json=body, headers=headers)
+                resp = self._client.send(request, follow_redirects=False, auth=None)
             except httpx.HTTPError as exc:
                 last = f"{type(exc).__name__}"
             else:
                 if resp.status_code == 200:
-                    return resp.json()
+                    try:
+                        result = resp.json()
+                    except ValueError as exc:
+                        raise JudgeUnavailable("malformed TypeSafe response") from exc
+                    if not isinstance(result, dict):
+                        raise JudgeUnavailable("malformed TypeSafe response")
+                    return result
                 last = f"HTTP {resp.status_code}"
                 if resp.status_code not in (429, 500, 502, 503, 504, 529):
                     break
@@ -821,7 +844,7 @@ def parse_answers(body: dict, candidates: list[str]) -> dict:
             "confidence": float(creator["confidence"]),
             "reseller": float(reseller["noul"]),
         }
-    except (KeyError, TypeError, ValueError) as exc:
+    except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
         raise JudgeUnavailable(f"malformed answer: {type(exc).__name__}") from exc
     return out
 
@@ -937,9 +960,16 @@ def apply_escalation(
 class Budget:
     limit: int
     spent: int = 0
+    reserved: int = 0
 
     def exhausted(self) -> bool:
-        return self.spent >= self.limit
+        return max(self.spent, self.reserved) >= self.limit
+
+    def reserve(self, amount: int) -> None:
+        committed = max(self.spent, self.reserved)
+        if committed + amount > self.limit:
+            raise JudgeUnavailable("token budget cannot cover another request")
+        self.reserved = committed + amount
 
 
 class Attributor:
@@ -963,6 +993,9 @@ class Attributor:
         self.ledger = ledger or Ledger(None)
         self.index = ListingIndex.build(api_data, self.config)
         self.budget = Budget(self.config.max_input_tokens_per_run)
+        if isinstance(judge, TypeSafeJudge):
+            self.budget = judge.budget
+            self.budget.limit = min(self.budget.limit, self.config.max_input_tokens_per_run)
         # Off unless the flag is on AND an escalation model was handed in
         # (MODEL-102). A budget of 0 is a cascade that never escalates.
         self.escalator = escalator if self.config.escalation.enabled else None
@@ -1056,8 +1089,11 @@ class Attributor:
                     candidates,
                     arm=ARM_NONE,
                 )
-            usage = body.get("usage") or {}
-            self.budget.spent += int(usage.get("input_tokens") or 0)
+            usage = body.get("usage")
+            input_tokens = usage.get("input_tokens") if isinstance(usage, dict) else None
+            if type(input_tokens) is not int or input_tokens < 0:
+                input_tokens = 0
+            self.budget.spent += input_tokens
             row = {
                 "key": key,
                 "date": date.today().isoformat(),
@@ -1068,7 +1104,7 @@ class Attributor:
                 "candidates": candidates,
                 "vendor": ev.vendor,
                 "answers": answers,
-                "usage": {"input_tokens": int(usage.get("input_tokens") or 0)},
+                "usage": {"input_tokens": input_tokens},
             }
             self.ledger.put(row)
         result = apply_policy(ev, row["answers"], candidates, self.config.thresholds)

@@ -42,6 +42,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from decision.retention import cite_only_origin_restrictive, metadata_origins  # noqa: E402
+from decision.sources import ExcludedSource, require_allowed_source_urls  # noqa: E402
 from scripts.curation.classify import classify  # noqa: E402
 
 BENCH_DIR = ROOT / "benchmarks"
@@ -132,17 +133,23 @@ class _RedirectHistory(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         self.urls.append(newurl)
+        require_allowed_source_urls(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def http_fetch(url: str, timeout: int = 30, retries: int = 3) -> FetchResult:
     """Plain GET with backoff on 429/5xx. Zero Firecrawl credits."""
+    try:
+        require_allowed_source_urls(url)
+    except ExcludedSource:
+        return FetchResult(url=url, status=None, error="excluded source")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     history = _RedirectHistory(url)
     opener = urllib.request.build_opener(history)
     for attempt in range(retries + 1):
         try:
             with opener.open(req, timeout=timeout) as resp:
+                require_allowed_source_urls(url, (*history.urls, resp.geturl()))
                 raw = resp.read(MAX_BYTES + 1)
                 return FetchResult(
                     url=url, status=resp.status,
@@ -152,6 +159,9 @@ def http_fetch(url: str, timeout: int = 30, retries: int = 3) -> FetchResult:
                     truncated=len(raw) > MAX_BYTES,
                     resolved_urls=tuple(dict.fromkeys((*history.urls, resp.geturl()))),
                 )
+        except ExcludedSource:
+            return FetchResult(url=url, status=None, error="excluded source",
+                               resolved_urls=tuple(history.urls))
         except urllib.error.HTTPError as exc:
             if exc.code in RETRY_CODES and attempt < retries:
                 time.sleep(2 ** attempt)
@@ -195,6 +205,10 @@ class FirecrawlBudget:
     _guard: object = None
 
     def fetch(self, url: str) -> FetchResult | None:
+        try:
+            require_allowed_source_urls(url)
+        except ExcludedSource:
+            return FetchResult(url=url, status=None, error="excluded source", fetcher="firecrawl")
         if self.cap <= 0 or self.stopped or host_of(url) not in self.allow:
             return None
         from scripts.benchmarks import fetch as fc  # imported lazily: cap 0 never touches it
@@ -207,6 +221,8 @@ class FirecrawlBudget:
                 self._guard = fc.CreditGuard(key=key, budget=self.cap)
             self.calls += 1
             data = fc.scrape(url, ["markdown"], guard=self._guard, max_pages=1)
+        except ExcludedSource:
+            return FetchResult(url=url, status=None, error="excluded source", fetcher="firecrawl")
         except fc.CreditBudgetExceeded:
             self.stopped = True  # stop cleanly; remaining JS sources keep their plain-HTTP reading
             return None
@@ -251,6 +267,10 @@ def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple
     if not meta.exists():
         return None, ""
     data = json.loads(meta.read_text())
+    try:
+        require_allowed_source_urls(url, metadata_origins(data))
+    except ExcludedSource:
+        return data, ""
     if not include_text or cite_only_origin_restrictive(url, metadata_origins(data)):
         return data, ""
     txt = state_dir / f"{state_key(url)}.txt"
@@ -258,6 +278,7 @@ def load_state(state_dir: Path, url: str, *, include_text: bool = True) -> tuple
 
 
 def save_state(state_dir: Path, url: str, meta: dict, text: str | None) -> None:
+    require_allowed_source_urls(url, metadata_origins(meta))
     state_dir.mkdir(parents=True, exist_ok=True)
     origins = metadata_origins(meta)
     if cite_only_origin_restrictive(url, origins):
@@ -294,13 +315,30 @@ def watch(
             work.setdefault(url, []).append((pid, role, fm))
 
     urls = sorted(work)
+    refused = {}
+    for url in urls:
+        prev, _ = load_state(state_dir, url, include_text=False)
+        try:
+            require_allowed_source_urls(url, metadata_origins(prev or {}))
+        except ExcludedSource:
+            refused[url] = FetchResult(url=url, status=None, error="excluded source")
+    admitted = [url for url in urls if url not in refused]
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        results = dict(zip(urls, pool.map(fetcher, urls)))
+        results = {**refused, **dict(zip(admitted, pool.map(fetcher, admitted)))}
 
     changes, failures, baselines, needs_js = [], [], [], []
     unchanged = 0
     for url in urls:
         res = results[url]
+        pages = [{"page": pid, "role": role} for pid, role, _ in work[url]]
+        try:
+            require_allowed_source_urls(url, res.resolved_urls)
+            if res.error == "excluded source":
+                raise ExcludedSource("excluded source")
+        except ExcludedSource:
+            failures.append({"url": url, "pages": pages, "status": None,
+                             "error": "excluded source", "kinds": [], "had_good_state": False})
+            continue
         if host_of(url) in js_hosts:
             fc = firecrawl.fetch(url)  # None when the cap is 0, spent, or host not allowlisted
             if fc is not None:
@@ -308,9 +346,16 @@ def watch(
                 res = fc
             else:
                 needs_js.append(url)
+        try:
+            require_allowed_source_urls(url, res.resolved_urls)
+            if res.error == "excluded source":
+                raise ExcludedSource("excluded source")
+        except ExcludedSource:
+            failures.append({"url": url, "pages": pages, "status": None,
+                             "error": "excluded source", "kinds": [], "had_good_state": False})
+            continue
         prev, prev_text = load_state(state_dir, url,
                                      include_text=not cite_only_origin_restrictive(url, res.resolved_urls))
-        pages = [{"page": pid, "role": role} for pid, role, _ in work[url]]
         resolved = tuple(dict.fromkeys((*res.resolved_urls, *(prev or {}).get("resolved_urls", ()))))
         if cite_only_origin_restrictive(url, resolved):
             meta = {"url": url, "resolved_urls": resolved,
