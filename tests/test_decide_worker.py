@@ -295,6 +295,26 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
     assert body["error"]["issues"][0]["path"] == "unknown"
 
 
+@pytest.mark.parametrize("kind", [[], {}, ["chat_app"]])
+def test_a_non_string_access_kind_is_a_structured_refusal(
+    entry, snapshot, monkeypatch, kind,
+) -> None:
+    worker = entry.Default()
+    worker.env = _entry_env(
+        MODELSPEC_SNAPSHOT_KEY=KEY.decode(), X402_ENABLED="false", ACCESS_ENFORCED="false",
+    )
+    holder = entry.decide_service.SnapshotHolder(None, bundled_snapshot=snapshot)
+    monkeypatch.setattr(entry, "_decision_holder", lambda origin: holder)
+    response = asyncio.run(worker.fetch(_Req(
+        "/v1/decide", {**_payload(), "access": {"kind": kind}},
+    )))
+    assert response.status == 400, response.body
+    body = response.json()
+    assert body["error"]["code"] == "invalid_spec"
+    assert any(issue["path"].startswith("access") for issue in body["error"]["issues"])
+    assert body["error"]["recovery"]
+
+
 REJECTION_CLASSES = [
     pytest.param({"task": "Choose a model for a support bot"}, "task",
                  "structured facets", id="free-text-task"),

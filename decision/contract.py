@@ -1168,7 +1168,7 @@ class Access(_ExcludeIf):
     @field_validator("kind", mode="before")
     @classmethod
     def _named_kind(cls, value: Any) -> Any:
-        if value not in _ACCESS_KINDS:
+        if not isinstance(value, str) or value not in _ACCESS_KINDS:
             raise ValueError(ACCESS_FORM)
         return value
 

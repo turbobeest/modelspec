@@ -1108,6 +1108,28 @@ def test_a_wrong_access_value_names_the_accepted_form() -> None:
         "optimize": {"max": "model.context_window"},
     }, facets=None)
     assert spec.access is not None and spec.access.kind == "own_hardware"
+    for kind in ("chat_app", "coding_tool", "own_software", "own_hardware"):
+        parsed = c.parse_spec({
+            "spec_version": 1,
+            "access": {"kind": kind},
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+        assert parsed.access is not None and parsed.access.kind == kind
+
+
+@pytest.mark.parametrize("kind", [[], {}, ["chat_app"]])
+def test_a_non_string_access_kind_names_the_accepted_form(kind) -> None:
+    with pytest.raises(c.SpecError) as caught:
+        c.parse_spec({
+            "spec_version": 1,
+            "access": {"kind": kind},
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+    assert caught.value.issues[0].path.startswith("access")
+    assert caught.value.issues[0].reason == (
+        "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+        "or one of those kinds as a string"
+    )
 
 
 def test_schema_file_is_generated_from_the_types() -> None:
