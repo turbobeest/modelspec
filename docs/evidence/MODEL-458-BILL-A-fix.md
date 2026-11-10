@@ -215,10 +215,9 @@ webhook does not look up a process-local lock. Round 4 copies the ledger
 entitlement onto the key tier after an accepted write.
 
 The overlap control runs 30 pairs of a newer `invoice.paid` and an older
-`invoice.payment_failed` on a KV that yields on get and put. Before the
-watermark, all 30 ended free with monthly 0. After the watermark and before
-the lock, all 30 kept the full monthly allowance and stayed free. After the
-lock, all 30 ended paid with the full monthly allowance.
+`invoice.payment_failed` on a KV that yields on get and put. The ledger
+re-reads `invoice_period_watermark` inside the grant. A failed invoice does
+not move that watermark.
 
 ### Claim nonce
 
@@ -276,20 +275,20 @@ Origin/main was already merged. These four findings are the work.
 
 The webhook does not look up a process-local lock. `entitlement_generation`
 increases on each accepted `set_monthly` and `clear_monthly`.
-`monthly_entitled` is the implied tier. After an accepted grant or clear, the
-handler writes that tier onto the key and writes it again when the generation
-changed, up to 4 passes. If it is still changing, the webhook errors and the
-event is retried. A rejected write does not change the key tier.
-`MemoryLedger`, `DurableLedger`, `UnboundLedger`, and the credits object
-expose `entitlement_view`. `UnboundLedger.entitlement_view` raises.
-`UnboundLedger.invoice_watermark` still returns 0.
+`monthly_entitled` records the last accepted allowance write when the field is
+present. When the field is absent, entitlement is derived. After an accepted
+grant or clear, the handler writes that tier onto the key and writes it again
+when the generation changed, up to 4 passes. If it is still changing, the
+webhook errors and the event is retried. A rejected write does not change the
+key tier. `MemoryLedger`, `DurableLedger`, `UnboundLedger`, and the credits
+object expose `entitlement_view`. `UnboundLedger.entitlement_view` raises.
+`UnboundLedger.invoice_watermark` raises `StoreNotConfigured`. The
+`invoice.paid` watermark read treats that as no stored period.
 
 The overlap test gives each handler its own view of one KV store. Each view
-yields 1, 2, or 3 times on every get and put, in both orders. A newer
-`invoice.paid` against an older `invoice.payment_failed` ends paid with the
-monthly allowance. An older `invoice.paid` against a newer terminal
-cancellation ends free with monthly 0. Before the copy, the failure schedules
-ended free while the allowance stayed. After the copy, every schedule matched.
+yields 1, 2, or 3 times on every get and put, in both orders. That is 18
+failure pairs and 18 cancellation pairs. The grant and the clear re-read the
+ledger inside the write.
 
 Before: that test, 6 failed, exit 1. After: 1 passed, exit 0. Focused billing
 tests then: 244 passed, exit 0.
@@ -339,11 +338,13 @@ No previously passing assertion was rewritten. `InvoiceLedger.set_monthly`
 accepts `period_start` and forwards it. The overlap test no longer depends on
 a process-local lock.
 
-Old rows load. `paid_period_start`, `canceled_at`, `entitlement_generation`,
-and `monthly_entitled` default to 0 or false. A subscription row's
-`canceled_at` defaults to 0. A row that has only `invoice_period_watermark`
-treats that value as the paid period end, with the start unknown and no
-cancellation.
+Old rows load. `paid_period_start`, `canceled_at`, and
+`entitlement_generation` default to 0. `monthly_entitled` is absent on an
+account stored before the field, and entitlement is derived. A stored false
+stays closed. A subscription row's `canceled_at` defaults to 0.
+`canceled_subscription_id` defaults to empty. A row that has only
+`invoice_period_watermark` treats that value as the paid period end, with the
+start unknown and no cancellation.
 
 ### Docs
 
@@ -371,13 +372,109 @@ No production flag, price, plan, legal text, or frozen data changed.
 
 ### Remaining
 
-Checkout with no invoice id still resets a spent allowance. Reusing the
-synthetic grant id returns replay before the watermark is stored.
-
-### Remaining
+Round 4 left the no-period checkout grant and the unclaimed-subscription
+behaviour.
 
 Checkout with no invoice id is unchanged. The stored grant id is the synthetic
 checkout id, and a later `invoice.paid` with `billing_reason`
 `subscription_create` credits again. Reusing that synthetic id as the grant
-returns replay before `invoice_period_watermark` is stored, so that change
-is not sufficient.
+returns replay before `invoice_period_watermark` is stored.
+
+A cancellation or failed payment on a row with no key returned `no_key` and
+left the row's tier. Round 5 writes the downgrade tier and inactive status.
+
+## Round 5
+
+Origin/main was merged before these findings. Focused billing tests on that
+merge passed before the finding commits.
+
+### A cancellation belongs to one subscription
+
+`canceled_subscription_id` is stored beside `canceled_at`. A grant from a
+different known subscription is independent of that cancellation. An accepted
+grant clears both fields. A grant with no period for the cancelled
+subscription stays stale, and so does a grant when either id is unknown.
+Checkout asks the ledger before it writes the row or the key.
+`pending_monthly` is cleared only after the grant is accepted.
+
+Before: 3 failed, 2 passed, exit 1. After the change, the focused billing
+suite was 262 passed, exit 0.
+
+### An unclaimed subscription still downgrades
+
+A cancellation or failed payment accepted on a row with no key writes the
+downgrade tier and inactive status and answers `downgraded`. A later claim
+mints the key on that tier. `test_prepared_claim_respects_current_billing_state`
+asserts the claimed key's tier and the row.
+
+Before: 3 failed, 2 passed, exit 1. After: 12 passed, exit 0. Focused billing
+tests then: 265 passed, exit 0.
+
+### A redelivered grant copies the tier
+
+`invoice.paid`, Checkout, and the pending-allowance grant copy the ledger
+entitlement onto the key after every grant the key can hold, including a
+replay. The copy skips a rejected grant, a grant for another holder, and a
+grant with nothing to copy. An account stored before `monthly_entitled`
+derives entitlement from a positive monthly balance, or from a stored paid
+watermark with `canceled_at` unset. An explicit false stays closed.
+
+Before: 4 failed, exit 1. After: the focused billing suite was 269 passed,
+exit 0.
+
+### A rejected grant does not write the row
+
+An invoice the ledger rejects returns `ignored` before the subscription row
+or its period is stored. Rotation copies the ledger entitlement onto the new
+key. When the row already names the successor and that account has a clear,
+the new key takes the downgrade tier. The cancellation pairs in
+`test_overlapped_old_failure_keeps_newer_paid_allowance` also assert the
+subscription row's tier and status, across 18 schedules.
+
+Before: 2 failed, exit 1. After the change, the focused billing suite was
+271 passed, exit 0.
+
+### An unbound watermark is not a stored period
+
+The round-4 sentence that said `UnboundLedger.invoice_watermark` returns 0
+is corrected above. The method raises `StoreNotConfigured`.
+`_apply_invoice_paid` already maps that exception to no stored period.
+`MemoryLedger`, `DurableLedger`, and the credits object still return the
+stored watermark.
+
+After this change, the focused billing suite was 272 passed, exit 0.
+
+### Changed expectations
+
+`test_invoice_period_is_recorded_before_its_allowance` is now
+`test_a_failed_period_write_does_not_grant_the_allowance_twice`. The invoice
+period is stored after the ledger accepts the grant. The assertion in the
+middle of that test therefore sees the granted allowance, and the retry is a
+replay.
+
+The round-4 sentence that said `monthly_entitled` defaults to false is
+corrected above. An absent field is derived.
+
+When `clear_monthly` returns `store_unbound`, the handler still writes the
+downgrade tier. The no-ledger cancellation tests keep that result, and the
+webhook action set is unchanged.
+
+### Commands
+
+After the unbound-watermark change, from the worktree:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_friends_billing_wiring.py
+```
+
+Result: 272 passed, exit 0.
+
+Both older review probes passed: 7 passed, exit 0, and 2 passed, exit 0.
+
+No contract file, OpenAPI file, or `contract_version` changed. The rank-export
+import graph is unchanged, so the Worker memory probe was not re-run. The
+earlier steady result remains 108,822,028 bytes, 103.78 MiB, below 115 MiB.
+No production flag, price, plan, legal text, or frozen data changed.
+`docs/billing.md` states the per-subscription cancellation, the rejected-grant
+rule, the entitlement copy, and the unclaimed downgrade. Nothing under
+`docs/legal/` changed.
