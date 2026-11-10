@@ -112,3 +112,98 @@ returned exit 0, `46 passed, 1 skipped in 87.58s`:
 ```sh
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py --tb=short
 ```
+
+## Round 2
+
+`contract_version` stays 2.19. No contract field changes type or range.
+`origin/main` had moved; the branch did not conflict, so it was not merged.
+
+### CI
+
+Pytest shard 8/8 failed on `test_unknown_lab_subject_still_errors` (three
+subjects). AUD-01-F1 rejects a fact that does not name its enclosing model
+before the catalogue invariant runs. The test now expects `SnapshotBuildError`
+matching `must name its actual owner`. That is the only expectation changed.
+Known-lab inheritance is unchanged: the shared-lab calibration test still
+expects an empty finding list.
+
+Before the expectation change the focused command returned exit 1, `3 failed`.
+After it, this command returned exit 0, `62 passed, 1 skipped in 1.56s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_data_trust.py::test_unknown_lab_subject_still_errors tests/test_data_trust.py::test_calibration_resolves_shared_lab_facts_without_adding_candidates tests/test_lab_jurisdiction.py tests/test_snapshot_provenance.py --tb=line
+```
+
+### AUD-01-F4
+
+A dropped gate kept the retired-model opt-in from the condition it removed, so
+a reported admission did not replay. `include_retired` is now derived from the
+conditions still on the resolved spec. Dropping the only opt-in admits nobody.
+A lifecycle opt-in that remains still admits retired models.
+
+The new regressions failed before the change (exit 1, `2 failed`). This
+command then returned exit 0, `95 passed in 2.59s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_relax_single.py tests/test_decision_relax.py tests/test_decision_filter.py tests/test_decision_explain.py --tb=line
+```
+
+### AUD-01-F7
+
+Relaxation search stays exact: the fewest relaxable gates, caps and floors
+before spec order. Equivalent gates are one choice. A candidate's failing
+gates name the set, and the filter confirms it. A `best(m)` gate still
+searches those choices because its threshold depends on the gates that remain.
+No previously accepted spec is refused.
+
+The new work-budget regressions failed before the change. The cap-preference
+test passed on the old search. After the change this command returned exit 0,
+`48 passed in 0.90s`:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_relax.py tests/test_relax_single.py tests/test_decision_explain.py --tb=line
+```
+
+### AUD-01-F6
+
+On the pre-change code, spec numbers that are not finite were accepted, and
+finite weights whose products overflow produced scores that are not JSON.
+Finite constraint values, including very large finite values, zero, negative
+limits, and integers that do not fit in a float, already returned a valid
+decision and still do. Non-finite spec numbers are now rejected. Overflowing
+finite weights still return a decision; one common scale keeps every score and
+score interval finite and preserves order. When every product and sum is
+already finite, the score expression is unchanged. An ordinary max of two
+finite values still scores 1.0 and 0.0.
+
+The new module failed before the change (exit 1, `11 failed, 7 passed`).
+After the change:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_numeric_bounds.py tests/test_decision_optimise.py tests/test_decision_relax.py --tb=line
+```
+
+Exit 0, `64 passed in 23.06s`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_contract.py tests/test_decision_bands.py tests/test_decision_filter.py --tb=line
+```
+
+Exit 0, `311 passed in 1.71s`. The generated decision schema was unchanged.
+No OpenAPI or MCP contract-version file changed.
+
+### Deployment-path validation, round 2
+
+The same private checkout, throwaway key, Pyodide 0.28.3, and probe commands
+as round 1. Every command returned exit 0. Both steady readings are under the
+unchanged 115 MiB gate. The current-period noisy peak again exceeded 112 MiB
+and produced the existing warning. No gate was raised.
+
+| Period | Steady bytes | Steady MiB | Limit MiB | Result |
+| --- | ---: | ---: | ---: | --- |
+| Current | 114273370 | 108.979578 | 115 | Pass |
+| Successor | 109756866 | 104.672304 | 115 | Pass |
+
+`vendor.py --check` restored the public bundle and returned exit 0. The
+worktree was clean afterward. No production settings, ranking floors, legal
+text, frozen data, prices, plans, or release tags were changed.
