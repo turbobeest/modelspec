@@ -115,6 +115,9 @@ describe("the per-answer prompt", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Feedback could not be deleted. Check your connection and try again.");
     expect(alert).not.toHaveTextContent(/could not be sent|nothing was kept|Nothing of it is kept/);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Your feedback was recorded.");
+    expect(status).not.toHaveTextContent(/Nothing of it is kept/);
     expect(screen.queryByRole("button", { name: "Send feedback" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Retry deleting it" }));
     expect(await screen.findByText("Deleted. Nothing of it is kept.")).toBeInTheDocument();
