@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isCallToolResult } from "@modelcontextprotocol/server";
+import { execFileSync } from "node:child_process";
+import { z } from "zod";
 
 import { workerFetch } from "../src/index";
-import { USER_AGENT } from "../src/origin";
-import { AGENT_BYTES, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
+import { modelCardUrl, USER_AGENT } from "../src/origin";
+import { AGENT_BYTES, decideReportContent, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
 // Real Worker bodies from the public catalogue (python -m qa.decide_budget).
 import budget from "./fixtures/decide-budget.json";
 
@@ -11,6 +13,14 @@ const ENV: Env = {
   EXPORT_ORIGIN: "https://modelspec.dev",
   RANK_API_ORIGIN: "https://api.modelspec.dev",
   BUILD_COMMIT: "test-commit-sha",
+};
+const STATIC_HEADERS = { authorization: "Bearer issued_live_key" };
+const STATIC_ENV: Env = {
+  ...ENV,
+  RANK: { async fetch(input) {
+    expect(String(input)).toBe("https://api.modelspec.dev/v1/auth-check");
+    return jsonResponse(200, { authenticated: true });
+  } },
 };
 
 function testCtx(): ExecutionContext {
@@ -96,6 +106,35 @@ function envelopeFromCall(payload: Record<string, unknown>): {
     status: number;
     body: unknown;
   };
+}
+
+const recoveryFields = {
+  with_estate: { status: "no_feasible", answer: null,
+    gap: { same_answer: true, unreachable_models: [], summary: "Neither lineup qualifies." } },
+  relax_task_tokens: { condition: "offering.cost_per_task <= 0.01",
+    default: { input: 40_000, output: 4_000 }, admits_at: { input: 100, output: 10 },
+    message: "Set actual task tokens." },
+  excluded_plans: [{ plan: "example-plan", reason: "Not open to new buyers." }],
+};
+
+function recoveryDecision(overrides: Record<string, unknown> = {}) {
+  const root = new URL("../../", import.meta.url).pathname;
+  const output = execFileSync("python3", ["-c", `
+import sys
+from decision.contract import Decision
+print(Decision.model_validate_json(sys.stdin.read()).model_dump_json())
+`], { cwd: root, env: { ...process.env, PYTHONPATH: root }, encoding: "utf8",
+    input: JSON.stringify({ decision_id: "dec_recovery01", snapshot: "snap_test",
+      spec_hash: `sha256:${"0".repeat(64)}`, explain: "full", status: "no_feasible",
+      relax: ["offering.cost_per_task <= 0.01"], chart: "x".repeat(20_000),
+      ...recoveryFields, ...overrides }) });
+  return z.record(z.string(), z.unknown()).parse(JSON.parse(output));
+}
+
+function expectDecisionBudget(envelope: ReturnType<typeof fitDecideEnvelope>) {
+  const bytes = Buffer.byteLength(JSON.stringify(envelope), "utf8")
+    + Buffer.byteLength(decideReportContent(envelope.body).text, "utf8");
+  expect(bytes).toBeLessThanOrEqual(16_384);
 }
 
 describe("modelspec MCP worker", () => {
@@ -315,13 +354,75 @@ describe("modelspec MCP worker", () => {
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
   });
 
+  it.each([
+    { name: "rank", arguments: {
+      use_case: "coding", environment: { hardware: null, hosting: "local", runtime: "ollama" },
+      constraints: { open_weights: true, max_cost_per_million_input_tokens: 2,
+        price_sensitivity: 0.25, include_rehosts: false }, limit: 1,
+    } },
+    { name: "policy_check", arguments: { policy: {
+      name: "Example", licence: { allowed: ["mit"], prohibited: ["cc-by-nc-4.0"] },
+      origin: { permitted_countries: ["US"], prohibited_countries: ["XX"] },
+      residency: { required_regions: ["EU", "US"], match: "all" },
+      commercial_use: { required: true, accept_restricted: false },
+    }, limit: 1 } },
+    { name: "rank", arguments: { use_case: "coding", extra: "forwarded" } },
+    { name: "policy_check", arguments: { policy: { extra: "forwarded" }, extra: "forwarded" } },
+  ])("forwards $name fields without changing the existing outer-object behavior", async params => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { result: [] }));
+    const { payload } = await rpc("tools/call", params);
+    expect(envelopeFromCall(payload).status).toBe(200);
+    expect(originFetch).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(originFetch.mock.calls[0]?.[1]?.body))).toEqual(params.arguments);
+  });
+
+  it.each([
+    { name: "rank", arguments: { use_case: "coding", environment: { hardware: "example", memory_gb: 8 } } },
+    { name: "rank", arguments: { use_case: "coding", constraints: { max_cost_per_million_input_token: 0 } } },
+    { name: "policy_check", arguments: { policy: { licence: { allowed: ["mit"], allow: ["apache-2.0"] } } } },
+    { name: "policy_check", arguments: { policy: { origin: { permitted_countries: ["US"], prohibited_coutnries: ["US"] } } } },
+    { name: "policy_check", arguments: { policy: { residency: { required_regions: ["EU", "US"], match_mode: "all" } } } },
+    { name: "policy_check", arguments: { policy: { commercial_use: { required: true, accept_restrictions: false } } } },
+  ])("preserves or refuses every nested $name field: $arguments", async (params) => {
+    let forwarded: unknown;
+    originFetch.mockImplementation(async (_url: unknown, init: RequestInit) => {
+      forwarded = JSON.parse(String(init.body));
+      const root = new URL("../../", import.meta.url).pathname;
+      const output = execFileSync("python3", ["-c", `
+import json, sys
+from api.worker.src import rank_service, policy_service
+request = json.load(sys.stdin)
+service = rank_service if request["name"] == "rank" else policy_service
+try:
+    service.parse_request(request["body"], set())
+    result = {"status": 200, "body": {}}
+except service.RequestError as exc:
+    result = {"status": 400, "body": {"error": {"code": exc.code}}}
+json.dump(result, sys.stdout)
+`], { cwd: root, env: { ...process.env, PYTHONPATH: root },
+        input: JSON.stringify({ name: params.name, body: forwarded }), encoding: "utf8" });
+      const answer = z.object({ status: z.number(), body: z.unknown() }).parse(JSON.parse(output));
+      return jsonResponse(answer.status, answer.body);
+    });
+    const { payload } = await rpc("tools/call", params);
+    if (originFetch.mock.calls.length > 0) {
+      expect(forwarded).toEqual(params.arguments);
+      expect(envelopeFromCall(payload)).toMatchObject({
+        status: 400, body: { error: { code: "invalid_request" } },
+      });
+    } else {
+      expect(isCallToolResult(payload.result)).toBe(true);
+      expect(payload.result).toMatchObject({ isError: true, content: expect.any(Array) });
+    }
+  });
+
   it("model_info happy path reads /api/models/<id>.json", async () => {
     const originBody = { card: { identity: { name: "DeepSeek V3.2" } } };
     originFetch.mockResolvedValueOnce(jsonResponse(200, originBody));
     const { payload } = await rpc("tools/call", {
       name: "model_info",
       arguments: { model_id: "deepseek/deepseek-v3-2" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/models/deepseek/deepseek-v3-2.json",
@@ -330,12 +431,42 @@ describe("modelspec MCP worker", () => {
     expect(envelope.body).toEqual(originBody);
   });
 
+  it.each([
+    "openai/gpt-5-6", "lab/model.v2_1", "lab-dev/model-2", "123/9b",
+  ])("resolves catalogue model ids under the configured model directory: %s", modelId => {
+    const located = modelCardUrl("https://exports.invalid/catalogue/", modelId);
+    expect(located).toEqual({ origin: `https://exports.invalid/catalogue/api/models/${modelId}.json` });
+    if (!("origin" in located)) throw new Error("Expected a model URL");
+    expect(new URL(located.origin).pathname).toBe(`/catalogue/api/models/${modelId}.json`);
+  });
+
+  describe.each(["true", "false"])("model ids with split=%s", split => {
+    it.each([
+      "%2e%2e/rank/profiles", "%2E%2E/rank/profiles", "%252e%252e/model",
+      "lab/%2e%2e", "lab/%2fmodel", "lab%2fother/model", "lab/%5cmodel",
+      "lab/model?other=1", "lab/model#part", "lab/model/other", "lab/model\\other",
+      "/lab/model", "../model", "lab/..", "lab/model..old", "lab", "lab/",
+      "lab/model\n", " lab/model", "lab/model ", "lab/MODEL", "lab/modél",
+    ])("refuses non-catalogue ids before origin I/O: %j", async modelId => {
+      const via = { fetch: vi.fn(async () => jsonResponse(200, { authenticated: true })) };
+      originFetch.mockResolvedValue(jsonResponse(200, { models: {} }));
+      const located = modelCardUrl(ENV.EXPORT_ORIGIN, modelId);
+      expect(located).toHaveProperty("error");
+      const { payload } = await rpc("tools/call", {
+        name: "model_info", arguments: { model_id: modelId },
+      }, 1, STATIC_HEADERS, { ...ENV, DATA_SPLIT_ENABLED: split, RANK: via });
+      expect(payload.result).toMatchObject({ isError: true });
+      expect(originFetch).not.toHaveBeenCalled();
+      expect(via.fetch).not.toHaveBeenCalled();
+    });
+  });
+
   it("model_info error path returns the origin 404", async () => {
     originFetch.mockResolvedValueOnce(jsonResponse(404, { error: "not found" }));
     const { payload } = await rpc("tools/call", {
       name: "model_info",
       arguments: { model_id: "missing/model" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.status).toBe(404);
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
@@ -347,7 +478,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "list_use_cases",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe("https://modelspec.dev/api/rank/profiles.json");
     expect(envelope.body).toEqual(originBody);
@@ -358,7 +489,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "list_use_cases",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe("https://modelspec.dev/api/rank/profiles.json");
     expect(envelope.status).toBe(0);
@@ -660,6 +791,77 @@ describe("modelspec MCP worker", () => {
     expect(result.content[1].text).not.toContain("top models: none");
   });
 
+  it("decide retains estate and recovery fields when the bounded notice has room", async () => {
+    const body = recoveryDecision();
+    originFetch.mockResolvedValueOnce(jsonResponse(200, body));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: {
+      spec_version: 1, optimize: { min: "offering.cost_per_task" }, fields: null,
+    } });
+    const envelope = envelopeFromCall(payload);
+    const fitted = z.record(z.string(), z.unknown()).parse(envelope.body);
+    for (const field of ["with_estate", "relax_task_tokens", "excluded_plans"]) {
+      expect(fitted[field]).toEqual(body[field]);
+    }
+    expect(fitted.status).toBe("no_feasible");
+    expect(fitted.answer).toBeNull();
+    expectDecisionBudget(envelope);
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("Expected a tool result");
+    expect(result.content.reduce((bytes, item) => bytes + (item.type === "text" ? Buffer.byteLength(item.text) : 0), 0))
+      .toBeLessThanOrEqual(16_384);
+  });
+
+  it.each(["with_estate", "relax_task_tokens"])("counts a whole oversized recovery section: %s", field => {
+    const pad = "🦦".repeat(6_000);
+    const body = recoveryDecision(field === "with_estate"
+      ? { with_estate: { ...recoveryFields.with_estate, gap: { ...recoveryFields.with_estate.gap, summary: pad } } }
+      : { relax_task_tokens: { ...recoveryFields.relax_task_tokens, message: pad } });
+    const before = JSON.stringify(body);
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    const fitted = z.object({ explanation: z.object({ omitted: z.record(z.string(), z.number()) }) })
+      .passthrough().parse(envelope.body);
+    expect(fitted).not.toHaveProperty(field);
+    expect(fitted.explanation.omitted[field]).toBe(1);
+    expectDecisionBudget(envelope);
+    expect(JSON.stringify(body)).toBe(before);
+  });
+
+  it("counts only whole excluded-plan records removed from an oversized recovery notice", () => {
+    const exclusions = [
+      { plan: "first", reason: "Not open to new buyers." },
+      { plan: "second", reason: "🦦".repeat(3_000) },
+      { plan: "third", reason: "🦦".repeat(3_000) },
+    ];
+    const body = recoveryDecision({ excluded_plans: exclusions });
+    const before = JSON.stringify(body);
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    expect(envelope.body).toMatchObject({
+      excluded_plans: exclusions.slice(0, 2),
+      with_estate: body.with_estate,
+      relax_task_tokens: body.relax_task_tokens,
+      explanation: { omitted: { excluded_plans: 1 } },
+    });
+    expectDecisionBudget(envelope);
+    expect(JSON.stringify(body)).toBe(before);
+  });
+
+  it("counts every excluded-plan record when none fits the recovery notice", () => {
+    const body = recoveryDecision({ excluded_plans: [{ plan: "huge", reason: "x".repeat(20_000) }] });
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    expect(envelope.body).toMatchObject({ excluded_plans: [], explanation: { omitted: { excluded_plans: 1 } } });
+    expectDecisionBudget(envelope);
+  });
+
+  it("keeps optional recovery fields absent when the complete decision omits them", () => {
+    const body = recoveryDecision({ with_estate: null, relax_task_tokens: null, excluded_plans: [] });
+    const envelope = fitDecideEnvelope({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body });
+    for (const field of ["with_estate", "relax_task_tokens", "excluded_plans"]) {
+      expect(body).not.toHaveProperty(field);
+      expect(envelope.body).not.toHaveProperty(field);
+    }
+    expectDecisionBudget(envelope);
+  });
+
   it("decide passes member_evidence through when the body is inside the budget", async () => {
     const body = {
       representation: "bounded",
@@ -911,7 +1113,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "vocab",
       arguments: {},
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     const envelope = envelopeFromCall(payload);
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/decision/vocabulary.json",
@@ -929,7 +1131,7 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "vocab",
       arguments: { section: "facets" },
-    });
+    }, 1, STATIC_HEADERS, STATIC_ENV);
     expect(envelopeFromCall(payload).body).toEqual({ facets,
       next: "next: call decide using these ids; refine from reading" });
   });
@@ -982,7 +1184,7 @@ describe("compact HTTP vocabulary requests", () => {
         { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, vocabulary)));
       try {
-        const exported = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } });
+        const exported = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } }, 1, STATIC_HEADERS, STATIC_ENV);
         expect(envelopeFromCall(split.payload).body).toEqual(body);
         expect(envelopeFromCall(exported.payload).body).toEqual(body);
       } finally {
