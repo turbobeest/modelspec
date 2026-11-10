@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from math import erfc, sqrt
+from math import erfc, isclose, sqrt
 
 from decision.citation import cited_records
 from decision.contract import (
@@ -73,12 +73,17 @@ class Distribution:
     sd: float
 
 
-def p_at_least(challenger: Distribution, leader: Distribution) -> float:
+def _probability_at_least(challenger: Distribution, leader: Distribution) -> float:
     """P(challenger's score >= leader's) for independent normal scores."""
     spread = sqrt(challenger.sd**2 + leader.sd**2)
     if spread == 0:
         return 1.0 if challenger.value >= leader.value else 0.0
-    return round(0.5 * erfc((leader.value - challenger.value) / (spread * sqrt(2))), _PRECISION)
+    return 0.5 * erfc((leader.value - challenger.value) / (spread * sqrt(2)))
+
+
+def p_at_least(challenger: Distribution, leader: Distribution) -> float:
+    """Pairwise probability rounded for presentation, not band membership."""
+    return round(_probability_at_least(challenger, leader), _PRECISION)
 
 
 def published_variance(row: OptimisedResult) -> float:
@@ -95,11 +100,18 @@ def published_variance(row: OptimisedResult) -> float:
     return variance
 
 
+def _wide_interval(low: float, high: float) -> bool:
+    width = high - low
+    # Snapshot endpoints have nine decimal places; tolerate only subtraction noise.
+    return width > THIN_INTERVAL_WIDTH and not isclose(
+        width, THIN_INTERVAL_WIDTH, rel_tol=0.0, abs_tol=1e-12)
+
+
 def thin(row: OptimisedResult) -> bool:
     """Whether a weighted capability's 80% interval is wider than the threshold."""
     return any(
         contribution.estimate is not None
-        and contribution.estimate.high - contribution.estimate.low > THIN_INTERVAL_WIDTH
+        and _wide_interval(contribution.estimate.low, contribution.estimate.high)
         for contribution in row.contributions
     )
 
@@ -132,7 +144,7 @@ def band(
     leader = enough[0]
     anchor = distributions[model_of(leader.candidate_id)]
     p_beats = {
-        model_of(row.candidate_id): p_at_least(distributions[model_of(row.candidate_id)], anchor)
+        model_of(row.candidate_id): _probability_at_least(distributions[model_of(row.candidate_id)], anchor)
         for row in rows if row is not leader
     }
     joined = [row for row in enough[1:] if p_beats[model_of(row.candidate_id)] >= BAND_PROBABILITY]
@@ -142,7 +154,8 @@ def band(
                          model_of(row.candidate_id)),
     )
     rest = tuple(row for row in enough[1:] if row not in joined)
-    return Banded(leader, tuple(best), rest, scant, p_beats)
+    return Banded(leader, tuple(best), rest, scant,
+                  {mid: round(probability, _PRECISION) for mid, probability in p_beats.items()})
 
 
 def _capability_dimensions(row: OptimisedResult) -> list:
@@ -245,7 +258,7 @@ def blend(
         scant = sorted(
             model_id for model_id, (_, contribution) in best.items()
             if contribution.estimate is not None
-            and contribution.estimate.high - contribution.estimate.low > THIN_INTERVAL_WIDTH
+            and _wide_interval(contribution.estimate.low, contribution.estimate.high)
         )
         order = sorted(
             (model_id for model_id in best if model_id not in scant),

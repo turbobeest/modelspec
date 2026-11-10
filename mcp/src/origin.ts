@@ -81,13 +81,11 @@ export function modelCardUrl(
   exportOrigin: string,
   modelId: string,
 ): { origin: string } | { error: string } {
-  const id = modelId.trim();
+  const id = modelId;
   if (
-    !id ||
-    id.includes("..") ||
-    id.includes("\\") ||
-    id.startsWith("/") ||
-    /[a-z]+:\/\//i.test(id)
+    id !== id.trim() ||
+    !/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/.test(id) ||
+    id.includes("..")
   ) {
     return { error: "model_id must be a catalogue id such as openai/gpt-5-6" };
   }

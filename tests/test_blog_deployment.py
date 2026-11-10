@@ -249,9 +249,9 @@ def test_workflows_gate_blog_publication_and_notify_only_after_production_deploy
     )
     assert live_step["env"]["INDEXNOW_KEY"] == build_step["env"]["INDEXNOW_KEY"]
     steps = deployment["jobs"]["deploy"]["steps"]
-    checkout = next(i for i, step in enumerate(steps) if step.get("uses") == "actions/checkout@v4")
+    checkout = next(i for i, step in enumerate(steps) if step.get("uses", "").split("@", 1)[0] == "actions/checkout")
     download = next(
-        i for i, step in enumerate(steps) if step.get("uses") == "actions/download-artifact@v4"
+        i for i, step in enumerate(steps) if step.get("uses", "").split("@", 1)[0] == "actions/download-artifact"
     )
     assert checkout < download
     notify = next(step for step in steps if "pipeline.blog_indexnow" in step.get("run", ""))
@@ -280,6 +280,6 @@ def test_pytest_ci_fetches_the_base_for_publication_history_checks() -> None:
     checkout = next(
         step
         for step in workflow["jobs"]["pytest-shards"]["steps"]
-        if step.get("uses") == "actions/checkout@v4"
+        if step.get("uses", "").split("@", 1)[0] == "actions/checkout"
     )
     assert checkout.get("with", {}).get("fetch-depth") == 0

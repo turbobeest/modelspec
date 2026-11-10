@@ -9,6 +9,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
       "additionalProperties": {},
       "properties": {
         "constraints": {
+          "additionalProperties": false,
           "properties": {
             "include_rehosts": {
               "type": [
@@ -38,6 +39,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
           "type": "object",
         },
         "environment": {
+          "additionalProperties": false,
           "properties": {
             "hardware": {
               "type": [
@@ -144,6 +146,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
           "additionalProperties": {},
           "properties": {
             "commercial_use": {
+              "additionalProperties": false,
               "properties": {
                 "accept_restricted": {
                   "type": "boolean",
@@ -155,6 +158,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
               "type": "object",
             },
             "licence": {
+              "additionalProperties": false,
               "properties": {
                 "allowed": {
                   "items": {
@@ -175,6 +179,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
               "type": "string",
             },
             "origin": {
+              "additionalProperties": false,
               "properties": {
                 "permitted_countries": {
                   "items": {
@@ -192,6 +197,7 @@ exports[`modelspec MCP worker > tools/list returns all nine tools with object in
               "type": "object",
             },
             "residency": {
+              "additionalProperties": false,
               "properties": {
                 "match": {
                   "enum": [

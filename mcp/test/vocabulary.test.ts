@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { workerFetch } from "../src/index";
 import { execFileSync } from "node:child_process";
 import { lookupVocabulary, takeSearchWork, vocabInput, vocabularyResponse } from "../src/vocabulary";
 import type { VocabInput } from "../src/vocabulary";
@@ -334,5 +336,131 @@ describe("compact vocabulary", () => {
     expect(vocabularyResponse([], {})).toEqual({ starter: [],
       spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
       next: "next: call decide with this; refine from reading" });
+  });
+});
+
+const subscriptionFacet = {
+  id: "offering.subscription.availability",
+  name: "Subscription availability",
+  definition: "Whether a subscription plan is open to new buyers.",
+  value_type: "enum",
+  allowed_values: ["open", "existing_subscribers_only", "retired"],
+  addressable: false,
+};
+const subscriptionVocabulary = {
+  vocabulary_version: 1,
+  estate: {
+    providers: ["lab"], devices: ["workstation"],
+    plans: [
+      { id: "closed-plan", name: "Closed Plan", provider: "lab", availability: "existing_subscribers_only" },
+      { id: "unknown-plan", name: "Unknown Plan", provider: "lab" },
+    ],
+    plan_facets: [subscriptionFacet],
+  },
+};
+const subscriptionCases = [
+  {
+    label: "exact plan facet",
+    args: { section: "estate", id: "offering.subscription.availability" },
+    estate: { providers: [], devices: [], plans: [], plan_facets: [subscriptionFacet] },
+  },
+  {
+    label: "compact plan availability",
+    args: { section: "estate", search: "closed-plan" },
+    estate: { providers: [], devices: [], plans: [
+      { id: "closed-plan", name: "Closed Plan", availability: "existing_subscribers_only" },
+      { id: "unknown-plan", name: "Unknown Plan" },
+    ] },
+  },
+  {
+    label: "default estate descriptors",
+    args: { section: "estate" },
+    estate: { providers: ["lab"], devices: ["workstation"], plan_facets: [subscriptionFacet] },
+  },
+] satisfies { label: string; args: VocabInput; estate: unknown }[];
+
+describe("subscription vocabulary", () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it.each(subscriptionCases)("preserves $label", ({ args, estate }) => {
+    const result = lookupVocabulary(subscriptionVocabulary, args);
+    expect(result.estate).toEqual(estate);
+    expect(result.unknown_ids).toBeUndefined();
+  });
+
+  it("resolves a plan facet across sections and keeps full estate records", () => {
+    const result = lookupVocabulary(subscriptionVocabulary, { id: "offering.subscription.availability" });
+    expect(result.estate).toEqual({ providers: [], devices: [], plans: [], plan_facets: [subscriptionFacet] });
+    expect(result.matches).toEqual([{
+      section: "estate", id: "offering.subscription.availability", label: "Subscription availability", matched: "id",
+    }]);
+    expect(result.unknown_ids).toBeUndefined();
+    expect(lookupVocabulary(subscriptionVocabulary, { section: "estate", detail: "full" }).estate)
+      .toEqual(subscriptionVocabulary.estate);
+  });
+
+  it("omits unavailable availability and plan facet fields", () => {
+    const source = { estate: { providers: [], devices: [], plans: [{ id: "unknown-plan", name: "Unknown Plan" }] } };
+    expect(lookupVocabulary(source, { section: "estate", search: "plan" }).estate)
+      .toEqual({ providers: [], devices: [], plans: [{ id: "unknown-plan", name: "Unknown Plan" }] });
+    expect(lookupVocabulary(source, { section: "estate" }).estate).toEqual({ providers: [], devices: [] });
+    expect(lookupVocabulary({ estate: { ...source.estate, plan_facets: [] } }, { section: "estate" }).estate)
+      .toEqual({ providers: [], devices: [] });
+  });
+
+  it("matches Python for subscription descriptors and optional availability", () => {
+    const cases = [
+      ...subscriptionCases.map(({ args }) => args),
+      { section: "estate", detail: "full" },
+      { id: "offering.subscription.availability" },
+      { search: "subscription availability" },
+      { section: "estate", search: "plan" },
+      { section: "estate", search: "unknown-plan" },
+      { ids: ["offering.subscription.availability", "closed-plan"] },
+    ] satisfies VocabInput[];
+    expect(cases.map((args) => lookupVocabulary(subscriptionVocabulary, args)))
+      .toEqual(python(subscriptionVocabulary, cases));
+  });
+
+  it.each(["false", "true"])("preserves subscription fields through the MCP full-vocabulary path with split=%s", async (split) => {
+    const staticFetch = vi.fn(async () => Response.json(subscriptionVocabulary));
+    const boundFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path === "/v1/auth-check") return Response.json({ authenticated: true });
+      expect(path).toBe("/v1/vocabulary");
+      return Response.json(subscriptionVocabulary);
+    });
+    vi.stubGlobal("fetch", staticFetch);
+    const env: Env = {
+      EXPORT_ORIGIN: "https://exports.invalid", RANK_API_ORIGIN: "https://api.invalid",
+      BUILD_COMMIT: "subscription-test", DATA_SPLIT_ENABLED: split, RANK: { fetch: boundFetch },
+    };
+    const context: ExecutionContext = {
+      waitUntil(promise) { void promise; }, passThroughOnException() {}, props: {},
+    };
+    for (const { args, estate } of subscriptionCases) {
+      const response = await workerFetch(new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: { host: "localhost", "content-type": "application/json",
+          accept: "application/json, text/event-stream", authorization: "Bearer issued_live_key" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "vocab", arguments: args } }),
+      }), env, context);
+      expect(response.status).toBe(200);
+      const raw = await response.text();
+      const json = raw.trim().startsWith("{") ? raw : raw.split("\n").find(line => line.startsWith("data:"))?.slice(5);
+      if (!json) throw new Error("MCP returned no JSON");
+      const result = z.object({ result: z.object({ content: z.array(z.object({ text: z.string() })), isError: z.boolean().optional() }) })
+        .parse(JSON.parse(json)).result;
+      expect(result.isError).not.toBe(true);
+      const first = result.content[0];
+      if (!first) throw new Error("MCP returned no text content");
+      const envelope = z.object({ status: z.number(), body: z.object({ estate: z.unknown(), unknown_ids: z.unknown().optional() }) })
+        .parse(JSON.parse(first.text));
+      expect(envelope.status).toBe(200);
+      expect(envelope.body.estate).toEqual(estate);
+      expect(envelope.body.unknown_ids).toBeUndefined();
+    }
+    expect(boundFetch).toHaveBeenCalledTimes(3);
+    expect(staticFetch).toHaveBeenCalledTimes(split === "false" ? 3 : 0);
   });
 });
