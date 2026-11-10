@@ -38,8 +38,9 @@ claims, or the truth of any fact in the post.
 
 The endpoint rejects extra fields, non-X `first_seen_url` values, timestamps
 outside the 24-hour intake window, and confidence values outside 0 through 1.
-It stores each `signal_id` once. Reposting the same bytes is an idempotent
-success. Reusing an ID for another body returns `409`.
+It stores each `signal_id` once. Reposting the same payload within the intake
+window is an idempotent success, including after acknowledgement. Reusing an
+ID for another payload returns `409`.
 
 The request carries this header:
 

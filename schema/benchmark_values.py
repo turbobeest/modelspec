@@ -14,19 +14,26 @@ from decision.units import unit_id
 _BOUNDED_UNITS = {"percent", "fraction", "0-1 scale", "accuracy", "f1 x100"}
 
 
-def validate_value(score: Any, unit: str | None, metric: Mapping[str, Any]) -> None:
-    if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
-        raise ValueError("benchmark score must be a finite number")
+def effective_range(metric: Mapping[str, Any]) -> tuple[float | None, float | None]:
+    """Declared bounds, including the inherent bounds of fraction and signed scales."""
     high = metric.get("max_score")
     low = metric.get("min_score")
-    expected, actual = unit_id(metric.get("unit")), unit_id(unit)
+    expected = unit_id(metric.get("unit"))
     if expected == "p-mrr (x100)":
         low = max(-100, low) if low is not None else -100
         high = min(100, high) if high is not None else 100
     elif low is None and (expected in _BOUNDED_UNITS or high in (1, 100)):
         low = 0
+    return low, high
+
+
+def validate_value(score: Any, unit: str | None, metric: Mapping[str, Any]) -> None:
+    if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+        raise ValueError("benchmark score must be a finite number")
+    low, high = effective_range(metric)
     if low is not None and score < low or high is not None and score > high:
         raise ValueError("benchmark score is outside the board's declared range")
+    expected, actual = unit_id(metric.get("unit")), unit_id(unit)
     # Older fraction boards left their dimensionless unit blank.
     if expected is None and high == 1:
         expected, actual = "fraction", actual or "fraction"
