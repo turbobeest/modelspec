@@ -426,8 +426,9 @@ exit 0.
 
 An invoice the ledger rejects returns `ignored` before the subscription row
 or its period is stored. Rotation copies the ledger entitlement onto the new
-key. When the row already names the successor and that account has a clear,
-the new key takes the downgrade tier. The cancellation pairs in
+key. A ledger generation of zero has no allowance write, and the row tier
+stands. When the row already names the successor and that account has a
+clear, the new key takes the downgrade tier. The cancellation pairs in
 `test_overlapped_old_failure_keeps_newer_paid_allowance` also assert the
 subscription row's tier and status, across 18 schedules.
 
@@ -468,6 +469,10 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 Result: 272 passed, exit 0.
+
+`tests/test_friends_billing.py` joined the same run after rotation left the
+row tier in place when the ledger generation is zero. That run was 286
+passed, exit 0.
 
 Both older review probes passed: 7 passed, exit 0, and 2 passed, exit 0.
 

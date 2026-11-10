@@ -826,8 +826,14 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
                     if (isinstance(other, dict) and not other.get("entitled")
                             and int(other.get("generation") or 0) > 0):
                         entitled = False
-                tier = (_plan_tier(policy, sub) if entitled
-                        else policy.billing.downgrade_tier)
+                if entitled:
+                    tier = _plan_tier(policy, sub)
+                elif int(view.get("generation") or 0) > 0:
+                    # A generation above zero is an allowance the ledger wrote.
+                    # Zero means this key has no ledger allowance, so the row
+                    # tier stands. Friends is that case: the tier is real and
+                    # the allowance is empty.
+                    tier = policy.billing.downgrade_tier
             issued = replace(issued, tier=tier)
             if sub.status == STATUS_INACTIVE and entitled is not True:
                 await ledger.clear_monthly(holder)

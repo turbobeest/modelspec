@@ -421,7 +421,8 @@ unset. An explicit false stays closed.
 
 A row with no key takes the downgrade tier and inactive status when a
 cancellation or failed payment is accepted. Claim mints the key on that tier.
-Rotation copies the ledger entitlement onto the new key. When the row already
+Rotation copies the ledger entitlement onto the new key. A ledger generation
+of zero has no allowance write, and the row tier stands. When the row already
 names the successor and that account has a clear, the new key takes the
 downgrade tier.
 
