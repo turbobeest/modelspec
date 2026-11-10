@@ -412,4 +412,54 @@ Focused document suites, serial, after this edit:
 env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py tests/test_api_docs.py tests/test_surface_lint.py
 ```
 
-Exit 0. `280 passed, 3 skipped in 66.11s`.
+Exit 0. `280 passed, 3 skipped in 66.11s`. That run predates finding 2.
+
+### Finding 2: Jamie owns the terms decision
+
+Before this edit, the follow-up told an unnamed follow-up to resolve whether
+this QA runner is documented direct scripting or a consumer restriction.
+Jamie was named there for the uncaptured login. Section 4 did not name who
+can resolve the terms question. The login steps also left that resolution
+with the follow-up. The opening verdict was already no.
+
+Reproduction, against the note before this edit:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-315-scratch/reproduce_terms_owner.py
+```
+
+Exit 0. `unnamed_follow_up_resolves_terms: True`.
+`terms_section_names_jamie: False`.
+`login_steps_assign_terms_to_follow_up: True`.
+`overall_verdict_is_no: True`.
+
+Change: Jamie owns the terms decision, with counsel or vendor clarification
+as needed. Section 4, the login steps, and the follow-up name him. The
+follow-up implementer runs the technical checks and does not make the terms
+decision. The opening no-adoption verdict stays.
+
+The same reproduction script, run after the edit, exits 1. It prints
+`unnamed_follow_up_resolves_terms: False`, `terms_section_names_jamie: True`,
+`login_steps_assign_terms_to_follow_up: False`, and
+`overall_verdict_is_no: True`. Its assertions still expect the old assignment.
+
+Confirmation after the edit:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-315-scratch/corrected_terms_owner.py
+```
+
+Exit 0. `unnamed_follow_up_resolves_terms: False`.
+`jamie_owns_terms_decision: True`. `terms_section_names_jamie: True`.
+`counsel_or_vendor: True`. `implementer_does_technical_checks: True`.
+`implementer_does_not_decide_terms: True`.
+`login_assigns_terms_to_jamie: True`. `overall_verdict_is_no: True`.
+`no_adoption_stays: True`.
+
+The same three document suites, serial, after both review edits:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_removed_sources.py tests/test_api_docs.py tests/test_surface_lint.py
+```
+
+Exit 0. `280 passed, 3 skipped in 87.68s`.

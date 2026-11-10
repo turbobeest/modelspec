@@ -95,8 +95,8 @@ The operator runbook is **blocked**, not a completed login recipe. The missing
 pieces are a real-credential keyring-unlock policy, a confirmed manual OAuth
 flow in Docker, and a native subscription-status command. Supplying an exact
 account-login command before those exist would overstate this experiment.
-The one-time human steps, once the follow-up supplies those pieces and resolves
-the terms question, are:
+The one-time human steps, once a follow-up has supplied those technical pieces
+and Jamie has resolved the terms question, are:
 
 1. Start the isolated interactive auth container with its dedicated HOME volume
    and unlocked keyring. Its startup must reach the observed login-method menu.
@@ -121,7 +121,9 @@ applications unsupported under consumer plans. Section 6 separately restricts
 third-party access. Whether those restrictions apply to this direct QA runner
 remains unverified. Neither the existence of `agy -p`
 nor Google AI Pro access establishes permission for ModelSpec's Python/Docker
-QA runner. That boundary needs resolution before a subscription scenario runs.
+QA runner. Jamie owns that decision, with counsel or vendor clarification as
+needed. A subscription scenario waits for his decision. This note's
+no-adoption verdict stays in place.
 
 All sources below were read on 2026-11-09. The short quotations are excerpts
 where the source sentence exceeds 14 words. Each excerpt has fewer than 15
@@ -164,18 +166,24 @@ after that reconstruction or its address will be discarded.
 
 ## Follow-up build ticket
 
-A follow-up must first resolve whether this direct QA runner falls within the
-documented direct scripting use or the consumer application restriction. Then
-it can add an explicitly selected provider while keeping default jobs unchanged,
-bind receipts to the exact binary/image and adapter, and arrange Jamie's
-uncaptured interactive login.
+Jamie owns the terms decision. He decides whether this direct QA runner falls
+within the documented direct scripting use or the consumer application
+restriction. He may take counsel or ask the vendor for clarification. That
+decision is separate from technical validation.
 
-Before scenarios, it must verify real session reuse, native subscription-only
-authentication, quota handling with no paid fallback, effective skills/hooks/
-plugins/MCP inventory, and both positive and isolated controls. It also needs
-the native output parser, Gemini-family model selection and cross-family judge
-routing. The separate login and isolation measurements must not be inferred
-from this dummy-secret experiment.
+After Jamie decides the terms allow this integration, a follow-up implementer
+can add an explicitly selected provider while keeping default jobs unchanged,
+bind receipts to the exact binary, image, and adapter, and arrange Jamie's
+uncaptured interactive login. The implementer runs the technical checks below.
+The implementer does not make the terms decision. This note's no-adoption
+verdict stays in place until Jamie decides.
+
+Before scenarios, the implementer must verify real session reuse, native
+subscription-only authentication, quota handling with no paid fallback,
+effective skills/hooks/plugins/MCP inventory, and both positive and isolated
+controls. The implementer also needs the native output parser, Gemini-family
+model selection and cross-family judge routing. The separate login and
+isolation measurements must not be inferred from this dummy-secret experiment.
 
 ## Cleanup and limits
 
