@@ -275,6 +275,10 @@ def test_ed25519_imports_stay_excluded_only_inside_load_snapshot_bytes(
     tmp_path: Path,
 ) -> None:
     checker = _load_checker()
+    assert checker.HMAC_ONLY_IMPORTS == {
+        "cryptography.exceptions",
+        "cryptography.hazmat.primitives.asymmetric.ed25519",
+    }
     (tmp_path / "entry.py").write_text("import decision.snapshot\n", encoding="utf-8")
     package = tmp_path / "decision"
     package.mkdir()
