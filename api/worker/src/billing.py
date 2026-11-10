@@ -515,6 +515,12 @@ def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
         if terminal and (not period[1] or period[1] <= stored.subscription_updated_at):
             return True
         current_period = (stored.invoice_period_start, stored.invoice_period_end)
+        # A failed invoice with no period at all is not a newer period. When a
+        # paid period is already stored, leave that allowance alone. A clear
+        # with no period (rotation of an inactive subscription) is not this path.
+        if (type_ == "invoice.payment_failed" and not any(period)
+                and stored.invoice_paid and any(current_period)):
+            return True
         if any(period) and any(current_period):
             if period < current_period:
                 return True

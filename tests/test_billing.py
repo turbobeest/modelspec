@@ -1911,6 +1911,27 @@ def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
     run(scenario())
 
 
+def test_payment_failed_without_period_keeps_a_stored_paid_period(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_new", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_new", created=300)).status == 200
+        failed = invoice_obj(id="in_bare", paid=False)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                     "evt_bare", created=500)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.invoice_paid
+        assert (stored.invoice_period_start, stored.invoice_period_end) == (300, 400)
+
+    run(scenario())
+
+
 def test_active_subscription_update_applies_after_cancellation(policy):
     async def scenario():
         kv, ledger = MemoryKV(), credits.MemoryLedger()
