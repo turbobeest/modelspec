@@ -3245,3 +3245,37 @@ def test_rejected_first_invoice_for_a_second_subscription_writes_no_row(policy):
         assert await billing.store.load_subscription(kv, SUB2) is None
         assert (await keys.lookup(kv, key)).tier == "paid"
     run(scenario())
+
+
+def test_first_invoice_for_an_unknown_fingerprint_writes_no_allowance(policy):
+    """A first paid invoice for a fingerprint with no key writes no allowance."""
+
+    class Recording(credits.MemoryLedger):
+        def __init__(self):
+            super().__init__()
+            self.monthly_calls = []
+
+        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id="",
+                              period_end=0, period_start=0, subscription_id=""):
+            self.monthly_calls.append(holder)
+            return await super().set_monthly(
+                holder, units, invoice_id, plan, customer_id,
+                period_end=period_end, period_start=period_start,
+                subscription_id=subscription_id)
+
+    async def scenario():
+        kv, ledger = MemoryKV(), Recording()
+        fingerprint = keys.fingerprint("never-issued-key")
+        holder = credits.holder_from_fingerprint(fingerprint)
+        assert await keys.lookup_fingerprint(kv, fingerprint) is None
+        paid = invoice_obj(
+            id="in_unknown_fp", period_start=100, period_end=200,
+            metadata={"modelspec_key_fingerprint": fingerprint})
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_unknown_fp", created=100)
+        assert outcome.status == 200
+        assert holder not in ledger.state.accounts
+        assert ledger.monthly_calls == []
+        assert all(account.monthly == 0 for account in ledger.state.accounts.values())
+
+    run(scenario())
