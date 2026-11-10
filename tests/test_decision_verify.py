@@ -11,9 +11,13 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
+import socket
 import subprocess
+import tomllib
 from dataclasses import replace
 from datetime import UTC, date, datetime
+from importlib import import_module
 from pathlib import Path
 
 import pytest
@@ -4989,3 +4993,39 @@ def test_a_column_header_after_a_section_label_starts_a_new_table(header: str) -
             "Claude Opus 5 | $2.50 | $12.50\n")
     claim = _price_claim("cached_input", 12.5, name="Claude Opus 5")
     assert verify.OfferingPriceExtractor().extract(claim, text) == []
+
+
+
+def test_documented_maintenance_entry_point_has_verification_help(monkeypatch, tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "docs/decision-verification.md").read_text()
+    examples = re.findall(r"`((?:python -m cli\.modelspec\.legacy|modelspec) verify[^`]*)`", text)
+    assert examples
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Verification help must not run readers, commands or network calls")
+
+    monkeypatch.setattr(socket.socket, "connect", forbidden)
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    monkeypatch.setattr(verify, "run", forbidden)
+    metadata = tomllib.loads((root / "pyproject.toml").read_text())
+    for example in examples:
+        words = shlex.split(re.sub(r"\[.*?\]", "", example))
+        if words[0] == "modelspec":
+            module, attribute = metadata["project"]["scripts"]["modelspec"].split(":")
+            args = words[1:]
+        else:
+            assert words[:2] == ["python", "-m"]
+            module, attribute = words[2], "app"
+            args = words[3:]
+        args = [str(tmp_path / "data") if arg == "<modelspec-data-root>" else arg for arg in args]
+        result = CliRunner().invoke(getattr(import_module(module), attribute), [*args, "--help"],
+                                    env={"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "160"})
+        assert result.exit_code == 0, result.output
+        options = {"--root", "--changed-only", "--llm-reader"}
+        for option in options | set(re.findall(r"--[a-z-]+", example)):
+            assert option in result.output
+        assert "--root" in args
+        assert args[args.index("--root") + 1] == str(tmp_path / "data")
+    assert not (tmp_path / "data").exists()

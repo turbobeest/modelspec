@@ -69,41 +69,49 @@ def _cards() -> list[tuple[str, dict]]:
     return out
 
 
-CARDS = _cards()
+@pytest.fixture(scope="module")
+def cards() -> list[tuple[str, dict]]:
+    return _cards()
 
 
 # ── the migration ────────────────────────────────────────────────────────────
 
-def test_no_card_still_carries_the_boolean() -> None:
+def test_catalogue_fixture_contains_every_card(cards) -> None:
+    paths = [path for path in (REPO_ROOT / "models").glob("**/*.md") if path.name != "LICENSE.md"]
+    assert len(cards) == len(paths)
+    assert cards
+
+
+def test_no_card_still_carries_the_boolean(cards) -> None:
     """The type change reached the data, not just the model."""
     offenders = [
-        model_id for model_id, front in CARDS
+        model_id for model_id, front in cards
         if isinstance((front.get("licensing") or {}).get("commercial_use"), bool)
         or (front.get("licensing") or {}).get("commercial_use") is None
     ]
     assert offenders == []
 
 
-def test_the_eight_true_values_survived_as_allowed() -> None:
+def test_the_eight_true_values_survived_as_allowed(cards) -> None:
     """No loss: every card that said `true` says `allowed`, and only those."""
     allowed = {
-        model_id for model_id, front in CARDS
+        model_id for model_id, front in cards
         if (front.get("licensing") or {}).get("commercial_use") == "allowed"
     }
     assert allowed == MIGRATED_FROM_TRUE
 
 
-def test_nothing_else_gained_a_determination() -> None:
+def test_nothing_else_gained_a_determination(cards) -> None:
     """Shape only. Every other card is `unspecified` — the honest empty state,
     not `withheld`, which would claim a determination nobody has made."""
     values = {}
-    for _, front in CARDS:
+    for _, front in cards:
         value = (front.get("licensing") or {}).get("commercial_use")
         values[value] = values.get(value, 0) + 1
-    assert values == {"unspecified": len(CARDS) - 8, "allowed": 8}
+    assert values == {"unspecified": len(cards) - 8, "allowed": 8}
 
 
-def test_legacy_import_is_frozen_to_the_migrated_eight() -> None:
+def test_legacy_import_is_frozen_to_the_migrated_eight(cards) -> None:
     """`legacy-import` is an amnesty for eight inherited values, not a loophole.
 
     It is the one source kind that carries no URL and no date, so a ninth card
@@ -111,7 +119,7 @@ def test_legacy_import_is_frozen_to_the_migrated_eight() -> None:
     forbids. New work cites a document or does not record a value.
     """
     uncited = {
-        model_id for model_id, front in CARDS
+        model_id for model_id, front in cards
         if ((front.get("licensing") or {}).get("commercial_use_source") or {}).get("kind")
         == "legacy-import"
     }
@@ -125,7 +133,7 @@ def test_every_card_still_validates_against_the_new_schema() -> None:
         ModelCard.from_yaml_file(path)
 
 
-def test_the_restricted_population_is_the_reason_this_changed() -> None:
+def test_the_restricted_population_is_the_reason_this_changed(cards) -> None:
     """Cards whose licence grants commercial use up to a threshold. None
     gains a value here — but `restricted` now exists for them to gain.
 
@@ -137,7 +145,7 @@ def test_the_restricted_population_is_the_reason_this_changed() -> None:
     is 145.
     """
     restricted_licences = [
-        model_id for model_id, front in CARDS
+        model_id for model_id, front in cards
         if (front.get("licensing") or {}).get("license_type")
         in {"llama-community", "gemma", "deepseek"}
     ]
@@ -264,10 +272,10 @@ def test_withheld_residency_is_distinguishable_from_unresearched() -> None:
     assert withheld.data_residency_disclosure is not DisclosureState.UNRESEARCHED
 
 
-def test_every_card_starts_unresearched_not_empty() -> None:
+def test_every_card_starts_unresearched_not_empty(cards) -> None:
     """The corpus-wide ambiguity MODEL-79 depends on being gone."""
     states = set()
-    for _, front in CARDS:
+    for _, front in cards:
         provider = ((front.get("availability") or {}).get("primary_provider") or {})
         states.add((
             provider.get("data_residency"),

@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "chart_check_pr.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "chart-check.yml"
@@ -330,6 +332,88 @@ def test_new_bar_with_one_confirmer_blocks(tmp_path: Path) -> None:
         report["findings"][0]["problem"]
     )
     assert "Widget" in report["findings"][0]["problem"]
+
+
+@pytest.mark.parametrize("name", ["plain", "café", "with\ttab", "with\nnewline", "with\rcarriage"])
+@pytest.mark.parametrize("change", ["added", "modified", "deleted", "renamed"])
+def test_fixture_changes_preserve_paths(tmp_path: Path, name: str, change: str) -> None:
+    repo = init_repo(tmp_path)
+    path = f"benchmarks/_charts/{name}.yaml"
+    renamed = f"benchmarks/_charts/new-{name}.yaml"
+    write(repo, "README.md", "base\n")
+    if change != "added":
+        write(repo, path, chart(bar("90", confirmed_by=["one"])))
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    if change in {"added", "modified"}:
+        write(repo, path, chart(bar("96", confirmed_by=["one"])))
+    elif change == "deleted":
+        (repo / path).unlink()
+    else:
+        (repo / path).rename(repo / renamed)
+    commit(repo, "head")
+
+    proc, report = checked(repo)
+
+    assert report["fixture_files"] == [renamed if change == "renamed" else path]
+    assert report["nothing_to_check"] is False
+    if change in {"added", "modified"}:
+        assert proc.returncode == 1
+        assert report["blocking"] == 1
+        assert report["findings"][0]["kind"] == "readers"
+        assert report["findings"][0]["file"] == path
+    else:
+        assert proc.returncode == 0
+        assert report["blocking"] == 0
+        if change == "deleted":
+            assert len(report["findings"]) == 1
+            assert report["findings"][0]["kind"] == "removed"
+            assert report["findings"][0]["file"] == path
+        else:
+            assert report["findings"] == []
+
+
+@pytest.mark.parametrize("name", ["plain", "café", "with\ttab", "with\nnewline", "with\rcarriage"])
+@pytest.mark.parametrize("change", ["added", "modified", "deleted", "renamed"])
+def test_card_changes_preserve_paths(tmp_path: Path, name: str, change: str) -> None:
+    from scripts.chart_check_pr import changed_paths
+
+    repo = init_repo(tmp_path)
+    path = f"models/acme/{name}.md"
+    renamed = f"models/acme/new-{name}.md"
+    write(repo, "benchmarks/_charts/page.yaml", chart(bar("96")))
+    if change != "added":
+        write(repo, path, card([row_yaml(90)]))
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    if change in {"added", "modified"}:
+        write(repo, path, card([row_yaml(80)]))
+    elif change == "deleted":
+        (repo / path).unlink()
+    else:
+        (repo / path).rename(repo / renamed)
+    commit(repo, "head")
+
+    if change == "renamed":
+        assert changed_paths(repo, "base") == ([(path, renamed)], [], [])
+    proc, report = checked(repo)
+
+    if change in {"added", "modified"}:
+        assert proc.returncode == 1
+        assert report["blocking"] == 1
+        assert len(report["rows"]) == 1
+        assert report["rows"][0]["card"] == path
+        assert report["rows"][0]["change"] == ("added" if change == "added" else "changed")
+        assert report["rows"][0]["outcome"] == "mismatch"
+    else:
+        assert proc.returncode == 0
+        assert report["rows"] == []
+    if change == "deleted":
+        assert len(report["removed_rows"]) == 1
+        assert report["removed_rows"][0]["card"] == path
+        assert report["removed_rows"][0]["score"] == 90
+    else:
+        assert report["removed_rows"] == []
 
 
 def test_bar_single_read_reason_passes(tmp_path: Path) -> None:

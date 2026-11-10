@@ -4,7 +4,7 @@ import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   allocateBoardWeights, boardToSpec, decodeBoardState, defaultFacetOp, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
   formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
-  sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
+  sanitizeBoardState, restoreBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
@@ -23,6 +23,40 @@ import { capabilityRow, openGroup, templateCell } from "./board-helpers";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 const emptyEstate = { providers: [], plans: [], hardware: [] };
+
+it("restores compatible base requirements as visible Must controls and explains omissions", () => {
+  const base = { ...realBaseSpec(realVocabulary), conds: [
+    { f: "ctx", min: 200000 },
+    { f: "bench", b: "swe_bench_pro", min: 50 },
+  ] } satisfies Spec;
+  const restored = restoreBoardState(base, { selections: {}, mustOrder: [], estate: emptyEstate }, realVocabulary);
+  expect(restored.selections["model.context_window"]).toEqual({ mode: "must", op: ">=", value: 200000 });
+  expect(restored.notes.join(" ")).toContain("Additional saved requirements are shown as Must controls.");
+  expect(restored.notes.join(" ")).toContain("single-benchmark floor, so it's not applied");
+  const request = toBoardDecisionSpec(boardToSpec({ ...base, conds: [] }, realVocabulary, restored.selections, restored.mustOrder), "summary");
+  expect(request.where).toEqual(["model.context_window >= 200000"]);
+});
+
+it("restores a supported capability requirement stored in the base spec", () => {
+  const base = { ...realBaseSpec(realVocabulary), conds: [
+    { f: "facet", facet: "software_engineering", op: ">=", value: 0.5 },
+  ] } satisfies Spec;
+  const restored = restoreBoardState(base, { selections: {}, mustOrder: [], estate: emptyEstate }, realVocabulary);
+  expect(restored.selections["capability.software_engineering"]).toEqual({ mode: "must", op: ">=", value: 0.5 });
+  const request = toBoardDecisionSpec(boardToSpec({ ...base, conds: [] }, realVocabulary, restored.selections, restored.mustOrder), "summary");
+  expect(request.where).toEqual(["software_engineering >= 0.5"]);
+});
+
+it("explains saved base requirements replaced by another requirement on the same control", () => {
+  const base = { ...realBaseSpec(realVocabulary), conds: [
+    { f: "ctx", min: 200000 }, { f: "ctx", min: 100000 },
+  ] } satisfies Spec;
+  const restored = restoreBoardState(base, { selections: {}, mustOrder: [], estate: emptyEstate }, realVocabulary);
+  expect(restored.selections["model.context_window"].value).toBe(100000);
+  expect(restored.notes.join(" ")).toContain("model.context_window >= 200000");
+  expect(restored.notes.join(" ")).toContain("earlier condition is not applied");
+});
+
 const boardSpec = (
   base: Spec,
   vocabulary: Vocabulary,
