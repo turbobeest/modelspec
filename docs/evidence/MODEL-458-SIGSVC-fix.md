@@ -168,7 +168,23 @@ exit 0. `git diff --check` passed.
 
 Python 3.14.4 and pytest 9.1.1 ran the focused suites. Python 3.11.14 ran
 the same nested body through intake, discovery and acknowledgement. CI's
-failure was Python 3.11.18. This round does not
-change snapshot exports, rank rows or the engine import graph, so the round 1
-memory figures remain the latest measurement. No memory or timing gate was
-changed. No local full-suite run was performed.
+failure was Python 3.11.18. The signal edits leave snapshot exports, rank
+rows and the engine import graph as round 1 measured them. The round 1
+memory figures remain the latest measurement for the signal change. No
+memory or timing gate was changed. No local full-suite run was performed.
+
+A later CI run failed because `qa/fixtures/mcp-tools.json` still pinned the
+OpenAPI hash from main. GitHub tests the merge of this branch with current
+main, so the pin has to match that merged document. Current main
+`a29bf9c6d12b0ca093b42a2f662e0a53150014ca` merged cleanly. That merge brings
+other tickets onto the branch. `python -m qa.contracts` rewrote only the
+`api/worker/openapi.yaml` hash in `qa/fixtures/mcp-tools.json`.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_release_signals.py tests/test_release_watch.py tests/test_generated_pins.py tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+```
+
+`python -m qa.contracts` exited 0. The focused run reported
+`222 passed in 44.23s`, exit 0. `python api/worker/openapi.py --check`
+again reported that `api/worker/openapi.yaml` matches, exit 0.
