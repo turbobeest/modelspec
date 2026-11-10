@@ -103,13 +103,35 @@ def test_snapshot_attribution_counts_a_shared_payload_once():
     assert len(payload) <= measured < len(payload) + 1024
 
 
+def _attribution_label_object():
+    """Evaluate the diagnostic's label expression. Do not search the whole file."""
+    source = (ROOT / "api/worker/measure_memory.cjs").read_text(encoding="utf-8")
+    marker = "json.dumps({'kind':"
+    start = source.index(marker)
+    expression = source[start:source.index("`));", start)].strip()
+    rendered = eval(
+        expression,
+        {
+            "json": json,
+            "details": [],
+            "deep_bytes": lambda _value: 0,
+            "entry": types.SimpleNamespace(),
+        },
+    )
+    return json.loads(rendered)
+
+
 def test_attribution_labels_distinguish_python_graph_bytes_from_the_gate():
     source = (ROOT / "api/worker/measure_memory.cjs").read_text(encoding="utf-8")
     assert source.index("steady_bytes: steady") < source.index("result.attribution")
-    assert "python_retained_graph_bytes" in source
-    assert "categories_overlap" in source
-    assert "wasm_bytes" in source
-    assert "process_rss" in source
+    labels = _attribution_label_object()
+    assert labels["kind"] == "python_retained_graph_bytes"
+    assert labels["categories_overlap"] is True
+    assert set(labels["distinct_from"]) == {
+        "wasm_bytes",
+        "steady_bytes",
+        "process_rss",
+    }
 
 
 def test_snapshot_attribution_counts_array_storage_without_boxing_items():
