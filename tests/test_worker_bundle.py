@@ -186,8 +186,45 @@ def test_import_graph_reports_a_function_local_missing_import(
         "        return answer()\n"
         "    except ImportError:\n"
         "        return None\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except Exception:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except Exception:\n"
+        "        return None\n"
+        "    else:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    finally:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    while True:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "async def answer():\n"
+        "    async with contextlib.nullcontext():\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except* Exception:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
     ],
-    ids=["match", "loop-else", "with-body", "three-levels", "relative", "try-except-import"],
+    ids=[
+        "match", "loop-else", "with-body", "three-levels", "relative", "try-except-import",
+        "except-handler", "try-else", "try-finally", "while", "async-with", "except-star",
+    ],
 )
 def test_import_graph_reports_a_function_local_import_in_each_block(
     tmp_path: Path, source: str,
@@ -275,6 +312,10 @@ def test_ed25519_imports_stay_excluded_only_inside_load_snapshot_bytes(
     tmp_path: Path,
 ) -> None:
     checker = _load_checker()
+    assert checker.HMAC_ONLY_IMPORTS == {
+        "cryptography.exceptions",
+        "cryptography.hazmat.primitives.asymmetric.ed25519",
+    }
     (tmp_path / "entry.py").write_text("import decision.snapshot\n", encoding="utf-8")
     package = tmp_path / "decision"
     package.mkdir()
@@ -413,40 +454,82 @@ def test_worker_snapshot_callers_stay_on_the_hmac_path() -> None:
             service.load_snapshot(b"unused", key=empty)
 
 
-def _snapshot_loader_bindings(tree: ast.AST) -> tuple[set[str], set[str]]:
-    imported: set[str] = set()
+_SNAPSHOT_LOADERS = frozenset({
+    "load_snapshot_bytes",
+    "load_snapshot",
+    "load_built_snapshot",
+})
+
+
+def _snapshot_loader_bindings(tree: ast.AST) -> tuple[dict[str, str], set[str]]:
+    bound: dict[str, str] = {}
     modules: set[str] = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module == "decision.snapshot":
+        if isinstance(node, ast.ImportFrom):
             for alias in node.names:
-                if alias.name == "load_snapshot":
-                    imported.add(alias.asname or alias.name)
-        elif isinstance(node, ast.ImportFrom) and node.module == "decision":
-            for alias in node.names:
-                if alias.name == "snapshot":
-                    modules.add(alias.asname or alias.name)
+                local = alias.asname or alias.name
+                if alias.name == "load_snapshot_bytes":
+                    bound[local] = alias.name
+                elif alias.name == "load_built_snapshot":
+                    bound[local] = alias.name
+                elif alias.name == "load_snapshot" and node.module == "decision.snapshot":
+                    bound[local] = alias.name
+                elif node.module == "decision" and alias.name == "snapshot":
+                    modules.add(local)
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name == "decision.snapshot" and alias.asname:
                     modules.add(alias.asname)
-    return imported, modules
+    return bound, modules
+
+
+def _called_loader(func: ast.expr) -> str | None:
+    if not isinstance(func, ast.Call):
+        return None
+    callee = func.func
+    is_getattr = (isinstance(callee, ast.Name) and callee.id == "getattr") or (
+        isinstance(callee, ast.Attribute) and callee.attr == "getattr"
+    )
+    if not is_getattr or len(func.args) < 2:
+        return None
+    literal = func.args[1]
+    if isinstance(literal, ast.Constant) and literal.value in _SNAPSHOT_LOADERS:
+        return literal.value
+    return None
+
+
+def _import_module_call(node: ast.expr) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    callee = node.func
+    if isinstance(callee, ast.Name) and callee.id == "import_module":
+        return True
+    return (
+        isinstance(callee, ast.Attribute)
+        and callee.attr == "import_module"
+        and isinstance(callee.value, ast.Name)
+        and callee.value.id == "importlib"
+    )
 
 
 def _snapshot_call_kind(
-    func: ast.expr, imported: set[str], modules: set[str],
+    func: ast.expr, bound: dict[str, str], modules: set[str],
 ) -> str | None:
+    reached = _called_loader(func)
+    if reached is not None:
+        return reached
     if isinstance(func, ast.Name):
-        if func.id == "load_snapshot_bytes":
-            return "load_snapshot_bytes"
-        if func.id in imported:
-            return "load_snapshot"
-        return None
+        if func.id in ("load_snapshot_bytes", "load_built_snapshot"):
+            return func.id
+        return bound.get(func.id)
     if not isinstance(func, ast.Attribute):
         return None
-    if func.attr == "load_snapshot_bytes":
-        return "load_snapshot_bytes"
+    if func.attr in ("load_snapshot_bytes", "load_built_snapshot"):
+        return func.attr
     if func.attr != "load_snapshot":
         return None
+    if _import_module_call(func.value):
+        return "load_snapshot"
     value = func.value
     if (
         isinstance(value, ast.Attribute)
@@ -471,16 +554,13 @@ def _generated_worker_packages() -> set[str]:
     return names
 
 
-def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
+def _snapshot_sites_in_tree(tree: ast.AST, rel: str) -> list[tuple[str, str, str]]:
     sites: list[tuple[str, str, str]] = []
-    root = WORKER_ROOT / "src"
-    generated = _generated_worker_packages()
+    bound, modules = _snapshot_loader_bindings(tree)
 
-    def walk(
-        node: ast.AST, scope: str, imported: set[str], modules: set[str], rel: str,
-    ) -> None:
+    def walk(node: ast.AST, scope: str) -> None:
         if isinstance(node, ast.Call):
-            kind = _snapshot_call_kind(node.func, imported, modules)
+            kind = _snapshot_call_kind(node.func, bound, modules)
             if kind is not None:
                 sites.append((rel, scope, kind))
         for child in ast.iter_child_nodes(node):
@@ -489,14 +569,21 @@ def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
                 else scope
             )
-            walk(child, child_scope, imported, modules, rel)
+            walk(child, child_scope)
 
+    walk(tree, "<module>")
+    return sites
+
+
+def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
+    sites: list[tuple[str, str, str]] = []
+    root = WORKER_ROOT / "src"
+    generated = _generated_worker_packages()
     for path in sorted(root.rglob("*.py")):
         if path.relative_to(root).parts[0] in generated:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        imported, modules = _snapshot_loader_bindings(tree)
-        walk(tree, "<module>", imported, modules, path.relative_to(root).as_posix())
+        sites.extend(_snapshot_sites_in_tree(tree, path.relative_to(root).as_posix()))
     return sites
 
 
@@ -504,6 +591,43 @@ def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
     assert sorted(_worker_snapshot_call_sites()) == [
         ("decide_service.py", "load_snapshot", "load_snapshot_bytes"),
         ("entry.py", "<module>", "load_snapshot_bytes"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("source", "kind"),
+    [
+        (
+            "from decision.snapshot import load_snapshot_bytes as x\n"
+            "x()\n",
+            "load_snapshot_bytes",
+        ),
+        (
+            "from decide_service import load_snapshot_bytes as q\n"
+            "q()\n",
+            "load_snapshot_bytes",
+        ),
+        (
+            "import decision.snapshot as module\n"
+            "getattr(module, 'load_snapshot_bytes')()\n",
+            "load_snapshot_bytes",
+        ),
+        (
+            "import importlib\n"
+            "importlib.import_module('decision.snapshot').load_snapshot()\n",
+            "load_snapshot",
+        ),
+        (
+            "import decision.snapshot\n"
+            "decision.snapshot.load_built_snapshot()\n",
+            "load_built_snapshot",
+        ),
+    ],
+    ids=["aliased-import", "aliased-import-other-module", "getattr", "importlib", "unsigned-loader"],
+)
+def test_the_snapshot_census_reports_an_indirect_loader_call(source: str, kind: str) -> None:
+    assert _snapshot_sites_in_tree(ast.parse(source), "probe.py") == [
+        ("probe.py", "<module>", kind),
     ]
 
 

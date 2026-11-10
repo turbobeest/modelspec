@@ -99,6 +99,41 @@ def test_the_smallest_change_admits_only_what_it_must():
     assert (floor.relaxed, floor.value, floor.admits) == (f"{ARENA} >= 1450", 1450.0, 1)
 
 
+def test_relax_to_counts_distinct_models_when_one_model_has_two_offerings():
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[
+                member("lab/cheap-chat", "text-generator"),
+                member("lab/dear-chat", "text-generator"),
+            ],
+            offerings=[
+                offering("lab/cheap-chat", provider="alpha", price=2.0),
+                offering("lab/cheap-chat", provider="beta", price=2.0),
+                offering("lab/dear-chat", price=10.0),
+            ],
+            evidence=[
+                evidence("lab/cheap-chat", ARENA, 1400.0),
+                evidence("lab/dear-chat", ARENA, 1450.0),
+            ],
+            sources=SOURCES,
+            benchmark_domains={ARENA: [("chat_preference", "direct")]},
+        ),
+        gate=False,
+        as_of=date(2026, 9, 25),
+    )
+    snapshot = load_built_snapshot(built, include_archive=True, source="relaxation test build")
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.class = text-generator", "offering.price.input <= 0.2"],
+        "optimize": {"max": ARENA},
+    }, facets=facets)
+    decision = decide(spec, snapshot, facets=facets)
+    [change] = decision.relax_to
+    assert change.relaxed == "offering.price.input <= 2"
+    assert change.value == 2.0
+    assert change.admits == 1
+
+
 def test_when_only_the_class_would_admit_a_model_relax_says_why_instead():
     snapshot = q10_snapshot()
     spec = parse_spec({
@@ -654,14 +689,41 @@ def _draw_domain_best(rng, negated):
     return where, frozenset({facet})
 
 
+def _draw_licence_requested(rng):
+    """A licence gate, with that facet as the requested domain."""
+    pool = (
+        "model.context_window >= 50",
+        "model.context_window >= 80",
+        "model.context_window >= 150",
+        "model.context_window <= 30",
+        "model.context_window <= 90",
+        "model.context_window <= 200",
+        "licence.commercial_use = permitted",
+        "licence.commercial_use = prohibited",
+        "model.context_window >= best(0)",
+        "model.context_window >= best(10)",
+        "model.context_window >= best(40)",
+        "not(model.context_window >= best(0))",
+        "not(model.context_window >= best(30))",
+        "any(not(model.context_window >= best(0)); model.context_window <= 30)",
+    )
+    count = rng.randint(1, 4)
+    extra = [rng.choice(pool) for _ in range(count)]
+    if rng.random() < 0.4:
+        extra.append(rng.choice(extra))
+    return ["licence.commercial_use = permitted", *extra], frozenset({"licence.commercial_use"})
+
+
 def _draw_generated(rng):
-    """At most four gates. The draw covers both numeric facets and ``not(any(best))``."""
-    roll = rng.randrange(10)
+    """At most four gates. The draw covers numeric facets, ``not(any(best))`` and a licence request."""
+    roll = rng.randrange(12)
     if roll < 2:
-        return _draw_domain_best(rng, negated=False)
+        return _draw_licence_requested(rng)
     if roll < 4:
-        return _draw_domain_best(rng, negated=True)
+        return _draw_domain_best(rng, negated=False)
     if roll < 6:
+        return _draw_domain_best(rng, negated=True)
+    if roll < 8:
         facet, other, bound = rng.choice((
             ("model.context_window", "model.max_output_tokens", "30"),
             ("model.max_output_tokens", "model.context_window", "40"),
@@ -735,10 +797,16 @@ def test_fewest_matches_the_per_index_search_on_generated_cases():
 
     rng = random.Random(458)
     mismatches = []
+    licence_requested = 0
     pair, retired, wide = _generated_lineups()
     for lineup, count in ((pair, 80), (retired, 80), (wide, 24)):
         for _ in range(count):
             where, domains = _draw_generated(rng)
+            if (
+                domains == frozenset({"licence.commercial_use"})
+                and where[0] == "licence.commercial_use = permitted"
+            ):
+                licence_requested += 1
             check(lineup, where, domains, mismatches)
     full_where, many = _many_blocking_sets(63)
     cut = full_where[4:7] + full_where[11:]
@@ -747,6 +815,7 @@ def test_fewest_matches_the_per_index_search_on_generated_cases():
         where = [rng.choice(cut) for _ in range(count)]
         check(many, where, frozenset(), mismatches)
     assert mismatches == []
+    assert licence_requested > 0
 
 
 def test_excluded_bits_match_who_the_filter_can_admit():
