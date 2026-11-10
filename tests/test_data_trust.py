@@ -693,9 +693,16 @@ def test_calibration_resolves_shared_lab_facts_without_adding_candidates(lab_cat
 
 @pytest.mark.parametrize("subject", ["lab:missing", "lab:test-suffix", "test"])
 def test_unknown_lab_subject_still_errors(lab_catalogue, registry, monkeypatch, tmp_path, subject):
+    """A jurisdiction fact on a model must name that model.
+
+    AUD-01-F1 rejects the fact at snapshot build, before the catalogue
+    invariant can report ``subject_resolves``. A known lab still inherits
+    through ``Lab.fact()`` after the owner check; see
+    ``test_calibration_resolves_shared_lab_facts_without_adding_candidates``.
+    """
     from dataclasses import replace
 
-    from decision.snapshot import collect_repo
+    from decision.snapshot import SnapshotBuildError, collect_repo
 
     inputs = collect_repo(tmp_path)
     lab_catalogue.models["other/model"] = {"model_id": "other/model"}
@@ -710,15 +717,8 @@ def test_unknown_lab_subject_still_errors(lab_catalogue, registry, monkeypatch, 
         }],
     )
     monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
-    calibrate(lab_catalogue, tmp_path, registry, TODAY)
-    result = invariants.run(lab_catalogue, registry, TODAY)
-    assert result["errors"] == 1
-    assert result["findings"] == [{
-        "id": f"{subject}#origin.lab_jurisdiction",
-        "field": "origin.lab_jurisdiction",
-        "rule": "subject_resolves",
-        "severity": "error",
-    }]
+    with pytest.raises(SnapshotBuildError, match="must name its actual owner"):
+        calibrate(lab_catalogue, tmp_path, registry, TODAY)
 
 
 def test_fresh_html_uses_html_normaliser(catalogue, registry):
