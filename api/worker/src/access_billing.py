@@ -356,7 +356,8 @@ async def link_current_checkout(kv: Any, stored: SubscriptionRecord, *,
 
 async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
                               subscription_id: str, tier: str,
-                              policy: AccessPolicy) -> keys.KeyRecord | None:
+                              policy: AccessPolicy, set_tier: bool = True
+                              ) -> keys.KeyRecord | None:
     """Point this subscription at an already-issued key. Does not mint.
 
     A previous keyref (a pack session, an earlier plan) is detached so
@@ -367,7 +368,7 @@ async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
     record = await keys.lookup_fingerprint(kv, fingerprint_hex)
     if record is None:
         return None
-    if record.tier != tier:
+    if set_tier and record.tier != tier:
         moved = await keys.set_tier(kv, fingerprint_hex, tier, policy=policy)
         if moved is not None:
             record = moved
@@ -387,7 +388,8 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                              now: datetime, policy: AccessPolicy,
                              pending_monthly: int = 0, pending_invoice_id: str = "",
                              plan_name: str = "",
-                             plan_credits: int = 0, key_fingerprint: str = ""
+                             plan_credits: int = 0, key_fingerprint: str = "",
+                             promote: bool = True,
                              ) -> tuple[str, SubscriptionRecord]:
     """Record (or refresh) the paid entitlement. Does not mint a key.
 
@@ -407,8 +409,8 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
         if bound and not existing.key_fingerprint:
             attached = await attach_existing_key(
                 kv, fingerprint_hex=bound, subscription_id=subscription_id,
-                tier=tier, policy=policy)
-        if existing.tier != tier or existing.status != STATUS_ACTIVE:
+                tier=tier, policy=policy, set_tier=promote)
+        if promote and (existing.tier != tier or existing.status != STATUS_ACTIVE):
             target_fp = bound or existing.key_fingerprint
             if target_fp:
                 moved = await keys.set_tier(kv, target_fp, tier, policy=policy)
@@ -465,7 +467,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
     if key_fingerprint:
         attached = await attach_existing_key(
             kv, fingerprint_hex=key_fingerprint, subscription_id=subscription_id,
-            tier=tier, policy=policy)
+            tier=tier, policy=policy, set_tier=promote)
         if attached is not None:
             stored = replace(stored, key_fingerprint=key_fingerprint,
                              key_id=attached.key_id, pending_monthly=0)
@@ -524,12 +526,16 @@ async def grant_pack(kv: Any, *, fingerprint_hex: str, session_id: str, units: i
 
 
 async def set_subscription_tier(kv: Any, subscription_id: str, tier: str, *,
-                                policy: AccessPolicy) -> str:
+                                policy: AccessPolicy, align_key: bool = False) -> str:
     """Downgrade or restore this subscription's entitlement, and its key if any."""
     existing = await load_subscription(kv, subscription_id)
     if existing is None:
         return "no_key"
-    if existing.tier == tier:
+    key_differs = False
+    if align_key and existing.key_fingerprint:
+        current = await keys.lookup_fingerprint(kv, existing.key_fingerprint)
+        key_differs = current is not None and current.tier != tier
+    if existing.tier == tier and not key_differs:
         return "unchanged"
     if existing.key_fingerprint:
         updated = await keys.set_tier(kv, existing.key_fingerprint, tier, policy=policy)

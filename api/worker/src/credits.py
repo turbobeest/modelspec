@@ -555,6 +555,11 @@ class _Account:
     # Period end of the last applied paid invoice, or the cancellation time.
     # Absent on rows written before this field: from_json loads that as 0.
     invoice_period_watermark: int = 0
+    # Accepted set_monthly opens the entitlement; accepted clear_monthly closes it.
+    # The generation increases on each of those, so one read is the implied tier
+    # and whether a later allowance write has landed.
+    entitlement_generation: int = 0
+    monthly_entitled: bool = False
     reserved: int = 0
     next_res: int = 1
     reservations: dict[int, _Reservation] = field(default_factory=dict)
@@ -603,6 +608,8 @@ class _Account:
             "monthly": self.monthly,
             "allowance_generation": self.allowance_generation,
             "invoice_period_watermark": self.invoice_period_watermark,
+            "entitlement_generation": self.entitlement_generation,
+            "monthly_entitled": self.monthly_entitled,
             "available": self.monthly + sum(g.remaining for g in self.packs if g.remaining > 0),
             "reserved": self.reserved,
             "next_res": self.next_res,
@@ -667,6 +674,8 @@ class _Account:
             monthly=monthly,
             allowance_generation=int(data.get("allowance_generation") or 0),
             invoice_period_watermark=int(data.get("invoice_period_watermark") or 0),
+            entitlement_generation=int(data.get("entitlement_generation") or 0),
+            monthly_entitled=bool(data.get("monthly_entitled") or False),
             reserved=int(data.get("reserved") or 0),
             next_res=int(data.get("next_res") or 1),
             reservations=reservations,
@@ -1039,6 +1048,8 @@ class LedgerState:
         acc = self._acc(holder)
         acc.monthly = int(units)
         acc.allowance_generation += 1
+        acc.entitlement_generation += 1
+        acc.monthly_entitled = True
         acc.overage_used = 0
         if period_end:
             acc.invoice_period_watermark = max(acc.invoice_period_watermark, period_end)
@@ -1072,6 +1083,8 @@ class LedgerState:
             acc.invoice_period_watermark = max(acc.invoice_period_watermark, watermark)
         acc.monthly = 0
         acc.allowance_generation += 1
+        acc.entitlement_generation += 1
+        acc.monthly_entitled = False
         acc.overage_used = 0
         acc.plan = ""
         return CreditResult(True, "cleared", 0)
@@ -1082,6 +1095,17 @@ class LedgerState:
         if acc is None:
             return 0
         return int(acc.invoice_period_watermark)
+
+    def entitlement_view(self, holder: str) -> dict[str, Any]:
+        """Generation and whether the last accepted allowance write is open."""
+        holder = self._funding_holder(holder)
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return {"generation": 0, "entitled": False}
+        return {
+            "generation": int(acc.entitlement_generation),
+            "entitled": bool(acc.monthly_entitled),
+        }
 
     def transfer(self, src: str, dst: str) -> bool:
         """Move an account to a new holder (key rotation)."""
@@ -1121,6 +1145,9 @@ class LedgerState:
         existing.monthly += acc.monthly
         existing.invoice_period_watermark = max(
             existing.invoice_period_watermark, acc.invoice_period_watermark)
+        if acc.entitlement_generation >= existing.entitlement_generation:
+            existing.entitlement_generation = acc.entitlement_generation
+            existing.monthly_entitled = acc.monthly_entitled
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
         offset = existing.next_res
@@ -1709,6 +1736,8 @@ class Ledger(Protocol):
 
     async def invoice_watermark(self, holder: str) -> int: ...
 
+    async def entitlement_view(self, holder: str) -> dict[str, Any]: ...
+
     async def transfer(self, src: str, dst: str) -> bool: ...
 
     async def reserve(self, holder: str, units: int = 1, now: str = "",
@@ -1854,6 +1883,10 @@ class MemoryLedger:
     async def invoice_watermark(self, holder: str) -> int:
         async with self._lock:
             return self.state.invoice_watermark(holder)
+
+    async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        async with self._lock:
+            return self.state.entitlement_view(holder)
 
     async def transfer(self, src: str, dst: str) -> bool:
         async with self._lock:
@@ -2022,6 +2055,9 @@ class UnboundLedger:
 
     async def invoice_watermark(self, holder: str) -> int:
         return 0
+
+    async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def transfer(self, src: str, dst: str) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -2198,6 +2234,12 @@ class DurableLedger:
 
     async def invoice_watermark(self, holder: str) -> int:
         return int(await self._call("invoice_watermark", holder))
+
+    async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        data = await self._call("entitlement_view", holder)
+        to_py = getattr(data, "to_py", None)
+        row = to_py() if callable(to_py) else data
+        return {"generation": int(row["generation"]), "entitled": bool(row["entitled"])}
 
     async def transfer(self, src: str, dst: str) -> bool:
         return bool(await self._call("transfer", src, dst))

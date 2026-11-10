@@ -531,35 +531,80 @@ def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
     return terminal
 
 
-async def _downgrade_or_keep_newer_period(
-        kv: Any, subscription_id: str, *, ledger: Any, policy: AccessPolicy,
-        bound: int) -> str:
-    """Downgrade, unless a newer invoice period landed during this handler.
+_ENTITLEMENT_PASSES = 4
 
-    The allowance decision is inside the ledger. The tier write is not, so a
-    handler that cleared an older period can still write `free` after the newer
-    paid event restored the tier. The watermark read is after that write: a
-    newer period puts the previous tier back.
+
+class EntitlementUnsettled(RuntimeError):
+    """The key tier was still changing after the bounded copies.
+
+    The webhook fails, so Stripe retries the event.
     """
-    existing = await store.load_subscription(kv, subscription_id)
-    previous = existing.tier if existing is not None else ""
-    action = await store.set_subscription_tier(
-        kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
-    if (action == "tier_set" and existing is not None and existing.key_fingerprint
-            and previous and previous != policy.billing.downgrade_tier
-            and ledger is not None):
+
+
+def _plan_tier(policy: AccessPolicy, stored: store.SubscriptionRecord) -> str:
+    if stored.price_id:
         try:
-            mark = await ledger.invoice_watermark(
-                credits.holder_from_fingerprint(existing.key_fingerprint))
+            tier = policy.price(stored.price_id).tier
+        except PolicyError:
+            tier = ""
+        if tier and tier != policy.billing.downgrade_tier:
+            return tier
+    if stored.tier and stored.tier != policy.billing.downgrade_tier:
+        return stored.tier
+    return "paid"
+
+
+async def _sync_entitlement_tier(kv: Any, subscription_id: str, *, ledger: Any,
+                                 policy: AccessPolicy) -> str:
+    """Copy the ledger's entitlement onto the key, then read it again.
+
+    Another handler may accept an allowance write between the read and the
+    key write. A changed generation means write the new tier. Four passes,
+    then raise.
+    """
+    paid_tier = ""
+    for _ in range(_ENTITLEMENT_PASSES):
+        stored = await store.load_subscription(kv, subscription_id)
+        if stored is None or not stored.key_fingerprint or ledger is None:
+            return "no_key"
+        if not paid_tier:
+            paid_tier = _plan_tier(policy, stored)
+        holder = credits.holder_from_fingerprint(stored.key_fingerprint)
+        try:
+            view = await ledger.entitlement_view(holder)
         except credits.StoreNotConfigured:
-            mark = 0
-        if int(bound or 0) and int(mark or 0) > int(bound or 0):
-            await store.set_subscription_tier(
-                kv, subscription_id, previous, policy=policy)
-            return "ignored"
-    if action == "tier_set":
+            return "store_unbound"
+        generation = int(view["generation"])
+        tier = paid_tier if view["entitled"] else policy.billing.downgrade_tier
+        await store.set_subscription_tier(
+            kv, subscription_id, tier, policy=policy, align_key=True)
+        try:
+            again = await ledger.entitlement_view(holder)
+        except credits.StoreNotConfigured:
+            return "store_unbound"
+        if int(again["generation"]) == generation:
+            return "downgraded" if not view["entitled"] else "entitled"
+    raise EntitlementUnsettled("the entitlement tier did not settle")
+
+
+async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
+                            policy: AccessPolicy, cleared: str) -> str:
+    """Write a tier only after the ledger accepts the clear."""
+    if cleared == "stale":
+        return "ignored"
+    if cleared != "cleared":
+        if cleared == "store_unbound":
+            wrote = await store.set_subscription_tier(
+                kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
+            return "downgraded" if wrote == "tier_set" else wrote
+        return cleared
+    settled = await _sync_entitlement_tier(
+        kv, subscription_id, ledger=ledger, policy=policy)
+    if settled == "entitled":
+        return "ignored"
+    if settled == "downgraded":
         return "downgraded"
-    return action
+    return settled
 
 
 def _sale_notice(type_: str, obj: dict[str, Any], policy: AccessPolicy
@@ -614,111 +659,94 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         type_, obj, created=created, stored=stored, policy=policy)
     action = "ignored"
     extra: dict[str, Any] = {}
-    billing_lock = getattr(ledger, "_billing_lock", None)
-    if billing_lock is not None:
-        await billing_lock.acquire()
-    try:
-        if stale:
-            pass
-        elif type_ in REVERSAL_TYPES:
-            try:
-                action, extra = await billing_reversals.apply(
-                    type_, obj, ledger=ledger, now=now)
-            except credits.StoreNotConfigured as exc:
-                # Not remembered: Stripe retries, and the retry applies once bound.
-                return _refusal(STORE_NOT_CONFIGURED, str(exc),
-                                service_commit=service_commit, endpoint=endpoint)
-        elif type_ in PROVISION_TYPES:
-            if type_.startswith("checkout.session."):
-                action, error = await _apply_checkout(
-                    obj, kv=kv, policy=policy, now=now, ledger=ledger,
-                    service_commit=service_commit, endpoint=endpoint)
+    if stale:
+        pass
+    elif type_ in REVERSAL_TYPES:
+        try:
+            action, extra = await billing_reversals.apply(
+                type_, obj, ledger=ledger, now=now)
+        except credits.StoreNotConfigured as exc:
+            # Not remembered: Stripe retries, and the retry applies once bound.
+            return _refusal(STORE_NOT_CONFIGURED, str(exc),
+                            service_commit=service_commit, endpoint=endpoint)
+    elif type_ in PROVISION_TYPES:
+        if type_.startswith("checkout.session."):
+            action, error = await _apply_checkout(
+                obj, kv=kv, policy=policy, now=now, ledger=ledger,
+                service_commit=service_commit, endpoint=endpoint)
+            if error is not None:
+                return error
+        else:
+            action, error = await _apply_invoice_paid(
+                obj, kv=kv, policy=policy, now=now, ledger=ledger,
+                service_commit=service_commit, endpoint=endpoint, event_id=event_id)
+            if error is not None:
+                return error
+    elif type_ in DOWNGRADE_TYPES:
+        subscription_id = (_id(obj.get("id")) if type_ == "customer.subscription.deleted"
+                           else _subscription_from_invoice(obj) or _id(obj.get("subscription")))
+        if not subscription_id:
+            action = "ignored"
+        elif type_ == "invoice.payment_failed":
+            _period_start, period_end = _invoice_period(obj, policy)
+            cleared = await store.clear_monthly(
+                kv, subscription_id, ledger=ledger, period_end=period_end)
+            action = await _settle_downgrade(
+                kv, subscription_id, ledger=ledger, policy=policy,
+                cleared=cleared)
+        else:
+            canceled_at = _timestamp(obj.get("canceled_at")) or created
+            cleared = await store.clear_monthly(
+                kv, subscription_id, ledger=ledger, watermark=canceled_at)
+            action = await _settle_downgrade(
+                kv, subscription_id, ledger=ledger, policy=policy,
+                cleared=cleared)
+    elif type_ == "customer.subscription.updated":
+        status = str(obj.get("status") or "")
+        subscription_id = _id(obj.get("id"))
+        if not subscription_id:
+            action = "ignored"
+        elif status in EXPIRED_STATUSES:
+            watermark = (_timestamp(obj.get("canceled_at")) or created
+                         if status in _TERMINAL_SUBSCRIPTION_STATUSES else 0)
+            cleared = await store.clear_monthly(
+                kv, subscription_id, ledger=ledger, watermark=watermark)
+            action = await _settle_downgrade(
+                kv, subscription_id, ledger=ledger, policy=policy,
+                cleared=cleared)
+        elif status == "active":
+            price_id = _price_from_subscription(obj, _metered_price_ids(policy))
+            if price_id:
+                mapping, error = await _map_price_row(
+                    policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
                 if error is not None:
                     return error
-            else:
-                action, error = await _apply_invoice_paid(
-                    obj, kv=kv, policy=policy, now=now, ledger=ledger,
-                    service_commit=service_commit, endpoint=endpoint, event_id=event_id)
-                if error is not None:
-                    return error
-        elif type_ in DOWNGRADE_TYPES:
-            subscription_id = (_id(obj.get("id")) if type_ == "customer.subscription.deleted"
-                               else _subscription_from_invoice(obj) or _id(obj.get("subscription")))
-            if not subscription_id:
-                action = "ignored"
-            elif type_ == "invoice.payment_failed":
-                _period_start, period_end = _invoice_period(obj, policy)
-                cleared = await store.clear_monthly(
-                    kv, subscription_id, ledger=ledger, period_end=period_end)
-                if cleared == "stale":
-                    action = "ignored"
-                else:
-                    action = await _downgrade_or_keep_newer_period(
-                        kv, subscription_id, ledger=ledger, policy=policy,
-                        bound=period_end)
-            else:
-                canceled_at = _timestamp(obj.get("canceled_at")) or created
-                cleared = await store.clear_monthly(
-                    kv, subscription_id, ledger=ledger, watermark=canceled_at)
-                if cleared == "stale":
-                    action = "ignored"
-                else:
-                    action = await _downgrade_or_keep_newer_period(
-                        kv, subscription_id, ledger=ledger, policy=policy,
-                        bound=canceled_at)
-        elif type_ == "customer.subscription.updated":
-            status = str(obj.get("status") or "")
-            subscription_id = _id(obj.get("id"))
-            if not subscription_id:
-                action = "ignored"
-            elif status in EXPIRED_STATUSES:
-                watermark = (_timestamp(obj.get("canceled_at")) or created
-                             if status in _TERMINAL_SUBSCRIPTION_STATUSES else 0)
-                cleared = await store.clear_monthly(
-                    kv, subscription_id, ledger=ledger, watermark=watermark)
-                if cleared == "stale":
-                    action = "ignored"
-                else:
-                    action = await _downgrade_or_keep_newer_period(
-                        kv, subscription_id, ledger=ledger, policy=policy,
-                        bound=watermark)
-            elif status == "active":
-                price_id = _price_from_subscription(obj, _metered_price_ids(policy))
-                if price_id:
-                    mapping, error = await _map_price_row(
-                        policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
-                    if error is not None:
-                        return error
-                    # Restore access only. Credits come from a paid invoice or
-                    # Checkout: an update (a plan change, a coupon, a cancel
-                    # toggle) is not a payment, and an upgrade's prorated invoice
-                    # may still be unpaid.
-                    action = await store.set_subscription_tier(
-                        kv, subscription_id, mapping.tier if mapping else "", policy=policy)
-                    if action == "tier_set":
-                        action = "restored"
+                # Restore access only. Credits come from a paid invoice or
+                # Checkout: an update (a plan change, a coupon, a cancel
+                # toggle) is not a payment, and an upgrade's prorated invoice
+                # may still be unpaid.
+                action = await store.set_subscription_tier(
+                    kv, subscription_id, mapping.tier if mapping else "", policy=policy)
+                if action == "tier_set":
+                    action = "restored"
 
-        if subscription_id and not stale and action != "ignored":
-            if type_ in {"invoice.payment_failed", "invoice.paid"}:
-                period_start, period_end = _invoice_period(obj, policy)
-                await store.record_chronology(
-                    kv, subscription_id, now=now, policy=policy,
-                    customer_id=_id(obj.get("customer")),
-                    invoice_id=_id(obj.get("id")) or event_id,
-                    period_start=period_start, period_end=period_end,
-                    paid=type_ == "invoice.paid")
-            elif type_ == "customer.subscription.deleted" or (
-                    type_ == "customer.subscription.updated"
-                    and obj.get("status") in EXPIRED_STATUSES | {"active"}):
-                await store.record_chronology(
-                    kv, subscription_id, now=now, policy=policy,
-                    customer_id=_id(obj.get("customer")),
-                    subscription_status=("canceled" if type_ == "customer.subscription.deleted"
-                                         else str(obj.get("status"))), updated_at=created)
-
-    finally:
-        if billing_lock is not None:
-            billing_lock.release()
+    if subscription_id and not stale and action != "ignored":
+        if type_ in {"invoice.payment_failed", "invoice.paid"}:
+            period_start, period_end = _invoice_period(obj, policy)
+            await store.record_chronology(
+                kv, subscription_id, now=now, policy=policy,
+                customer_id=_id(obj.get("customer")),
+                invoice_id=_id(obj.get("id")) or event_id,
+                period_start=period_start, period_end=period_end,
+                paid=type_ == "invoice.paid")
+        elif type_ == "customer.subscription.deleted" or (
+                type_ == "customer.subscription.updated"
+                and obj.get("status") in EXPIRED_STATUSES | {"active"}):
+            await store.record_chronology(
+                kv, subscription_id, now=now, policy=policy,
+                customer_id=_id(obj.get("customer")),
+                subscription_status=("canceled" if type_ == "customer.subscription.deleted"
+                                     else str(obj.get("status"))), updated_at=created)
 
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
     if action in _SALE_ACTIONS and type_ in PROVISION_TYPES:
@@ -805,6 +833,9 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         invoice_id=initial_invoice or f"checkout:{session_id}", plan=mapping.name)
     if grant == "granted":
         action = "credited" if action in {"entitled", "already_entitled"} else action
+        if not isinstance(ledger, credits.UnboundLedger):
+            await _sync_entitlement_tier(
+                kv, subscription_id, ledger=ledger, policy=policy)
     if recovers_initial:
         await store.record_chronology(
             kv, subscription_id, now=now, policy=policy,
@@ -864,7 +895,9 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         customer_id=_id(obj.get("customer")), price_id=price_id, tier=mapping.tier,
         session_id="", now=now, policy=policy,
         pending_monthly=mapping.credits, pending_invoice_id=invoice_id,
-        plan_name=mapping.name, plan_credits=mapping.credits, key_fingerprint=fingerprint)
+        plan_name=mapping.name, plan_credits=mapping.credits,
+        key_fingerprint=fingerprint,
+        promote=isinstance(ledger, credits.UnboundLedger))
     await store.record_chronology(
         kv, subscription_id, now=now, policy=policy,
         customer_id=_id(obj.get("customer")), invoice_id=invoice_id,
@@ -876,6 +909,9 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         return "ignored", None
     if grant == "granted":
         action = "credited"
+        if not isinstance(ledger, credits.UnboundLedger):
+            await _sync_entitlement_tier(
+                kv, subscription_id, ledger=ledger, policy=policy)
     elif grant == "pending" and action == "entitled":
         action = "entitled"
     return action, None

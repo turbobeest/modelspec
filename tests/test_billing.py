@@ -1876,37 +1876,82 @@ def test_newer_paid_period_applies_after_terminal_status(policy, terminal):
     run(scenario())
 
 
+class _ScheduledKV(MemoryKV):
+    """One handler's view of a shared store. Each get and put yields `pauses` times."""
+
+    def __init__(self, data: dict[str, str], pauses: int) -> None:
+        super().__init__()
+        self.data = data
+        self.pauses = pauses
+
+    async def _pause(self) -> None:
+        for _ in range(self.pauses):
+            await asyncio.sleep(0)
+
+    async def get(self, name: str) -> str | None:
+        await self._pause()
+        return await super().get(name)
+
+    async def put(self, name: str, value: str, **kwargs: Any) -> None:
+        await self._pause()
+        await super().put(name, value, **kwargs)
+
+
+class _NoProcessLock:
+    """MemoryLedger with no process-local billing lock, as DurableLedger is."""
+
+    def __init__(self, inner: credits.MemoryLedger) -> None:
+        object.__setattr__(self, "_inner", inner)
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "_billing_lock":
+            raise AttributeError(name)
+        return getattr(self._inner, name)
+
+
 def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
-    class YieldingKV(MemoryKV):
-        async def get(self, name):
-            result = await super().get(name)
-            await asyncio.sleep(0)
-            return result
-
-        async def put(self, name, value, **kwargs):
-            await super().put(name, value, **kwargs)
-            await asyncio.sleep(0)
-
-    async def one(index):
-        kv, ledger = YieldingKV(), credits.MemoryLedger()
-        key = await _billing_purchase(kv, ledger, policy)
-        paid = invoice_obj(id=f"in_new_{index}", created=300,
-                           period_start=300, period_end=400)
-        failed = invoice_obj(id=f"in_old_{index}", paid=False, created=100,
-                             period_start=100, period_end=200)
-        await asyncio.gather(
-            _dated_event(kv, ledger, policy, "invoice.paid", paid,
-                         f"evt_paid_{index}", created=300),
-            _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
-                         f"evt_fail_{index}", created=150),
-        )
-        record = await keys.lookup(kv, key)
-        balance = await ledger.balance(_billing_holder(key))
+    async def overlapped(kind: str, pauses_paid: int, pauses_other: int,
+                         paid_first: bool) -> tuple[str, int]:
+        data: dict[str, str] = {}
+        real = credits.MemoryLedger()
+        key = await _billing_purchase(_ScheduledKV(data, 0), real, policy)
+        ledger = _NoProcessLock(real)
+        paid_kv = _ScheduledKV(data, pauses_paid)
+        other_kv = _ScheduledKV(data, pauses_other)
+        if kind == "failure":
+            paid = invoice_obj(id="in_new", created=300, period_start=300, period_end=400)
+            other = invoice_obj(id="in_old", paid=False, created=100,
+                                period_start=100, period_end=200)
+            paid_event = _dated_event(
+                paid_kv, ledger, policy, "invoice.paid", paid, "evt_paid", created=300)
+            other_event = _dated_event(
+                other_kv, ledger, policy, "invoice.payment_failed", other,
+                "evt_fail", created=150)
+        else:
+            paid = invoice_obj(id="in_old", created=150, period_start=100, period_end=200)
+            other = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+            paid_event = _dated_event(
+                paid_kv, ledger, policy, "invoice.paid", paid, "evt_paid", created=150)
+            other_event = _dated_event(
+                other_kv, ledger, policy, "customer.subscription.deleted", other,
+                "evt_cancel", created=300)
+        calls = [paid_event, other_event] if paid_first else [other_event, paid_event]
+        await asyncio.gather(*calls)
+        record = await keys.lookup(_ScheduledKV(data, 0), key)
+        balance = await real.balance(_billing_holder(key))
         return record.tier, balance.monthly
 
     async def scenario():
-        outcomes = [await one(index) for index in range(30)]
-        assert outcomes == [("paid", 4000)] * 30
+        mismatches = []
+        for kind, expect in (("failure", ("paid", 4000)), ("cancellation", ("free", 0))):
+            for paid_first in (True, False):
+                for pauses_paid in (1, 2, 3):
+                    for pauses_other in (1, 2, 3):
+                        got = await overlapped(kind, pauses_paid, pauses_other, paid_first)
+                        if got != expect:
+                            mismatches.append(
+                                (kind, paid_first, pauses_paid, pauses_other, got))
+        assert mismatches == []
 
     run(scenario())
 

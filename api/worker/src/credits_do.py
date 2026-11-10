@@ -149,6 +149,9 @@ class CreditsObject(DurableObject):
     async def invoice_watermark(self, holder: str) -> int:
         return self._stored().invoice_watermark(str(holder))
 
+    async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        return self._stored().entitlement_view(str(holder))
+
     async def transfer(self, src: str, dst: str) -> bool:
         state = self._stored()
         ok = state.transfer(str(src), str(dst))
