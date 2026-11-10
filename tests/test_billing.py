@@ -2213,6 +2213,63 @@ def test_active_status_update_tier_follows_the_ledger(policy):
     run(scenario())
 
 
+
+def test_subscription_create_after_checkout_without_an_invoice_id(policy):
+    """A subscription_create invoice records the checkout grant's invoice and period."""
+
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": keys.fingerprint(key)}
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(metadata=meta),
+            "evt_checkout_no_invoice")).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        holder = _billing_holder(key)
+        monthly = (await ledger.balance(holder)).monthly
+        invoice = invoice_obj(
+            id="in_create", billing_reason="subscription_create", metadata=meta,
+            period_start=100, period_end=200)
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", invoice, "evt_create", created=100)
+        assert outcome.status == 200
+        assert (await ledger.balance(holder)).monthly == monthly
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored is not None
+        assert stored.invoice_id == "in_create"
+        assert (stored.invoice_period_start, stored.invoice_period_end) == (100, 200)
+        again = await _dated_event(
+            kv, ledger, policy, "invoice.paid", invoice, "evt_create_again", created=100)
+        assert again.status == 200
+        assert (await ledger.balance(holder)).monthly == monthly
+
+        other, _other_record = await keys.issue(
+            kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        other_meta = {
+            "modelspec_price_id": PRICE,
+            "modelspec_key_fingerprint": keys.fingerprint(other),
+        }
+        other_invoice = invoice_obj(
+            id="in_other_create", subscription=SUB2, billing_reason="subscription_create",
+            metadata=other_meta, period_start=100, period_end=200)
+        other_outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", other_invoice, "evt_other_create", created=100)
+        assert other_outcome.status == 200
+        assert other_outcome.body["action"] == "credited"
+        assert (await ledger.balance(_billing_holder(other))).monthly == 4000
+        assert (await ledger.balance(holder)).monthly == monthly
+
+        later = invoice_obj(
+            id="in_later_create", billing_reason="subscription_create", metadata=meta,
+            period_start=300, period_end=400)
+        later_outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", later, "evt_later_create", created=300)
+        assert later_outcome.status == 200
+        assert (await ledger.balance(holder)).monthly == 4000
+    run(scenario())
+
+
+
 @pytest.mark.parametrize("late_kind", ["invoice.payment_failed", "invoice.paid"])
 @pytest.mark.parametrize("late_created", [150, 900])
 def test_current_invoice_period_retains_its_allowance(policy, late_kind, late_created):

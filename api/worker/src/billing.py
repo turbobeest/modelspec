@@ -479,6 +479,25 @@ def _timestamp(value: Any) -> int:
         return 0
 
 
+def _checkout_initial_invoice(existing: store.SubscriptionRecord | None,
+                             obj: dict[str, Any], period_start: int,
+                             period_end: int) -> bool:
+    """A subscription_create invoice for a checkout grant that had no invoice id.
+
+    An empty stored period matches that grant. A stored period that differs is
+    a later period and takes the ordinary grant path.
+    """
+    if existing is None or str(obj.get("billing_reason") or "") != "subscription_create":
+        return False
+    if not str(existing.pending_invoice_id or "").startswith("checkout:"):
+        return False
+    stored_period = (int(existing.invoice_period_start or 0), int(existing.invoice_period_end or 0))
+    incoming = (int(period_start or 0), int(period_end or 0))
+    if any(stored_period) and any(incoming) and stored_period != incoming:
+        return False
+    return True
+
+
 def _invoice_period(obj: dict[str, Any], policy: AccessPolicy) -> tuple[int, int]:
     price_id = _price_from_invoice(obj, _metered_price_ids(policy))
     lines = obj.get("lines")
@@ -1001,6 +1020,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
             mark = 0
         if int(mark or 0) and period_end < int(mark or 0):
             return "ignored", None
+    if _checkout_initial_invoice(existing, obj, period_start, period_end):
+        return "already_entitled", None
     probed = None
     if (holder_fp and ledger is not None
             and not isinstance(ledger, credits.UnboundLedger)):

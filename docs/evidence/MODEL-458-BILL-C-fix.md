@@ -20,3 +20,19 @@ After the fix: 3 passed, 189 deselected, exit 0.
 A `customer.subscription.updated` with status `active` sets the row status to `active`. The tier written to the row and the key follows the ledger: the paid tier only when the ledger view says the key is entitled, and the downgrade tier otherwise, until an accepted `invoice.paid` credits the period.
 
 `test_active_subscription_update_applies_after_cancellation` asserts `action` `unchanged` and the key tier `policy.billing.downgrade_tier`. On main the same test asserted `action` `restored` and the key tier `paid`. The status update sets `subscription_status` to `active`. The tier argument follows the ledger. With `entitled` false the argument is the downgrade tier, so `set_subscription_tier` returns `unchanged`.
+
+## C3
+
+An `invoice.paid` with `billing_reason` `subscription_create`, after Checkout granted that subscription with no invoice id, records the invoice id and period and does not grant again. A `subscription_create` invoice for another subscription, or for a later period, grants on the ordinary path.
+
+```
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py -k 'test_active_subscription_update_applies_after_cancellation or test_active_status_update_tier_follows_the_ledger or test_subscription_create_after_checkout_without_an_invoice_id'
+```
+
+Before the C2 and C3 fixes: 3 failed, 191 deselected, exit 1.
+
+```
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py -k 'test_active_subscription_update_applies_after_cancellation or test_active_status_update_tier_follows_the_ledger or test_subscription_create_after_checkout_without_an_invoice_id or test_initial_invoice_allowance_is_shared or test_a_rejected_invoice_period'
+```
+
+After the C2 and C3 fixes: 8 passed, 186 deselected, exit 0.
