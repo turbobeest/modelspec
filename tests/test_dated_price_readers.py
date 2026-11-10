@@ -586,3 +586,36 @@ def test_vertex_rejects_multiple_eligible_pricing_tables(monkeypatch):
     assert readings == []
     parsed, decision = _decide_dated_readings(readings, "input", monkeypatch)
     _assert_only_comparator_priced(parsed, decision)
+
+
+def test_vertex_reads_short_context_input_when_columns_differ(monkeypatch):
+    """The short-context input price is 0.75 when the long-context column is 0.99."""
+    row = _vertex_price_row()
+    readings = _read_vertex(_vertex_table([row]), "offering.price.input")
+    assert [reading.value for reading in readings] == ["0.75"]
+    assert readings[0].effective_until == "2026-12-31"
+    assert readings[0].effective_from is None
+    assert readings[0].subject == "Gemini 3.7 Flash"
+    parsed, decision = _decide_dated_readings(readings, "input", monkeypatch)
+    assert parsed.state == "known"
+    assert parsed.value == pytest.approx(0.75)
+    assert decision.status == "answered"
+    assert [(item.model, item.rank) for item in decision.results] == [
+        ("google/gemini-3-7-flash", 1),
+        ("lab/comparator", 2),
+    ]
+    # 1000 input tokens at 0.75 and 1000 output tokens at 1.0, per 1M tokens.
+    assert decision.results[0].cost_per_task == pytest.approx(0.00175)
+    assert decision.results[1].cost_per_task == pytest.approx(0.02)
+    assert decision.may_qualify == []
+
+
+def test_vertex_reads_short_context_cached_input_when_columns_differ():
+    """The short-context cached input is 0.075 when the long-context column is 0.099."""
+    row = _vertex_price_row()
+    assert row[5] == "$0.075"
+    assert row[6] == "$0.099"
+    readings = _read_vertex(_vertex_table([row]), "offering.price.cached_input")
+    assert [reading.value for reading in readings] == ["0.075"]
+    assert readings[0].subject == "Gemini 3.7 Flash"
+    assert readings[0].effective_until == "2026-12-31"
