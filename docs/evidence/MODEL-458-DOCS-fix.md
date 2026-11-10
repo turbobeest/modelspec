@@ -439,3 +439,43 @@ Publication commands: `CI_LOCAL_SKIP=1 git push -u origin model-458-docs`, then 
 Remaining limitation: the requested scope does not name the two generated metadata files above. The actual worktree therefore retains five guide-capture coherence failures and one OpenAPI generation coherence failure. All permanent regression cases for the twelve findings pass. The draft is BLOCKED until that prepared metadata update is authorized and the affected existing checks are rerun. No runtime fix, schema-range widening, production switch, legal text, price or plan change is needed.
 
 The final focused skip is the optional built-dist source check, which requires `MODELSPEC_DIST`. The two earlier API-documentation skips require `MODELSPEC_LIVE_API=1`; no live probes ran.
+
+## Round 2
+
+Merged `origin/main` `a29bf9c6d12b0ca093b42a2f662e0a53150014ca` into the branch. Merge commit `617a6ee9d5172e48bae8f166f4e6a0303ae612e0`. No conflicts. The generated companions were regenerated after the merge.
+
+`docs/decision-contract.md` now says band membership compares the unrounded probability with 0.25, the reported `p_beats_leader` is that probability rounded to 4 places, and a reported 0.25 can sit in `rest`. The same sentence is the new 2.19 changelog entry. `contract_version` stays 2.19. `decision/contract.py` and `mcp/src/contract-version.ts` were not edited. Commit `7e53ced0d36cee233abb106950292ce09b288340`.
+
+CI on the previous head `45f1d0263711e7e97d99b1310c14e379bd365ea2` failed Run pytest (shards 1/8 and 5/8 through 8/8) and Rank Worker bundle. The bundle log's error was a stale `api/worker/openapi.yaml`. The shard failures were guide-hash drift (`tests/test_decision_link.py`, `tests/test_agent_guide.py`, `tests/test_agent_harness.py`, `tests/test_agent_gaps.py`, `tests/test_generated_pins.py`) and shard timing coverage at 351/373 modules. Logs: `/tmp/MODEL-458-DOCS-scratch/root/ci-*.log`.
+
+Regenerated with the repository generators, in order:
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+Each exited 0. `pipeline.agent_copy check` had already exited 0 before the snapshot sentence was shortened. The prepared scratch patch was not applied: main had moved, and the generators produced the post-merge bytes.
+
+The guide's snapshot paragraph was shortened so the first MCP turn stays at or under 9,600 tokens. `ceil(characters / 4)` totals after the shorten: Claude 9,394, OpenAI 9,487, Gemini 9,590. The disclosure still names the current snapshot, `409 snapshot_not_loaded`, and retry with `latest`. Commit `2a7789bd2dac7ae455d556f19cd5b6d1039cd7a9`.
+
+`tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue` pins the rendered guide. The expectation now matches the regenerated guide. The CLI text hash is unchanged. This is the only assertion updated.
+
+Eleven reference modules were absent from `tests/shard_durations.json`, which put measured coverage at 351/373 (0.941), under the 0.95 gate. Their serial JUnit times were inserted. Coverage then passed. Commit `9376849bda78913137023a0b54606307d928b760`.
+
+`api/worker/vendor.py --check` exited 0: 129 files, bundle imports cleanly. The private memory probe was not repeated. Round 1 measured 108.97566 MiB steady and 103.75369 MiB successor against 115 MiB, and this round only shortens the guide string.
+
+Focused serial result after regeneration, exit 0:
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=line --basetemp=/tmp/MODEL-458-DOCS-scratch/root/pytest-r2b tests/test_reference_decide.py::test_public_snapshot_replay_guidance_discloses_current_only_availability tests/test_agent_guide.py tests/test_agent_copy.py::test_all_agent_artifacts_are_current tests/test_agent_copy.py::test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources tests/test_agent_copy.py::test_the_cli_bundle_guide_version_matches_the_worker tests/test_decision_link.py::test_flag_off_agent_copy_matches_reviewed_catalogue tests/test_api_docs.py::test_the_committed_spec_is_what_the_implementation_generates tests/test_generated_pins.py::test_openapi_check_rejects_a_stale_artifact tests/test_agent_harness.py::test_full_dry_replay_has_no_network_or_keys tests/test_agent_harness.py::test_live_wire_loop_and_separate_judge_share_the_invocation_budget tests/test_agent_gaps.py::test_rescore_only_calls_the_routed_judge_and_preserves_saved_evidence tests/test_agent_gaps.py::test_rescore_dry_run_never_runs_an_agent_or_fetches_tools tests/test_agent_gaps.py::test_rescore_spend_cap_prevents_the_judge_http_call tests/test_agent_gaps.py::test_all_mcp_first_turns_fit_the_budget_without_keys_or_network tests/test_decision_bands.py::test_best_band_membership_precedes_probability_rounding tests/test_ci_workflows.py::test_shard_timings_cover_the_current_suite_and_browser_modules
+```
+
+```text
+38 passed in 13.88s
+```
+
+An earlier run of the reference modules plus the same harness tests, before the sentence shorten, was 1 failed, 55 passed in 16.83s. The failure was Gemini at 9,614 tokens. That run's JUnit supplied the reference-module timings.
+
+Tool versions unchanged from round 1: Python 3.14.4, pytest 9.1.1, Node v22.22.3, git 2.50.1. `git diff --check` exited 0. No legal text, ranking floors, production switches, prices, workflows, or frozen data were edited in the round 2 commits. The private memory probe, live service, and payment calls were not run. The submitted head is the commit that adds this section.
