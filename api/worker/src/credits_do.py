@@ -160,6 +160,14 @@ class CreditsObject(DurableObject):
     async def entitlement_view(self, holder: str) -> dict[str, Any]:
         return self._stored().entitlement_view(str(holder))
 
+    async def note_key_binding(self, holder: str, fingerprint: str) -> None:
+        state = self._stored()
+        state.note_key_binding(str(holder), str(fingerprint))
+        self._save(state)
+
+    async def key_binding(self, holder: str) -> str:
+        return self._stored().key_binding(str(holder))
+
     async def transfer(self, src: str, dst: str) -> bool:
         state = self._stored()
         ok = state.transfer(str(src), str(dst))

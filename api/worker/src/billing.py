@@ -605,7 +605,7 @@ async def _sync_entitlement_tier(kv: Any, subscription_id: str, *, ledger: Any,
         generation = int(view["generation"])
         tier = paid_tier if view["entitled"] else policy.billing.downgrade_tier
         await store.set_subscription_tier(
-            kv, subscription_id, tier, policy=policy, align_key=True)
+            kv, subscription_id, tier, policy=policy, align_key=True, ledger=ledger)
         try:
             again = await ledger.entitlement_view(holder)
         except credits.StoreNotConfigured:
@@ -654,7 +654,8 @@ async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
     if cleared != "cleared":
         if cleared == "store_unbound":
             wrote = await store.set_subscription_tier(
-                kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
+                kv, subscription_id, policy.billing.downgrade_tier, policy=policy,
+                ledger=ledger)
             return "downgraded" if wrote == "tier_set" else wrote
         return cleared
     settled = await _sync_entitlement_tier(
@@ -665,7 +666,8 @@ async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
         return "downgraded"
     if settled == "no_key":
         wrote = await store.set_subscription_tier(
-            kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
+            kv, subscription_id, policy.billing.downgrade_tier, policy=policy,
+            ledger=ledger)
         if wrote in {"tier_set", "unchanged"}:
             return "downgraded"
         return wrote
@@ -791,7 +793,8 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                 # toggle) is not a payment, and an upgrade's prorated invoice
                 # may still be unpaid.
                 action = await store.set_subscription_tier(
-                    kv, subscription_id, mapping.tier if mapping else "", policy=policy)
+                    kv, subscription_id, mapping.tier if mapping else "",
+                    policy=policy, ledger=ledger)
                 if action == "tier_set":
                     action = "restored"
 
@@ -803,7 +806,7 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                 customer_id=_id(obj.get("customer")),
                 invoice_id=_id(obj.get("id")) or event_id,
                 period_start=period_start, period_end=period_end,
-                paid=type_ == "invoice.paid")
+                paid=type_ == "invoice.paid", ledger=ledger)
         elif type_ == "customer.subscription.deleted" or (
                 type_ == "customer.subscription.updated"
                 and obj.get("status") in EXPIRED_STATUSES | {"active"}):
@@ -815,7 +818,7 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                 kv, subscription_id, now=now, policy=policy,
                 customer_id=_id(obj.get("customer")),
                 subscription_status=status, updated_at=created,
-                canceled_at=terminal_at)
+                canceled_at=terminal_at, ledger=ledger)
 
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
     if action in _SALE_ACTIONS and type_ in PROVISION_TYPES:
@@ -935,7 +938,7 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         await store.record_chronology(
             kv, subscription_id, now=now, policy=policy,
             invoice_id=initial_invoice, period_start=existing.invoice_period_start,
-            period_end=existing.invoice_period_end, paid=True)
+            period_end=existing.invoice_period_end, paid=True, ledger=ledger)
     return action, None
 
 
@@ -1020,7 +1023,7 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
     await store.record_chronology(
         kv, subscription_id, now=now, policy=policy,
         customer_id=_id(obj.get("customer")), invoice_id=invoice_id,
-        period_start=period_start, period_end=period_end, paid=True)
+        period_start=period_start, period_end=period_end, paid=True, ledger=ledger)
     grant = await store.grant_monthly(
         kv, subscription_id, ledger=ledger, units=mapping.credits,
         invoice_id=invoice_id, plan=mapping.name, period_end=period_end,

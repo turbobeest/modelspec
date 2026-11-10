@@ -281,12 +281,50 @@ async def _write_sub(kv: Any, record: SubscriptionRecord) -> None:
     await kv.put(subscription_name(record.subscription_id), json.dumps(record.to_json()))
 
 
+_BINDING_PASSES = 4
+
+
+async def _key_binding(ledger: Any, fingerprint: str) -> str:
+    """Fingerprint the ledger recorded for this account. Empty means none."""
+    if ledger is None or not fingerprint:
+        return ""
+    try:
+        bound = await ledger.key_binding(credits.holder_from_fingerprint(fingerprint))
+    except credits.StoreNotConfigured:
+        return ""
+    return str(bound or "")
+
+
+async def _apply_key_binding(kv: Any, record: SubscriptionRecord,
+                             ledger: Any) -> SubscriptionRecord:
+    """Point the row at the ledger binding when one is recorded."""
+    bound = await _key_binding(ledger, record.key_fingerprint)
+    if not bound or bound == record.key_fingerprint:
+        return record
+    looked = await keys.lookup_fingerprint(kv, bound)
+    if looked is None:
+        return record
+    return replace(record, key_fingerprint=bound, key_id=looked.key_id)
+
+
+async def _write_bound_sub(kv: Any, record: SubscriptionRecord, ledger: Any) -> None:
+    """Write the row, then again if a rotation recorded a newer fingerprint."""
+    written = record
+    for _ in range(_BINDING_PASSES):
+        written = await _apply_key_binding(kv, written, ledger)
+        await _write_sub(kv, written)
+        bound = await _key_binding(ledger, written.key_fingerprint)
+        if not bound or bound == written.key_fingerprint:
+            return
+    raise RuntimeError("the key binding did not settle")
+
+
 async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
                             policy: AccessPolicy, customer_id: str = "",
                             subscription_status: str = "", updated_at: int = 0,
                             invoice_id: str = "", period_start: int = 0,
                             period_end: int = 0, paid: bool = False,
-                            canceled_at: int = 0) -> None:
+                            canceled_at: int = 0, ledger: Any = None) -> None:
     """Retain accepted subscription status and invoice periods on the billing row."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
@@ -310,7 +348,7 @@ async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
             stored = replace(
                 stored, invoice_id=invoice_id, invoice_period_start=period_start,
                 invoice_period_end=period_end, invoice_paid=paid)
-    await _write_sub(kv, stored)
+    await _write_bound_sub(kv, stored, ledger)
 
 
 async def _write_session(kv: Any, record: SessionRecord) -> None:
@@ -550,25 +588,35 @@ async def grant_pack(kv: Any, *, fingerprint_hex: str, session_id: str, units: i
 
 
 async def set_subscription_tier(kv: Any, subscription_id: str, tier: str, *,
-                                policy: AccessPolicy, align_key: bool = False) -> str:
+                                policy: AccessPolicy, align_key: bool = False,
+                                ledger: Any = None) -> str:
     """Downgrade or restore this subscription's entitlement, and its key if any."""
     existing = await load_subscription(kv, subscription_id)
     if existing is None:
         return "no_key"
-    key_differs = False
-    if align_key and existing.key_fingerprint:
-        current = await keys.lookup_fingerprint(kv, existing.key_fingerprint)
-        key_differs = current is not None and current.tier != tier
-    if existing.tier == tier and not key_differs:
-        return "unchanged"
-    if existing.key_fingerprint:
-        updated = await keys.set_tier(kv, existing.key_fingerprint, tier, policy=policy)
-        if updated is None:
-            return "missing_key"
-    status = (STATUS_INACTIVE if tier == policy.billing.downgrade_tier
-              else STATUS_ACTIVE)
-    await _write_sub(kv, replace(existing, tier=tier, status=status))
-    return "tier_set"
+    for _ in range(_BINDING_PASSES):
+        current = await _apply_key_binding(kv, existing, ledger)
+        key_differs = False
+        if align_key and current.key_fingerprint:
+            looked = await keys.lookup_fingerprint(kv, current.key_fingerprint)
+            key_differs = looked is not None and looked.tier != tier
+        binding_moved = (current.key_fingerprint != existing.key_fingerprint
+                         or current.key_id != existing.key_id)
+        if current.tier == tier and not key_differs and not binding_moved:
+            return "unchanged"
+        if current.key_fingerprint:
+            updated = await keys.set_tier(kv, current.key_fingerprint, tier, policy=policy)
+            if updated is None:
+                return "missing_key"
+        status = (STATUS_INACTIVE if tier == policy.billing.downgrade_tier
+                  else STATUS_ACTIVE)
+        written = replace(current, tier=tier, status=status)
+        await _write_sub(kv, written)
+        bound = await _key_binding(ledger, written.key_fingerprint)
+        if not bound or bound == written.key_fingerprint:
+            return "tier_set"
+        existing = written
+    raise RuntimeError("the key binding did not settle")
 
 
 def _pack_expiry(now: datetime, policy: AccessPolicy) -> str:
@@ -840,6 +888,7 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
         await kv.put(storage_name(secret), json.dumps(issued.to_json()))
         await _write_keyref(kv, new_fp, transition["subscription_id"])
         if owns_subscription:
+            await ledger.note_key_binding(holder, new_fp)
             await _write_sub(kv, replace(sub, key_fingerprint=new_fp,
                                         key_id=issued.key_id))
         await ledger.transfer(holder, credits.holder_from_fingerprint(new_fp))
@@ -916,7 +965,7 @@ async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any,
             return "store_unbound"
         if result.reason == "stale":
             return "stale"
-    await _write_sub(kv, replace(stored, pending_monthly=0))
+    await _write_bound_sub(kv, replace(stored, pending_monthly=0), ledger)
     return "cleared"
 
 

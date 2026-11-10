@@ -8,6 +8,8 @@ that presents a live key credits that key; an anonymous Checkout mints at claim.
 from __future__ import annotations
 
 import asyncio
+import inspect
+import itertools
 import json
 import re
 import sys
@@ -3277,5 +3279,111 @@ def test_first_invoice_for_an_unknown_fingerprint_writes_no_allowance(policy):
         assert holder not in ledger.state.accounts
         assert ledger.monthly_calls == []
         assert all(account.monthly == 0 for account in ledger.state.accounts.values())
+
+    run(scenario())
+
+
+class _TurnLedger:
+    """In-memory ledger wrapper for the schedule test."""
+
+    def __init__(self, inner: credits.MemoryLedger, pauses: int) -> None:
+        self._inner = inner
+        self._pauses = pauses
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "_billing_lock":
+            raise AttributeError(name)
+        attr = getattr(self._inner, name)
+        if not inspect.iscoroutinefunction(attr):
+            return attr
+        pauses, inner = self._pauses, self._inner
+
+        async def call(*args: Any, **kwargs: Any) -> Any:
+            for _ in range(pauses):
+                await asyncio.sleep(0)
+            if name in {"rotate_key", "claim_purchase"}:
+                out = await attr(*args, **kwargs)
+            else:
+                async with inner._billing_lock:
+                    out = await attr(*args, **kwargs)
+            for _ in range(pauses):
+                await asyncio.sleep(0)
+            return out
+
+        return call
+
+
+def _terminal_overlap_event(kind: str) -> tuple[str, dict[str, Any], int]:
+    if kind == "invoice.payment_failed":
+        return kind, invoice_obj(
+            id="in_overlap_fail", paid=False, period_start=400, period_end=500), 400
+    obj = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+    if kind == "customer.subscription.deleted":
+        return kind, obj, 350
+    return "customer.subscription.updated", obj, 350
+
+
+async def _rotation_overlap_once(policy: access_config.AccessPolicy, kind: str,
+                                 order: tuple[int, int], pauses: tuple[int, int],
+                                 ledger_pauses: int) -> None:
+    data: dict[str, str] = {}
+    inner = credits.MemoryLedger()
+    setup = _ScheduledKV(data, 0)
+    key = await _billing_purchase(setup, inner, policy, bound=True)
+    paid = invoice_obj(id="in_overlap_paid", period_start=300, period_end=400)
+    assert (await _dated_event(
+        setup, inner, policy, "invoice.paid", paid, "evt_overlap_paid", created=300)).status == 200
+    event_kind, obj, created = _terminal_overlap_event(kind)
+    ledger = _TurnLedger(inner, ledger_pauses)
+    views = [_ScheduledKV(data, pauses[0]), _ScheduledKV(data, pauses[1])]
+
+    async def act(which: str, view: _ScheduledKV) -> Any:
+        if which == "rotate":
+            return await billing.rotate(
+                api_key=key, kv=view, policy=policy, now=T0,
+                service_commit=COMMIT, ledger=ledger)
+        return await _dated_event(
+            view, ledger, policy, event_kind, obj, "evt_overlap_terminal", created=created)
+
+    actors = ("rotate", "event")
+    results = await asyncio.gather(
+        *[act(actors[i], views[i]) for i in order], return_exceptions=True)
+    resolved: list[Any] = []
+    for index, result in zip(order, results):
+        if isinstance(result, BaseException):
+            result = await act(actors[index], _ScheduledKV(data, 0))
+        resolved.append(result)
+    rotated = resolved[order.index(0)]
+    assert getattr(rotated, "status", None) == 200
+    current = rotated.body["key"]
+    stored = await billing.store.load_subscription(_ScheduledKV(data, 0), SUB)
+    record = await keys.lookup(_ScheduledKV(data, 0), current)
+    assert stored is not None and record is not None
+    assert stored.key_fingerprint == keys.fingerprint(current)
+    assert stored.key_id == record.key_id
+    assert record.tier == policy.billing.downgrade_tier
+    assert stored.tier == policy.billing.downgrade_tier
+    view = await inner.entitlement_view(_billing_holder(current))
+    assert view["entitled"] is False
+    assert (await inner.balance(_billing_holder(current))).monthly == 0
+
+
+@pytest.mark.parametrize("kind", [
+    "customer.subscription.deleted",
+    "customer.subscription.updated",
+    "invoice.payment_failed",
+])
+def test_rotation_and_terminal_event_agree_on_the_newest_key(policy, kind):
+    """The row names the newest key, and that key's tier is the ledger tier."""
+
+    async def scenario():
+        seen = 0
+        for order in ((0, 1), (1, 0)):
+            for pauses in itertools.product((1, 2, 3), repeat=2):
+                for ledger_pauses in (0, 1, 2):
+                    seen += 1
+                    await _rotation_overlap_once(
+                        policy, kind, order, pauses, ledger_pauses)
+        assert seen == 54
 
     run(scenario())
