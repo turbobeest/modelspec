@@ -274,5 +274,106 @@ def test_pending_completion_retains_routing_during_delayed_funding(funding):
         assert not await ledger.commit(src, taken.reservation_id)
         events = await ledger.open_meter_events(dst)
         assert len(events) == 1 and events[0][:2] == (identifier, 5)
-        assert (await ledger.balance(dst)).overage_used == 5
+        actual = await ledger.balance(dst)
+        if funding == "pack":
+            assert actual.packs == 10
+            assert actual.overage_used == 5
+        else:
+            assert actual.monthly == 10
+            assert actual.overage_used == 0
     asyncio.run(scenario())
+
+
+def _funding_ledger(kind):
+    if kind == "memory":
+        return credits.MemoryLedger(), None
+    obj = credits_do.CreditsObject(Ctx(lambda v: JsObjectProxy({"v": v})), None)
+    return _ledger(obj), obj
+
+
+def _funding_accounts(ledger, obj):
+    if obj is None:
+        return ledger.state.accounts
+    return credits.LedgerState.from_json(json.loads(obj._get("state"))).accounts
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+@pytest.mark.parametrize("funding", ["pack", "monthly", "clear"])
+def test_funding_after_transfer_reaches_the_live_account(kind, funding):
+    async def scenario():
+        ledger, obj = _funding_ledger(kind)
+        src, dst = "key:fund-src", "key:fund-dst"
+        if funding == "pack":
+            assert (await ledger.set_monthly(src, 0, "in_old", "Scale", "cus_fund")).credited
+            opened = await ledger.reserve(src, 5, overage_cap=10)
+            assert opened.ok and opened.reservation_id is not None
+            assert await ledger.transfer(src, dst)
+            assert (await ledger.credit(src, "pack_delayed", 7, "pi_delayed")).credited
+            live = await ledger.balance(dst)
+            assert live.packs == 7
+            assert live.monthly == 0
+            assert (await ledger.credit(src, "pack_delayed", 7, "pi_delayed")).reason == "replay"
+            assert (await ledger.credit(dst, "pack_delayed", 7, "pi_delayed")).reason == "replay"
+            assert (await ledger.commit(src, opened.reservation_id)).ok
+            live = await ledger.balance(dst)
+            assert live.packs == 7
+            assert live.overage_used == 5
+            drawn = await ledger.reserve(dst, 7)
+            assert drawn.ok
+            assert (await ledger.balance(dst)).available == 0
+        elif funding == "monthly":
+            assert (await ledger.set_monthly(src, 0, "in_old", "Scale", "cus_fund")).credited
+            opened = await ledger.reserve(src, 5, overage_cap=10)
+            assert opened.ok and opened.reservation_id is not None
+            identifier = await ledger.meter_identifier(src, "res", opened.reservation_id)
+            assert await ledger.transfer(src, dst)
+            assert (await ledger.set_monthly(src, 10, "in_delayed", "Solo")).credited
+            assert (await ledger.balance(dst)).monthly == 10
+            assert (await ledger.balance(dst)).overage_used == 0
+            spent = await ledger.reserve(dst, 10)
+            assert spent.ok
+            extra = await ledger.reserve(dst, 1, overage_cap=10)
+            assert extra.ok and extra.reservation_id is not None
+            assert (await ledger.set_monthly(src, 10, "in_delayed", "Solo")).reason == "replay"
+            assert (await ledger.set_monthly(dst, 10, "in_delayed", "Solo")).reason == "replay"
+            assert (await ledger.commit(dst, extra.reservation_id)).ok
+            assert (await ledger.commit(src, opened.reservation_id)).ok
+            events = await ledger.open_meter_events(dst)
+            assert (identifier, 5) in [row[:2] for row in events]
+            live = await ledger.balance(dst)
+            assert live.monthly == 0
+            assert live.overage_used == 1
+        else:
+            assert (await ledger.set_monthly(src, 8, "in_old", "Solo")).credited
+            held = await ledger.reserve(src, 5)
+            assert held.ok and held.reservation_id is not None
+            assert await ledger.transfer(src, dst)
+            cleared = await ledger.clear_monthly(src)
+            assert cleared.credited and cleared.reason == "cleared"
+            assert (await ledger.balance(dst)).monthly == 0
+            assert await ledger.release(src, held.reservation_id)
+            live = await ledger.balance(dst)
+            assert live.monthly == 0
+            assert live.available == 0
+            assert live.reserved == 0
+        accounts = _funding_accounts(ledger, obj)
+        assert src not in accounts
+        assert dst in accounts
+        assert (await ledger.balance(src)).available == 0
+        assert not (await ledger.reserve(src, 1)).ok
+        assert not (await ledger.take_read(src, 10, 100, 10)).ok
+    asyncio.run(scenario())
+
+
+def test_stored_alias_accepts_later_funding_on_the_live_account():
+    state = credits.LedgerState()
+    assert state.set_monthly("key:src", 8, "in_old", "Solo").credited
+    assert state.transfer("key:src", "key:dst")
+    restored = credits.LedgerState.from_json(json.loads(json.dumps(state.to_json())))
+    assert restored.set_monthly("key:src", 4, "in_later", "Solo").credited
+    assert restored.balance("key:dst").monthly == 4
+    assert "key:src" not in restored.accounts
+    assert restored.set_monthly("key:src", 4, "in_later", "Solo").reason == "replay"
+    assert restored.set_monthly("key:dst", 4, "in_later", "Solo").reason == "replay"
+    assert restored.balance("key:dst").monthly == 4
+    assert restored.set_monthly("key:src", 8, "in_old", "Solo").reason == "replay"

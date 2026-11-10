@@ -703,8 +703,12 @@ class LedgerState:
 
     def _meter_acc(self, holder: str) -> _Account | None:
         """Resolve reporting state without granting a revoked holder access."""
+        return self.accounts.get(self._funding_holder(holder))
+
+    def _funding_holder(self, holder: str) -> str:
+        """A transferred name funds the live account. Draws still refuse the alias."""
         target, _meter_id = self.meter_aliases.get(holder, (holder, ""))
-        return self.accounts.get(target)
+        return target
 
     def _finalization(self, holder: str, token: int, *, read: bool = False
                       ) -> tuple[_Account | None, int]:
@@ -726,6 +730,7 @@ class LedgerState:
         anything a refund or a lost dispute took before claim, and held if a
         dispute is still open.
         """
+        holder = self._funding_holder(holder)
         rec = self.payments.get(payment_id)
         if rec is not None and rec.get("pending"):
             return self._grant_pending(holder, payment_id, rec, expires_at, source)
@@ -921,6 +926,7 @@ class LedgerState:
         A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
         """
+        holder = self._funding_holder(holder)
         rec = self.payments.get(invoice_id)
         if rec is not None:
             reason = "replay" if rec.get("holder") == holder else "conflict"
@@ -943,6 +949,7 @@ class LedgerState:
 
     def clear_monthly(self, holder: str) -> CreditResult:
         """Zero the monthly allowance and stop overage. Pack grants are untouched."""
+        holder = self._funding_holder(holder)
         acc = self._acc(holder)
         acc.monthly = 0
         acc.allowance_generation += 1

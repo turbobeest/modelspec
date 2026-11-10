@@ -152,3 +152,22 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 OpenAPI `--check` passed. Focused results: `205 passed in 34.85s` and `23 passed in 0.76s`. `git diff --check` passed. Python 3.14.4, pytest 9.1.1, Git 2.50.1.
 
 The new CI run was not observed at the time of this record. No production switch, legal text, price, plan, release tag, or frozen data changed.
+
+## Review fix round
+
+`credit`, `set_monthly`, and `clear_monthly` resolved the caller with `_acc` before reading `meter_aliases`. After `transfer`, a pack credit, a new invoice, and `clear_monthly` wrote a separate source account. `reserve` and `take_read` still returned failure for that name, so the new units were not spendable on the live account.
+
+Those three methods now resolve the holder through `meter_aliases` before the replay check and the account write. The payment record stores the live holder, so a later call under either name returns `replay`. `reserve` and `take_read` still return failure for an alias. A pack credit leaves `allowance_generation` unchanged. A new invoice increments `allowance_generation` and sets `overage_used` to 0. Replay of that invoice does not increment `allowance_generation`. `clear_monthly` clears the live account's `monthly` allowance. Stored rows load with the same fields. There is no migration.
+
+`test_pending_completion_retains_routing_during_delayed_funding` now expects `packs` 10 and `overage_used` 5 for the pack case, and `monthly` 10 and `overage_used` 0 for the monthly case.
+
+Before the change, the new and updated cases reported `9 failed`. Live `packs` stayed 0, live `monthly` stayed 0 or 8, and `clear_monthly` left `monthly` at 3. After the change those cases reported `9 passed in 0.12s`. The focused suite then reported `399 passed in 3.16s`.
+
+Commands:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=line tests/test_credits_do.py::test_funding_after_transfer_reaches_the_live_account tests/test_credits_do.py::test_stored_alias_accepts_later_funding_on_the_live_account tests/test_credits_do.py::test_pending_completion_retains_routing_during_delayed_funding
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=line tests/test_credits.py tests/test_credits_do.py tests/test_read_refunds.py tests/test_overage_durability.py tests/test_billing.py tests/test_billing_refunds.py tests/test_x402.py
+```
+
+`git diff --check` passed. Python 3.14.4, pytest 9.1.1, Git 2.50.1. This record was written before the review-fix CI run. No production switch, legal text, price, plan, release tag, or frozen data changed.
