@@ -436,3 +436,98 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 
 No assertion was removed or loosened. No production settings, ranking floors,
 legal text, frozen data, prices, plans, or release tags were changed.
+
+## Round 6
+
+`origin/main` was not an ancestor of the branch. It was merged at
+`836687845b2878f326802495dc573457efe41292`. That merge is the site build. It
+does not change `decision/relax.py`. `contract_version` stays 2.19. Both
+notes that begin `**MODEL-458, under 2.19 without a version change:**` stay,
+word for word. The note on band membership comes first.
+
+`fewest` returns what the per-index search returns, or no relaxation when
+the 64-call budget is spent. It does not raise. A best reference under
+`not` in any non-soft condition, including one on a requested domain, uses
+that search. The anchored proposal is not used for that input.
+
+### Negated best gate outside the relaxable set
+
+Before the change this command returned exit 1. The two negated cases were
+each one gate longer than the per-index search. The positive form of each
+input already matched that search.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_relax.py::test_a_negated_best_gate_on_a_requested_domain_matches_the_per_index_search --tb=short
+```
+
+After the change the same selector was run with the negated-best test and
+the bound tests:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_relax.py::test_a_negated_best_gate_on_a_requested_domain_matches_the_per_index_search tests/test_decision_relax.py::test_a_negated_best_gate_matches_the_per_index_search tests/test_decision_relax.py::test_one_gate_among_many_blocking_sets_stays_inside_a_fixed_bound tests/test_decision_relax.py::test_caps_with_a_best_margin_stay_within_the_filter_budget --tb=line
+```
+
+That command returned exit 0, `7 passed in 0.40s`.
+Commit `9ded86476161afd3bf7a6977aa99cd7e52349149`.
+
+### Generated comparison
+
+The pool adds a second numeric facet, with best gates at three margins,
+positive and under `not`, and `not(any(... best ...))`, where the `not` is
+outside the `any`. Some cases request a domain and place a best gate on
+that domain, positive and under `not`, beside a relaxable best gate. Each
+case has at most four gates. The comparison also runs on the
+many-blocking-sets lineup. That builder's gate list is cut to seven gates,
+and each of those cases draws at most three, so the per-index search stays
+inside the module's time limit.
+
+Seeds 458, 11 and 2026, 2500 cases each, had 0 mismatches. The runs took
+2.8s, 2.7s and 2.5s. The committed generated test uses seed 458 and fewer
+cases. `tests/test_decision_relax.py` returned exit 0, `28 passed in 1.49s`.
+
+Commits `3324fcaa5e6ff585ac5cbe2bfd0d7cda16f33453` and
+`a31d14ebe37a883f7642214dede49eed625273a2`. The second commit is the
+many-blocking-sets lineup.
+
+### Neighbours of the anchored proposal
+
+Each edit below was applied on its own to `decision/relax.py`. Then
+`tests/test_decision_relax.py` was run as committed. Each run returned
+exit 1. The file was restored after every run. `git diff` on
+`decision/relax.py` was empty afterward.
+
+| Behaviour removed | Test that failed |
+| --- | --- |
+| `not` outside `any` is no longer carried into that `any` | `test_not_around_any_best_matches_the_per_index_search` |
+| a later, larger proposal replaces the confirmed relaxation | `test_a_confirmed_relaxation_is_kept_when_a_later_set_is_larger` |
+| candidates a non-relaxable best gate blocks are still proposed | `test_an_empty_proposal_still_searches_within_a_fixed_call_count` |
+| that non-relaxable best gate blocks nobody | `test_an_empty_proposal_still_searches_within_a_fixed_call_count` |
+| the anchor measurement keeps the non-relaxable best gate | `test_a_requested_domain_best_gate_is_left_out_of_the_anchor` |
+| an empty anchored proposal does not fall back to the per-index search | `test_an_empty_proposal_still_searches_within_a_fixed_call_count` |
+| best gates stay in the lineup while the anchor is measured | `test_relaxable_best_gates_are_left_out_of_their_own_anchor` |
+
+The call-count test expects 5 filter calls. Proposing the blocked
+candidates used 6. Treating the non-relaxable best gate as blocking nobody
+used 6. Skipping the search after an empty proposal used 2.
+
+The one-gate answer on 63 models and on 120 models still costs at most 8
+filter calls. Twelve, fourteen and sixteen caps beside one best gate stay
+within 32 calls.
+
+This round does not remove the guard that skips a best group while summing
+plain blocks. That guard is not reached. It also does not add a decision
+field for a spent filter budget. When the budget is spent, `fewest` still
+returns no relaxation.
+
+### Focused tests
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_numeric_bounds.py tests/test_decision_relax.py tests/test_relax_single.py tests/test_decision_filter.py tests/test_decision_explain.py tests/test_decision_optimise.py --tb=line
+```
+
+Exit 0, `217 passed in 30.70s`. Python 3.14.4, pytest 9.1.1.
+
+No assertion was removed or loosened. No production settings, ranking
+floors, legal text, frozen data, prices, plans, or release tags were
+changed. This round did not re-run the private-data memory probe. Nothing
+that is loaded or stored changed. The CI headroom check is the gate.
