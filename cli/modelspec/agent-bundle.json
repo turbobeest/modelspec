@@ -830,7 +830,7 @@
     "api/worker/wrangler.jsonc":
       "473788e46e44a1858f015cde6742e35d053f77d17bb303c0cced969db1ef7b10",
     "docs/decision-contract.schema.json":
-      "3976db6616b0cf59e4e8b484a2ed7a8a585d0e5ae6e5e007fd4321af82fa14ea",
+      "d3dcffc1649d9ea4ae57e58c3059499cb9943cb1f762ce5c244d5227b3ee872f",
     "pipeline/agent_copy.py":
       "ef4e75fe8acb53d93f69d5eaf8681767993ea916fff318eca8051819148faf1f",
     "pipeline/entity.py":

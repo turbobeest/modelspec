@@ -45,10 +45,11 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-# 3.0 adds invalid_request to the decide HTTP refusal code enum. Decision
-# success fields are unchanged. Bounded stays at BOUNDED_VERSION. Named
-# comparison stays at MODEL_COMPARISON_VERSION.
-CONTRACT_VERSION = "3.0"
+# 2.20 lists invalid_request among the published decide HTTP refusal codes.
+# The service already returned it. The decision shape and every declared
+# range are unchanged. Bounded stays at BOUNDED_VERSION. Named comparison
+# stays at MODEL_COMPARISON_VERSION.
+CONTRACT_VERSION = "2.20"
 MODEL_COMPARISON_VERSION = "1.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────

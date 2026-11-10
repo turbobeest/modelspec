@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **3.0**
+Contract version: **2.20**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.5**. It does not carry a 2.x `contract_version`. See
@@ -683,7 +683,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "3.0",
+  "contract_version": "2.20",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -826,7 +826,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"3.0"`. |
+| `contract_version` | `"2.20"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1208,13 +1208,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"3.0"`. Every field the bounded body does carry has that
+  currently `"2.20"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or only `fields: null`, receive complete contract 3.0
+Requests with only `limit`, or only `fields: null`, receive complete contract 2.20
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1247,7 +1247,7 @@ estate lists. A drill-down can remove exclusion records to fit its own budget.
 are shareable, and the link fits the existing byte budget. It is absent with
 the flag off and from complete decisions. Visibility and storage await Jamie's
 approval; see [the draft design](design/decision-link.md). Adding this optional
-field widens no existing field. Complete decisions are 3.0; the bounded
+field widens no existing field. Complete decisions are 2.20; the bounded
 representation is 1.5 after MODEL-384.
 
 `next_move` is optional and additive in bounded 1.2. It is present on
@@ -1689,8 +1689,8 @@ restrict admission but cannot establish citation assurance.
 
 Evidence items and named-comparison evidence add the same optional citation
 field. No existing public response field becomes nullable or optional, and no
-closed value set widens. Complete decisions use 3.0 and named comparisons use
-1.1. The bounded representation remains 1.5 and projects complete contract 3.0.
+closed value set widens. Complete decisions use 2.20 and named comparisons use
+1.1. The bounded representation remains 1.5 and projects complete contract 2.20.
 The snapshot format moves to 2 so older readers cannot label cited evidence as
 verified. The citation change left the rank envelope at 1.0; the current rank
 envelope is 2.0. The public export remains 3.0. Both already carry cited
@@ -1848,8 +1848,8 @@ The named comparison has its own contract, version **1.1**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
-No Decision field changes range. The shared Decision contract is 3.0.
-The bounded projection is 1.5 with `projects_contract: "3.0"`.
+No Decision field changes range. The shared Decision contract is 2.20.
+The bounded projection is 1.5 with `projects_contract: "2.20"`.
 
 The success response is a `ModelComparison` with these fields:
 
@@ -2064,9 +2064,10 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **3.0, MODEL-458:** Adds `invalid_request` to the decide HTTP refusal code
-  enum. Decision success fields are unchanged. Bounded stays 1.5 and projects
-  3.0. Named comparison stays 1.1.
+- **2.20, MODEL-458:** The published HTTP refusal codes for decide now list
+  `invalid_request`, which the service already returned. The decision shape
+  and every declared range are unchanged, so this is not a major. Bounded
+  stays 1.5 and projects 2.20. Named comparison stays 1.1.
 
 - **MODEL-458, under 2.19 without a version change:** Band membership compares
   the unrounded probability with 0.25, the reported `p_beats_leader` is that

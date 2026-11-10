@@ -223,7 +223,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "3.0"
+    assert c.CONTRACT_VERSION == "2.20"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -793,10 +793,10 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
     from decision.bounded import project
 
     decision = c.Decision.model_validate(DECISION)
-    assert decision.model_dump(mode="json")["contract_version"] == "3.0"
+    assert decision.model_dump(mode="json")["contract_version"] == "2.20"
     bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
     assert bounded["bounded_version"] == "1.5"
-    assert bounded["projects_contract"] == "3.0"
+    assert bounded["projects_contract"] == "2.20"
     assert "contract_version" not in bounded
     c.BoundedDecision.model_validate(bounded)
 

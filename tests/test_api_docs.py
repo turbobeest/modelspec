@@ -221,7 +221,7 @@ def test_decide_response_description_uses_the_bounded_version(monkeypatch) -> No
     description = generator.build_spec()["paths"]["/v1/decide"]["post"]["responses"]["200"]["description"]
     assert description == (
         "A decision pinned to the snapshot that produced it: a complete "
-        "Decision (contract_version 3.0), with optional "
+        "Decision (contract_version 2.20), with optional "
         "top[].hardware_estimates and unknown_facets; or, when the request sends "
         "fields, evidence_for or router_config, the separate bounded representation "
         "(representation: bounded, bounded_version 7.9, no contract_version)."
@@ -1068,7 +1068,7 @@ def test_widened_output_ranges_took_a_contract_major() -> None:
     """Nullable fields, open maps and a new decide refusal code are majors."""
     assert service.SCHEMA_VERSION == "2.0"
     assert policy.SCHEMA_VERSION == "2.0"
-    assert decide.contract.CONTRACT_VERSION == "3.0"
+    assert decide.contract.CONTRACT_VERSION == "2.20"
     assert decide.contract.BOUNDED_VERSION == "1.5"
     assert decide.contract.MODEL_COMPARISON_VERSION == "1.1"
 

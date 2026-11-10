@@ -386,7 +386,7 @@ paths:
               limit: 3
       responses:
         '200':
-          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 3.0), with optional top[].hardware_estimates and
+          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.20), with optional top[].hardware_estimates and
             unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
             1.5, no contract_version).'
           content:
@@ -2348,7 +2348,7 @@ components:
       properties:
         representation: {const: bounded, type: string}
         bounded_version: {const: '1.5', type: string}
-        projects_contract: {const: '3.0', type: string}
+        projects_contract: {const: '2.20', type: string}
         decision_id: {type: string}
         snapshot: {type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2776,7 +2776,7 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
-        contract_version: {const: '3.0', default: '3.0', type: string}
+        contract_version: {const: '2.20', default: '2.20', type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', type: string}
         signature_verified: {default: false, type: boolean}
@@ -4149,7 +4149,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4194,7 +4194,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4221,7 +4221,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4242,7 +4242,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4269,7 +4269,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4285,7 +4285,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]
@@ -4312,7 +4312,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]
@@ -4574,7 +4574,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]

@@ -57,8 +57,8 @@ def _response_bytes_at_base_contract(response):
     body = response.body
     data = response.json()
     field = "projects_contract" if data.get("representation") == "bounded" else "contract_version"
-    assert data[field] == "3.0"
-    current = f'"{field}":"3.0"'
+    assert data[field] == "2.20"
+    current = f'"{field}":"2.20"'
     assert body.count(current) == 1
     body = body.replace(current, f'"{field}":"2.17"', 1)
     if data.get("representation") == "bounded":

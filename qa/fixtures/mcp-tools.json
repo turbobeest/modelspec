@@ -1,11 +1,11 @@
 {
   "source_hashes": {
     "api/worker/openapi.yaml":
-      "e613416e9e93860c63975f92e8da31042a62aa710bb8db82f7eeea5b730185ab",
+      "e6024dd5cf48416166b53bcf5e4a49db5a9b28ab70149ff6a9c6ea2c4c6674e0",
     "docs/agents.md":
       "f388412bbb28eaece530bae22ffed2822b7480f36302b4e05916c8c6f9439028",
     "docs/decision-contract.schema.json":
-      "3976db6616b0cf59e4e8b484a2ed7a8a585d0e5ae6e5e007fd4321af82fa14ea",
+      "d3dcffc1649d9ea4ae57e58c3059499cb9943cb1f762ce5c244d5227b3ee872f",
     "mcp/src/agent-copy.json":
       "e96214d3414d787ac61b8a5e2f1ac8060d18766bde74a66a8c2b1c0551d5b96a",
     "mcp/src/server.ts":
@@ -13,7 +13,7 @@
     "mcp/src/vocabulary.ts":
       "b500f45f6ea016386ec0a02efa095c5ff1a79674c2823ad48e2fd06b63298c04",
     "mcp/test/fixtures/decide-budget.json":
-      "39eb1d690e81cbcb8e1b720a9cb5a1ac15f05ee7a6e5b24919e97033178eb042"
+      "e191df82cd5084e9e4d1af093b99308b9de8b4084c5fad401f511182a778b200"
   },
   "tools": [
     {
