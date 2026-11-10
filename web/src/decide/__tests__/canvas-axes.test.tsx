@@ -367,13 +367,17 @@ it("draws capability intervals on either axis and leaves no-data models at the m
   expect(notPlotted.open).toBe(false);
   expect(notPlotted.querySelector("summary")).toHaveTextContent(/^1 model not plotted \(no data\)$/);
   expect(notPlotted).toHaveTextContent("lab/alpha");
-  fireEvent.keyDown(within(canvas).getByRole("slider", { name: "Software engineering capability Must threshold" }), {
+  const threshold = within(canvas).getByRole("slider", { name: "Software engineering capability Must threshold" });
+  expect(fireEvent.keyDown(threshold, {
     key: "ArrowRight",
-  });
+  })).toBe(false);
   expect(onMust).toHaveBeenCalledWith(
     expect.objectContaining({ id: "capability:software_engineering", mustOp: ">=" }),
     expect.any(Number),
   );
+  const changes = onMust.mock.calls.length;
+  expect(fireEvent.keyDown(threshold, { key: "Tab" })).toBe(true);
+  expect(onMust).toHaveBeenCalledTimes(changes);
 });
 
 it("renders a date against a capability without optimizing the date", () => {

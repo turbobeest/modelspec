@@ -661,6 +661,7 @@ def test_missing_published_snapshot_is_retryable(service) -> None:
     assert compare_body["endpoint"] == "compare"
 
 
+@pytest.mark.perf
 def test_explain_none_p95_is_under_200_ms(service) -> None:
     raw = build_snapshot(thirty_models()).to_bytes(key=KEY)
     snapshot = service.load_snapshot(raw, key=KEY)
@@ -684,6 +685,7 @@ def test_explain_none_p95_is_under_200_ms(service) -> None:
     assert p95 < 200, f"warm in-process p95 was {p95:.2f} ms"
 
 
+@pytest.mark.perf
 def test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget(service) -> None:
     """Guard the Worker cold path with the repository's published data shape."""
     built = build_snapshot(

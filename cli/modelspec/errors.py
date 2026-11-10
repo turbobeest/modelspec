@@ -40,7 +40,7 @@ def guide_version_notice(as_json: bool) -> None:
         "next": next_steps("upgrade"),
     }
     typer.echo(
-        json.dumps(notice)
+        json.dumps(notice, allow_nan=False)
         if as_json
         else "\n".join([TEXT["guide_changed"], TEXT["next_label"], *notice["next"]]),
         err=True,
@@ -52,9 +52,9 @@ def fail(error: ClientError, *, command: str, as_json: bool) -> NoReturn:
         if error.guide_changed:
             guide_version_notice(as_json)
         if as_json:
-            typer.echo(json.dumps(error.body, ensure_ascii=False))
+            typer.echo(json.dumps(error.body, ensure_ascii=False, allow_nan=False))
         else:
-            typer.echo(json.dumps(error.body, indent=2, ensure_ascii=False))
+            typer.echo(json.dumps(error.body, indent=2, ensure_ascii=False, allow_nan=False))
         raise typer.Exit(error.exit_code)
     payload = dict(error.body or {})
     payload.setdefault("schema_version", "2.0")
@@ -74,11 +74,13 @@ def fail(error: ClientError, *, command: str, as_json: bool) -> NoReturn:
     )
     payload["next"] = list(dict.fromkeys([*prior_steps, *error.next]))
     if as_json:
-        typer.echo(json.dumps(payload, ensure_ascii=False))
+        typer.echo(json.dumps(payload, ensure_ascii=False, allow_nan=False))
     else:
         typer.echo(payload["error"].get("message") or TEXT["errors"]["http_error"], err=True)
-        for issue in error.issues or payload["error"].get("issues", []):
-            typer.echo(json.dumps(issue, ensure_ascii=False), err=True)
+        issues = error.issues or payload["error"].get("issues", [])
+        if isinstance(issues, list):
+            for issue in issues:
+                typer.echo(json.dumps(issue, ensure_ascii=False, allow_nan=False), err=True)
         typer.echo(TEXT["next_label"], err=True)
         for step in payload["next"]:
             typer.echo(step, err=True)

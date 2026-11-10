@@ -561,7 +561,7 @@ def excluded_benchmark_impacts(snapshot, decision, result_rows, shown_domains):
 
 def explain(
     decision, resolved, snapshot, filtered, ordered, selectors, domains, *,
-    comparison=False,
+    comparison=False, reach=None,
 ):
     requested = set(resolved.spec.capabilities or {})
     result_rows = list(zip(decision.results, ordered.results))
@@ -577,7 +577,7 @@ def explain(
         requested | (named_facets(resolved) & set(domains)),
     )
     decision.eliminated.funnel = [step.as_contract() for step in filtered.funnel]
-    _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains)
+    _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains, reach)
     from decision.contract import TippingPoint
 
     decision.tipping_points = [
@@ -620,7 +620,7 @@ def _distance(reason, condition):
     return None
 
 
-def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains):
+def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains, reach):
     from dataclasses import replace
 
     from decision.contract import (
@@ -659,10 +659,9 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
         if condition.soft is not None:
             continue
         text = render_condition(condition)
-        single = apply(replace(resolved, conditions=(condition,)), snapshot)
         relaxed = apply(
             replace(resolved, conditions=resolved.conditions[:i] + resolved.conditions[i + 1 :]),
-            snapshot,
+            snapshot, reach,
         )
         alternative = run_optimise(snapshot, relaxed, resolved.spec, selectors, domains)
         gains, units, records, bests = {}, {}, set(), {}
@@ -693,7 +692,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                 records=sorted(records),
             )
         )
-        for reason in single.eliminated:
+        for reason in filtered.eliminated:
             if reason._condition != condition:
                 continue
             is_collection = isinstance(reason.value, (tuple, list))

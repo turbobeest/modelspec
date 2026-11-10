@@ -140,14 +140,33 @@ def merge(original: str, client: dict[str, Any]) -> str:
     return _insert(text, end, key="modelspec", value=value, populated=bool(servers))
 
 
-def _redacted(text: str) -> str:
-    # Diff context is zero lines. Only a replaced ModelSpec entry can appear.
-    text = re.sub(r'(Bearer\s+)(?!\$\{|<)([^"\s]+)', r"\1[redacted]", text)
-    return re.sub(
-        r'((?:AUTH_HEADER|API_KEY|api_key|token|password|secret)["\s]*[:=]\s*")(?!\$\{|<)[^"]*',
-        r"\1[redacted]",
-        text,
-    )
+def _review_entry(original: str, client: dict[str, Any]) -> str:
+    """Display only the selected entry, with decoded credential values masked."""
+    document = (tomllib.loads(original) if client["format"] == "toml"
+                else json.loads(original or "{}"))
+    entry = document.get(client["table"], {}).get("modelspec")
+    if entry is None:
+        return ""
+
+    def scrub(value: Any, sensitive: bool = False) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: scrub(
+                    item,
+                    sensitive or key.lower() in {"headers", "http_headers", "env", "args"}
+                    or bool(re.search(r"auth|api.?key|token|password|secret", key, re.I)),
+                )
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [scrub(item, sensitive) for item in value]
+        if sensitive:
+            return "[redacted]"
+        if isinstance(value, str):
+            return re.sub(r"(Bearer\s+)\S+", r"\1[redacted]", value, flags=re.I)
+        return value
+
+    return json.dumps({client["table"]: {"modelspec": scrub(entry)}}, indent=2, default=str) + "\n"
 
 
 def prepare(name: str, override: str | None) -> tuple[dict[str, Any], str]:
@@ -224,8 +243,9 @@ def write(name: str, override: str | None, *, yes: bool, as_json: bool) -> dict[
         }
     diff = "".join(
         difflib.unified_diff(
-            _redacted(original).splitlines(keepends=True),
-            _redacted(proposed).splitlines(keepends=True),
+            _review_entry(original, client).splitlines(keepends=True),
+            (json.dumps({client["table"]: {"modelspec": client["server"]}}, indent=2)
+             + "\n").splitlines(keepends=True),
             fromfile=str(path),
             tofile=str(path),
             n=0,

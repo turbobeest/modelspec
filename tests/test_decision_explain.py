@@ -566,3 +566,53 @@ def test_full_explains_multiple_measurements_failing_an_evidence_window(tmp_path
     assert reason.value is None
     assert reason.values == [40, 50]
     assert len(reason.records) == 2
+
+
+@pytest.mark.parametrize("relative", [
+    ["model.context_window >= best(0)"],
+    ["all(model.context_window >= best(0); model.max_output_tokens >= 5)"],
+    ["model.context_window >= best(0)", "model.max_output_tokens >= best(0)"],
+    ["model.max_output_tokens >= best(0)", "model.context_window >= best(0)"],
+])
+def test_full_explanation_uses_the_same_best_anchor_as_filtering(relative):
+    index = loaded_index({
+        "lab/a": {"model.context_window": 100, "model.max_output_tokens": 1},
+        "lab/b": {"model.context_window": 10, "model.max_output_tokens": 10},
+        "lab/c": {"model.context_window": 8, "model.max_output_tokens": 10},
+    })
+    requested = spec(
+        where=["model.max_output_tokens >= 5", *relative],
+        optimize={"max": "model.context_window"}, capabilities={},
+    )
+    result = decide(requested, index, facets=facets)
+    assert [row.model for row in result.results] == ["lab/b"]
+    assert {row.model for row in result.eliminated.models} == {"lab/a", "lab/c"}
+    near = {row.offering.model: row.distance for row in result.near_misses}
+    assert "lab/c" in near
+    if relative == ["model.context_window >= best(0)"]:
+        assert near == {"lab/a": 4, "lab/c": 2}
+
+
+@pytest.mark.parametrize("where, admits, gain", [
+    (["model.context_window >= 50"], 2, {}),
+    (["model.context_window <= 5"], 1, {"model.context_window": 9}),
+])
+def test_constraint_costs_keep_the_requested_access_reach(where, admits, gain):
+    from decision.snapshot import load_built_snapshot
+    from tests.snapshot_records import model, offering
+
+    built = build_snapshot(SnapshotInputs(
+        models=[model("lab/api", context=1), model("lab/api-high", context=10),
+                model("lab/local-only", context=100)],
+        offerings=[offering("lab/api"), offering("lab/api-high")], sources=SOURCES,
+    ), gate=False, as_of=date(2026, 9, 25))
+    index = load_built_snapshot(built, include_archive=True)
+    requested = spec(where=where, access="own_software",
+                     optimize={"max": "model.context_window"}, capabilities={})
+    result = decide(requested, index, facets=facets)
+    rerun = decide(requested.model_copy(update={"where": []}), index, facets=facets)
+    (cost,) = result.constraint_costs
+    assert cost.admits == admits == len(rerun.results) - len(result.results)
+    assert cost.gain == gain
+    if not result.results:
+        assert result.relax_single.gates[0].admits == admits

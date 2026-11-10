@@ -1878,6 +1878,7 @@ def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> Non
     assert mcp_text_bytes(drilled) <= AGENT_BYTES
 
 
+@pytest.mark.perf
 def test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast() -> None:
     import time
 

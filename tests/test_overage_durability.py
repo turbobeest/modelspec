@@ -420,3 +420,35 @@ def test_an_exhausted_overage_cap_still_drains_a_lost_commit_report(
     run(_charge(entry, env, holder, enabled=enabled))
     assert len(stripe.attempts) == 1
     assert run(ledger.balance(holder)).overage_used == 100
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("success", [False, True])
+def test_rotation_before_completion_reports_successful_overage_once(entry, namespace, enabled, success):
+    async def scenario():
+        ledger = credits.DurableLedger(namespace)
+        src, dst = "key:completion-source", "key:completion-destination"
+        await ledger.set_monthly(src, 0, "in_completion", "Scale", "cus_durable")
+        stripe = _Stripe()
+        env = SimpleNamespace(CREDITS=namespace, STRIPE_SECRET_KEY="sk_test_fixture")
+        entry.fetch = stripe.fetch
+        async def produce():
+            assert await ledger.transfer(src, dst)
+            namespace.restart()
+            return await _ok() if success else (500, {"error": {"code": "fixture"}})
+        async def report(value, identifier):
+            await entry._post_overage(env, _overage_spec(), "cus_durable", value, identifier, holder=src)
+        status, _ = await x402.charge(
+            config=_cfg(enabled=enabled), ledger=ledger, facilitator=StubFacilitator(),
+            get_header=lambda _: None, holder=src, resource_url=RESOURCE, envelope=ENVELOPE,
+            produce=produce, units=5, overage_cap=100, on_overage=report)
+        assert status == (200 if success else 500)
+        await report(0, "")
+        actual = await ledger.balance(dst)
+        assert actual.reserved == 0
+        assert actual.overage_used == (5 if success else 0)
+        assert stripe.units() == (5 if success else 0)
+        assert len(stripe.accepted) == (1 if success else 0)
+        assert not (await ledger.reserve(src, 1, overage_cap=100)).ok
+        assert set(namespace.stored()["accounts"]) == {dst}
+    run(scenario())

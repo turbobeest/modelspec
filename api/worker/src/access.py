@@ -191,6 +191,7 @@ async def serve(
     log: Callable[[str, dict[str, Any]], None] | None = None,
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
     skip_limits: Callable[[KeyRecord, TierLimits], Awaitable[bool]] | None = None,
+    require_live_data: bool = False,
 ) -> Outcome:
     """Classify, meter, answer. The only entry point this package offers."""
     moment = now or datetime.now(UTC)
@@ -219,6 +220,11 @@ async def serve(
     # The sandbox short-circuit. Before the key store, before the export,
     # before anything that could be called a data path.
     if keys.is_sandbox(key, policy):
+        if require_live_data:
+            status, body = refusal(
+                SANDBOX_NOT_AVAILABLE, "Use a key authorized for live catalogue data.",
+                envelope=shell)
+            return Outcome(status, body, {}, ("key.sandbox",))
         tier = policy.tier(policy.sandbox_tier)
         if not tier.live_data:
             note("key.sandbox", key_id=identifier, tier=tier.name)
@@ -255,6 +261,14 @@ async def serve(
         status, body = _refusal(
             HTTP_MISCONFIGURED, TIER_NOT_CONFIGURED,
             f"this key names a tier the service is not configured for: {exc}",
+            envelope=shell)
+        return Outcome(status, body, {}, tuple(trace), tier=record.tier,
+                       key_id=record.key_id)
+
+    if require_live_data and not tier.live_data:
+        note("tier.not_live", key_id=record.key_id, tier=tier.name)
+        status, body = refusal(
+            SANDBOX_NOT_AVAILABLE, "Use a key authorized for live catalogue data.",
             envelope=shell)
         return Outcome(status, body, {}, tuple(trace), tier=record.tier,
                        key_id=record.key_id)
@@ -305,6 +319,7 @@ async def gate(
     anonymous_tier: str = "free",
     require_key: bool = False,
     skip_limits: Callable[[KeyRecord, TierLimits], Awaitable[bool]] | None = None,
+    require_live_data: bool = False,
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
 
@@ -315,6 +330,8 @@ async def gate(
 
     `require_key` prevents both anonymous paths regardless of the enforcement
     switch or an admitted browser identity.
+    `require_live_data` additionally requires a live key and a tier authorized
+    for live data before any limits or producer callbacks run.
 
     **Enforcement off** (the shipped default, until keys can be obtained): a
     request with no key is answered by `anonymous` exactly as it was before this
@@ -390,7 +407,8 @@ async def gate(
     try:
         return await serve(api_key=api_key, kv=kv, policy=policy, live=live_for,
                            sandbox=sandbox, envelope=shell, now=now, log=log,
-                           limits_for=limits_for, skip_limits=skip_limits)
+                           limits_for=limits_for, skip_limits=skip_limits,
+                           require_live_data=require_live_data)
     except StoreNotConfigured as exc:
         status, body = refusal(
             STORE_NOT_CONFIGURED,

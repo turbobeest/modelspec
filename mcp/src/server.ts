@@ -87,6 +87,7 @@ const rankInput = z
         hosting: z.enum(["local", "self_hosted", "managed_api"]).nullable().optional(),
         runtime: z.string().nullable().optional(),
       })
+      .strict()
       .optional(),
     constraints: z
       .object({
@@ -95,6 +96,7 @@ const rankInput = z
         price_sensitivity: z.number().nullable().optional(),
         include_rehosts: z.boolean().nullable().optional(),
       })
+      .strict()
       .optional(),
     limit: z.number().int().min(0).max(100).optional(),
   })
@@ -110,24 +112,28 @@ const policyInput = z
             allowed: z.array(z.string()).optional(),
             prohibited: z.array(z.string()).optional(),
           })
+          .strict()
           .optional(),
         origin: z
           .object({
             permitted_countries: z.array(z.string()).optional(),
             prohibited_countries: z.array(z.string()).optional(),
           })
+          .strict()
           .optional(),
         residency: z
           .object({
             required_regions: z.array(z.string()).optional(),
             match: z.enum(["any", "all"]).optional(),
           })
+          .strict()
           .optional(),
         commercial_use: z
           .object({
             required: z.boolean().optional(),
             accept_restricted: z.boolean().optional(),
           })
+          .strict()
           .optional(),
       })
       .passthrough(),
@@ -562,6 +568,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
     "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
     "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "relax_single", "feedback",
     "reading", "coverage", "summary_for_user", "must_mention", "next_move", "member_evidence",
+    "with_estate", "relax_task_tokens", "excluded_plans",
   ]) {
     if (key in body) notice[key] = body[key];
   }
@@ -665,6 +672,14 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const fitted = { ...envelope, body: bare };
   if (withinBudget(fitted)) return fitted;
   const omitted = noticeOmitted(bare);
+  if (Array.isArray(bare.excluded_plans)) {
+    const plans = [...bare.excluded_plans];
+    bare.excluded_plans = plans;
+    while (plans.length > 0 && !withinBudget(fitted)) {
+      plans.pop();
+      addCount(omitted, "excluded_plans", 1);
+    }
+  }
   for (const key of ["reading", "feedback", "relax", "relax_to", "relax_task_tokens", "relax_single", "with_estate"]) {
     if (withinBudget({ ...envelope, body: bare })) break;
     if (!(key in bare)) continue;
@@ -780,6 +795,26 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     if (refusal) return refusal;
     return fetchOrigin(origin, postInit(body, authorization), env.RANK);
   }
+  async function fetchStaticData(origin: string) {
+    const refusal = missingKey(origin);
+    if (refusal) return refusal;
+    const authOrigin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/auth-check`;
+    const headers = new Headers({ "cache-control": "no-store" });
+    if (authorization) headers.set("authorization", authorization);
+    const checked = await fetchOrigin(authOrigin, { headers }, env.RANK);
+    if (checked.status === 0 || checked.status >= 400) return checked;
+    if (checked.status !== 200 || !z.strictObject({ authenticated: z.literal(true) }).safeParse(checked.body).success) {
+      return {
+        origin: authOrigin,
+        status: 502,
+        body: { error: {
+          code: "authentication_unavailable",
+          message: "The origin did not confirm live data authorization. Retry later.",
+        } },
+      };
+    }
+    return fetchOrigin(origin);
+  }
 
   const serverInfo = { name: "modelspec", version: env.BUILD_COMMIT };
   const mcpServer = new McpServer(
@@ -834,9 +869,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         }
         return asToolResult(envelope);
       }
-      const refusal = missingKey(located.origin);
-      if (refusal) return asToolResult(refusal);
-      return asToolResult(await fetchOrigin(located.origin));
+      return asToolResult(await fetchStaticData(located.origin));
     },
   );
 
@@ -848,9 +881,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async () => {
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/rank/profiles.json`;
-      const refusal = missingKey(origin);
-      if (refusal) return asToolResult(refusal);
-      return asToolResult(await fetchOrigin(origin));
+      return asToolResult(await fetchStaticData(origin));
     },
   );
 
@@ -930,12 +961,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       if (args.offset !== undefined) query.set("offset", String(args.offset));
       if (args.limit !== undefined) query.set("limit", String(args.limit));
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
-      if (!split) {
-        const refusal = missingKey(origin);
-        if (refusal) return asToolResult(refusal);
-      }
-      const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchOrigin(origin);
-      if (envelope.status < 400 && isRecord(envelope.body)) {
+      const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchStaticData(origin);
+      if (envelope.status > 0 && envelope.status < 400 && isRecord(envelope.body)) {
         // Older Workers ignore lookup parameters and return the full vocabulary.
         // Keep agent responses compact while the two Workers roll out independently.
         const selected = split && !("vocabulary_version" in envelope.body)

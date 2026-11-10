@@ -875,15 +875,13 @@ class _Run:
         key = id(cond)
         if key in self.unknown_leaf_facets:
             return self.unknown_leaf_facets[key]
-        if isinstance(cond, NotOf):
-            return self._unknown_facets(cond.not_, bit)
         children = _children(cond)
         if children:
             found: list[str] = []
             for child in children:
                 if child.soft is not None:
                     continue
-                if self._eval(child).unknown & bit:
+                if self._presented(child, self._eval(child)).unknown & bit:
                     for facet_id in self._unknown_facets(child, bit):
                         if facet_id not in found:
                             found.append(facet_id)

@@ -81,4 +81,5 @@ def test_flag_off_response_equals_main(worker, name):
     if expected["status"] == 404:
         accepted = expected["body"]["error"]["accepted"]
         accepted.insert(accepted.index("POST /v1/feedback"), "POST /v1/hardware-fit")
+        accepted.insert(accepted.index("POST /v1/billing/checkout"), "GET /v1/auth-check")
     assert actual == expected
