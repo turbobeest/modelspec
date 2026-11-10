@@ -78,10 +78,13 @@ class CreditsObject(DurableObject):
         self._save(state)
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                         units: int, plan: str = "", customer_id: str = "") -> dict[str, Any]:
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> dict[str, Any]:
         state = self._stored()
-        result = state.fund_claim(str(holder), str(claim_id), str(invoice_id),
-                                  int(units), str(plan), str(customer_id))
+        result = state.fund_claim(
+            str(holder), str(claim_id), str(invoice_id),
+            int(units), str(plan), str(customer_id),
+            subscription_id=str(subscription_id or ""))
         self._save(state)
         return result.to_json()
 
@@ -130,20 +133,24 @@ class CreditsObject(DurableObject):
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0, period_start: int = 0) -> dict[str, Any]:
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> dict[str, Any]:
         state = self._stored()
         result = state.set_monthly(holder, int(units), str(invoice_id),
                                    str(plan or ""), str(customer_id or ""),
                                    period_end=int(period_end or 0),
-                                   period_start=int(period_start or 0))
+                                   period_start=int(period_start or 0),
+                                   subscription_id=str(subscription_id or ""))
         self._save(state)
         return result.to_json()
 
     async def clear_monthly(self, holder: str, period_end: int = 0,
-                            watermark: int = 0) -> dict[str, Any]:
+                            watermark: int = 0,
+                            subscription_id: str = "") -> dict[str, Any]:
         state = self._stored()
         result = state.clear_monthly(str(holder), period_end=int(period_end or 0),
-                                     watermark=int(watermark or 0))
+                                     watermark=int(watermark or 0),
+                                     subscription_id=str(subscription_id or ""))
         self._save(state)
         return result.to_json()
 

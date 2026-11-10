@@ -832,22 +832,46 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
     if existing is not None and (
             (existing.invoice_id and not recovers_initial) or
             existing.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES):
-        await store.link_current_checkout(
+        linked = await store.link_current_checkout(
             kv, existing, session_id=session_id, key_fingerprint=fingerprint,
             policy=policy, ledger=ledger)
+        if linked == "stale":
+            return "ignored", None
+        if linked == "granted" and not isinstance(ledger, credits.UnboundLedger):
+            await _sync_entitlement_tier(
+                kv, subscription_id, ledger=ledger, policy=policy)
+            return "credited", None
         return ("already_entitled" if existing.status == store.STATUS_ACTIVE
                 else "ignored"), None
+    invoice_id = initial_invoice or f"checkout:{session_id}"
+    # Ask the ledger before any row or key write. A stale no-period grant for
+    # the cancelled subscription must leave both as they were.
+    probed = None
+    if (fingerprint and ledger is not None
+            and not isinstance(ledger, credits.UnboundLedger)
+            and await keys.lookup_fingerprint(kv, fingerprint) is not None):
+        try:
+            probed = await ledger.set_monthly(
+                credits.holder_from_fingerprint(fingerprint),
+                mapping.credits, invoice_id, mapping.name,
+                _id(obj.get("customer")), subscription_id=subscription_id)
+        except credits.StoreNotConfigured:
+            probed = None
+        if isinstance(probed, dict):
+            probed = credits.CreditResult.from_json(probed)
+        if probed is not None and probed.reason == "stale":
+            return "ignored", None
     action, record = await store.record_entitlement(
         kv, subscription_id=subscription_id,
         customer_id=_id(obj.get("customer")), price_id=price_id, tier=mapping.tier,
         session_id=session_id, now=now, policy=policy,
         pending_monthly=mapping.credits,
-        pending_invoice_id=initial_invoice or f"checkout:{session_id}",
+        pending_invoice_id=invoice_id,
         plan_name=mapping.name, plan_credits=mapping.credits, key_fingerprint=fingerprint)
     grant = await store.grant_monthly(
         kv, subscription_id, ledger=ledger, units=mapping.credits,
-        invoice_id=initial_invoice or f"checkout:{session_id}", plan=mapping.name)
-    if grant == "granted":
+        invoice_id=invoice_id, plan=mapping.name)
+    if (probed is not None and probed.credited) or grant == "granted":
         action = "credited" if action in {"entitled", "already_entitled"} else action
         if not isinstance(ledger, credits.UnboundLedger):
             await _sync_entitlement_tier(

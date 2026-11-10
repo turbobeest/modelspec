@@ -342,24 +342,40 @@ async def _link_session(kv: Any, session_id: str, subscription_id: str, *,
 
 async def link_current_checkout(kv: Any, stored: SubscriptionRecord, *,
                                 session_id: str, key_fingerprint: str,
-                                policy: AccessPolicy, ledger: Any) -> None:
-    """Link Checkout using the subscription's current entitlement."""
+                                policy: AccessPolicy, ledger: Any) -> str:
+    """Link Checkout using the subscription's current entitlement.
+
+    A pending allowance is granted before the key is attached. A stale grant
+    leaves the row and the key alone, and leaves `pending_monthly` in place.
+    """
+    grant = ""
     if key_fingerprint and not stored.key_fingerprint:
+        grant = await _grant_pending_monthly(
+            ledger, replace(stored, key_fingerprint=key_fingerprint),
+            invoice_id=f"claim:{stored.subscription_id}")
+        if grant == "stale":
+            await _link_session(
+                kv, session_id, stored.subscription_id, price_id=stored.price_id,
+                credits_amount=stored.plan_credits, customer_id=stored.customer_id,
+                key_fingerprint=stored.key_fingerprint)
+            return "stale"
         attached = await attach_existing_key(
             kv, fingerprint_hex=key_fingerprint,
             subscription_id=stored.subscription_id, tier=stored.tier, policy=policy)
         if attached is not None:
-            stored = replace(stored, key_fingerprint=key_fingerprint,
-                             key_id=attached.key_id)
-            await _write_sub(kv, stored)
-            await _grant_pending_monthly(
-                ledger, stored, invoice_id=f"claim:{stored.subscription_id}")
-            stored = replace(stored, pending_monthly=0)
+            fields: dict[str, Any] = {
+                "key_fingerprint": key_fingerprint,
+                "key_id": attached.key_id,
+            }
+            if grant in {"granted", "replay"}:
+                fields["pending_monthly"] = 0
+            stored = replace(stored, **fields)
             await _write_sub(kv, stored)
     await _link_session(
         kv, session_id, stored.subscription_id, price_id=stored.price_id,
         credits_amount=stored.plan_credits, customer_id=stored.customer_id,
-        key_fingerprint=stored.key_fingerprint)
+        key_fingerprint=key_fingerprint or stored.key_fingerprint)
+    return grant
 
 
 async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
@@ -562,16 +578,22 @@ def _pack_expiry(now: datetime, policy: AccessPolicy) -> str:
 
 
 async def _grant_pending_monthly(ledger: Any, stored: SubscriptionRecord,
-                                 invoice_id: str) -> None:
+                                 invoice_id: str) -> str:
     if ledger is None or not stored.key_fingerprint or stored.pending_monthly < 1:
-        return
+        return "skipped"
     holder = credits.holder_from_fingerprint(stored.key_fingerprint)
     try:
-        await ledger.set_monthly(
+        result = await ledger.set_monthly(
             holder, stored.pending_monthly, stored.pending_invoice_id or invoice_id,
-            stored.plan_name, stored.customer_id)
+            stored.plan_name, stored.customer_id,
+            subscription_id=stored.subscription_id)
     except credits.StoreNotConfigured:
-        return
+        return "store_unbound"
+    if isinstance(result, dict):
+        result = credits.CreditResult.from_json(result)
+    if result.reason == "stale":
+        return "stale"
+    return "granted" if result.credited else result.reason or "duplicate"
 
 
 def _pack_mapping(session: SessionRecord, policy: AccessPolicy):
@@ -630,6 +652,9 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
     payment_id = f"pack:{session_id}" if pack else f"claim:{subscription_id}"
     selected = await ledger.claim_state(payment_id)
     if selected is not None and selected["stage"] == "complete":
+        if not pack and stored.pending_monthly:
+            stored = replace(stored, pending_monthly=0)
+            await _write_sub(kv, stored)
         nonce = str(selected.get("nonce") or "")
         if not nonce:
             return ClaimResult(record=stored, consumed=True)
@@ -704,7 +729,8 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
         if mapping is not None:
             await keys.set_tier(kv, fingerprint_hex, mapping.tier, policy=policy)
     else:
-        await _write_sub(kv, replace(stored, pending_monthly=0))
+        await _write_sub(kv, replace(
+            stored, pending_monthly=0 if pack else stored.pending_monthly))
         await _write_keyref(kv, fingerprint_hex, subscription_id)
     await _write_session(kv, replace(session, claimed=True))
 
@@ -713,8 +739,10 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             result = await ledger.credit(holder, payment_id, amount, session_id,
                                          expires_at=_pack_expiry(now, policy), source="pack")
         else:
-            result = await ledger.fund_claim(holder, payment_id, invoice_id, amount,
-                                             stored.plan_name, stored.customer_id)
+            result = await ledger.fund_claim(
+                holder, payment_id, invoice_id, amount,
+                stored.plan_name, stored.customer_id,
+                subscription_id=stored.subscription_id)
         if isinstance(result, dict):
             result = credits.CreditResult.from_json(result)
         if not result.credited and result.reason not in {"replay", "refunded"}:
@@ -723,6 +751,9 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             await ledger.finish_claim(payment_id)
     else:
         await ledger.finish_claim(payment_id)
+    if not pack and stored.pending_monthly:
+        stored = replace(stored, pending_monthly=0)
+        await _write_sub(kv, stored)
     shown = ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
                         minted=not bound, attached=bound)
     if nonce:
@@ -811,10 +842,15 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
                 credits.holder_from_fingerprint(stored.key_fingerprint),
                 units, invoice_id, plan, stored.customer_id,
                 period_end=int(period_end or 0),
-                period_start=int(period_start or 0))
+                period_start=int(period_start or 0),
+                subscription_id=subscription_id)
             if result.reason == "stale":
                 return "stale"
-            if result.credited and stored.pending_monthly:
+            accepted = result.credited or (
+                result.reason == "replay" and (
+                    not stored.pending_invoice_id
+                    or stored.pending_invoice_id == invoice_id))
+            if accepted and stored.pending_monthly:
                 await _write_sub(kv, replace(stored, pending_monthly=0,
                                              plan_name=plan or stored.plan_name,
                                              plan_credits=units or stored.plan_credits))
@@ -843,7 +879,8 @@ async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any,
         try:
             result = await ledger.clear_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
-                period_end=int(period_end or 0), watermark=int(watermark or 0))
+                period_end=int(period_end or 0), watermark=int(watermark or 0),
+                subscription_id=subscription_id)
         except credits.StoreNotConfigured:
             return "store_unbound"
         if result.reason == "stale":

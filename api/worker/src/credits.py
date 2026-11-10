@@ -560,6 +560,8 @@ class _Account:
     paid_period_start: int = 0
     # Terminal cancellation time. 0 means this row has no cancellation.
     canceled_at: int = 0
+    # Subscription that cancellation belongs to. Empty means the id was not stored.
+    canceled_subscription_id: str = ""
     # Accepted set_monthly opens the entitlement; accepted clear_monthly closes it.
     # The generation increases on each of those, so one read is the implied tier
     # and whether a later allowance write has landed.
@@ -615,6 +617,7 @@ class _Account:
             "invoice_period_watermark": self.invoice_period_watermark,
             "paid_period_start": self.paid_period_start,
             "canceled_at": self.canceled_at,
+            "canceled_subscription_id": self.canceled_subscription_id,
             "entitlement_generation": self.entitlement_generation,
             "monthly_entitled": self.monthly_entitled,
             "available": self.monthly + sum(g.remaining for g in self.packs if g.remaining > 0),
@@ -683,6 +686,7 @@ class _Account:
             invoice_period_watermark=int(data.get("invoice_period_watermark") or 0),
             paid_period_start=int(data.get("paid_period_start") or 0),
             canceled_at=int(data.get("canceled_at") or 0),
+            canceled_subscription_id=str(data.get("canceled_subscription_id") or ""),
             entitlement_generation=int(data.get("entitlement_generation") or 0),
             monthly_entitled=bool(data.get("monthly_entitled") or False),
             reserved=int(data.get("reserved") or 0),
@@ -725,6 +729,21 @@ def _period_predates_cancellation(period_start: int, period_end: int,
     if period_start:
         return period_start < canceled_at
     return period_end <= canceled_at
+
+
+def _cancellation_blocks_grant(period_start: int, period_end: int, canceled_at: int,
+                               grant_subscription: str, canceled_subscription: str) -> bool:
+    """Whether this grant is stale because of a stored cancellation.
+
+    Both subscription ids known and different: that cancellation does not apply.
+    Either id unknown, or the same id: the period rule applies. No period is stale.
+    """
+    if not canceled_at:
+        return False
+    if (grant_subscription and canceled_subscription
+            and grant_subscription != canceled_subscription):
+        return False
+    return _period_predates_cancellation(period_start, period_end, canceled_at)
 
 
 def _completed_claim(claim: dict[str, Any] | None) -> dict[str, Any]:
@@ -890,7 +909,8 @@ class LedgerState:
         rec.pop("pending", None)
 
     def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                   units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+                   units: int, plan: str = "", customer_id: str = "",
+                   subscription_id: str = "") -> CreditResult:
         rec = self.payments.get(claim_id)
         claim = rec.get("claim") if rec is not None else None
         if claim is None or rec.get("holder") != holder:
@@ -899,7 +919,9 @@ class LedgerState:
             return CreditResult(False, "replay", int(rec.get("units") or 0))
         if claim.get("holder") != holder:
             return CreditResult(False, "conflict", 0)
-        result = self.set_monthly(holder, units, invoice_id, plan, customer_id)
+        result = self.set_monthly(
+            holder, units, invoice_id, plan, customer_id,
+            subscription_id=subscription_id)
         if result.credited or result.reason == "replay":
             self.finish_claim(claim_id)
         return result
@@ -1038,7 +1060,8 @@ class LedgerState:
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
                     plan: str = "", customer_id: str = "",
-                    period_end: int = 0, period_start: int = 0) -> CreditResult:
+                    period_end: int = 0, period_start: int = 0,
+                    subscription_id: str = "") -> CreditResult:
         """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id.
 
         A new invoice zeroes overage used this period.
@@ -1047,9 +1070,10 @@ class LedgerState:
         watermark is stale and does not change the allowance. An equal end with
         a different invoice id applies. The same invoice id is a replay.
         `period_start` of 0 leaves a stored start alone.
-        A period that starts before `canceled_at` is stale. With no start, a
-        period that ends at or before `canceled_at` is stale. No period at all
-        is stale while a cancellation is stored. An accepted period clears it.
+        A cancellation applies when `subscription_id` matches the stored one,
+        or when either id is unknown. A different known subscription is not
+        stale because of it. No period is stale under that rule. An accepted
+        grant clears the stored cancellation.
         """
         holder = self._funding_holder(holder)
         rec = self.payments.get(invoice_id)
@@ -1064,9 +1088,13 @@ class LedgerState:
         current = self.accounts.get(holder)
         mark = current.invoice_period_watermark if current is not None else 0
         canceled = current.canceled_at if current is not None else 0
+        canceled_subscription = (
+            current.canceled_subscription_id if current is not None else "")
         if period_end and mark and period_end < mark:
             return CreditResult(False, "stale", 0)
-        if canceled and _period_predates_cancellation(period_start, period_end, canceled):
+        if _cancellation_blocks_grant(
+                period_start, period_end, canceled, str(subscription_id or ""),
+                canceled_subscription):
             return CreditResult(False, "stale", 0)
         if units < 0:
             return CreditResult(False, "zero", 0)
@@ -1088,6 +1116,7 @@ class LedgerState:
         if period_start:
             acc.paid_period_start = period_start
         acc.canceled_at = 0
+        acc.canceled_subscription_id = ""
         if plan:
             acc.plan = plan
         if customer_id:
@@ -1095,14 +1124,15 @@ class LedgerState:
         return CreditResult(True, "", int(units))
 
     def clear_monthly(self, holder: str, period_end: int = 0,
-                      watermark: int = 0) -> CreditResult:
+                      watermark: int = 0, subscription_id: str = "") -> CreditResult:
         """Zero the monthly allowance and stop overage. Pack grants are untouched.
 
         `period_end` is a failed invoice. It does not move the watermark, so the
         same period can still be paid afterwards. `watermark` is a cancellation
         time. It is stale only when it is before the stored paid period start.
         A stored watermark with no start still clears. An accepted cancellation
-        stores that time on `canceled_at` and leaves the paid-period watermark.
+        stores that time on `canceled_at` and the subscription id beside it,
+        and leaves the paid-period watermark.
         """
         holder = self._funding_holder(holder)
         period_end = int(period_end or 0)
@@ -1116,8 +1146,11 @@ class LedgerState:
         elif period_end and mark and period_end <= mark:
             return CreditResult(False, "stale", 0)
         acc = self._acc(holder)
-        if watermark:
-            acc.canceled_at = max(acc.canceled_at, watermark)
+        if watermark and int(watermark) >= acc.canceled_at:
+            acc.canceled_at = int(watermark)
+            acc.canceled_subscription_id = str(subscription_id or "")
+        elif watermark:
+            acc.canceled_at = max(acc.canceled_at, int(watermark))
         acc.monthly = 0
         acc.allowance_generation += 1
         acc.entitlement_generation += 1
@@ -1189,6 +1222,7 @@ class LedgerState:
             existing.entitlement_generation = acc.entitlement_generation
             existing.monthly_entitled = acc.monthly_entitled
             existing.canceled_at = acc.canceled_at
+            existing.canceled_subscription_id = acc.canceled_subscription_id
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
         offset = existing.next_res
@@ -1749,7 +1783,8 @@ class Ledger(Protocol):
     async def drop_claim_nonce(self, payment_id: str) -> None: ...
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                         units: int, plan: str = "", customer_id: str = "") -> CreditResult: ...
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> CreditResult: ...
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any: ...
@@ -1770,10 +1805,12 @@ class Ledger(Protocol):
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0, period_start: int = 0) -> CreditResult: ...
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> CreditResult: ...
 
     async def clear_monthly(self, holder: str, period_end: int = 0,
-                            watermark: int = 0) -> CreditResult: ...
+                            watermark: int = 0,
+                            subscription_id: str = "") -> CreditResult: ...
 
     async def invoice_watermark(self, holder: str) -> int: ...
 
@@ -1866,9 +1903,12 @@ class MemoryLedger:
             self.state.drop_claim_nonce(payment_id)
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> CreditResult:
         async with self._lock:
-            return self.state.fund_claim(holder, claim_id, invoice_id, units, plan, customer_id)
+            return self.state.fund_claim(
+                holder, claim_id, invoice_id, units, plan, customer_id,
+                subscription_id=subscription_id)
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
                              policy: Any) -> Any:
@@ -1908,19 +1948,23 @@ class MemoryLedger:
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0, period_start: int = 0) -> CreditResult:
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> CreditResult:
         async with self._lock:
             return self.state.set_monthly(
                 holder, units, invoice_id, plan, customer_id,
                 period_end=int(period_end or 0),
-                period_start=int(period_start or 0))
+                period_start=int(period_start or 0),
+                subscription_id=subscription_id)
 
     async def clear_monthly(self, holder: str, period_end: int = 0,
-                            watermark: int = 0) -> CreditResult:
+                            watermark: int = 0,
+                            subscription_id: str = "") -> CreditResult:
         async with self._lock:
             return self.state.clear_monthly(
                 holder, period_end=int(period_end or 0),
-                watermark=int(watermark or 0))
+                watermark=int(watermark or 0),
+                subscription_id=subscription_id)
 
     async def invoice_watermark(self, holder: str) -> int:
         async with self._lock:
@@ -2060,7 +2104,8 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
@@ -2088,11 +2133,13 @@ class UnboundLedger:
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0, period_start: int = 0) -> CreditResult:
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def clear_monthly(self, holder: str, period_end: int = 0,
-                            watermark: int = 0) -> CreditResult:
+                            watermark: int = 0,
+                            subscription_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def invoice_watermark(self, holder: str) -> int:
@@ -2216,9 +2263,11 @@ class DurableLedger:
         await self._call("drop_claim_nonce", payment_id)
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
-                         units: int, plan: str = "", customer_id: str = "") -> CreditResult:
-        data = await self._call("fund_claim", holder, claim_id, invoice_id,
-                                int(units), plan, customer_id)
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> CreditResult:
+        data = await self._call(
+            "fund_claim", holder, claim_id, invoice_id,
+            int(units), plan, customer_id, subscription_id)
         return CreditResult.from_json(dict(data))
 
     async def claim_purchase(self, kv: Any, session_id: str, *, now: datetime,
@@ -2262,16 +2311,19 @@ class DurableLedger:
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0, period_start: int = 0) -> CreditResult:
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> CreditResult:
         data = await self._call(
             "set_monthly", holder, int(units), invoice_id, plan, customer_id,
-            int(period_end or 0), int(period_start or 0))
+            int(period_end or 0), int(period_start or 0), subscription_id)
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str, period_end: int = 0,
-                            watermark: int = 0) -> CreditResult:
+                            watermark: int = 0,
+                            subscription_id: str = "") -> CreditResult:
         data = await self._call(
-            "clear_monthly", holder, int(period_end or 0), int(watermark or 0))
+            "clear_monthly", holder, int(period_end or 0), int(watermark or 0),
+            subscription_id)
         return CreditResult.from_json(dict(data))
 
     async def invoice_watermark(self, holder: str) -> int:
