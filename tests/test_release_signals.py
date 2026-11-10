@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import importlib.util
@@ -913,6 +914,210 @@ def test_score_only_evidence_refresh_is_auto_mergeable(tmp_path: Path) -> None:
     assert decision.changed
     assert decision.score_only
     assert decision.merge == "auto"
+
+
+@pytest.fixture
+def signals_service():
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_regression_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+    return service
+
+
+class SignalKV:
+    def __init__(self) -> None:
+        self.rows: dict[str, str] = {}
+        self.calls: list[tuple[str, str]] = []
+
+    async def get(self, key: str) -> str | None:
+        self.calls.append(("get", key))
+        return self.rows.get(key)
+
+    async def put(self, key: str, value: str) -> None:
+        self.calls.append(("put", key))
+        self.rows[key] = value
+
+    async def delete(self, key: str) -> None:
+        self.calls.append(("delete", key))
+        self.rows.pop(key, None)
+
+    async def list(self, options: dict[str, str]) -> dict[str, object]:
+        self.calls.append(("list", options["prefix"]))
+        return {"keys": [{"name": key} for key in self.rows if key.startswith(options["prefix"])]}
+
+
+@pytest.mark.parametrize("legacy_pending", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+def test_replay_after_ack_is_still_duplicate(signals_service, legacy_pending, conflicting) -> None:
+    async def scenario() -> None:
+        kv = SignalKV()
+        raw = json.dumps(signal()).encode()
+        if legacy_pending:
+            kv.rows[signals_service.PENDING_PREFIX + str(signal()["signal_id"])] = json.dumps(
+                signal(), separators=(",", ":"), sort_keys=True,
+            )
+        else:
+            accepted = await signals_service.intake(
+                raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+                enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+            )
+            assert (accepted.status, accepted.body["status"]) == (202, "accepted")
+        acknowledged = await signals_service.acknowledge(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            payload={"signal_id": signal()["signal_id"], "result": "new"},
+            today=date(2026, 9, 26),
+        )
+        assert acknowledged.status == 200
+        rows_after_ack = dict(kv.rows)
+        raw = json.dumps(signal(model_name="Orbit 3") if conflicting else signal(),
+                         sort_keys=True, separators=(",", ":")).encode()
+        replay = await signals_service.intake(
+            raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+            enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 16, tzinfo=UTC),
+        )
+        if conflicting:
+            assert replay.status == 409
+            assert replay.body["error"]["code"] == "signal_id_conflict"
+        else:
+            assert (replay.status, replay.body["status"]) == (200, "duplicate")
+        pending = await signals_service.pending(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            today=date(2026, 9, 26),
+        )
+        assert pending.body["signals"] == []
+        assert kv.rows == rows_after_ack
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("raw", "signature", "status"),
+    [
+        pytest.param(json.dumps(signal()).encode(), "sha256=é", 401, id="signature"),
+        pytest.param(json.dumps(signal(first_seen_url="https://[broken/")).encode(),
+                     None, 400, id="url"),
+        pytest.param(json.dumps(signal(confidence=10**400)).encode(),
+                     None, 400, id="confidence"),
+        pytest.param(json.dumps(signal(timestamp="0001-01-01T00:00:00+01:00")).encode(),
+                     None, 400, id="timestamp"),
+        pytest.param(b"[" * 1100 + b"]" * 1100, None, 400, id="json"),
+    ],
+)
+def test_invalid_input_returns_client_error(signals_service, raw, signature, status) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.intake(
+        raw=raw, signature=signature if signature is not None else sign(b"write-secret", raw),
+        secret=b"write-secret", enabled=True, kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == status
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize("endpoint", ["pending", "discovered", "acknowledge"])
+def test_non_ascii_read_key_returns_401(signals_service, endpoint) -> None:
+    kv = SignalKV()
+    kwargs = {"authorization": "Bearer é", "read_key": "read-secret", "kv": kv}
+    if endpoint == "discovered":
+        kwargs["raw"] = b"{}"
+    else:
+        kwargs["today"] = date(2026, 9, 26)
+    if endpoint == "acknowledge":
+        kwargs["payload"] = {"signal_id": signal()["signal_id"], "result": None}
+    result = asyncio.run(getattr(signals_service, endpoint)(**kwargs))
+
+    assert result.status == 401
+    assert result.body["error"]["code"] == "unauthorised"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"first_seen_url": "https://[broken/"}, id="url"),
+        pytest.param({"confidence": 10**400}, id="confidence"),
+        pytest.param({"timestamp": "0001-01-01T00:00:00+01:00"}, id="timestamp"),
+    ],
+)
+def test_invalid_discovery_returns_400(signals_service, changes) -> None:
+    payload = signal(signal_id="watch:acme:orbit-2", first_seen_url="https://acme.example/models")
+    payload.update(changes)
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=json.dumps(payload).encode(), authorization="Bearer read-secret",
+        read_key="read-secret", kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_discovery_json_returns_client_error(signals_service) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=b"[" * 1100 + b"]" * 1100,
+        authorization="Bearer read-secret",
+        read_key="read-secret",
+        kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_acknowledgement_json_returns_client_error(signals_service) -> None:
+    import ast
+
+    tree = ast.parse((ROOT / "api/worker/src/entry.py").read_text())
+    function = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_signals"
+    )
+    kv = SignalKV()
+    namespace = {
+        "json": json,
+        "datetime": datetime,
+        "UTC": UTC,
+        "signals_service": signals_service,
+        "SIGNALS_ENABLED_VAR": "SIGNALS_ENABLED",
+        "SIGNALS_READ_KEY_VAR": "SIGNALS_READ_KEY",
+        "_access_store": lambda _env: kv,
+        "_json_response": lambda status, body: (status, body),
+    }
+    compiled = compile(
+        ast.Module(body=[function], type_ignores=[]), "entry.py::_signals", "exec",
+    )
+    exec(compiled, namespace)
+
+    class Env:
+        SIGNALS_ENABLED = "true"
+        SIGNALS_READ_KEY = "read-secret"
+
+    class Request:
+        headers = {"authorization": "Bearer read-secret"}
+
+        async def text(self) -> str:
+            return "[" * 1100 + "]" * 1100
+
+    class Worker:
+        env = Env()
+
+    status, body = asyncio.run(namespace["_signals"](
+        Worker(), Request(), "/v1/signals/ack", "POST", "audit",
+    ))
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_request"
+    assert kv.calls == []
 
 
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:

@@ -1201,3 +1201,82 @@ def test_a_forty_member_tie_stays_within_the_agent_budget(service):
         if entry["omitted_items"] == 0:
             assert items
         assert len(items) <= MEMBER_EVIDENCE_ITEMS
+
+
+def _observed_evidence(record_id):
+    return {
+        "record_id": record_id,
+        "benchmark": "quality",
+        "value": 80,
+        "unit": "percent",
+        "date": "2026-10-01",
+        "date_type": "observed",
+        "source": "https://example.org/results",
+        "measured_by": "independent",
+        "directness": "direct",
+        "estimate_weight": 1,
+        "requested_domain": "software_engineering",
+    }
+
+
+def test_drill_down_exact_byte_budget_retains_evidence(monkeypatch):
+    """A drill-down that is exactly DRILL_DOWN_BYTES keeps its evidence item."""
+    from decision import bounded
+
+    decision = contract.Decision.model_validate({
+        "decision_id": "dec_audit00000000",
+        "snapshot": "snap_" + "a" * 64,
+        "spec_hash": "sha256:" + "0" * 64,
+        "explain": "full",
+        "status": "answered",
+        "results": [{"rank": 1, "offering": {"model": "lab/a"}}],
+        "answer": {
+            "kind": "tied",
+            "members": ["lab/a", "lab/b"],
+            "basis": "overlapping intervals",
+            "tie_breakers": {},
+            "deterministic_order": ["lab/a", "lab/b"],
+        },
+    })
+    spec = contract.parse_spec(
+        {"spec_version": 1, "optimize": {"max": "software_engineering"}},
+        facets=None,
+    )
+    options = contract.ResponseOptions(fields=["model"])
+    detail = contract.ModelEvidence(
+        model="lab/a",
+        status="ranked",
+        offering={"model": "lab/a"},
+        rank=1,
+        evidence=[{
+            "domain": "software_engineering",
+            "items": [_observed_evidence("lab/a#1")],
+        }],
+    )
+    captured = [
+        ["lab/a", [_observed_evidence("lab/a#1"), _observed_evidence("lab/a#2")]],
+        ["lab/b", [_observed_evidence("lab/b#1"), _observed_evidence("lab/b#2")]],
+    ]
+    real_limit = bounded.DRILL_DOWN_BYTES
+    monkeypatch.setattr(bounded, "DRILL_DOWN_BYTES", 1_000_000)
+    unpadded = bounded.project(
+        decision, options, not_applied=[], spec=spec, detail=detail, member_evidence=captured,
+    )
+    pad = real_limit - compact_bytes(unpadded)
+    assert pad >= 0
+    monkeypatch.setattr(bounded, "DRILL_DOWN_BYTES", real_limit)
+    detail_dict = detail.model_dump(mode="json")
+    detail_dict["evidence"][0]["items"][0]["source"] += "x" * pad
+    padded = contract.ModelEvidence.model_validate(detail_dict)
+    result = bounded.project(
+        decision, options, not_applied=[], spec=spec, detail=padded, member_evidence=captured,
+    )
+    assert bounded.DRILL_DOWN_BYTES == real_limit
+    assert compact_bytes(result) == bounded.DRILL_DOWN_BYTES
+    records = [
+        item["record_id"]
+        for group in result["model_evidence"]["evidence"]
+        for item in group["items"]
+    ]
+    assert records == ["lab/a#1"]
+    assert "model_evidence.evidence.items" not in result["explanation"]["omitted"]

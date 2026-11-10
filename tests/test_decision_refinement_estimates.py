@@ -18,6 +18,7 @@ from decision.registry import default as default_registry
 from decision.snapshot import (
     SnapshotInputs,
     build_snapshot,
+    load_built_snapshot,
     load_snapshot_bytes,
 )
 from tests.snapshot_records import SOURCES, evidence, fact, model
@@ -299,3 +300,87 @@ def test_a_full_explanation_renders_the_refinement(index):
     assert any(point.refinement == "rust" for point in decision.tipping_points)
     html = render_html(decision, index)
     assert "software_engineering/rust" in html
+
+
+def _one_benchmark_posterior():
+    """Parent mean 0 and variance 4, widened to 4.15, plus one observation of variance 0.75."""
+    from math import sqrt
+
+    observation_z = 1 / sqrt(2)
+    prior_variance = 4.15
+    observation_variance = 0.75
+    precision = (1 / prior_variance) + (1 / observation_variance)
+    mean = observation_z * (1 / observation_variance) / precision
+    return mean, sqrt(1 / precision)
+
+
+def test_refinement_evidence_does_not_enter_its_own_parent_prior():
+    """One direct benchmark is the refinement observation once, not also its parent prior."""
+    day = date(2026, 9, 25)
+    scores = (("lab/a", 60), ("lab/b", 70))
+    observations = [
+        CapabilityObservation(
+            model_id=mid,
+            benchmark_id="swe_bench_pro",
+            value=value,
+            unit="percent",
+            measured_by="independent",
+            date=day,
+            record_id=f"{mid}#swe_bench_pro",
+            version="1",
+            domains=(("software_engineering", "direct"),),
+            refinements=(("software_engineering/rust", "direct"),),
+        )
+        for mid, value in scores
+    ]
+    fit = fit_capabilities(observations, {"swe_bench_pro": BenchmarkSpec()}, as_of=day)
+    mean, sd = _one_benchmark_posterior()
+    assert mean == pytest.approx(0.5988761514130965)
+    assert sd == pytest.approx(0.7969969144436214)
+    for mid, sign in (("lab/b", 1), ("lab/a", -1)):
+        estimate = fit.refinement_estimate(mid, RUST)
+        assert estimate is not None
+        assert estimate.evidence_count == 1
+        assert estimate.value == pytest.approx(sign * mean)
+        assert estimate.sd == pytest.approx(sd)
+
+    metadata = {
+        "direction": "higher_is_better",
+        "sample_size": 500,
+        "random_baseline": 0,
+    }
+    snapshot = load_built_snapshot(
+        build_snapshot(
+            SnapshotInputs(
+                models=[
+                    model(mid, facts=[fact("model", mid, "model.class", "text-generator")])
+                    for mid, _value in scores
+                ],
+                evidence=[
+                    evidence(mid, "swe_bench_pro", value, day=day.isoformat())
+                    for mid, value in scores
+                ],
+                sources=SOURCES,
+                benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+                benchmark_refinements={"swe_bench_pro": [("rust", "direct")]},
+                benchmark_metadata={"swe_bench_pro": metadata},
+            ),
+            as_of=day,
+            gate=False,
+        ),
+        include_archive=True,
+        source="synthetic refinement evidence",
+    )
+    decision = _decide(snapshot, {"weights": {RUST: 1}})
+    disclosed = {
+        row.offering.model: row.refinement_estimates[0] for row in decision.results
+    }
+    assert disclosed["lab/b"].evidence_count == 1
+    assert disclosed["lab/b"].key == RUST
+    assert disclosed["lab/b"].value == pytest.approx(0.598876151, abs=5e-10)
+    assert disclosed["lab/b"].interval[0] == pytest.approx(-0.422516492, abs=5e-10)
+    assert disclosed["lab/b"].interval[1] == pytest.approx(1.620268795, abs=5e-10)
+    assert disclosed["lab/a"].evidence_count == 1
+    assert disclosed["lab/a"].value == pytest.approx(-0.598876151, abs=5e-10)
+    assert disclosed["lab/a"].interval[0] == pytest.approx(-1.620268795, abs=5e-10)
+    assert disclosed["lab/a"].interval[1] == pytest.approx(0.422516492, abs=5e-10)
