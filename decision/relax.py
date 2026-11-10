@@ -152,22 +152,54 @@ def _equivalent_groups(conditions, hard: list[int]) -> list[tuple[int, ...]]:
     return [tuple(indexes) for indexes in grouped.values()]
 
 
-def _dropped_admits(resolved, snapshot, dropped: tuple[int, ...]) -> bool:
-    return bool(apply(without(resolved, dropped), snapshot).feasible)
+#: Filter calls one ``fewest`` search may spend. Past this it returns no
+#: relaxation. That empty result is the same every time.
+FEWEST_FILTER_BUDGET = 64
 
 
-def _fewest_from_groups(resolved, snapshot, conditions, groups: list[tuple[int, ...]]) -> list[str]:
-    """Exact search over equivalent gates, caps and floors before spec order."""
-    proposals: list[tuple[int, int, tuple[int, ...]]] = []
-    for size in range(1, len(groups) + 1):
-        for chosen in combinations(range(len(groups)), size):
-            indexes = tuple(sorted(index for group in chosen for index in groups[group]))
-            cap = sum(_cap_or_floor(conditions[index]) for index in indexes)
-            proposals.append((len(indexes), -cap, indexes))
-    proposals.sort()
-    for _, _, indexes in proposals:
-        if _dropped_admits(resolved, snapshot, indexes):
-            return [render_condition(conditions[index]) for index in indexes]
+class _FilterBudget:
+    def __init__(self) -> None:
+        self.used = 0
+
+    def apply(self, resolved, snapshot):
+        if self.used >= FEWEST_FILTER_BUDGET:
+            return None
+        self.used += 1
+        return apply(resolved, snapshot)
+
+
+def _cap_count(conditions, indexes) -> int:
+    return sum(_cap_or_floor(conditions[index]) for index in indexes)
+
+
+def _sort_key(conditions, indexes):
+    return (len(indexes), -_cap_count(conditions, indexes), indexes)
+
+
+def _render(conditions, indexes) -> list[str]:
+    return [render_condition(conditions[index]) for index in indexes]
+
+
+def _lazy_drops(conditions, hard: list[int]):
+    """Size ascending, caps before other gates, then index order.
+
+    Each size is scanned once per cap count. The combinations are not stored.
+    """
+    for size in range(1, len(hard) + 1):
+        for caps_wanted in range(size, -1, -1):
+            for combo in combinations(hard, size):
+                if _cap_count(conditions, combo) == caps_wanted:
+                    yield combo
+
+
+def _search_indexes(budget: _FilterBudget, resolved, snapshot, conditions, hard: list[int]):
+    """The first drop that confirms, or None when the filter budget is spent."""
+    for dropped in _lazy_drops(conditions, hard):
+        trial = budget.apply(without(resolved, dropped), snapshot)
+        if trial is None:
+            return None
+        if trial.feasible:
+            return _render(conditions, dropped)
     return []
 
 
@@ -201,78 +233,146 @@ def _blocked_bits(run: _Run, cond) -> int:
     return run.universe & ~(raw.passing | as_pass)
 
 
-def _failure_proposals(resolved, snapshot, conditions, hard: list[int],
-                       groups: list[tuple[int, ...]]) -> list[tuple[int, ...]]:
-    """Smallest index sets that would qualify some candidate, best key first.
-
-    A ``best(m)`` threshold depends on which other gates remain, so callers
-    skip this when any condition uses one.
-    """
+def _candidate_blocks(resolved, snapshot, conditions, hard: list[int],
+                      groups: list[tuple[int, ...]]) -> list[tuple[tuple[int, ...], int]]:
+    """Each eligible candidate and the gate groups that keep it out."""
     run = _Run(resolved, snapshot)
     retired, structural = _excluded_bits(run)
     hard_set = set(hard)
-    always = [
-        index for index, cond in enumerate(conditions)
-        if cond.soft is None and index not in hard_set
-    ]
     always_blocks = 0
-    for index in always:
-        always_blocks |= _blocked_bits(run, conditions[index])
+    fixed_retired = False
+    for index, cond in enumerate(conditions):
+        if cond.soft is not None or index in hard_set:
+            continue
+        always_blocks |= _blocked_bits(run, cond)
+        fixed_retired = fixed_retired or asks_for_retired(cond)
     group_blocks = [_blocked_bits(run, conditions[group[0]]) for group in groups]
     group_retired = [
         any(asks_for_retired(conditions[index]) for index in group) for group in groups
     ]
-    fixed_retired = any(asks_for_retired(cond) for index, cond in enumerate(conditions)
-                        if index not in hard_set)
     eligible = run.universe & ~structural
-    seen: set[tuple[int, ...]] = set()
-    proposals: list[tuple[int, ...]] = []
+    found: list[tuple[tuple[int, ...], int]] = []
     bit = 1
     while bit <= eligible:
-        if not eligible & bit or always_blocks & bit:
-            bit <<= 1
-            continue
-        chosen = [group for group, blocks in enumerate(group_blocks) if blocks & bit]
-        if bit & retired and not fixed_retired and not any(
-            group_retired[group] and group not in chosen for group in range(len(groups))
-        ):
-            bit <<= 1
-            continue
-        indexes = tuple(sorted(index for group in chosen for index in groups[group]))
+        if eligible & bit and not always_blocks & bit:
+            chosen = [group for group, blocks in enumerate(group_blocks) if blocks & bit]
+            retired_kept = fixed_retired or any(
+                group_retired[group] and group not in chosen for group in range(len(groups))
+            )
+            if not bit & retired or retired_kept:
+                indexes = tuple(sorted(index for group in chosen for index in groups[group]))
+                found.append((indexes, bit))
+        bit <<= 1
+    return found
+
+
+def _failure_proposals(resolved, snapshot, conditions, hard: list[int],
+                       groups: list[tuple[int, ...]]) -> list[tuple[int, ...]]:
+    """Smallest index sets that would qualify some candidate, caps first.
+
+    A best margin depends on which other gates remain, so callers score those
+    gates separately.
+    """
+    seen: set[tuple[int, ...]] = set()
+    proposals: list[tuple[int, ...]] = []
+    for indexes, _bit in _candidate_blocks(resolved, snapshot, conditions, hard, groups):
         if indexes not in seen:
             seen.add(indexes)
             proposals.append(indexes)
-        bit <<= 1
-    proposals.sort(key=lambda indexes: (
-        len(indexes),
-        -sum(_cap_or_floor(conditions[index]) for index in indexes),
-        indexes,
-    ))
+    proposals.sort(key=lambda indexes: _sort_key(conditions, indexes))
+    return proposals
+
+
+def _anchor_bits(resolved, snapshot, candidate_ids) -> tuple[int, _Run]:
+    run = _Run(resolved, snapshot)
+    bits = 0
+    for cid in candidate_ids:
+        position = run.pos.get(cid)
+        if position is not None:
+            bits |= 1 << position
+    return bits, run
+
+
+def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard: list[int],
+                    groups: list[tuple[int, ...]]):
+    """Best conditions are scored against the lineup left by the other gates.
+
+    One trial per blocking set, then the same size and cap order as before.
+    None when the filter budget is spent.
+    """
+    plain = [group for group in groups if not _has_best(conditions[group[0]])]
+    best_groups = [group for group in groups if _has_best(conditions[group[0]])]
+    best_indexes = [index for group in best_groups for index in group]
+    by_plain: dict[tuple[int, ...], list[int]] = {}
+    order: list[tuple[int, ...]] = []
+    for indexes, bit in _candidate_blocks(resolved, snapshot, conditions, hard, plain):
+        if indexes not in by_plain:
+            order.append(indexes)
+            by_plain[indexes] = []
+        by_plain[indexes].append(bit)
+    proposals: list[tuple[int, ...]] = []
+    seen: set[tuple[int, ...]] = set()
+    for plain_indexes in order:
+        dropped = tuple(sorted(set(plain_indexes) | set(best_indexes)))
+        trial = budget.apply(without(resolved, dropped), snapshot)
+        if trial is None:
+            return None
+        anchor, run = _anchor_bits(resolved, snapshot, trial.feasible)
+        run.anchor = anchor
+        best_blocks = [_blocked_bits(run, conditions[group[0]]) for group in best_groups]
+        for bit in by_plain[plain_indexes]:
+            extra = [
+                index
+                for group, blocks in zip(best_groups, best_blocks, strict=True)
+                if blocks & bit
+                for index in group
+            ]
+            proposal = tuple(sorted(set(plain_indexes) | set(extra)))
+            if proposal not in seen:
+                seen.add(proposal)
+                proposals.append(proposal)
+    proposals.sort(key=lambda indexes: _sort_key(conditions, indexes))
     return proposals
 
 
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
-    """The fewest relaxable conditions whose removal gives a feasible answer."""
+    """The fewest relaxable conditions whose removal gives a feasible answer.
+
+    The search spends at most ``FEWEST_FILTER_BUDGET`` filter calls. When that
+    budget is spent it returns no relaxation. That empty result is deterministic.
+    An already feasible spec uses the same size, cap and index order as the
+    per-index search and stops at the first drop that confirms.
+    """
     conditions = resolved.conditions
     hard = _relaxable(resolved, domains)
     if not hard:
         return []
+    budget = _FilterBudget()
+    current = budget.apply(resolved, snapshot)
+    if current is None:
+        return []
+    if current.feasible:
+        found = _search_indexes(budget, resolved, snapshot, conditions, hard)
+        return [] if found is None else found
     groups = _equivalent_groups(conditions, hard)
-    # best(m) is relative to whoever survived the other gates, so failure sets
-    # are not fixed. Equivalent gates still search as one choice.
     if any(_has_best(cond) for cond in conditions):
-        return _fewest_from_groups(resolved, snapshot, conditions, groups)
-    proposals = _failure_proposals(resolved, snapshot, conditions, hard, groups)
+        proposals = _best_proposals(budget, resolved, snapshot, conditions, hard, groups)
+        if proposals is None:
+            return []
+    else:
+        proposals = _failure_proposals(resolved, snapshot, conditions, hard, groups)
     for indexes in proposals:
-        if indexes and _dropped_admits(resolved, snapshot, indexes):
-            return [render_condition(conditions[index]) for index in indexes]
-    if any(not indexes for indexes in proposals) and apply(resolved, snapshot).feasible:
-        return _fewest_from_groups(resolved, snapshot, conditions, groups)
-    if proposals and not any(indexes for indexes in proposals):
+        if not indexes:
+            continue
+        trial = budget.apply(without(resolved, indexes), snapshot)
+        if trial is None:
+            return []
+        if trial.feasible:
+            return _render(conditions, indexes)
+    if not proposals or not any(proposals):
         return []
-    if not proposals:
-        return []
-    return _fewest_from_groups(resolved, snapshot, conditions, groups)
+    found = _search_indexes(budget, resolved, snapshot, conditions, hard)
+    return [] if found is None else found
 
 
 def _unit(resolved, snapshot, facet_id: str, candidates) -> str | None:

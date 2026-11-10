@@ -18,6 +18,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from decision.contract import CONTRACT_VERSION, parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
@@ -213,3 +215,171 @@ def test_equally_few_relaxations_prefer_a_numeric_cap():
         "explain": "none",
     }, facets=facets), facets=facets)
     assert relax.fewest(resolved, index, frozenset()) == ["model.context_window >= 100"]
+
+
+def _resolved(where):
+    from decision.resolve import resolve
+
+    return resolve(parse_spec({
+        "spec_version": 1,
+        "where": where,
+        "optimize": {"max": "model.context_window"},
+        "explain": "none",
+    }, facets=facets), facets=facets)
+
+
+def _per_index(resolved, snapshot) -> list[str]:
+    """The old search: size ascending, caps first, then index order."""
+    from itertools import combinations
+
+    from decision.contract import render_condition
+    from decision.filter import apply
+    from decision.relax import _cap_or_floor, _relaxable
+    from decision.resolve import without
+
+    conditions = resolved.conditions
+    hard = _relaxable(resolved, frozenset())
+    for size in range(1, len(hard) + 1):
+        groups = sorted(
+            combinations(hard, size),
+            key=lambda group: -sum(_cap_or_floor(conditions[index]) for index in group),
+        )
+        for dropped in groups:
+            if apply(without(resolved, dropped), snapshot).feasible:
+                return [render_condition(conditions[index]) for index in dropped]
+    return []
+
+
+@pytest.mark.parametrize("count", [12, 14, 16])
+def test_caps_with_a_best_margin_stay_within_the_filter_budget(count, monkeypatch):
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    where = [f"model.context_window >= {100 + i}" for i in range(count)]
+    where.append("model.context_window >= best(0)")
+    index = loaded_index({"lab/a": {"model.context_window": 1}})
+    calls = _counted_apply(monkeypatch)
+    assert relax.fewest(_resolved(where), index, frozenset()) == where[:-1]
+    assert calls["n"] <= 32
+
+
+def test_a_feasible_duplicate_gate_drops_one_copy():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    where = ["model.context_window >= 1", "model.context_window >= 1"]
+    index = loaded_index({"lab/a": {"model.context_window": 100}})
+    assert relax.fewest(_resolved(where), index, frozenset()) == ["model.context_window >= 1"]
+
+
+def test_a_feasible_tie_prefers_the_numeric_cap():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/wide": {
+            "model.context_window": 200,
+            "licence.commercial_use": "permitted",
+        },
+    })
+    where = ["licence.commercial_use = permitted", "model.context_window >= 10"]
+    assert relax.fewest(_resolved(where), index, frozenset()) == ["model.context_window >= 10"]
+
+
+def test_fewest_matches_the_per_index_search_on_generated_cases():
+    import random
+
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    pool = [
+        "model.context_window >= 50",
+        "model.context_window >= 80",
+        "model.context_window >= 150",
+        "model.context_window <= 30",
+        "model.context_window <= 90",
+        "model.context_window <= 200",
+        "licence.commercial_use = permitted",
+        "licence.commercial_use = prohibited",
+        "model.context_window >= best(0)",
+        "model.context_window >= best(10)",
+        "model.context_window >= best(40)",
+    ]
+    lineups = [
+        loaded_index({
+            "lab/a": {"model.context_window": 100, "licence.commercial_use": "permitted"},
+            "lab/b": {"model.context_window": 40, "licence.commercial_use": "prohibited"},
+        }),
+        loaded_index({
+            "lab/a": {"model.context_window": 10, "licence.commercial_use": "prohibited"},
+            "lab/b": {"model.context_window": 20, "licence.commercial_use": "prohibited"},
+        }, lifecycle={"lab/a": "retired"}),
+    ]
+    rng = random.Random(458)
+    mismatches = []
+    for lineup in lineups:
+        for _ in range(240):
+            count = rng.randint(1, 4)
+            where = [rng.choice(pool) for _ in range(count)]
+            if rng.random() < 0.4:
+                where.append(rng.choice(where))
+            resolved = _resolved(where)
+            got = relax.fewest(resolved, lineup, frozenset())
+            expected = _per_index(resolved, lineup)
+            if got != expected:
+                mismatches.append((where, got, expected))
+    assert mismatches == []
+
+
+def test_excluded_bits_match_who_the_filter_can_admit():
+    from decision.filter import _Run, apply
+    from decision.relax import _excluded_bits
+    from tests.snapshot_records import loaded_index
+
+    def feasible_ids(index, where):
+        resolved = _resolved(where)
+        run = _Run(resolved, index)
+        retired, structural = _excluded_bits(run)
+        feasible = apply(resolved, index).feasible
+        bits = 0
+        for cid in feasible:
+            bits |= 1 << run.pos[cid]
+        assert bits & structural == 0
+        if resolved.include_retired:
+            assert bits & retired == retired & ~structural
+        else:
+            assert bits & retired == 0
+        return set(feasible)
+
+    active = loaded_index({
+        "lab/open": {"model.weights_openness": "open_weights", "model.context_window": 10},
+        "lab/closed": {"model.weights_openness": "closed_weights", "model.context_window": 10},
+    })
+    assert feasible_ids(active, []) == {"lab/open"}
+
+    retired = loaded_index({
+        "lab/old": {
+            "model.weights_openness": "open_weights",
+            "model.context_window": 10,
+            "model.lifecycle": "retired",
+        },
+        "lab/open": {"model.weights_openness": "open_weights", "model.context_window": 10},
+    }, lifecycle={"lab/old": "retired"})
+    assert feasible_ids(retired, []) == {"lab/open"}
+    assert feasible_ids(retired, ["model.lifecycle = retired"]) == {"lab/old"}
+
+    closed_retired = loaded_index({
+        "lab/old": {
+            "model.weights_openness": "closed_weights",
+            "model.context_window": 10,
+            "model.lifecycle": "retired",
+        },
+    }, lifecycle={"lab/old": "retired"})
+    assert feasible_ids(closed_retired, ["model.lifecycle = retired"]) == set()
+
+    hosted = loaded_index({
+        "lab/open": {"model.weights_openness": "open_weights", "model.context_window": 10},
+    }, hosted=True)
+    admitted = feasible_ids(hosted, [])
+    assert "lab/open" not in admitted
+    assert any(cid.startswith("sambanova/") for cid in admitted)
