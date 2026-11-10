@@ -342,3 +342,27 @@ env -u MODELSPEC_RENDER_SOCIAL_CARDS PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /
 default-build: exit 0. Unresolved social images equalled the baseline: 42 names, no extra path, no stale path.
 
 The eight findings from round 1 stay in place. Frozen data, legal text, ranking floors, contract ranges, prices, plans, Worker variables and production switches stay unchanged.
+
+### CI after the baseline push
+
+Worker memory headroom passed on Pyodide 0.28.3. The 115 MiB job limit and the 120 MiB ceiling are unchanged. Main, measured in that job: current peak 110.10 MiB (115450867 bytes), steady 109.31 MiB; successor peak 105.71 MiB (110843603 bytes), steady 104.92 MiB. PR bundle under `--limit-mib 115`: current peak 105.72 MiB (110858769 bytes), steady 104.94 MiB (110035777 bytes); successor peak 105.72 MiB (110857809 bytes), steady 104.94 MiB (110036097 bytes). Wasm peak is 59.875 MiB in every period. The PR is under main on the current period and matches the successor.
+
+Two pytest shards failed for this change.
+
+`tests/test_blog.py::test_site_build_includes_fixture_blog_from_public_root_only` got `build.main` return code 2. Post pages named `og:image` and `twitter:image` at `blog/<slug>/rN/og-card.png`. That file is written only when `MODELSPEC_RENDER_SOCIAL_CARDS` is on, and the path is not one of the 42 baseline names. The baseline was not grown. Flag-off post pages now use `og-card.png`, the site card the build copies. Flag-on builds still write and name the per-post card. Commit `e30bd7de197179148f483dac975542ea5ec1575d`.
+
+`tests/test_entity.py::test_the_method_page_says_what_is_public_in_both_data_states` calls `method.page` with both availability flags at their default, false. AUD-05-F1 no longer prints "public, versioned and free to fetch" for that call. The three `DATA_SPLIT_ENABLED=true` assertions stayed: "free to fetch" absent, `snapshot.json.gz` absent, "frozen public image" present. The flag-off assertion now expects the absent-download sentences and no `snapshot.json.gz`. Commit `54899f53bcbac7612d327cda8b865b66dc332e86`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_entity.py -k test_the_method_page_says_what_is_public_in_both_data_states tests/test_blog.py -k 'published_markdown or corrections_update or preview_writes or draft_post'
+```
+
+ci-focused: exit 0; `4 passed, 34 deselected in 1.09s`.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_blog.py::test_site_build_includes_fixture_blog_from_public_root_only
+```
+
+ci-blog-build: exit 0; `1 passed in 51.27s`.
+
+This follow-up does not change Worker imports, packaged guidance text, ranking floors, legal text, contract ranges, prices, plans, or production switches.
