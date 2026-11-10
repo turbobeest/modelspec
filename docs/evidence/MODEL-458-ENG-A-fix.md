@@ -234,6 +234,53 @@ A zero shift leaves the finite score expression unchanged.
 Weights `{context: 1e308, max_output: 1e308}` with `soft(0.5)` report weight
 `1e308` and `soft_penalty` 0.5. Order is unchanged. The response round-trips.
 
+Re-measured on this head and on the base, at explain none and explain full.
+The classes are the rows of `tests/test_decision_numeric_bounds.py`, plus the
+finite weight pair. 30 classes match. 9 differ. Every class the base answered
+still returns a decision.
+
+| Class | Base | Head |
+| --- | --- | --- |
+| `compare_json_nan` | decision, strict JSON | decision, strict JSON |
+| `compare_json_neg_inf` | decision, strict JSON | decision, strict JSON |
+| `compare_json_neg_1e400` | decision, strict JSON | decision, strict JSON |
+| `compare_json_pos_inf` | explain none: decision, strict JSON; explain full: decision, JSON not strict | decision, strict JSON |
+| `compare_json_1e400` | explain none: decision, strict JSON; explain full: decision, JSON not strict | decision, strict JSON |
+| `compact_1e400` | explain none: decision, strict JSON; explain full: decision, JSON not strict | decision, strict JSON |
+| `compact_neg_1e400` | decision, strict JSON | decision, strict JSON |
+| `best_1e400` | decision, strict JSON | decision, strict JSON |
+| `window_0_1e400` | decision, strict JSON | decision, strict JSON |
+| `window_0_pos_inf` | decision, strict JSON | decision, strict JSON |
+| `window_nan_1` | explain none: decision, strict JSON; explain full: decision, JSON not strict | decision, strict JSON |
+| `window_neg_inf_1` | decision, strict JSON | decision, strict JSON |
+| `in_100_1e400` | decision, strict JSON | decision, strict JSON |
+| `in_nan` | decision, strict JSON | decision, strict JSON |
+| `in_pos_inf` | decision, strict JSON | decision, strict JSON |
+| `in_neg_inf` | decision, strict JSON | decision, strict JSON |
+| `lex_within_1e400` | decision, strict JSON | decision, strict JSON |
+| `lex_within_string_inf` | decision, strict JSON | decision, strict JSON |
+| `lex_within_token_inf` | decision, strict JSON | decision, strict JSON |
+| `memory_string_inf` | decision, strict JSON | decision, strict JSON |
+| `memory_token_inf` | decision, strict JSON | decision, strict JSON |
+| `budget_string_inf` | decision, strict JSON | decision, strict JSON |
+| `budget_token_inf` | decision, strict JSON | decision, strict JSON |
+| `compact_nan` | SpecError | SpecError |
+| `compact_pos_inf` | SpecError | SpecError |
+| `compact_neg_inf` | SpecError | SpecError |
+| `best_nan` | SpecError | SpecError |
+| `best_pos_inf` | SpecError | SpecError |
+| `best_neg_inf` | SpecError | SpecError |
+| `weight_pos_inf` | ValueError | SpecError |
+| `weight_1e400` | ValueError | SpecError |
+| `weight_nan` | SpecError | SpecError |
+| `weight_neg_1e400` | SpecError | SpecError |
+| `weight_neg_inf` | SpecError | SpecError |
+| `preference_weight_string_inf` | ValueError | SpecError |
+| `preference_weight_token_inf` | ValueError | SpecError |
+| `preference_value_nan` | SpecError | SpecError |
+| `preference_value_pos_inf` | SpecError | SpecError |
+| `finite_weight_pair` | decision, JSON not strict | decision, strict JSON |
+
 ### AUD-01-F4
 
 `include_retired` is a stored field again. `without()` drops gates and
@@ -276,3 +323,79 @@ MiB warning. Its steady-state gate passed. No gate was raised.
 `vendor.py --check` restored the public bundle and returned exit 0. The
 worktree was clean afterward. No production settings, ranking floors, legal
 text, frozen data, prices, plans, or release tags were changed.
+
+## Round 4
+
+`origin/main` was merged as `c9712670680bce41c9562b8ab452aaadbbcaa1cd`.
+`contract_version` stays 2.19. `decision/engine.py`, `decision/explain.py`,
+`decision/filter.py`, `decision/bands.py` and `api/ranking/engine.py` were
+not edited. The round is `decision/relax.py`, its tests, and this file.
+
+`fewest` still spends at most 64 filter calls. When that budget is spent it
+returns no relaxation. That empty result is deterministic. A separate marker
+on the decision for a spent budget needs `decision/engine.py` and a contract
+field, so this round leaves the empty result.
+
+### P1-A, non-relaxable best gate
+
+A best gate in a class condition or a requested domain is scored with the
+anchor. `fewest` does not raise. Commit
+`0f7cbdc18d1880b81f7ef3d96fdaf5fc929b19a5`.
+
+### P1-B, best gate under not
+
+When a relaxable best reference sits under `not`, at any depth, `fewest`
+uses the budgeted per-index search. The anchored proposal is not used for
+that input. Commit `4a4f563fccf2e1ba1fbb7da51346c54e26540df0`.
+
+### P2, confirm while building
+
+Plain blocking sets are walked in size, cap and index order. Each proposal
+is confirmed as it is built. The walk stops once no remaining set can sort
+ahead of a confirmed relaxation. A lineup with at least 63 distinct plain
+blocking sets, a one-gate answer, and one best gate that blocks nobody
+returns that one gate in at most 8 filter calls. The same bound holds at
+120 models. Twelve, fourteen and sixteen unsatisfiable caps beside one best
+gate stay within 32 calls. Commit
+`2aa1c1a573143fe88e962335e5161b4278f0a682`.
+
+### P3, generated coverage
+
+The generated comparison includes a requested domain and a 24-model lineup,
+and it still includes a best reference under `not`. Compared with the
+per-index search, seeds 458, 11 and 2026 had 0 mismatches. Each seed ran
+3000 cases on the pair and retired lineups, 400 cases with a requested
+domain, and 200 cases on the wide lineup. Commit
+`74b4c3886c787081439524fe4e698ce5f6432437`.
+
+Compared with the base search, 6900 cases produced 14 differences. All 14
+are a retired lineup whose conditions include the lifecycle opt-in. Dropping
+that opt-in recomputes retired admission. Seed 11 differed 8 times, seed 458
+differed 3 times, and seed 2026 differed 3 times. Cases with no lifecycle
+condition produced 0 differences.
+
+### Focused tests
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_decision_numeric_bounds.py tests/test_decision_relax.py tests/test_relax_single.py tests/test_decision_filter.py tests/test_decision_explain.py tests/test_decision_optimise.py --tb=line
+```
+
+Exit 0, `211 passed in 23.68s`.
+
+### Deployment-path validation, round 4
+
+The same private checkout, throwaway key, Pyodide 0.28.3, and probe commands
+as round 1. The private build vendored 129 files. Every command returned exit
+0. Both steady readings are under the unchanged 115 MiB gate. The
+current-period noisy peak was 112.525192 MiB and produced the existing 112
+MiB warning. Its steady-state gate passed. No gate was raised.
+
+| Period | Steady bytes | Steady MiB | Limit MiB | Result |
+| --- | ---: | ---: | ---: | --- |
+| Current | 114279688 | 108.985603 | 115 | Pass |
+| Successor | 109766648 | 104.681633 | 115 | Pass |
+
+`vendor.py --check` restored the public bundle and returned exit 0. The
+worktree was clean of vendored private data afterward. No production
+settings, ranking floors, legal text, frozen data, prices, plans, or release
+tags were changed.
