@@ -151,4 +151,8 @@ def test_the_method_page_says_what_is_public_in_both_data_states(
     assert "free to fetch" not in split
     assert "snapshot.json.gz" not in split
     assert "frozen public image" in split
-    assert "public, versioned and free to fetch" in public_data("false")
+    absent = public_data("false")
+    assert "The decision snapshot is not included in this build." in absent
+    assert "The decision vocabulary is not included in this build." in absent
+    assert "Available downloads from this build are listed below." in absent
+    assert "snapshot.json.gz" not in absent

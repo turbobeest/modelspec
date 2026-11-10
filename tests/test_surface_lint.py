@@ -749,13 +749,34 @@ def test_visible_comparison_decodes_entities_and_preserves_inline_spacing() -> N
         "<style>Hidden claim</style>",
         "<p hidden>Hidden claim</p>",
         '<p aria-hidden="true">Hidden claim</p>',
+        '<p style="display: none">Hidden claim</p>',
+        '<p style="visibility: hidden">Hidden claim</p>',
+        '<div style="display: none"><p style="display: block; visibility: visible">Hidden claim</p></div>',
+        '<div style="visibility: hidden"><p>Hidden claim</p></div>',
+        '<p style=" DISPLAY : NONE !important; color: red">Hidden claim</p>',
+        '<p style="visibility: visible; visibility: hidden">Hidden claim</p>',
+        '<p style="display: none !important; display: block">Hidden claim</p>',
     ],
 )
-def test_invisible_text_does_not_satisfy_jsonld(hidden: str) -> None:
+@pytest.mark.parametrize("field", ["name", "description"])
+def test_invisible_text_does_not_satisfy_jsonld(hidden: str, field: str) -> None:
     text = page(
-        hidden, {"@context": "https://schema.org", "@type": "Thing", "name": "Hidden claim"}
+        hidden, {"@context": "https://schema.org", "@type": "Thing", field: "Hidden claim"}
     )
-    assert sl.structured_data({"a.html": text})[0].check == "jsonld.visible"
+    assert "jsonld.visible" in [f.check for f in sl.structured_data({"a.html": text})]
+
+
+@pytest.mark.parametrize("body", [
+    '<div style="visibility: hidden">Hidden<span style="visibility: visible">Visible claim</span>Hidden</div>',
+    '<div style="display: none"><div>Hidden</div></div><p>Visible claim</p>',
+    '<div style="visibility: hidden"><div>Hidden</div></div><p>Visible claim</p>',
+    '<p style="display: none; display: block">Visible claim</p>',
+    '<p style="visibility: hidden; visibility: visible !important">Visible claim</p>',
+])
+def test_inline_visibility_restores_visible_claims(body: str) -> None:
+    text = page(body, {"@context": "https://schema.org", "@type": "Thing", "name": "Visible claim"})
+    assert sl.structured_data({"a.html": text}) == []
+    assert sl.Page(text).visible == "Visible claim"
 
 
 def test_head_title_does_not_satisfy_a_visible_claim() -> None:
@@ -1066,3 +1087,13 @@ def test_weekly_workflow_and_build_step_run_the_lint() -> None:
         )
         == 2
     )
+
+
+@pytest.mark.parametrize("style", ["display: none", "visibility: hidden"])
+def test_inline_hidden_copy_does_not_satisfy_presence(texts: dict[str, str], style: str) -> None:
+    texts["about/index.html"] = page(
+        f'<div style="{style}"><p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>'
+        + "".join(f"<p>{claim.statement}</p>" for claim in entity.CLAIMS) + "</div>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "about/index.html"}
+    assert {"presence.one_sentence", "presence.disambiguation", "presence.claim", "presence.lead"} <= checks

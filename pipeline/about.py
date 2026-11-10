@@ -41,10 +41,9 @@ def page(tiers: dict[str, Any], root: Path) -> str:
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         "<title>" + heading + "</title>"
         '<meta name="description" content="' + description + '">'
-        '<meta property="og:description" content="' + description + '">'
         '<link rel="canonical" href="' + entity.SITE + '/about/">'
         + brand.head_links()
-        + brand.social_meta(entity.ABOUT_HEADING, path="/about/")
+        + brand.social_meta(entity.ABOUT_HEADING, path="/about/", description=entity.ONE_SENTENCE)
         + '<link rel="stylesheet" href="/landing-assets/landing.css">'
         + '<link rel="stylesheet" href="/landing-assets/method.css">'
         + landing_chrome.lockup_style()
