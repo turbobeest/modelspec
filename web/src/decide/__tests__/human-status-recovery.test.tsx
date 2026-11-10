@@ -105,3 +105,28 @@ it("the simple decide page recovers a stalled human-status exchange without a re
   await act(async () => {});
   expect(screen.getByText(/12 decisions remaining today/)).toBeVisible();
 });
+
+it("unmounting a pending human-status request aborts it and leaves no timer", async () => {
+  let signal: AbortSignal | null | undefined;
+  vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+    signal = init?.signal;
+    return stall(init?.signal);
+  }));
+  const onEnabled = vi.fn();
+  const { HumanGate } = await import("../components/HumanGate");
+  const view = render(<HumanGate onLookup={vi.fn()} onEnabled={onEnabled} />);
+  await act(async () => {});
+  view.unmount();
+  expect(signal?.aborted).toBe(true);
+  expect(vi.getTimerCount()).toBe(0);
+  expect(onEnabled).not.toHaveBeenCalled();
+});
+
+it("a fast human-status success leaves no timer pending", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => json({ enabled: true, remaining: 12 })));
+  const { HumanGate } = await import("../components/HumanGate");
+  render(<HumanGate onLookup={vi.fn()} />);
+  await act(async () => {});
+  expect(screen.getByText(/12 decisions remaining today/)).toBeVisible();
+  expect(vi.getTimerCount()).toBe(0);
+});
