@@ -1290,9 +1290,6 @@ def deterministic_probabilities(
 #: score, so the midpoint rule is within 1/PROBABILITY_CELLS of the integral
 #: even when another model's score is a step.
 PROBABILITY_CELLS = 64
-#: Each end cell is halved this many times. A weak model is best only in its
-#: upper tail, which one end cell would read at a single point.
-_PROBABILITY_TAIL_SPLITS = 8
 #: Another model further than this many of its sds from every node is fixed
 #: below or above them; its CDF there differs from 0 or 1 by under 1e-17.
 _PROBABILITY_REACH = 8.5
@@ -1301,19 +1298,57 @@ _PROBABILITY_PRECISION = 4
 _PROBABILITY_NEGLIGIBLE = 1e-12
 
 
-@lru_cache(maxsize=1)
+# Quantile nodes of the standard normal, highest first, with the cell weight.
+# The same pairs ``statistics.NormalDist.inv_cdf`` produced for these cells.
+# Stored as data so the first probability call does not import ``statistics``
+# (MODEL-409).
+_PROBABILITY_NODES: tuple[tuple[float, float], ...] = (
+    (4.008772594168584, 6.103515625e-05), (3.7412524637652647, 6.103515625e-05),
+    (3.5633077394981627, 0.0001220703125), (3.377145906280853, 0.000244140625),
+    (3.1815596087353684, 0.00048828125), (2.9750207290819706, 0.0009765625),
+    (2.755548873453421, 0.001953125), (2.5205022171903586, 0.00390625),
+    (2.2662268092096522, 0.0078125), (1.9874278859298957, 0.015625),
+    (1.7616704103630663, 0.015625), (1.6010086648860755, 0.015625),
+    (1.4734675779471014, 0.015625), (1.3662038163720984, 0.015625),
+    (1.2726986411905359, 0.015625), (1.1891643501993368, 0.015625),
+    (1.1131942771609287, 0.015625), (1.043158263318454, 0.015625),
+    (0.9778975439405417, 0.015625), (0.9165566675331126, 0.015625),
+    (0.8584844741418323, 0.015625), (0.8031725655979177, 0.015625),
+    (0.7502153754679406, 0.015625), (0.6992833023832198, 0.015625),
+    (0.6501040706479952, 0.015625), (0.6024494531644237, 0.015625),
+    (0.5561255936186914, 0.015625), (0.5109658067382474, 0.015625),
+    (0.4668251228525894, 0.015625), (0.42357608420119963, 0.015625),
+    (0.38110545476355645, 0.015625), (0.3393116065388173, 0.015625),
+    (0.29810241293048695, 0.015625), (0.25739352610093824, 0.015625),
+    (0.21710694721012974, 0.015625), (0.1771698209917398, 0.015625),
+    (0.1375134021443359, 0.015625), (0.09807215248866102, 0.015625),
+    (0.05878293606894307, 0.015625), (0.019584285230126917, 0.015625),
+    (-0.019584285230126917, 0.015625), (-0.05878293606894307, 0.015625),
+    (-0.09807215248866102, 0.015625), (-0.1375134021443359, 0.015625),
+    (-0.1771698209917398, 0.015625), (-0.21710694721012974, 0.015625),
+    (-0.25739352610093824, 0.015625), (-0.29810241293048695, 0.015625),
+    (-0.3393116065388173, 0.015625), (-0.38110545476355645, 0.015625),
+    (-0.42357608420119963, 0.015625), (-0.4668251228525894, 0.015625),
+    (-0.5109658067382474, 0.015625), (-0.5561255936186914, 0.015625),
+    (-0.6024494531644237, 0.015625), (-0.6501040706479952, 0.015625),
+    (-0.6992833023832198, 0.015625), (-0.7502153754679406, 0.015625),
+    (-0.8031725655979177, 0.015625), (-0.8584844741418323, 0.015625),
+    (-0.9165566675331126, 0.015625), (-0.9778975439405417, 0.015625),
+    (-1.043158263318454, 0.015625), (-1.1131942771609287, 0.015625),
+    (-1.1891643501993368, 0.015625), (-1.2726986411905359, 0.015625),
+    (-1.3662038163720984, 0.015625), (-1.4734675779471014, 0.015625),
+    (-1.6010086648860755, 0.015625), (-1.7616704103630663, 0.015625),
+    (-1.9874278859298957, 0.015625), (-2.2662268092096522, 0.0078125),
+    (-2.5205022171903586, 0.00390625), (-2.755548873453421, 0.001953125),
+    (-2.9750207290819706, 0.0009765625), (-3.1815596087353684, 0.00048828125),
+    (-3.377145906280853, 0.000244140625), (-3.5633077394981627, 0.0001220703125),
+    (-3.7412524637652647, 6.103515625e-05), (-4.008772594168584, 6.103515625e-05),
+)
+
+
 def _probability_nodes() -> tuple[tuple[float, float], ...]:
     """(standard normal quantile, probability weight) per cell, highest first."""
-    from statistics import NormalDist
-
-    width = 1 / PROBABILITY_CELLS
-    edges = [k * width for k in range(1, PROBABILITY_CELLS)]
-    for split in range(1, _PROBABILITY_TAIL_SPLITS + 1):
-        edges += [width / 2**split, 1 - width / 2**split]
-    edges = [0.0, *sorted(edges), 1.0]
-    standard = NormalDist()
-    return tuple((standard.inv_cdf((low + high) / 2), high - low)
-                 for low, high in reversed(list(zip(edges, edges[1:]))))
+    return _PROBABILITY_NODES
 
 
 @lru_cache(maxsize=128)
@@ -1323,7 +1358,10 @@ def _probabilities(
     # Estate gain trials use more than 16 distinct distributions in one call.
     # Keep that working set so the next call does not repeat every integral.
     # Cache only the sufficient inputs and immutable output, never a snapshot
-    # or caller's spec.
+    # or caller's spec. An empty lineup has no integral, so it returns before
+    # the node table is used.
+    if not distributions:
+        return ()
     nodes = _probability_nodes()
     found = []
     for model_id, value, sd in distributions:

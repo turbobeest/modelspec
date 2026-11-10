@@ -97,7 +97,10 @@ def test_bundled_rank_preserves_large_unicode_guidance(entry, monkeypatch, ensur
     export["authoring_guides"]["acme/guided"]["sections"]["prompt_shape"][0]["text"] = guidance
     raw = json.dumps(export, ensure_ascii=ensure_ascii, indent=2).encode("utf-8")
     module, _ = _import_bundle(entry, monkeypatch, {entry.CANDIDATES_PATH: raw})
-    assert module._cache["candidates"] == export
+    retained = module._cache["candidates"]
+    assert retained == {key: value for key, value in export.items() if key != "candidates"}
+    assert "candidates" not in retained
+    assert len(module._cache["prepared"]) == len(export["candidates"])
 
     worker = module.Default()
     worker.env = _entry_env(X402_ENABLED="false")
@@ -142,16 +145,19 @@ def test_concurrent_real_requests_claim_only_one_cold_marker(entry, monkeypatch)
         arrivals = 0
         ready = asyncio.Event()
 
-        async def get_json(url):
+        async def read_rank(origin):
             nonlocal arrivals
-            if url.endswith(module.CANDIDATES_PATH):
-                arrivals += 1
-                if arrivals == 2:
-                    ready.set()
-                await ready.wait()
-                return export
+            arrivals += 1
+            if arrivals == 2:
+                ready.set()
+            await ready.wait()
+            meta = {key: value for key, value in export.items() if key != "candidates"}
+            return meta, module.service.candidates_from_export(export)
+
+        async def get_json(url):
             return None
 
+        monkeypatch.setattr(module, "_read_rank_export", read_rank)
         monkeypatch.setattr(module, "_get_json", get_json)
         first, second = module.Default(), module.Default()
         first.env = second.env = _entry_env(X402_ENABLED="false")

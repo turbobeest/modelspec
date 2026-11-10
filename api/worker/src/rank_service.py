@@ -30,7 +30,8 @@ not a feature.
 from __future__ import annotations
 
 import math
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, TextIO
 
 from api.ranking.engine import (
     CLOUD_PLATFORMS,
@@ -321,6 +322,23 @@ def parse_request(payload: Any, known_hardware: set[str]) -> dict[str, Any]:
 
 # ── the catalogue ────────────────────────────────────────────────────────────
 
+def candidate_from_row(row: Mapping[str, Any]) -> Candidate:
+    """One ranking record from one `/api/rank/candidates.json` row."""
+    return Candidate(
+        model_id=row["model_id"], display_name=row["display_name"], provider=row["provider"],
+        model_type=row.get("model_type"), model_subtypes=row.get("model_subtypes") or [],
+        benchmark_scores=row.get("benchmark_scores") or {},
+        capability_tiers=row.get("capability_tiers") or {},
+        cost_input=row.get("cost_input"), context_window=row.get("context_window"),
+        open_weights=bool(row.get("open_weights")), scores_as_of=row.get("scores_as_of"),
+        fits=row.get("fits") or {},
+        verified_benchmarks=set(row.get("verified_benchmarks") or []),
+        rehost_of=row.get("rehost_of"), release_date=row.get("release_date"),
+        cited_facts=row.get("cited_facts") or _NO_CITED_FACTS,
+        cited_benchmarks=row.get("cited_benchmarks") or _NO_CITED_BENCHMARKS,
+    )
+
+
 def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
     """Rebuild ranking records from `/api/rank/candidates.json`.
 
@@ -328,22 +346,29 @@ def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
     file out of the local snapshot. Both feed the same `Candidate`, which is why
     the rows that come out are the same rows.
     """
-    return [
-        Candidate(
-            model_id=c["model_id"], display_name=c["display_name"], provider=c["provider"],
-            model_type=c.get("model_type"), model_subtypes=c.get("model_subtypes") or [],
-            benchmark_scores=c.get("benchmark_scores") or {},
-            capability_tiers=c.get("capability_tiers") or {},
-            cost_input=c.get("cost_input"), context_window=c.get("context_window"),
-            open_weights=bool(c.get("open_weights")), scores_as_of=c.get("scores_as_of"),
-            fits=c.get("fits") or {},
-            verified_benchmarks=set(c.get("verified_benchmarks") or []),
-            rehost_of=c.get("rehost_of"), release_date=c.get("release_date"),
-            cited_facts=c.get("cited_facts") or _NO_CITED_FACTS,
-            cited_benchmarks=c.get("cited_benchmarks") or _NO_CITED_BENCHMARKS,
-        )
-        for c in export["candidates"]
-    ]
+    return [candidate_from_row(row) for row in export["candidates"]]
+
+
+def load_rank_export(stream: TextIO) -> tuple[dict[str, Any], list[Candidate]]:
+    """Read a rank export without keeping a second copy of the candidate rows.
+
+    The response still needs `build` and `authoring_guides`. The rows become
+    `Candidate`s as each one is decoded, and the raw row dict is dropped before
+    the next row. Holding both was a second copy of the citation and score
+    objects' containers, and that copy is what left no room for the policy
+    catalogue under the wasm heap.
+    """
+    from decision.json_stream import Each, JSONStreamReader
+
+    reader = JSONStreamReader(stream, transforms={
+        "candidates": {None: Each(candidate_from_row)},
+    })
+    export = reader.read_value()
+    reader.finish()
+    if not isinstance(export, dict) or not isinstance(export.get("candidates"), list):
+        raise ValueError("rank export has no candidates array")
+    prepared = export.pop("candidates")
+    return export, prepared
 
 
 # Almost no candidate is cited. Sharing one empty list and one empty dict keeps
