@@ -3,6 +3,11 @@
 `decision/verify.py` (MODEL-140; design §5, "Two keys"). The agent that
 collects a value never verifies it.
 
+Run the maintenance commands below from the `modelspec` source checkout with
+its development dependencies installed. Set `--root <modelspec-data-root>` to
+the data checkout containing `registry/sources.yaml` and `verification/`.
+The installed `modelspec-dev` client does not include verification commands.
+
 ## Flow
 
 1. A collector files a **claim** with `Queue.file`: the target (`fact` or
@@ -13,7 +18,7 @@ collects a value never verifies it.
    changed region with `Queue.requeue(report)`. The re-check pins each source
    to its new retained copy. `RecheckReport.requeue` refs are `fact:<id>` or
    `evidence:<id>`.
-3. `modelspec verify [--changed-only] [--llm-reader claude|mistral]` (or `verify.run`) re-reads each pending
+3. `python -m cli.modelspec.legacy verify --root <modelspec-data-root> [--changed-only] [--llm-reader claude|mistral]` (or `verify.run`) re-reads each pending
    claim from the cited regions of its retained copies. It appends one
    `Verification` per value to `verification/log.jsonl` and prints a summary.
    `--changed-only` skips new values and runs only the re-queued ones.
@@ -176,7 +181,8 @@ licence cited alone does not verify.
 ### Canonical MIT and Apache texts
 
 `CanonicalLicenceExtractor` (`canonical-licence@1`) is a deterministic
-extractor, so it is an independent second key. `modelspec verify` runs it
+extractor, so it is an independent second key.
+`python -m cli.modelspec.legacy verify --root <modelspec-data-root>` runs it
 with no `--llm-reader`. It accepts a `licence.*` claim whose cited region
 is `licence_text` when the retained text is the canonical MIT licence or
 the Apache License 2.0 terms. The licence reader is not asked about a text
