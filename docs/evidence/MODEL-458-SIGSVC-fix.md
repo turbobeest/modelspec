@@ -126,3 +126,49 @@ distributed KV consistency, injected KV failures and concurrent requests
 were not observed. No production switch, secret, frozen data, ranking policy
 or legal text changed.
 No deployment, paid-provider call or local full-suite run was performed.
+
+## Round 2
+
+CI failed `Run pytest` because pytest shard 8/8 failed
+`test_invalid_input_returns_client_error[json]` on Python 3.11.18.
+`json.loads` raised `RecursionError` on that case, so intake never returned
+the existing input error. Local Python 3.14.4 parses the same body as a JSON
+array, and the object check already returns 400. That is why the round 1
+focused run was green.
+
+Signed intake and discovery now map that decoder failure to the existing
+input error, before any store read. The acknowledgement route does the same.
+Response shape and status vocabulary are unchanged. No contract field range
+widened. `SIGNALS_ENABLED` is unchanged.
+
+`test_nested_discovery_json_returns_client_error` and
+`test_nested_acknowledgement_json_returns_client_error` cover discovery and
+acknowledgement. Before the handler change, Python 3.11.14 raised
+`RecursionError` from intake and from discovery on that body. After the
+change the same calls returned 400 `invalid_signal` for both intakes and
+400 `invalid_request` for acknowledgement, with no store calls.
+
+The intake 200 text now says the identical payload is already stored for
+that `signal_id`. `python api/worker/openapi.py` regenerated
+`api/worker/openapi.yaml`. The generated diff is that sentence only.
+`python api/worker/openapi.py --check` reported the file matches, exit 0.
+
+Commands, from the assigned worktree:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_release_signals.py tests/test_release_watch.py
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/vendor.py --check
+git diff --check
+```
+
+The focused suites reported `105 passed in 17.76s`, exit 0. Public
+re-vendoring copied 129 files and passed its isolated dependency check,
+exit 0. `git diff --check` passed.
+
+Python 3.14.4 and pytest 9.1.1 ran the focused suites. Python 3.11.14 ran
+the same nested body through intake, discovery and acknowledgement. CI's
+failure was Python 3.11.18. This round does not
+change snapshot exports, rank rows or the engine import graph, so the round 1
+memory figures remain the latest measurement. No memory or timing gate was
+changed. No local full-suite run was performed.

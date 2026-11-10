@@ -1640,9 +1640,10 @@ def _signal_paths() -> dict[str, Any]:
                     }},
                 },
                 "responses": {
-                    "200": _json_body("The identical signal was already pending.", {
-                        "$ref": "#/components/schemas/SignalMutation",
-                    }),
+                    "200": _json_body(
+                        "The identical payload is already stored for this signal_id.",
+                        {"$ref": "#/components/schemas/SignalMutation"},
+                    ),
                     "202": _json_body("The signal was accepted into the pending queue.", {
                         "$ref": "#/components/schemas/SignalMutation",
                     }),
