@@ -456,3 +456,13 @@ def test_estate_probes_do_not_compute_relax_single(monkeypatch):
     )
     assert decision.status == "no_feasible"
     assert len(calls) == 1
+
+
+def test_single_gate_admissions_deduplicate_a_models_offerings():
+    snapshot = _snapshot(
+        [_row("lab/a", "text-generator", 1000)],
+        [offering("lab/a", "sambanova"), offering("lab/a", "fireworks-ai")],
+    )
+    answer = _decide(snapshot, ["model.context_window >= 8000"])
+    assert answer.relax_single.gates[0].admits == 1
+    assert answer.relax_single.together_admits == 1
