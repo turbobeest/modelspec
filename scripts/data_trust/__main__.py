@@ -36,7 +36,7 @@ def main(argv=None) -> int:
     seed = args.seed or args.date.strftime("%G-W%V")
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
-        c = load(root)
+        c = load(root, source_root=args.data_dir)
         registry = load_registry(root / "registry", repo_root=root)
         try:
             calibrate(c, root, registry, args.date)
