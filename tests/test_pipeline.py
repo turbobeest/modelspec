@@ -1139,11 +1139,44 @@ def test_a_present_social_image_resolves_and_external_images_are_skipped(tmp_pat
     assert builder.missing_social_images(tmp_path) == []
 
 
+def _optional_social_image_baseline_text(names):
+    return '# count: %s\n%s' % (len(names), ''.join(f'{name}\n' for name in names))
+
+
 def test_optional_social_image_baseline_count_may_only_shrink():
-    names = builder.optional_social_image_baseline()
-    assert len(names) == 42
-    assert len(names) <= builder.OPTIONAL_SOCIAL_IMAGE_CEILING
+    text = builder._OPTIONAL_SOCIAL_IMAGES.read_text(encoding='utf-8')
+    declared = next(
+        int(line.split(':', 1)[1].strip())
+        for line in text.splitlines()
+        if line.lower().startswith('# count:')
+    )
+    names = builder.parse_optional_social_image_baseline(text)
+    assert len(names) == declared
+    assert declared <= builder.OPTIONAL_SOCIAL_IMAGE_CEILING
     assert len(set(names)) == len(names)
+
+
+def test_checked_in_optional_social_image_baseline_parses():
+    text = builder._OPTIONAL_SOCIAL_IMAGES.read_text(encoding='utf-8')
+    names = builder.parse_optional_social_image_baseline(text)
+    assert names == builder.optional_social_image_baseline()
+    assert set(names) <= builder.ORIGINAL_OPTIONAL_SOCIAL_IMAGES
+    assert len(builder.ORIGINAL_OPTIONAL_SOCIAL_IMAGES) == builder.OPTIONAL_SOCIAL_IMAGE_CEILING
+
+
+def test_optional_social_image_baseline_may_omit_an_original_name():
+    names = builder.optional_social_image_baseline()
+    kept = names[1:]
+    assert builder.parse_optional_social_image_baseline(
+        _optional_social_image_baseline_text(kept)
+    ) == kept
+
+
+def test_optional_social_image_baseline_rejects_a_replaced_name():
+    names = list(builder.optional_social_image_baseline())
+    names[0] = 'og-card-not-in-the-original-set.png'
+    with pytest.raises(ValueError, match='outside the original set'):
+        builder.parse_optional_social_image_baseline(_optional_social_image_baseline_text(names))
 
 
 def test_optional_social_image_baseline_rejects_growth():
