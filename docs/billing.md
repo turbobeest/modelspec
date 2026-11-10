@@ -365,8 +365,8 @@ ledger) only. `GET`/`POST /v1/billing/claim` with the Checkout session id
 confirms that session is linked.
 
 - **Anonymous Checkout** (no live key on `POST /v1/billing/checkout`): claim
-  calls `access_keys.issue`, returns the plaintext **once**, and stores only
-  the SHA-256 hash. Pack credits are granted at claim.
+  mints the key and writes the key row, returns the plaintext **once**, and
+  stores only the SHA-256 hash. Pack credits are granted at claim.
 - **Authenticated Checkout** (a valid live key was presented): claim does not
   mint. A pack's credits were ADDed to that key on payment; a plan's monthly
   allowance was SET on that key on payment. The success page (this endpoint)
@@ -393,7 +393,8 @@ moves the credit balance to the new key; the old key is `403 key_revoked`.
 
 **Immediate** on `invoice.payment_failed`, on `customer.subscription.deleted`,
 and on expiry statuses above: monthly allowance goes to 0. Pack credits
-continue until they expire. A later successful `invoice.paid` SETS monthly
+continue until they expire. An invoice period that ended at or before
+cancellation does not reopen it. A later successful `invoice.paid` SETS monthly
 again on the same key.
 
 ## Refunds and disputes
