@@ -36,3 +36,33 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 ```
 
 After the C2 and C3 fixes: 8 passed, 186 deselected, exit 0.
+
+## C4
+
+A replayed link grant writes `pending_monthly` the way a first grant does. A replayed link grant writes the event's mapping tier.
+
+```
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py -k 'test_replayed_link_grant_copies_the_tier or test_replayed_friends_link_writes_the_mapping_tier'
+```
+
+Before the temporary edits: 2 passed, 193 deselected, exit 0.
+
+`if grant == "granted"` in place of `if grant in {"granted", "replay"}`:
+
+```
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py -k test_replayed_link_grant_copies_the_tier
+```
+
+1 failed, 194 deselected, exit 1. The edit was reverted.
+
+`mapping_tier=mapping.tier if linked == "granted" else ""` in place of `mapping_tier=mapping.tier`, on the two-test selector above: 1 failed, 1 passed, 193 deselected, exit 1. The edit was reverted.
+
+## Focused run
+
+```
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_friends_billing.py tests/test_friends_billing_wiring.py
+```
+
+316 passed, exit 0.
+
+Four billing probes passed: 7, 2, 8, and 4, each exit 0.

@@ -2181,7 +2181,6 @@ def test_active_subscription_update_applies_after_cancellation(policy):
     run(scenario())
 
 
-
 def test_active_status_update_tier_follows_the_ledger(policy):
     """An active status update writes the downgrade tier until an accepted invoice."""
 
@@ -2211,7 +2210,6 @@ def test_active_status_update_tier_follows_the_ledger(policy):
         assert (await keys.lookup(kv, key)).tier == "paid"
         assert (await ledger.balance(_billing_holder(key))).monthly == 4000
     run(scenario())
-
 
 
 def test_subscription_create_after_checkout_without_an_invoice_id(policy):
@@ -2267,7 +2265,6 @@ def test_subscription_create_after_checkout_without_an_invoice_id(policy):
         assert later_outcome.status == 200
         assert (await ledger.balance(holder)).monthly == 4000
     run(scenario())
-
 
 
 @pytest.mark.parametrize("late_kind", ["invoice.payment_failed", "invoice.paid"])
@@ -2955,6 +2952,44 @@ def test_replayed_link_grant_copies_the_tier(policy):
         stored = await billing.store.load_subscription(kv, SUB2)
         assert stored is not None and stored.tier == "paid"
         assert stored.key_fingerprint == fingerprint
+        assert stored.pending_monthly == 0
+    run(scenario())
+
+
+def test_replayed_friends_link_writes_the_mapping_tier(policy):
+    """A replayed link writes the event's mapping tier."""
+
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        holder = _billing_holder(key)
+        primed = await ledger.set_monthly(
+            holder, 4000, "in_replay_friends", "Solo", CUS, subscription_id=SUB2)
+        assert primed.credited
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier=policy.billing.downgrade_tier, pending=4000,
+            invoice_id="in_row_friends", pending_invoice_id="in_replay_friends"))
+        promo = {
+            "id": "promo_fixture",
+            "code": "FRIENDS-FIXTURE",
+            "promotion": {"type": "coupon", "coupon": {
+                "id": "coupon_fixture", "percent_off": 100, "duration": "forever",
+            }},
+        }
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_replay_friends", subscription=SUB2, invoice="in_other_friends",
+            metadata=meta, discounts=[{"promotion_code": promo}])
+        linked = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_replay_friends", created=1000)
+        assert linked.status == 200
+        assert (await keys.lookup(kv, key)).tier == "friends"
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None and stored.tier == "friends"
+        assert stored.pending_monthly == 0
     run(scenario())
 
 
