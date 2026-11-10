@@ -126,6 +126,20 @@ describe("the per-answer prompt", () => {
     expect(calls[2].body).toEqual({ receipt: RECORDED.receipt });
   });
 
+  it("keeps the redaction note when deleting a recorded receipt fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
+      if (init.method === "DELETE") throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify(RECORDED), { status: 202 });
+    }));
+    const user = userEvent.setup();
+    render(<FeedbackForm question="Was this answer reliable?" page="/decide/details/" />);
+    await user.click(screen.getByRole("radio", { name: "Confusing" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
+    await user.click(await screen.findByRole("button", { name: "Undo and delete it" }));
+    await screen.findByRole("alert");
+    expect(screen.getByRole("status")).toHaveTextContent("We removed what looked like email before it was kept.");
+  });
+
   it("shows the Worker's refusal instead of pretending", async () => {
     answering(undefined);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
