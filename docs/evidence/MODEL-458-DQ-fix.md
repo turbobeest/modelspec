@@ -250,3 +250,100 @@ Status: **BLOCKED** pending separate data corrections, passing affected
 catalogue suites and successful private current/successor memory measurements.
 This ticket changes no private data, frozen data, ranking floors, legal text,
 retention policy, production switches, prices, plans or workflows.
+
+## Round 2
+
+PR 1002 at `4fb1ea12ff718c5fe9db388062e857e8fdb6f950` had 17 failing checks.
+Each one stopped while loading a page that loads on the base commit. The
+diagnostic was `duplicate_yaml_key`. Pytest shard 3 reported line 5, column 1
+on a public benchmark page. The Rank Worker bundle vendored 129 files, then
+corpus decisions failed on the same diagnostic. Build both sites stopped at
+`BROWSER_RESULT: failure`. Worker memory headroom and the four decide-page
+jobs failed the same way. Check evidence against release charts and Data
+freeze stayed green. Private vendoring exited 2 before any memory sample. The
+export category was `LoadError`. The parent category was `RuntimeError`.
+
+`load_yaml` raised on a repeated mapping key, and `split_front_matter` turned
+that into `LoadError`. The base loader keeps the last key.
+
+`load_yaml` again uses the CSafeLoader or SafeLoader construction and keeps
+the last key. `duplicate_key_diagnostics` scans the same text and returns
+locations only. The benchmark validator and the data-trust inventory record
+`duplicate_yaml_key` and still return the loaded document. Unknown structural
+keys and retained-copy findings stay on that inventory path. `effective_range`
+is unchanged. No frozen data file was edited, and no private data file was
+edited.
+
+Three tests expected the old load rejection, so their expectations changed
+with the loader:
+
+- `test_duplicate_aliases_are_rejected` is now `test_duplicate_aliases_load_and_report`. The loaded aliases list is the last one. The diagnostic is `duplicate_yaml_key: line 3, column 1` and does not include the authored items.
+- `test_nested_duplicate_mapping_is_rejected` is now `test_nested_duplicate_mapping_is_reported`. The loaded mapping equals `yaml.safe_load` of the same text. The diagnostic starts with `duplicate_yaml_key` and omits the authored text.
+- `test_calibration_reports_duplicate_collection_failure` is now `test_calibration_keeps_the_duplicate_diagnostic_when_the_page_loads`. The fixture page loads, `duplicate_yaml_key` remains in the audit findings, and `snapshot_build` is absent.
+
+Public image inventory counts, from `scripts.data_trust.catalogue.load` on
+this repository: `duplicate_yaml_key` 10, `retained_cite_only_copy` 0,
+`unknown_benchmark_key` 41. Those three integers are
+`tests/fixtures/public_diagnostic_counts.json`.
+`tests/test_public_diagnostic_counts.py` fails if a count rises above its
+baseline. If a count falls, the failure text tells the reader to lower the
+baseline. The assertion text has no page names and no field values.
+
+Read-only private catalogue counts, from an archive of the supplied
+checkout's `origin/main`: `duplicate_yaml_key` 10, `retained_cite_only_copy`
+22, `unknown_benchmark_key` 41. Parse findings were 0. The load returned 1390
+model pages and 1156 benchmark pages.
+
+Decision and ranking output for the public image matched the base commit
+`5dd0eb5a16637d254c23f2903a5b97fb134ef9c3`. Both trees hashed to
+`12f0a9efdc799d83da68638f6e583c68c95a7d3481576f9f482931bafde1b33a` over 1372
+model fronts, 1153 benchmark fronts, three decide responses and three rank
+reports, 41092420 bytes.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_yaml_loading.py tests/test_benchmark_validation.py tests/test_data_trust.py tests/test_data_trust_retention.py tests/test_cite_only_retention.py tests/test_benchmark_values.py tests/test_card_yaml_roundtrip.py tests/test_decision_registry.py
+```
+
+Result: `356 passed in 34.45s`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py tests/test_model_191_refinements.py
+```
+
+Result: `70 passed in 21.06s`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py tests/test_model_191_refinements.py tests/test_decision_contract.py -k 'duplicate_yaml or pipeline or refinements'
+```
+
+Result: `71 passed, 248 deselected in 21.35s`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_public_diagnostic_counts.py
+```
+
+Result: `3 passed in 8.83s`.
+
+Private export and the memory probe ran through the heavy-command wrapper,
+with Node v22.22.3, Pyodide 0.28.3, throwaway key
+`model458-dq-memory-fixture-key`, and `--limit-mib 115`.
+
+```sh
+/Users/terbeest/.codex-g2/heavy.sh /bin/bash /tmp/MODEL-458-DQ-scratch/memory-probe.sh
+```
+
+The script runs `api/worker/vendor.py --data-dir` into a scratch bundle,
+copies `api/worker/src/*.py` into that bundle, installs Pyodide, then runs
+`api/worker/measure_memory.cjs` for the current period and with `--successor`.
+Exit 0. Vendored 129 files. Current steady memory is 108.990054 MiB
+(114284355 bytes). Successor steady memory is 104.665225 MiB (109749443
+bytes). Both are at or under 115 MiB. The current probe also printed the
+existing noisy-peak warning. Its peak was 112.525287 MiB, above the 112 MiB
+warning line. The 115 MiB steady gate is unchanged.
+
+Tool versions for this round: Python 3.14.4, pytest 9.1.1, Pydantic 2.13.5,
+PyYAML 6.0.3, Node v22.22.3. Local Git is 2.50.1.
+
+A full local pytest suite was not run. The post-push CI result is recorded
+after the push. This round edits no private data, frozen data, ranking floors,
+legal text, retention policy, production switches, prices, plans or workflows.
