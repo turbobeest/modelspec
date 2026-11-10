@@ -300,3 +300,45 @@ AUD-05-F5 asks that "each image resolves locally" while requiring preservation o
 All observations are local. No production requests, social-service scrapes, browser image generation, paid-provider calls, deployment, Linear writes, merges or release actions were performed. External stylesheet cascades and runtime visibility were not evaluated. Blog behavior was observed using the signed synthetic fixture; the default build publishes no blog posts. Optional browser/layout suites and separate full-build fixtures were excluded; the final agent-readiness suite supplied the one final build. CI retains responsibility for the full repository suite and required remote checks.
 
 Frozen data, legal text, ranking floors, contract ranges, prices, plans, Worker variables and production switches are unchanged. The baseline build emitted existing public hardware source-registration warnings. No background process remains. Scratch probes and build output are removed after the draft PR is opened, as required by the executor overrides.
+
+## Round 2
+
+Head at the start of this round: `77348c1f0ed51b99edcdf0cdade707ad93035767`. Image-baseline commit: `2702a3a1a48cface63f0ccfd0af519f0790d038e`. Guidance-hash commit: `2a09e2fbd96626506e37abe82e679fbf1823e001`. This section is a later commit.
+
+### CI install failure
+
+Required pytest jobs, the package smoke test, the Rank Worker bundle, and Worker memory headroom all failed while installing the package. `hatch_build.py` compares each `source_hashes` entry in `cli/modelspec/agent-bundle.json` with the file bytes and raises `ValueError: CLI guidance is stale`. The only stale source was `pipeline/pricing.py`. The pricing page now passes its description into the existing social metadata helper, which changes the file hash. The generated guidance text did not change.
+
+A local hash comparison printed `stale ['pipeline/pricing.py']`. `python -m pipeline.agent_copy write` rewrote the bundle and left a one-line hash diff. The other generated files matched what was already committed.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+```
+
+write: exit 0.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_agent_copy.py -k 'cli_bundle_and_schemas or all_agent_artifacts'
+```
+
+guidance-green: exit 0; `2 passed, 15 deselected in 4.78s`. A second hash comparison printed `stale []`.
+
+Worker memory headroom exited during that same install and did not measure. This round does not change Worker export fields, rank rows, or the engine import graph. The 115 MiB and 120 MiB gates are unchanged. The packaged guidance gained no text.
+
+### AUD-05-F5 image baseline
+
+The accepted rule is narrower than universal local resolution. A new same-origin `og:image` or `twitter:image` with no file fails the site build. The 42 optional images the default build already references and does not write are listed, with that count, in `pipeline/optional_social_images.txt`. The loader rejects a list longer than 42. Default-build behaviour for those images is unchanged, and `MODELSPEC_RENDER_SOCIAL_CARDS=1` still writes them. When a default build starts writing one of the listed files, the list and the count have to shrink to match. The built-tree test requires the unresolved set to equal the list.
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py -k 'social_image or optional_social_image or same_origin_missing or absolute_existing or example_shell_has_complete'
+```
+
+f5-baseline: exit 0; `15 passed, 68 deselected in 0.36s`.
+
+```sh
+env -u MODELSPEC_RENDER_SOCIAL_CARDS PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out /tmp/MODEL-458-SITE-scratch/dist
+```
+
+default-build: exit 0. Unresolved social images equalled the baseline: 42 names, no extra path, no stale path.
+
+The eight findings from round 1 stay in place. Frozen data, legal text, ranking floors, contract ranges, prices, plans, Worker variables and production switches stay unchanged.
