@@ -918,6 +918,19 @@ def test_render_cli_rejects_excluded_publisher_text(breakdown, tmp_path, text) -
     assert not (tmp_path / "charts").exists()
 
 
+def test_render_cli_rejects_excluded_text_the_post_does_not_show(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    hidden = "Stored with " + "Zap" + "ier"
+    data["headline"]["rule"] = hidden
+    candidate = Breakdown.model_validate(data)
+    post, _charts = render(candidate)
+    assert hidden not in post
+    code, out = _render_serialized(data, tmp_path, "hidden-rule")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
 def test_render_cli_writes_a_valid_serialized_breakdown(breakdown, tmp_path) -> None:
     code, out = _render_serialized(
         breakdown.model_dump(mode="json", by_alias=True), tmp_path, "valid")
