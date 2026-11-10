@@ -1947,14 +1947,12 @@ def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
     async def scenario():
         mismatches = []
         for kind, expect in (
-                ("failure", ("paid", 4000)),
+                ("failure", ("paid", 4000, "paid", "active")),
                 ("cancellation", ("free", 0, "free", "inactive"))):
             for paid_first in (True, False):
                 for pauses_paid in (1, 2, 3):
                     for pauses_other in (1, 2, 3):
                         got = await overlapped(kind, pauses_paid, pauses_other, paid_first)
-                        if kind == "failure":
-                            got = got[:2]
                         if got != expect:
                             mismatches.append(
                                 (kind, paid_first, pauses_paid, pauses_other, got))
@@ -3129,4 +3127,18 @@ def test_rotation_copies_the_ledger_tier(policy):
                                        service_commit=COMMIT, ledger=ledger)
         assert rotated.status == 200
         assert (await keys.lookup(kv, rotated.body["key"])).tier == policy.billing.downgrade_tier
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = False
+        account.entitlement_generation = 0
+        sub = await billing.store.load_subscription(kv, SUB)
+        await billing.store._write_sub(kv, replace(sub, tier="paid", status="active"))
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == "paid"
     run(scenario())

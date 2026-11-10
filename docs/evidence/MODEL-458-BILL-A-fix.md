@@ -588,3 +588,27 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 - The later copy runs only on a first grant: 1 failed, 1 passed, exit 1. The replayed key stayed on the paid tier.
 
 After each revert the same command passed: 2 passed, exit 0.
+
+### The failure schedule keeps the paid row, and rotation keeps a generation of zero
+
+The overlapped failure case now checks the row as well as the key. All 18
+failure schedules, two orders and three pauses on each side, returned the
+paid tier, allowance 4000, row tier paid, and status active. All 18
+cancellation schedules stayed on the downgrade tier with an inactive row.
+
+Rotation of an entitled paid key, with no promotion code and a generation
+above zero, keeps the paid tier. A key whose allowance was cleared rotates
+to the downgrade tier. A generation of zero, with a paid row tier, keeps
+that row tier.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_overlapped_old_failure_keeps_newer_paid_allowance tests/test_billing.py::test_rotation_copies_the_ledger_tier
+```
+
+Result: 2 passed, exit 0.
+
+The rotation test fails under each temporary edit, then the edit is reverted.
+Command: the rotation test alone.
+
+- Rotation always writes the downgrade tier: 1 failed, exit 1. The entitled key rotated to the downgrade tier.
+- The generation test is replaced by otherwise: 1 failed, exit 1. The generation-zero key rotated to the downgrade tier.
