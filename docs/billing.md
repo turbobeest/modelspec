@@ -391,11 +391,27 @@ moves the credit balance to the new key; the old key is `403 key_revoked`.
 
 ## Downgrade window
 
-**Immediate** on `invoice.payment_failed`, on `customer.subscription.deleted`,
-and on expiry statuses above: monthly allowance goes to 0. Pack credits
-continue until they expire. An invoice period that ended at or before
-cancellation does not reopen it. A later successful `invoice.paid` SETS monthly
-again on the same key.
+**Immediate** on `invoice.payment_failed`, on a terminal cancellation at or
+after the paid period start, and on expiry statuses above: monthly allowance
+goes to 0. Pack credits continue until they expire.
+
+A terminal cancellation is `customer.subscription.deleted`, or
+`customer.subscription.updated` with status `canceled` or `incomplete_expired`.
+Its time is `canceled_at`, or the event `created` when `canceled_at` is absent.
+That time is compared with the paid period start. A cancellation before the
+paid period start is ignored. Checkout with no paid period still clears.
+
+An `invoice.paid` whose period starts at or after the cancellation sets monthly
+again on the same key. An `invoice.paid` whose period starts before the
+cancellation is ignored, including a period that ended at or before the
+cancellation. An invoice with no period end does not reopen a terminal
+subscription. A later `customer.subscription.updated` with status `active` and
+a later `created` restores the tier.
+
+A paid invoice is stale only when its period end is before the stored paid
+period end. A different invoice id with the same period end applies. The same
+invoice id does not grant twice. A failed invoice whose period end is at or
+before the stored paid period end is ignored.
 
 ## Refunds and disputes
 

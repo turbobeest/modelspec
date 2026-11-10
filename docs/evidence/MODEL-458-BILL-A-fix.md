@@ -211,7 +211,8 @@ applies again. `unpaid` is not terminal.
 `set_monthly` and `clear_monthly` re-read `invoice_period_watermark` in the
 ledger transaction. A failed invoice does not move the watermark. A
 cancellation stores its time. Absent on old rows means no watermark. The
-in-process billing lock covers the entitlement write.
+webhook does not look up a process-local lock. Round 4 copies the ledger
+entitlement onto the key tier after an accepted write.
 
 The overlap control runs 30 pairs of a newer `invoice.paid` and an older
 `invoice.payment_failed` on a KV that yields on get and put. Before the
@@ -249,8 +250,8 @@ When `invoice_paid` is set and an invoice period is stored, an
 ### Docs
 
 `docs/api-access.md` and `docs/billing.md` name the mint and the key-row
-write. `docs/billing.md` says an invoice period that ended at or before
-cancellation does not reopen it. Nothing under `docs/legal/` changed.
+write. Round 4 replaces the cancellation sentence in `docs/billing.md`.
+Nothing under `docs/legal/` changed.
 
 ### Commands
 
@@ -266,6 +267,112 @@ The review diff adds no import. The Worker memory probe was not re-run.
 The earlier steady result remains 108,822,028 bytes, 103.78 MiB, below 115 MiB.
 No contract file, OpenAPI file, or `contract_version` changed. No production
 flag, price, plan, legal text, or frozen data changed.
+
+## Round 4
+
+Origin/main was already merged. These four findings are the work.
+
+### Entitlement copy
+
+The webhook does not look up a process-local lock. `entitlement_generation`
+increases on each accepted `set_monthly` and `clear_monthly`.
+`monthly_entitled` is the implied tier. After an accepted grant or clear, the
+handler writes that tier onto the key and writes it again when the generation
+changed, up to 4 passes. If it is still changing, the webhook errors and the
+event is retried. A rejected write does not change the key tier.
+`MemoryLedger`, `DurableLedger`, `UnboundLedger`, and the credits object
+expose `entitlement_view`. `UnboundLedger.entitlement_view` raises.
+`UnboundLedger.invoice_watermark` still returns 0.
+
+The overlap test gives each handler its own view of one KV store. Each view
+yields 1, 2, or 3 times on every get and put, in both orders. A newer
+`invoice.paid` against an older `invoice.payment_failed` ends paid with the
+monthly allowance. An older `invoice.paid` against a newer terminal
+cancellation ends free with monthly 0. Before the copy, the failure schedules
+ended free while the allowance stayed. After the copy, every schedule matched.
+
+Before: that test, 6 failed, exit 1. After: 1 passed, exit 0. Focused billing
+tests then: 244 passed, exit 0.
+
+### Cancellation against the paid period start
+
+`paid_period_start` is stored with an accepted paid invoice. A cancellation is
+stale only when it is before that start. A row that has
+`invoice_period_watermark` and no `paid_period_start` still clears. Checkout
+with no paid period still clears.
+
+Before: 4 failed, 4 passed, exit 1. The cancellations inside the paid period
+stayed paid, and the watermark-only row returned stale. After: 8 passed,
+exit 0. Focused billing tests then: 252 passed, exit 0.
+
+### Paid period against the cancellation time
+
+`canceled_at` is separate from `invoice_period_watermark`. An accepted
+cancellation stores `canceled_at` and does not move the watermark. A paid
+period that starts before `canceled_at` is stale. A period with no start whose
+end is at or before `canceled_at` is stale. An invoice with no period end
+stays stale. A period that starts at or after `canceled_at` applies and clears
+`canceled_at`. On a subscription row with no `canceled_at`, the stored
+subscription time is the cancellation time. An active update with a later
+`created` still restores the tier.
+
+Before: 2 failed, exit 1. The period that started before cancellation was
+credited. The period that started after `canceled_at`, with a later event
+time, was ignored. After, both pass. Focused billing tests then: 255 passed,
+exit 0.
+
+### Equal period end
+
+A paid invoice is stale only when its period end is before the stored end. A
+different invoice id with an equal end applies, including one whose start is
+earlier. The same invoice id is a replay and does not grant twice.
+`invoice.payment_failed` stays stale when its period end is at or before the
+stored end.
+
+Before: 1 failed, 1 passed, exit 1. The second invoice was ignored. The failed
+invoice at the stored end stayed paid. After, both pass. Focused billing tests
+then: 257 passed, exit 0.
+
+### Changed expectations
+
+No previously passing assertion was rewritten. `InvoiceLedger.set_monthly`
+accepts `period_start` and forwards it. The overlap test no longer depends on
+a process-local lock.
+
+Old rows load. `paid_period_start`, `canceled_at`, `entitlement_generation`,
+and `monthly_entitled` default to 0 or false. A subscription row's
+`canceled_at` defaults to 0. A row that has only `invoice_period_watermark`
+treats that value as the paid period end, with the start unknown and no
+cancellation.
+
+### Docs
+
+The round-3 sentence that said the in-process billing lock covers the
+entitlement write is corrected in that section and withdrawn here.
+`docs/billing.md` states the cancellation rule. Nothing under `docs/legal/`
+changed.
+
+### Commands
+
+After the equal-end change, from the worktree:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_credits.py tests/test_pricing_v2.py tests/test_friends_billing_wiring.py tests/test_read_refunds.py tests/test_overage_durability.py
+```
+
+Result: 449 passed, exit 0.
+
+Both review probes passed: 7 passed, exit 0, and 2 passed, exit 0.
+
+No contract file, OpenAPI file, or `contract_version` changed. The rank-export
+import graph is unchanged, so the Worker memory probe was not re-run. The
+earlier steady result remains 108,822,028 bytes, 103.78 MiB, below 115 MiB.
+No production flag, price, plan, legal text, or frozen data changed.
+
+### Remaining
+
+Checkout with no invoice id still resets a spent allowance. Reusing the
+synthetic grant id returns replay before the watermark is stored.
 
 ### Remaining
 
