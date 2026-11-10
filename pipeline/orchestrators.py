@@ -86,7 +86,7 @@ def page() -> str:
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<title>{TITLE} · ModelSpec</title><meta name="description" content="{DESCRIPTION}">'
         f'<link rel="canonical" href="https://modelspec.dev{PATH}">'
-        f'{brand.head_links()}{brand.social_meta(TITLE, path=PATH)}'
+        f'{brand.head_links()}{brand.social_meta(TITLE, path=PATH, description=DESCRIPTION)}'
         '<link rel="stylesheet" href="/landing-assets/landing.css">'
         '<link rel="stylesheet" href="/landing-assets/method.css">'
         '<link rel="stylesheet" href="/landing-assets/orchestrators.css">'

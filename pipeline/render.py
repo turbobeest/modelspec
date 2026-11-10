@@ -684,11 +684,12 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     blocks: list[str] = []
     for group, items in ordered_groups:
         items.sort(key=lambda item: (-sourced_model_count(item[1]), item[0].name.lower()))
+        level = "h4" if group else "h3"
         strips = "".join(
             '<article class="benchmark-strip">'
-            f'<h4><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
+            f'<{level}><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
             f'<span class="meta">{sourced_model_count(rows)} reporting models</span>'
-            f'</h4>{strip}</article>'
+            f'</{level}>{strip}</article>'
             for bench, rows, strip in items
         )
         heading = f'<h3>{esc(group)}</h3>' if group else ""
@@ -1476,12 +1477,24 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <p>{'' if private_serving() else f'<a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a>'} &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/{esc(model.path.relative_to(model.path.parents[2]))}">Edit on GitHub</a></p>
 """
-    return shell(
+    page = shell(
         title=f"{model.display_name} — ModelSpec",
         description=f"{model.display_name} by {model.provider_display}: benchmark scores, lineage, platforms and hardware fit, with the date on every number.",
         canonical=f"https://modelspec.dev/m/{model.model_id}/",
         body=body, build=build, site="ModelSpec", nav_links=MS_NAV,
     )
+    if strips:
+        # Ungrouped titles are h3 and would otherwise take the generic h3
+        # measure and the strip-group colour. The old h4 rule already sets
+        # size and margin; these declarations keep the rest of that measure.
+        page = page.replace(
+            ".benchmark-strip h4{font-family:var(--sans);font-size:14px;margin:0 0 5px}",
+            ".benchmark-strip :is(h3,h4){font-family:var(--sans);font-size:14px;"
+            "font-weight:700;letter-spacing:normal;color:inherit;margin:0 0 5px}",
+            1,
+        )
+        page = page.replace(".benchmark-strip h4", ".benchmark-strip :is(h3,h4)")
+    return page
 
 
 def catalogue_freshness(models: list[Model], build: Build | None = None) -> dict[str, Any]:
@@ -1559,14 +1572,26 @@ def models_index(models: list[Model], build: Build) -> str:
             f'<li><a href="/m/{esc(m.model_id)}/">{esc(m.display_name)}</a></li>'
             for m in sorted(by_provider[provider], key=lambda m: m.display_name.lower())
         )
-        blocks.append(f'<h3>{esc(provider)}</h3><ul class="cols">{items}</ul>')
+        blocks.append(
+            f'<h2 class="provider-heading">{esc(provider)}</h2><ul class="cols">{items}</ul>'
+        )
     body = (f'<h1>Every model</h1><p class="lede">{len(models)} cards across '
             f'{len(by_provider)} providers.</p>' + freshness_notice(models, build)
             + "".join(blocks))
-    return shell(title="Every model — ModelSpec",
+    page = shell(title="Every model — ModelSpec",
                  description=f"All {len(models)} model cards in ModelSpec, by provider.",
                  canonical="https://modelspec.dev/models/", body=body, build=build,
                  site="ModelSpec", nav_links=MS_NAV)
+    # The shared h3 measure, kept off the shared sheet so other pages stay put.
+    # :where(.page) h2 is only an element of specificity, so this class wins.
+    rule = (
+        ".page h2.provider-heading{font-family:var(--sans);font-weight:700;"
+        "font-size:16px;letter-spacing:-.01em;text-transform:none;color:inherit;"
+        "border-bottom:0;padding-bottom:0;margin:22px 0 6px;position:static;"
+        "counter-increment:none}"
+        ".page h2.provider-heading::before{content:none}"
+    )
+    return page.replace("</style>", rule + "</style>", 1)
 
 
 def providers_index(models: list[Model], build: Build) -> str:
@@ -1673,6 +1698,24 @@ def _body_href(url: str) -> str | None:
     if not path or resolved.startswith("..") or "\\" in resolved:
         return None
     return GITHUB_BLOB + resolved + (f"#{frag}" if frag else "")
+
+
+_MARKDOWN_DESTINATION = re.compile(
+    r"\\.|(?<!`)(?P<ticks>`+)(?!`).*?(?<!`)(?P=ticks)(?!`)|\[(?P<label>[^\]\n]+)\]\((?P<href>[^)\s]*)\)",
+    re.S,
+)
+
+
+def normalize_benchmark_markdown_links(text: str) -> str:
+    """Apply the HTML body's destination policy, preserving Markdown and code spans."""
+    def replace(match: re.Match[str]) -> str:
+        if match.group("href") is None:
+            return match.group()
+        href = _body_href(match.group("href"))
+        label = match.group("label")
+        return f"[{label}]({href})" if href else label
+
+    return _MARKDOWN_DESTINATION.sub(replace, text)
 
 
 def _emphasis(escaped: str) -> str:

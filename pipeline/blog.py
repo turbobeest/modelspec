@@ -201,6 +201,16 @@ def _posts(root: Path, *, public_keys=None, preview_slug=None, today: date | Non
         corrections = (
             yaml.safe_load(corrections_file.read_text()) if corrections_file.exists() else []
         )
+        if preview_slug is None:
+            published_revisions = {
+                row.revision for row in metadata.revisions
+                if row.published is not None and row.published <= published_through
+            }
+            for correction in corrections or []:
+                if date.fromisoformat(str(correction["date"])) > published_through:
+                    raise ValueError("blog correction date is in the future")
+                if int(correction["revision"]) not in published_revisions:
+                    raise ValueError("blog correction must reference a published revision")
         for revision in metadata.revisions:
             if preview_slug is None:
                 if revision.published is None:
@@ -326,7 +336,14 @@ def _post_page(post: Post, revisions: list[Post], path: str, build: Build, *, pr
         + _reproduce(post)
         + "</article>"
     )
-    image = BASE + post.path + "og-card.png"
+    # The per-post card exists only when rendering is on. Otherwise the page
+    # uses the site card the build copies, so the image URL resolves.
+    image_name = (
+        (post.path + "og-card.png").lstrip("/")
+        if social_cards.render_enabled()
+        else "og-card.png"
+    )
+    image = f"{BASE}/{image_name}"
     nodes = [
         {
             "@type": "Article",
@@ -350,17 +367,19 @@ def _post_page(post: Post, revisions: list[Post], path: str, build: Build, *, pr
     html = html.replace(
         'property="og:type" content="website"', 'property="og:type" content="article"'
     )
-    # The document shell already owns og:title and og:url.
+    # The document shell already owns the page identity and description.
     meta = brand.social_meta(
-        r.esc(post.title),
+        post.title,
         path=path,
-        image_name=(post.path + "og-card.png").lstrip("/"),
-        image_alt=r.esc(post.title),
+        description=post.title,
+        page_type="article",
+        image_name=image_name,
+        image_alt=post.title,
     )
     meta = "\n".join(
         line
         for line in meta.splitlines()
-        if 'property="og:title"' not in line and 'property="og:url"' not in line
+        if not any(f'property="og:{key}"' in line for key in ("title", "url", "type", "description"))
     )
     return html.replace("</head>", meta + structured_data.script(nodes) + "</head>")
 
