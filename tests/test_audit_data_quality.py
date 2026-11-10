@@ -139,6 +139,24 @@ def test_audit_still_notes_arena_absent_from_cache_and_evidence():
     }]
 
 
+def test_audit_notes_arena_absent_from_an_evidence_only_card():
+    card = _card(evidence=[_evidence()])
+    assert card.benchmarks.scores == {}
+    assert card.benchmarks.filled_count() == 0
+    findings = [item for item in audit_card(card, Path("example.md")) if item["field"] == "arena_elo_overall"]
+    assert findings == [{
+        "model_id": "example/model",
+        "provider": "example",
+        "severity": "info",
+        "category": "missing",
+        "field": "arena_elo_overall",
+        "message": (
+            "Legacy cached scores and authored evidence records do not include arena_elo_overall. "
+            "Query qualification is not decided by this audit."
+        ),
+    }]
+
+
 def test_audit_does_not_note_arena_when_the_legacy_cache_holds_it():
     card = _card(scores={"cached_score": 10, "arena_elo_overall": 1200})
     assert card.benchmarks.evidence == []

@@ -129,7 +129,7 @@ def audit_card(card: ModelCard, path: Path) -> list[dict]:
         "arena_elo_overall" in card.benchmarks.scores
         or any(record.benchmark_id == "arena_elo_overall" for record in authored)
     )
-    if is_llm and legacy_count > 0 and not has_arena:
+    if is_llm and len(covered_ids) > 0 and not has_arena:
         add("info", "missing", "arena_elo_overall",
             "Legacy cached scores and authored evidence records do not include arena_elo_overall. "
             "Query qualification is not decided by this audit.")

@@ -11,7 +11,7 @@ Python 3.14.4. pytest 9.1.1. Node v22.22.3. Pyodide 0.28.3 for the memory probe.
 
 The card audit reports two counts for an LLM or VLM. `Benchmarks.filled_count()` remains the legacy `benchmarks.scores` cache. The second count is the number of authored `benchmarks.evidence` records. A coverage finding uses the benchmark ids present in either place. Zero ids is category `missing`. One or two ids is category `sparse`. Three or more ids produce no coverage finding. The finding states that this audit does not decide evidence admission or query qualification.
 
-An Arena ELO note is emitted only when the legacy cache is non-empty and neither the cache nor authored evidence contains `arena_elo_overall`. The note does not decide preference-ranking qualification. Capability-tier checks still use the legacy cache count. Ranking floors, weights, evidence admission, and candidate construction are unchanged.
+An Arena ELO note is emitted when the card is an LLM or VLM, at least one covered benchmark id is present in the legacy cache or in authored evidence, and neither holds `arena_elo_overall`. The note does not decide preference-ranking qualification. Capability-tier checks still use the legacy cache count. Ranking floors, weights, evidence admission, and candidate construction are unchanged.
 
 Permanent regressions are in `tests/test_audit_data_quality.py`. Before the audit change:
 
@@ -173,3 +173,38 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 ```
 
 Result: `10 passed in 0.26s`, exit 0.
+
+### Arena note on an evidence-only card
+
+`test_audit_notes_arena_absent_from_an_evidence_only_card` uses an LLM card with an empty legacy cache and one authored evidence record whose benchmark id is not `arena_elo_overall`. The audit must emit the same Arena note a cache-only card gets. The note's wording and severity are unchanged. A card with no covered benchmark id still gets no Arena note. `test_audit_provider_filter_keeps_valid_card_findings` still expects that, and it was not edited.
+
+Before the condition change the new test failed:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py::test_audit_notes_arena_absent_from_an_evidence_only_card
+```
+
+Result: `1 failed in 0.12s`, exit 1. The Arena finding list was empty.
+
+The Arena note condition changed from `legacy_count > 0` to `len(covered_ids) > 0`. `covered_ids` is the union of legacy cache ids and authored evidence ids.
+
+Private census, counts only, on an archive of local `modelspec-data` `origin/main` under `/tmp/MODEL-458-DQ-B-scratch/`. The same command ran before the condition change and after it.
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python /tmp/MODEL-458-DQ-B-scratch/census.py
+```
+
+Exit 0 both times. Markdown files 1391. Parsed cards 1390. Parse errors 0. Non-content files skipped 1.
+
+| When | Cards with an Arena note |
+| --- | --- |
+| Before, note required a non-empty legacy cache | 152 |
+| After, note requires at least one covered id | 394 |
+
+After the change:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py
+```
+
+Result: `11 passed in 0.26s`, exit 0.
