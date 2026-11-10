@@ -786,7 +786,7 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
 
 async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
                         units: int, invoice_id: str, plan: str,
-                        period_end: int = 0) -> str:
+                        period_end: int = 0, period_start: int = 0) -> str:
     """SET monthly on the claimed key, or remember it for claim. Packs untouched."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
@@ -802,7 +802,8 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
             result = await ledger.set_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
                 units, invoice_id, plan, stored.customer_id,
-                period_end=int(period_end or 0))
+                period_end=int(period_end or 0),
+                period_start=int(period_start or 0))
             if result.reason == "stale":
                 return "stale"
             if result.credited and stored.pending_monthly:

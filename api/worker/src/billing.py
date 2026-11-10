@@ -904,7 +904,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         period_start=period_start, period_end=period_end, paid=True)
     grant = await store.grant_monthly(
         kv, subscription_id, ledger=ledger, units=mapping.credits,
-        invoice_id=invoice_id, plan=mapping.name, period_end=period_end)
+        invoice_id=invoice_id, plan=mapping.name, period_end=period_end,
+        period_start=period_start)
     if grant == "stale":
         return "ignored", None
     if grant == "granted":

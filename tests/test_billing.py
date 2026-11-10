@@ -1183,9 +1183,10 @@ def test_invoice_paid_with_fingerprint_attaches_to_existing_key(policy):
 def test_a_paid_invoice_grants_monthly_through_an_invoice_only_ledger(policy):
     class InvoiceLedger(credits.MemoryLedger):
         async def set_monthly(self, holder, units, invoice_id, plan="", customer_id="",
-                              period_end=0):
+                              period_end=0, period_start=0):
             return await super().set_monthly(
-                holder, units, invoice_id, plan, customer_id, period_end=period_end)
+                holder, units, invoice_id, plan, customer_id,
+                period_end=period_end, period_start=period_start)
 
     kv = MemoryKV()
     ledger = InvoiceLedger()
@@ -1954,6 +1955,86 @@ def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
         assert mismatches == []
 
     run(scenario())
+
+
+@pytest.mark.parametrize("canceled_at,created", [(350, 350), (350, 400), (400, 400), (401, 401)])
+def test_cancel_inside_paid_period_clears(policy, canceled_at, created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=300)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": canceled_at}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=created)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_updated_canceled_inside_paid_period_clears(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=300)).status == 200
+        ended = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                     ended, "evt_c", created=350)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_cancel_before_paid_period_start_stays_paid(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=400, period_start=400, period_end=500)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=400)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_checkout_only_terminal_cancel_clears(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "downgraded"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_watermark_only_row_clears_on_cancellation():
+    holder = "holder-old"
+    ledger = credits.MemoryLedger(credits.LedgerState.from_json({
+        "accounts": {
+            holder: {
+                "monthly": 4000,
+                "invoice_period_watermark": 400,
+                "monthly_entitled": True,
+            }
+        }
+    }))
+    result = run(ledger.clear_monthly(holder, watermark=350))
+    assert result.reason == "cleared"
+    assert run(ledger.balance(holder)).monthly == 0
 
 
 def test_payment_failed_without_period_keeps_a_stored_paid_period(policy):

@@ -130,11 +130,12 @@ class CreditsObject(DurableObject):
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
                           plan: str = "", customer_id: str = "",
-                          period_end: int = 0) -> dict[str, Any]:
+                          period_end: int = 0, period_start: int = 0) -> dict[str, Any]:
         state = self._stored()
         result = state.set_monthly(holder, int(units), str(invoice_id),
                                    str(plan or ""), str(customer_id or ""),
-                                   period_end=int(period_end or 0))
+                                   period_end=int(period_end or 0),
+                                   period_start=int(period_start or 0))
         self._save(state)
         return result.to_json()
 
