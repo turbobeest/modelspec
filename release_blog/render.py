@@ -388,8 +388,11 @@ def _setup(setup: Any) -> str:
 
 
 def _record_text(text: str) -> str:
-    """Verbatim record text. A digit stays inside a code span, as a setup version does."""
-    return _code(text) if any(character.isdigit() for character in text) else text
+    """A quotation of record text: one code span, never markup.
+
+    A backtick would end that span, so the quotation uses an apostrophe there.
+    """
+    return _code(text.replace("`", "'"))
 
 
 def _caveat_lines(rows: Sequence[Any], notes: Footnotes) -> list[str]:

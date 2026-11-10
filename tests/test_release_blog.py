@@ -745,6 +745,54 @@ def test_lab_limitation_appears_without_readings(breakdown) -> None:
     assert row.claim.record_id in note
 
 
+def _site_html(post: str, sources: dict[str, str]) -> str:
+    from pipeline.blog_markdown import render as render_html
+
+    return render_html(post, set(sources.values()))
+
+
+def test_record_text_with_a_backtick_and_a_digit_is_one_code_span(breakdown) -> None:
+    raw = "Run with `--n 20` flag"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    item = next(part for part in re.findall(r"<li>.*?</li>", html) if "flag" in part)
+    outside = re.sub(r"<code>.*?</code>", "", item)
+    assert "20" not in outside
+    codes = re.findall(r"<code>(.*?)</code>", item)
+    assert any("Run with" in code and "20" in code and "flag" in code for code in codes)
+
+
+def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
+    raw = (
+        "See <https://other.example/page> and [a note](https://other.example/note) "
+        "plus a `tick`"
+    )
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={"limitations": raw, "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading], "limitations": None})
+    built = _with_claim(breakdown, changed)
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    item = next(part for part in re.findall(r"<li>.*?</li>", html) if "other.example" in part)
+    hrefs = re.findall(r'href="([^"]*)"', item)
+    assert all("other.example" not in href for href in hrefs)
+    assert "other.example/page" in item
+    assert "other.example/note" in item
+    assert "tick" in item
+    assert "<a " not in re.sub(r"<sup>.*?</sup>", "", item)
+
+
+def test_refused_word_in_an_independent_reading_blocks_the_render(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={
+        "limitations": "The reading beats the lab figure.", "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading]})
+    with pytest.raises(ValueError, match="refused words"):
+        render(_with_claim(breakdown, changed))
+
+
 def _finite_widths(svg: str) -> None:
     widths = [float(match) for match in re.findall(r'width="([0-9.eE+-]+)"', svg)]
     assert widths
