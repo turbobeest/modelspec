@@ -505,7 +505,8 @@ async def charge(
     clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     async def _settle(reserved_holder: str, reservation_id: int) -> None:
-        await ledger.commit(reserved_holder, reservation_id)
+        if not await ledger.commit(reserved_holder, reservation_id):
+            raise RuntimeError("credit reservation could not be committed")
         if on_overage is not None:
             # The debit already saved its meter record. A prepaid request
             # also drains records left by earlier lost RPC replies.
@@ -625,7 +626,8 @@ async def _produce_reserved(
                 if settle is not None:
                     await settle(holder, reservation_id)
                 else:
-                    await ledger.commit(holder, reservation_id)
+                    if not await ledger.commit(holder, reservation_id):
+                        raise RuntimeError("credit reservation could not be committed")
                 log.note("commit")
                 reservation_id = None
             else:

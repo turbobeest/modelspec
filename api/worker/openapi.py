@@ -2716,8 +2716,7 @@ def build_spec() -> dict[str, Any]:
             "result": {"type": "array", "items": {}, "maxItems": 0},
         })
         decision_schemas[name] = schema
-    # /v1/credits refuses in its own vocabulary (x402.balance_query), not the
-    # access gate's: same error shape, its own two codes.
+    # Credit balance authentication and ledger refusals share these two codes.
     credits_error = copy.deepcopy(access_error)
     credits_error["properties"]["code"]["enum"] = sorted(
         {x402.MISSING_HOLDER, x402.CREDITS_STORE_NOT_CONFIGURED})
@@ -2864,6 +2863,10 @@ def build_spec() -> dict[str, Any]:
                            "and vocabulary. Machine callers use an API key.",
         }
         page_security.append({"visitToken": []})
+    # One content object. Repeating this schema puts the generated document over its size cap.
+    credits_refused = {
+        "application/json": {"schema": {"$ref": "#/components/schemas/CreditsRefused"}},
+    }
     return {
         "openapi": "3.0.3",
         "info": {
@@ -2977,12 +2980,18 @@ def build_spec() -> dict[str, Any]:
                         "200": _json_body(
                             "The holder's available and reserved units.",
                             {"$ref": "#/components/schemas/CreditsBalance"}),
-                        str(x402.HTTP_UNAUTHORIZED): _json_body(
-                            "missing_holder: no API key presented.",
-                            {"$ref": "#/components/schemas/CreditsRefused"}),
-                        str(x402.HTTP_STORE_UNAVAILABLE): _json_body(
-                            "credits_store_not_configured: the credit ledger is not bound.",
-                            {"$ref": "#/components/schemas/CreditsRefused"}),
+                        str(x402.HTTP_UNAUTHORIZED): {
+                            "description": "missing_holder: an active live API key is required; sandbox keys have no live balance.",
+                            "content": credits_refused,
+                        },
+                        str(access.HTTP_FORBIDDEN): {
+                            "description": "missing_holder: the presented key is inactive.",
+                            "content": credits_refused,
+                        },
+                        str(x402.HTTP_STORE_UNAVAILABLE): {
+                            "description": "credits_store_not_configured: credit account authentication or the credit ledger is unavailable.",
+                            "content": credits_refused,
+                        },
                         not_found[0]: not_found[1],
                         str(service.HTTP_METHOD_NOT_ALLOWED): transport(
                             service.HTTP_METHOD_NOT_ALLOWED, "/v1/credits takes GET.")[1],
