@@ -1180,3 +1180,63 @@ def test_models_index_provider_heading_follows_page_title():
     from pipeline.render import models_index
     page = models_index([_card('demo/focus')], Build('fixture', '2026-09-23T00:00:00Z', date(2026, 9, 23)))
     assert re.findall(r'<h([1-6])\b', page) == ['1', '2']
+
+
+def test_models_index_provider_headings_keep_the_base_measure():
+    from pipeline.render import models_index
+    other = _card('other/two')
+    other.front["provider"] = "other"
+    other.front["provider_display"] = "Other Lab"
+    page = models_index(
+        [_card('demo/focus'), other],
+        Build('fixture', '2026-09-23T00:00:00Z', date(2026, 9, 23)),
+    )
+    openings = re.findall(r"<h([1-6])\b([^>]*)>", page)
+    providers = [attrs for level, attrs in openings if level == "2"]
+    assert providers == [' class="provider-heading"', ' class="provider-heading"']
+    assert "<h3" not in page
+    assert '<h2 class="provider-heading">Demo Lab</h2>' in page
+    assert '<h2 class="provider-heading">Other Lab</h2>' in page
+    style = page.split("<style>", 1)[1].split("</style>", 1)[0]
+    rule = re.search(r"\.page h2\.provider-heading\{([^}]*)\}", style)
+    assert rule is not None
+    body = rule.group(1)
+    assert "font-size:16px" in body
+    assert "font-weight:700" in body
+    assert "letter-spacing:-.01em" in body
+    assert "text-transform:none" in body
+    assert "color:inherit" in body
+    assert "border-bottom:0" in body
+    assert "padding-bottom:0" in body
+    assert "margin:22px 0 6px" in body
+    assert "position:static" in body
+    assert "counter-increment:none" in body
+    assert "!important" not in body
+    before = re.search(r"\.page h2\.provider-heading::before\{([^}]*)\}", style)
+    assert before is not None
+    assert before.group(1) == "content:none"
+    assert "!important" not in before.group(1)
+
+
+def test_ungrouped_strip_title_keeps_the_strip_measure():
+    model = _card('demo/focus', evidence=(_evidence('b', 70.0),))
+    html = model_page(
+        model,
+        _BUILD,
+        {"b": _page("b")},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage={"b": [
+            _chart_row("demo/focus", 70.0),
+            _chart_row("demo/other", 65.0),
+        ]},
+    )
+    assert re.findall(r'<article class="benchmark-strip"><h([1-6])\b', html) == ["3"]
+    rule = re.search(r"\.benchmark-strip :is\(h3,h4\)\{([^}]*)\}", html)
+    assert rule is not None
+    body = rule.group(1)
+    assert "font-size:14px" in body
+    assert "font-weight:700" in body
+    assert "letter-spacing:normal" in body
+    assert "color:inherit" in body
+    assert "margin:0 0 5px" in body
+    assert "!important" not in body

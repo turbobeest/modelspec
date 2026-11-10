@@ -366,3 +366,89 @@ env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh
 ci-blog-build: exit 0; `1 passed in 51.27s`.
 
 This follow-up does not change Worker imports, packaged guidance text, ranking floors, legal text, contract ranges, prices, plans, or production switches.
+
+## Round 3
+
+Head at the start of this round: `cb1ad6478ff9bc6801fd01f0f3bc7fdaf95b882c`. Merge commit: `9317c434e2a5242681768f93745f20e2c15dcee2`, from `origin/main` at `f0f8ca5c76e7dd5b4d906ae25fac85856a3cfd17`. The merge was clean. This section is the following commit.
+
+### Companions
+
+The merge did not leave a generated file stale.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+```
+
+agent-copy: exit 0.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+```
+
+openapi: exit 0. `openapi.yaml` matches the implementation.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -c 'import json; from pathlib import Path; from qa.contracts import capture_tools; recorded = json.loads(Path("qa/fixtures/mcp-tools.json").read_text()); raise SystemExit(0 if recorded == capture_tools() else 1)'
+```
+
+mcp-tools: exit 0.
+
+### Tests on the merge
+
+```sh
+env PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_agent_ready.py tests/test_blog.py tests/test_brand.py tests/test_entity.py tests/test_llms_txt.py tests/test_method.py tests/test_pipeline.py tests/test_social_cards.py tests/test_surface_lint.py -k 'not renderer_writes and not chromium_layout and not every_frozen_template_card and not build_emits and not blog_fixture_is_readable'
+```
+
+merge-focused: exit 0. `429 passed, 5 deselected in 266.11s`.
+
+### Provider headings
+
+Provider headings on `/models/` stay `h2` and carry `provider-heading`. The models index adds a rule for `.page h2.provider-heading`. The base `h3` rule in `pipeline/render.py` at `5dd0eb5a16637d254c23f2903a5b97fb134ef9c3` is `font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:-.01em;margin:22px 0 6px`. That rule sets no text transform, colour, border, or padding. The class rule uses those values and sets `text-transform:none`, `color:inherit`, `border-bottom:0`, `padding-bottom:0`, `position:static`, and `counter-increment:none`. Its `::before` content is `none`. `.page h2.provider-heading` is more specific than `:where(.page) h2`, and the rule does not use `!important`. The rule is inserted on the models index only, so the shared stylesheet and the no-guide model-page fixture stay byte-identical.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py -k 'provider_headings_keep_the_base_measure or ungrouped_strip_title_keeps_the_strip_measure'
+```
+
+r3-red: exit 1. `2 failed, 83 deselected in 0.38s`. The provider assertion compared `['', '']` with the `provider-heading` class. The strip assertion did not find `font-weight:700` in `font-family:var(--sans);font-size:14px;margin:0 0 5px`.
+
+With the class present and the class rule removed, the same provider test failed at `assert rule is not None`. Exit 1. `1 failed in 0.94s`.
+
+### Other heading levels
+
+```sh
+git diff 5dd0eb5a16637d254c23f2903a5b97fb134ef9c3 -U0 -- pipeline/render.py | rg '^[+-].*<h[1-6]'
+```
+
+The only heading-tag changes are the models index provider, from `h3` to `h2`, and the ungrouped benchmark-strip title, from `h4` to `h3` when the strip has no group. Group headings stay `h3`. Grouped strip titles stay `h4`. Section headings on the model page stay `h2`. They already matched `:where(.page) h2` on the base, so this round does not restyle them.
+
+An ungrouped strip title is an `h3`, so it matches the generic `h3` rule and `.strip-group h3`. The existing `.benchmark-strip :is(h3,h4)` rule already sets the 14px size and the `0 0 5px` margin. `letter-spacing:-.01em` from the generic `h3` rule and `color:var(--mute)` from `.strip-group h3` still applied. On pages that render strips, that rule now also sets `font-weight:700`, `letter-spacing:normal`, and `color:inherit`. The link and hover selectors still use `:is(h3,h4)`.
+
+### Green
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py::test_models_index_provider_headings_keep_the_base_measure tests/test_pipeline.py::test_ungrouped_strip_title_keeps_the_strip_measure tests/test_pipeline.py::test_models_index_provider_heading_follows_page_title tests/test_pipeline.py::test_ungrouped_benchmark_strip_heading_follows_its_section tests/test_pipeline.py::test_model_page_passes_coverage_to_benchmark_strips tests/test_model_guide_render.py::test_card_without_guide_is_byte_identical_to_main
+```
+
+r3-green: exit 0. `6 passed in 1.28s`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_pipeline.py tests/test_instrument_render.py tests/test_model_guide_render.py
+```
+
+r3-render: exit 0. `128 passed in 31.59s`.
+
+```sh
+env -u MODELSPEC_RENDER_SOCIAL_CARDS PYTHONPATH=$PWD SOCIAL_CARDS_RENDER=false /Users/terbeest/.codex-g2/heavy.sh /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out /tmp/MODEL-458-SITE-scratch/dist
+```
+
+default-build: exit 0. The build printed the existing unregistered hardware source notices.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.surface_lint --tree /tmp/MODEL-458-SITE-scratch/dist/modelspec
+```
+
+surface-lint: exit 0. `0 findings; 5366 files checked`.
+
+The optional-image baseline length is 42. Unresolved social images on that tree equal the baseline, 42 names. `missing_social_images` is empty. `/models/index.html` has 83 `h2` elements, each with `provider-heading`, and no `h3`.
+
+Heading levels are unchanged in this round. No existing assertion was removed or loosened. Frozen data, legal text, ranking floors, contract ranges, prices, plans, Worker variables, and production switches are unchanged. The 120 MiB, 115 MiB, and 100 ms gates are unchanged.

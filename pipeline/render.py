@@ -1484,6 +1484,15 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
         body=body, build=build, site="ModelSpec", nav_links=MS_NAV,
     )
     if strips:
+        # Ungrouped titles are h3 and would otherwise take the generic h3
+        # measure and the strip-group colour. The old h4 rule already sets
+        # size and margin; these declarations keep the rest of that measure.
+        page = page.replace(
+            ".benchmark-strip h4{font-family:var(--sans);font-size:14px;margin:0 0 5px}",
+            ".benchmark-strip :is(h3,h4){font-family:var(--sans);font-size:14px;"
+            "font-weight:700;letter-spacing:normal;color:inherit;margin:0 0 5px}",
+            1,
+        )
         page = page.replace(".benchmark-strip h4", ".benchmark-strip :is(h3,h4)")
     return page
 
@@ -1563,14 +1572,26 @@ def models_index(models: list[Model], build: Build) -> str:
             f'<li><a href="/m/{esc(m.model_id)}/">{esc(m.display_name)}</a></li>'
             for m in sorted(by_provider[provider], key=lambda m: m.display_name.lower())
         )
-        blocks.append(f'<h2>{esc(provider)}</h2><ul class="cols">{items}</ul>')
+        blocks.append(
+            f'<h2 class="provider-heading">{esc(provider)}</h2><ul class="cols">{items}</ul>'
+        )
     body = (f'<h1>Every model</h1><p class="lede">{len(models)} cards across '
             f'{len(by_provider)} providers.</p>' + freshness_notice(models, build)
             + "".join(blocks))
-    return shell(title="Every model — ModelSpec",
+    page = shell(title="Every model — ModelSpec",
                  description=f"All {len(models)} model cards in ModelSpec, by provider.",
                  canonical="https://modelspec.dev/models/", body=body, build=build,
                  site="ModelSpec", nav_links=MS_NAV)
+    # The shared h3 measure, kept off the shared sheet so other pages stay put.
+    # :where(.page) h2 is only an element of specificity, so this class wins.
+    rule = (
+        ".page h2.provider-heading{font-family:var(--sans);font-weight:700;"
+        "font-size:16px;letter-spacing:-.01em;text-transform:none;color:inherit;"
+        "border-bottom:0;padding-bottom:0;margin:22px 0 6px;position:static;"
+        "counter-increment:none}"
+        ".page h2.provider-heading::before{content:none}"
+    )
+    return page.replace("</style>", rule + "</style>", 1)
 
 
 def providers_index(models: list[Model], build: Build) -> str:
