@@ -18,6 +18,7 @@ from pathlib import Path
 from collections import Counter, defaultdict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from pipeline.load import NOT_CONTENT
 from schema.card import ModelCard
 
 
@@ -228,6 +229,8 @@ def run_audit(models_dir: Path, provider_filter: str = None) -> list[dict]:
     cards = sorted(models_dir.rglob("*.md"))
 
     for card_path in cards:
+        if card_path.name in NOT_CONTENT:
+            continue
         try:
             card = ModelCard.from_yaml_file(card_path)
         except Exception as e:

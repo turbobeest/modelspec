@@ -5,11 +5,13 @@ map. The audit used to read only the legacy ``benchmarks.scores`` cache.
 """
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from pipeline.load import NOT_CONTENT
 from pipeline.ranking import build_candidates
 from schema.card import ModelCard
 from schema.graph import CollectingSink
-from scripts.audit_data_quality import audit_card
+from scripts.audit_data_quality import audit_card, run_audit
 
 
 def _evidence(benchmark_id="example_score", score=55, url="https://example.test/results"):
@@ -135,6 +137,67 @@ def test_audit_still_notes_arena_absent_from_cache_and_evidence():
             "Query qualification is not decided by this audit."
         ),
     }]
+
+
+def _write_card(directory, relative, text):
+    path = directory / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return path
+
+
+_VALID_CARD = (
+    "model_id: acme/ok\n"
+    "display_name: Ok\n"
+    "provider: acme\n"
+    "model_type: llm-chat\n"
+)
+_OTHER_CARD = (
+    "model_id: other/ok\n"
+    "display_name: Ok\n"
+    "provider: other\n"
+    "model_type: llm-chat\n"
+)
+_BROKEN_CARD = (
+    "model_id: acme/broken\n"
+    "display_name: Broken\n"
+    "provider: acme\n"
+    "model_type: not-a-type\n"
+)
+_VALID_FINDINGS = [
+    ("total_parameters", "missing"),
+    ("context_window", "missing"),
+    ("benchmarks", "missing"),
+    ("cost_input", "missing"),
+    ("release_date", "missing"),
+]
+
+
+def test_audit_ignores_noncontent_documents():
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        for name in sorted(NOT_CONTENT):
+            (root / name).write_text("Catalogue licence notice.\n")
+        assert run_audit(root) == []
+        _write_card(root, "acme/broken.md", _BROKEN_CARD)
+        findings = run_audit(root)
+    assert [(item["field"], item["category"]) for item in findings] == [("yaml", "parse")]
+    assert findings[0]["model_id"] == "acme/broken.md"
+
+
+def test_audit_provider_filter_keeps_valid_card_findings():
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "LICENSE.md").write_text("Catalogue licence notice.\n")
+        _write_card(root, "acme/ok.md", _VALID_CARD)
+        _write_card(root, "acme/broken.md", _BROKEN_CARD)
+        _write_card(root, "other/ok.md", _OTHER_CARD)
+        filtered = run_audit(root, "acme")
+        ok = [item for item in filtered if item["model_id"] == "acme/ok"]
+        assert [(item["field"], item["category"]) for item in ok] == _VALID_FINDINGS
+        assert [item["model_id"] for item in filtered if item["category"] == "parse"] == ["acme/broken.md"]
+        assert not any(item["model_id"] == "other/ok" for item in filtered)
+        assert not any(item["model_id"] == "LICENSE.md" for item in filtered)
 
 
 def test_three_authored_evidence_records_are_not_a_scoreless_finding():
