@@ -42,6 +42,18 @@ class IdentityUncertainError(ValueError):
     """The gathered sources do not establish one model and lab identity."""
 
 
+class RequiredSourceError(Exception):
+    """A mandatory source body cannot be read. The pending signal stays queued.
+
+    This is not a ValueError. A prohibited-source refusal stays a ValueError
+    and must not be reported as a retryable source outage.
+    """
+
+    def __init__(self, url: str, detail: str) -> None:
+        self.url = url
+        super().__init__(f"required source {url} failed: {detail}")
+
+
 @dataclass(frozen=True)
 class FetchResult:
     url: str
@@ -196,21 +208,29 @@ def _fetch_allowed(fetch: Callable[[str], FetchResult], url: str) -> FetchResult
     return response
 
 
-def _models_dev_listing(payload: object, provider: str, model_name: str) -> tuple[str, dict]:
+def _models_dev_listing(
+    payload: object, provider: str, model_name: str, *, source_url: str,
+) -> tuple[str, dict]:
     if not isinstance(payload, Mapping):
-        raise ValueError("models.dev returned no provider map")
-    provider_rows = [
-        (key, value) for key, value in payload.items()
-        if attribution.normalise(str(key)) == attribution.normalise(provider)
-        or attribution.normalise(str((value or {}).get("name", "")))
-        == attribution.normalise(provider)
-    ]
+        raise RequiredSourceError(source_url, "models.dev returned no provider map")
+    wanted_provider = attribution.normalise(provider)
+    provider_rows: list[tuple[object, Mapping]] = []
+    for key, value in payload.items():
+        if isinstance(value, Mapping):
+            row: Mapping = value
+        elif not value:
+            row = {}
+        else:
+            raise RequiredSourceError(source_url, "models.dev provider row is not an object")
+        row_name = attribution.normalise(str(row.get("name", "")))
+        if attribution.normalise(str(key)) == wanted_provider or row_name == wanted_provider:
+            provider_rows.append((key, row))
     if len(provider_rows) != 1:
         raise IdentityUncertainError("models.dev did not identify exactly one provider")
     provider_id, provider_row = provider_rows[0]
-    models = (provider_row or {}).get("models")
+    models = provider_row.get("models")
     if not isinstance(models, Mapping):
-        raise ValueError("models.dev provider row has no models map")
+        raise RequiredSourceError(source_url, "models.dev provider row has no models map")
     wanted = attribution.normalise(model_name)
     matches = [
         dict(raw) for key, raw in models.items()
@@ -357,7 +377,10 @@ def _primary_identity(
         )
     published = str(row.get("datePublished") or "")
     if published:
-        date.fromisoformat(published)
+        try:
+            date.fromisoformat(published)
+        except ValueError as exc:
+            raise RequiredSourceError(page.url, f"unusable datePublished: {exc}") from exc
     return str(row["name"]).strip(), published
 
 
@@ -431,6 +454,14 @@ def _huggingface_repo(
     return repo_url, None
 
 
+def _load_required_json(page: FetchResult) -> object:
+    """Read one mandatory JSON body, naming that source when the bytes are unusable."""
+    try:
+        return json.loads(page.body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise RequiredSourceError(page.url, f"{type(exc).__name__}: {exc}") from exc
+
+
 def gather_signal(
     signal,
     *,
@@ -446,10 +477,11 @@ def gather_signal(
 
     models_dev_url = require_allowed_source(models_dev_url)
     listing_response = _fetch_allowed(fetch, models_dev_url)
-    models_dev_payload = json.loads(listing_response.body)
+    models_dev_payload = _load_required_json(listing_response)
     try:
         provider_id, listing = _models_dev_listing(
-            models_dev_payload, signal.provider, signal.model_name
+            models_dev_payload, signal.provider, signal.model_name,
+            source_url=listing_response.url,
         )
         attributed = _attribution_result(
             root=root, payload=models_dev_payload, provider_id=provider_id, listing=listing
@@ -461,6 +493,7 @@ def gather_signal(
                 f"{attributed.creator!r}; identity is uncertain"
             )
     except IdentityUncertainError as exc:
+        # RequiredSourceError is not caught here, so a broken source stays pending.
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates, str(exc)
         ))
