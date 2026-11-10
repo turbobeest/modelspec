@@ -300,9 +300,8 @@ stale only when it is before that start. A row that has
 `invoice_period_watermark` and no `paid_period_start` still clears. Checkout
 with no paid period still clears.
 
-Before: 4 failed, 4 passed, exit 1. The cancellations inside the paid period
-stayed paid, and the watermark-only row returned stale. After: 8 passed,
-exit 0. Focused billing tests then: 252 passed, exit 0.
+Before: 4 failed, 4 passed, exit 1. After: 8 passed, exit 0. Focused billing
+tests then: 252 passed, exit 0.
 
 ### Paid period against the cancellation time
 
@@ -315,10 +314,8 @@ stays stale. A period that starts at or after `canceled_at` applies and clears
 subscription time is the cancellation time. An active update with a later
 `created` still restores the tier.
 
-Before: 2 failed, exit 1. The period that started before cancellation was
-credited. The period that started after `canceled_at`, with a later event
-time, was ignored. After, both pass. Focused billing tests then: 255 passed,
-exit 0.
+Before: 2 failed, exit 1. After, both pass. Focused billing tests then:
+255 passed, exit 0.
 
 ### Equal period end
 
@@ -328,8 +325,7 @@ earlier. The same invoice id is a replay and does not grant twice.
 `invoice.payment_failed` stays stale when its period end is at or before the
 stored end.
 
-Before: 1 failed, 1 passed, exit 1. The second invoice was ignored. The failed
-invoice at the stored end stayed paid. After, both pass. Focused billing tests
+Before: 1 failed, 1 passed, exit 1. After, both pass. Focused billing tests
 then: 257 passed, exit 0.
 
 ### Changed expectations
@@ -503,10 +499,7 @@ Before, on a real ledger:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_friends_billing.py::test_promotion_invoice_and_replay_keep_friends tests/test_friends_billing.py::test_promotion_checkout_bound_to_a_key_keeps_friends tests/test_friends_billing.py::test_promotion_rotation_after_a_grant_keeps_friends tests/test_friends_billing.py::test_promotion_cancellation_after_a_grant_downgrades tests/test_friends_billing.py::test_same_price_without_a_qualifying_promotion_stays_paid
 ```
 
-Result: 4 failed, 2 passed, exit 1. The promotion invoice, its replay, a
-Checkout bound to an existing key, and rotation after the grant left the key
-`paid`. The cancellation and the same Price with no qualifying promotion
-already held.
+Result: 4 failed, 2 passed, exit 1.
 
 After the change, the focused billing command was 292 passed, exit 0. The
 invoice case ran on `MemoryLedger` and on the durable ledger.
@@ -526,9 +519,7 @@ Before the change:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_recovering_invoice_after_a_failed_payment_restores_an_unclaimed_row tests/test_billing.py::test_recovering_invoice_after_deletion_restores_an_unclaimed_row tests/test_billing.py::test_unclaimed_subscription_downgrade_reaches_the_claim
 ```
 
-Result: 4 failed, 3 passed, exit 1. Both recovery sequences left the claim
-on the downgrade tier. The unclaimed downgrade with no recovering invoice
-stayed green.
+Result: 4 failed, 3 passed, exit 1.
 
 After the change, the focused billing command was 296 passed, exit 0.
 
@@ -616,10 +607,10 @@ Command: the rotation test alone.
 
 ### A replay leaves an unrecorded account, and a rejected first invoice writes no row
 
-A replay does not downgrade an account whose ledger generation is zero and
-whose `canceled_at` is unset. The copy returns without writing the key or
-the row. `entitlement_view` now includes `canceled_at`, including on the
-durable ledger. An absent account reports generation zero, not entitled,
+A replay does not downgrade an account when the ledger view is not entitled,
+the generation is zero, and `canceled_at` is unset. The copy returns without
+writing the key or the row. `entitlement_view` now includes `canceled_at`,
+including on the durable ledger. An absent account reports generation zero, not entitled,
 and `canceled_at` zero.
 
 A first `invoice.paid` the ledger rejects, for a subscription that has no
@@ -633,9 +624,7 @@ Before the change:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_replayed_invoice_leaves_an_unrecorded_spent_account_on_the_paid_tier tests/test_billing.py::test_rejected_first_invoice_for_a_second_subscription_writes_no_row tests/test_billing.py::test_replayed_invoice_keeps_a_pre_round_account_on_the_paid_tier
 ```
 
-Result: 2 failed, 1 passed, exit 1. The replay moved the spent unrecorded
-key to the downgrade tier. The rejected first invoice left a row. The
-pre-round account that still derives entitled stayed paid.
+Result: 2 failed, 1 passed, exit 1.
 
 After the change, the focused billing command was 304 passed, exit 0.
 
@@ -646,3 +635,99 @@ status.
 Both older review probes passed after these changes: 7 passed, exit 0, and
 2 passed, exit 0. No contract file, OpenAPI file, or `contract_version`
 changed. No production flag, price, plan, legal text, or frozen data changed.
+
+## Round 7
+
+Origin/main was merged before these findings. Focused billing tests on that
+merge passed before the finding commits: 304 passed, exit 0. No production
+file changed in this round.
+
+### A resubscribe writes the mapping tier
+
+When an event carries a mapping, that mapping's tier is written. After a
+cancellation the row and the key are on the downgrade tier. A later
+`invoice.paid` under the same promotion, and a Checkout that links the key,
+write the mapping tier. The invoice case runs on `MemoryLedger` and on the
+durable ledger.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_friends_billing.py::test_cancelled_promotion_resubscribe_invoice_keeps_friends tests/test_friends_billing.py::test_cancelled_promotion_checkout_link_keeps_friends
+```
+
+Result: 3 passed, exit 0.
+
+The same command fails under each temporary edit, then the edit is reverted.
+
+- `_entitled_tier` ignores `mapping_tier`: 3 failed, exit 1.
+- The `invoice.paid` copy passes `mapping_tier=""`: 2 failed, 1 passed, exit 1.
+- The Checkout link copy passes `mapping_tier=""`: 1 failed, 2 passed, exit 1.
+- `_sync_entitlement_tier` passes `""` instead of `mapping_tier`: 3 failed, exit 1.
+
+The Checkout copy after `record_entitlement` passes `mapping_tier=""` and the
+same command stays 3 passed, exit 0. Two sequences outside those tests were
+tried: a first Checkout with no stored row, and a Checkout for a stored
+downgrade row that already has a key, no invoice id, and a status outside the
+terminal set. `record_entitlement` writes `mapping.tier` before that copy.
+`_copy_grant_tier` returns without writing when the row has no key. When the
+row already holds `mapping.tier`, a copy that receives `""` writes the row
+tier. Neither sequence changes under the edit. The edit was reverted.
+
+### An unbound link keeps the pending allowance
+
+A Checkout that links a key onto a row holding a pending allowance, where the
+grant is neither accepted nor stale, keeps `pending_monthly` and attaches the
+key. The round-6 bullet names the stale-return edit. This test fails when
+the `pending_monthly = 0` condition is forced true.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_unbound_checkout_link_keeps_the_pending_allowance tests/test_billing.py::test_stale_checkout_link_leaves_the_row_and_the_allowance tests/test_billing.py::test_checkout_link_and_replay_copy_the_ledger_tier
+```
+
+With that condition forced true: 1 failed, 2 passed, exit 1. After the
+revert: 3 passed, exit 0.
+
+### A replayed link copies the tier
+
+A link whose grant is a replay copies the tier the same way a first grant
+does. The copy on the link path runs for that grant, not only for `granted`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_replayed_link_grant_copies_the_tier tests/test_billing.py::test_checkout_link_and_replay_copy_the_ledger_tier
+```
+
+With the link-path copy limited to `granted`: 1 failed, 1 passed, exit 1.
+After the revert: 2 passed, exit 0.
+
+### An unknown fingerprint gains no allowance
+
+A first `invoice.paid` that names a fingerprint with no key record writes no
+monthly allowance for that fingerprint. No ledger account gains a monthly
+allowance, and `set_monthly` is not called for it. The decision uses the key
+named on the event only when that key exists.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_first_invoice_for_an_unknown_fingerprint_writes_no_allowance tests/test_billing.py::test_invoice_paid_with_fingerprint_attaches_to_existing_key
+```
+
+With `lookup_fingerprint(...) is not None` removed from the `invoice.paid`
+holder decision: 1 failed, 1 passed, exit 1. After the revert: 2 passed,
+exit 0.
+
+### The before-records keep counts, and the replay sentence matches the view
+
+Each round's before-record keeps its test selector and its counts with the
+exit code. Sentences that said what the account, key, row, or allowance ended
+as are removed. The enforced rule stays once in the section above the counts.
+`docs/billing.md` says a replay leaves the key and the row unchanged when the
+ledger view is not entitled, the generation is zero, and `canceled_at` is
+unset. The round-6 rule sentence says the same.
+
+### Changed expectations
+
+No D2–D16 assertion was rewritten.
+
+After these tests, the focused billing command was 310 passed, exit 0. The
+older review probes were re-run: 7 passed, 2 passed, 1 passed, 1 passed,
+8 passed, 1 passed, and 4 passed, each exit 0. No contract file, OpenAPI
+file, or `contract_version` changed. No production flag, price, plan, legal
+text, or frozen data changed.
