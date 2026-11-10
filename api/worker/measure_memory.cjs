@@ -231,6 +231,7 @@ for snapshot in snapshots:
         'hardware_fit_bytes': deep_bytes(getattr(snapshot, '_hardware_fit', None)),
         'hardware_provenance_bytes': deep_bytes(getattr(snapshot, '_hardware_fit_record_table', None)),
     })
+# The process_rss label names a quantity the output does not carry.
 json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, 'distinct_from': ['wasm_bytes', 'steady_bytes', 'process_rss'], 'snapshots': details, 'vocabulary_bytes': deep_bytes([
     getattr(entry, '_bundled_vocabulary', None), getattr(entry, '_bundled_vocabulary_text', None),
     getattr(entry, '_bundled_successor_vocabulary', None), getattr(entry, '_bundled_successor_vocabulary_text', None),
