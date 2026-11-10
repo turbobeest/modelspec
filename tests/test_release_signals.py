@@ -1998,3 +1998,43 @@ def test_malformed_release_url_matches_a_missing_field(
             read_date=date(2026, 9, 26),
         )
     assert str(bad.value) == str(gone.value)
+
+
+def _hostile_json_ld_page(payload: str) -> bytes:
+    readable = (
+        '<script type="application/ld+json">'
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-09-26"}</script>'
+    )
+    return (
+        '<script type="application/ld+json">' + payload + "</script>"
+        + readable
+        + "<h1>Acme launches Orbit 2.</h1>"
+    ).encode()
+
+
+def _release_date(result: DraftResult) -> str:
+    assert result.card_path is not None
+    front = yaml.safe_load(result.card_path.read_text(encoding="utf-8").split("---", 2)[1])
+    return str(front["release_date"])
+
+
+def test_json_ld_with_a_long_integer_is_skipped(tmp_path: Path) -> None:
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","n":' + ("9" * 5000) + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_nested_past_the_depth_bound_is_skipped(tmp_path: Path) -> None:
+    nested = '{"a":' * 2000 + "1" + "}" * 2000
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","extra":' + nested + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
