@@ -111,3 +111,27 @@ Both steady totals are under 115 MiB. The current period also printed `Memory pr
 ## Not observed
 
 The local full pytest suite was not run. CI shards are that run. Admitted v2 evidence was not counted. CI status is checked after the push and reported on the completion line's run, not in this file.
+
+## Round 2
+
+Merged `origin/main` as `0220a90c84defbfd88d454aed472ca9ed8d99f67` before the round-2 edits. Focused tests on that merge:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py tests/test_ci_workflows.py
+```
+
+Result: `138 passed in 6.64s`, exit 0.
+
+### Legacy cache arm of the Arena check
+
+`test_audit_does_not_note_arena_when_the_legacy_cache_holds_it` uses an LLM card whose legacy cache holds `arena_elo_overall` and `cached_score`, and whose evidence list is empty. The audit must not emit a finding whose field is `arena_elo_overall`.
+
+Before any edit to the check:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_audit_data_quality.py::test_audit_does_not_note_arena_when_the_legacy_cache_holds_it
+```
+
+Result: `1 passed in 0.12s`, exit 0.
+
+Temporary edit, reverted before the commit: the Arena check kept only the authored-evidence membership and dropped the legacy-cache membership. The same command then failed, exit 1, at the assertion that no finding has field `arena_elo_overall`. After `git checkout -- scripts/audit_data_quality.py`, the same command passed: `1 passed in 0.10s`, exit 0.

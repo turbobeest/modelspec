@@ -139,6 +139,13 @@ def test_audit_still_notes_arena_absent_from_cache_and_evidence():
     }]
 
 
+def test_audit_does_not_note_arena_when_the_legacy_cache_holds_it():
+    card = _card(scores={"cached_score": 10, "arena_elo_overall": 1200})
+    assert card.benchmarks.evidence == []
+    findings = audit_card(card, Path("example.md"))
+    assert not any(item["field"] == "arena_elo_overall" for item in findings)
+
+
 def _write_card(directory, relative, text):
     path = directory / relative
     path.parent.mkdir(parents=True, exist_ok=True)
