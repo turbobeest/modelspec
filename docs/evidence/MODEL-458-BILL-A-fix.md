@@ -483,3 +483,29 @@ No production flag, price, plan, legal text, or frozen data changed.
 `docs/billing.md` states the per-subscription cancellation, the rejected-grant
 rule, the entitlement copy, and the unclaimed downgrade. Nothing under
 `docs/legal/` changed.
+
+## Round 6
+
+Origin/main was merged before these findings. Focused billing tests on that
+merge passed before the finding commits: 286 passed, exit 0.
+
+### A Friends subscription stays on friends
+
+An event that carries a mapping writes that mapping's tier when the ledger
+says the key is entitled. With no mapping, the row's tier stands unless it
+is empty or the downgrade tier, and only then does the Price's tier apply.
+A key that is not entitled still takes the downgrade tier.
+
+Before, on a real ledger:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_friends_billing.py::test_promotion_invoice_and_replay_keep_friends tests/test_friends_billing.py::test_promotion_checkout_bound_to_a_key_keeps_friends tests/test_friends_billing.py::test_promotion_rotation_after_a_grant_keeps_friends tests/test_friends_billing.py::test_promotion_cancellation_after_a_grant_downgrades tests/test_friends_billing.py::test_same_price_without_a_qualifying_promotion_stays_paid
+```
+
+Result: 4 failed, 2 passed, exit 1. The promotion invoice, its replay, a
+Checkout bound to an existing key, and rotation after the grant left the key
+`paid`. The cancellation and the same Price with no qualifying promotion
+already held.
+
+After the change, the focused billing command was 292 passed, exit 0. The
+invoice case ran on `MemoryLedger` and on the durable ledger.

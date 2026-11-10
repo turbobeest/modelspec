@@ -554,20 +554,36 @@ class EntitlementUnsettled(RuntimeError):
 
 
 def _plan_tier(policy: AccessPolicy, stored: store.SubscriptionRecord) -> str:
+    """Tier for an entitled key when the event carries no mapping.
+
+    The row's tier stands when it is set and is not the downgrade tier. A
+    promotion-code Friends row is stored on an ordinary paid Price, so the
+    Price is used only when the row's tier is empty or the downgrade tier.
+    """
+    downgrade = policy.billing.downgrade_tier
+    if stored.tier and stored.tier != downgrade:
+        return stored.tier
     if stored.price_id:
         try:
             tier = policy.price(stored.price_id).tier
         except PolicyError:
             tier = ""
-        if tier and tier != policy.billing.downgrade_tier:
+        if tier and tier != downgrade:
             return tier
-    if stored.tier and stored.tier != policy.billing.downgrade_tier:
-        return stored.tier
     return "paid"
 
 
+def _entitled_tier(policy: AccessPolicy, stored: store.SubscriptionRecord,
+                   mapping_tier: str = "") -> str:
+    """The event's mapping wins. Otherwise the row, then the Price."""
+    downgrade = policy.billing.downgrade_tier
+    if mapping_tier and mapping_tier != downgrade:
+        return mapping_tier
+    return _plan_tier(policy, stored)
+
+
 async def _sync_entitlement_tier(kv: Any, subscription_id: str, *, ledger: Any,
-                                 policy: AccessPolicy) -> str:
+                                 policy: AccessPolicy, mapping_tier: str = "") -> str:
     """Copy the ledger's entitlement onto the key, then read it again.
 
     Another handler may accept an allowance write between the read and the
@@ -580,7 +596,7 @@ async def _sync_entitlement_tier(kv: Any, subscription_id: str, *, ledger: Any,
         if stored is None or not stored.key_fingerprint or ledger is None:
             return "no_key"
         if not paid_tier:
-            paid_tier = _plan_tier(policy, stored)
+            paid_tier = _entitled_tier(policy, stored, mapping_tier)
         holder = credits.holder_from_fingerprint(stored.key_fingerprint)
         try:
             view = await ledger.entitlement_view(holder)
@@ -607,12 +623,14 @@ _GRANT_SKIPS_TIER = frozenset({
 
 
 async def _copy_grant_tier(kv: Any, subscription_id: str, *, ledger: Any,
-                           policy: AccessPolicy, grant: str) -> None:
+                           policy: AccessPolicy, grant: str,
+                           mapping_tier: str = "") -> None:
     """Copy the ledger tier after a grant the row's key can hold."""
     if grant in _GRANT_SKIPS_TIER or isinstance(ledger, credits.UnboundLedger):
         return
     await _sync_entitlement_tier(
-        kv, subscription_id, ledger=ledger, policy=policy)
+        kv, subscription_id, ledger=ledger, policy=policy,
+        mapping_tier=mapping_tier)
 
 
 async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
@@ -860,7 +878,8 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         if linked == "stale":
             return "ignored", None
         await _copy_grant_tier(
-            kv, subscription_id, ledger=ledger, policy=policy, grant=linked)
+            kv, subscription_id, ledger=ledger, policy=policy, grant=linked,
+            mapping_tier=mapping.tier)
         if linked == "granted":
             return "credited", None
         return ("already_entitled" if existing.status == store.STATUS_ACTIVE
@@ -897,7 +916,8 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         action = "credited" if action in {"entitled", "already_entitled"} else action
     await _copy_grant_tier(
         kv, subscription_id, ledger=ledger, policy=policy,
-        grant="granted" if probed is not None and probed.credited else grant)
+        grant="granted" if probed is not None and probed.credited else grant,
+        mapping_tier=mapping.tier)
     if recovers_initial:
         await store.record_chronology(
             kv, subscription_id, now=now, policy=policy,
@@ -995,7 +1015,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         action = "entitled"
     await _copy_grant_tier(
         kv, subscription_id, ledger=ledger, policy=policy,
-        grant="granted" if accepted else grant)
+        grant="granted" if accepted else grant,
+        mapping_tier=mapping.tier)
     return action, None
 
 
