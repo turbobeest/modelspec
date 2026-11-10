@@ -65,6 +65,10 @@ jobs:
           python -m pip install -e . "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
       - name: Build public synthetic bundles with the same fixture
+        env:
+          # The fixture links the frozen public models, which still hold old
+          # modality contradictions (MODEL-457). Deploys never set this.
+          MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS: '1'
         run: |
           python api/worker/memory_fixture.py --out "$RUNNER_TEMP/memory-data"
           python api/worker/memory_fixture.py --public-engine .memory-main --out "$RUNNER_TEMP/memory-main-data"

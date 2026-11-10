@@ -836,7 +836,7 @@
     "pipeline/entity.py":
       "99ecd2328610f76edf553f2b7898b81600a837ccbd6dc2fe4fda97fbc233c42b",
     "pipeline/pricing.py":
-      "e73c5ad83cad02b801e6e99cbe06b10b8347545e0ce35460e41c977c3d4dde31",
+      "79d7da2cf887ddfcb973da89b687e49330a812569beba0703e51108144ce7b52",
     "pipeline/worker_flags.py":
       "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "pyproject.toml":

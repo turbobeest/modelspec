@@ -1122,6 +1122,127 @@ def test_nested_acknowledgement_json_returns_client_error(signals_service) -> No
     assert kv.calls == []
 
 
+def _signals_route(signals_service, kv):
+    import ast
+
+    tree = ast.parse((ROOT / "api/worker/src/entry.py").read_text())
+    function = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_signals"
+    )
+    namespace = {
+        "json": json,
+        "datetime": datetime,
+        "UTC": UTC,
+        "signals_service": signals_service,
+        "SIGNALS_ENABLED_VAR": "SIGNALS_ENABLED",
+        "SIGNALS_HMAC_SECRET_VAR": "SIGNALS_HMAC_SECRET",
+        "SIGNALS_READ_KEY_VAR": "SIGNALS_READ_KEY",
+        "_access_store": lambda _env: kv,
+        "_json_response": lambda status, body: (status, body),
+    }
+    compiled = compile(
+        ast.Module(body=[function], type_ignores=[]), "entry.py::_signals", "exec",
+    )
+    exec(compiled, namespace)
+    return namespace["_signals"]
+
+
+class _BodyRequest:
+    def __init__(self, body: str, headers: dict[str, str] | None = None) -> None:
+        self.headers = {} if headers is None else headers
+        self.reads = 0
+        self._body = body
+
+    async def text(self) -> str:
+        self.reads += 1
+        return self._body
+
+
+class _SignalsWorker:
+    class Env:
+        SIGNALS_ENABLED = "true"
+        SIGNALS_HMAC_SECRET = "write-secret"
+        SIGNALS_READ_KEY = "read-secret"
+
+    env = Env()
+
+
+_NESTED_SIGNAL_BODY = "[" * 1100 + "]" * 1100
+
+
+def _call_signals(signals_service, path: str, headers: dict[str, str], body: str):
+    kv = SignalKV()
+    request = _BodyRequest(body, headers)
+    status, payload = asyncio.run(_signals_route(signals_service, kv)(
+        _SignalsWorker(), request, path, "POST", "audit",
+    ))
+    return status, payload, request.reads, kv
+
+
+@pytest.mark.parametrize(
+    ("path", "headers", "body", "code"),
+    [
+        ("/v1/signals", {}, _NESTED_SIGNAL_BODY, "invalid_signal"),
+        ("/v1/signals", {}, "x" * 5000, "invalid_signal"),
+        ("/v1/signals", {"x-modelspec-signature": "sha256=zz"}, _NESTED_SIGNAL_BODY,
+         "invalid_signal"),
+        ("/v1/signals", {"x-modelspec-signature": "sha256=é"}, "x" * 5000, "invalid_signal"),
+        ("/v1/signals", {"x-modelspec-signature": "sha256=" + ("AB" * 32)},
+         _NESTED_SIGNAL_BODY, "invalid_signal"),
+        ("/v1/signals/discovered", {}, _NESTED_SIGNAL_BODY, "unauthorised"),
+        ("/v1/signals/discovered", {"authorization": "Bearer é"}, "x" * 5000, "unauthorised"),
+        ("/v1/signals/ack", {}, _NESTED_SIGNAL_BODY, "unauthorised"),
+        ("/v1/signals/ack", {"authorization": "Bearer é"}, _NESTED_SIGNAL_BODY, "unauthorised"),
+        ("/v1/signals/ack", {"authorization": "Bearer wrong"}, _NESTED_SIGNAL_BODY, "unauthorised"),
+    ],
+)
+def test_unauthenticated_signal_routes_do_not_read_the_body(
+    signals_service, path, headers, body, code,
+) -> None:
+    status, payload, reads, kv = _call_signals(signals_service, path, headers, body)
+
+    assert status == 401
+    assert payload["error"]["code"] == code
+    assert reads == 0
+    assert kv.calls == []
+
+
+def test_nested_acknowledgement_without_a_bearer_returns_401(signals_service) -> None:
+    status, payload, reads, kv = _call_signals(
+        signals_service, "/v1/signals/ack", {}, _NESTED_SIGNAL_BODY,
+    )
+
+    assert status == 401
+    assert payload["error"]["code"] == "unauthorised"
+    assert reads == 0
+    assert kv.calls == []
+
+
+def test_valid_bearer_keeps_nested_acknowledgement_invalid(signals_service) -> None:
+    status, payload, reads, kv = _call_signals(
+        signals_service, "/v1/signals/ack",
+        {"authorization": "Bearer read-secret"}, _NESTED_SIGNAL_BODY,
+    )
+
+    assert status == 400
+    assert payload["error"]["code"] == "invalid_request"
+    assert reads == 1
+    assert kv.calls == []
+
+
+def test_a_well_formed_signature_is_checked_against_the_body(signals_service) -> None:
+    status, payload, reads, kv = _call_signals(
+        signals_service, "/v1/signals",
+        {"x-modelspec-signature": "sha256=" + ("ab" * 32)}, _NESTED_SIGNAL_BODY,
+    )
+
+    assert status == 401
+    assert payload["error"]["code"] == "invalid_signal"
+    assert reads == 1
+    assert kv.calls == []
+
+
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_signals_service", ROOT / "api" / "worker" / "src" / "signals_service.py"

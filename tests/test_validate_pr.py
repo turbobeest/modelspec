@@ -93,12 +93,12 @@ def test_validate_card_attaches_warnings_and_stays_valid() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "listed,supported,warns",
+    "listed,supported,rejected",
     [(True, False, True), (False, True, True), (True, True, False), (False, False, False)],
     ids=["listed-but-false", "unlisted-but-true", "consistent-true", "consistent-false"],
 )
 def test_modality_list_flag_consistency(
-    tmp_path, kind, direction, section, flag, listed, supported, warns
+    tmp_path, kind, direction, section, flag, listed, supported, rejected
 ) -> None:
     path = tmp_path / "fixture.md"
     data = {
@@ -111,19 +111,19 @@ def test_modality_list_flag_consistency(
 
     result = validate_card(str(path), compute_diff=False)
 
-    assert result["status"] == "valid"
-    if warns:
-        assert len(result["warnings"]) == 1
-        warning = result["warnings"][0]
-        assert f"modalities.{section}.{flag}" in warning
-        assert f"modalities.{direction}" in warning
-        assert kind in warning
-        assert str(supported).lower() in warning
+    if rejected:
+        assert result["status"] == "invalid"
+        error = result["error"]
+        assert f"modalities.{section}.{flag}" in error
+        assert f"modalities.{direction}" in error
+        assert kind in error
+        assert str(supported).lower() in error
     else:
+        assert result["status"] == "valid"
         assert result["warnings"] == []
 
 
-def test_listed_video_with_default_support_flag_warns(tmp_path) -> None:
+def test_listed_video_with_default_support_flag_is_rejected(tmp_path) -> None:
     path = tmp_path / "fixture.md"
     path.write_text(
         "---\nmodel_id: fixture/video\ndisplay_name: Video\nprovider: fixture\n"
@@ -133,6 +133,35 @@ def test_listed_video_with_default_support_flag_warns(tmp_path) -> None:
 
     result = validate_card(str(path), compute_diff=False)
 
-    assert result["status"] == "valid"
-    assert len(result["warnings"]) == 1
-    assert "modalities.video.input_supported" in result["warnings"][0]
+    assert result["status"] == "invalid"
+    assert "modalities.video.input_supported" in result["error"]
+
+
+def _modality_card(**modalities: object) -> ModelCard:
+    return ModelCard.model_validate({
+        "identity": {"model_id": "acme/test", "display_name": "Test", "provider": "acme"},
+        "modalities": modalities,
+    })
+
+
+def test_private_data_export_stops_on_a_contradicting_card() -> None:
+    from api.worker.vendor import require_consistent_modalities
+
+    require_consistent_modalities([_modality_card(input=["image"], vision={"supported": True})])
+    with pytest.raises(SystemExit, match="acme/test: modalities.vision.supported is false"):
+        require_consistent_modalities([_modality_card(input=["image"])])
+
+
+def test_modality_errors_are_not_warnings() -> None:
+    card = _modality_card(output=["audio"])
+    assert card.modality_errors() == [
+        "modalities.audio.output_supported is false but modalities.output contains audio"
+    ]
+    assert card.warnings() == []
+
+
+def test_private_data_export_check_can_be_waived_only_by_env(monkeypatch) -> None:
+    from api.worker.vendor import require_consistent_modalities
+
+    monkeypatch.setenv("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS", "1")
+    require_consistent_modalities([_modality_card(input=["image"])])

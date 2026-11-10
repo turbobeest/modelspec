@@ -1575,23 +1575,42 @@ class Default(WorkerEntrypoint):
         elif path == "/v1/signals":
             if method != "POST":
                 return self._method_not_allowed(service_commit, path, "POST", method)
-            raw = (await request.text()).encode("utf-8")
-            outcome = await signals_service.intake(
-                raw=raw,
-                signature=request.headers.get("x-modelspec-signature"),
-                secret=str(getattr(self.env, SIGNALS_HMAC_SECRET_VAR, "") or "").encode(),
-                enabled=True,
-                kv=_access_store(self.env),
+            signature = request.headers.get("x-modelspec-signature")
+            token = signature.strip() if isinstance(signature, str) else ""
+            digest = token[7:] if token.startswith("sha256=") else ""
+            well_formed = (
+                len(digest) == 64
+                and all(character in "0123456789abcdef" for character in digest)
             )
+            if not well_formed:
+                outcome = signals_service._error(
+                    401, "invalid_signal", "the signal signature is invalid"
+                )
+            else:
+                raw = (await request.text()).encode("utf-8")
+                outcome = await signals_service.intake(
+                    raw=raw,
+                    signature=signature,
+                    secret=str(getattr(self.env, SIGNALS_HMAC_SECRET_VAR, "") or "").encode(),
+                    enabled=True,
+                    kv=_access_store(self.env),
+                )
         elif path == "/v1/signals/discovered":
             if method != "POST":
                 return self._method_not_allowed(service_commit, path, "POST", method)
-            outcome = await signals_service.discovered(
-                raw=(await request.text()).encode("utf-8"),
-                authorization=request.headers.get("authorization"),
-                read_key=str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None,
-                kv=_access_store(self.env),
-            )
+            authorization = request.headers.get("authorization")
+            read_key = str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None
+            if not signals_service._authorised(authorization, read_key):
+                outcome = signals_service._error(
+                    401, "unauthorised", "a valid signals read key is required"
+                )
+            else:
+                outcome = await signals_service.discovered(
+                    raw=(await request.text()).encode("utf-8"),
+                    authorization=authorization,
+                    read_key=read_key,
+                    kv=_access_store(self.env),
+                )
         elif path == "/v1/signals/pending":
             if method != "GET":
                 return self._method_not_allowed(service_commit, path, "GET", method)
@@ -1604,22 +1623,29 @@ class Default(WorkerEntrypoint):
         elif path == "/v1/signals/ack":
             if method != "POST":
                 return self._method_not_allowed(service_commit, path, "POST", method)
-            try:
-                payload = json.loads(await request.text())
-            except (ValueError, RecursionError) as exc:
-                # ValueError covers JSONDecodeError. RecursionError is the
-                # decoder's nesting limit, and it is still invalid input.
+            authorization = request.headers.get("authorization")
+            read_key = str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None
+            if not signals_service._authorised(authorization, read_key):
                 outcome = signals_service._error(
-                    400, "invalid_request", f"the body is not valid JSON: {exc}"
+                    401, "unauthorised", "a valid signals read key is required"
                 )
             else:
-                outcome = await signals_service.acknowledge(
-                    authorization=request.headers.get("authorization"),
-                    read_key=str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None,
-                    kv=_access_store(self.env),
-                    payload=payload,
-                    today=datetime.now(UTC).date(),
-                )
+                try:
+                    payload = json.loads(await request.text())
+                except (ValueError, RecursionError) as exc:
+                    # ValueError covers JSONDecodeError. RecursionError is the
+                    # decoder's nesting limit, and it is still invalid input.
+                    outcome = signals_service._error(
+                        400, "invalid_request", f"the body is not valid JSON: {exc}"
+                    )
+                else:
+                    outcome = await signals_service.acknowledge(
+                        authorization=authorization,
+                        read_key=read_key,
+                        kv=_access_store(self.env),
+                        payload=payload,
+                        today=datetime.now(UTC).date(),
+                    )
         else:
             outcome = signals_service._error(404, "not_found", f"no endpoint at {path}")
         outcome.body["service_commit"] = service_commit

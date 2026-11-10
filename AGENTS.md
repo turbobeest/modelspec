@@ -11,7 +11,7 @@ its work. (Source: `pipeline/entity.py`.)
 
 ## Architecture
 
-- Sites: `pipeline/build.py` renders `modelspec.dev` on Cloudflare Pages from the frozen public data image in this repository, never from private data. With `DATA_SPLIT_ENABLED` on, `/api` keeps only `build.json`, `rank/profiles.json`, `rank/class-fit.json` and the feedback schema. No database on that path.
+- Sites: `pipeline/build.py` renders `modelspec.dev` on Cloudflare Pages from the frozen public data image in this repository, never from private data. With `DATA_SPLIT_ENABLED` on, `/api` keeps `build.json`, `rank/profiles.json`, `rank/class-fit.json` and the feedback schema. No database on that path.
 - The public export list above also includes `coverage.json` and versioned public blog snapshots at `decision/snapshots/snap_<16 lowercase hex digits>.json.gz`; the feedback schema is `feedback/v1.schema.json`. The complete allowlist is `KEEP_API` plus `is_retained_snapshot` in [`pipeline/public_data.py`](pipeline/public_data.py).
 - Fresh curated data lives in the private `turbobeest/modelspec-data`. While `DATA_SPLIT_ENABLED` is on, main deploys of the Worker embed exports built from it (`api/worker/vendor.py --data-dir`).
 - The Python Worker on `api.modelspec.dev` (`api/worker/`) serves `/v1/decide`, `/v1/compare`, `/v1/rank`, `/v1/policy-check`, `/v1/feedback`, `/v1/vocabulary`, `/v1/health`, billing and credits, and the visit gate that admits site visitors. Its state: Workers KV (private policy determinations, API-key records) and Durable Objects (credit ledger, human gate).

@@ -300,3 +300,51 @@ def test_invalid_corrections_are_rejected_before_publishing(blog_root, tmp_path,
     assert not list(out.rglob("*.html"))
     assert not (out / "blog/feed.xml").exists()
     assert not (out / "blog/rss.xml").exists()
+
+
+def _invalid_correction(blog_root, case):
+    publish(blog_root)
+    correction = _historical_correction()
+    if case == "future_date":
+        correction["date"] = "2999-01-01"
+    elif case == "absent_revision":
+        correction["revision"] = 99
+    else:
+        metadata_path = blog_root / "blog/posts" / SLUG / "post.yaml"
+        metadata = yaml.safe_load(metadata_path.read_text())
+        metadata["revisions"].append({
+            "revision": 2, "published": None, "approved_by": None, "approval": None,
+        })
+        metadata_path.write_text(yaml.safe_dump(metadata))
+        correction["revision"] = 2
+    (blog_root / "blog/posts" / SLUG / "corrections.yaml").write_text(yaml.safe_dump([correction]))
+
+
+@pytest.mark.parametrize("case", ["future_date", "absent_revision", "unpublished_revision"])
+def test_preview_rejects_invalid_corrections(blog_root, tmp_path, case, monkeypatch):
+    from pipeline import blog
+    from release_blog import gates
+
+    monkeypatch.setattr(gates, "load_public_keys", lambda: KEYS)
+    _invalid_correction(blog_root, case)
+    with pytest.raises(ValueError, match="correction.*(future|published revision)"):
+        blog._posts(blog_root, preview_slug=SLUG, public_keys=KEYS, today=date(2026, 11, 9))
+    out = tmp_path / "preview"
+    assert blog.main(["preview", SLUG, "--root", str(blog_root), "--out", str(out)]) == 2
+    assert not out.exists()
+
+
+def test_preview_accepts_a_historical_correction(blog_root, tmp_path, monkeypatch):
+    from pipeline import blog
+    from release_blog import gates
+
+    monkeypatch.setattr(gates, "load_public_keys", lambda: KEYS)
+    publish(blog_root)
+    (blog_root / "blog/posts" / SLUG / "corrections.yaml").write_text(
+        yaml.safe_dump([_historical_correction()])
+    )
+    out = tmp_path / "preview"
+    assert blog.main(["preview", SLUG, "--root", str(blog_root), "--out", str(out)]) == 0
+    page = (out / "blog" / SLUG / "r1" / "index.html").read_text()
+    assert "Corrections" in page
+    assert "2026-10-01" in page

@@ -10,6 +10,8 @@ from pipeline.public_data import KEEP_API, is_retained_snapshot, restrict
 
 def test_agent_entry_documents_public_export_exceptions(tmp_path):
     architecture = (ROOT / "AGENTS.md").read_text().split("## Architecture", 1)[1].split("## Binding rules", 1)[0]
+    sites = next(line for line in architecture.splitlines() if line.startswith("- Sites:"))
+    assert " keeps only " not in sites
     documented = set(re.findall(r"`([^`]+)`", architecture))
     assert KEEP_API <= documented
     pattern = "decision/snapshots/snap_<16 lowercase hex digits>.json.gz"
