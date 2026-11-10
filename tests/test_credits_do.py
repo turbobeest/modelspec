@@ -401,12 +401,14 @@ def test_completed_claim_keeps_its_owner_after_restart(kind, units):
         ctx.storage.sql.exec = execute
         restarted = _ledger(credits_do.CreditsObject(ctx, env))
         replay = await _claim_purchase(t, policy, kv, restarted)
-        assert replay.status == 410
         sub_id = t.SUB if kind == "plan" else f"pack:{t.SESSION}"
         subscription = await access_billing.load_subscription(kv, sub_id)
+        assert replay.status == 200
+        assert t.keys.fingerprint(replay.body["key"]) == subscription.key_fingerprint
         holder = credits.holder_from_fingerprint(subscription.key_fingerprint)
         assert (await restarted.balance(holder)).available == units
         assert len([name for name in kv.data if name.startswith("key:")]) == 1
+        assert (await _claim_purchase(t, policy, kv, restarted)).status == 410
 
     asyncio.run(scenario())
 

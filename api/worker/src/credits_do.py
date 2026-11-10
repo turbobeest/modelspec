@@ -72,6 +72,11 @@ class CreditsObject(DurableObject):
         state.finish_claim(str(payment_id))
         self._save(state)
 
+    async def drop_claim_nonce(self, payment_id: str) -> None:
+        state = self._stored()
+        state.drop_claim_nonce(str(payment_id))
+        self._save(state)
+
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
                          units: int, plan: str = "", customer_id: str = "") -> dict[str, Any]:
         state = self._stored()

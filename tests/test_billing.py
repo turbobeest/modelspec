@@ -2143,12 +2143,11 @@ def test_claim_funding_preserves_selected_owner(policy, pack, after_funding):
         selected = await billing.store.load_subscription(kv, sub_id)
         retried = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
                                       service_commit=COMMIT, ledger=ledger)
-        assert retried.status == (410 if after_funding else 200)
+        assert retried.status == 200
         current = await billing.store.load_subscription(kv, sub_id)
+        assert current.key_fingerprint == keys.fingerprint(retried.body["key"])
         if after_funding:
             assert current.key_fingerprint == selected.key_fingerprint
-        else:
-            assert current.key_fingerprint == keys.fingerprint(retried.body["key"])
         owner = credits.holder_from_fingerprint(current.key_fingerprint)
         assert (await ledger.balance(owner)).available == (1250 if pack else 4000)
     run(scenario())

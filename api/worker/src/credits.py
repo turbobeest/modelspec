@@ -695,6 +695,25 @@ class _Account:
         )
 
 
+def _completed_claim(claim: dict[str, Any] | None) -> dict[str, Any]:
+    """Mark a claim complete and keep its nonce until the handler drops it.
+
+    The nonce is not the key. A completed claim with no nonce cannot be shown again.
+    """
+    done: dict[str, Any] = {"stage": "complete"}
+    if not claim:
+        return done
+    nonce = claim.get("nonce")
+    if not nonce:
+        return done
+    done["nonce"] = nonce
+    if claim.get("holder"):
+        done["holder"] = claim["holder"]
+    if "units" in claim:
+        done["units"] = claim["units"]
+    return done
+
+
 @dataclass
 class LedgerState:
     """The whole ledger. One object, so every mutation is ordered against every other."""
@@ -768,7 +787,7 @@ class LedgerState:
         rec.pop("pending", None)
         rec.update({"holder": holder, "expires_at": expiry})
         if "claim" in rec:
-            rec["claim"] = {"stage": "complete"}
+            rec["claim"] = _completed_claim(rec.get("claim"))
         if units < 1:
             return CreditResult(False, "refunded", 0)
         grant = _PackGrant(grant_id=payment_id, remaining=units, expires_at=expiry,
@@ -825,6 +844,16 @@ class LedgerState:
 
     def finish_claim(self, payment_id: str) -> None:
         rec = self.payments[payment_id]
+        rec["claim"] = _completed_claim(rec.get("claim"))
+        rec.pop("pending", None)
+
+    def drop_claim_nonce(self, payment_id: str) -> None:
+        rec = self.payments.get(payment_id)
+        if not rec:
+            return
+        claim = rec.get("claim")
+        if not isinstance(claim, dict) or not claim.get("nonce"):
+            return
         rec["claim"] = {"stage": "complete"}
         rec.pop("pending", None)
 
@@ -1005,7 +1034,7 @@ class LedgerState:
             "kind": "monthly", "plan": plan,
         }
         if rec is not None and "claim" in rec:
-            updated["claim"] = {"stage": "complete"}
+            updated["claim"] = _completed_claim(rec.get("claim"))
         self.payments[invoice_id] = updated
         acc = self._acc(holder)
         acc.monthly = int(units)
@@ -1649,6 +1678,8 @@ class Ledger(Protocol):
 
     async def finish_claim(self, payment_id: str) -> None: ...
 
+    async def drop_claim_nonce(self, payment_id: str) -> None: ...
+
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
                          units: int, plan: str = "", customer_id: str = "") -> CreditResult: ...
 
@@ -1759,6 +1790,10 @@ class MemoryLedger:
     async def finish_claim(self, payment_id: str) -> None:
         async with self._lock:
             self.state.finish_claim(payment_id)
+
+    async def drop_claim_nonce(self, payment_id: str) -> None:
+        async with self._lock:
+            self.state.drop_claim_nonce(payment_id)
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
                          units: int, plan: str = "", customer_id: str = "") -> CreditResult:
@@ -1946,6 +1981,9 @@ class UnboundLedger:
     async def finish_claim(self, payment_id: str) -> None:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
+    async def drop_claim_nonce(self, payment_id: str) -> None:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
                          units: int, plan: str = "", customer_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -2095,6 +2133,9 @@ class DurableLedger:
 
     async def finish_claim(self, payment_id: str) -> None:
         await self._call("finish_claim", payment_id)
+
+    async def drop_claim_nonce(self, payment_id: str) -> None:
+        await self._call("drop_claim_nonce", payment_id)
 
     async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
                          units: int, plan: str = "", customer_id: str = "") -> CreditResult:

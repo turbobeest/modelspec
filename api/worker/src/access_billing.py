@@ -40,6 +40,12 @@ STATUS_ACTIVE = "active"
 STATUS_INACTIVE = "inactive"
 
 
+def _claim_secret(policy: AccessPolicy, nonce: str) -> str:
+    """Derive the claim key from the nonce stored on the claim. The key is not stored."""
+    digest = hmac.new(nonce.encode(), b"modelspec.claim", hashlib.sha256).hexdigest()
+    return policy.live_prefix + digest
+
+
 def event_name(event_id: str) -> str:
     return _EVENT_PREFIX + event_id
 
@@ -610,7 +616,16 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
     payment_id = f"pack:{session_id}" if pack else f"claim:{subscription_id}"
     selected = await ledger.claim_state(payment_id)
     if selected is not None and selected["stage"] == "complete":
-        return ClaimResult(record=stored, consumed=True)
+        nonce = str(selected.get("nonce") or "")
+        if not nonce:
+            return ClaimResult(record=stored, consumed=True)
+        secret = _claim_secret(policy, nonce)
+        if keys.fingerprint(secret) != (stored.key_fingerprint or ""):
+            return ClaimResult(record=stored, consumed=True)
+        shown = ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
+                            minted=True)
+        await ledger.drop_claim_nonce(payment_id)
+        return shown
     if selected is None and (session.claimed or (
             not pack and stored.key_fingerprint and not session.key_fingerprint)):
         return ClaimResult(record=stored, consumed=True)
@@ -620,6 +635,7 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
 
     bound = bool(session.key_fingerprint)
     needs_attachment = bound and not pack and not stored.key_fingerprint
+    nonce = ""
     if bound:
         fingerprint_hex = stored.key_fingerprint or session.key_fingerprint
         if pack and payment and payment.get("holder"):
@@ -629,13 +645,16 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             return None
         secret = ""
     else:
-        if selected is not None:
+        nonce = str(selected.get("nonce") or "") if selected is not None else ""
+        if selected is not None and not nonce:
             previous_fp = selected["holder"].removeprefix("key:")
             previous = await keys.lookup_fingerprint(kv, previous_fp)
             if previous is not None:
                 await kv.put(storage_name_from_fingerprint(previous_fp),
                              json.dumps(replace(previous, active=False).to_json()))
-        secret = keys.mint(policy)
+        if not nonce:
+            nonce = secrets.token_hex(32)
+        secret = _claim_secret(policy, nonce)
         fingerprint_hex = keys.fingerprint(secret)
         record = keys.KeyRecord(
             key_id=keys.key_id(secret), tier=stored.tier,
@@ -651,10 +670,14 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
                   (selected.get("invoice_id", "") if selected else "") or payment_id)
     holder = credits.holder_from_fingerprint(fingerprint_hex)
     stored = replace(stored, key_fingerprint=fingerprint_hex, key_id=record.key_id)
-    await ledger.save_claim(payment_id, {
+    claim_row = {
         "holder": holder, "units": amount, "invoice_id": invoice_id,
         "stage": "prepared",
-    }, kind="pack" if pack else "monthly", units=amount, tx=session_id)
+    }
+    if nonce:
+        claim_row["nonce"] = nonce
+    await ledger.save_claim(payment_id, claim_row,
+                            kind="pack" if pack else "monthly", units=amount, tx=session_id)
 
     if not bound:
         await kv.put(storage_name(secret), json.dumps(record.to_json()))
@@ -686,8 +709,11 @@ async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
             await ledger.finish_claim(payment_id)
     else:
         await ledger.finish_claim(payment_id)
-    return ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
-                       minted=not bound, attached=bound)
+    shown = ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
+                        minted=not bound, attached=bound)
+    if nonce:
+        await ledger.drop_claim_nonce(payment_id)
+    return shown
 
 
 async def rotate(kv: Any, current_key: str, *, now: datetime,
