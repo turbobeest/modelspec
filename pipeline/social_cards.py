@@ -151,11 +151,11 @@ def template_page(preview: TemplatePreview) -> str:
 
     esc = html.escape
     card = template_card(preview)
-    title = esc(f"{preview.name} · ModelSpec")
+    title = f"{preview.name} · ModelSpec"
     meta = brand.social_meta(title, path=preview.path, image_name=preview.filename,
-                             image_alt=esc(card.alt))
+                             image_alt=card.alt, description=preview.tradeoff)
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title>
 <meta name="description" content="{esc(preview.tradeoff)}">
 <link rel="canonical" href="https://modelspec.dev{preview.path}">{brand.head_links()}{meta}
 <style>body{{margin:0;background:#0B1426;color:#EEF2F7;font:20px/1.5 system-ui,sans-serif}}
@@ -402,7 +402,9 @@ def all_card_filenames() -> tuple[str, ...]:
     return (*card_filenames(), *template_card_filenames())
 
 
-def social_meta_for_page(page: str, data: LandingData | None = None) -> str:
+def social_meta_for_page(
+    page: str, data: LandingData | None = None, *, description: str | None = None,
+) -> str:
     """Build a page's social tags from its registered card mapping."""
     from pipeline import brand
 
@@ -413,6 +415,8 @@ def social_meta_for_page(page: str, data: LandingData | None = None) -> str:
         path=registration.page,
         image_name=card.filename,
         image_alt=card.alt,
+        description=description,
+        page_type=None if registration.source_page else "website",
     )
 
 

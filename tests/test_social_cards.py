@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 import re
 import shutil
@@ -101,7 +102,7 @@ def test_landing_card_html_uses_exactly_the_page_figures(card_data: landing.Land
     card_html = social_cards.render_card_html(card)
     tie_line = social_cards.landing_tie_line(card_data)
 
-    assert tie_line in page
+    assert tie_line in html.unescape(page)
     card_text = html.unescape(re.sub(r"<[^>]+>", "", card_html))
     assert tie_line in card_text
     assert "On coding, the evidence can't tell 2 models apart from the top one." in card_text
@@ -117,7 +118,7 @@ def test_each_page_points_at_its_card_with_dimensions_and_alt(
         f'https://modelspec.dev/{landing_card.filename}',
         '<meta property="og:image:width" content="1200">',
         '<meta property="og:image:height" content="630">',
-        f'<meta property="og:image:alt" content="{landing_card.alt}">',
+        f'<meta property="og:image:alt" content="{html.escape(landing_card.alt, quote=True)}">',
         f'<meta name="twitter:image" content="https://modelspec.dev/{landing_card.filename}">',
     ):
         assert expected in landing_page
@@ -245,8 +246,15 @@ def test_registry_drives_page_metadata_and_deploy_filenames(
     assert f'content="{card.alt}"' in decide
     for tag in social_cards.social_meta_for_page("/decide/").splitlines():
         assert tag in decide
-    pricing_page = (ROOT / "pipeline" / "pricing.py").read_text(encoding="utf-8")
-    assert 'social_meta_for_page("/pricing/")' in pricing_page
+    from pipeline import pricing
+    from pipeline.surface_lint import Page
+    from pipeline.export import Build
+    tiers = json.loads((ROOT / "api/worker/tiers.json").read_text())
+    pricing_page = pricing.page(tiers, build=Build("fixture", "2026-09-28T00:00:00Z", date(2026, 9, 28)))
+    meta = Page(pricing_page).meta
+    assert meta["og:image"] == "https://modelspec.dev/" + social_cards.PRICING_IMAGE
+    assert meta["og:description"] == meta["description"]
+    assert meta["og:type"] == "website"
 
 
 def _pricing_flags(monkeypatch: pytest.MonkeyPatch, **variables: str) -> None:
@@ -389,6 +397,14 @@ def test_template_card_and_page_preserve_large_ties_and_escape_public_copy() -> 
     assert 'Coding &lt;tools&gt; &amp; &quot;budget&quot;' in page
     assert 'property="og:image:alt" content="ModelSpec. Coding &lt;tools&gt; &amp; &quot;budget&quot;' in page
     assert "Frozen public snapshot · 2026-10-13" in page
+    from pipeline.surface_lint import Page
+    meta = Page(page).meta
+    assert meta.get('og:title') == preview.name + ' · ModelSpec'
+    assert meta.get('og:description') == preview.tradeoff
+    assert meta.get('og:type') == 'website'
+    for key in ('title', 'description', 'type', 'url', 'image'):
+        assert page.count(f'property="og:{key}"') == 1
+
 
 
 @pytest.mark.parametrize("reason", [None, "No offering has a known throughput yet"])

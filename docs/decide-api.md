@@ -2,29 +2,40 @@
 
 `POST https://api.modelspec.dev/v1/decide` returns a Decision for one decision-contract
 Spec. It runs `decision.engine.decide` against the signed decision Snapshot
-published at `/api/decision/snapshot.json.gz`.
+embedded in the Worker deployment when `DATA_SPLIT_ENABLED` is on. Main
+Worker deploys build these exports from the private `modelspec-data` repository.
 
-This is the hosted transport for the same engine as `modelspec decide`. It does
-not translate a Spec into a v1 rank request, call `pipeline/ranking.py`, or keep
-a separate catalogue.
+The installed `modelspec-dev` CLI is a thin HTTP client. `modelspec decide`
+sends a keyed request to this endpoint; it does not download a catalogue or
+run the engine locally.
 
 ## Architecture
 
 ```text
-models, offerings, registry and verification records
+modelspec-data: models, offerings, registry and verification records
                   |
                   v
-pipeline.build --decision-snapshot-if-ready
+api/worker/vendor.py --data-dir <private-data-checkout>
                   |
                   v
-modelspec.dev/api/decision/snapshot.json.gz
-                  | verified per isolate, revalidated at most once a minute
+Worker bundle: bundled_data.py (signed Snapshot and vocabulary)
+                  | parsed/indexed at deployment; authenticated on first request
                   v
 POST /v1/decide -> decision.contract.parse_spec -> decision.engine.decide
                   ^
-                  |
-          modelspec decide uses the same modules
+                  | keyed HTTP request
+          modelspec decide (thin client)
 ```
+
+With `DATA_SPLIT_ENABLED` on, the public paths
+`/api/decision/snapshot.json.gz` and `/api/decision/vocabulary.json` return
+removed-data tombstones. Use keyed `GET /v1/vocabulary` for current vocabulary.
+The free site uses its verified visit token for that endpoint.
+
+The legacy non-split export mode publishes a signed Snapshot at
+`modelspec.dev/api/decision/snapshot.json.gz`. A Worker without bundled data
+can fetch and revalidate that export. Local engine execution remains in the
+library and `cli.modelspec.legacy`; it is not the installed command's transport.
 
 `api/worker/vendor.py` copies the required `decision/`, `schema/`, and
 `registry/` files byte for byte into the Worker bundle. `--check` loads the
@@ -35,7 +46,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`2.17`.
+`2.19`.
 
 ```http
 POST /v1/decide
@@ -72,8 +83,8 @@ unsupported in slice 1. A Spec may request `latest` or the ID of the loaded
 Snapshot. Any other ID returns `409 snapshot_not_loaded` rather than silently
 using different data.
 
-A client that built the Spec from `/api/decision/vocabulary.json` sends that
-file's `snapshot` field as the `X-ModelSpec-Snapshot` request header. The header
+A client that built the Spec from keyed `GET /v1/vocabulary` sends that
+response's `snapshot` field as the `X-ModelSpec-Snapshot` request header. The header
 is optional and is not part of the Spec, so it does not change `spec_hash` or
 the Decision. See [Snapshot refresh](#snapshot-refresh).
 
@@ -122,17 +133,22 @@ The thin keyed CLI wraps this endpoint as
 
 The response groups changes by model and includes entries, departures, changed
 Must values, capability estimates, and prices with their record IDs. The
-Worker reads the retained Snapshot from
-`/api/decision/snapshots/<snapshot-id>.json.gz` and verifies its signature with
-the same key as the current Snapshot. The static origin does not publish that
-history yet. Until it does, the endpoint returns
-`409 comparison_snapshot_unavailable`; local cached comparisons remain
-available through `modelspec decide --compare-to`.
+Worker resolves `/api/decision/snapshots/<snapshot-id>.json.gz` and verifies
+its signature with the same key as the current Snapshot. A bundled split
+deployment reads only its bundle and never falls back to the public origin.
+A comparison ID absent from that bundle returns
+`409 comparison_snapshot_unavailable`, even if a public blog snapshot exists
+at that path. The current bundle contains no retained comparison history.
+
+In legacy non-split mode, the Worker fetches that path from the static origin.
+Only deliberately retained public blog snapshots are published there; this is
+not a history of private deployment snapshots. Local cached comparisons belong
+to the legacy library/CLI path, not the installed thin CLI.
 
 ## Response
 
 A successful body is the decision contract's Decision object without a Worker
-wrapper, as compact JSON (contract 2.17). This keeps it byte-identical to the
+wrapper, as compact JSON (contract 2.19). This keeps it byte-identical to the
 JSON printed by `modelspec decide --json` for the same Spec and Snapshot. It is
 shown indented here for reading.
 
@@ -143,7 +159,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.17",
+  "contract_version": "2.19",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -205,11 +221,11 @@ See the bounded section of [`decision-contract.md`](decision-contract.md).
 
 ## Snapshot trust boundary
 
-The site build signs the Snapshot content hash with HMAC-SHA256. The build and
+The snapshot export build signs the Snapshot content hash with HMAC-SHA256. The build and
 Worker receive `MODELSPEC_SNAPSHOT_KEY` as a secret. The secret is never in the
 Snapshot, repository, response, or Worker variables.
 
-For a deployment without `bundled_data.py`, on the first decision request in
+For a legacy non-split deployment without `bundled_data.py`, on the first decision request in
 an isolate the Worker:
 
 1. downloads `/api/decision/snapshot.json.gz` from `EXPORT_ORIGIN`;
@@ -226,9 +242,11 @@ unverified Snapshot.
 A bundled deployment parses, hash-checks, and indexes its snapshot at module
 scope, which Cloudflare captures in the deployment memory snapshot. The first
 request still requires the runtime verification key and authenticates the
-checked content hash before serving that index. The bundle is immutable for a
-deployment, so requests reuse it without decompressing, parsing, or indexing it
-again. A deployment replaces the bundled snapshot. See the phase-2 profile below.
+checked content hash before serving that index. The bundle data is immutable
+for a deployment. Requests reuse the active index until its validity period
+ends. If a signed successor is bundled, the first request in its valid period
+releases the old index and loads the successor once; its vocabulary changes
+with it. New bundle data requires a deployment. See the phase-2 profile below.
 
 An isolate that fetches its snapshot runs one load at a time (MODEL-153). Requests that arrive while a
 cold isolate is loading wait for that load and share its outcome, a Snapshot
@@ -239,10 +257,16 @@ presumed dead, and the next request starts another.
 
 ## Snapshot refresh
 
-A site deploy publishes a new Snapshot and a new `vocabulary.json` together
-(MODEL-159). A warm isolate that fetches static exports picks the new Snapshot up without
-a restart. Bundled deployments replace their Snapshot on the next Worker deploy.
-The fetched path works as follows:
+In split mode, a Worker deploy replaces the bundled Snapshot and vocabulary
+together. The active period can also advance to a prebundled successor at its
+UTC validity boundary without a deploy. Clients reload keyed
+`GET /v1/vocabulary`; the free site uses its visit token. A site-only deploy
+does not replace the Worker's bundled data.
+
+In legacy non-split mode, a site deploy publishes a new Snapshot and a new
+`/api/decision/vocabulary.json` together. A warm isolate that fetches those
+static exports picks the new Snapshot up without a restart. That legacy
+fetched path works as follows:
 
 1. At most once every 60 seconds (`REVALIDATE_SECONDS`), the next decision
    request sends a conditional `GET` of the Snapshot with `If-None-Match` set
@@ -265,14 +289,15 @@ benchmark or facet the new Snapshot does not have. To stop that becoming a
 confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 - When the header names the Snapshot the isolate holds, the request proceeds.
-- When it names another one, the isolate revalidates at once (at most once
-  every 5 seconds, `FORCED_REVALIDATE_SECONDS`), because the site may have
-  just deployed the Snapshot the caller has.
+- When it names another one, a legacy fetching isolate revalidates at once
+  (at most once every 5 seconds, `FORCED_REVALIDATE_SECONDS`). A bundled
+  isolate selects the current valid period from its immutable bundle; it does
+  not fetch a replacement from the static origin.
 - If the IDs still differ, the Worker answers `409` before it reads the Spec:
 
 ```json
 {
-  "contract_version": "2.17",
+  "contract_version": "2.19",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {
@@ -286,7 +311,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 The decide page sends the header on every request: the summary, the
 background `full`, and each next-question probe. A `snapshot_changed` on any of
-them reloads `vocabulary.json` once, shared by every request that heard it, and
+them reloads `/v1/vocabulary` once, shared by every request that heard it, and
 retries that request once with the new Snapshot ID. A second
 `snapshot_changed` on the summary is shown as an error; on the background
 `full` after the summary already reloaded, it leaves the summary standing
@@ -296,7 +321,7 @@ and does not reload again.
 
 The endpoint runs through the same `access.gate` and x402 wrapper as
 `POST /v1/rank`. Production `ACCESS_ENFORCED` and `BILLING_ENABLED` are
-`"true"` (MODEL-96); `X402_ENABLED` remains `"false"`. A direct keyless request
+`"true"` (MODEL-96); checked-in production `X402_ENABLED` is also `"true"`. A direct keyless request
 gets 401 `missing_api_key`, with `how_to_get_a_key: https://modelspec.dev/pricing`
 and the API documentation URL. A sandbox key is refused because there is no
 synthetic signed Snapshot.
@@ -323,10 +348,10 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 200 | none | A Decision, including `no_feasible`. | Read `status`, `results`, `may_qualify`, and `relax`. |
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
 | 400 | `invalid_spec` | The body is not a valid decision Spec. This includes an `optimize.weights` refinement key whose vocabulary `evidence_state` is `not_measured` or `no_benchmark`, or that the snapshot does not register. | Apply every item in `error.issues`; unknown fields are not ignored. For a refinement weight, remove the named key or use its parent domain. |
-| 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
+| 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload keyed `/v1/vocabulary`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |
 | 409 | `comparison_snapshot_changed` | The retained Snapshot does not match `compare_to`. | Send the retained Snapshot's exact ID. |
-| 409 | `comparison_snapshot_unavailable` | The origin does not publish the named retained Snapshot. | Use a locally cached Snapshot, or retry after the origin publishes Snapshot history. |
+| 409 | `comparison_snapshot_unavailable` | The named retained Snapshot is absent from the bundle, or from the static origin in legacy non-split mode. | A bundled comparison requires that Snapshot in its bundle; public blog availability alone is insufficient. Cached local comparisons require the legacy library. |
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
 | 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |

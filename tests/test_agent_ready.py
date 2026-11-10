@@ -463,3 +463,80 @@ def test_documented_mcp_tools_match_registered_tools() -> None:
     registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
     assert set(ar.MCP_TOOLS) == set(registered)
     assert len(ar.MCP_TOOLS) == len(registered) == 9
+
+
+@pytest.mark.parametrize('source,expected', [
+    ('See [BEIR](beir.md).', 'See [BEIR](/b/beir/).'),
+    ('[Spec](../docs/agentic-latency-benchmark.md)', '[Spec](https://github.com/turbobeest/modelspec/blob/main/docs/agentic-latency-benchmark.md)'),
+    ('[Source](https://example.org/path?q=1&b=2)', '[Source](https://example.org/path?q=1&b=2)'),
+    ('[Bad](javascript:bad)', 'Bad'),
+    ('[Bad](data:text/plain,bad)', 'Bad'),
+    ('[Bad](//example.org/path)', 'Bad'),
+    ('[Bad](../../outside.md)', 'Bad'),
+    ('`[BEIR](beir.md)`', '`[BEIR](beir.md)`'),
+    ('`literal `` [BEIR](beir.md)`', '`literal `` [BEIR](beir.md)`'),
+    ('``a `[BEIR](beir.md)` example``', '``a `[BEIR](beir.md)` example``'),
+    (r'\[BEIR](beir.md)', r'\[BEIR](beir.md)'),
+    ('**See** [BEIR](beir.md) or `[example](beir.md)`.', '**See** [BEIR](/b/beir/) or `[example](beir.md)`.'),
+])
+def test_benchmark_markdown_fact_destinations(source, expected):
+    from pipeline.load import Catalogue
+    bench = _bench('demo', contamination={'note': source})
+    text = ar.benchmark_markdown(bench, Catalogue(as_of=date(2026, 9, 23)))
+    assert f'- Contamination note: {expected}\n' in text
+
+
+def test_built_benchmark_markdown_destinations_resolve(dist: Path) -> None:
+    from urllib.parse import urljoin, urlsplit
+    tree = dist / 'modelspec'
+    pages = list((tree / 'b').glob('*/index.md'))
+    assert pages
+    missing = []
+    for page in pages:
+        origin = 'https://modelspec.dev/' + page.relative_to(tree).as_posix()
+        for href in re.findall(r'(?<!!)\[[^\]]+\]\(([^)\s]+)\)', page.read_text()):
+            target = urlsplit(urljoin(origin, href))
+            if target.netloc == 'modelspec.dev':
+                local = tree / target.path.lstrip('/')
+                if not (local.is_file() or (local / 'index.html').is_file()):
+                    missing.append((page.relative_to(tree).as_posix(), href))
+    assert missing == []
+
+
+def test_built_product_pages_have_complete_social_metadata(dist: Path) -> None:
+    from pipeline.surface_lint import Page
+    from urllib.parse import urlsplit
+    tree = dist / "modelspec"
+    paths = [tree / "index.html"]
+    for family in ("about", "brand", "feedback", "method", "orchestrators", "pricing",
+                   "decide/templates", "compare", "use-cases", "guides"):
+        paths.extend((tree / family).rglob("*.html"))
+    assert len(paths) >= 132
+    for path in paths:
+        text = path.read_text()
+        page = Page(text)
+        for key in ("title", "type", "url", "image", "description"):
+            assert page.meta.get("og:" + key), (path, key)
+            assert text.count(f'property="og:{key}"') == 1, (path, key)
+        canonical = re.search(r'<link rel="canonical" href="([^"]+)"', text)
+        assert canonical, path
+        assert page.meta["og:url"] == canonical[1], path
+        assert page.meta["og:description"] == page.meta["description"], path
+        assert page.meta["og:title"] in page.title, path
+        if path.relative_to(tree).parts[0] in {"compare", "use-cases", "guides"}:
+            assert (tree / urlsplit(page.meta["og:image"]).path.lstrip("/")).is_file(), path
+    assert builder.missing_social_images(tree) == []
+    assert builder.unresolved_social_images(tree) == set(builder.optional_social_image_baseline())
+
+
+def test_built_model_heading_levels_are_sequential(dist: Path) -> None:
+    tree = dist / "modelspec"
+    pages = [tree / "models/index.html", *(tree / "m").rglob("index.html")]
+    assert len(pages) > 504
+    jumps = {}
+    for page in pages:
+        levels = [int(value) for value in re.findall(r"<h([1-6])\b", page.read_text())]
+        skipped = [(a, b) for a, b in zip(levels, levels[1:]) if b > a + 1]
+        if skipped:
+            jumps[page.relative_to(tree).as_posix()] = skipped
+    assert jumps == {}

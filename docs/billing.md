@@ -55,7 +55,8 @@ and Worker vocabulary for its bound visitor and allowed site origin; separate
 SQLite allowances meter them. It grants no paid credits or determinations.
 An Origin alone grants no admission. Other keyless machine data requests
 receive 401 `missing_api_key` naming where to buy a key. Health and feedback
-stay keyless. Production x402 remains off.
+stay keyless. Checked-in production settings are `X402_ENABLED=true` and
+`X402_MAINNET=true`. See [x402](x402.md) for the keyed pack flow.
 
 Cancellation, failed payment, or expiry **zeros the monthly allowance at
 once**. Pack credits are unaffected. That is MODEL-73's immediate-downgrade
@@ -111,7 +112,8 @@ module.
 
 ## Configuration
 
-`api/worker/tiers.json` (injected as `TIER_POLICY`):
+`api/worker/tiers.json` is bundled as `tier_policy.py`; see
+[policy delivery and resolution](api-access.md#the-tier-table-in-the-isolate).
 
 - `credits.weights.rank` / `credits.weights.policy-check` — credits drawn on a
   successful result. `credits.weights.decide.*` sets the decision weights by
@@ -129,12 +131,13 @@ module.
   `placeholder: true` and `legacy: true` are not sold at checkout. A legacy
   row still grants when Stripe sends its webhook
 - `x402.list_usd_per_decision` — the published per-decision list price, a
-  decimal string. It matches the smallest current pack. x402 stays off until
-  `X402_ENABLED` is turned on
+  decimal string. It matches the smallest current pack. `X402_ENABLED` gates
+  payment handling and is on in the checked-in production configuration
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
 - `billing.friends_price_ids`, `billing.friends_promotion_code_prefix` identify
-  friends entitlements. Both ship empty. See the friends section below.
+  friends entitlements. The price list ships empty and the promotion prefix
+  ships as `"FRIENDS-"`. See the friends section below.
 
 Changing a credit amount, a weight, a burst, a read cap, or a mapping is an
 edit to that file. Tests prove a price/credit change needs no code change.
@@ -146,13 +149,14 @@ no daily limit and a 60/minute burst cap, matching the highest finite paid-tier
 burst. Usage still passes through the access counters. It is separate from
 `dpf`, requires a live API key, and supports existing key rotation and revocation.
 
-Stripe issuance ships inert. The following settings in `api/worker/tiers.json`
-under `billing`, or the corresponding injected `TIER_POLICY`, opt into issuance:
+The shipped promotion prefix enables invitation-code entry on recurring-plan
+Checkout. The following settings in `api/worker/tiers.json` under `billing`
+control issuance through the bundled policy:
 
 | Configuration | Default | Effect |
 | --- | --- | --- |
 | `friends_price_ids` | `[]` | Exact Stripe Price ids for a recurring $0 Friends & Family plan. These map to `friends` with zero credits. |
-| `friends_promotion_code_prefix` | `""` | Case-insensitive prefix of the customer-facing promotion code. Only a matching code backed by a 100%-off, `forever` coupon maps a subscription to `friends`. |
+| `friends_promotion_code_prefix` | `"FRIENDS-"` | Case-insensitive prefix of the customer-facing promotion code. Only a matching code backed by a 100%-off, `forever` coupon maps a subscription to `friends`. |
 
 Either setting works independently, and both may be set. A verified Stripe
 webhook resolves the entitlement before the existing one-time
@@ -165,7 +169,7 @@ The public Checkout endpoint neither lists nor sells friends Prices. Jamie
 shares their Dashboard Payment Links directly with invitees. Holders of an
 invitation promotion code can enter it on the normal recurring-plan Checkout.
 
-When the prefix is configured, Checkout accepts promotion-code entry. Stripe
+With the shipped prefix, plan Checkout sends `allow_promotion_codes=true`. Stripe
 snapshot events can contain only promotion ids or omit Payment Link line
 items. The webhook uses read-only Stripe retrieval with `STRIPE_SECRET_KEY`
 to resolve those fields. A failed read returns `503 stripe_unavailable` so

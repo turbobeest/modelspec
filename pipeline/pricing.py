@@ -105,10 +105,10 @@ def hero_summary(tiers: dict[str, Any], *, access_enforced: bool,
     return agent_line, f"{_rate(min(rates))}–{_rate(high_rate)} per credit"
 
 
-def _social_meta() -> str:
+def _social_meta(description: str) -> str:
     from pipeline import social_cards
 
-    return social_cards.social_meta_for_page("/pricing/")
+    return social_cards.social_meta_for_page("/pricing/", description=description)
 
 
 def _buy_form(price_id: str, kind: str) -> str:
@@ -280,7 +280,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title><meta name="description" content="{description}">
-<link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{_social_meta()}
+<link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{_social_meta(description)}
 <link rel="stylesheet" href="/{ASSET_DIR}/pricing.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup()}<nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/details/">Open the board</a></nav><a class="button mobile-board" href="/decide/details/">Open the board</a></header>
 <main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p>{agent_copy.install_html()}</div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>

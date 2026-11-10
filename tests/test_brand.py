@@ -142,3 +142,17 @@ def test_the_v1_landing_links_the_2a_icons():
     # The build writes these from the package; stale copies here would be overwritten.
     for stale in ("favicon-64.png", "icon-512.png", "og-card.png"):
         assert not (ROOT / "site" / "holding" / stale).exists(), stale
+
+
+def test_social_metadata_escapes_complete_page_fields_once():
+    from pipeline.surface_lint import Page
+    title = 'Tools <choices> & "budget"'
+    description = 'Costs < $1 & enough context for "code".'
+    text = brand.social_meta(title, description=description, page_type='article', path='/example/')
+    meta = Page(text).meta
+    assert {key: meta.get(key) for key in ('og:title', 'og:description', 'og:type', 'og:url', 'og:image')} == {
+        'og:title': title, 'og:description': description, 'og:type': 'article',
+        'og:url': 'https://modelspec.dev/example/', 'og:image': 'https://modelspec.dev/og-card.png',
+    }
+    for key in ('title', 'description', 'type', 'url', 'image'):
+        assert text.count(f'property="og:{key}"') == 1

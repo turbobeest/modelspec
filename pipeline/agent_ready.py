@@ -377,7 +377,7 @@ def provider_markdown(slug: str, models: list[Model]) -> str:
 
 
 def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
-    from pipeline.render import benchmark_facts
+    from pipeline.render import benchmark_facts, normalize_benchmark_markdown_links
 
     disposition = catalogue.for_benchmark(bench.benchmark_id)
     lines = [
@@ -396,7 +396,7 @@ def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
     facts = benchmark_facts(bench.front if isinstance(bench.front, dict) else {})
     if facts:
         for label, value in facts:
-            lines.append(f"- {label}: {value}")
+            lines.append(f"- {label}: {normalize_benchmark_markdown_links(value)}")
     else:
         lines.append("null")
     lines += ["", "## Provenance"]

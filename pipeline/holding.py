@@ -131,7 +131,7 @@ def dark_page(site: str) -> str:
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f'<meta name="robots" content="noindex"><title>{site}</title>\n'
-        + brand.head_links() + brand.social_meta(site) +
+        + brand.head_links() + brand.social_meta(site, description=line) +
         f"<style>{_STYLE}</style></head>\n"
         f"<body><header>{landing_chrome.lockup()}</header><main><h1>{site}</h1><p>{line}</p>{footer}"
         f'<p class="l">© {html.escape(OPERATOR)}</p></main></body></html>\n'

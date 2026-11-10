@@ -518,6 +518,7 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
 
     strips = model_benchmark_strips(model, pages, coverage)
 
+    assert re.findall(r"<h([1-6])\b", strips) == ["2", "3", "4", "4", "3", "4"]
     assert strips.count('class="benchmark-strip"') == 3
     assert strips.count('class="strip-point focus ') == 3
     assert strips.count('<object class="benchmark-strip-asset"') == 3
@@ -597,6 +598,7 @@ def test_model_page_passes_coverage_to_benchmark_strips() -> None:
         evidence_coverage=coverage,
     )
 
+    assert ".benchmark-strip :is(h3,h4){font-family:var(--sans);font-size:14px" in html
     assert "Benchmark standing" in html
     assert 'href="/b/b/"' in html
     assert html.count('class="strip-point focus ') == 1
@@ -1080,3 +1082,161 @@ def test_cited_flat_score_stays_outside_evidence_charts(tmp_path: Path) -> None:
     assert rows[0]["citation"]["status"] == "cited"
     assert benchmark_strip_asset(rows) == ""
     assert benchmark_chart(_page("b"), rows * 20) == ""
+
+
+@pytest.mark.parametrize('href', [
+    '/api/missing.json', 'https://modelspec.dev/api/missing.json',
+    'https://modelspec.dev/api/missing.json?download=1#data',
+    '//modelspec.dev/api/missing.json',
+    'https://MODELSPEC.dev/api/missing.json',
+    'https://modelspec.dev:443/api/missing.json',
+])
+def test_same_origin_missing_href_is_reported(tmp_path, href):
+    (tmp_path / 'index.html').write_text(f'<a href="{href}">Download</a>')
+    assert builder.missing_internal_hrefs(tmp_path) == [('index.html', href)]
+
+
+def test_absolute_existing_and_external_hrefs_are_allowed(tmp_path):
+    (tmp_path / 'index.html').write_text(
+        '<a href="https://modelspec.dev/">Home</a>'
+        '<a href="https://example.org/missing/">External</a>'
+        '<a href="//example.org/missing/">External</a>'
+        '<a href="https://modelspec.dev:8443/missing/">Other port</a>'
+    )
+    assert builder.missing_internal_hrefs(tmp_path) == []
+
+
+def test_a_new_unresolved_social_image_fails_the_lint(tmp_path):
+    (tmp_path / 'index.html').write_text(
+        '<meta property="og:image" content="https://modelspec.dev/og-card-new.png">'
+        '<meta name="twitter:image" content="https://modelspec.dev/og-card-new.png">'
+        '<meta property="og:image:width" content="1200">',
+        encoding='utf-8',
+    )
+    assert builder.missing_social_images(tmp_path) == [('index.html', 'og-card-new.png')]
+    assert builder.unresolved_social_images(tmp_path) == {'og-card-new.png'}
+
+
+def test_baseline_social_images_may_be_absent(tmp_path):
+    name = builder.optional_social_image_baseline()[0]
+    (tmp_path / 'index.html').write_text(
+        f'<meta property="og:image" content="https://modelspec.dev/{name}">',
+        encoding='utf-8',
+    )
+    assert builder.missing_social_images(tmp_path) == []
+    assert builder.unresolved_social_images(tmp_path) == {name}
+
+
+def test_a_present_social_image_resolves_and_external_images_are_skipped(tmp_path):
+    (tmp_path / 'og-card.png').write_bytes(b'png')
+    (tmp_path / 'index.html').write_text(
+        '<meta property="og:image" content="/og-card.png">'
+        '<meta property="og:image" content="https://example.org/missing.png">'
+        '<script><meta property="og:image" content="https://modelspec.dev/og-card-hidden.png"></script>',
+        encoding='utf-8',
+    )
+    assert builder.unresolved_social_images(tmp_path) == set()
+    assert builder.missing_social_images(tmp_path) == []
+
+
+def test_optional_social_image_baseline_count_may_only_shrink():
+    names = builder.optional_social_image_baseline()
+    assert len(names) == 42
+    assert len(names) <= builder.OPTIONAL_SOCIAL_IMAGE_CEILING
+    assert len(set(names)) == len(names)
+
+
+def test_optional_social_image_baseline_rejects_growth():
+    text = '# count: 43\n' + ''.join(f'img-{i}.png\n' for i in range(43))
+    with pytest.raises(ValueError, match='may only shrink'):
+        builder.parse_optional_social_image_baseline(text)
+
+
+@pytest.mark.parametrize('article,indexable', [(True, True), (False, True), (True, False)])
+def test_example_shell_has_complete_open_graph_metadata(article, indexable):
+    from pipeline.surface_lint import Page
+    title = 'Tools <choices> & "budget"'
+    description = 'Costs < $1 & enough context for "code".'
+    text = builder._use_case_shell(title, description, '/guides/example/', '<p>Example</p>',
+                                   date(2026, 9, 23), article=article, indexable=indexable)
+    meta = Page(text).meta
+    assert meta.get('og:title') == title
+    assert meta.get('og:description') == description
+    assert meta.get('og:type') == ('article' if article else 'website')
+    assert meta.get('og:url') == 'https://modelspec.dev/guides/example/'
+    assert meta.get('og:image') == 'https://modelspec.dev/og-card.png'
+    assert meta['robots'] == ('index, follow' if indexable else 'noindex, follow')
+    for key in ('title', 'description', 'type', 'url', 'image'):
+        assert text.count(f'property="og:{key}"') == 1
+
+
+def test_ungrouped_benchmark_strip_heading_follows_its_section():
+    model = _card('demo/focus', evidence=(_evidence('b', 70.0),))
+    strips = model_benchmark_strips(model, {'b': _page('b')}, {'b': [_chart_row('demo/focus', 70.0)]})
+    assert re.findall(r'<h([1-6])\b', strips) == ['2', '3']
+
+
+def test_models_index_provider_heading_follows_page_title():
+    from pipeline.render import models_index
+    page = models_index([_card('demo/focus')], Build('fixture', '2026-09-23T00:00:00Z', date(2026, 9, 23)))
+    assert re.findall(r'<h([1-6])\b', page) == ['1', '2']
+
+
+def test_models_index_provider_headings_keep_the_base_measure():
+    from pipeline.render import models_index
+    other = _card('other/two')
+    other.front["provider"] = "other"
+    other.front["provider_display"] = "Other Lab"
+    page = models_index(
+        [_card('demo/focus'), other],
+        Build('fixture', '2026-09-23T00:00:00Z', date(2026, 9, 23)),
+    )
+    openings = re.findall(r"<h([1-6])\b([^>]*)>", page)
+    providers = [attrs for level, attrs in openings if level == "2"]
+    assert providers == [' class="provider-heading"', ' class="provider-heading"']
+    assert "<h3" not in page
+    assert '<h2 class="provider-heading">Demo Lab</h2>' in page
+    assert '<h2 class="provider-heading">Other Lab</h2>' in page
+    style = page.split("<style>", 1)[1].split("</style>", 1)[0]
+    rule = re.search(r"\.page h2\.provider-heading\{([^}]*)\}", style)
+    assert rule is not None
+    body = rule.group(1)
+    assert "font-size:16px" in body
+    assert "font-weight:700" in body
+    assert "letter-spacing:-.01em" in body
+    assert "text-transform:none" in body
+    assert "color:inherit" in body
+    assert "border-bottom:0" in body
+    assert "padding-bottom:0" in body
+    assert "margin:22px 0 6px" in body
+    assert "position:static" in body
+    assert "counter-increment:none" in body
+    assert "!important" not in body
+    before = re.search(r"\.page h2\.provider-heading::before\{([^}]*)\}", style)
+    assert before is not None
+    assert before.group(1) == "content:none"
+    assert "!important" not in before.group(1)
+
+
+def test_ungrouped_strip_title_keeps_the_strip_measure():
+    model = _card('demo/focus', evidence=(_evidence('b', 70.0),))
+    html = model_page(
+        model,
+        _BUILD,
+        {"b": _page("b")},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage={"b": [
+            _chart_row("demo/focus", 70.0),
+            _chart_row("demo/other", 65.0),
+        ]},
+    )
+    assert re.findall(r'<article class="benchmark-strip"><h([1-6])\b', html) == ["3"]
+    rule = re.search(r"\.benchmark-strip :is\(h3,h4\)\{([^}]*)\}", html)
+    assert rule is not None
+    body = rule.group(1)
+    assert "font-size:14px" in body
+    assert "font-weight:700" in body
+    assert "letter-spacing:normal" in body
+    assert "color:inherit" in body
+    assert "margin:0 0 5px" in body
+    assert "!important" not in body

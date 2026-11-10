@@ -348,7 +348,7 @@ def page(assets: tuple[Asset, ...], zipped: int) -> str:
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<title>{html.escape(title)}</title><meta name="description" content="{html.escape(description)}">'
             f'<link rel="canonical" href="{URL}">{brand.head_links()}'
-            f'{brand.social_meta(html.escape(title), path="/brand/")}'
+            f'{brand.social_meta(title, path="/brand/", description=description)}'
             '<link rel="stylesheet" href="/landing-assets/landing.css">'
             f'<link rel="stylesheet" href="/{CSS_PATH.as_posix()}">{landing_chrome.lockup_style()}'
             f'{_theme_script()}</head>')
