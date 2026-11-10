@@ -268,6 +268,33 @@ def test_finite_weight_overflow_still_returns_a_decision() -> None:
     assert [row.offering.model for row in restored.results] == BOTH
 
 
+def test_overflow_reports_the_caller_weight_and_penalty() -> None:
+    spec = _parse(_base(
+        explain="full",
+        where=[{
+            "facet": "model.context_window",
+            "op": ">=",
+            "value": 1000,
+            "soft": {"penalty": 0.5},
+        }],
+        optimize={"weights": {
+            "model.context_window": HUGE,
+            "model.max_output_tokens": HUGE,
+        }},
+    ))
+    decision = decide(spec, INDEX, facets=facets)
+    assert decision.status == "answered"
+    assert [row.offering.model for row in decision.results] == BOTH
+    for row in decision.results:
+        assert row.soft_penalty == 0.5
+        assert [part.weight for part in row.contributions] == [HUGE, HUGE]
+    assert [term.weight for term in decision.blend] == [HUGE, HUGE]
+    text = json.dumps(decision.model_dump(mode="json"), allow_nan=False)
+    restored = Decision.model_validate_json(text)
+    assert [row.soft_penalty for row in restored.results] == [0.5, 0.5]
+    assert [part.weight for part in restored.results[0].contributions] == [HUGE, HUGE]
+
+
 def test_ordinary_finite_weights_keep_a_unit_score() -> None:
     from decision.contract import Objective
     from decision.optimise import optimise

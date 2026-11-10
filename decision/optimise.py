@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import date
 from math import frexp, isclose, isfinite, log2
 from typing import TYPE_CHECKING, Literal
@@ -478,35 +478,45 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                 signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],
                 readings[cid][3], interval=interval))
     shift = _overflow_shift(contributions, penalties)
-    if shift:
-        for cid in cids:
-            contributions[cid] = [
-                replace(item, weight=math.ldexp(item.weight, -shift))
-                for item in contributions[cid]
-            ]
     complete, missing = [], []
     for cid in cids:
         parts = tuple(sorted((penalties or {}).get(cid, {}).items()))
         if any(not isfinite(p) or p < 0 for _, p in parts):
             raise ValueError("penalties must be finite and nonnegative")
-        if shift:
-            parts = tuple((name, math.ldexp(amount, -shift)) for name, amount in parts)
         penalty = sum(p for _, p in parts)
         values = contributions[cid]
         unknown = any(c.value is None for c in values)
         preference_unknown = any(c.preference_status == "unknown" for c in values)
         scalar = objective.lexicographic is None and objective.pareto is None
-        score = sum(c.value * c.weight for c in values) - penalty if not unknown else None
+        # A zero shift keeps the product written out, so finite totals stay bit-identical.
+        # A non-zero shift scales only this arithmetic. Reported weights and penalties stay.
+        if unknown:
+            score = None
+        elif shift:
+            score = (
+                sum(c.value * math.ldexp(c.weight, -shift) for c in values)
+                - math.ldexp(penalty, -shift)
+            )
+        else:
+            score = sum(c.value * c.weight for c in values) - penalty
         warnings = (
             (("missing_objective_value",) if unknown else ())
             + (("unknown_preference_value",) if preference_unknown else ())
         )
         score_interval = None
         if scalar and not unknown:
-            score_interval = (
-                sum(c.interval[0] * c.weight for c in values) - penalty,
-                sum(c.interval[1] * c.weight for c in values) - penalty,
-            )
+            if shift:
+                score_interval = (
+                    sum(c.interval[0] * math.ldexp(c.weight, -shift) for c in values)
+                    - math.ldexp(penalty, -shift),
+                    sum(c.interval[1] * math.ldexp(c.weight, -shift) for c in values)
+                    - math.ldexp(penalty, -shift),
+                )
+            else:
+                score_interval = (
+                    sum(c.interval[0] * c.weight for c in values) - penalty,
+                    sum(c.interval[1] * c.weight for c in values) - penalty,
+                )
         row = OptimisedResult(cid, tuple(values), score if scalar else None, penalty, parts,
                               warnings, score_interval)
         (missing if unknown else complete).append(row)
