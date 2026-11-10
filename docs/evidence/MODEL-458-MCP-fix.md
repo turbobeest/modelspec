@@ -1,6 +1,6 @@
 MODEL-458-MCP execution evidence
 
-Round 2 is the current record and follows the round 1 notes. Round 1 stopped before the generated companions were updated.
+Round 3 is the current record and follows the round 1 and round 2 notes. Round 1 stopped before the generated companions were updated.
 
 ## Round 1
 
@@ -120,3 +120,23 @@ CI at `4245e5ec` failed on companions that still described the server from befor
 The generated spec is 235,366 bytes and 58,838 tokens. The size ceilings are 236,000 bytes and 59,000 tokens. First-turn estimates are Claude 9,372, OpenAI 9,464 and Gemini 9,567. The headroom assertion is 9,600. The 10,000 first-turn cap and the 16,384 byte cap are unchanged.
 
 No Worker import, snapshot or export field, or ranking row changed, so the private-data memory probe was not run and the public bundle was not re-vendored. `openapi.py --check` exited 0. The first focused serial pytest exited 1: 2 failed, 155 passed, 2 skipped. Those two failures were the OpenAPI token count (58,838) and the Gemini first-turn estimate (9,567). After the ceilings above were set, that pair exited 0. Before the snapshot update, MCP tests exited 1: 362 passed, 1 failed. After Vitest updated the snapshot, MCP tests exited 0 (363 passed) and typecheck exited 0. No local full suite, production deployment, or paid-provider call was run. Production switches, prices, plans, legal text, ranking floors, release tags and frozen data were not changed.
+
+## Round 3
+
+Started from `05f6b61c6a1891cf5e9b17ec76807d0c51e7b46a` and merged `origin/main` at `2cb1fcdd0a7c6acc893dab3cbbf8360c31773019`. Merge commit: `042191fd783e43ede1e8cf8b7d8a117ab914a12d`. The only conflict was `qa/fixtures/mcp-tools.json`. Regenerated it with `python -m qa.contracts`. The captured tool list is unchanged from the pre-merge branch; the `api/worker/openapi.yaml` source hash is the merged file. `api/worker/openapi.yaml` merged cleanly. `python api/worker/openapi.py --check` exited 0 before and after that regeneration.
+
+`.github/workflows/mcp.yml` now pins the Python setup step to `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065` (`# v5`). Commit: `c583d410f934efcd6f7f51c23be87428973c5ea4`. `actions/checkout@v4` and `actions/setup-node@v4` in that file are unchanged. No other workflow, test ceiling, contract, or Worker var changed.
+
+Commands ran from the worktree. Exit codes were the commands' own. Load average was 5.54.
+
+```bash
+env PYTHONPATH="$PWD" DATA_SPLIT_ENABLED=false /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+
+env PYTHONPATH="$PWD" DATA_SPLIT_ENABLED=false /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_api_access.py tests/test_access_wiring.py tests/test_api_docs.py tests/test_worker_vendor_imports.py tests/test_worker_memory_compaction.py tests/test_friends_access.py tests/test_x402.py::test_entry_unfunded_catalog_reads_keep_free_limits tests/test_x402.py::test_entry_catalog_finishes_prepaid_block_before_free_fallback tests/test_pricing_v2.py::test_a_paid_vocabulary_read_charges_one_credit_per_block tests/test_pricing_v2.py::test_a_refused_vocabulary_read_is_not_charged tests/test_visit_gate_off.py tests/test_agent_guide.py tests/test_ci_workflows.py
+
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /Users/terbeest/.codex-g2/heavy.sh bash -c 'export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"; npm test --prefix mcp && npm run typecheck --prefix mcp'
+
+git diff --check
+```
+
+`openapi.py --check` exited 0. Focused pytest exited 0: 350 passed, 2 skipped. MCP tests exited 0: 363 passed. Typecheck exited 0. `git diff --check` exited 0. Tool versions match round 1: Node v22.22.3, npm 10.9.8, TypeScript 7.0.2, Vitest 5.0.1, Python 3.14.4, pytest 9.1.1, Git 2.50.1, GitHub CLI 2.103.3. No local full suite, production deployment, or paid-provider call was run. CI for this push is checked after the commit.
