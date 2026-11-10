@@ -2553,7 +2553,18 @@ def test_prepared_claim_respects_current_billing_state(policy, canceled):
         retried = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
                                       service_commit=COMMIT, ledger=ledger)
         assert retried.status == 200
-        assert (await ledger.balance(_billing_holder(retried.body["key"]))).monthly == (0 if canceled else 4000)
+        key = retried.body["key"]
+        assert (await ledger.balance(_billing_holder(key))).monthly == (0 if canceled else 4000)
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None
+        if canceled:
+            assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+            assert sub.tier == policy.billing.downgrade_tier
+            assert sub.status == "inactive"
+        else:
+            assert (await keys.lookup(kv, key)).tier == "paid"
+            assert sub.tier == "paid"
+            assert sub.status == "active"
     run(scenario())
 
 
@@ -2710,4 +2721,49 @@ def test_unknown_cancellation_subscription_rejects_a_no_period_grant(policy):
         assert (await keys.lookup(kv, key)).tier == "free"
         assert (await ledger.balance(holder)).monthly == 0
         assert (await ledger.entitlement_view(holder))["entitled"] is False
+    run(scenario())
+
+
+def _unclaimed_downgrade_event(kind: str) -> tuple[str, dict]:
+    if kind == "invoice.payment_failed":
+        return kind, invoice_obj(id="in_unclaimed_fail", paid=False, period_start=100, period_end=200)
+    status = "canceled"
+    obj = {"id": SUB, "object": "subscription", "status": status, "customer": CUS,
+           "canceled_at": 300}
+    return kind, obj
+
+
+@pytest.mark.parametrize("kind", [
+    "customer.subscription.deleted",
+    "customer.subscription.updated",
+    "invoice.payment_failed",
+])
+def test_unclaimed_subscription_downgrade_reaches_the_claim(policy, kind):
+    """A cancellation or failed payment with no key still downgrades the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_unclaimed_checkout", created=100)).status == 200
+        event_kind, obj = _unclaimed_downgrade_event(kind)
+        outcome = await _dated_event(kv, ledger, policy, event_kind, obj,
+                                     "evt_unclaimed_" + kind, created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "downgraded"
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None
+        assert sub.tier == policy.billing.downgrade_tier
+        assert sub.status == "inactive"
+        assert sub.key_fingerprint == ""
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        assert claimed.body["tier"] == policy.billing.downgrade_tier
+        key = claimed.body["key"]
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.tier == policy.billing.downgrade_tier
+        assert stored.status == "inactive"
+        assert stored.key_fingerprint == keys.fingerprint(key)
     run(scenario())

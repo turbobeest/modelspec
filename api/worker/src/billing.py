@@ -616,6 +616,12 @@ async def _settle_downgrade(kv: Any, subscription_id: str, *, ledger: Any,
         return "ignored"
     if settled == "downgraded":
         return "downgraded"
+    if settled == "no_key":
+        wrote = await store.set_subscription_tier(
+            kv, subscription_id, policy.billing.downgrade_tier, policy=policy)
+        if wrote in {"tier_set", "unchanged"}:
+            return "downgraded"
+        return wrote
     return settled
 
 
