@@ -231,8 +231,10 @@ def test_ed25519_imports_stay_excluded_only_inside_load_snapshot_bytes(
     (package / "snapshot.py").write_text(
         "def load_snapshot_bytes():\n"
         "    import missing_runtime_package\n"
+        "    from missing_from_package import answer\n"
         "    from cryptography.exceptions import InvalidSignature\n"
         "    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey\n"
+        "    from cryptography.hazmat.primitives import serialization\n"
         "def other():\n"
         "    from cryptography.exceptions import InvalidSignature\n",
         encoding="utf-8",
@@ -242,6 +244,8 @@ def test_ed25519_imports_stay_excluded_only_inside_load_snapshot_bytes(
 
     assert sorted((item.module, item.imported_by) for item in missing) == [
         ("cryptography.exceptions", "decision.snapshot"),
+        ("cryptography.hazmat.primitives", "decision.snapshot"),
+        ("missing_from_package", "decision.snapshot"),
         ("missing_runtime_package", "decision.snapshot"),
     ]
 
