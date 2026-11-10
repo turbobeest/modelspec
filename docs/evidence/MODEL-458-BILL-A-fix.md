@@ -150,3 +150,41 @@ included here.
 No local full suite or site build was run. Production behavior, live payment
 processing and delivery of a one-time response over the network were not
 observed. No deployment was authorized or performed.
+
+## Round 2
+
+CI pytest shard 5/8 failed
+`test_routed_promotion_webhook_and_claim_use_configured_stripe_reader`.
+The routed friends billing environment omitted the credits binding, so the
+claim did not complete. Build both sites, Check evidence against release
+charts, and Data freeze were already green. The aggregate Run pytest check
+failed because that shard failed.
+
+`tests/test_friends_billing_wiring.py` now sets `CREDITS` to a local ledger
+on that environment before the worker handles the webhook and the claim.
+Both assertions in the file are unchanged.
+
+A search for the same access-wiring environment used on a billing route
+found no other file missing the binding. `tests/test_friends_access.py`
+sets the binding only for decide cases that ask for one. Those cases do
+not claim a purchase and were left as they are. The other worker billing
+environments already supply the binding.
+
+Before the fixture change, from the worktree:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_friends_billing_wiring.py
+```
+
+Result: 1 failed, 1 passed, exit 1.
+
+After the fixture change, the same command: 2 passed, exit 0.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_friends_billing.py tests/test_friends_access.py tests/test_friends_billing_wiring.py
+```
+
+Result: 34 passed, exit 0.
+
+Python 3.14.4. No production flags, prices, plans, legal text, or frozen
+data changed.
