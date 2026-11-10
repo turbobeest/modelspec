@@ -22,6 +22,7 @@ from release_signals.pipeline import (
     DraftResult,
     FetchResult,
     FirecrawlBudget,
+    RequiredSourceError,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -1638,4 +1639,73 @@ def test_long_date_published_diagnostic_is_bounded(
     assert "Traceback" not in rendered
     assert card.read_text() == original
     assert json.loads(pending.read_text()) == {"signals": [queued]}
+    assert not result_path.exists()
+
+
+def test_prohibited_release_url_stays_a_value_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert not issubclass(RequiredSourceError, ValueError)
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    original = (
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    card.write_text(original)
+    queued = {
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending_text = json.dumps({"signals": [queued]})
+    pending.write_text(pending_text)
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-2"
+    replies = {
+        _MODELS_DEV: json.dumps({
+            "acme": {
+                "name": "Acme",
+                "models": {
+                    "orbit-2": {
+                        "id": "orbit-2",
+                        "name": "Orbit 2",
+                        "release_url": prohibited,
+                    },
+                },
+            },
+        }).encode(),
+    }
+
+    def fetch(url: str) -> FetchResult:
+        assert url in replies, f"unexpected fetch: {url}"
+        return FetchResult(url, replies[url], "application/json")
+
+    def refuse_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("leaderboard refresh must not run")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", refuse_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    with pytest.raises(ValueError, match="excluded source") as caught:
+        processor.main()
+    assert not isinstance(caught.value, RequiredSourceError)
+    assert card.read_text() == original
+    assert pending.read_text() == pending_text
     assert not result_path.exists()
