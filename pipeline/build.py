@@ -117,6 +117,12 @@ def _schema_field_count(model_cls) -> int:
 
 _HREF = re.compile(r"""\bhref\s*=\s*['"]([^'"]+)['"]""", re.I)
 _SCRIPT_OR_STYLE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.I | re.S)
+_META_TAG = re.compile(r"<meta\b([^>]*)>", re.I)
+_META_ATTR = re.compile(r"""([^\s=/>]+)\s*=\s*(['"])(.*?)\2""", re.I | re.S)
+_SOCIAL_IMAGE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*")
+#: Original census of optional card images. The checked-in list may only shrink.
+OPTIONAL_SOCIAL_IMAGE_CEILING = 42
+_OPTIONAL_SOCIAL_IMAGES = Path(__file__).resolve().parent / "optional_social_images.txt"
 
 
 def _output_exists(tree: Path, url_path: str) -> bool:
@@ -153,6 +159,99 @@ def missing_internal_hrefs(tree: Path) -> list[tuple[str, str]]:
                 continue
             missing.append((html_path.relative_to(tree).as_posix(), href))
     return missing
+
+
+def parse_optional_social_image_baseline(text: str) -> tuple[str, ...]:
+    """Read the checked-in optional-image list. The count and the list may only shrink."""
+    count = None
+    names: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            if line.lower().startswith("# count:"):
+                count = int(line.split(":", 1)[1].strip())
+            continue
+        if not _SOCIAL_IMAGE_NAME.fullmatch(line) or ".." in line.split("/"):
+            raise ValueError(f"optional social image baseline has a bad path: {line}")
+        names.append(line)
+    if count != len(names):
+        raise ValueError(
+            f"optional social image baseline count is {count}, list has {len(names)}"
+        )
+    if len(names) > OPTIONAL_SOCIAL_IMAGE_CEILING:
+        raise ValueError("optional social image baseline may only shrink")
+    if len(names) != len(set(names)):
+        raise ValueError("optional social image baseline repeats a path")
+    return tuple(names)
+
+
+def optional_social_image_baseline() -> tuple[str, ...]:
+    return parse_optional_social_image_baseline(
+        _OPTIONAL_SOCIAL_IMAGES.read_text(encoding="utf-8")
+    )
+
+
+def _same_origin_rel(url: str) -> str | None:
+    parsed = urlsplit(html.unescape(url).strip())
+    if parsed.netloc:
+        if (parsed.hostname != "modelspec.dev" or parsed.scheme not in {"", "https"}
+                or parsed.port not in {None, 443}):
+            return None
+    elif parsed.scheme or not parsed.path.startswith("/"):
+        return None
+    rel = parsed.path.lstrip("/")
+    return rel or None
+
+
+def _social_image_rels(html_text: str) -> list[str]:
+    rels: list[str] = []
+    text = _SCRIPT_OR_STYLE.sub("", html_text)
+    for attrs in _META_TAG.findall(text):
+        parsed = {
+            key.lower(): html.unescape(value)
+            for key, _, value in _META_ATTR.findall(attrs)
+        }
+        kind = parsed.get("property") or parsed.get("name") or ""
+        if kind not in {"og:image", "twitter:image"}:
+            continue
+        rel = _same_origin_rel(parsed.get("content") or "")
+        if rel:
+            rels.append(rel)
+    return rels
+
+
+def _social_image_exists(tree: Path, rel: str) -> bool:
+    path = Path(rel)
+    if path.is_absolute() or ".." in path.parts:
+        return False
+    return (tree / path).is_file()
+
+
+def unresolved_social_images(tree: Path) -> set[str]:
+    """Same-origin og:image and twitter:image paths with no file in this tree."""
+    missing: set[str] = set()
+    for html_path in tree.rglob("*.html"):
+        for rel in _social_image_rels(html_path.read_text(encoding="utf-8", errors="replace")):
+            if not _social_image_exists(tree, rel):
+                missing.add(rel)
+    return missing
+
+
+def missing_social_images(tree: Path) -> list[tuple[str, str]]:
+    """New unresolved social images. Baseline paths may stay absent."""
+    baseline = set(optional_social_image_baseline())
+    found: list[tuple[str, str]] = []
+    for html_path in sorted(tree.rglob("*.html")):
+        seen: set[str] = set()
+        for rel in _social_image_rels(html_path.read_text(encoding="utf-8", errors="replace")):
+            if rel in seen or rel in baseline or _social_image_exists(tree, rel):
+                seen.add(rel)
+                continue
+            seen.add(rel)
+            found.append((html_path.relative_to(tree).as_posix(), rel))
+    return found
 
 
 def _inject(src: Path, dest: Path, needle: str, html: str) -> None:
@@ -1050,6 +1149,16 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
             print(f"  {src}: {href}", file=sys.stderr)
         if len(missing) > 20:
             print(f"  … and {len(missing) - 20} more", file=sys.stderr)
+        return 2
+
+    missing_images = missing_social_images(ms)
+    if missing_images:
+        print(f"error: modelspec has {len(missing_images)} new social image(s) with no file:",
+              file=sys.stderr)
+        for src, rel in missing_images[:20]:
+            print(f"  {src}: {rel}", file=sys.stderr)
+        if len(missing_images) > 20:
+            print(f"  … and {len(missing_images) - 20} more", file=sys.stderr)
         return 2
 
     summary = {

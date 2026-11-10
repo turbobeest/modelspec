@@ -1106,6 +1106,52 @@ def test_absolute_existing_and_external_hrefs_are_allowed(tmp_path):
     assert builder.missing_internal_hrefs(tmp_path) == []
 
 
+def test_a_new_unresolved_social_image_fails_the_lint(tmp_path):
+    (tmp_path / 'index.html').write_text(
+        '<meta property="og:image" content="https://modelspec.dev/og-card-new.png">'
+        '<meta name="twitter:image" content="https://modelspec.dev/og-card-new.png">'
+        '<meta property="og:image:width" content="1200">',
+        encoding='utf-8',
+    )
+    assert builder.missing_social_images(tmp_path) == [('index.html', 'og-card-new.png')]
+    assert builder.unresolved_social_images(tmp_path) == {'og-card-new.png'}
+
+
+def test_baseline_social_images_may_be_absent(tmp_path):
+    name = builder.optional_social_image_baseline()[0]
+    (tmp_path / 'index.html').write_text(
+        f'<meta property="og:image" content="https://modelspec.dev/{name}">',
+        encoding='utf-8',
+    )
+    assert builder.missing_social_images(tmp_path) == []
+    assert builder.unresolved_social_images(tmp_path) == {name}
+
+
+def test_a_present_social_image_resolves_and_external_images_are_skipped(tmp_path):
+    (tmp_path / 'og-card.png').write_bytes(b'png')
+    (tmp_path / 'index.html').write_text(
+        '<meta property="og:image" content="/og-card.png">'
+        '<meta property="og:image" content="https://example.org/missing.png">'
+        '<script><meta property="og:image" content="https://modelspec.dev/og-card-hidden.png"></script>',
+        encoding='utf-8',
+    )
+    assert builder.unresolved_social_images(tmp_path) == set()
+    assert builder.missing_social_images(tmp_path) == []
+
+
+def test_optional_social_image_baseline_count_may_only_shrink():
+    names = builder.optional_social_image_baseline()
+    assert len(names) == 42
+    assert len(names) <= builder.OPTIONAL_SOCIAL_IMAGE_CEILING
+    assert len(set(names)) == len(names)
+
+
+def test_optional_social_image_baseline_rejects_growth():
+    text = '# count: 43\n' + ''.join(f'img-{i}.png\n' for i in range(43))
+    with pytest.raises(ValueError, match='may only shrink'):
+        builder.parse_optional_social_image_baseline(text)
+
+
 @pytest.mark.parametrize('article,indexable', [(True, True), (False, True), (True, False)])
 def test_example_shell_has_complete_open_graph_metadata(article, indexable):
     from pipeline.surface_lint import Page
