@@ -188,3 +188,89 @@ Result: 34 passed, exit 0.
 
 Python 3.14.4. No production flags, prices, plans, legal text, or frozen
 data changed.
+
+## Review fix round
+
+Origin/main was merged before these findings. The monthly claim fall-through,
+allowance generation, transfer, and the dispute ACCESS binding stayed in place.
+Focused billing and credits tests passed on that merge before the findings.
+
+### Later paid period after a terminal subscription
+
+The terminal-status latch is gone. An invoice whose period ended at or before
+cancellation stays stale. A later paid period applies again. A
+`customer.subscription.updated` with status `active` and a later `created`
+applies again. `unpaid` is not terminal.
+
+`test_newer_paid_period_applies_after_terminal_status` and
+`test_active_subscription_update_applies_after_cancellation` failed first
+(`ignored` against `credited` and `restored`). They pass after the change.
+
+### Overlapped older payment_failed
+
+`set_monthly` and `clear_monthly` re-read `invoice_period_watermark` in the
+ledger transaction. A failed invoice does not move the watermark. A
+cancellation stores its time. Absent on old rows means no watermark. The
+in-process billing lock covers the entitlement write.
+
+The overlap control runs 30 pairs of a newer `invoice.paid` and an older
+`invoice.payment_failed` on a KV that yields on get and put. Before the
+watermark, all 30 ended free with monthly 0. After the watermark and before
+the lock, all 30 kept the full monthly allowance and stayed free. After the
+lock, all 30 ended paid with the full monthly allowance.
+
+### Claim nonce
+
+A claim stores a nonce and keeps it on the completed claim. The handler drops
+the nonce after the response is built. The plaintext key is not stored. A
+completed claim with no nonce still returns 410.
+
+Changed expectations:
+
+- `test_completed_claim_keeps_its_owner_after_restart`: the retry after the
+  completion write expects 200 and the same key while the nonce remains. The
+  following claim is still 410. It previously expected 410 on that retry.
+- `test_claim_funding_preserves_selected_owner` with funding already done:
+  expects 200 and the same key. It previously expected 410.
+
+Before the change those two tests were 4 failed, 2 passed, exit 1
+(`410` against `200`). After the change the same two tests, plus the unfunded
+claim resume controls, were 27 passed, exit 0.
+
+### payment_failed with no period
+
+When `invoice_paid` is set and an invoice period is stored, an
+`invoice.payment_failed` with no line period and no invoice period is stale.
+`clear_monthly` with no period still clears.
+
+`test_payment_failed_without_period_keeps_a_stored_paid_period` failed first
+(`downgraded` against `ignored`). It passes after the change.
+
+### Docs
+
+`docs/api-access.md` and `docs/billing.md` name the mint and the key-row
+write. `docs/billing.md` says an invoice period that ended at or before
+cancellation does not reopen it. Nothing under `docs/legal/` changed.
+
+### Commands
+
+After the no-period change, from the worktree:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py tests/test_billing_refunds.py tests/test_credits_do.py tests/test_credits.py tests/test_pricing_v2.py tests/test_friends_billing_wiring.py tests/test_read_refunds.py tests/test_overage_durability.py
+```
+
+Result: 436 passed, exit 0.
+
+The review diff adds no import. The Worker memory probe was not re-run.
+The earlier steady result remains 108,822,028 bytes, 103.78 MiB, below 115 MiB.
+No contract file, OpenAPI file, or `contract_version` changed. No production
+flag, price, plan, legal text, or frozen data changed.
+
+### Remaining
+
+Checkout with no invoice id is unchanged. The stored grant id is the synthetic
+checkout id, and a later `invoice.paid` with `billing_reason`
+`subscription_create` credits again. Reusing that synthetic id as the grant
+returns replay before `invoice_period_watermark` is stored, so that change
+is not sufficient.
