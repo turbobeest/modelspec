@@ -3,7 +3,8 @@
     python -m pipeline.blog preview <slug> --out <directory>
 
 Normal builds include only approved published revisions and require BLOG_ENABLED=true.
-Preview is explicit, noindex, and produces no feed or sitemap.
+Preview is explicit, noindex, and produces no feed or sitemap. It runs the same
+correction date and published-revision checks before it writes HTML.
 """
 
 from __future__ import annotations
@@ -201,16 +202,15 @@ def _posts(root: Path, *, public_keys=None, preview_slug=None, today: date | Non
         corrections = (
             yaml.safe_load(corrections_file.read_text()) if corrections_file.exists() else []
         )
-        if preview_slug is None:
-            published_revisions = {
-                row.revision for row in metadata.revisions
-                if row.published is not None and row.published <= published_through
-            }
-            for correction in corrections or []:
-                if date.fromisoformat(str(correction["date"])) > published_through:
-                    raise ValueError("blog correction date is in the future")
-                if int(correction["revision"]) not in published_revisions:
-                    raise ValueError("blog correction must reference a published revision")
+        published_revisions = {
+            row.revision for row in metadata.revisions
+            if row.published is not None and row.published <= published_through
+        }
+        for correction in corrections or []:
+            if date.fromisoformat(str(correction["date"])) > published_through:
+                raise ValueError("blog correction date is in the future")
+            if int(correction["revision"]) not in published_revisions:
+                raise ValueError("blog correction must reference a published revision")
         for revision in metadata.revisions:
             if preview_slug is None:
                 if revision.published is None:

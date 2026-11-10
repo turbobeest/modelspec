@@ -87,6 +87,19 @@ def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
     ]
 
 
+def test_homepage_dataset_uses_the_delayed_image_policy_sentence(tmp_path: Path) -> None:
+    from pipeline.build import DELAYED_IMAGE_POLICY
+
+    tree = _tree(tmp_path, snapshot=True)
+    sd.inject(tree, ROOT)
+    description = _graph(tree, "/")[2]["description"]
+    source = (ROOT / "pipeline" / "structured_data.py").read_text(encoding="utf-8")
+    assert "about nine months" not in description
+    assert DELAYED_IMAGE_POLICY in description
+    assert "DELAYED_IMAGE_POLICY" in source
+    assert "about nine months" not in source
+
+
 def test_the_dataset_offers_no_download_and_no_free_flag(tmp_path: Path) -> None:
     tree = _tree(tmp_path, snapshot=True)
     sd.inject(tree, ROOT)

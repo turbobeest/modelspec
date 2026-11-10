@@ -147,6 +147,17 @@ def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> N
     assert "pack plan's rate" not in html
 
 
+def test_pricing_page_uses_the_delayed_image_policy_sentence() -> None:
+    from pipeline.build import DELAYED_IMAGE_POLICY
+
+    html = _page()
+    source = (REPO_ROOT / "pipeline" / "pricing.py").read_text(encoding="utf-8")
+    assert "about nine months" not in html
+    assert DELAYED_IMAGE_POLICY in html
+    assert "DELAYED_IMAGE_POLICY" in source
+    assert "about nine months" not in source
+
+
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page(access_enforced=False)
     assert "A person using the board on this site pays nothing." in html

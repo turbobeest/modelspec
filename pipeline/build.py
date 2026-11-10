@@ -44,6 +44,14 @@ MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
 MODEL_PAGE_MAX_BYTES = 512 * 1024
 
+#: Policy sentence for the public image. Shared by llms.txt, pricing and homepage JSON-LD.
+DELAYED_IMAGE_POLICY = (
+    "Current data is only available through the service. The public repository "
+    "starts with a frozen image. The delayed image policy selects data from "
+    "at least nine months earlier once enough history exists; "
+    "data-image.json records the provenance of each published delayed image."
+)
+
 
 def write_model_page(destination: Path, page: str) -> None:
     """Write one model page only when it remains suitable for static delivery."""
@@ -73,10 +81,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
         f"{agent_copy.install_markdown()}\n"
         f"{agent_copy.key_procurement()}\n"
         f"{' '.join(agent_copy.CONDUCT_RULES)}\n\n"
-        f"Current data is only available through the service. The public repository "
-        f"starts with a frozen image. The delayed image policy selects data from "
-        f"at least nine months earlier once enough history exists; "
-        f"data-image.json records the provenance of each published delayed image.\n\n"
+        f"{DELAYED_IMAGE_POLICY}\n\n"
         f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
         f"- About: {base}/about/\n"
@@ -123,6 +128,51 @@ _SOCIAL_IMAGE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*")
 #: Original census of optional card images. The checked-in list may only shrink.
 OPTIONAL_SOCIAL_IMAGE_CEILING = 42
 _OPTIONAL_SOCIAL_IMAGES = Path(__file__).resolve().parent / "optional_social_images.txt"
+#: Names the baseline may contain. A later list may only be a subset of this set.
+ORIGINAL_OPTIONAL_SOCIAL_IMAGES = frozenset({
+    "og-card-landing.png",
+    "og-card-pricing.png",
+    "og-card-template-assistant-balanced.png",
+    "og-card-template-assistant-best.png",
+    "og-card-template-assistant-budget.png",
+    "og-card-template-assistant-fastest.png",
+    "og-card-template-budget-coding.png",
+    "og-card-template-coding-balanced.png",
+    "og-card-template-coding-best.png",
+    "og-card-template-coding-fastest.png",
+    "og-card-template-coding-private.png",
+    "og-card-template-documents-best.png",
+    "og-card-template-documents-budget.png",
+    "og-card-template-documents-fastest.png",
+    "og-card-template-documents-private.png",
+    "og-card-template-eu-data.png",
+    "og-card-template-high-volume-balanced.png",
+    "og-card-template-high-volume-best.png",
+    "og-card-template-high-volume-fastest.png",
+    "og-card-template-high-volume.png",
+    "og-card-template-long-documents.png",
+    "og-card-template-maths-reasoning-balanced.png",
+    "og-card-template-maths-reasoning-budget.png",
+    "og-card-template-maths-reasoning-fastest.png",
+    "og-card-template-maths-reasoning-private.png",
+    "og-card-template-maths.png",
+    "og-card-template-private-self-host.png",
+    "og-card-template-regional-best.png",
+    "og-card-template-regional-budget.png",
+    "og-card-template-regulated-best.png",
+    "og-card-template-regulated-budget.png",
+    "og-card-template-regulated-data.png",
+    "og-card-template-retrieval-balanced.png",
+    "og-card-template-retrieval-budget.png",
+    "og-card-template-retrieval-embeddings.png",
+    "og-card-template-retrieval-fastest.png",
+    "og-card-template-retrieval-private.png",
+    "og-card-template-writing-balanced.png",
+    "og-card-template-writing-best.png",
+    "og-card-template-writing-budget.png",
+    "og-card-template-writing-fastest.png",
+    "og-card-template-writing-private.png",
+})
 
 
 def _output_exists(tree: Path, url_path: str) -> bool:
@@ -162,7 +212,7 @@ def missing_internal_hrefs(tree: Path) -> list[tuple[str, str]]:
 
 
 def parse_optional_social_image_baseline(text: str) -> tuple[str, ...]:
-    """Read the checked-in optional-image list. The count and the list may only shrink."""
+    """Read the checked-in optional-image list. It may only shrink, and only within the original names."""
     count = None
     names: list[str] = []
     for raw in text.splitlines():
@@ -184,6 +234,12 @@ def parse_optional_social_image_baseline(text: str) -> tuple[str, ...]:
         raise ValueError("optional social image baseline may only shrink")
     if len(names) != len(set(names)):
         raise ValueError("optional social image baseline repeats a path")
+    outside = [name for name in names if name not in ORIGINAL_OPTIONAL_SOCIAL_IMAGES]
+    if outside:
+        raise ValueError(
+            "optional social image baseline names a path outside the original set: "
+            + outside[0]
+        )
     return tuple(names)
 
 
