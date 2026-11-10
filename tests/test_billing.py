@@ -1851,6 +1851,46 @@ def test_subscription_cancellation_remains_current(policy, late_created):
     run(scenario())
 
 
+@pytest.mark.parametrize("terminal", ["customer.subscription.deleted",
+                                      "customer.subscription.updated"])
+def test_newer_paid_period_applies_after_terminal_status(policy, terminal):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        if terminal == "customer.subscription.deleted":
+            ended = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        else:
+            ended = {"id": SUB, "status": "incomplete_expired", "customer": CUS}
+        assert (await _dated_event(kv, ledger, policy, terminal, ended,
+                                   "evt_terminal", created=300)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        invoice = invoice_obj(id="in_recovered", created=400, period_start=400, period_end=500)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                     "evt_recovered", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_active_subscription_update_applies_after_cancellation(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel", created=300)).status == 200
+        active = {"id": SUB, "status": "active", "customer": CUS,
+                  "items": {"data": [{"price": {"id": PRICE}}]}}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                     active, "evt_active", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "restored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+    run(scenario())
+
+
 @pytest.mark.parametrize("late_kind", ["invoice.payment_failed", "invoice.paid"])
 @pytest.mark.parametrize("late_created", [150, 900])
 def test_current_invoice_period_retains_its_allowance(policy, late_kind, late_created):

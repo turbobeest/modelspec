@@ -504,24 +504,25 @@ def _stale_entitlement_event(type_: str, obj: dict[str, Any], *, created: int,
                               policy: AccessPolicy) -> bool:
     if stored is None:
         return False
-    if stored.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES:
-        return type_ != "customer.subscription.deleted" and not (
-            type_ == "customer.subscription.updated"
-            and obj.get("status") in _TERMINAL_SUBSCRIPTION_STATUSES)
+    terminal = stored.subscription_status in _TERMINAL_SUBSCRIPTION_STATUSES
     if type_.startswith("customer.subscription."):
         return bool(created and stored.subscription_updated_at
                     and created < stored.subscription_updated_at)
-    if type_ not in {"invoice.paid", "invoice.payment_failed"}:
+    if type_ in {"invoice.paid", "invoice.payment_failed"}:
+        period = _invoice_period(obj, policy)
+        # A cancellation stores its time, not an invoice period. An invoice
+        # that ended at or before that time stays stale; a later period does not.
+        if terminal and (not period[1] or period[1] <= stored.subscription_updated_at):
+            return True
+        current_period = (stored.invoice_period_start, stored.invoice_period_end)
+        if any(period) and any(current_period):
+            if period < current_period:
+                return True
+            if (_id(obj.get("id")) == stored.invoice_id and stored.invoice_paid
+                    and type_ == "invoice.payment_failed"):
+                return True
         return False
-    period = _invoice_period(obj, policy)
-    current_period = (stored.invoice_period_start, stored.invoice_period_end)
-    if any(period) and any(current_period):
-        if period < current_period:
-            return True
-        if (_id(obj.get("id")) == stored.invoice_id and stored.invoice_paid
-                and type_ == "invoice.payment_failed"):
-            return True
-    return False
+    return terminal
 
 
 def _sale_notice(type_: str, obj: dict[str, Any], policy: AccessPolicy
