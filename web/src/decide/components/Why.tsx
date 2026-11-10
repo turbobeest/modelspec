@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   TYPES,
   fmtB,
@@ -18,6 +19,7 @@ export function Why({
   row,
   onRelax,
   details = "ready",
+  recovery,
   onProvenance,
   boardRanked,
 }: {
@@ -27,6 +29,7 @@ export function Why({
   onRelax: (i: number) => void;
   /** Whether the `full` explanation behind a summary is still coming, or failed. */
   details?: "loading" | "ready" | "unavailable";
+  recovery?: ReactNode;
   onProvenance: (e: Evidence) => void;
   boardRanked: boolean;
 }) {
@@ -35,9 +38,25 @@ export function Why({
   const [whyNot, setWhyNot] = useState(""),
     e = decision.explanation,
     compare = e.rows.find((r) => r.m.id === whyNot);
+  const detailStatus = decision.explain === "full" ? null : details === "loading" ? (
+    <p className="details-loading" role="status">
+      Loading the detailed explanation: prices, context length and
+      evidence sources appear here when it arrives.
+    </p>
+  ) : (
+    <div className="limit-notice" role="alert">
+      <p>
+        Detailed explanation unavailable for this request: the decision service
+        answered with its summary, so facts such as prices and context length
+        are not shown.
+      </p>
+      {recovery}
+    </div>
+  );
   if (!row)
     return (
       <section className="panel why-panel" aria-label="Why this model">
+        {detailStatus}
         <p>Select a model to inspect its evidence and conditions.</p>
       </section>
     );
@@ -92,19 +111,7 @@ export function Why({
   ] as const;
   return (
     <section className="panel why-panel" aria-label="Why this model">
-      {decision.explain !== "full" && details === "loading" && (
-        <p className="details-loading" role="status">
-          Loading the detailed explanation: prices, context length and
-          evidence sources appear here when it arrives.
-        </p>
-      )}
-      {decision.explain !== "full" && details !== "loading" && (
-        <p className="limit-notice">
-          Detailed explanation unavailable for this request: the decision service
-          answered with its summary, so facts such as prices and context length
-          are not shown.
-        </p>
-      )}
+      {detailStatus}
       <div className="why-heading">
         <div>
           <div className="eyebrow">Why this model</div>
