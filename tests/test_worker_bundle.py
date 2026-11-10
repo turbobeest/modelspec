@@ -186,8 +186,45 @@ def test_import_graph_reports_a_function_local_missing_import(
         "        return answer()\n"
         "    except ImportError:\n"
         "        return None\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except Exception:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except Exception:\n"
+        "        return None\n"
+        "    else:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    finally:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    while True:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "async def answer():\n"
+        "    async with contextlib.nullcontext():\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    try:\n"
+        "        value = 1\n"
+        "    except* Exception:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
     ],
-    ids=["match", "loop-else", "with-body", "three-levels", "relative", "try-except-import"],
+    ids=[
+        "match", "loop-else", "with-body", "three-levels", "relative", "try-except-import",
+        "except-handler", "try-else", "try-finally", "while", "async-with", "except-star",
+    ],
 )
 def test_import_graph_reports_a_function_local_import_in_each_block(
     tmp_path: Path, source: str,
