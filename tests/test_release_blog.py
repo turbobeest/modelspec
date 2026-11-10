@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -612,3 +613,27 @@ def test_each_estimate_comes_with_the_class_spread(breakdown) -> None:
     assert se.spread.low.value <= se.estimate.value <= se.spread.high.value
     assert se.spread.median.computed == "capability.spread"
     assert "estimates run from" in render(breakdown)[0]
+
+
+def _chart_bars(svg: str) -> list[tuple[str, str]]:
+    return re.findall(r'<rect[^>]*width="([^"]+)"[^>]*><title>([^<]*)</title>', svg)
+
+
+def test_not_comparable_reading_does_not_receive_shared_scale(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "mmlu_pro")
+    assert row.claim.value == 80 and row.claim.unit == "percent"
+    assert row.readings[0].value.value == 0.78 and row.readings[0].value.unit == "fraction"
+    assert row.readings[0].comparability == "not_comparable"
+    post, charts = render(breakdown)
+    assert "0.78" in post
+    svg = charts["claims.svg"]
+    mmlu = svg.split(">mmlu_pro</text>", 1)[1].split(">swe_bench_pro</text>", 1)[0]
+    bars = _chart_bars(mmlu)
+    assert len(bars) == 1, mmlu
+    assert bars[0][1] == "80% lab-reported"
+    assert "omitted from this scale" in mmlu
+    swe = svg.split(">swe_bench_pro</text>", 1)[1].split(">terminal_bench</text>", 1)[0]
+    assert len(_chart_bars(swe)) == 2
+    terminal = svg.split(">terminal_bench</text>", 1)[1]
+    assert len(_chart_bars(terminal)) == 2
+    assert "The setups differ in effort" in post

@@ -231,12 +231,32 @@ def _bar(x: float, y: float, w: float, h: float, fill: str, tip: str) -> str:
             f'height="{h:.1f}" rx="4"><title>{escape(tip)}</title></rect>')
 
 
+def _shares_scale(claim_unit: str | None, reading: Any) -> bool:
+    """A reading shares the claim's axis only when the units are the same."""
+    return reading.value.unit == claim_unit
+
+
+def _omitted_from_scale(claim_unit: str | None, reading: Any) -> str:
+    unit = reading.value.unit or "unstated"
+    claim = claim_unit or "unstated"
+    reason = f"unit {unit} is not {claim}"
+    others = [item for item in reading.differs_in if item != "unit"]
+    if others:
+        reason += "; " + wording.join(others) + " differs"
+    return f"omitted from this scale: {reason}"
+
+
 def claims_chart(b: Breakdown) -> str | None:
     rows = b.claims_vs_evidence.claims
     if not rows:
         return None
-    values = [r.claim.value for r in rows] + [x.value.value for r in rows for x in r.readings]
-    units = {r.claim.unit for r in rows}
+    kept = {
+        id(row): [reading for reading in row.readings if _shares_scale(row.claim.unit, reading)]
+        for row in rows
+    }
+    values = [row.claim.value for row in rows]
+    values += [reading.value.value for row in rows for reading in kept[id(row)]]
+    units = {row.claim.unit for row in rows}
     top = max(values) if units == {"percent"} else max(values) * 1.1
     top = 100.0 if units == {"percent"} else top
     left, width, bar = 200, 420, 14
@@ -257,12 +277,18 @@ def claims_chart(b: Breakdown) -> str | None:
             body.append(f'<text class="m" x="{left}" y="{y + 11}">no independent reading '
                         "yet</text>")
             y += bar + 2
-        for reading in row.readings:
+        for reading in kept[id(row)]:
             v = reading.value
             body.append(_bar(left, y, width * v.value / top, bar, "s1",
                              f"{_number(v.value, v.unit)} {reading.measured_by}"))
             body.append(f'<text x="{left + width * v.value / top + 6:.1f}" y="{y + 11}">'
                         f"{escape(_number(v.value, v.unit))}</text>")
+            y += bar + 2
+        for reading in row.readings:
+            if reading in kept[id(row)]:
+                continue
+            body.append(f'<text class="m" x="{left}" y="{y + 11}">'
+                        f"{escape(_omitted_from_scale(row.claim.unit, reading))}</text>")
             y += bar + 2
         y += 12
     return _svg(680, y + 8, "Lab-reported and independent readings", body)
