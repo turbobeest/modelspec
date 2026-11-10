@@ -975,7 +975,7 @@ paths:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
         '503': &id015
-          description: '`feedback_store_unavailable`: Storage is on but not configured; retry later.'
+          description: '`feedback_store_unavailable`: Returned when storage is not configured or when a storage read or delete fails. Retry later.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}

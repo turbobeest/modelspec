@@ -114,7 +114,8 @@ ERRORS: dict[str, tuple[int, str]] = {
     "rate_limited": (HTTP_TOO_MANY_REQUESTS,
                      "Wait retry_after seconds, then send it once."),
     "feedback_store_unavailable": (HTTP_SERVICE_UNAVAILABLE,
-                                   "Storage is on but not configured; retry later."),
+                                   "Returned when storage is not configured "
+                                   "or when a storage read or delete fails. Retry later."),
 }
 
 

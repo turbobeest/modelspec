@@ -111,5 +111,5 @@ A `429` also carries `error.retry_after` and a `Retry-After` header.
 | `receipt_not_found` | 404 | Nothing is stored under that receipt; it was deleted or never kept. |
 | `payload_too_large` | 413 | Keep the body under 4096 bytes; shorten the note. |
 | `rate_limited` | 429 | Wait retry_after seconds, then send it once. |
-| `feedback_store_unavailable` | 503 | Storage is on but not configured; retry later. |
+| `feedback_store_unavailable` | 503 | Returned when storage is not configured or when a storage read or delete fails. Retry later. |
 | `method_not_allowed` | 405 | Use POST to send and DELETE to withdraw. |

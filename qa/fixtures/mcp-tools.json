@@ -1,7 +1,7 @@
 {
   "source_hashes": {
     "api/worker/openapi.yaml":
-      "e6024dd5cf48416166b53bcf5e4a49db5a9b28ab70149ff6a9c6ea2c4c6674e0",
+      "6afeb541c9e76bb5b14b68bb1bb95e1fb84247ec2c8b78e981794f7237805c6c",
     "docs/agents.md":
       "f388412bbb28eaece530bae22ffed2822b7480f36302b4e05916c8c6f9439028",
     "docs/decision-contract.schema.json":
