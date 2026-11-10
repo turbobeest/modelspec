@@ -220,10 +220,26 @@ def test_import_graph_reports_a_function_local_missing_import(
         "    except* Exception:\n"
         "        from missing_runtime_package import answer\n"
         "        return answer()\n",
+        "def answer():\n"
+        "    if True:\n"
+        "        return None\n"
+        "    else:\n"
+        "        from missing_runtime_package import answer\n"
+        "        return answer()\n",
+        "def answer():\n"
+        "    def outer():\n"
+        "        def middle():\n"
+        "            def inner():\n"
+        "                from missing_runtime_package import answer\n"
+        "                return answer()\n"
+        "            return inner()\n"
+        "        return middle()\n"
+        "    return outer()\n",
     ],
     ids=[
         "match", "loop-else", "with-body", "three-levels", "relative", "try-except-import",
         "except-handler", "try-else", "try-finally", "while", "async-with", "except-star",
+        "if-else", "four-levels",
     ],
 )
 def test_import_graph_reports_a_function_local_import_in_each_block(
@@ -238,6 +254,24 @@ def test_import_graph_reports_a_function_local_import_in_each_block(
     assert [(item.module, item.imported_by) for item in missing] == [
         ("missing_runtime_package", "service")
     ]
+
+
+def test_from_import_reaches_a_present_submodule(tmp_path: Path) -> None:
+    checker = _load_checker()
+    (tmp_path / "entry.py").write_text("from repo import engine\n", encoding="utf-8")
+    (tmp_path / "repo").mkdir()
+    (tmp_path / "repo" / "__init__.py").touch()
+    (tmp_path / "repo" / "engine.py").write_text(
+        "import missing_runtime_package\n",
+        encoding="utf-8",
+    )
+
+    missing, visited = checker.missing_imports(tmp_path)
+
+    assert [(item.module, item.imported_by) for item in missing] == [
+        ("missing_runtime_package", "repo.engine")
+    ]
+    assert visited == {"entry", "repo", "repo.engine"}
 
 
 def test_annotation_only_import_inside_a_function_is_not_a_bundle_dependency(
