@@ -132,6 +132,17 @@ A second invariants pass, counts by rule only, matched on this branch and on the
 
 The two new hosts did not change the error count or the retained-copy counts. The 73 errors are present on main. The run does not meet a zero-error bar. Retained copies were left in place.
 
+## CI memory headroom
+
+Pull request 1036, job `Worker memory headroom` on run 42909731085, failed. The job builds `api/worker/memory_fixture.py` with `MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS=1` (the fixture flag only; deploys leave it unset) and probes with `--limit-mib 115`.
+
+| Period | Steady bytes | Steady MiB | Wasm peak MiB | Result |
+| --- | --- | --- | --- | --- |
+| current | 110107475 | 105.00667 | 59.875 | under 115 |
+| successor | 121723763 | 116.08483 | 71.875 | over 115 |
+
+The successor warning was `Steady memory increased by more than 1 MiB versus main (12.00 MiB)`. Wasm stays 59.875 MiB through rank and grows to 71.875 MiB at `POST /v1/policy-check`. The current period does not grow. The 115 MiB gate was not raised. `Build both sites` passed. Every other required check passed.
+
 ## Not run
 
 The local full suite was not run. `tests/test_landing.py` and `tests/test_coverage.py` returned 42 passed and 12 errors because Playwright is absent (`landing browser tests need Playwright in web/node_modules in CI`). Browser landing tests were not run. This probe is Pyodide on this machine, not a production Cloudflare isolate.
