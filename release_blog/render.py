@@ -231,14 +231,38 @@ def _bar(x: float, y: float, w: float, h: float, fill: str, tip: str) -> str:
             f'height="{h:.1f}" rx="4"><title>{escape(tip)}</title></rect>')
 
 
+def _extent(top: float) -> float:
+    """A positive axis length. An all-zero series still gets finite coordinates."""
+    return top if top > 0 else 1.0
+
+
+def _shares_scale(claim_unit: str | None, reading: Any) -> bool:
+    """A reading shares the claim's axis only when the units are the same."""
+    return reading.value.unit == claim_unit
+
+
+def _omitted_from_scale(claim_unit: str | None, reading: Any) -> str:
+    unit = reading.value.unit or "unstated"
+    claim = claim_unit or "unstated"
+    reason = f"unit {unit} is not {claim}"
+    others = [item for item in reading.differs_in if item != "unit"]
+    if others:
+        reason += "; " + wording.join(others) + " differs"
+    return f"omitted from this scale: {reason}"
+
+
 def claims_chart(b: Breakdown) -> str | None:
     rows = b.claims_vs_evidence.claims
     if not rows:
         return None
-    values = [r.claim.value for r in rows] + [x.value.value for r in rows for x in r.readings]
-    units = {r.claim.unit for r in rows}
-    top = max(values) if units == {"percent"} else max(values) * 1.1
-    top = 100.0 if units == {"percent"} else top
+    kept = {
+        id(row): [reading for reading in row.readings if _shares_scale(row.claim.unit, reading)]
+        for row in rows
+    }
+    values = [row.claim.value for row in rows]
+    values += [reading.value.value for row in rows for reading in kept[id(row)]]
+    units = {row.claim.unit for row in rows}
+    top = 100.0 if units == {"percent"} else _extent(max(values) * 1.1)
     left, width, bar = 200, 420, 14
     y, body = 64, [
         f'<rect class="f-s2" x="{left}" y="38" width="10" height="10" rx="2"/>'
@@ -257,12 +281,18 @@ def claims_chart(b: Breakdown) -> str | None:
             body.append(f'<text class="m" x="{left}" y="{y + 11}">no independent reading '
                         "yet</text>")
             y += bar + 2
-        for reading in row.readings:
+        for reading in kept[id(row)]:
             v = reading.value
             body.append(_bar(left, y, width * v.value / top, bar, "s1",
                              f"{_number(v.value, v.unit)} {reading.measured_by}"))
             body.append(f'<text x="{left + width * v.value / top + 6:.1f}" y="{y + 11}">'
                         f"{escape(_number(v.value, v.unit))}</text>")
+            y += bar + 2
+        for reading in row.readings:
+            if reading in kept[id(row)]:
+                continue
+            body.append(f'<text class="m" x="{left}" y="{y + 11}">'
+                        f"{escape(_omitted_from_scale(row.claim.unit, reading))}</text>")
             y += bar + 2
         y += 12
     return _svg(680, y + 8, "Lab-reported and independent readings", body)
@@ -323,15 +353,16 @@ def cost_chart(b: Breakdown) -> str | None:
             if o.task.basis == "contract_default" and o.cost_per_task is not None]
     if not rows:
         return None
-    top = max(o.cost_per_task.value for o in rows) * 1.15  # type: ignore[union-attr]
+    top = _extent(max(o.cost_per_task.value for o in rows) * 1.15)  # type: ignore[union-attr]
     left, width, y, body = 300, 300, 44, []
     for o in rows:
         v = o.cost_per_task.value  # type: ignore[union-attr]
+        span = width * v / top
         label = f"{o.provider} · {o.region} · {o.tier}"
         body.append(f'<text class="v" x="16" y="{y + 11}">{escape(label)}</text>')
         tip = f"{o.offering}: {_number(v, 'USD')}"
-        body.append(_bar(left, y, width * v / top, 14, "s1", tip))
-        body.append(f'<text x="{left + width * v / top + 6:.1f}" y="{y + 11}">'
+        body.append(_bar(left, y, span, 14, "s1", tip))
+        body.append(f'<text x="{left + span + 6:.1f}" y="{y + 11}">'
                     f"{escape(_number(v, 'USD'))}</text>")
         y += 24
     return _svg(680, y + 8, "Cost per task, list price", body)
@@ -354,6 +385,34 @@ def _setup(setup: Any) -> str:
              f"sub-category {setup.subcategory}" if setup.subcategory else None]
     text = "; ".join(p for p in parts if p) or "not stated"
     return _code(text) if any(ch.isdigit() for ch in text) else text
+
+
+def _record_text(text: str) -> str:
+    """A quotation of record text: one code span, never markup.
+
+    A backtick would end that span, so the quotation uses an apostrophe there.
+    """
+    return _code(text.replace("`", "'"))
+
+
+def _caveat_lines(rows: Sequence[Any], notes: Footnotes) -> list[str]:
+    """Lab limitations, reading limitations and quality flags, each with its record."""
+    lines = []
+    for row in rows:
+        if row.limitations:
+            lines.append(f"- {_code(row.benchmark)}, lab figure: "
+                         f"{_record_text(row.limitations)}{notes.ref(row.claim)}")
+        for reading in row.readings:
+            parts = []
+            if reading.limitations:
+                parts.append(_record_text(reading.limitations))
+            if reading.quality_flags:
+                flags = ", ".join(_code(flag) for flag in reading.quality_flags)
+                parts.append("quality flags: " + flags)
+            if parts:
+                lines.append(f"- {_code(row.benchmark)}, independent reading: "
+                             + "; ".join(parts) + notes.ref(reading.value))
+    return lines
 
 
 def _claims(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
@@ -387,10 +446,10 @@ def _claims(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
                               _setup(r.setup), sentence])
         out.append(_table(["Benchmark", "Lab-reported", "Independent reading", "Measured by",
                            "Setup", "Comparison"], table))
-        notes = [f"- {_code(row.benchmark)}, lab figure: {row.limitations}" for row in rows
-                 if row.limitations and not any(ch.isdigit() for ch in row.limitations)]
-        if notes:
-            out.append("Limitations the records state, verbatim:\n\n" + "\n".join(notes))
+        caveats = _caveat_lines(rows, n)
+        if caveats:
+            out.append("Limitations and quality flags the records state, verbatim:\n\n"
+                       + "\n".join(caveats))
         if chart:
             out.append("![Lab-reported and independent readings](charts/claims.svg)")
     out.append("### Not in the announcement")
@@ -681,11 +740,18 @@ def render(b: Breakdown) -> tuple[str, dict[str, str]]:
 
 
 def write(b: Breakdown, out: Any) -> Mapping[str, Any]:
-    """Write ``post.md`` at ``out`` and its charts in ``charts/`` beside it."""
+    """Write ``post.md`` at ``out`` and its charts in ``charts/`` beside it.
+
+    The same exclusion check the signed build uses runs before either file exists.
+    """
     from pathlib import Path
 
+    from release_blog.gates import guard_output
+
+    guard_output(b.sources, b.model_dump(mode="json", by_alias=True))
     out = Path(out)
     post, made = render(b)
+    guard_output(b.sources, post)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(post, encoding="utf-8")
     written = {"post": str(out), "charts": []}

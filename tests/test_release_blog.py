@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from release_blog.__main__ import main
 from release_blog.breakdown import build_breakdown, to_bytes
 from release_blog.gates import BreakdownError, guard_output, load_signed
 from release_blog.model import SCHEMA_PATH, Breakdown, Cited, schema
-from release_blog.render import render, untraced_numbers
+from release_blog.render import claims_chart, render, untraced_numbers
 from release_blog.tone import refused_words
 from release_blog.wording import headline
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering, verification
@@ -612,3 +613,327 @@ def test_each_estimate_comes_with_the_class_spread(breakdown) -> None:
     assert se.spread.low.value <= se.estimate.value <= se.spread.high.value
     assert se.spread.median.computed == "capability.spread"
     assert "estimates run from" in render(breakdown)[0]
+
+
+def _chart_bars(svg: str) -> list[tuple[str, str]]:
+    return re.findall(r'<rect[^>]*width="([^"]+)"[^>]*><title>([^<]*)</title>', svg)
+
+
+def _with_claim(breakdown: Breakdown, row) -> Breakdown:
+    claims = [row if item.benchmark == row.benchmark else item
+              for item in breakdown.claims_vs_evidence.claims]
+    section = breakdown.claims_vs_evidence.model_copy(update={"claims": claims})
+    return breakdown.model_copy(update={"claims_vs_evidence": section})
+
+
+def test_not_comparable_reading_does_not_receive_shared_scale(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "mmlu_pro")
+    assert row.claim.value == 80 and row.claim.unit == "percent"
+    assert row.readings[0].value.value == 0.78 and row.readings[0].value.unit == "fraction"
+    assert row.readings[0].comparability == "not_comparable"
+    post, charts = render(breakdown)
+    assert "0.78" in post
+    svg = charts["claims.svg"]
+    mmlu = svg.split(">mmlu_pro</text>", 1)[1].split(">swe_bench_pro</text>", 1)[0]
+    bars = _chart_bars(mmlu)
+    assert len(bars) == 1, mmlu
+    assert bars[0][1] == "80% lab-reported"
+    assert "omitted from this scale" in mmlu
+    assert "unit fraction is not percent" in mmlu
+    swe = svg.split(">swe_bench_pro</text>", 1)[1].split(">terminal_bench</text>", 1)[0]
+    assert len(_chart_bars(swe)) == 2
+    terminal = svg.split(">terminal_bench</text>", 1)[1]
+    assert len(_chart_bars(terminal)) == 2
+    assert "The setups differ in effort" in post
+
+
+def test_omitted_note_states_the_subcategory_difference(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "mmlu_pro")
+    reading = row.readings[0].model_copy(update={"differs_in": ["unit", "subcategory"]})
+    changed = row.model_copy(update={"readings": [reading]})
+    _post, charts = render(_with_claim(breakdown, changed))
+    note = charts["claims.svg"].split(">mmlu_pro</text>", 1)[1]
+    assert "unit fraction is not percent" in note
+    assert "subcategory differs" in note
+
+
+def test_qualified_readings_keep_limits_and_flags_in_post(tmp_path) -> None:
+    rows = _new_rows()
+    claim = next(r for r in rows if r["benchmark_id"] == "swe_bench_pro"
+                 and r["measured_by"] == "provider_self_report")
+    reading = next(r for r in rows if r["benchmark_id"] == "swe_bench_pro"
+                   and r["measured_by"] == "independent_evaluator")
+    claim["limitations"] = "Evaluated on only 20 tasks."
+    reading["limitations"] = "The sample excludes difficult tasks."
+    reading["quality_flags"] = ["small_sample"]
+    for row in (claim, reading):
+        row["verification"] = verification(
+            "evidence", row["id"], value=evidence_verification_value(row))
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)], offerings=[_offering(NEW, 2.0)],
+        evidence=rows, sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "qualified.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC, include_archive=True)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    result = next(r for r in built.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    assert result.limitations == claim["limitations"]
+    assert len(result.readings) == 1
+    assert result.readings[0].limitations == reading["limitations"]
+    assert result.readings[0].quality_flags == ["small_sample"]
+    post, _charts = render(built)
+    expected = [claim["limitations"], reading["limitations"], "small_sample"]
+    missing = [text for text in expected if text not in post]
+    assert missing == []
+    lab_line = next(line for line in post.splitlines() if claim["limitations"] in line)
+    reading_line = next(line for line in post.splitlines() if reading["limitations"] in line)
+    assert "small_sample" in reading_line
+    for line, record_id in ((lab_line, result.claim.record_id),
+                            (reading_line, result.readings[0].value.record_id)):
+        marker = re.search(r"\[\^(\d+)\]", line)
+        assert marker is not None, line
+        definition = next(item for item in post.splitlines()
+                          if item.startswith(f"[^{marker.group(1)}]"))
+        assert record_id in definition
+
+
+def _footnote_for(post: str, line: str) -> tuple[str, str]:
+    marker = re.search(r"\[\^(\d+)\]", line)
+    assert marker is not None, line
+    definition = next(item for item in post.splitlines()
+                      if item.startswith(f"[^{marker.group(1)}]"))
+    return marker.group(1), definition
+
+
+def test_each_reading_limitation_cites_its_own_record(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    first_text = "The first sample uses a held-out set."
+    second_text = "The second sample uses a public set."
+    first = row.readings[0].model_copy(update={
+        "limitations": first_text, "quality_flags": []})
+    second_id = (first.value.record_id or "reading") + "-second"
+    second = first.model_copy(update={
+        "limitations": second_text,
+        "value": first.value.model_copy(update={"record_id": second_id}),
+    })
+    changed = row.model_copy(update={"readings": [first, second], "limitations": None})
+    post, _charts = render(_with_claim(breakdown, changed))
+    first_line = next(line for line in post.splitlines() if first_text in line)
+    second_line = next(line for line in post.splitlines() if second_text in line)
+    assert first_line != second_line
+    first_mark, first_note = _footnote_for(post, first_line)
+    second_mark, second_note = _footnote_for(post, second_line)
+    assert first_mark != second_mark
+    assert first.value.record_id in first_note
+    assert second_id in second_note
+    assert second_id not in first_note
+
+
+def test_lab_limitation_appears_without_readings(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    text = "The lab figure covers a narrow slice."
+    changed = row.model_copy(update={
+        "readings": [], "limitations": text, "status": "no_independent_reading_yet"})
+    post, _charts = render(_with_claim(breakdown, changed))
+    line = next(item for item in post.splitlines() if text in item)
+    assert "lab figure" in line
+    _mark, note = _footnote_for(post, line)
+    assert row.claim.record_id in note
+
+
+def _site_html(post: str, sources: dict[str, str]) -> str:
+    from pipeline.blog_markdown import render as render_html
+
+    return render_html(post, set(sources.values()))
+
+
+def test_record_text_with_a_backtick_and_a_digit_is_one_code_span(breakdown) -> None:
+    raw = "Run with `--n 20` flag"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    item = next(part for part in re.findall(r"<li>.*?</li>", html) if "flag" in part)
+    outside = re.sub(r"<code>.*?</code>", "", item)
+    assert "20" not in outside
+    codes = re.findall(r"<code>(.*?)</code>", item)
+    assert any("Run with" in code and "20" in code and "flag" in code for code in codes)
+
+
+def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
+    raw = (
+        "See <https://other.example/page> and [a note](https://other.example/note) "
+        "plus a `tick`"
+    )
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={"limitations": raw, "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading], "limitations": None})
+    built = _with_claim(breakdown, changed)
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    item = next(part for part in re.findall(r"<li>.*?</li>", html) if "other.example" in part)
+    hrefs = re.findall(r'href="([^"]*)"', item)
+    assert all("other.example" not in href for href in hrefs)
+    assert "other.example/page" in item
+    assert "other.example/note" in item
+    assert "tick" in item
+    assert "<a " not in re.sub(r"<sup>.*?</sup>", "", item)
+
+
+def test_refused_word_in_an_independent_reading_blocks_the_render(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={
+        "limitations": "The reading beats the lab figure.", "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading]})
+    with pytest.raises(ValueError, match="refused words"):
+        render(_with_claim(breakdown, changed))
+
+
+def _finite_widths(svg: str) -> None:
+    widths = [float(match) for match in re.findall(r'width="([0-9.eE+-]+)"', svg)]
+    assert widths
+    assert "NaN" not in svg and "Infinity" not in svg
+    assert all(width == width and width >= 0 and width != float("inf") for width in widths)
+
+
+def test_zero_cost_offering_renders(tmp_path) -> None:
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)], offerings=[_offering(NEW, 0.0)],
+        evidence=_new_rows(), sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "free.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    assert built.cost.offerings[0].cost_per_task.value == 0
+    post, charts = render(built)
+    assert "$0.00" in post
+    _finite_widths(charts["cost.svg"])
+
+
+def _tiered_offering(mid: str, tier: str, price: float) -> dict:
+    oid = f"sambanova/{mid}/global/{tier}"
+    return {"model": mid, "provider": "sambanova", "region": "global", "tier": tier, "facts": [
+        fact("offering", oid, "offering.price.input", price, source="src-pricing"),
+        fact("offering", oid, "offering.price.output", price * 4, source="src-pricing"),
+    ]}
+
+
+def test_mixed_free_and_paid_offerings_keep_their_costs(tmp_path) -> None:
+    source = build_snapshot(SnapshotInputs(
+        models=[_model(NEW)],
+        offerings=[
+            _tiered_offering(NEW, "standard", 0.0),
+            _tiered_offering(NEW, "enterprise", 2.0),
+        ],
+        evidence=_new_rows(), sources=SOURCES_ALL, benchmark_domains=TAGS,
+        benchmark_metadata={b: {"direction": "higher_is_better"} for b in TAGS},
+    ), gate=False, as_of=AS_OF)
+    path = tmp_path / "mixed.gz"
+    path.write_bytes(source.to_bytes(key=None, ed25519_signer=SIGNER))
+    snapshot = load_signed(path, public_keys=PUBLIC)
+    built = build_breakdown(
+        model_id=NEW, after=snapshot, before=None,
+        accuracy={"status": "pass", "profile": "pr", "snapshot": snapshot.snapshot_id})
+    costs = sorted(row.cost_per_task.value for row in built.cost.offerings
+                   if row.task.basis == "contract_default" and row.cost_per_task is not None)
+    assert costs == [0.0, 0.112]
+    post, charts = render(built)
+    assert "$0.00" in post and "$0.112" in post
+    _finite_widths(charts["cost.svg"])
+    assert "$0.00" in charts["cost.svg"] and "$0.112" in charts["cost.svg"]
+    bars = _chart_bars(charts["cost.svg"])
+    free = float(next(width for width, tip in bars if "$0.00" in tip))
+    paid = float(next(width for width, tip in bars if "$0.112" in tip))
+    # cost_chart draws offering bars on a 300-wide span. An axis fixed at 1
+    # draws the paid bar near 34, which is under half of that span.
+    span = 300.0
+    assert paid > free
+    assert paid <= span
+    assert paid > span / 2
+
+
+def test_all_zero_non_percent_claims_stay_finite(breakdown) -> None:
+    row = breakdown.claims_vs_evidence.claims[0]
+    zero = row.model_copy(update={
+        "claim": row.claim.model_copy(update={"value": 0.0, "unit": "score"}),
+        "readings": [],
+        "status": "no_independent_reading_yet",
+    })
+    section = breakdown.claims_vs_evidence.model_copy(update={"claims": [zero], "unreported": []})
+    svg = claims_chart(breakdown.model_copy(update={"claims_vs_evidence": section}))
+    assert svg is not None
+    _finite_widths(svg)
+
+
+def _render_serialized(data: dict, tmp_path: Path, name: str) -> tuple[int, Path]:
+    path, out = tmp_path / f"{name}.json", tmp_path / f"{name}.md"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return main(["render", "--breakdown", str(path), "--out", str(out)]), out
+
+
+def test_render_cli_rejects_excluded_source(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = "https://" + "zap" + "ier.com/audit-fixture"
+    code, out = _render_serialized(data, tmp_path, "excluded")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("host", REMOVED_HOSTS)
+def test_render_cli_rejects_each_excluded_host(breakdown, tmp_path, host) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = "https://" + host + "/audit-fixture"
+    code, out = _render_serialized(data, tmp_path, "host")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("url", ("https://x.com/lab/status/1", "https://twitter.com/lab/status/1"))
+def test_render_cli_rejects_signal_only_source(breakdown, tmp_path, url) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["sources"]["src-lab-page"] = url
+    code, out = _render_serialized(data, tmp_path, "signal")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+@pytest.mark.parametrize("text", ("Zap" + "\n" + "ier", "Artificial" + "\n" + "Analysis"))
+def test_render_cli_rejects_excluded_publisher_text(breakdown, tmp_path, text) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    data["disclosures"]["supplier"] = "Noted by " + text
+    code, out = _render_serialized(data, tmp_path, "publisher")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+def test_render_cli_rejects_excluded_text_the_post_does_not_show(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    hidden = "Stored with " + "Zap" + "ier"
+    data["headline"]["rule"] = hidden
+    candidate = Breakdown.model_validate(data)
+    post, _charts = render(candidate)
+    assert hidden not in post
+    code, out = _render_serialized(data, tmp_path, "hidden-rule")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+def test_render_cli_writes_a_valid_serialized_breakdown(breakdown, tmp_path) -> None:
+    code, out = _render_serialized(
+        breakdown.model_dump(mode="json", by_alias=True), tmp_path, "valid")
+    assert code == 0
+    assert out.is_file()
+    assert list((tmp_path / "charts").glob("*.svg"))
