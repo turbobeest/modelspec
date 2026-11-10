@@ -18,6 +18,7 @@ import access_config  # noqa: E402
 import access_keys  # noqa: E402
 import billing  # noqa: E402
 import billing_stripe  # noqa: E402
+import credits  # noqa: E402
 from access_kv import MemoryKV  # noqa: E402
 
 NOW = datetime(2026, 10, 14, 12, tzinfo=UTC)
@@ -244,6 +245,281 @@ def test_matching_promotion_on_external_pack_keeps_pack_entitlement():
         assert result.body["tier"] == "paid"
         assert result.body["kind"] == "pack"
         assert result.body["credits"] == 250
+
+    asyncio.run(scenario())
+
+
+class _CreditsSql:
+    def __init__(self):
+        self.table = {}
+
+    def exec(self, query, *params):
+        class Cursor:
+            def __init__(self, row):
+                self._row = row
+
+            def one(self):
+                if self._row is None:
+                    raise RuntimeError("no row")
+                return self._row
+
+        if query.startswith("INSERT"):
+            self.table[params[0]] = params[1]
+            return Cursor(None)
+        if query.startswith("SELECT"):
+            value = self.table.get(params[0])
+            return Cursor(None if value is None else {"v": value})
+        return Cursor(None)
+
+
+class _CreditsCtx:
+    def __init__(self):
+        self.storage = type("Storage", (), {"sql": _CreditsSql()})()
+        self._gate = asyncio.Lock()
+
+    async def blockConcurrencyWhile(self, callback):
+        async with self._gate:
+            return await callback()
+
+
+def real_ledger(kind, kv):
+    if kind == "memory":
+        return credits.MemoryLedger()
+    import credits_do
+    from types import SimpleNamespace
+
+    obj = credits_do.CreditsObject(_CreditsCtx(), env=SimpleNamespace(ACCESS=kv))
+    namespace = SimpleNamespace(idFromName=lambda name: name, get=lambda _id: obj)
+    return credits.DurableLedger(namespace)
+
+
+def friends_invoice(**extra):
+    body = {
+        "id": "in_fixture",
+        "subscription": "sub_fixture_friends",
+        "customer": "cus_fixture_friends",
+        "lines": {"data": [{"price": {"id": PAID_PRICE}}]},
+        "discounts": [{"promotion_code": promotion()}],
+        "period_start": 100,
+        "period_end": 200,
+    }
+    body.update(extra)
+    return body
+
+
+async def _promo_checkout(kv, cfg, ledger, **changes):
+    http = Stripe({"/v1/promotion_codes/promo_fixture": promotion()})
+    result = await hook(
+        kv, cfg, session(discounts=[{"promotion_code": "promo_fixture"}], **changes),
+        stripe_secret="sk_fixture", http=http, ledger=ledger)
+    assert result.status == 200, result.body
+    return result
+
+
+async def _friends_row_and_key(kv, key):
+    row = await billing.store.load_subscription(kv, "sub_fixture_friends")
+    record = await access_keys.lookup(kv, key)
+    return row, record
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_promotion_invoice_and_replay_keep_friends(kind):
+    """A promotion-code Friends subscription stays friends after invoice.paid."""
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = real_ledger(kind, kv)
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        paid = await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                          event_id="evt_friends_invoice", ledger=ledger)
+        assert paid.status == 200, paid.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == "friends"
+        assert row.tier == "friends" and row.status == "active"
+        again = await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_friends_invoice_replay", ledger=ledger)
+        assert again.status == 200, again.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == "friends"
+        assert row.tier == "friends" and row.status == "active"
+
+    asyncio.run(scenario())
+
+
+def test_promotion_checkout_bound_to_a_key_keeps_friends():
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        issued, _ = await access_keys.issue(
+            kv, tier="free", owner="fixture", now=NOW, policy=cfg)
+        fingerprint = access_keys.fingerprint(issued)
+        await _promo_checkout(
+            kv, cfg, ledger,
+            metadata={"modelspec_price_id": PAID_PRICE,
+                      "modelspec_key_fingerprint": fingerprint})
+        row, record = await _friends_row_and_key(kv, issued)
+        assert record.tier == "friends"
+        assert row.tier == "friends"
+
+    asyncio.run(scenario())
+
+
+def test_promotion_rotation_after_a_grant_keeps_friends():
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        key = claimed.body["key"]
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_friends_rotate_invoice", ledger=ledger)).status == 200
+        rotated = await billing.rotate(
+            api_key=key, kv=kv, policy=cfg, now=NOW, service_commit="fixture", ledger=ledger)
+        assert rotated.status == 200, rotated.body
+        assert rotated.body["tier"] == "friends"
+        row, record = await _friends_row_and_key(kv, rotated.body["key"])
+        assert record.tier == "friends"
+        assert row.tier == "friends"
+
+    asyncio.run(scenario())
+
+
+def test_promotion_cancellation_after_a_grant_downgrades():
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        key = claimed.body["key"]
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_friends_cancel_invoice", ledger=ledger)).status == 200
+        canceled = await hook(
+            kv, cfg, {"id": "sub_fixture_friends", "status": "canceled",
+                      "customer": "cus_fixture_friends", "canceled_at": 300},
+            kind="customer.subscription.deleted", event_id="evt_friends_cancel",
+            ledger=ledger)
+        assert canceled.status == 200, canceled.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == cfg.billing.downgrade_tier
+        assert row.tier == cfg.billing.downgrade_tier
+        assert row.status == "inactive"
+
+    asyncio.run(scenario())
+
+
+def test_same_price_without_a_qualifying_promotion_stays_paid():
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        assert (await hook(kv, cfg, session(), ledger=ledger)).status == 200
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        invoice = friends_invoice()
+        invoice["discounts"] = []
+        assert (await hook(kv, cfg, invoice, kind="invoice.paid",
+                           event_id="evt_paid_price", ledger=ledger)).status == 200
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == "paid"
+        assert row.tier == "paid"
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_cancelled_promotion_resubscribe_invoice_keeps_friends(kind):
+    """A later paid period writes the event mapping after the row was downgraded."""
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = real_ledger(kind, kv)
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_friends_before_cancel", ledger=ledger)).status == 200
+        canceled = await hook(
+            kv, cfg, {"id": "sub_fixture_friends", "status": "canceled",
+                      "customer": "cus_fixture_friends", "canceled_at": 300},
+            kind="customer.subscription.deleted", event_id="evt_friends_resub_cancel",
+            ledger=ledger)
+        assert canceled.status == 200, canceled.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == cfg.billing.downgrade_tier
+        assert row.tier == cfg.billing.downgrade_tier
+        later = friends_invoice(id="in_friends_later", period_start=400, period_end=500)
+        paid = await hook(kv, cfg, later, kind="invoice.paid",
+                          event_id="evt_friends_later", ledger=ledger)
+        assert paid.status == 200, paid.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == "friends"
+        assert row.tier == "friends" and row.status == "active"
+
+    asyncio.run(scenario())
+
+
+def test_cancelled_promotion_checkout_link_keeps_friends():
+    """A Checkout that links a downgraded key writes the event mapping."""
+    async def scenario():
+        kv = MemoryKV()
+        cfg = policy(friends_promotion_code_prefix="FRIENDS-")
+        ledger = credits.MemoryLedger()
+        await _promo_checkout(kv, cfg, ledger)
+        claimed = await billing.claim(
+            session_id="cs_fixture_friends", kv=kv, policy=cfg, now=NOW,
+            service_commit="fixture", ledger=ledger)
+        assert claimed.status == 200, claimed.body
+        key = claimed.body["key"]
+        fingerprint = access_keys.fingerprint(key)
+        assert (await hook(kv, cfg, friends_invoice(), kind="invoice.paid",
+                           event_id="evt_link_before_cancel", ledger=ledger)).status == 200
+        canceled = await hook(
+            kv, cfg, {"id": "sub_fixture_friends", "status": "canceled",
+                      "customer": "cus_fixture_friends", "canceled_at": 300},
+            kind="customer.subscription.deleted", event_id="evt_link_cancel",
+            ledger=ledger)
+        assert canceled.status == 200, canceled.body
+        row, record = await _friends_row_and_key(kv, key)
+        assert record.tier == cfg.billing.downgrade_tier
+        assert row.tier == cfg.billing.downgrade_tier
+        opened = friends_invoice(
+            id="in_open_paid", subscription="sub_open_friends",
+            period_start=100, period_end=200, discounts=[])
+        assert (await hook(kv, cfg, opened, kind="invoice.paid",
+                           event_id="evt_open_paid", ledger=ledger)).status == 200
+        open_row = await billing.store.load_subscription(kv, "sub_open_friends")
+        assert open_row is not None and open_row.tier == "paid"
+        assert open_row.key_fingerprint == ""
+        link = session(
+            id="cs_friends_link", subscription="sub_open_friends",
+            discounts=[{"promotion_code": promotion()}],
+            metadata={"modelspec_price_id": PAID_PRICE,
+                      "modelspec_key_fingerprint": fingerprint})
+        linked = await hook(kv, cfg, link, event_id="evt_friends_link", ledger=ledger)
+        assert linked.status == 200, linked.body
+        record = await access_keys.lookup(kv, key)
+        open_row = await billing.store.load_subscription(kv, "sub_open_friends")
+        assert record.tier == "friends"
+        assert open_row.tier == "friends" and open_row.status == "active"
+        assert open_row.key_fingerprint == fingerprint
 
     asyncio.run(scenario())
 

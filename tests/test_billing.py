@@ -1182,8 +1182,12 @@ def test_invoice_paid_with_fingerprint_attaches_to_existing_key(policy):
 
 def test_a_paid_invoice_grants_monthly_through_an_invoice_only_ledger(policy):
     class InvoiceLedger(credits.MemoryLedger):
-        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id=""):
-            return await super().set_monthly(holder, units, invoice_id, plan, customer_id)
+        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id="",
+                              period_end=0, period_start=0, subscription_id=""):
+            return await super().set_monthly(
+                holder, units, invoice_id, plan, customer_id,
+                period_end=period_end, period_start=period_start,
+                subscription_id=subscription_id)
 
     kv = MemoryKV()
     ledger = InvoiceLedger()
@@ -1654,3 +1658,1624 @@ def test_the_claim_page_escapes_everything():
 def test_prefers_html_is_an_explicit_preference(accept, html):
     import billing_page
     assert billing_page.prefers_html(accept) is html
+
+
+class RotationKV(MemoryKV):
+    fail_name = ""
+    fail_after = False
+    failure_seen = False
+
+    async def get(self, name):
+        value = await super().get(name)
+        await asyncio.sleep(0)
+        return value
+
+    async def put(self, name, value, **kwargs):
+        selected = self.fail_name and name.startswith(self.fail_name) and not self.failure_seen
+        if selected and not self.fail_after:
+            self.failure_seen = True
+            raise OSError("fixture rotation write unavailable")
+        await super().put(name, value, **kwargs)
+        if selected:
+            self.failure_seen = True
+            raise OSError("fixture rotation write unavailable")
+        await asyncio.sleep(0)
+
+
+def test_rotation_keeps_source_funded_until_keyref_is_written(policy):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        holder = credits.holder_from_fingerprint(keys.fingerprint(key))
+        await ledger.set_monthly(holder, 100, "rotation-invoice", "fixture")
+        kv.fail_name = "keyref:"
+        with pytest.raises(OSError, match="rotation write"):
+            await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=ledger)
+        assert (await keys.lookup(kv, key)).active
+        assert (await ledger.balance(holder)).available == 100
+        retried = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        successor = credits.holder_from_fingerprint(keys.fingerprint(retried.body["key"]))
+        assert (await ledger.balance(successor)).available == 100
+        assert (await ledger.balance(holder)).available == 0
+    run(scenario())
+
+
+def test_overlapping_rotations_return_one_funded_successor(policy):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        holder = credits.holder_from_fingerprint(keys.fingerprint(key))
+        await ledger.set_monthly(holder, 100, "overlap-invoice", "fixture")
+        results = await asyncio.gather(*(billing.rotate(
+            api_key=key, kv=kv, policy=policy, now=T0,
+            service_commit=COMMIT, ledger=ledger) for _ in range(2)))
+        assert sorted(result.status for result in results) == [200, 403]
+        successful = next(result for result in results if result.status == 200)
+        successor = credits.holder_from_fingerprint(keys.fingerprint(successful.body["key"]))
+        assert (await ledger.balance(successor)).available == 100
+        assert not (await keys.lookup(kv, key)).active
+        assert (await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                    service_commit=COMMIT, ledger=ledger)).status == 403
+    run(scenario())
+
+
+@pytest.mark.parametrize("write_number", [1, 2, 3, 4])
+@pytest.mark.parametrize("after_write", [False, True])
+def test_rotation_resumes_each_metadata_write(policy, write_number, after_write):
+    class InterruptedKV(MemoryKV):
+        writes = 0
+        armed = False
+
+        async def put(self, name, value, **kwargs):
+            if self.armed:
+                self.writes += 1
+                selected = self.writes == write_number
+            else:
+                selected = False
+            if selected and not after_write:
+                raise OSError("fixture metadata interruption")
+            await super().put(name, value, **kwargs)
+            if selected:
+                raise OSError("fixture metadata interruption")
+
+    async def scenario():
+        kv, ledger = InterruptedKV(), credits.MemoryLedger()
+        await apply(kv, policy, payload("checkout.session.completed", checkout_obj(),
+                                       "evt_rotation_resume"), ledger=ledger)
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy,
+                                      now=T0, service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        key = claimed.body["key"]
+        kv.armed = True
+        with pytest.raises(OSError, match="metadata interruption"):
+            await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=ledger)
+        retried = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        successor_key = retried.body["key"]
+        successor = keys.fingerprint(successor_key)
+        assert (await ledger.balance(credits.holder_from_fingerprint(successor))).monthly == 4000
+        assert not (await keys.lookup(kv, key)).active
+        assert (await billing.store.load_subscription(kv, SUB)).key_fingerprint == successor
+        again = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                     service_commit=COMMIT, ledger=ledger)
+        assert again.status == 403
+        persisted = json.dumps(kv.data) + json.dumps(ledger.state.to_json())
+        assert key not in persisted and successor_key not in persisted
+    run(scenario())
+
+
+def _billing_holder(key):
+    return credits.holder_from_fingerprint(keys.fingerprint(key))
+
+
+async def _dated_event(kv, ledger, policy, kind, obj, event_id, *, created=100):
+    body = json.dumps({"id": event_id, "type": kind, "created": created,
+                       "data": {"object": obj}})
+    return await apply(kv, policy, body, ledger=ledger)
+
+
+async def _billing_purchase(kv, ledger, policy, *, bound=False):
+    obj = checkout_obj(invoice="in_initial", created=100)
+    if bound:
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        obj["metadata"]["modelspec_key_fingerprint"] = keys.fingerprint(key)
+    assert (await _dated_event(kv, ledger, policy, "checkout.session.completed", obj,
+                               "evt_initial")).status == 200
+    if not bound:
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy,
+                                      now=T0, service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        key = claimed.body["key"]
+    return key
+
+
+async def _spend_billing_credits(ledger, key, units):
+    reservation = await ledger.reserve(_billing_holder(key), units)
+    assert reservation.ok
+    assert await ledger.commit(_billing_holder(key), reservation.reservation_id)
+
+
+@pytest.mark.parametrize("downgrade", ["invoice.payment_failed", "customer.subscription.deleted",
+                                       "customer.subscription.updated"])
+def test_renewal_and_downgrade_follow_current_subscription_key(policy, downgrade):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        successor = rotated.body["key"]
+        await _spend_billing_credits(ledger, successor, 500)
+        fields = urllib.parse.parse_qs(billing_stripe.checkout_form(
+            price_id=PRICE, success_url="https://local.test/success",
+            cancel_url="https://local.test/cancel", terms_url="https://local.test/terms",
+            key_fingerprint=keys.fingerprint(key)))
+        metadata = {name: fields[f"subscription_data[metadata][{name}]"][0]
+                    for name in ("modelspec_price_id", "modelspec_key_fingerprint")}
+        renewal = dahlia_invoice_obj(id="in_renewal", parent={
+            "type": "subscription_details", "subscription_details": {
+                "subscription": SUB, "metadata": metadata}})
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", renewal,
+                                   "evt_renewal", created=200)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await ledger.balance(_billing_holder(successor))).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.key_fingerprint == keys.fingerprint(successor)
+        obj = (renewal if downgrade == "invoice.payment_failed" else
+               {"id": SUB, "status": "canceled", "metadata": metadata})
+        assert (await _dated_event(kv, ledger, policy, downgrade, obj,
+                                   "evt_downgrade", created=300)).status == 200
+        assert (await keys.lookup(kv, successor)).tier == "free"
+        assert (await ledger.balance(_billing_holder(successor))).monthly == 0
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert not (await keys.lookup(kv, key)).active
+    run(scenario())
+
+
+@pytest.mark.parametrize("late_created", [150, 900])
+def test_subscription_cancellation_remains_current(policy, late_created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel", created=300)).status == 200
+        invoice = invoice_obj(id="in_delayed", created=100, period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_delayed", created=late_created)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_delayed", created=late_created)).body["duplicate"]
+    run(scenario())
+
+
+@pytest.mark.parametrize("terminal", ["customer.subscription.deleted",
+                                      "customer.subscription.updated"])
+def test_newer_paid_period_applies_after_terminal_status(policy, terminal):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        if terminal == "customer.subscription.deleted":
+            ended = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        else:
+            ended = {"id": SUB, "status": "incomplete_expired", "customer": CUS}
+        assert (await _dated_event(kv, ledger, policy, terminal, ended,
+                                   "evt_terminal", created=300)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        invoice = invoice_obj(id="in_recovered", created=400, period_start=400, period_end=500)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                     "evt_recovered", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+class _ScheduledKV(MemoryKV):
+    """One handler's view of a shared store. Each get and put yields `pauses` times."""
+
+    def __init__(self, data: dict[str, str], pauses: int) -> None:
+        super().__init__()
+        self.data = data
+        self.pauses = pauses
+
+    async def _pause(self) -> None:
+        for _ in range(self.pauses):
+            await asyncio.sleep(0)
+
+    async def get(self, name: str) -> str | None:
+        await self._pause()
+        return await super().get(name)
+
+    async def put(self, name: str, value: str, **kwargs: Any) -> None:
+        await self._pause()
+        await super().put(name, value, **kwargs)
+
+
+class _NoProcessLock:
+    """MemoryLedger with no process-local billing lock, as DurableLedger is."""
+
+    def __init__(self, inner: credits.MemoryLedger) -> None:
+        object.__setattr__(self, "_inner", inner)
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "_billing_lock":
+            raise AttributeError(name)
+        return getattr(self._inner, name)
+
+
+def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
+    async def overlapped(kind: str, pauses_paid: int, pauses_other: int,
+                         paid_first: bool) -> tuple[str, int]:
+        data: dict[str, str] = {}
+        real = credits.MemoryLedger()
+        key = await _billing_purchase(_ScheduledKV(data, 0), real, policy)
+        ledger = _NoProcessLock(real)
+        paid_kv = _ScheduledKV(data, pauses_paid)
+        other_kv = _ScheduledKV(data, pauses_other)
+        if kind == "failure":
+            paid = invoice_obj(id="in_new", created=300, period_start=300, period_end=400)
+            other = invoice_obj(id="in_old", paid=False, created=100,
+                                period_start=100, period_end=200)
+            paid_event = _dated_event(
+                paid_kv, ledger, policy, "invoice.paid", paid, "evt_paid", created=300)
+            other_event = _dated_event(
+                other_kv, ledger, policy, "invoice.payment_failed", other,
+                "evt_fail", created=150)
+        else:
+            paid = invoice_obj(id="in_old", created=150, period_start=100, period_end=200)
+            other = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+            paid_event = _dated_event(
+                paid_kv, ledger, policy, "invoice.paid", paid, "evt_paid", created=150)
+            other_event = _dated_event(
+                other_kv, ledger, policy, "customer.subscription.deleted", other,
+                "evt_cancel", created=300)
+        calls = [paid_event, other_event] if paid_first else [other_event, paid_event]
+        await asyncio.gather(*calls)
+        record = await keys.lookup(_ScheduledKV(data, 0), key)
+        balance = await real.balance(_billing_holder(key))
+        sub = await billing.store.load_subscription(_ScheduledKV(data, 0), SUB)
+        return record.tier, balance.monthly, sub.tier, sub.status
+
+    async def scenario():
+        mismatches = []
+        for kind, expect in (
+                ("failure", ("paid", 4000, "paid", "active")),
+                ("cancellation", ("free", 0, "free", "inactive"))):
+            for paid_first in (True, False):
+                for pauses_paid in (1, 2, 3):
+                    for pauses_other in (1, 2, 3):
+                        got = await overlapped(kind, pauses_paid, pauses_other, paid_first)
+                        if got != expect:
+                            mismatches.append(
+                                (kind, paid_first, pauses_paid, pauses_other, got))
+        assert mismatches == []
+
+    run(scenario())
+
+
+@pytest.mark.parametrize("canceled_at,created", [(350, 350), (350, 400), (400, 400), (401, 401)])
+def test_cancel_inside_paid_period_clears(policy, canceled_at, created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=300)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": canceled_at}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=created)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_updated_canceled_inside_paid_period_clears(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=300)).status == 200
+        ended = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                     ended, "evt_c", created=350)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_cancel_before_paid_period_start_stays_paid(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", created=400, period_start=400, period_end=500)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=400)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_checkout_only_terminal_cancel_clears(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                     deleted, "evt_c", created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "downgraded"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_late_invoice_that_began_before_cancellation_stays_free(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_c", created=350)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        paid = invoice_obj(id="in_p", created=300, period_start=300, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_p", created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_invoice_starting_after_cancellation_applies_when_event_is_later(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_c", created=400)).status == 200
+        paid = invoice_obj(id="in_p", created=360, period_start=360, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_p", created=360)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_second_invoice_with_the_same_period_end_applies(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        first = invoice_obj(id="in_a", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", first,
+                                   "evt_a", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        second = invoice_obj(id="in_b", created=350, period_start=350, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", second,
+                                     "evt_b", created=350)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        replay = await _dated_event(kv, ledger, policy, "invoice.paid", second,
+                                    "evt_b_replay", created=350)
+        assert replay.status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        await _spend_billing_credits(ledger, key, 100)
+        earlier = invoice_obj(id="in_c", created=360, period_start=100, period_end=400)
+        again = await _dated_event(kv, ledger, policy, "invoice.paid", earlier,
+                                   "evt_c", created=360)
+        assert again.status == 200
+        assert again.body["action"] == "credited"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_payment_failed_at_the_stored_period_end_stays_paid(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_a", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_a", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        failed = invoice_obj(id="in_fail", paid=False, created=350,
+                             period_start=350, period_end=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                     "evt_fail", created=350)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
+def test_invoice_without_period_after_cancellation_stays_free(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_c", created=300)).status == 200
+        bare = invoice_obj(id="in_bare", created=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", bare,
+                                     "evt_bare", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_watermark_only_row_clears_on_cancellation():
+    holder = "holder-old"
+    ledger = credits.MemoryLedger(credits.LedgerState.from_json({
+        "accounts": {
+            holder: {
+                "monthly": 4000,
+                "invoice_period_watermark": 400,
+                "monthly_entitled": True,
+            }
+        }
+    }))
+    result = run(ledger.clear_monthly(holder, watermark=350))
+    assert result.reason == "cleared"
+    assert run(ledger.balance(holder)).monthly == 0
+
+
+def test_payment_failed_without_period_keeps_a_stored_paid_period(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_new", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_new", created=300)).status == 200
+        failed = invoice_obj(id="in_bare", paid=False)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                     "evt_bare", created=500)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.invoice_paid
+        assert (stored.invoice_period_start, stored.invoice_period_end) == (300, 400)
+
+    run(scenario())
+
+
+def test_active_subscription_update_applies_after_cancellation(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel", created=300)).status == 200
+        active = {"id": SUB, "status": "active", "customer": CUS,
+                  "items": {"data": [{"price": {"id": PRICE}}]}}
+        outcome = await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                     active, "evt_active", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "restored"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+    run(scenario())
+
+
+@pytest.mark.parametrize("late_kind", ["invoice.payment_failed", "invoice.paid"])
+@pytest.mark.parametrize("late_created", [150, 900])
+def test_current_invoice_period_retains_its_allowance(policy, late_kind, late_created):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_new", created=300, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_new", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        older = invoice_obj(id="in_old", paid=late_kind == "invoice.paid", created=100,
+                            period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, late_kind, older,
+                                   "evt_old", created=late_created)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
+@pytest.mark.parametrize("order", [("checkout", "invoice"), ("invoice", "checkout")])
+@pytest.mark.parametrize("bound", [False, True])
+def test_cancellation_before_first_entitlement_stays_inactive(policy, order, bound):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = ""
+        meta = {"modelspec_price_id": PRICE}
+        if bound:
+            key, _ = await keys.issue(kv, tier="free", owner="fixture", now=T0, policy=policy)
+            meta["modelspec_key_fingerprint"] = keys.fingerprint(key)
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   {"id": SUB, "status": "canceled", "canceled_at": 300},
+                                   "evt_cancel_first", created=300)).status == 200
+        for kind in order:
+            obj = (checkout_obj(invoice="in_initial", metadata=meta, created=100)
+                   if kind == "checkout" else invoice_obj(
+                       id="in_initial", metadata=meta, period_start=100, period_end=200))
+            type_ = "checkout.session.completed" if kind == "checkout" else "invoice.paid"
+            assert (await _dated_event(kv, ledger, policy, type_, obj,
+                                       "evt_" + kind, created=150)).status == 200
+        active = {"id": SUB, "status": "active", "items": {"data": [{"price": {"id": PRICE}}]}}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                   active, "evt_old_active", created=100)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None and sub.status == "inactive" and sub.pending_monthly == 0
+        if key:
+            assert (await ledger.balance(_billing_holder(key))).monthly == 0
+            assert (await keys.lookup(kv, key)).tier == "free"
+    run(scenario())
+
+
+def test_paid_invoice_recovers_its_period_once(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        invoice = invoice_obj(id="in_recovery", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", invoice,
+                                   "evt_failed", created=300)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_paid", created=310)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", invoice,
+                                   "evt_delayed_failure", created=300)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+        newer = invoice_obj(id="in_next", period_start=400, period_end=500)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", newer,
+                                   "evt_next", created=400)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_checkout_link_retains_current_invoice_plan(policy):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        current = invoice_obj(id="in_team", period_start=300, period_end=400,
+                              lines={"data": [{"price": {"id": TEAM_PRICE},
+                                                "period": {"start": 300, "end": 400}}]})
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", current,
+                                   "evt_team", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        old_checkout = checkout_obj(id="cs_delayed", invoice="in_initial", created=100,
+                                    metadata={"modelspec_price_id": PRICE,
+                                              "modelspec_key_fingerprint": keys.fingerprint(key)})
+        assert (await _dated_event(kv, ledger, policy, "checkout.session.completed", old_checkout,
+                                   "evt_checkout_delayed", created=900)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.plan_name == "Team" and sub.plan_credits == 30000
+        assert (await ledger.balance(_billing_holder(key))).monthly == 29900
+        assert await billing.store.load_session(kv, "cs_delayed") is not None
+    run(scenario())
+
+
+@pytest.mark.parametrize("pack", [False, True])
+def test_purchase_claim_selects_one_funded_key(policy, pack):
+    class OverlappingKV(MemoryKV):
+        gate = None
+        readers = 0
+
+        async def get(self, name):
+            value = await super().get(name)
+            if self.gate is not None and name == billing.store.session_name(SESSION):
+                self.readers += 1
+                if self.readers >= 2:
+                    self.gate.set()
+                await self.gate.wait()
+            await asyncio.sleep(0)
+            return value
+
+        async def put(self, name, value, **kwargs):
+            await super().put(name, value, **kwargs)
+            await asyncio.sleep(0)
+
+    async def scenario():
+        kv, ledger = OverlappingKV(), credits.MemoryLedger()
+        obj = (checkout_obj(mode="payment", subscription=None,
+                            metadata={"modelspec_price_id": PACK5}) if pack else checkout_obj())
+        assert (await apply(kv, policy, payload("checkout.session.completed", obj,
+                                               "evt_claim_once"), ledger=ledger)).status == 200
+        kv.gate = asyncio.Event()
+        results = await asyncio.gather(*(billing.claim(
+            session_id=SESSION, kv=kv, policy=policy, now=T0,
+            service_commit=COMMIT, ledger=ledger) for _ in range(2)))
+        assert sorted(result.status for result in results) == [200, 410]
+        successful = next(result for result in results if result.status == 200)
+        key = successful.body["key"]
+        assert (await ledger.balance(_billing_holder(key))).available == (1250 if pack else 4000)
+        sub = await billing.store.load_subscription(kv, "pack:" + SESSION if pack else SUB)
+        assert sub.key_fingerprint == keys.fingerprint(key)
+        assert len([name for name in kv.data if name.startswith("key:")]) == 1
+        replay = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                     service_commit=COMMIT, ledger=ledger)
+        assert replay.status == 410
+    run(scenario())
+
+
+@pytest.mark.parametrize("pack", [False, True])
+@pytest.mark.parametrize("write_number", [1, 2, 3, 4])
+@pytest.mark.parametrize("after_write", [False, True])
+def test_claim_recovers_unfunded_metadata_writes(policy, pack, write_number, after_write):
+    class InterruptedKV(MemoryKV):
+        armed = False
+        writes = 0
+
+        async def put(self, name, value, **kwargs):
+            self.writes += int(self.armed)
+            selected = self.armed and self.writes == write_number
+            if selected and not after_write:
+                raise OSError("fixture claim metadata unavailable")
+            await super().put(name, value, **kwargs)
+            if selected:
+                raise OSError("fixture claim metadata unavailable")
+
+    async def scenario():
+        kv, ledger = InterruptedKV(), credits.MemoryLedger()
+        obj = (checkout_obj(mode="payment", subscription=None,
+                            metadata={"modelspec_price_id": PACK5}) if pack else checkout_obj())
+        assert (await apply(kv, policy, payload("checkout.session.completed", obj,
+                                               "evt_claim_recovery"), ledger=ledger)).status == 200
+        kv.armed = True
+        with pytest.raises(OSError, match="claim metadata"):
+            await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                service_commit=COMMIT, ledger=ledger)
+        retried = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        key = retried.body["key"]
+        sub = await billing.store.load_subscription(kv, "pack:" + SESSION if pack else SUB)
+        assert sub.key_fingerprint == keys.fingerprint(key)
+        assert (await ledger.balance(_billing_holder(key))).available == (1250 if pack else 4000)
+        active = [json.loads(value) for name, value in kv.data.items()
+                  if name.startswith("key:") and json.loads(value)["active"]]
+        assert len(active) == 1 and active[0]["key_id"] == keys.key_id(key)
+        assert (await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                    service_commit=COMMIT, ledger=ledger)).status == 410
+        assert key not in json.dumps(kv.data) + json.dumps(ledger.state.to_json())
+    run(scenario())
+
+
+@pytest.mark.parametrize("pack", [False, True])
+@pytest.mark.parametrize("after_funding", [False, True])
+def test_claim_funding_preserves_selected_owner(policy, pack, after_funding):
+    class InterruptedLedger(credits.MemoryLedger):
+        armed = False
+
+        async def credit(self, *args, **kwargs):
+            if not self.armed:
+                return await super().credit(*args, **kwargs)
+            self.armed = False
+            if after_funding:
+                await super().credit(*args, **kwargs)
+            raise OSError("fixture claim funding unavailable")
+
+        async def fund_claim(self, *args, **kwargs):
+            if not self.armed:
+                return await super().fund_claim(*args, **kwargs)
+            self.armed = False
+            if after_funding:
+                await super().fund_claim(*args, **kwargs)
+            raise OSError("fixture claim funding unavailable")
+
+    async def scenario():
+        kv, ledger = MemoryKV(), InterruptedLedger()
+        obj = (checkout_obj(mode="payment", subscription=None,
+                            metadata={"modelspec_price_id": PACK5}) if pack else checkout_obj())
+        assert (await apply(kv, policy, payload("checkout.session.completed", obj,
+                                               "evt_funding_recovery"), ledger=ledger)).status == 200
+        ledger.armed = True
+        with pytest.raises(OSError, match="claim funding"):
+            await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                service_commit=COMMIT, ledger=ledger)
+        sub_id = "pack:" + SESSION if pack else SUB
+        selected = await billing.store.load_subscription(kv, sub_id)
+        retried = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        current = await billing.store.load_subscription(kv, sub_id)
+        assert current.key_fingerprint == keys.fingerprint(retried.body["key"])
+        if after_funding:
+            assert current.key_fingerprint == selected.key_fingerprint
+        owner = credits.holder_from_fingerprint(current.key_fingerprint)
+        assert (await ledger.balance(owner)).available == (1250 if pack else 4000)
+    run(scenario())
+
+
+@pytest.mark.parametrize("failed_prefix,after_write", [("keyref:", False), ("sub:", True)])
+def test_rotation_resume_retains_current_subscription_status(policy, failed_prefix, after_write):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        kv.fail_name = failed_prefix
+        kv.fail_after = after_write
+        with pytest.raises(OSError, match="rotation write"):
+            await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                 service_commit=COMMIT, ledger=ledger)
+        deleted = {"id": SUB, "status": "canceled", "canceled_at": 300}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel_rotation", created=300)).status == 200
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.status == "inactive" and sub.subscription_status == "canceled"
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == "free"
+        older = invoice_obj(id="in_rotation_old", period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", older,
+                                   "evt_rotation_old", created=150)).status == 200
+        assert (await ledger.balance(_billing_holder(rotated.body["key"]))).monthly == 0
+    run(scenario())
+
+
+@pytest.mark.parametrize("bound", [False, True])
+@pytest.mark.parametrize("invoice_first", [False, True])
+def test_initial_invoice_allowance_is_shared_with_checkout_and_claim(policy, bound, invoice_first):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        metadata = {"modelspec_price_id": PRICE}
+        key = ""
+        if bound:
+            key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+            metadata["modelspec_key_fingerprint"] = keys.fingerprint(key)
+        checkout = checkout_obj(invoice="in_initial", metadata=metadata)
+        invoice = invoice_obj(id="in_initial", metadata=metadata, billing_reason="subscription_create")
+        if invoice_first:
+            assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                       "evt_initial_invoice")).status == 200
+            if bound:
+                await _spend_billing_credits(ledger, key, 100)
+        assert (await _dated_event(kv, ledger, policy, "checkout.session.completed", checkout,
+                                   "evt_initial_checkout")).status == 200
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        if not bound:
+            key = claimed.body["key"]
+        if not (invoice_first and bound):
+            await _spend_billing_credits(ledger, key, 100)
+        if not invoice_first:
+            assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                       "evt_initial_invoice")).status == 200
+        for kind, obj, event_id in [
+                ("invoice.paid", invoice, "evt_invoice_replay"),
+                ("checkout.session.completed", checkout, "evt_checkout_replay")]:
+            assert (await _dated_event(kv, ledger, policy, kind, obj, event_id)).status == 200
+            assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+        assert (await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                    service_commit=COMMIT, ledger=ledger)).status == 410
+        renewal = invoice_obj(id="in_later", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", renewal,
+                                   "evt_later", created=300)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["checkout.session.completed", "checkout.session.async_payment_succeeded"])
+def test_paid_checkout_recovers_its_initial_invoice(policy, kind):
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        failed = invoice_obj(id="in_initial", paid=False, period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                   "evt_initial_failed", created=100)).status == 200
+        assert (await _dated_event(kv, ledger, policy, kind,
+                                   checkout_obj(invoice="in_initial"),
+                                   "evt_initial_recovered", created=200)).status == 200
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200 and claimed.body["tier"] == "paid"
+        key = claimed.body["key"]
+        await _spend_billing_credits(ledger, key, 100)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", failed,
+                                   "evt_invoice_confirmed", created=210)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
+@pytest.mark.parametrize("operation", ["transfer", "completion"])
+@pytest.mark.parametrize("after_write", [False, True])
+def test_rotation_recovers_ledger_write_interruptions(policy, operation, after_write):
+    class InterruptedLedger(credits.MemoryLedger):
+        armed = True
+
+        async def transfer(self, src, dst):
+            if operation != "transfer" or not self.armed:
+                return await super().transfer(src, dst)
+            self.armed = False
+            if after_write:
+                await super().transfer(src, dst)
+            raise OSError("fixture ledger write unavailable")
+
+        async def save_rotation(self, holder, data):
+            if operation != "completion" or data["stage"] != "complete" or not self.armed:
+                return await super().save_rotation(holder, data)
+            self.armed = False
+            if after_write:
+                await super().save_rotation(holder, data)
+            raise OSError("fixture ledger write unavailable")
+
+    async def scenario():
+        kv, ledger = MemoryKV(), InterruptedLedger()
+        key, _ = await keys.issue(kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        await ledger.set_monthly(_billing_holder(key), 100, "in_write_retry", "Solo")
+        if operation == "completion" and after_write:
+            result = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                          service_commit=COMMIT, ledger=ledger)
+        else:
+            with pytest.raises(OSError, match="ledger write"):
+                await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                     service_commit=COMMIT, ledger=ledger)
+            result = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                          service_commit=COMMIT, ledger=ledger)
+        assert result.status == 200
+        assert (await ledger.balance(_billing_holder(result.body["key"]))).available == 100
+        assert not (await keys.lookup(kv, key)).active
+        assert (await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                    service_commit=COMMIT, ledger=ledger)).status == 403
+    run(scenario())
+
+
+@pytest.mark.parametrize("canceled", [False, True])
+def test_prepared_claim_respects_current_billing_state(policy, canceled):
+    async def scenario():
+        kv, ledger = RotationKV(), credits.MemoryLedger()
+        assert (await apply(kv, policy, payload("checkout.session.completed",
+            checkout_obj(invoice="in_initial"), "evt_prepared_checkout"), ledger=ledger)).status == 200
+        kv.fail_name = "keyref:"
+        with pytest.raises(OSError, match="rotation write"):
+            await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                service_commit=COMMIT, ledger=ledger)
+        if canceled:
+            event = payload("customer.subscription.deleted", {"id": SUB, "status": "canceled"},
+                            "evt_prepared_canceled")
+        else:
+            event = payload("invoice.paid", invoice_obj(id="in_initial"), "evt_prepared_invoice")
+        assert (await apply(kv, policy, event, ledger=ledger)).status == 200
+        retried = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert retried.status == 200
+        key = retried.body["key"]
+        assert (await ledger.balance(_billing_holder(key))).monthly == (0 if canceled else 4000)
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None
+        if canceled:
+            assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+            assert sub.tier == policy.billing.downgrade_tier
+            assert sub.status == "inactive"
+        else:
+            assert (await keys.lookup(kv, key)).tier == "paid"
+            assert sub.tier == "paid"
+            assert sub.status == "active"
+    run(scenario())
+
+
+def test_a_failed_period_write_does_not_grant_the_allowance_twice(policy):
+    class InterruptedChronologyKV(MemoryKV):
+        armed = False
+
+        async def put(self, name, value, **kwargs):
+            if self.armed and name.startswith("sub:") and json.loads(value).get("invoice_id") == "in_current":
+                self.armed = False
+                raise OSError("fixture chronology write unavailable")
+            await super().put(name, value, **kwargs)
+
+    async def scenario():
+        kv, ledger = InterruptedChronologyKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        await _spend_billing_credits(ledger, key, 100)
+        current = invoice_obj(id="in_current", period_start=300, period_end=400)
+        kv.armed = True
+        with pytest.raises(OSError, match="chronology write"):
+            await _dated_event(kv, ledger, policy, "invoice.paid", current,
+                               "evt_current", created=300)
+        # The allowance lands before the period write. The retry is a replay.
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", current,
+                                   "evt_current", created=300)).status == 200
+        await _spend_billing_credits(ledger, key, 100)
+        older = invoice_obj(id="in_older", period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", older,
+                                   "evt_older", created=100)).status == 200
+        assert (await ledger.balance(_billing_holder(key))).monthly == 3900
+    run(scenario())
+
+
+SUB2 = "sub_second_fixture"
+SES2 = "cs_second_fixture"
+
+
+async def _cancel_subscription(kv, ledger, policy, *, at: int = 350, event_id: str = "evt_cancel_sub"):
+    deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": at}
+    return await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                              deleted, event_id, created=at)
+
+
+def test_resubscribe_checkout_on_the_same_key_grants(policy):
+    """A no-period checkout for a different subscription is not stale."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        fingerprint = keys.fingerprint(key)
+        paid = invoice_obj(id="in_a1", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_paid_a", created=300)).status == 200
+        assert (await _cancel_subscription(kv, ledger, policy)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(id=SES2, subscription=SUB2, invoice="in_b0", metadata=meta)
+        outcome = await _dated_event(kv, ledger, policy, "checkout.session.completed",
+                                     checkout, "evt_checkout_b", created=1000)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        holder = _billing_holder(key)
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+        assert ledger.state.accounts[holder].canceled_at == 0
+    run(scenario())
+
+
+def test_resubscribe_invoice_then_checkout_grants_the_pending_allowance(policy):
+    """Linking a key applies the other subscription's pending allowance."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        fingerprint = keys.fingerprint(key)
+        paid = invoice_obj(id="in_a1", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_paid_a", created=300)).status == 200
+        assert (await _cancel_subscription(kv, ledger, policy)).status == 200
+        invoice = invoice_obj(id="in_b0", subscription=SUB2, period_start=1000, period_end=1100)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", invoice,
+                                   "evt_paid_b", created=1000)).status == 200
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(id=SES2, subscription=SUB2, invoice="in_b0", metadata=meta)
+        outcome = await _dated_event(kv, ledger, policy, "checkout.session.completed",
+                                     checkout, "evt_link_b", created=1000)
+        assert outcome.status == 200
+        holder = _billing_holder(key)
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None
+        assert stored.pending_monthly == 0
+        assert stored.key_fingerprint == fingerprint
+    run(scenario())
+
+
+def test_no_period_grant_for_the_cancelled_subscription_stays_stale(policy):
+    """A no-period grant for the cancelled subscription does not reopen it."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        assert (await _cancel_subscription(kv, ledger, policy, at=300)).status == 200
+        bare = invoice_obj(id="in_bare", created=400)
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", bare,
+                                     "evt_bare_same", created=400)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+    run(scenario())
+
+
+def test_same_subscription_period_grant_follows_the_cancellation(policy):
+    """A period grant for the cancelled subscription keeps the period-start rule."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_p", created=300)).status == 200
+        assert (await _cancel_subscription(kv, ledger, policy, at=350)).status == 200
+        late = invoice_obj(id="in_late", period_start=300, period_end=400)
+        ignored = await _dated_event(kv, ledger, policy, "invoice.paid", late,
+                                     "evt_late", created=360)
+        assert ignored.body["action"] == "ignored"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        renewed = invoice_obj(id="in_next", period_start=360, period_end=500)
+        applied = await _dated_event(kv, ledger, policy, "invoice.paid", renewed,
+                                     "evt_next", created=360)
+        assert applied.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_unknown_cancellation_subscription_rejects_a_no_period_grant(policy):
+    """An unknown cancellation id keeps the no-period grant stale, and the key stays put."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        fingerprint = keys.fingerprint(key)
+        assert (await _cancel_subscription(kv, ledger, policy, at=300)).status == 200
+        holder = _billing_holder(key)
+        account = ledger.state.accounts[holder]
+        if hasattr(account, "canceled_subscription_id"):
+            account.canceled_subscription_id = ""
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(id=SES2, subscription=SUB2, invoice="in_unknown", metadata=meta)
+        outcome = await _dated_event(kv, ledger, policy, "checkout.session.completed",
+                                     checkout, "evt_unknown_checkout", created=1000)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(holder)).monthly == 0
+        assert (await ledger.entitlement_view(holder))["entitled"] is False
+    run(scenario())
+
+
+def _row(subscription_id: str, *, tier: str, pending: int, invoice_id: str,
+         pending_invoice_id: str) -> billing.store.SubscriptionRecord:
+    return billing.store.SubscriptionRecord(
+        subscription_id=subscription_id, customer_id=CUS, price_id=PRICE,
+        tier=tier, status="active", key_fingerprint="", key_id="",
+        created_at="2026-09-17T14:30:00Z", pending_monthly=pending,
+        pending_invoice_id=pending_invoice_id, plan_name="Solo",
+        plan_credits=pending, invoice_id=invoice_id, invoice_paid=True)
+
+
+def test_stale_checkout_link_leaves_the_row_and_the_allowance(policy):
+    """A stale link is the rejected-event answer and changes nothing on the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        holder = _billing_holder(key)
+        assert (await ledger.clear_monthly(holder, watermark=300, subscription_id="")).reason == "cleared"
+        pending = 4000
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier="paid", pending=pending, invoice_id="in_row_stale",
+            pending_invoice_id="in_pending_stale"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_stale_link", subscription=SUB2, invoice="in_other_stale", metadata=meta)
+        outcome = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_stale_link", created=1000)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None
+        assert stored.key_fingerprint == ""
+        assert stored.pending_monthly == pending
+        assert (await ledger.balance(holder)).monthly == 0
+    run(scenario())
+
+
+def test_unbound_checkout_link_keeps_the_pending_allowance(policy):
+    """A link whose grant is neither accepted nor stale keeps the pending allowance."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.UnboundLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        pending = 4000
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier="paid", pending=pending, invoice_id="in_row_unbound",
+            pending_invoice_id="in_pending_unbound"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_unbound_link", subscription=SUB2, invoice="in_other_unbound", metadata=meta)
+        outcome = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_unbound_link", created=1000)
+        assert outcome.status == 200
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None
+        assert stored.pending_monthly == pending
+        assert stored.key_fingerprint == fingerprint
+        assert (await keys.lookup(kv, key)) is not None
+    run(scenario())
+
+
+def test_checkout_link_and_replay_copy_the_ledger_tier(policy):
+    """Link copies the paid tier. A replay after cancellation copies the downgrade."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier=policy.billing.downgrade_tier, pending=4000,
+            invoice_id="in_row_link", pending_invoice_id="in_pending_link"))
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_link_copy", subscription=SUB2, invoice="in_link_other", metadata=meta)
+        linked = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_link_copy", created=1000)
+        assert linked.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None and stored.key_fingerprint == fingerprint
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        first = checkout_obj(id="cs_replay_copy", metadata=meta)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", first,
+            "evt_replay_first", created=100)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        holder = _billing_holder(key)
+        assert (await ledger.clear_monthly(
+            holder, watermark=300, subscription_id=SUB)).reason == "cleared"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        replay = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", first,
+            "evt_replay_second", created=400)
+        assert replay.status == 200
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+    run(scenario())
+
+
+def test_replayed_link_grant_copies_the_tier(policy):
+    """A link whose grant is a replay copies the tier the same way a first grant does."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier=policy.billing.downgrade_tier, owner="fixture", now=T0, policy=policy)
+        fingerprint = keys.fingerprint(key)
+        holder = _billing_holder(key)
+        primed = await ledger.set_monthly(
+            holder, 4000, "in_replay_link", "Solo", CUS, subscription_id=SUB2)
+        assert primed.credited
+        await billing.store._write_sub(kv, _row(
+            SUB2, tier=policy.billing.downgrade_tier, pending=4000,
+            invoice_id="in_row_replay", pending_invoice_id="in_replay_link"))
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        meta = {"modelspec_price_id": PRICE, "modelspec_key_fingerprint": fingerprint}
+        checkout = checkout_obj(
+            id="cs_replay_link", subscription=SUB2, invoice="in_other_replay", metadata=meta)
+        linked = await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout,
+            "evt_replay_link", created=1000)
+        assert linked.status == 200
+        assert linked.body["action"] == "already_entitled"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB2)
+        assert stored is not None and stored.tier == "paid"
+        assert stored.key_fingerprint == fingerprint
+    run(scenario())
+
+
+def _unclaimed_downgrade_event(kind: str) -> tuple[str, dict]:
+    if kind == "invoice.payment_failed":
+        return kind, invoice_obj(id="in_unclaimed_fail", paid=False, period_start=100, period_end=200)
+    status = "canceled"
+    obj = {"id": SUB, "object": "subscription", "status": status, "customer": CUS,
+           "canceled_at": 300}
+    return kind, obj
+
+
+@pytest.mark.parametrize("kind", [
+    "customer.subscription.deleted",
+    "customer.subscription.updated",
+    "invoice.payment_failed",
+])
+def test_unclaimed_subscription_downgrade_reaches_the_claim(policy, kind):
+    """A cancellation or failed payment with no key still downgrades the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_unclaimed_checkout", created=100)).status == 200
+        event_kind, obj = _unclaimed_downgrade_event(kind)
+        outcome = await _dated_event(kv, ledger, policy, event_kind, obj,
+                                     "evt_unclaimed_" + kind, created=300)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "downgraded"
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub is not None
+        assert sub.tier == policy.billing.downgrade_tier
+        assert sub.status == "inactive"
+        assert sub.key_fingerprint == ""
+        claimed = await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                                      service_commit=COMMIT, ledger=ledger)
+        assert claimed.status == 200
+        assert claimed.body["tier"] == policy.billing.downgrade_tier
+        key = claimed.body["key"]
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        assert (await ledger.balance(_billing_holder(key))).monthly == 0
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.tier == policy.billing.downgrade_tier
+        assert stored.status == "inactive"
+        assert stored.key_fingerprint == keys.fingerprint(key)
+    run(scenario())
+
+
+class _RecoverySql:
+    def __init__(self) -> None:
+        self.table: dict[str, str] = {}
+
+    def exec(self, query: str, *params: Any):
+        class Cursor:
+            def __init__(self, row: Any) -> None:
+                self._row = row
+
+            def one(self) -> Any:
+                if self._row is None:
+                    raise RuntimeError("no row")
+                return self._row
+
+        if query.startswith("INSERT"):
+            self.table[params[0]] = params[1]
+            return Cursor(None)
+        if query.startswith("SELECT"):
+            value = self.table.get(params[0])
+            return Cursor(None if value is None else {"v": value})
+        return Cursor(None)
+
+
+class _RecoveryCtx:
+    def __init__(self) -> None:
+        self.storage = type("Storage", (), {"sql": _RecoverySql()})()
+        self._gate = asyncio.Lock()
+
+    async def blockConcurrencyWhile(self, callback):
+        async with self._gate:
+            return await callback()
+
+
+def _recovery_ledger(kind: str, kv: MemoryKV):
+    if kind == "memory":
+        return credits.MemoryLedger()
+    import credits_do
+    from types import SimpleNamespace
+
+    obj = credits_do.CreditsObject(_RecoveryCtx(), env=SimpleNamespace(ACCESS=kv))
+    namespace = SimpleNamespace(idFromName=lambda name: name, get=lambda _id: obj)
+    return credits.DurableLedger(namespace)
+
+
+async def _claim_unclaimed(kv, ledger, policy):
+    return await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                               service_commit=COMMIT, ledger=ledger)
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_recovering_invoice_after_a_failed_payment_restores_an_unclaimed_row(policy, kind):
+    """An unclaimed row downgraded by a failed payment is paid again after invoice.paid."""
+    async def scenario():
+        kv = MemoryKV()
+        ledger = _recovery_ledger(kind, kv)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_recover_fail_checkout", created=100)).status == 200
+        failed = invoice_obj(id="in_n", paid=False, period_start=300, period_end=400)
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.payment_failed", failed,
+            "evt_recover_fail", created=300)
+        assert outcome.body["action"] == "downgraded"
+        paid = invoice_obj(id="in_n", period_start=300, period_end=400)
+        restored = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_recover_paid", created=310)
+        assert restored.status == 200
+        claimed = await _claim_unclaimed(kv, ledger, policy)
+        assert claimed.status == 200, claimed.body
+        assert claimed.body["tier"] == "paid"
+        assert (await ledger.balance(_billing_holder(claimed.body["key"]))).monthly == 4000
+        row = await billing.store.load_subscription(kv, SUB)
+        assert row.tier == "paid" and row.status == "active"
+    run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_recovering_invoice_after_deletion_restores_an_unclaimed_row(policy, kind):
+    """An unclaimed row downgraded by deletion is paid again by a later period."""
+    async def scenario():
+        kv = MemoryKV()
+        ledger = _recovery_ledger(kind, kv)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_recover_del_checkout", created=100)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(
+            kv, ledger, policy, "customer.subscription.deleted", deleted,
+            "evt_recover_del", created=300)
+        assert outcome.body["action"] == "downgraded"
+        paid = invoice_obj(id="in_later", period_start=400, period_end=500)
+        restored = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_recover_later", created=400)
+        assert restored.status == 200
+        claimed = await _claim_unclaimed(kv, ledger, policy)
+        assert claimed.status == 200, claimed.body
+        assert claimed.body["tier"] == "paid"
+        assert (await ledger.balance(_billing_holder(claimed.body["key"]))).monthly == 4000
+        row = await billing.store.load_subscription(kv, SUB)
+        assert row.tier == "paid" and row.status == "active"
+    run(scenario())
+
+
+class _FailKeyTierPut(MemoryKV):
+    """Fail the next key-record put. The allowance write has already landed."""
+
+    armed = False
+
+    async def put(self, name, value, **kwargs):
+        if self.armed and name.startswith("key:"):
+            self.armed = False
+            raise OSError("fixture key tier write unavailable")
+        await super().put(name, value, **kwargs)
+
+
+def test_redelivered_invoice_repairs_the_key_tier(policy):
+    """The first redelivery of a paid invoice copies the granted tier onto the key."""
+    async def scenario():
+        kv, ledger = _FailKeyTierPut(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        failed = invoice_obj(id="in_recover", paid=False, period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                                   "evt_fail_tier", created=300)).status == 200
+        assert (await keys.lookup(kv, key)).tier == "free"
+        paid = invoice_obj(id="in_recover", period_start=300, period_end=400)
+        kv.armed = True
+        with pytest.raises(OSError, match="key tier write"):
+            await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                               "evt_pay_tier", created=310)
+        holder = _billing_holder(key)
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+        repaired = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_pay_tier", created=310)
+        assert repaired.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.tier == "paid" and sub.status == "active"
+    run(scenario())
+
+
+def test_first_invoice_for_a_new_subscription_repairs_the_key_tier(policy):
+    """A redelivered first invoice for a bound free key copies the granted tier."""
+    async def scenario():
+        kv, ledger = _FailKeyTierPut(), credits.MemoryLedger()
+        key, _ = await keys.issue(kv, tier="free", owner="fixture", now=T0, policy=policy)
+        meta = {"modelspec_price_id": PRICE,
+                "modelspec_key_fingerprint": keys.fingerprint(key)}
+        paid = invoice_obj(id="in_first", metadata=meta, period_start=100, period_end=200)
+        kv.armed = True
+        with pytest.raises(OSError, match="key tier write"):
+            await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                               "evt_first_tier", created=100)
+        holder = _billing_holder(key)
+        assert (await keys.lookup(kv, key)).tier == "free"
+        assert (await ledger.balance(holder)).monthly == 4000
+        repaired = await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                     "evt_first_tier", created=100)
+        assert repaired.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        sub = await billing.store.load_subscription(kv, SUB)
+        assert sub.tier == "paid" and sub.status == "active"
+    run(scenario())
+
+
+def test_replayed_invoice_keeps_a_pre_round_account_on_the_paid_tier(policy):
+    """An account stored before the entitled flag stays paid when the invoice is replayed."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        raw = ledger.state.accounts[holder].to_json()
+        raw.pop("monthly_entitled", None)
+        ledger.state.accounts[holder] = credits._Account.from_json(raw)
+        replayed = invoice_obj(id="in_initial")
+        outcome = await _dated_event(kv, ledger, policy, "invoice.paid", replayed,
+                                     "evt_pre_round_replay", created=200)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(holder)).monthly == 4000
+        assert (await ledger.entitlement_view(holder))["entitled"] is True
+    run(scenario())
+
+
+def test_entitlement_view_derives_an_account_without_the_flag():
+    holder = "holder-old"
+    ledger = credits.MemoryLedger(credits.LedgerState.from_json({
+        "accounts": {
+            holder: {"monthly": 4000, "invoice_period_watermark": 400},
+            "spent": {"monthly": 0, "invoice_period_watermark": 400},
+            "cancelled": {
+                "monthly": 0, "invoice_period_watermark": 400, "canceled_at": 50,
+            },
+            "empty": {"monthly": 0},
+            "closed": {"monthly": 4000, "monthly_entitled": False},
+        },
+    }))
+    assert run(ledger.entitlement_view(holder))["entitled"] is True
+    assert run(ledger.entitlement_view("spent"))["entitled"] is True
+    assert run(ledger.entitlement_view("cancelled"))["entitled"] is False
+    assert run(ledger.entitlement_view("empty"))["entitled"] is False
+    assert run(ledger.entitlement_view("closed"))["entitled"] is False
+
+
+def test_a_rejected_invoice_period_does_not_block_the_next_renewal(policy):
+    """A grant the ledger rejects does not store its period or move the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_p", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_paid_period", created=300)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 350}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.deleted",
+                                   deleted, "evt_cancel_period", created=350)).status == 200
+        active = {"id": SUB, "status": "active", "customer": CUS,
+                  "items": {"data": [{"price": {"id": PRICE}}]}}
+        assert (await _dated_event(kv, ledger, policy, "customer.subscription.updated",
+                                   active, "evt_restore_period", created=400)).status == 200
+        before = await billing.store.load_subscription(kv, SUB)
+        overlap = invoice_obj(id="in_overlap", period_start=340, period_end=600)
+        rejected = await _dated_event(kv, ledger, policy, "invoice.paid", overlap,
+                                     "evt_overlap", created=410)
+        assert rejected.status == 200
+        assert rejected.body["action"] == "ignored"
+        after = await billing.store.load_subscription(kv, SUB)
+        assert (after.invoice_period_start, after.invoice_period_end) == (300, 400)
+        assert after.tier == before.tier
+        assert after.status == before.status
+        assert after.key_fingerprint == before.key_fingerprint
+        later = invoice_obj(id="in_next", period_start=360, period_end=500)
+        applied = await _dated_event(kv, ledger, policy, "invoice.paid", later,
+                                    "evt_next_period", created=420)
+        assert applied.status == 200
+        assert applied.body["action"] == "credited"
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored.tier == "paid" and stored.status == "active"
+        assert (stored.invoice_period_start, stored.invoice_period_end) == (360, 500)
+    run(scenario())
+
+
+def test_rotation_copies_the_ledger_tier(policy):
+    """The new key takes the tier the ledger implies, not the tier stored on the row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id="in_rot", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_rot_paid", created=300)).status == 200
+        sub = await billing.store.load_subscription(kv, SUB)
+        await billing.store._write_sub(kv, replace(sub, tier="free", status="inactive"))
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == "paid"
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = False
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == policy.billing.downgrade_tier
+
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = False
+        account.entitlement_generation = 0
+        sub = await billing.store.load_subscription(kv, SUB)
+        await billing.store._write_sub(kv, replace(sub, tier="paid", status="active"))
+        rotated = await billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
+                                       service_commit=COMMIT, ledger=ledger)
+        assert rotated.status == 200
+        assert (await keys.lookup(kv, rotated.body["key"])).tier == "paid"
+    run(scenario())
+
+
+def test_replayed_invoice_leaves_an_unrecorded_spent_account_on_the_paid_tier(policy):
+    """A replay does not downgrade an account the ledger has not recorded."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        paid = invoice_obj(id="in_spent", period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_spent_paid", created=100)).status == 200
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = None
+        account.entitlement_generation = 0
+        account.canceled_at = 0
+        account.canceled_subscription_id = ""
+        account.invoice_period_watermark = 0
+        replay = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_spent_replay", created=500)
+        assert replay.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored is not None
+        assert stored.tier == "paid" and stored.status == "active"
+    run(scenario())
+
+
+def test_rejected_first_invoice_for_a_second_subscription_writes_no_row(policy):
+    """A stale first invoice for a subscription with no row leaves no row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        fingerprint = keys.fingerprint(key)
+        paid = invoice_obj(id="in_bound", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_bound_paid", created=300)).status == 200
+        older = invoice_obj(
+            id="in_older_second", subscription=SUB2, period_start=100, period_end=200,
+            subscription_details={"metadata": {"modelspec_key_fingerprint": fingerprint}})
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", older, "evt_older_second", created=100)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert await billing.store.load_subscription(kv, SUB2) is None
+        assert (await keys.lookup(kv, key)).tier == "paid"
+    run(scenario())
+
+
+def test_first_invoice_for_an_unknown_fingerprint_writes_no_allowance(policy):
+    """A first paid invoice for a fingerprint with no key writes no allowance."""
+
+    class Recording(credits.MemoryLedger):
+        def __init__(self):
+            super().__init__()
+            self.monthly_calls = []
+
+        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id="",
+                              period_end=0, period_start=0, subscription_id=""):
+            self.monthly_calls.append(holder)
+            return await super().set_monthly(
+                holder, units, invoice_id, plan, customer_id,
+                period_end=period_end, period_start=period_start,
+                subscription_id=subscription_id)
+
+    async def scenario():
+        kv, ledger = MemoryKV(), Recording()
+        fingerprint = keys.fingerprint("never-issued-key")
+        holder = credits.holder_from_fingerprint(fingerprint)
+        assert await keys.lookup_fingerprint(kv, fingerprint) is None
+        paid = invoice_obj(
+            id="in_unknown_fp", period_start=100, period_end=200,
+            metadata={"modelspec_key_fingerprint": fingerprint})
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_unknown_fp", created=100)
+        assert outcome.status == 200
+        assert holder not in ledger.state.accounts
+        assert ledger.monthly_calls == []
+        assert all(account.monthly == 0 for account in ledger.state.accounts.values())
+
+    run(scenario())

@@ -351,8 +351,8 @@ enforcement off, anonymous requests never load the table.
    `api/worker/wrangler.jsonc` (`f7d2155e91e34ef99db4c7eb3408fb0e` since the
    account move of 2026-11-08, MODEL-441).
 2. Issue keys: Stripe Checkout (`docs/billing.md`, MODEL-73) records the
-   entitlement from the webhook. `GET`/`POST /v1/billing/claim` calls
-   `access_keys.issue` once. Rotation is `POST /v1/billing/rotate`.
+   entitlement from the webhook. `GET`/`POST /v1/billing/claim` mints the key
+   and writes the key row once. Rotation is `POST /v1/billing/rotate`.
 3. **Prepared by MODEL-96.** Production `ACCESS_ENFORCED` and `BILLING_ENABLED`
    are `"true"`, and the generated spec and references describe enforcement.
    The existing visit gate remains on for free browser lookups. Deployment

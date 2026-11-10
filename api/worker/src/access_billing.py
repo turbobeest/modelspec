@@ -17,14 +17,19 @@ same four kinds.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
-from dataclasses import dataclass, replace
+import secrets
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import access_keys as keys
+from access_keys import storage_name, storage_name_from_fingerprint
 import credits
-from access_config import AccessPolicy, PolicyError
+from access_config import AccessPolicy, PolicyError, load_policy
+from access_kv import CloudflareKV
 
 _EVENT_PREFIX = "event:"
 _SESSION_PREFIX = "session:"
@@ -33,6 +38,12 @@ _KEYREF_PREFIX = "keyref:"
 
 STATUS_ACTIVE = "active"
 STATUS_INACTIVE = "inactive"
+
+
+def _claim_secret(policy: AccessPolicy, nonce: str) -> str:
+    """Derive the claim key from the nonce stored on the claim. The key is not stored."""
+    digest = hmac.new(nonce.encode(), b"modelspec.claim", hashlib.sha256).hexdigest()
+    return policy.live_prefix + digest
 
 
 def event_name(event_id: str) -> str:
@@ -176,8 +187,16 @@ class SubscriptionRecord:
     key_id: str
     created_at: str
     pending_monthly: int = 0
+    pending_invoice_id: str = ""
     plan_name: str = ""
     plan_credits: int = 0
+    subscription_status: str = ""
+    subscription_updated_at: int = 0
+    invoice_id: str = ""
+    invoice_period_start: int = 0
+    invoice_period_end: int = 0
+    invoice_paid: bool = False
+    canceled_at: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -191,8 +210,16 @@ class SubscriptionRecord:
             "key_id": self.key_id,
             "created_at": self.created_at,
             "pending_monthly": self.pending_monthly,
+            "pending_invoice_id": self.pending_invoice_id,
             "plan_name": self.plan_name,
             "plan_credits": self.plan_credits,
+            "subscription_status": self.subscription_status,
+            "subscription_updated_at": self.subscription_updated_at,
+            "invoice_id": self.invoice_id,
+            "invoice_period_start": self.invoice_period_start,
+            "invoice_period_end": self.invoice_period_end,
+            "invoice_paid": self.invoice_paid,
+            "canceled_at": self.canceled_at,
         }
 
     @classmethod
@@ -208,8 +235,16 @@ class SubscriptionRecord:
             key_id=str(data.get("key_id") or ""),
             created_at=str(data.get("created_at") or ""),
             pending_monthly=int(data.get("pending_monthly") or 0),
+            pending_invoice_id=str(data.get("pending_invoice_id") or ""),
             plan_name=str(data.get("plan_name") or ""),
             plan_credits=int(data.get("plan_credits") or 0),
+            subscription_status=str(data.get("subscription_status") or ""),
+            subscription_updated_at=int(data.get("subscription_updated_at") or 0),
+            invoice_id=str(data.get("invoice_id") or ""),
+            invoice_period_start=int(data.get("invoice_period_start") or 0),
+            invoice_period_end=int(data.get("invoice_period_end") or 0),
+            invoice_paid=bool(data.get("invoice_paid", False)),
+            canceled_at=int(data.get("canceled_at") or 0),
         )
 
 
@@ -246,6 +281,38 @@ async def _write_sub(kv: Any, record: SubscriptionRecord) -> None:
     await kv.put(subscription_name(record.subscription_id), json.dumps(record.to_json()))
 
 
+async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
+                            policy: AccessPolicy, customer_id: str = "",
+                            subscription_status: str = "", updated_at: int = 0,
+                            invoice_id: str = "", period_start: int = 0,
+                            period_end: int = 0, paid: bool = False,
+                            canceled_at: int = 0) -> None:
+    """Retain accepted subscription status and invoice periods on the billing row."""
+    stored = await load_subscription(kv, subscription_id)
+    if stored is None:
+        stored = SubscriptionRecord(
+            subscription_id=subscription_id, customer_id=customer_id, price_id="",
+            tier=policy.billing.downgrade_tier, status=STATUS_INACTIVE,
+            key_fingerprint="", key_id="", created_at=_iso(now))
+    if subscription_status:
+        stored = replace(
+            stored, subscription_status=subscription_status,
+            subscription_updated_at=max(updated_at, stored.subscription_updated_at))
+        if subscription_status == "active":
+            stored = replace(stored, canceled_at=0)
+        elif canceled_at:
+            stored = replace(stored, canceled_at=max(int(canceled_at), stored.canceled_at))
+    if invoice_id:
+        incoming = (period_start, period_end)
+        stored_period = (stored.invoice_period_start, stored.invoice_period_end)
+        # An older period must not replace a newer one when the two handlers overlap.
+        if not any(stored_period) or (any(incoming) and incoming >= stored_period):
+            stored = replace(
+                stored, invoice_id=invoice_id, invoice_period_start=period_start,
+                invoice_period_end=period_end, invoice_paid=paid)
+    await _write_sub(kv, stored)
+
+
 async def _write_session(kv: Any, record: SessionRecord) -> None:
     await kv.put(session_name(record.session_id), json.dumps(record.to_json()))
 
@@ -273,9 +340,48 @@ async def _link_session(kv: Any, session_id: str, subscription_id: str, *,
         customer_id=customer_id, key_fingerprint=bound))
 
 
+async def link_current_checkout(kv: Any, stored: SubscriptionRecord, *,
+                                session_id: str, key_fingerprint: str,
+                                policy: AccessPolicy, ledger: Any) -> str:
+    """Link Checkout using the subscription's current entitlement.
+
+    A pending allowance is granted before the key is attached. A stale grant
+    leaves the row and the key alone, and leaves `pending_monthly` in place.
+    """
+    grant = ""
+    if key_fingerprint and not stored.key_fingerprint:
+        grant = await _grant_pending_monthly(
+            ledger, replace(stored, key_fingerprint=key_fingerprint),
+            invoice_id=f"claim:{stored.subscription_id}")
+        if grant == "stale":
+            await _link_session(
+                kv, session_id, stored.subscription_id, price_id=stored.price_id,
+                credits_amount=stored.plan_credits, customer_id=stored.customer_id,
+                key_fingerprint=stored.key_fingerprint)
+            return "stale"
+        attached = await attach_existing_key(
+            kv, fingerprint_hex=key_fingerprint,
+            subscription_id=stored.subscription_id, tier=stored.tier, policy=policy)
+        if attached is not None:
+            fields: dict[str, Any] = {
+                "key_fingerprint": key_fingerprint,
+                "key_id": attached.key_id,
+            }
+            if grant in {"granted", "replay"}:
+                fields["pending_monthly"] = 0
+            stored = replace(stored, **fields)
+            await _write_sub(kv, stored)
+    await _link_session(
+        kv, session_id, stored.subscription_id, price_id=stored.price_id,
+        credits_amount=stored.plan_credits, customer_id=stored.customer_id,
+        key_fingerprint=key_fingerprint or stored.key_fingerprint)
+    return grant
+
+
 async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
                               subscription_id: str, tier: str,
-                              policy: AccessPolicy) -> keys.KeyRecord | None:
+                              policy: AccessPolicy, set_tier: bool = True
+                              ) -> keys.KeyRecord | None:
     """Point this subscription at an already-issued key. Does not mint.
 
     A previous keyref (a pack session, an earlier plan) is detached so
@@ -286,7 +392,7 @@ async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
     record = await keys.lookup_fingerprint(kv, fingerprint_hex)
     if record is None:
         return None
-    if record.tier != tier:
+    if set_tier and record.tier != tier:
         moved = await keys.set_tier(kv, fingerprint_hex, tier, policy=policy)
         if moved is not None:
             record = moved
@@ -304,8 +410,10 @@ async def attach_existing_key(kv: Any, *, fingerprint_hex: str,
 async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                              price_id: str, tier: str, session_id: str,
                              now: datetime, policy: AccessPolicy,
-                             pending_monthly: int = 0, plan_name: str = "",
-                             plan_credits: int = 0, key_fingerprint: str = ""
+                             pending_monthly: int = 0, pending_invoice_id: str = "",
+                             plan_name: str = "",
+                             plan_credits: int = 0, key_fingerprint: str = "",
+                             promote: bool = True,
                              ) -> tuple[str, SubscriptionRecord]:
     """Record (or refresh) the paid entitlement. Does not mint a key.
 
@@ -320,13 +428,13 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
     if existing is not None:
         action = "already_entitled"
         updated = existing
-        bound = key_fingerprint or existing.key_fingerprint
+        bound = existing.key_fingerprint or key_fingerprint
         attached = None
         if bound and not existing.key_fingerprint:
             attached = await attach_existing_key(
                 kv, fingerprint_hex=bound, subscription_id=subscription_id,
-                tier=tier, policy=policy)
-        if existing.tier != tier or existing.status != STATUS_ACTIVE:
+                tier=tier, policy=policy, set_tier=promote)
+        if promote and (existing.tier != tier or existing.status != STATUS_ACTIVE):
             target_fp = bound or existing.key_fingerprint
             if target_fp:
                 moved = await keys.set_tier(kv, target_fp, tier, policy=policy)
@@ -337,6 +445,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                 customer_id=customer_id or existing.customer_id,
                 price_id=price_id or existing.price_id,
                 pending_monthly=pending_monthly or existing.pending_monthly,
+                pending_invoice_id=pending_invoice_id or existing.pending_invoice_id,
                 plan_name=plan_name or existing.plan_name,
                 plan_credits=plan_credits or existing.plan_credits,
                 key_fingerprint=bound or existing.key_fingerprint,
@@ -350,6 +459,7 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
                 fields["customer_id"] = customer_id
             if pending_monthly and not (bound or existing.key_fingerprint):
                 fields["pending_monthly"] = pending_monthly
+                fields["pending_invoice_id"] = pending_invoice_id or existing.pending_invoice_id
             if plan_name:
                 fields["plan_name"] = plan_name
             if plan_credits:
@@ -375,12 +485,13 @@ async def record_entitlement(kv: Any, *, subscription_id: str, customer_id: str,
         subscription_id=subscription_id, customer_id=customer_id, price_id=price_id,
         tier=tier, status=STATUS_ACTIVE, key_fingerprint="", key_id="",
         created_at=_iso(now), pending_monthly=pending_monthly,
+        pending_invoice_id=pending_invoice_id,
         plan_name=plan_name, plan_credits=plan_credits,
     )
     if key_fingerprint:
         attached = await attach_existing_key(
             kv, fingerprint_hex=key_fingerprint, subscription_id=subscription_id,
-            tier=tier, policy=policy)
+            tier=tier, policy=policy, set_tier=promote)
         if attached is not None:
             stored = replace(stored, key_fingerprint=key_fingerprint,
                              key_id=attached.key_id, pending_monthly=0)
@@ -439,12 +550,16 @@ async def grant_pack(kv: Any, *, fingerprint_hex: str, session_id: str, units: i
 
 
 async def set_subscription_tier(kv: Any, subscription_id: str, tier: str, *,
-                                policy: AccessPolicy) -> str:
+                                policy: AccessPolicy, align_key: bool = False) -> str:
     """Downgrade or restore this subscription's entitlement, and its key if any."""
     existing = await load_subscription(kv, subscription_id)
     if existing is None:
         return "no_key"
-    if existing.tier == tier:
+    key_differs = False
+    if align_key and existing.key_fingerprint:
+        current = await keys.lookup_fingerprint(kv, existing.key_fingerprint)
+        key_differs = current is not None and current.tier != tier
+    if existing.tier == tier and not key_differs:
         return "unchanged"
     if existing.key_fingerprint:
         updated = await keys.set_tier(kv, existing.key_fingerprint, tier, policy=policy)
@@ -463,16 +578,22 @@ def _pack_expiry(now: datetime, policy: AccessPolicy) -> str:
 
 
 async def _grant_pending_monthly(ledger: Any, stored: SubscriptionRecord,
-                                 invoice_id: str) -> None:
+                                 invoice_id: str) -> str:
     if ledger is None or not stored.key_fingerprint or stored.pending_monthly < 1:
-        return
+        return "skipped"
     holder = credits.holder_from_fingerprint(stored.key_fingerprint)
     try:
-        await ledger.set_monthly(
-            holder, stored.pending_monthly, invoice_id,
-            stored.plan_name, stored.customer_id)
+        result = await ledger.set_monthly(
+            holder, stored.pending_monthly, stored.pending_invoice_id or invoice_id,
+            stored.plan_name, stored.customer_id,
+            subscription_id=stored.subscription_id)
     except credits.StoreNotConfigured:
-        return
+        return "store_unbound"
+    if isinstance(result, dict):
+        result = credits.CreditResult.from_json(result)
+    if result.reason == "stale":
+        return "stale"
+    return "granted" if result.credited else result.reason or "duplicate"
 
 
 def _pack_mapping(session: SessionRecord, policy: AccessPolicy):
@@ -505,222 +626,311 @@ def _bound_pack_record(session: SessionRecord, *, now: datetime,
 async def consume_claim(kv: Any, session_id: str, *, now: datetime,
                         policy: AccessPolicy, ledger: Any = None
                         ) -> ClaimResult | None:
-    """Apply this session once: mint a key, or credit the bound existing key.
-
-    `None` means the webhook has not linked this session yet. A second call
-    is `consumed` and does not mint. Pack sessions have no subscription row;
-    a synthetic one is returned so claim's response shape stays the same.
-    """
     session = await load_session(kv, session_id)
     if session is None:
         return None
-    if session.product_kind == "pack":
-        return await _consume_pack_claim(
-            kv, session, now=now, policy=policy, ledger=ledger)
-
-    stored = await load_subscription(kv, session.subscription_id)
-    if stored is None:
-        return None
-    if session.claimed:
-        return ClaimResult(record=stored, consumed=True)
-    if session.key_fingerprint:
-        return await _consume_bound_plan_claim(
-            kv, session, stored, now=now, policy=policy, ledger=ledger)
-    if stored.key_fingerprint:
-        return ClaimResult(record=stored, consumed=True)
-    owner = (f"stripe:{stored.customer_id}" if stored.customer_id
-             else f"stripe:{stored.subscription_id}")
-    secret, record = await keys.issue(
-        kv, tier=stored.tier, owner=owner, now=now, policy=policy,
-        label=f"subscription:{stored.subscription_id}")
-    fingerprint_hex = keys.fingerprint(secret)
-    stored = replace(stored, key_fingerprint=fingerprint_hex, key_id=record.key_id)
-    await _grant_pending_monthly(
-        ledger, stored, invoice_id=f"claim:{stored.subscription_id}")
-    stored = replace(stored, pending_monthly=0)
-    await _write_sub(kv, stored)
-    await _write_keyref(kv, fingerprint_hex, stored.subscription_id)
-    await _write_session(kv, replace(session, claimed=True))
-    return ClaimResult(record=stored, issued=secret, minted=True)
+    if session.product_kind != "pack":
+        if await load_subscription(kv, session.subscription_id) is None:
+            return None
+    return await ledger.claim_purchase(kv, session_id, now=now, policy=policy)
 
 
-async def _consume_bound_plan_claim(kv: Any, session: SessionRecord,
-                                    stored: SubscriptionRecord, *, now: datetime,
+async def _consume_claim_serialized(kv: Any, session_id: str, *, now: datetime,
                                     policy: AccessPolicy, ledger: Any
                                     ) -> ClaimResult | None:
-    fingerprint_hex = session.key_fingerprint
-    if not stored.key_fingerprint:
-        attached = await attach_existing_key(
-            kv, fingerprint_hex=fingerprint_hex,
-            subscription_id=stored.subscription_id, tier=stored.tier,
-            policy=policy)
-        if attached is None:
+    """Select one purchase owner before issuance and complete funding last."""
+    session = await load_session(kv, session_id)
+    if session is None:
+        return None
+    pack = session.product_kind == "pack"
+    subscription_id = f"pack:{session_id}" if pack else session.subscription_id
+    stored = await load_subscription(kv, subscription_id)
+    if stored is None:
+        if not pack:
             return None
-        stored = replace(stored, key_fingerprint=fingerprint_hex,
-                         key_id=attached.key_id)
-        await _write_sub(kv, stored)
-    await _grant_pending_monthly(
-        ledger, stored, invoice_id=f"claim:{stored.subscription_id}")
-    stored = replace(stored, pending_monthly=0)
-    await _write_sub(kv, stored)
-    await _write_session(kv, replace(session, claimed=True))
-    return ClaimResult(record=stored, attached=True)
+        stored = _bound_pack_record(session, now=now, policy=policy, key=None)
+    payment_id = f"pack:{session_id}" if pack else f"claim:{subscription_id}"
+    selected = await ledger.claim_state(payment_id)
+    if selected is not None and selected["stage"] == "complete":
+        if not pack and stored.pending_monthly:
+            stored = replace(stored, pending_monthly=0)
+            await _write_sub(kv, stored)
+        nonce = str(selected.get("nonce") or "")
+        if not nonce:
+            return ClaimResult(record=stored, consumed=True)
+        secret = _claim_secret(policy, nonce)
+        if keys.fingerprint(secret) != (stored.key_fingerprint or ""):
+            return ClaimResult(record=stored, consumed=True)
+        shown = ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
+                            minted=True)
+        await ledger.drop_claim_nonce(payment_id)
+        return shown
+    if selected is None and (session.claimed or (
+            not pack and stored.key_fingerprint and not session.key_fingerprint)):
+        return ClaimResult(record=stored, consumed=True)
+    payment = await ledger.payment(payment_id)
+    if pack and credits.unclaimed_units(payment) == 0:
+        return ClaimResult(record=stored, refunded=True)
 
-
-async def _refunded_before_claim(ledger: Any, session: SessionRecord) -> bool:
-    """True if a refund or lost dispute took the whole pack before it was claimed."""
-    if ledger is None:
-        return False
-    try:
-        rec = await ledger.payment(f"pack:{session.session_id}")
-    except credits.StoreNotConfigured:
-        return False
-    return credits.unclaimed_units(rec) == 0
-
-
-async def _consume_pack_claim(kv: Any, session: SessionRecord, *, now: datetime,
-                              policy: AccessPolicy, ledger: Any
-                              ) -> ClaimResult | None:
-    if await _refunded_before_claim(ledger, session):
-        record = SubscriptionRecord(
-            subscription_id=f"pack:{session.session_id}",
-            customer_id=session.customer_id, price_id=session.price_id,
-            tier=policy.billing.downgrade_tier, status=STATUS_INACTIVE,
-            key_fingerprint="", key_id="", created_at=_iso(now))
-        return ClaimResult(record=record, refunded=True)
-    if session.key_fingerprint:
-        key = await keys.lookup_fingerprint(kv, session.key_fingerprint)
-        dummy = _bound_pack_record(session, now=now, policy=policy, key=key)
-        if session.claimed:
-            return ClaimResult(record=dummy, consumed=True)
-        if key is None:
+    bound = bool(session.key_fingerprint)
+    needs_attachment = bound and not pack and not stored.key_fingerprint
+    nonce = ""
+    if bound:
+        fingerprint_hex = stored.key_fingerprint or session.key_fingerprint
+        if pack and payment and payment.get("holder"):
+            fingerprint_hex = str(payment["holder"]).removeprefix("key:")
+        record = await keys.lookup_fingerprint(kv, fingerprint_hex)
+        if record is None:
             return None
-        amount = dummy.plan_credits
-        if amount > 0:
-            await grant_pack(
-                kv, fingerprint_hex=session.key_fingerprint,
-                session_id=session.session_id, units=amount, ledger=ledger,
-                now=now, policy=policy)
+        secret = ""
+    else:
+        nonce = str(selected.get("nonce") or "") if selected is not None else ""
+        if selected is not None and not nonce:
+            previous_fp = selected["holder"].removeprefix("key:")
+            previous = await keys.lookup_fingerprint(kv, previous_fp)
+            if previous is not None:
+                await kv.put(storage_name_from_fingerprint(previous_fp),
+                             json.dumps(replace(previous, active=False).to_json()))
+        if not nonce:
+            nonce = secrets.token_hex(32)
+        secret = _claim_secret(policy, nonce)
+        fingerprint_hex = keys.fingerprint(secret)
+        record = keys.KeyRecord(
+            key_id=keys.key_id(secret), tier=stored.tier,
+            owner=f"stripe:{stored.customer_id or subscription_id}",
+            created_at=_iso(now), label=(subscription_id if pack else
+                                       f"subscription:{subscription_id}"))
+    amount = (stored.plan_credits if pack else stored.pending_monthly)
+    if selected is not None and (pack or not stored.pending_monthly):
+        amount = int(selected["units"])
+    if not pack and stored.status == STATUS_INACTIVE:
+        amount = 0
+    invoice_id = (stored.pending_invoice_id or
+                  (selected.get("invoice_id", "") if selected else "") or payment_id)
+    holder = credits.holder_from_fingerprint(fingerprint_hex)
+    stored = replace(stored, key_fingerprint=fingerprint_hex, key_id=record.key_id)
+    claim_row = {
+        "holder": holder, "units": amount, "invoice_id": invoice_id,
+        "stage": "prepared",
+    }
+    if nonce:
+        claim_row["nonce"] = nonce
+    await ledger.save_claim(payment_id, claim_row,
+                            kind="pack" if pack else "monthly", units=amount, tx=session_id)
+
+    if not bound:
+        await kv.put(storage_name(secret), json.dumps(record.to_json()))
+    elif needs_attachment:
+        await attach_existing_key(
+            kv, fingerprint_hex=fingerprint_hex, subscription_id=subscription_id,
+            tier=stored.tier, policy=policy)
+    if bound and pack:
         mapping = _pack_mapping(session, policy)
         if mapping is not None:
-            await keys.set_tier(
-                kv, session.key_fingerprint, mapping.tier, policy=policy)
-        await _write_session(kv, replace(session, claimed=True))
-        return ClaimResult(record=dummy, attached=True)
-
-    pack_sub_id = f"pack:{session.session_id}"
-    if session.claimed:
-        stored = await load_subscription(kv, pack_sub_id)
-        if stored is not None:
-            return ClaimResult(record=stored, consumed=True)
-        dummy = SubscriptionRecord(
-            subscription_id=pack_sub_id, customer_id=session.customer_id,
-            price_id=session.price_id, tier=policy.billing.downgrade_tier,
-            status=STATUS_INACTIVE, key_fingerprint="", key_id="",
-            created_at=_iso(now))
-        return ClaimResult(record=dummy, consumed=True)
-    owner = (f"stripe:{session.customer_id}" if session.customer_id
-             else f"stripe:pack:{session.session_id}")
-    mapping = _pack_mapping(session, policy)
-    tier = mapping.tier if mapping is not None else "paid"
-    policy.tier(tier)
-    secret, record = await keys.issue(
-        kv, tier=tier, owner=owner, now=now, policy=policy,
-        label=f"pack:{session.session_id}")
-    fingerprint_hex = keys.fingerprint(secret)
-    amount = session.credits or (mapping.credits if mapping is not None else 0)
-    if ledger is not None and amount > 0:
-        try:
-            await ledger.credit(
-                credits.holder_from_fingerprint(fingerprint_hex),
-                f"pack:{session.session_id}", amount, session.session_id,
-                expires_at=_pack_expiry(now, policy), source="pack")
-        except credits.StoreNotConfigured:
-            pass
-    stored = SubscriptionRecord(
-        subscription_id=pack_sub_id,
-        customer_id=session.customer_id, price_id=session.price_id,
-        tier=tier, status=STATUS_ACTIVE, key_fingerprint=fingerprint_hex,
-        key_id=record.key_id, created_at=_iso(now),
-        plan_name=mapping.name if mapping is not None else "",
-        plan_credits=amount)
-    await _write_sub(kv, stored)
-    await _write_keyref(kv, fingerprint_hex, stored.subscription_id)
+            await keys.set_tier(kv, fingerprint_hex, mapping.tier, policy=policy)
+    else:
+        await _write_sub(kv, replace(
+            stored, pending_monthly=0 if pack else stored.pending_monthly))
+        await _write_keyref(kv, fingerprint_hex, subscription_id)
     await _write_session(kv, replace(session, claimed=True))
-    return ClaimResult(record=stored, issued=secret, minted=True)
+
+    if amount > 0:
+        if pack:
+            result = await ledger.credit(holder, payment_id, amount, session_id,
+                                         expires_at=_pack_expiry(now, policy), source="pack")
+        else:
+            result = await ledger.fund_claim(
+                holder, payment_id, invoice_id, amount,
+                stored.plan_name, stored.customer_id,
+                subscription_id=stored.subscription_id)
+        if isinstance(result, dict):
+            result = credits.CreditResult.from_json(result)
+        if not result.credited and result.reason not in {"replay", "refunded"}:
+            raise RuntimeError("purchase claim could not fund its selected owner")
+        if not result.credited:
+            await ledger.finish_claim(payment_id)
+    else:
+        await ledger.finish_claim(payment_id)
+    if not pack and stored.pending_monthly:
+        stored = replace(stored, pending_monthly=0)
+        await _write_sub(kv, stored)
+    shown = ClaimResult(record=replace(stored, pending_monthly=0), issued=secret,
+                        minted=not bound, attached=bound)
+    if nonce:
+        await ledger.drop_claim_nonce(payment_id)
+    return shown
 
 
 async def rotate(kv: Any, current_key: str, *, now: datetime,
                  policy: AccessPolicy, ledger: Any = None
                  ) -> tuple[str, keys.KeyRecord] | None:
-    """Issue a replacement, revoke the current key. `None` if the key is unknown."""
-    record = await keys.lookup(kv, current_key)
-    if record is None:
-        return None
+    return await ledger.rotate_key(kv, current_key, now=now, policy=policy)
+
+
+async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
+                             policy: AccessPolicy, ledger: Any
+                             ) -> tuple[str, keys.KeyRecord] | None:
+    """Resume a rotation inside the ledger's serialized billing operation."""
     fingerprint_hex = keys.fingerprint(current_key)
-    ref_raw = await kv.get(keyref_name(fingerprint_hex))
-    subscription_id = ""
-    sub: SubscriptionRecord | None = None
-    if ref_raw is not None:
-        ref = KeyRef.from_json(ref_raw)
-        subscription_id = ref.subscription_id
-        sub = await load_subscription(kv, subscription_id)
-    owner = record.owner
-    label = record.label
-    secret, issued = await keys.issue(
-        kv, tier=record.tier, owner=owner, now=now, policy=policy, label=label)
+    holder = credits.holder_from_fingerprint(fingerprint_hex)
+    transition = await ledger.rotation_state(holder)
+    if transition is None:
+        record = await keys.lookup(kv, current_key)
+        if record is None or not record.active:
+            return None
+        ref_raw = await kv.get(keyref_name(fingerprint_hex))
+        subscription_id = KeyRef.from_json(ref_raw).subscription_id if ref_raw else ""
+        transition = {
+            "nonce": secrets.token_hex(32), "stage": "prepared",
+            "key_record": record.to_json(),
+            "subscription_id": subscription_id, "created_at": _iso(now),
+        }
+        await ledger.save_rotation(holder, transition)
+    if transition["stage"] == "complete":
+        return None
+    record = keys.KeyRecord.from_json(json.dumps(transition["key_record"]))
+    secret = policy.live_prefix + hmac.new(
+        current_key.encode(), ("modelspec.rotation:" + transition["nonce"]).encode(),
+        hashlib.sha256).hexdigest()
     new_fp = keys.fingerprint(secret)
-    # The balance moves before the old key is revoked: a ledger that cannot
-    # answer (MODEL-441) then fails the rotation with the old key still valid.
-    if ledger is not None:
-        try:
-            await ledger.transfer(
-                credits.holder_from_fingerprint(fingerprint_hex),
-                credits.holder_from_fingerprint(new_fp))
-        except credits.StoreNotConfigured:
-            pass
-    await keys.revoke(kv, current_key)
-    await _write_keyref(kv, new_fp, subscription_id)
-    if sub is not None:
-        await _write_sub(kv, replace(
-            sub, key_fingerprint=new_fp, key_id=issued.key_id, tier=record.tier))
+    issued = replace(record, key_id=keys.key_id(secret),
+                     created_at=transition["created_at"], active=True)
+    if transition["stage"] == "prepared":
+        current = await keys.lookup(kv, current_key)
+        if current is not None:
+            record = current
+            issued = replace(issued, tier=current.tier)
+        sub = await load_subscription(kv, transition["subscription_id"])
+        owns_subscription = sub is not None and sub.key_fingerprint in {fingerprint_hex, new_fp}
+        if owns_subscription:
+            tier = sub.tier
+            entitled = None
+            try:
+                view = await ledger.entitlement_view(holder)
+            except credits.StoreNotConfigured:
+                view = None
+            if isinstance(view, dict):
+                from billing import _plan_tier
+                entitled = bool(view.get("entitled"))
+                # The row can already name the successor before the balance
+                # moves. A cancellation then clears that successor, and the
+                # source account still looks open. That written successor wins.
+                if (entitled and sub.status == STATUS_INACTIVE
+                        and sub.key_fingerprint
+                        and sub.key_fingerprint != fingerprint_hex):
+                    try:
+                        other = await ledger.entitlement_view(
+                            credits.holder_from_fingerprint(sub.key_fingerprint))
+                    except credits.StoreNotConfigured:
+                        other = None
+                    if (isinstance(other, dict) and not other.get("entitled")
+                            and int(other.get("generation") or 0) > 0):
+                        entitled = False
+                if entitled:
+                    tier = _plan_tier(policy, sub)
+                elif int(view.get("generation") or 0) > 0:
+                    # A generation above zero is an allowance the ledger wrote.
+                    # Zero means this key has no ledger allowance, so the row
+                    # tier stands. Friends is that case: the tier is real and
+                    # the allowance is empty.
+                    tier = policy.billing.downgrade_tier
+            issued = replace(issued, tier=tier)
+            if sub.status == STATUS_INACTIVE and entitled is not True:
+                await ledger.clear_monthly(holder)
+        await kv.put(storage_name(secret), json.dumps(issued.to_json()))
+        await _write_keyref(kv, new_fp, transition["subscription_id"])
+        if owns_subscription:
+            await _write_sub(kv, replace(sub, key_fingerprint=new_fp,
+                                        key_id=issued.key_id))
+        await ledger.transfer(holder, credits.holder_from_fingerprint(new_fp))
+        transition = {**transition, "stage": "transferred"}
+    await kv.put(storage_name(current_key),
+                 json.dumps(replace(record, active=False).to_json()))
+    try:
+        await ledger.save_rotation(holder, {"stage": "complete"})
+    except Exception:
+        if (await ledger.rotation_state(holder) or {}).get("stage") != "complete":
+            raise
     return secret, issued
 
 
 async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
-                        units: int, invoice_id: str, plan: str) -> str:
+                        units: int, invoice_id: str, plan: str,
+                        period_end: int = 0, period_start: int = 0) -> str:
     """SET monthly on the claimed key, or remember it for claim. Packs untouched."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
         return "no_key"
     if stored.key_fingerprint and ledger is not None:
         try:
+            selected = await ledger.claim_state(f"claim:{subscription_id}")
+            if selected is not None and selected["stage"] == "prepared":
+                await _write_sub(kv, replace(
+                    stored, pending_monthly=units, pending_invoice_id=invoice_id,
+                    plan_name=plan or stored.plan_name, plan_credits=units))
+                return "pending"
             result = await ledger.set_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
-                units, invoice_id, plan, stored.customer_id)
-            if result.credited and stored.pending_monthly:
+                units, invoice_id, plan, stored.customer_id,
+                period_end=int(period_end or 0),
+                period_start=int(period_start or 0),
+                subscription_id=subscription_id)
+            if result.reason == "stale":
+                return "stale"
+            accepted = result.credited or (
+                result.reason == "replay" and (
+                    not stored.pending_invoice_id
+                    or stored.pending_invoice_id == invoice_id))
+            if accepted and stored.pending_monthly:
                 await _write_sub(kv, replace(stored, pending_monthly=0,
                                              plan_name=plan or stored.plan_name,
                                              plan_credits=units or stored.plan_credits))
             return "granted" if result.credited else result.reason or "duplicate"
         except credits.StoreNotConfigured:
             return "store_unbound"
-    updated = replace(stored, pending_monthly=units, plan_name=plan or stored.plan_name,
+    updated = replace(stored, pending_monthly=units, pending_invoice_id=invoice_id,
+                      plan_name=plan or stored.plan_name,
                       plan_credits=units or stored.plan_credits)
     await _write_sub(kv, updated)
     return "pending"
 
 
-async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any) -> str:
-    """Zero monthly remaining. Pack grants stay."""
+async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any,
+                        period_end: int = 0, watermark: int = 0) -> str:
+    """Zero monthly remaining. Pack grants stay.
+
+    `period_end` rejects a failed invoice that ended at or before the stored
+    watermark. `watermark` is the cancellation time. A stale clear leaves the
+    allowance and the subscription row alone.
+    """
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
         return "no_key"
     if stored.key_fingerprint and ledger is not None:
         try:
-            await ledger.clear_monthly(
-                credits.holder_from_fingerprint(stored.key_fingerprint))
+            result = await ledger.clear_monthly(
+                credits.holder_from_fingerprint(stored.key_fingerprint),
+                period_end=int(period_end or 0), watermark=int(watermark or 0),
+                subscription_id=subscription_id)
         except credits.StoreNotConfigured:
             return "store_unbound"
+        if result.reason == "stale":
+            return "stale"
     await _write_sub(kv, replace(stored, pending_monthly=0))
     return "cleared"
+
+
+async def claim_from_env(ledger: Any, env: Any, session_id: str, now: str) -> str:
+    result = await _consume_claim_serialized(
+        CloudflareKV(env.ACCESS), str(session_id),
+        now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+        policy=load_policy(env), ledger=ledger)
+    return json.dumps(asdict(result) if result is not None else None)
+
+
+async def rotate_from_env(ledger: Any, env: Any, current_key: str, now: str) -> str:
+    result = await _rotate_serialized(
+        CloudflareKV(env.ACCESS), str(current_key),
+        now=datetime.fromisoformat(str(now).replace("Z", "+00:00")),
+        policy=load_policy(env), ledger=ledger)
+    return json.dumps(None if result is None else [result[0], result[1].to_json()])

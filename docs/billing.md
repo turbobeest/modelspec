@@ -90,9 +90,9 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | --- | --- |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=subscription` | map the Price → plan; record the entitlement; SET monthly to the plan amount. If Checkout metadata carries `modelspec_key_fingerprint`, attach and SET on that existing key. Otherwise pending until claim mints. |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=payment` | map the Price → pack. Fingerprint present: ADD pack credits to that key immediately (claim is confirmation, not a mint). Anonymous: link the session so claim can mint and ADD. |
-| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
-| `invoice.payment_failed` | **immediate** zero of monthly; key's access row to `billing.downgrade_tier` (`free`). Packs stay |
-| `customer.subscription.deleted` | same as failed payment |
+| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. A row with no key is written paid and active with the pending allowance, and claim mints that tier with the allowance. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
+| `invoice.payment_failed` | **immediate** zero of monthly when the ledger accepts the failure; the key's access row goes to `billing.downgrade_tier` (`free`). A stale failure leaves the row unchanged. A row with no key takes the downgrade tier and inactive status, and claim mints that tier. Packs stay |
+| `customer.subscription.deleted` | same as failed payment, and stores `canceled_at` with `canceled_subscription_id` |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
 | `customer.subscription.updated` with `active` | restore the mapped Price's tier. **No credits**: a plan change, coupon or cancel toggle is not a payment; the next `invoice.paid` sets the allowance |
 | `charge.refunded` | a **pack**: remove the refunded share of its **unspent** credits (`refunded` / `refunded_partially`). Spent credits stay spent. See [Refunds and disputes](#refunds-and-disputes) |
@@ -369,8 +369,8 @@ ledger) only. `GET`/`POST /v1/billing/claim` with the Checkout session id
 confirms that session is linked.
 
 - **Anonymous Checkout** (no live key on `POST /v1/billing/checkout`): claim
-  calls `access_keys.issue`, returns the plaintext **once**, and stores only
-  the SHA-256 hash. Pack credits are granted at claim.
+  mints the key and writes the key row, returns the plaintext **once**, and
+  stores only the SHA-256 hash. Pack credits are granted at claim.
 - **Authenticated Checkout** (a valid live key was presented): claim does not
   mint. A pack's credits were ADDed to that key on payment; a plan's monthly
   allowance was SET on that key on payment. The success page (this endpoint)
@@ -395,10 +395,61 @@ moves the credit balance to the new key; the old key is `403 key_revoked`.
 
 ## Downgrade window
 
-**Immediate** on `invoice.payment_failed`, on `customer.subscription.deleted`,
-and on expiry statuses above: monthly allowance goes to 0. Pack credits
-continue until they expire. A later successful `invoice.paid` SETS monthly
-again on the same key.
+**Immediate** on `invoice.payment_failed`, on a terminal cancellation at or
+after the paid period start, and on expiry statuses above: monthly allowance
+goes to 0. Pack credits continue until they expire.
+
+A terminal cancellation is `customer.subscription.deleted`, or
+`customer.subscription.updated` with status `canceled` or `incomplete_expired`.
+Its time is `canceled_at`, or the event `created` when `canceled_at` is absent.
+That time is compared with the paid period start. A cancellation before the
+paid period start is ignored. Checkout with no paid period still clears.
+
+The cancellation stores `canceled_subscription_id` beside `canceled_at`. A
+grant for that subscription follows the cancellation. A grant follows it when
+either id is unknown. A grant from a different known subscription is
+independent of that cancellation. An accepted grant clears both fields. A
+grant with no period for the cancelled subscription stays stale. Checkout and
+the pending-allowance grant pass the subscription id.
+
+A grant the ledger rejects leaves the subscription row's tier, status, and
+key fingerprint unchanged, and leaves the stored invoice period unchanged.
+A first `invoice.paid` the ledger rejects, for a subscription that has no
+row yet, writes no row.
+`invoice.paid`, Checkout, and the pending-allowance grant copy the ledger
+entitlement onto the key when the row has a key. The copy runs for every
+grant the key can hold, including a replay. A replay after a later
+cancellation copies the downgrade tier. When the ledger says the key is
+entitled, an event that carries a mapping writes that mapping's tier.
+Rotation, a replay that only re-reads the ledger, and the settle step after
+a cancellation or a failed payment write the row's tier when it is set and
+is not the downgrade tier, and the Price's tier only when the row's tier is
+empty or the downgrade tier. A key that is not entitled gets the downgrade
+tier. A replay leaves the key and the row unchanged when the ledger view
+is not entitled, the ledger generation is zero, and `canceled_at` is unset.
+
+An account stored before `monthly_entitled` derives entitlement from a
+positive monthly balance, or from a stored paid watermark with `canceled_at`
+unset. An explicit false stays closed.
+
+A row with no key takes the downgrade tier and inactive status when a
+cancellation or failed payment is accepted. Claim mints the key on that tier.
+Rotation copies the ledger entitlement onto the new key. A ledger generation
+of zero has no allowance write, and the row tier stands. When the row already
+names the successor and that account has a clear, the new key takes the
+downgrade tier.
+
+An `invoice.paid` whose period starts at or after the cancellation sets monthly
+again on the same key. An `invoice.paid` whose period starts before the
+cancellation is ignored, including a period that ended at or before the
+cancellation. An invoice with no period end does not reopen a terminal
+subscription. A later `customer.subscription.updated` with status `active` and
+a later `created` restores the tier.
+
+A paid invoice is stale only when its period end is before the stored paid
+period end. A different invoice id with the same period end applies. The same
+invoice id does not grant twice. A failed invoice whose period end is at or
+before the stored paid period end is ignored.
 
 ## Refunds and disputes
 

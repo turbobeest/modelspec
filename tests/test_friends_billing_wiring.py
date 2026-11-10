@@ -48,6 +48,7 @@ def test_routed_promotion_webhook_and_claim_use_configured_stripe_reader(entry, 
     env.TIER_POLICY = json.dumps(config)
     env.STRIPE_SECRET_KEY = "sk_fixture"
     env.STRIPE_WEBHOOK_SECRET = SECRET
+    env.CREDITS = entry.credits.MemoryLedger()
     worker = entry.Default()
     worker.env = env
     obj = session(discounts=[{"promotion_code": "promo_fixture"}])

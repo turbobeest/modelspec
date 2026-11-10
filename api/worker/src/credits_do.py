@@ -56,6 +56,63 @@ class CreditsObject(DurableObject):
     def _save(self, state: LedgerState) -> None:
         self._put(_STATE_KEY, json.dumps(state.to_json()))
 
+    async def claim_state(self, payment_id: str, encoded: bool = False) -> Any:
+        data = self._stored().claim_state(str(payment_id))
+        return json.dumps(data) if encoded else data
+
+    async def save_claim(self, payment_id: str, data: Any,
+                         kind: str, units: int, tx: str) -> None:
+        state = self._stored()
+        state.save_claim(str(payment_id), json.loads(data) if isinstance(data, str) else data,
+                         kind=str(kind), units=int(units), tx=str(tx))
+        self._save(state)
+
+    async def finish_claim(self, payment_id: str) -> None:
+        state = self._stored()
+        state.finish_claim(str(payment_id))
+        self._save(state)
+
+    async def drop_claim_nonce(self, payment_id: str) -> None:
+        state = self._stored()
+        state.drop_claim_nonce(str(payment_id))
+        self._save(state)
+
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str,
+                         units: int, plan: str = "", customer_id: str = "",
+                         subscription_id: str = "") -> dict[str, Any]:
+        state = self._stored()
+        result = state.fund_claim(
+            str(holder), str(claim_id), str(invoice_id),
+            int(units), str(plan), str(customer_id),
+            subscription_id=str(subscription_id or ""))
+        self._save(state)
+        return result.to_json()
+
+    async def claim_purchase(self, session_id: str, now: str) -> str:
+        from access_billing import claim_from_env
+
+        async def claim():
+            return await claim_from_env(self, self.env, str(session_id), str(now))
+
+        return await self.ctx.blockConcurrencyWhile(claim)
+
+    async def rotation_state(self, holder: str, encoded: bool = False) -> Any:
+        data = self._stored().rotation_state(str(holder))
+        return json.dumps(data) if encoded else data
+
+    async def save_rotation(self, holder: str, data: Any) -> None:
+        state = self._stored()
+        state.save_rotation(str(holder), json.loads(data) if isinstance(data, str) else data)
+        self._save(state)
+
+    async def rotate_key(self, current_key: str, now: str) -> str:
+        from access_billing import rotate_from_env
+
+        async def rotate():
+            return await rotate_from_env(self, self.env, str(current_key), str(now))
+
+        return await self.ctx.blockConcurrencyWhile(rotate)
+
     async def credit(self, holder: str, payment_id: str, units: int,
                      tx: str, expires_at: str = "",
                      source: str = "x402") -> dict[str, Any]:
@@ -75,18 +132,33 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> dict[str, Any]:
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0, period_start: int = 0,
+                          subscription_id: str = "") -> dict[str, Any]:
         state = self._stored()
         result = state.set_monthly(holder, int(units), str(invoice_id),
-                                   str(plan or ""), str(customer_id or ""))
+                                   str(plan or ""), str(customer_id or ""),
+                                   period_end=int(period_end or 0),
+                                   period_start=int(period_start or 0),
+                                   subscription_id=str(subscription_id or ""))
         self._save(state)
         return result.to_json()
 
-    async def clear_monthly(self, holder: str) -> dict[str, Any]:
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0,
+                            subscription_id: str = "") -> dict[str, Any]:
         state = self._stored()
-        result = state.clear_monthly(holder)
+        result = state.clear_monthly(str(holder), period_end=int(period_end or 0),
+                                     watermark=int(watermark or 0),
+                                     subscription_id=str(subscription_id or ""))
         self._save(state)
         return result.to_json()
+
+    async def invoice_watermark(self, holder: str) -> int:
+        return self._stored().invoice_watermark(str(holder))
+
+    async def entitlement_view(self, holder: str) -> dict[str, Any]:
+        return self._stored().entitlement_view(str(holder))
 
     async def transfer(self, src: str, dst: str) -> bool:
         state = self._stored()
