@@ -61,6 +61,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -961,15 +962,19 @@ class Budget:
     limit: int
     spent: int = 0
     reserved: int = 0
+    _lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False, compare=False
+    )
 
     def exhausted(self) -> bool:
         return max(self.spent, self.reserved) >= self.limit
 
     def reserve(self, amount: int) -> None:
-        committed = max(self.spent, self.reserved)
-        if committed + amount > self.limit:
-            raise JudgeUnavailable("token budget cannot cover another request")
-        self.reserved = committed + amount
+        with self._lock:
+            committed = max(self.spent, self.reserved)
+            if committed + amount > self.limit:
+                raise JudgeUnavailable("token budget cannot cover another request")
+            self.reserved = committed + amount
 
 
 class Attributor:
@@ -1093,7 +1098,8 @@ class Attributor:
             input_tokens = usage.get("input_tokens") if isinstance(usage, dict) else None
             if type(input_tokens) is not int or input_tokens < 0:
                 input_tokens = 0
-            self.budget.spent += input_tokens
+            with self.budget._lock:
+                self.budget.spent += input_tokens
             row = {
                 "key": key,
                 "date": date.today().isoformat(),
