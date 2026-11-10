@@ -788,13 +788,20 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                     policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
                 if error is not None:
                     return error
-                # Restore access only. Credits come from a paid invoice or
-                # Checkout: an update (a plan change, a coupon, a cancel
-                # toggle) is not a payment, and an upgrade's prorated invoice
-                # may still be unpaid.
+                # The update is not a payment. The tier follows the ledger.
+                tier = mapping.tier if mapping else ""
+                row = await store.load_subscription(kv, subscription_id)
+                fingerprint = row.key_fingerprint if row is not None else ""
+                if fingerprint and not isinstance(ledger, credits.UnboundLedger):
+                    try:
+                        view = await ledger.entitlement_view(
+                            credits.holder_from_fingerprint(fingerprint))
+                    except credits.StoreNotConfigured:
+                        view = None
+                    if isinstance(view, dict) and not view.get("entitled"):
+                        tier = policy.billing.downgrade_tier
                 action = await store.set_subscription_tier(
-                    kv, subscription_id, mapping.tier if mapping else "",
-                    policy=policy, ledger=ledger)
+                    kv, subscription_id, tier, policy=policy, ledger=ledger)
                 if action == "tier_set":
                     action = "restored"
 

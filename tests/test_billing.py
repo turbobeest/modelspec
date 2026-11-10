@@ -2176,8 +2176,40 @@ def test_active_subscription_update_applies_after_cancellation(policy):
         outcome = await _dated_event(kv, ledger, policy, "customer.subscription.updated",
                                      active, "evt_active", created=400)
         assert outcome.status == 200
-        assert outcome.body["action"] == "restored"
+        assert outcome.body["action"] == "unchanged"
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+    run(scenario())
+
+
+
+def test_active_status_update_tier_follows_the_ledger(policy):
+    """An active status update writes the downgrade tier until an accepted invoice."""
+
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        assert (await _dated_event(
+            kv, ledger, policy, "customer.subscription.deleted", deleted,
+            "evt_cancel_follow", created=300)).status == 200
+        assert (await ledger.entitlement_view(_billing_holder(key)))["entitled"] is False
+        active = {"id": SUB, "status": "active", "customer": CUS,
+                  "items": {"data": [{"price": {"id": PRICE}}]}}
+        outcome = await _dated_event(
+            kv, ledger, policy, "customer.subscription.updated", active,
+            "evt_active_follow", created=400)
+        assert outcome.status == 200
+        assert (await keys.lookup(kv, key)).tier == policy.billing.downgrade_tier
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored is not None
+        assert stored.subscription_status == "active"
+        assert stored.tier == policy.billing.downgrade_tier
+        invoice = invoice_obj(id="in_after_active", period_start=400, period_end=500)
+        paid = await _dated_event(
+            kv, ledger, policy, "invoice.paid", invoice, "evt_after_active", created=400)
+        assert paid.status == 200
         assert (await keys.lookup(kv, key)).tier == "paid"
+        assert (await ledger.balance(_billing_holder(key))).monthly == 4000
     run(scenario())
 
 

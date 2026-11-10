@@ -14,3 +14,9 @@ env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.ven
 
 Before the fix: 3 failed, 189 deselected, exit 1.
 After the fix: 3 passed, 189 deselected, exit 0.
+
+## C2
+
+A `customer.subscription.updated` with status `active` sets the row status to `active`. The tier written to the row and the key follows the ledger: the paid tier only when the ledger view says the key is entitled, and the downgrade tier otherwise, until an accepted `invoice.paid` credits the period.
+
+`test_active_subscription_update_applies_after_cancellation` asserts `action` `unchanged` and the key tier `policy.billing.downgrade_tier`. On main the same test asserted `action` `restored` and the key tier `paid`. The status update sets `subscription_status` to `active`. The tier argument follows the ledger. With `entitled` false the argument is the downgrade tier, so `set_subscription_tier` returns `unchanged`.
