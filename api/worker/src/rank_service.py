@@ -29,6 +29,7 @@ not a feature.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from api.ranking.engine import (
@@ -171,7 +172,13 @@ def _optional_number(value: Any, field: str) -> float | None:
     # bool is an int in Python, and `true` is not a number a caller meant.
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise RequestError("invalid_request", f"{field} must be a number")
-    return float(value)
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        raise RequestError("invalid_request", f"{field} must be a finite number") from None
+    if not math.isfinite(number):
+        raise RequestError("invalid_request", f"{field} must be a finite number")
+    return number
 
 
 def parse_request(payload: Any, known_hardware: set[str]) -> dict[str, Any]:
