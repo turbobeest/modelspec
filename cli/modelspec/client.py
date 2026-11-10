@@ -2,15 +2,28 @@
 
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, NoReturn
 
 import httpx
 
 from .auth import Credential
 from .errors import ClientError
 from .guidance import BUNDLE, TEXT, next_steps
+from .spec import MAX_BYTES
 
 _transport: httpx.BaseTransport | None = None
+
+
+def _reject_constant(value: str) -> NoReturn:
+    raise ValueError("Nonfinite JSON constant")
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Nonfinite JSON number")
+    return number
 
 
 class Client:
@@ -41,9 +54,12 @@ class Client:
                 follow_redirects=False,
                 headers=headers,
             ) as session:
-                response = session.request(
+                request = session.build_request(
                     method, BUNDLE["urls"]["api"] + path, json=body, params=params
                 )
+                if path in {"/v1/decide", "/v1/compare"} and len(request.content) > MAX_BYTES:
+                    raise ClientError("spec_too_large", recovery="spec")
+                response = session.send(request)
         except (httpx.HTTPError, ValueError):
             raise ClientError(
                 "network_error",
@@ -55,17 +71,17 @@ class Client:
         # A broken server must not be able to echo the presented credential.
         # response.text is already decoded; encoding headers would decode it again.
         kept = [
-            (name, value)
+            (name, self.credential.redact(value))
             for name, value in response.headers.multi_items()
             if name.lower() not in {"content-encoding", "content-length", "transfer-encoding"}
         ]
         response = httpx.Response(
             response.status_code,
             headers=kept,
-            text=self.credential.redact(response.text),
+            text=self.credential.redact_json(response.text),
         )
         try:
-            payload = response.json()
+            payload = response.json(parse_constant=_reject_constant, parse_float=_finite_float)
         except ValueError:
             payload = None
         error = payload.get("error") if isinstance(payload, dict) else None

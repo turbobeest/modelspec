@@ -324,7 +324,7 @@ def _representative_rows(
 
 def _unique_extreme(values: Mapping[str, float | None], *, highest: bool) -> str | None:
     known = {model_id: value for model_id, value in values.items() if value is not None}
-    if not known:
+    if not known or len(known) != len(values):
         return None
     extreme = (max if highest else min)(known.values())
     winners = sorted(model_id for model_id, value in known.items() if value == extreme)
@@ -1005,7 +1005,7 @@ def _decide(
 
         explain(
             decision, resolved, snapshot, filtered, ordered, selectors, domains,
-            comparison=comparison,
+            comparison=comparison, reach=_reach,
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)

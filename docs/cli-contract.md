@@ -64,7 +64,10 @@ that config. Setup never copies a saved or environment key into the config.
 
 Without `--write`, no file is read or changed. With `--write`, the CLI reads
 the target JSON or TOML config, prepares a change to only `modelspec`, and
-prints a redacted unified diff to stderr. It writes atomically after interactive
+prints a unified diff of the parsed `modelspec` entry to stderr, with credential
+values redacted. The review uses a JSON representation for both JSON and TOML
+configs and excludes unrelated entries. Redaction affects the display only.
+It writes atomically after interactive
 confirmation or `--yes`. JSON mode requires `--yes` to write; it keeps stdout a
 single JSON document. Other servers and settings retain their values and bytes.
 An unusual inline TOML definition is refused with manual setup as the next step.
@@ -90,7 +93,8 @@ use an explicit credential placeholder; complete it in the client's secret setti
 Otherwise the CLI reads `api-key` under the user's config directory: XDG when
 set, `~/Library/Application Support/modelspec` on macOS, `%APPDATA%/modelspec`
 on Windows, and `~/.config/modelspec` on other platforms. A stored key must be a
-regular file. POSIX requires mode 0600; Windows relies on the user-profile
+regular file. Nonregular files are refused without waiting for a writer.
+POSIX requires mode 0600; Windows relies on the user-profile
 directory ACL because it cannot report POSIX modes. `auth set` accepts a
 hidden prompt or `--stdin`, writes atomically with 0600 permissions where
 supported, and never echoes the key. There is no key
@@ -129,7 +133,10 @@ the bounded row list (`model_rank`, `cost_per_task`, `estimates`, `p_best`,
 plus `contributions` and `evidence` when `explain` is omitted, `summary`, or
 `full`). An omitted `explain` is the server default, summary. An explicit
 `fields` value, including null, is sent unchanged. The server validates
-semantics and is the authority. The request is at most 64 KB. A template comes
+semantics and is the authority. Spec input and the final UTF-8 request body are
+each at most 64 KiB, or 65,536 bytes. The CLI checks the serialized body after
+adding defaults, router controls or the snapshot-comparison wrapper, before
+sending it. Overflow returns `spec_too_large`, exit 1. A template comes
 from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
 cached registry. Its Spec is validated the same way, and `fields` is added
@@ -173,7 +180,8 @@ shows lifecycle and explicit unknown values, labels absent response records
 "not shown", keeps evidence with different measurement conditions on separate
 rows, and lists source URLs and omitted record counts.
 JSON output preserves the server body unchanged. This form is present in the
-repository; the CLI package version remains 0.4.0 pending release review.
+repository; its package metadata is 1.0.0. Release publication requires operator
+review and is not established by the repository version.
 
 The snapshot form of `compare` requires exactly one of `--spec` and
 `--template`, using the same Spec loading, validation and keyed template

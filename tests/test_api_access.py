@@ -770,3 +770,57 @@ def test_every_refusal_code_has_a_status():
                  access.ACCESS_NOT_CONFIGURED, access.STORE_NOT_CONFIGURED,
                  access.SANDBOX_NOT_AVAILABLE):
         assert access.REFUSALS[code] >= 400
+
+
+@pytest.mark.parametrize("tier_name", ["free", "paid", "dpf"])
+def test_live_data_authentication_checks_only_the_key_record(policy, tier_name):
+    kv = MemoryKV()
+    secret = "live_authentication"
+    run(_issue(kv, tier_name, policy, secret))
+    before = dict(kv.data)
+    kv.calls.clear()
+
+    async def allowed(*args):
+        return 200, {"authenticated": True}
+
+    async def skip_limits(record, tier):
+        return True
+
+    outcome = run(access.gate(
+        api_key=secret, enforced=True, require_key=True, require_live_data=True,
+        kv=kv, load_policy=lambda: policy, anonymous=allowed, live=allowed,
+        sandbox=_sandbox_answer, skip_limits=skip_limits,
+    ))
+
+    assert outcome.status == 200
+    assert outcome.body == {"authenticated": True}
+    assert kv.calls == [("get", keys.storage_name(secret))]
+    assert kv.data == before
+    assert outcome.meter.windows == ()
+
+
+@pytest.mark.parametrize("sandbox_key", [False, True], ids=["stored-tier", "sandbox-prefix"])
+def test_live_data_authentication_requires_live_permission_before_callbacks(policy, sandbox_key):
+    table = json.loads(access_config.DEFAULT_POLICY_PATH.read_text(encoding="utf-8"))
+    table["tiers"]["free"]["live_data"] = False
+    restricted = access_config.policy_from_json(json.dumps(table))
+    kv = MemoryKV()
+    secret = "test_authentication" if sandbox_key else "live_authentication"
+    if not sandbox_key:
+        run(_issue(kv, "free", policy, secret))
+    before = dict(kv.data)
+    kv.calls.clear()
+
+    async def never(*args):
+        pytest.fail("live-data authorization must precede admission and metering")
+
+    outcome = run(access.gate(
+        api_key=secret, enforced=True, require_key=True, require_live_data=True,
+        kv=kv, load_policy=lambda: restricted, anonymous=never, live=never,
+        sandbox=_sandbox_answer, skip_limits=never,
+    ))
+
+    assert outcome.status == 400
+    assert outcome.body["error"]["code"] == "sandbox_not_available"
+    assert kv.calls == ([] if sandbox_key else [("get", keys.storage_name(secret))])
+    assert kv.data == before

@@ -47,17 +47,17 @@ jobs:
     env:
       MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Check out the main comparison
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: .memory-main
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
       - name: Install the pinned memory runtime
@@ -108,19 +108,19 @@ jobs:
     name: Rank Worker bundle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
           cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' && 'pip' || '' }}
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.12.19'
           enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
@@ -235,7 +235,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Require the private checkout credential
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
@@ -243,7 +243,7 @@ jobs:
           DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
         run: test -n "$DATA_TOKEN"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
         with:
           repository: turbobeest/modelspec-data
@@ -251,16 +251,16 @@ jobs:
           path: modelspec-data
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.12.19'
           enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
@@ -282,7 +282,22 @@ jobs:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          python - api/worker/src "$RUNNER_TEMP/private-period-mode" <<'PY'
+          import runpy
+          import sys
+          from pathlib import Path
+
+          blobs = runpy.run_path(str(Path(sys.argv[1]) / "bundled_data.py"))["BLOBS"]
+          snapshot = "/api/decision/snapshot-successor.json.gz" in blobs
+          vocabulary = "/api/decision/vocabulary-successor.json" in blobs
+          if snapshot != vocabulary:
+              raise SystemExit("Incomplete private successor pair")
+          Path(sys.argv[2]).write_text("both\n" if snapshot else "current\n")
+          PY
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          if [ "$(cat "$RUNNER_TEMP/private-period-mode")" = both ]; then
+            NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          fi
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -322,7 +337,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Require the private checkout credential
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
@@ -330,7 +345,7 @@ jobs:
           DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
         run: test -n "$DATA_TOKEN"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
         with:
           repository: turbobeest/modelspec-data
@@ -338,16 +353,16 @@ jobs:
           path: modelspec-data
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.12.19'
           enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
@@ -369,7 +384,22 @@ jobs:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          python - api/worker/src "$RUNNER_TEMP/private-period-mode" <<'PY'
+          import runpy
+          import sys
+          from pathlib import Path
+
+          blobs = runpy.run_path(str(Path(sys.argv[1]) / "bundled_data.py"))["BLOBS"]
+          snapshot = "/api/decision/snapshot-successor.json.gz" in blobs
+          vocabulary = "/api/decision/vocabulary-successor.json" in blobs
+          if snapshot != vocabulary:
+              raise SystemExit("Incomplete private successor pair")
+          Path(sys.argv[2]).write_text("both\n" if snapshot else "current\n")
+          PY
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          if [ "$(cat "$RUNNER_TEMP/private-period-mode")" = both ]; then
+            NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          fi
 
       - name: Resolve the Worker's Python dependencies
         run: |

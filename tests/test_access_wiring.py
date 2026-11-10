@@ -487,3 +487,99 @@ def test_retired_internal_paths_use_the_generic_not_found_response(entry, method
         body = expected.json()
         body["error"]["message"] = f"no endpoint at /internal/ledger/{action}"
         assert response.json() == body
+
+
+def _auth_request(key=None, *, header="authorization", method="GET"):
+    request = Request("/v1/auth-check", None, key=key, header=header)
+    request.method = method
+    return request
+
+
+@pytest.mark.parametrize("enforced", ["false", "true"])
+@pytest.mark.parametrize("tier", ["free", "paid", "dpf"])
+@pytest.mark.parametrize("header", ["authorization", "x-api-key"])
+def test_auth_check_returns_only_status_without_data_or_usage(entry, data, monkeypatch, enforced, tier, header):
+    import access_keys
+
+    binding = WorkersKV()
+    key = "live_authentication"
+    _issue(entry, binding, tier, key)
+    before = dict(binding.values)
+    env = _env(enforced=enforced, access=binding)
+    env.BILLING_ENABLED = "true"
+    env.X402_ENABLED = "true"
+    env.CREDITS = ExplodingKV()
+
+    def no_ledger(*args):
+        pytest.fail("authentication must not open the credit ledger")
+
+    monkeypatch.setattr(entry.credits, "ledger_from_env", no_ledger)
+    for _ in range(12):
+        response = _call(entry, env, _auth_request(key, header=header))
+        assert response.status == 200
+        assert response.json() == {"authenticated": True}
+        assert response.headers["cache-control"] == "no-store"
+        assert not any(name.startswith("ratelimit") for name in response.headers)
+    assert binding.values == before
+    assert binding.ops == [("get", access_keys.storage_name(key))] * 12
+    assert data.reads == 0
+
+
+@pytest.mark.parametrize("enforced", ["false", "true"])
+@pytest.mark.parametrize("kind, status, code", [
+    ("missing", 401, "missing_api_key"),
+    ("unknown", 401, "invalid_api_key"),
+    ("revoked", 403, "key_revoked"),
+    ("sandbox", 400, "sandbox_not_available"),
+    ("restricted", 400, "sandbox_not_available"),
+    ("unbound", 503, "access_store_not_configured"),
+    ("tier-missing", 500, "tier_not_configured"),
+])
+def test_auth_check_preserves_key_refusals(entry, data, enforced, kind, status, code):
+    import access_keys
+    import access_kv
+
+    binding = WorkersKV()
+    key = "live_authentication"
+    env = _env(enforced=enforced, access=binding)
+    if kind in {"revoked", "restricted", "tier-missing"}:
+        _issue(entry, binding, "free", key)
+    if kind == "missing":
+        key = None
+    elif kind == "sandbox":
+        key = "test_authentication"
+    elif kind == "revoked":
+        asyncio.run(access_keys.revoke(access_kv.CloudflareKV(binding), key))
+    elif kind == "restricted":
+        policy = json.loads(TIERS)
+        policy["tiers"]["free"]["live_data"] = False
+        env.TIER_POLICY = json.dumps(policy)
+    elif kind == "tier-missing":
+        name = access_keys.storage_name(key)
+        record = json.loads(binding.values[name])
+        record["tier"] = "unconfigured"
+        binding.values[name] = json.dumps(record)
+    elif kind == "unbound":
+        del env.ACCESS
+    before = dict(binding.values)
+    binding.ops.clear()
+
+    response = _call(entry, env, _auth_request(key))
+
+    assert response.status == status
+    assert response.json()["error"]["code"] == code
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json().get("authenticated") is not True
+    assert binding.values == before
+    assert all(op == "get" for op, _ in binding.ops)
+    assert data.reads == 0
+
+
+def test_auth_check_is_a_discoverable_get_operation(entry, data):
+    assert "GET /v1/auth-check" in entry.ACCEPTED_ENDPOINTS
+    response = _call(entry, _env(), _auth_request(method="POST"))
+    assert response.status == 405
+    assert response.json()["error"]["code"] == "method_not_allowed"
+    assert response.json()["error"]["message"] == "/v1/auth-check takes GET, not POST"
+    assert response.headers["cache-control"] == "no-store"
+    assert data.reads == 0

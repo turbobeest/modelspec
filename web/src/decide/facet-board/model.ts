@@ -338,8 +338,17 @@ export function sanitizeBoardState(
   };
   for (const [id, choice] of Object.entries(state.selections)) {
     if (choice.mode === "off") continue;
-    if (editable.has(id)) selections[id] = choice;
-    else notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
+    if (!editable.has(id)) {
+      notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
+      continue;
+    }
+    const weightKey = id.startsWith("refinement.")
+      ? vocabulary.refinements?.find((row) => refinementSelectionId(row.id) === id)?.weight_key
+      : preferenceKey(id, vocabulary.facets.find((facet) => facet.id === id));
+    if (choice.weightKey !== undefined && weightKey !== undefined && choice.weightKey !== weightKey) {
+      selections[id] = { ...choice, weightKey };
+      notes.push(`${labels.get(id) ?? fallbackLabel(id)} preference now uses the dimension and direction shown by this board.`);
+    } else selections[id] = choice;
   }
   const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
     choice.mode === "must" || choice.mode === "both" ? [id] : [],
@@ -372,6 +381,11 @@ export function sanitizeBoardState(
     ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };
+}
+
+function preferenceKey(facetId: string, facet?: VocabFacet): string {
+  if (facetId.startsWith("capability.")) return facetId.slice("capability.".length);
+  return facet?.preference?.kind === "continuous" && lowerIsBetter(facet) ? `-${facetId}` : facetId;
 }
 
 export function boardWeights(
@@ -412,10 +426,7 @@ export function allocateBoardWeights(
       preference === null || preference === undefined
     ) return [];
     // A leading `-` is how the engine minimises an objective (MODEL-297).
-    const id = choice.weightKey ?? (facetId.startsWith("capability.")
-      ? facetId.slice("capability.".length)
-      : row && preference.kind === "continuous" && lowerIsBetter(row) ? `-${facetId}`
-      : facetId);
+    const id = preferenceKey(facetId, row);
     const weight = choice.weight ?? 0.5;
     if (preference.kind === "value") {
       const preferred = choice.value;
@@ -576,6 +587,39 @@ function legacyConditionSelection(condition: Cond): { facetId: string; selection
     case "rel":
       return null;
   }
+}
+
+/** Restore saved requirements through the same editable controls as the board. */
+export function restoreBoardState(spec: Spec, board: BoardUrlState, vocabulary: Vocabulary): SanitizedBoardState {
+  const owned = new Set(Object.keys(board.selections).flatMap((id) => [id, id.replace(/^capability\./, "")]));
+  const remaining = spec.conds.filter((condition) => {
+    const mapped = legacyConditionSelection(condition);
+    return !owned.has(condition.f === "facet" ? condition.facet : mapped?.facetId ?? "");
+  }).map((condition) => condition.f === "facet" && vocabulary.domains.some((domain) => domain.id === condition.facet)
+    ? { ...condition, facet: `capability.${condition.facet}` }
+    : condition);
+  const compatible = legacySpecToBoard(
+    { ...spec, conds: remaining, task: "", bar: undefined, w: { cap: 0, cost: 0, speed: 0 } },
+    vocabulary,
+    board.estate,
+  );
+  const notes = compatible.mustOrder.length
+    ? [...compatible.notes, "Additional saved requirements are shown as Must controls."]
+    : compatible.notes;
+  const previousByFacet = new Map<string, Cond>();
+  for (const condition of remaining) {
+    const mapped = legacyConditionSelection(condition);
+    if (!mapped) continue;
+    const previous = previousByFacet.get(mapped.facetId);
+    if (previous)
+      notes.push(`Your saved link also asked for ${contractCondition(previous)}; the board keeps only the last requirement for this facet, so that earlier condition is not applied.`);
+    previousByFacet.set(mapped.facetId, condition);
+  }
+  return sanitizeBoardState({
+    ...board,
+    selections: { ...compatible.selections, ...board.selections },
+    mustOrder: [...compatible.mustOrder, ...board.mustOrder],
+  }, vocabulary, notes);
 }
 
 /** Translate a permalink written by the retired composer into visible board state. */

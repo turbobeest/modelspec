@@ -525,3 +525,60 @@ def test_vocabulary_head_and_query_variants_take_the_same_visit_gate(bundled_ent
         assert not response.body
     else:
         assert "facets" in response.json()
+
+
+@pytest.mark.parametrize("missing_secret", [True, False])
+def test_funded_vocabulary_does_not_depend_on_human_gate(bundled_entry, missing_secret):
+    from datetime import UTC, datetime
+    import access_config
+    import access_keys
+    import credits
+
+    env = environment(VISIT_GATE_ENABLED="false", HUMAN_GATE_ENABLED="true", X402_ENABLED="false",
+                      TURNSTILE_SECRET=None if missing_secret else "fixture-secret")
+    key = "live_vocabulary_fixture"
+    asyncio.run(access_keys.issue(env.ACCESS, tier="paid", owner="fixture", now=datetime.now(UTC),
+                                 policy=access_config.load_policy(env), secret=key))
+    asyncio.run(env.CREDITS.set_monthly(credits.holder_from_fingerprint(access_keys.fingerprint(key)),
+                                      5, "fixture-invoice", "fixture"))
+    worker = _decision_worker(bundled_entry, env)
+    response = asyncio.run(worker.fetch(request("/v1/vocabulary", key=key)))
+    assert response.status == 200
+    assert not env.HUMAN_GATE.objects
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("missing", [None, "TURNSTILE_SECRET", "VISITOR_HMAC_KEY", "HUMAN_GATE"])
+def test_keyed_vocabulary_uses_only_catalog_allowances(bundled_entry, monkeypatch, method, missing):
+    from datetime import UTC, datetime
+    import access_config
+    import access_keys
+    import credits
+
+    monkeypatch.setattr(credits, "_now_iso", lambda moment=None: "2026-11-09T12:00:00Z")
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 1794225600)
+
+    async def scenario():
+        env = environment(VISIT_GATE_ENABLED="false", HUMAN_GATE_ENABLED="true", X402_ENABLED="false")
+        human_objects = env.HUMAN_GATE.objects
+        if missing is not None:
+            setattr(env, missing, None)
+        key = "live_vocabulary_catalog"
+        await access_keys.issue(env.ACCESS, tier="paid", owner="fixture", now=datetime.now(UTC),
+                                policy=access_config.load_policy(env), secret=key)
+        holder = credits.holder_from_fingerprint(access_keys.fingerprint(key))
+        await env.CREDITS.set_monthly(holder, 5, "in_catalog_only", "fixture")
+        worker = _decision_worker(bundled_entry, env)
+        req = request("/v1/vocabulary", key=key)
+        req.method = method
+        for _ in range(11):
+            response = await worker.fetch(req)
+            assert response.status == 200
+            if method == "HEAD":
+                assert response.body is None
+        assert (await env.CREDITS.balance(holder)).available == 3
+        responses = await asyncio.gather(*(worker.fetch(req) for _ in range(20)))
+        assert sorted(response.status for response in responses) == [200] * 19 + [429]
+        assert (await env.CREDITS.balance(holder)).available == 2
+        assert not human_objects
+    asyncio.run(scenario())
