@@ -222,14 +222,30 @@ def test_private_memory_workflow_patch_gates_and_compares_both_periods():
     assert "--baseline \"$RUNNER_TEMP/private-main-successor-memory.json\"" in commands[-1]
 
 
+_PRIVATE_SUCCESSOR_PAIRS = {
+    "both": (
+        "/api/decision/snapshot-successor.json.gz",
+        "/api/decision/vocabulary-successor.json",
+    ),
+    "neither": (),
+    "snapshot": ("/api/decision/snapshot-successor.json.gz",),
+    "vocabulary": ("/api/decision/vocabulary-successor.json",),
+}
+
+
 @pytest.mark.parametrize("job_name", ["deploy-staging", "deploy"])
-@pytest.mark.parametrize("current,successor,expected_status,periods", [
-    (110, 121, 1, ["current", "successor"]),
-    (121, 110, 1, ["current"]),
-    (120, 120, 0, ["current", "successor"]),
-], ids=["successor-failure", "current-failure", "both-pass"])
+@pytest.mark.parametrize("pair,current,successor,expected_status,periods", [
+    ("both", 110, 121, 1, ["current", "successor"]),
+    ("both", 121, 110, 1, ["current"]),
+    ("both", 120, 120, 0, ["current", "successor"]),
+    ("neither", 110, 121, 0, ["current"]),
+    ("neither", 121, 110, 1, ["current"]),
+    ("snapshot", 110, 110, 1, []),
+    ("vocabulary", 110, 110, 1, []),
+], ids=["successor-failure", "current-failure", "both-pass", "missing-pair",
+        "missing-pair-current-failure", "snapshot-only", "vocabulary-only"])
 def test_private_deploy_requires_memory_for_both_periods(
-    tmp_path, job_name, current, successor, expected_status, periods,
+    tmp_path, job_name, pair, current, successor, expected_status, periods,
 ):
     workflow = yaml.safe_load((ROOT / ".github/workflows/rank-api.yml").read_text())
     job = workflow["jobs"][job_name]
@@ -240,6 +256,16 @@ def test_private_deploy_requires_memory_for_both_periods(
     assert gate["if"] == "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'"
     assert not gate.get("continue-on-error") and not job.get("continue-on-error")
     assert "if" not in deploy
+    bundle = tmp_path / "api" / "worker" / "src"
+    bundle.mkdir(parents=True)
+    blobs = {
+        "/api/decision/snapshot.json.gz": "private-fixture-value private-fixture-sha",
+    }
+    blobs.update({
+        key: "private-fixture-value private-fixture-sha"
+        for key in _PRIVATE_SUCCESSOR_PAIRS[pair]
+    })
+    (bundle / "bundled_data.py").write_text(f"BLOBS = {blobs!r}\n")
     real_node = shutil.which("node")
     assert real_node is not None, "Node is required for the workflow memory regression"
     binaries = tmp_path / "bin"
@@ -272,7 +298,15 @@ uv() { printf '%s\\n' "$*" >> deployed; }
                           "CURRENT_MIB": str(current), "SUCCESSOR_MIB": str(successor)},
     )
     assert result.returncode == expected_status, result.stdout + result.stderr
-    assert (tmp_path / "periods").read_text().splitlines() == periods
+    combined = result.stdout + result.stderr
+    assert "private-fixture-value" not in combined
+    assert "private-fixture-sha" not in combined
+    recorded = tmp_path / "periods"
+    if periods:
+        assert recorded.read_text().splitlines() == periods
+    else:
+        assert not recorded.exists()
+        assert result.stderr.strip() == "Incomplete private successor pair"
     deployed = tmp_path / "deployed"
     if expected_status:
         assert not deployed.exists()

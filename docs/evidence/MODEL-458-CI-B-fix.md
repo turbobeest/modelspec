@@ -244,3 +244,63 @@ The exact final SHA is the commit containing this evidence revision. Resolve
 it with `git log -1 --format=%H -- docs/evidence/MODEL-458-CI-B-fix.md`.
 The immutable value is also included in the draft PR body and final executor
 result, outside the commit whose hash it names.
+
+## Review fix round
+
+The private memory steps in `deploy-staging` and `deploy` always ran the
+successor probe. With no successor keys, the step failed after the current
+probe because the successor command still ran. With exactly one successor key,
+the step exited 0 when both probe commands returned 0.
+
+`origin/main` merged in its own commit, `9db29ac0512b5cc7564de6474bbc1e0f4ee18369`.
+Git auto-merged `tests/test_ci_workflows.py` and `tests/test_release_signals.py`.
+No workflow file conflicted. The commits that landed on main left
+`.github/workflows/` unchanged. PR #1000 changed `tests/test_ci_workflows.py`.
+
+Both "Check private steady bundle memory against 120 MiB" steps now read
+`BLOBS` from `api/worker/src/bundled_data.py`. The keys are the same pair
+"Detect the main bundle periods" already compares. Exactly one key exits 1
+with the text `Incomplete private successor pair`, and neither probe runs.
+When neither successor key is present, the step runs the current probe only.
+Both keys run the current probe and then the successor probe. The steps still
+omit `--limit-mib`, so the probe default remains 120 MiB. The public step
+still passes `--limit-mib 115`.
+`api/worker/measure_memory.cjs` and `api/worker/vendor.py` stay as they were.
+
+`test_private_deploy_requires_memory_for_both_periods` writes a vendored
+`bundled_data.py` and runs the real step for both jobs. The added rows are a
+missing pair whose successor measurement is 121 MiB, a missing pair whose
+current measurement is 121 MiB, snapshot-only, and vocabulary-only. Step
+output must not contain the fixture value
+`private-fixture-value private-fixture-sha`.
+
+Before the workflow edit, that selection failed for this reason. Missing-pair
+on both jobs exited 1 where the test required 0. Snapshot-only and
+vocabulary-only on both jobs exited 0 where the test required 1. The three
+existing both-key rows, and the missing-pair row whose current measurement
+is 121 MiB, passed on the unchanged steps.
+
+```text
+env PYTHONPATH=$PWD PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py -k private_deploy --basetemp /tmp/MODEL-458-CI-B-scratch/review-fix/red
+env PYTHONPATH=$PWD PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py -k private_deploy --basetemp /tmp/MODEL-458-CI-B-scratch/review-fix/green
+env PYTHONPATH=$PWD PYTHONDONTWRITEBYTECODE=1 /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_worker_memory.py tests/test_ci_workflows.py --basetemp /tmp/MODEL-458-CI-B-scratch/review-fix/focused
+actionlint -shellcheck= -pyflakes= .github/workflows/rank-api.yml
+git diff --check
+```
+
+Red: 6 failed, 8 passed, 11 deselected in 1.86s, pytest exit 1.
+Green selection: 14 passed, 11 deselected in 1.50s, exit 0.
+Focused files: 155 passed in 16.24s, exit 0.
+Actionlint 1.7.12 exited 0. `git diff --check` exited 0.
+
+Python is 3.14.4, pytest is 9.1.1, Bash is 5.3.9, Git is 2.50.1, and Node is
+v22.22.3. The regression calls `assessMemory` in `api/worker/measure_memory.cjs`.
+
+The private deploy steps run only on `main` when `DATA_SPLIT_ENABLED` is true.
+This PR cannot run them. No deploy, `workflow_dispatch`, or `main` run was
+started. No Pyodide load, private checkout, credential use, or production
+switch change was part of this round.
+
+The head SHA is the commit that adds this section. Resolve it with
+`git log -1 --format=%H -- docs/evidence/MODEL-458-CI-B-fix.md`. The draft PR
+body records that SHA after the push.

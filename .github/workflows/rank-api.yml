@@ -282,8 +282,22 @@ jobs:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          python - api/worker/src "$RUNNER_TEMP/private-period-mode" <<'PY'
+          import runpy
+          import sys
+          from pathlib import Path
+
+          blobs = runpy.run_path(str(Path(sys.argv[1]) / "bundled_data.py"))["BLOBS"]
+          snapshot = "/api/decision/snapshot-successor.json.gz" in blobs
+          vocabulary = "/api/decision/vocabulary-successor.json" in blobs
+          if snapshot != vocabulary:
+              raise SystemExit("Incomplete private successor pair")
+          Path(sys.argv[2]).write_text("both\n" if snapshot else "current\n")
+          PY
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
-          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          if [ "$(cat "$RUNNER_TEMP/private-period-mode")" = both ]; then
+            NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          fi
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -370,8 +384,22 @@ jobs:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          python - api/worker/src "$RUNNER_TEMP/private-period-mode" <<'PY'
+          import runpy
+          import sys
+          from pathlib import Path
+
+          blobs = runpy.run_path(str(Path(sys.argv[1]) / "bundled_data.py"))["BLOBS"]
+          snapshot = "/api/decision/snapshot-successor.json.gz" in blobs
+          vocabulary = "/api/decision/vocabulary-successor.json" in blobs
+          if snapshot != vocabulary:
+              raise SystemExit("Incomplete private successor pair")
+          Path(sys.argv[2]).write_text("both\n" if snapshot else "current\n")
+          PY
           NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
-          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          if [ "$(cat "$RUNNER_TEMP/private-period-mode")" = both ]; then
+            NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src --successor
+          fi
 
       - name: Resolve the Worker's Python dependencies
         run: |
