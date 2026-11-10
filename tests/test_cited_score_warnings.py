@@ -286,3 +286,36 @@ def test_soft_score_predicate_penalty_uses_verified_value(cited_score, verified_
     assert answer.answer.members == ["lab/cited"]
     assert answer.results[0].soft_penalty == penalty
     assert CITE_ONLY_WARNING not in answer.warnings
+
+
+def test_direct_reference_with_no_direct_evidence_does_not_add_citation_warning():
+    """A model-relative @direct reference with no direct evidence adds no citation warning.
+
+    With the benchmark tagged direct and the cited score at 60, lab/plain stays
+    recommended and the citation warning is present. The same tag at cited
+    score 90 would remove lab/plain.
+    """
+    where = [
+        "model.context_window >= 100000",
+        f"{BENCHMARK} >= model(lab/cited) @direct unknown(pass)",
+    ]
+    models = [model("lab/cited", context=8000), model("lab/plain", context=200000)]
+    proxy = replace(
+        score_inputs(),
+        models=models,
+        benchmark_domains={BENCHMARK: [("software_engineering", "proxy")]},
+    )
+    answer = answer_for(load(proxy), where=where)
+    assert answer.answer.members == ["lab/plain"]
+    assert answer.warnings == []
+
+    cited = score_inputs()
+    cited.evidence[0]["score"] = 60
+    direct = replace(
+        cited,
+        models=models,
+        benchmark_domains={BENCHMARK: [("software_engineering", "direct")]},
+    )
+    warned = answer_for(load(direct), where=where)
+    assert warned.answer.members == ["lab/plain"]
+    assert warned.warnings == [CITE_ONLY_WARNING]
