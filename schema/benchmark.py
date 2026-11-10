@@ -7,7 +7,7 @@ and must not be authored.
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -185,6 +185,36 @@ class BenchmarkCard(BaseModel):
         if len(v) > 220:
             raise ValueError("summary must be one sentence, at most 220 characters")
         return v
+
+
+def unknown_key_paths(front: dict) -> list[str]:
+    """Return schema-owned parents of unknown keys, never the authored keys.
+
+    This is an authoring/audit check, separate from runtime model construction.
+    Model-card facts and evidence have their own schemas and are not inspected.
+    """
+    paths = set()
+
+    def walk(value, model, path):
+        if not isinstance(value, dict):
+            return
+        if value.keys() - model.model_fields.keys():
+            paths.add(path or "benchmark")
+        for name, field in model.model_fields.items():
+            annotation = field.annotation
+            child = value.get(name)
+            child_path = f"{path}.{name}" if path else name
+            if get_origin(annotation) is list:
+                annotation = get_args(annotation)[0]
+                children = child if isinstance(child, list) else []
+            else:
+                children = [child]
+            if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+                for item in children:
+                    walk(item, annotation, child_path)
+
+    walk(front, BenchmarkCard, "")
+    return sorted(paths)
 
 
 REQUIRED_SECTIONS = {

@@ -11,7 +11,7 @@ of that case and the rules around the TypeSafe judgment:
 - only the confidence bands in scripts/attribution.yaml decide what is written,
   and a missing key or a failed call leaves the creator null.
 
-No test here calls the TypeSafe API. The judge is a stub throughout.
+No test here calls the TypeSafe API. Judgments use stubs or HTTP mock transports.
 """
 
 from __future__ import annotations
@@ -293,6 +293,278 @@ def test_spent_budget_stops_calls_and_leaves_creators_null(registry):
     result = at.attribute("alibaba", api["alibaba"]["models"]["kimi-k3"], "kimi-k3")
     assert (result.creator, result.status) == (None, A.UNAVAILABLE)
     assert judge.calls == []
+
+
+# ── Input allowance at the transport boundary ────────────────────
+
+
+def _budget_evidence(number=0, *, name="Probe"):
+    return A.Evidence(
+        A.Listing("gateway", "Gateway", f"probe-{number}", name, ""),
+        f"probe-{number}",
+        None,
+        None,
+        None,
+        [],
+        {},
+        [],
+        set(),
+        set(),
+        ["acme", "other"],
+    )
+
+
+def _budget_reply():
+    return {
+        "answers": {
+            "creator": {
+                "type": "choice",
+                "choice": "acme",
+                "probabilities": {"acme": 1, "other": 0, "cannot_establish": 0},
+                "confidence": 0.99,
+            },
+            "reseller": {"type": "noul", "noul": 0},
+        },
+        "usage": {"input_tokens": 800},
+    }
+
+
+@pytest.fixture
+def budget_attributor(monkeypatch):
+    monkeypatch.setattr(A.time, "sleep", lambda _: None)
+    clients = []
+
+    def make(
+        handler,
+        *,
+        limit=100000,
+        model=None,
+        endpoint=None,
+        headers=None,
+        redirects=False,
+        judge_limit=None,
+        auth=None,
+    ):
+        config = dataclasses.replace(A.load_config(), max_input_tokens_per_run=limit, max_retries=2)
+        if model is not None:
+            config = dataclasses.replace(config, model=model)
+        if endpoint is not None:
+            config = dataclasses.replace(config, endpoint=endpoint)
+        client = httpx.Client(
+            transport=httpx.MockTransport(handler),
+            headers=headers,
+            follow_redirects=redirects,
+            auth=auth,
+        )
+        clients.append(client)
+        judge_config = (
+            dataclasses.replace(config, max_input_tokens_per_run=judge_limit)
+            if judge_limit is not None
+            else config
+        )
+        judge = A.TypeSafeJudge("fixture-key", judge_config, client)
+        registry = {"acme": A.Org("acme", "Acme"), "other": A.Org("other", "Other")}
+        return A.Attributor({}, registry, {}, judge, config)
+
+    yield make
+    for client in clients:
+        client.close()
+
+
+def test_input_allowance_refuses_request_before_transport(budget_attributor):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, limit=1)
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert calls == []
+
+
+@pytest.mark.parametrize("run_limit,judge_limit", [(1, 100000), (100000, 1)])
+def test_input_allowance_respects_both_run_and_transport_caps(
+    budget_attributor, run_limit, judge_limit
+):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, limit=run_limit, judge_limit=judge_limit)
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert calls == []
+
+
+def test_input_allowance_bounds_non_ascii_request(budget_attributor):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, limit=65535)
+    result = at.decide(_budget_evidence(name="🚀" * 1000))
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "configuration", [{"model": "jev-latest"}, {"endpoint": "https://example.test/judge"}]
+)
+def test_input_allowance_refuses_unbounded_configuration(budget_attributor, configuration):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, **configuration)
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert calls == []
+
+
+def test_input_allowance_keeps_long_context_disabled(budget_attributor):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        assert "TypeSafe-Danger-Zone-Long-Context" not in request.headers
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, headers={"TypeSafe-Danger-Zone-Long-Context": "true"})
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == ("acme", A.WRITTEN)
+    assert len(calls) == 1
+
+
+def test_input_allowance_uses_bearer_auth_without_extra_auth_requests(budget_attributor):
+    calls = []
+
+    class ExtraRequestAuth(httpx.Auth):
+        def auth_flow(self, request):
+            yield request
+            yield request
+
+    def success(request):
+        calls.append(request)
+        assert request.headers["authorization"] == "Bearer fixture-key"
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success, auth=ExtraRequestAuth())
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == ("acme", A.WRITTEN)
+    assert len(calls) == 1
+
+
+def test_input_allowance_keeps_each_post_at_the_bounded_endpoint(budget_attributor):
+    calls = []
+
+    def redirect(request):
+        calls.append(request)
+        if len(calls) == 1:
+            return httpx.Response(307, headers={"location": "https://example.test/judge"})
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(redirect, redirects=True)
+    result = at.decide(_budget_evidence())
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("failure", ["timeout", "retryable_status"])
+def test_input_allowance_reserves_each_transport_attempt(budget_attributor, failure):
+    calls = []
+
+    def fail(request):
+        calls.append(request)
+        if failure == "timeout":
+            raise httpx.ReadTimeout("fixture timeout", request=request)
+        return httpx.Response(529)
+
+    at = budget_attributor(fail)
+    results = [at.decide(_budget_evidence(i)) for i in range(3)]
+    assert all((r.creator, r.status) == (None, A.UNAVAILABLE) for r in results)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "invalid_json",
+        "invalid_shape",
+        "invalid_answers",
+        "null_probabilities",
+        "list_probabilities",
+        "overflow_confidence",
+    ],
+)
+def test_input_allowance_retains_malformed_response_reservation(budget_attributor, reply):
+    calls = []
+
+    def malformed(request):
+        calls.append(request)
+        if reply == "invalid_json":
+            return httpx.Response(200, content=b"not json")
+        if reply == "invalid_shape":
+            return httpx.Response(200, json=[])
+        if reply == "invalid_answers":
+            return httpx.Response(200, json={"answers": {}})
+        body = _budget_reply()
+        creator = body["answers"]["creator"]
+        if reply == "overflow_confidence":
+            creator["confidence"] = 10**400
+        else:
+            creator["probabilities"] = None if reply == "null_probabilities" else []
+        return httpx.Response(200, json=body)
+
+    at = budget_attributor(malformed)
+    results = [at.decide(_budget_evidence(i)) for i in range(2)]
+    assert all((r.creator, r.status) == (None, A.UNAVAILABLE) for r in results)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("usage", [None, {}, {"input_tokens": -800}, {"input_tokens": "invalid"}])
+def test_input_allowance_never_refunds_missing_or_invalid_usage(budget_attributor, usage):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        reply = _budget_reply()
+        reply["usage"] = usage
+        return httpx.Response(200, json=reply)
+
+    at = budget_attributor(success)
+    at.decide(_budget_evidence())
+    result = at.decide(_budget_evidence(1))
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert len(calls) == 1
+
+
+def test_input_allowance_keeps_cached_and_deterministic_results_free(budget_attributor):
+    calls = []
+
+    def success(request):
+        calls.append(request)
+        return httpx.Response(200, json=_budget_reply())
+
+    at = budget_attributor(success)
+    ev = _budget_evidence()
+    first = at.decide(ev)
+    assert (first.creator, first.status) == ("acme", A.WRITTEN)
+    assert at.budget.spent == 800
+    assert at.decide(ev) == first
+    assert at.budget.spent == 800
+    deterministic = at.decide(dataclasses.replace(ev, own_prefix="acme", own_prefix_org="acme"))
+    assert (deterministic.creator, deterministic.status) == ("acme", A.DETERMINISTIC)
+    result = at.decide(_budget_evidence(1))
+    assert (result.creator, result.status) == (None, A.UNAVAILABLE)
+    assert len(calls) == 1
 
 
 # ── The questions ───────────────────────────────────────────────

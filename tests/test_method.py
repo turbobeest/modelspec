@@ -251,3 +251,39 @@ def test_tie_wording_matches_the_engines_overlap_rule(data: landing.LandingData)
     assert "range of any other model in the domain being ranked, not only the leader" in page
     assert "C.high ≥ L.low" not in page
     assert "front-page figure, counted against the top estimate only" in page
+
+
+@pytest.mark.parametrize('snapshot,vocabulary', [(False, False), (True, False), (False, True), (True, True)])
+def test_method_downloads_follow_built_artifacts(data, tmp_path, snapshot, vocabulary, monkeypatch):
+    monkeypatch.setenv("DATA_SPLIT_ENABLED", "false")
+    for relative, present in [('api/decision/snapshot.json.gz', snapshot),
+                              ('api/decision/vocabulary.json', vocabulary)]:
+        if present:
+            target = tmp_path / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(gzip.compress(b'{"signatures":[]}') if relative.endswith('.gz') else b'{}')
+    method.write(tmp_path, ROOT, data)
+    text = (tmp_path / method.PAGE_PATH).read_text()
+    links = HREF.findall(text)
+    assert ('https://modelspec.dev/api/decision/snapshot.json.gz' in links) is snapshot
+    assert ('https://modelspec.dev/api/decision/vocabulary.json' in links) is vocabulary
+    section = text.split('<section class="public-data">', 1)[1]
+    assert 'Download the decision snapshot.' in section if snapshot else 'The decision snapshot is not included in this build.' in section
+    assert 'Download the decision vocabulary.' in section if vocabulary else 'The decision vocabulary is not included in this build.' in section
+
+
+def test_method_private_serving_keeps_service_links(data, tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_SPLIT_ENABLED", "true")
+    method.write(tmp_path, ROOT, data)
+    text = (tmp_path / method.PAGE_PATH).read_text()
+    assert 'https://api.modelspec.dev/v1/vocabulary' in HREF.findall(text)
+    assert 'href="/openapi.yaml"' in text
+    assert 'https://modelspec.dev/api/decision/' not in text
+
+
+def test_method_open_graph_url_matches_its_canonical(data):
+    from pipeline.surface_lint import Page
+    text = method.page(data, method.SigningState((), None))
+    assert '<link rel="canonical" href="https://modelspec.dev/method/">' in text
+    assert Page(text).meta['og:url'] == 'https://modelspec.dev/method/'
+    assert Page(text).meta['og:image'] == 'https://modelspec.dev/og-card.png'

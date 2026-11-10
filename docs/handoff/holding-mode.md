@@ -1,6 +1,7 @@
 # Holding mode
 
-`SITE_MODE` has been `live` since 2026-09-25. Checkout remains closed. This
+`SITE_MODE` has been `live` since 2026-09-25. Checked-in production
+`BILLING_ENABLED=true` enables Checkout independently of `SITE_MODE`. This
 document records the fail-closed holding tree and how the workflow derives it.
 
 ## The switch
@@ -47,10 +48,14 @@ modelspec.dev:
 - Every other HTML path: the existing dark holding message. Paths that no
   longer exist, such as model pages, benchmark pages, the wizard, the explorer,
   and `/pricing`, receive that message with a 404 status.
-- `/api/**` on modelspec.dev, byte for byte what the real build publishes. The
-  CLI (`modelspec snapshot fetch`), DPF, the rank Worker and the MCP server
-  read only these paths. `benchgraph.dev/api/*` redirects to the same files.
-  Tests: `tests/test_holding.py`.
+- `/api/**` on modelspec.dev, byte for byte what the real build publishes.
+  With `DATA_SPLIT_ENABLED=true`, these are the retained public exports and
+  removal notices described in [data split](../design/data-split.md). The
+  Worker serves its bundled exports; the thin keyed CLI sends requests to the
+  hosted API, for example `modelspec decide --spec FILE`, with no data download.
+  MCP also uses the hosted API. With the split disabled, the legacy bulk
+  exports and Worker fetch path remain available. `benchgraph.dev/api/*`
+  redirects to the same static files. Tests: `tests/test_holding.py`.
 - `/legal/**` and `/openapi.yaml` on modelspec.dev, byte for byte. Stripe's
   account review and past purchasers rely on the legal pages.
 - `X-Robots-Tag: noindex` on every response except `/` and `/index.html`, and no

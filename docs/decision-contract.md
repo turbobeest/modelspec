@@ -949,9 +949,12 @@ computed in closed form: the limit of comparing the posterior draws pairwise,
 without their sampling error.
 
 - **`best`, best for your weights.** The leader is the best point score among
-  models with enough evidence. A model with enough evidence joins it when
-  `p_beats_leader` ≥ `band_probability` (0.25): the leader is then ahead with
-  at most 75% probability. Ordered by `p_best`, then score.
+  models with enough evidence. Membership compares the unrounded probability
+  with 0.25 (`band_probability`) and admits a model with enough evidence when
+  that probability is at least 0.25: the leader is then ahead with at most
+  75% probability. The reported `p_beats_leader` is that probability rounded
+  to 4 places, so a reported 0.25 can sit in `rest`. Ordered by `p_best`,
+  then score.
 - **`rest`.** The other models with enough evidence, in score order, each with
   its `p_beats_leader`.
 - **`thin`, not enough evidence yet.** A model is thin when any weighted
@@ -2059,6 +2062,10 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **MODEL-458, under 2.19 without a version change:** Band membership compares
+  the unrounded probability with 0.25, the reported `p_beats_leader` is that
+  probability rounded to 4 places, and a reported 0.25 can sit in `rest`.
 
 - **MODEL-440, under 2.19 without a version change:** `p_best` and
   `top3_stability` are integrated at fixed quantile nodes instead of drawn

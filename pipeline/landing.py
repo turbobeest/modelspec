@@ -52,8 +52,11 @@ ANALYSIS = (
      "nothing qualifies.", GH + "docs/decision-contract.md#the-decision"),
     ("Cost", "Cost per task at your token counts, plan break-even, and what you "
      "already pay for.", GH + "docs/decision-contract.md#access-and-plans-model-200"),
-    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Keep the "
-     "spec, the snapshot and the decision contract version, and the same answer comes back next quarter.", "/method/#reproducible"),
+    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. The same "
+     "spec and contract reproduce an answer while that snapshot is available. "
+     "The hosted API serves only its current snapshot; an older pin is refused. "
+     "Retry with latest for a new answer and keep the "
+     "original decision for your records.", "/method/#reproducible"),
     ("Independence", "No referral fees, no paid placement. The commitment is "
      "published, and checkable as data.", "/legal/neutrality/"),
 )
@@ -438,8 +441,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
 <meta name="description" content="{DESCRIPTION}">
-<meta property="og:description" content="{DESCRIPTION}">
-{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
+{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data, description=DESCRIPTION)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>

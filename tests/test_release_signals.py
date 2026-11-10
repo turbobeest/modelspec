@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import importlib.util
@@ -21,6 +22,8 @@ from release_signals.pipeline import (
     DraftResult,
     FetchResult,
     FirecrawlBudget,
+    RequiredSourceError,
+    _models_dev_listing,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -915,6 +918,210 @@ def test_score_only_evidence_refresh_is_auto_mergeable(tmp_path: Path) -> None:
     assert decision.merge == "auto"
 
 
+@pytest.fixture
+def signals_service():
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_regression_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+    return service
+
+
+class SignalKV:
+    def __init__(self) -> None:
+        self.rows: dict[str, str] = {}
+        self.calls: list[tuple[str, str]] = []
+
+    async def get(self, key: str) -> str | None:
+        self.calls.append(("get", key))
+        return self.rows.get(key)
+
+    async def put(self, key: str, value: str) -> None:
+        self.calls.append(("put", key))
+        self.rows[key] = value
+
+    async def delete(self, key: str) -> None:
+        self.calls.append(("delete", key))
+        self.rows.pop(key, None)
+
+    async def list(self, options: dict[str, str]) -> dict[str, object]:
+        self.calls.append(("list", options["prefix"]))
+        return {"keys": [{"name": key} for key in self.rows if key.startswith(options["prefix"])]}
+
+
+@pytest.mark.parametrize("legacy_pending", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+def test_replay_after_ack_is_still_duplicate(signals_service, legacy_pending, conflicting) -> None:
+    async def scenario() -> None:
+        kv = SignalKV()
+        raw = json.dumps(signal()).encode()
+        if legacy_pending:
+            kv.rows[signals_service.PENDING_PREFIX + str(signal()["signal_id"])] = json.dumps(
+                signal(), separators=(",", ":"), sort_keys=True,
+            )
+        else:
+            accepted = await signals_service.intake(
+                raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+                enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+            )
+            assert (accepted.status, accepted.body["status"]) == (202, "accepted")
+        acknowledged = await signals_service.acknowledge(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            payload={"signal_id": signal()["signal_id"], "result": "new"},
+            today=date(2026, 9, 26),
+        )
+        assert acknowledged.status == 200
+        rows_after_ack = dict(kv.rows)
+        raw = json.dumps(signal(model_name="Orbit 3") if conflicting else signal(),
+                         sort_keys=True, separators=(",", ":")).encode()
+        replay = await signals_service.intake(
+            raw=raw, signature=sign(b"write-secret", raw), secret=b"write-secret",
+            enabled=True, kv=kv, now=datetime(2026, 9, 26, 13, 16, tzinfo=UTC),
+        )
+        if conflicting:
+            assert replay.status == 409
+            assert replay.body["error"]["code"] == "signal_id_conflict"
+        else:
+            assert (replay.status, replay.body["status"]) == (200, "duplicate")
+        pending = await signals_service.pending(
+            authorization="Bearer read-secret", read_key="read-secret", kv=kv,
+            today=date(2026, 9, 26),
+        )
+        assert pending.body["signals"] == []
+        assert kv.rows == rows_after_ack
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("raw", "signature", "status"),
+    [
+        pytest.param(json.dumps(signal()).encode(), "sha256=é", 401, id="signature"),
+        pytest.param(json.dumps(signal(first_seen_url="https://[broken/")).encode(),
+                     None, 400, id="url"),
+        pytest.param(json.dumps(signal(confidence=10**400)).encode(),
+                     None, 400, id="confidence"),
+        pytest.param(json.dumps(signal(timestamp="0001-01-01T00:00:00+01:00")).encode(),
+                     None, 400, id="timestamp"),
+        pytest.param(b"[" * 1100 + b"]" * 1100, None, 400, id="json"),
+    ],
+)
+def test_invalid_input_returns_client_error(signals_service, raw, signature, status) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.intake(
+        raw=raw, signature=signature if signature is not None else sign(b"write-secret", raw),
+        secret=b"write-secret", enabled=True, kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == status
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize("endpoint", ["pending", "discovered", "acknowledge"])
+def test_non_ascii_read_key_returns_401(signals_service, endpoint) -> None:
+    kv = SignalKV()
+    kwargs = {"authorization": "Bearer é", "read_key": "read-secret", "kv": kv}
+    if endpoint == "discovered":
+        kwargs["raw"] = b"{}"
+    else:
+        kwargs["today"] = date(2026, 9, 26)
+    if endpoint == "acknowledge":
+        kwargs["payload"] = {"signal_id": signal()["signal_id"], "result": None}
+    result = asyncio.run(getattr(signals_service, endpoint)(**kwargs))
+
+    assert result.status == 401
+    assert result.body["error"]["code"] == "unauthorised"
+    assert kv.calls == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"first_seen_url": "https://[broken/"}, id="url"),
+        pytest.param({"confidence": 10**400}, id="confidence"),
+        pytest.param({"timestamp": "0001-01-01T00:00:00+01:00"}, id="timestamp"),
+    ],
+)
+def test_invalid_discovery_returns_400(signals_service, changes) -> None:
+    payload = signal(signal_id="watch:acme:orbit-2", first_seen_url="https://acme.example/models")
+    payload.update(changes)
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=json.dumps(payload).encode(), authorization="Bearer read-secret",
+        read_key="read-secret", kv=kv, now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_discovery_json_returns_client_error(signals_service) -> None:
+    kv = SignalKV()
+    result = asyncio.run(signals_service.discovered(
+        raw=b"[" * 1100 + b"]" * 1100,
+        authorization="Bearer read-secret",
+        read_key="read-secret",
+        kv=kv,
+        now=datetime(2026, 9, 26, 13, 15, tzinfo=UTC),
+    ))
+
+    assert result.status == 400
+    assert result.body["error"]["code"] == "invalid_signal"
+    assert kv.calls == []
+
+
+def test_nested_acknowledgement_json_returns_client_error(signals_service) -> None:
+    import ast
+
+    tree = ast.parse((ROOT / "api/worker/src/entry.py").read_text())
+    function = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_signals"
+    )
+    kv = SignalKV()
+    namespace = {
+        "json": json,
+        "datetime": datetime,
+        "UTC": UTC,
+        "signals_service": signals_service,
+        "SIGNALS_ENABLED_VAR": "SIGNALS_ENABLED",
+        "SIGNALS_READ_KEY_VAR": "SIGNALS_READ_KEY",
+        "_access_store": lambda _env: kv,
+        "_json_response": lambda status, body: (status, body),
+    }
+    compiled = compile(
+        ast.Module(body=[function], type_ignores=[]), "entry.py::_signals", "exec",
+    )
+    exec(compiled, namespace)
+
+    class Env:
+        SIGNALS_ENABLED = "true"
+        SIGNALS_READ_KEY = "read-secret"
+
+    class Request:
+        headers = {"authorization": "Bearer read-secret"}
+
+        async def text(self) -> str:
+            return "[" * 1100 + "]" * 1100
+
+    class Worker:
+        env = Env()
+
+    status, body = asyncio.run(namespace["_signals"](
+        Worker(), Request(), "/v1/signals/ack", "POST", "audit",
+    ))
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_request"
+    assert kv.calls == []
+
+
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_signals_service", ROOT / "api" / "worker" / "src" / "signals_service.py"
@@ -1246,3 +1453,429 @@ def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:
     assert 'Path("release_signals/contract.py")' in vendor
     assert '"POST /v1/signals"' in entry
     assert '"GET /v1/signals/pending"' in entry
+
+
+_MODELS_DEV = "https://models.dev/api.json"
+_PRIMARY = "https://acme.example/models"
+
+
+@pytest.mark.parametrize(
+    ("broken_url", "body"),
+    [
+        (_MODELS_DEV, b""),
+        (_MODELS_DEV, b"{"),
+        (_MODELS_DEV, b"<html>upstream error</html>"),
+        (_MODELS_DEV, b"\xff"),
+        (_MODELS_DEV, b'{"unrelated":1}'),
+        (_MODELS_DEV, b'{"acme":{"name":"Acme","models":[]}}'),
+        (
+            _PRIMARY,
+            b'<script type="application/ld+json">'
+            b'{"name":"Orbit 2","publisher":{"name":"Acme"},'
+            b'"datePublished":"not-a-date"}</script>',
+        ),
+        (
+            _PRIMARY,
+            b'<script type="application/ld+json">'
+            b'{"name":"Orbit 2","publisher":{"name":"Acme"},'
+            b'"datePublished":"2026-09-26T00:30:00+02:00"}</script>',
+        ),
+        pytest.param(
+            _MODELS_DEV,
+            b'{"acme":' + b"1" * 5000 + b"}",
+            id="five-thousand-digit-integer",
+        ),
+        pytest.param(
+            _MODELS_DEV,
+            b"[" * 200000,
+            id="two-hundred-thousand-nested-brackets",
+        ),
+        pytest.param(_MODELS_DEV, b"[]", id="top-level-array"),
+        pytest.param(_MODELS_DEV, b"null", id="top-level-null"),
+    ],
+)
+def test_bad_required_source_exits_with_controlled_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    broken_url: str,
+    body: bytes,
+) -> None:
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    original = (
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    card.write_text(original)
+    queued = {
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [queued]}))
+    replies = {
+        _MODELS_DEV: json.dumps({
+            "acme": {
+                "name": "Acme",
+                "models": {
+                    "orbit-2": {
+                        "id": "orbit-2",
+                        "name": "Orbit 2",
+                        "release_url": _PRIMARY,
+                    },
+                },
+            },
+        }).encode(),
+        _PRIMARY: b"<h1>Acme launches Orbit 2.</h1>",
+    }
+    replies[broken_url] = body
+
+    def fetch(url: str) -> FetchResult:
+        assert url in replies, f"unexpected fetch: {url}"
+        content_type = "application/json" if url == _MODELS_DEV else "text/html"
+        return FetchResult(url, replies[url], content_type)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 2
+    output = capsys.readouterr()
+    rendered = output.out + output.err
+    assert broken_url in rendered
+    assert "Traceback" not in rendered
+    assert card.read_text() == original
+    assert json.loads(pending.read_text()) == {"signals": [queued]}
+    assert not result_path.exists()
+
+
+def test_long_date_published_diagnostic_is_bounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    original = (
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    card.write_text(original)
+    queued = {
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [queued]}))
+    published = "x" * 100000
+    primary = (
+        '<script type="application/ld+json">'
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        f'"datePublished":"{published}"}}</script>'
+    ).encode()
+    replies = {
+        _MODELS_DEV: json.dumps({
+            "acme": {
+                "name": "Acme",
+                "models": {
+                    "orbit-2": {
+                        "id": "orbit-2",
+                        "name": "Orbit 2",
+                        "release_url": _PRIMARY,
+                    },
+                },
+            },
+        }).encode(),
+        _PRIMARY: primary,
+    }
+
+    def fetch(url: str) -> FetchResult:
+        assert url in replies, f"unexpected fetch: {url}"
+        content_type = "application/json" if url == _MODELS_DEV else "text/html"
+        return FetchResult(url, replies[url], content_type)
+
+    def refuse_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("leaderboard refresh must not run")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", refuse_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 2
+    output = capsys.readouterr()
+    rendered = output.out + output.err
+    assert _PRIMARY in rendered
+    assert len(rendered) < 600
+    assert "\n" not in rendered.strip()
+    assert "Traceback" not in rendered
+    assert card.read_text() == original
+    assert json.loads(pending.read_text()) == {"signals": [queued]}
+    assert not result_path.exists()
+
+
+def test_prohibited_release_url_stays_a_value_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert not issubclass(RequiredSourceError, ValueError)
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    original = (
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    card.write_text(original)
+    queued = {
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending_text = json.dumps({"signals": [queued]})
+    pending.write_text(pending_text)
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-2"
+    replies = {
+        _MODELS_DEV: json.dumps({
+            "acme": {
+                "name": "Acme",
+                "models": {
+                    "orbit-2": {
+                        "id": "orbit-2",
+                        "name": "Orbit 2",
+                        "release_url": prohibited,
+                    },
+                },
+            },
+        }).encode(),
+    }
+
+    def fetch(url: str) -> FetchResult:
+        assert url in replies, f"unexpected fetch: {url}"
+        return FetchResult(url, replies[url], "application/json")
+
+    def refuse_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("leaderboard refresh must not run")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", refuse_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    with pytest.raises(ValueError, match="excluded source") as caught:
+        processor.main()
+    assert not isinstance(caught.value, RequiredSourceError)
+    assert card.read_text() == original
+    assert pending.read_text() == pending_text
+    assert not result_path.exists()
+
+
+def test_required_source_diagnostic_is_on_stderr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    pending = tmp_path / "pending.json"
+    pending.write_text(json.dumps({"signals": [{
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }]}))
+
+    def fetch(url: str) -> FetchResult:
+        assert url == _MODELS_DEV, f"unexpected fetch: {url}"
+        return FetchResult(url, b"", "application/json")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(tmp_path / "result.json"),
+    ])
+
+    assert processor.main() == 2
+    output = capsys.readouterr()
+    assert _MODELS_DEV in output.err
+    assert "required source" in output.err
+    assert "required source" not in output.out
+    assert _MODELS_DEV not in output.out
+
+
+@pytest.mark.parametrize(
+    "filler",
+    [
+        pytest.param(None, id="null"),
+        pytest.param(0, id="zero"),
+        pytest.param("", id="empty-string"),
+        pytest.param([], id="empty-list"),
+    ],
+)
+def test_falsy_provider_row_is_an_empty_row(filler: object) -> None:
+    _provider_id, listing = _models_dev_listing(
+        {
+            "zzz": filler,
+            "acme": {
+                "name": "Elsewhere",
+                "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+            },
+        },
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert listing["name"] == "Orbit 2"
+
+
+@pytest.mark.parametrize(
+    "filler",
+    [
+        pytest.param(None, id="null"),
+        pytest.param(0, id="zero"),
+        pytest.param("", id="empty-string"),
+        pytest.param([], id="empty-list"),
+    ],
+)
+def test_falsy_matching_provider_row_has_no_models_map(filler: object) -> None:
+    with pytest.raises(RequiredSourceError, match="provider row has no models map"):
+        _models_dev_listing(
+            {"acme": filler},
+            "Acme",
+            "Orbit 2",
+            source_url=_MODELS_DEV,
+        )
+
+
+def test_provider_matches_by_key_alone() -> None:
+    provider_id, listing = _models_dev_listing(
+        {"acme": {"models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}}}},
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert provider_id == "acme"
+    assert listing["id"] == "orbit-2"
+
+
+def test_provider_matches_by_name_alone() -> None:
+    provider_id, listing = _models_dev_listing(
+        {
+            "labs": {
+                "name": "Acme",
+                "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+            },
+        },
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert provider_id == "labs"
+    assert listing["id"] == "orbit-2"
+
+
+def test_required_source_error_bounds_the_built_message() -> None:
+    url = _PRIMARY
+    long_detail = "x" * 100000 + "\nsecond line"
+    long_error = RequiredSourceError(url, long_detail)
+    long_text = str(long_error)
+    assert len(long_text) <= 500
+    assert long_text.startswith(f"required source {url} failed: ")
+    assert "\n" not in long_text
+    assert "\r" not in long_text
+    assert long_detail[:4] in long_text
+
+    short_detail = "kept whole\nsecond line"
+    short_text = str(RequiredSourceError(url, short_detail))
+    assert short_text == f"required source {url} failed: kept whole second line"
+    assert "\n" not in short_text
+    assert "\r" not in short_text
+
+
+def test_required_source_error_bounds_a_long_url() -> None:
+    url = ("h" * 300) + "Z" + ("h" * 99699)
+    error = RequiredSourceError(url, "detail")
+    rendered = str(error)
+    flat = url.replace("\r", " ").replace("\n", " ")
+    assert error.url == url
+    assert len(rendered) <= 500
+    assert "\n" not in rendered
+    assert "\r" not in rendered
+    assert rendered.startswith("required source " + flat[:300] + "...")
+    assert "Z" not in rendered
+
+
+def test_required_source_error_flattens_a_url_line_break() -> None:
+    url = "https://acme.example/a\r\nb"
+    error = RequiredSourceError(url, "detail")
+    rendered = str(error)
+    flat = url.replace("\r", " ").replace("\n", " ")
+    assert error.url == url
+    assert len(rendered) <= 500
+    assert "\n" not in rendered
+    assert "\r" not in rendered
+    assert rendered.startswith("required source " + flat[:300])
+    assert rendered.startswith(f"required source {flat} failed: ")
+
+
+def test_required_source_error_keeps_a_short_url_message() -> None:
+    url = _PRIMARY
+    detail = "models.dev returned no provider map"
+    error = RequiredSourceError(url, detail)
+    assert error.url == url
+    assert str(error) == f"required source {url} failed: {detail}"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
@@ -61,8 +62,8 @@ def test_remaining_credits_reads_v2_team_endpoint() -> None:
         captured["auth"] = req.get_header("Authorization") or req.headers.get("Authorization")
         return _FakeResp(_credit_payload(5569))
 
-    # urllib.request.urlopen is used; Request stores headers with header_items
-    with patch("scripts.benchmarks.fetch.urllib.request.urlopen", side_effect=fake_urlopen):
+    # Request stores headers with header_items.
+    with patch("scripts.benchmarks.fetch.open_source_request", side_effect=fake_urlopen):
         assert remaining_credits("sk-test") == 5569
     assert captured["url"] == "https://api.firecrawl.dev/v2/team/credit-usage"
 
@@ -123,7 +124,7 @@ def test_scrape_does_not_call_firecrawl_when_named_cache_exists(tmp_path: Path) 
         tmp_path,
         fetched_at="2026-09-02",
     )
-    with patch("scripts.benchmarks.fetch.urllib.request.urlopen") as mocked:
+    with patch("scripts.benchmarks.fetch.open_source_request") as mocked:
         data = scrape("https://example.com/board", named_cache_dir=tmp_path)
     mocked.assert_not_called()
     assert data["markdown"] == "cached markdown"
@@ -177,7 +178,7 @@ def _scrape_harness(tmp_path: Path, mock: _FirecrawlMock):
     with (
         patch("scripts.benchmarks.fetch.HASH_CACHE", tmp_path / "hash"),
         patch("scripts.benchmarks.fetch.resolve_key", return_value="sk-test"),
-        patch("scripts.benchmarks.fetch.urllib.request.urlopen", side_effect=mock.urlopen),
+        patch("scripts.benchmarks.fetch.open_source_request", side_effect=mock.urlopen),
     ):
         yield mock
 
@@ -256,21 +257,20 @@ def test_per_request_cost_is_recorded_from_balance_delta(tmp_path: Path) -> None
     assert guard.request_costs[-1] == ("https://example.com/page", 3)
 
 
-def test_unbounded_pdf_requires_opt_in_and_omits_page_cap(tmp_path: Path) -> None:
+def test_unbounded_pdf_is_refused_with_a_finite_budget(tmp_path: Path) -> None:
     mock = _FirecrawlMock(remaining=100, spend_on_scrape=13)
     with _scrape_harness(tmp_path, mock):
         guard = CreditGuard(key="sk-test", budget=10)
         guard.start()
-        scrape(
-            "https://example.com/long.pdf",
-            guard=guard,
-            allow_unbounded=True,
-            named_cache_dir=tmp_path / "raw",
-        )
-    assert len(mock.posts) == 1
-    parsers = mock.posts[0].get("parsers") or []
-    assert all("maxPages" not in (p if isinstance(p, dict) else {}) for p in parsers)
-    assert guard.last_request_cost == 13
+        with pytest.raises(CreditBudgetExceeded, match="unbounded"):
+            scrape(
+                "https://example.com/long.pdf",
+                guard=guard,
+                allow_unbounded=True,
+                named_cache_dir=tmp_path / "raw",
+            )
+    assert mock.posts == []
+    assert guard.last_request_cost is None
 
 
 def test_expensive_formats_still_refused_on_pdf_path(tmp_path: Path) -> None:
@@ -311,9 +311,9 @@ def test_page_cap_shrinks_as_budget_is_spent(tmp_path: Path) -> None:
     with _scrape_harness(tmp_path, mock):
         guard = CreditGuard(key="sk-test", budget=10)
         guard.start()
-        scrape("https://example.com/a.pdf", guard=guard, named_cache_dir=tmp_path / "raw")
+        scrape("https://example.com/a.pdf", guard=guard, max_pages=7, named_cache_dir=tmp_path / "raw")
         scrape("https://example.com/b.pdf", guard=guard, named_cache_dir=tmp_path / "raw")
-    assert [p["parsers"][0]["maxPages"] for p in mock.posts] == [10, 3]
+    assert [p["parsers"][0]["maxPages"] for p in mock.posts] == [7, 3]
 
 
 def test_per_request_spend_is_written_to_cache_metadata(tmp_path: Path) -> None:
@@ -343,7 +343,7 @@ def test_hash_cache_hit_needs_no_key_and_no_network(tmp_path: Path) -> None:
     with (
         patch("scripts.benchmarks.fetch.HASH_CACHE", hash_dir),
         patch("scripts.benchmarks.fetch.resolve_key", return_value=None),
-        patch("scripts.benchmarks.fetch.urllib.request.urlopen") as mocked,
+        patch("scripts.benchmarks.fetch.open_source_request") as mocked,
     ):
         data = scrape(url, formats=formats)
     mocked.assert_not_called()
@@ -444,3 +444,107 @@ def test_truncated_pdf_is_not_replayed_from_cache_once_budget_grows(tmp_path: Pa
     assert cached_after is not None
     assert cached_after.meta["truncated"] is False
     assert cached_after.meta["num_pages"] == 12
+
+
+@pytest.mark.parametrize("balance_change", [0, -5], ids=["constant", "replenished"])
+def test_scrape_reserves_local_allowance_independently_of_balance(tmp_path, balance_change):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=balance_change)
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=2)
+        for index in range(2):
+            scrape(f"https://example.com/local-{index}", guard=guard, max_pages=1)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/local-2", guard=guard, max_pages=1)
+    assert len(mock.posts) == 2
+    assert guard.last_request_cost == 0
+
+
+def test_scrape_reserves_each_retry_before_sending(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=0)
+    original = mock.urlopen
+
+    def retryable(req, timeout=30):
+        response = original(req, timeout)
+        if req.get_method() == "POST":
+            raise urllib.error.HTTPError(req.full_url, 503, "fixture", {}, None)
+        return response
+
+    mock.urlopen = retryable
+    with _scrape_harness(tmp_path, mock), patch("scripts.benchmarks.fetch.time.sleep"):
+        guard = CreditGuard(key="sk-test", budget=2)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/retry", guard=guard, max_pages=1)
+    assert len(mock.posts) == 2
+
+
+def test_scrape_timeout_keeps_the_reserved_allowance(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=0)
+    original = mock.urlopen
+
+    def timeout(req, timeout=30):
+        response = original(req, timeout)
+        if req.get_method() == "POST":
+            raise TimeoutError("fixture timeout")
+        return response
+
+    mock.urlopen = timeout
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=1)
+        with pytest.raises(TimeoutError):
+            scrape("https://example.com/timeout", guard=guard, max_pages=1)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/after-timeout", guard=guard, max_pages=1)
+    assert len(mock.posts) == 1
+
+
+def test_scrape_unavailable_usage_keeps_the_reserved_allowance(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=0)
+    usage_unavailable = False
+
+    def remaining(_key):
+        if mock.posts and usage_unavailable:
+            raise OSError("fixture unavailable usage")
+        return 100
+
+    with _scrape_harness(tmp_path, mock), patch(
+        "scripts.benchmarks.fetch.remaining_credits", side_effect=remaining
+    ):
+        guard = CreditGuard(key="sk-test", budget=1)
+        usage_unavailable = True
+        with pytest.raises(OSError):
+            scrape("https://example.com/missing-usage", guard=guard, max_pages=1)
+        usage_unavailable = False
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/after-missing-usage", guard=guard, max_pages=1)
+    assert len(mock.posts) == 1
+
+
+def test_scrape_cache_hit_preserves_the_local_allowance(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=0)
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=2)
+        first = scrape("https://example.com/cached", guard=guard, max_pages=1)
+        assert scrape("https://example.com/cached", guard=guard, max_pages=1) == first
+        scrape("https://example.com/second", guard=guard, max_pages=1)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/third", guard=guard, max_pages=1)
+    assert len(mock.posts) == 2
+
+
+def test_scrape_refuses_unbounded_cost_before_sending(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=13)
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=10)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/unbounded.pdf", guard=guard, allow_unbounded=True)
+    assert mock.posts == []
+
+
+def test_scrape_reserves_expensive_format_cost_before_sending(tmp_path):
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=0)
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=9)
+        with pytest.raises(CreditBudgetExceeded):
+            scrape("https://example.com/summary.pdf", formats=["markdown", "summary"],
+                   guard=guard, allow_expensive=True, max_pages=2)
+    assert mock.posts == []
