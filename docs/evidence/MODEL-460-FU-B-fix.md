@@ -54,6 +54,30 @@ The same four files were run again with `socket.socket.connect` and `socket.crea
 
 No full local suite, site build, Worker memory probe, production fetch, deployment, or release tag was run. No ranking floor, legal text, price, plan, Worker variable, production switch, frozen catalogue file, source-terms class, or contract version was changed.
 
+## Round 2
+
+Round 2 starts at `918eb79943df7621fb8d5c26a4bf71a271f0ddf6`. The same interpreter and pytest prefix as above.
+
+JSON-LD depth is nesting depth. `_JSON_LD_MAX_DEPTH` stays 64. Depth rises on `{` and `[` and falls on `}` and `]`, outside strings, and does not go below zero. Brackets inside a string, including after an escaped quote, do not move it. A block of 70 sibling objects is read, and so is an object whose `@graph` holds 70 objects. A block nested exactly 64 levels is read. One level deeper is skipped.
+
+`tests/test_release_signals.py -k 'seventy or nested_at_the_depth_bound or one_level_past_the_depth_bound or brackets_inside_strings'` recorded `3 failed, 2 passed, 145 deselected`, exit 1, before the change. The list of 70 objects, the `@graph` of 70 objects, and the block at depth 64 were skipped. The one-level-deeper case and the string-bracket case passed. After the change, that selector plus `json_ld_with_a_long_integer or json_ld_nested_past` recorded `7 passed, 143 deselected`, exit 0. Commit `77e51ba73d86cb5acdb9a2f67088778e4d08f966`.
+
+A 2000-digit integer and a 5000-digit integer are skipped by the digit bound. A block nested 2000 levels is skipped by the depth bound. The parse still catches an error from `json.loads` on that block.
+
+`tests/test_release_signals.py -k 'integer_longer_than_the_digit_bound or two_thousand_level_nest or json_ld_with_a_long_integer or json_ld_nested_past'` recorded `5 passed, 148 deselected`, exit 0, with both checks present. With the depth check disabled, the same selector recorded `2 failed, 3 passed, 148 deselected`, exit 1. The integer cases passed. Both deep-nest cases were read. The depth check was restored. With the digit check disabled, the same selector recorded `1 failed, 4 passed, 148 deselected`, exit 1. The 2000-digit integer was read. The 5000-digit integer and both deep-nest cases were still skipped. The digit check was restored. The same selector then recorded `5 passed, 148 deselected`, exit 0. Commit `31d1409df2bec62174b89591221dec36a5797976`.
+
+A `release_url` that makes `urlsplit` raise `ValueError` is missing, and so is an `http` URL. It is not a primary source.
+
+`-k 'unclosed-ipv6 or invalid-ipv6 or http-not-https'` recorded `4 failed, 2 passed, 153 deselected`, exit 1, before the change. The `http` cases passed. The bracketed values raised `ValueError` from the URL parser. After the change, `-k malformed_release_url` recorded `16 passed, 143 deselected`, exit 0. Commit `6913b8f3a386bbf056d629476162ee97c67e9b51`.
+
+Record text in a code span is flattened with `" ".join(text.split())` before the span is written. The line-break test covers `\n`, `\r`, `\x0b`, `\x0c`, `\x85`, U+2028 and U+2029. Each renders inside one code span on one line.
+
+`tests/test_release_blog.py -k test_record_text_with_a_line_break_is_one_code_span` recorded `7 passed, 70 deselected`, exit 0. Commit `7d70c55db3ae0f42741e748d470bdad4bf570050`.
+
+The focused command recorded `304 passed in 41.44s`, exit 0.
+
+The same four files were run again with `socket.socket.connect` and `socket.create_connection` raising `OSError` and counting each call. That run recorded `304 passed in 40.05s`, exit 0, and 0 connect attempts.
+
 ## Follow-ups
 
-None. Each of the five items is enforced as written.
+None.
