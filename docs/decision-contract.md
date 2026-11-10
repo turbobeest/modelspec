@@ -2067,6 +2067,16 @@ that used to be accepted is a major change; accepting more is not.
   the unrounded probability with 0.25, the reported `p_beats_leader` is that
   probability rounded to 4 places, and a reported 0.25 can sit in `rest`.
 
+- **MODEL-458, under 2.19 without a version change:** A weight that is not
+  finite is rejected. Compact `NaN`, `Infinity` and `-Infinity` tokens were
+  already rejected and still are. Every spec that returned a decision before
+  still does, including a non-finite compare value, window, set value, best
+  margin, tolerance, memory size or budget. Finite weights whose products
+  overflow still return a decision, and the scores and score intervals stay
+  finite. Scores that would overflow are reported on a common power-of-two
+  scale. Reported weights and penalties stay the caller's. No field changes
+  type or range, so `contract_version` stays 2.19.
+
 - **MODEL-440, under 2.19 without a version change:** `p_best` and
   `top3_stability` are integrated at fixed quantile nodes instead of drawn
   from 256 samples seeded with the snapshot id. A new snapshot id alone used

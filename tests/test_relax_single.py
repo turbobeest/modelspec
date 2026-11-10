@@ -71,6 +71,42 @@ def _gates(decision):
     return decision.relax_single.model_dump()
 
 
+def test_compound_retired_gate_is_not_a_phantom_admission():
+    """Removing the only retired opt-in does not admit the retired model."""
+    where = ["all(model.lifecycle = retired; model.context_window >= 100)"]
+    snapshot = _snapshot([model("lab/retired", lifecycle="retired", context=10)])
+    decision = _decide(snapshot, where, explain="full")
+    assert decision.status == "no_feasible"
+    for gate in decision.relax_single.gates:
+        remaining = [row for row in where if row != gate.condition]
+        rerun = _decide(snapshot, remaining, explain="none")
+        assert len(rerun.results) == gate.admits
+    assert decision.relax_single.gates == []
+    assert decision.relax_single.together_admits == 0
+
+
+def test_dropping_another_gate_keeps_the_retired_opt_in():
+    mid = "lab/retired"
+    snapshot = _snapshot([model(mid, lifecycle="retired", facts=[
+        fact("model", mid, "model.context_window", 10),
+        fact("model", mid, "model.weights_openness", "open_weights"),
+        fact("model", mid, "model.lifecycle", "retired"),
+    ])])
+    decision = _decide(
+        snapshot,
+        ["model.lifecycle = retired", "model.context_window >= 100"],
+        explain="full",
+    )
+    assert decision.status == "no_feasible"
+    assert decision.relax == ["model.context_window >= 100"]
+    assert {gate.condition: gate.admits for gate in decision.relax_single.gates} == {
+        "model.context_window >= 100": 1,
+    }
+    assert decision.relax_single.together_admits == 0
+    rerun = _decide(snapshot, ["model.lifecycle = retired"], explain="none")
+    assert len(rerun.results) == 1
+
+
 def test_one_hardware_gate_names_the_models_it_admits():
     snapshot = _snapshot(
         [
