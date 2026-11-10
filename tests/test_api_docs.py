@@ -33,8 +33,10 @@ network.
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import importlib.util
+import itertools
 import json
 import os
 import re
@@ -43,6 +45,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import pytest
 import yaml
 
@@ -218,7 +221,7 @@ def test_decide_response_description_uses_the_bounded_version(monkeypatch) -> No
     description = generator.build_spec()["paths"]["/v1/decide"]["post"]["responses"]["200"]["description"]
     assert description == (
         "A decision pinned to the snapshot that produced it: a complete "
-        "Decision (contract_version 2.19), with optional "
+        "Decision (contract_version 2.20), with optional "
         "top[].hardware_estimates and unknown_facets; or, when the request sends "
         "fields, evidence_for or router_config, the separate bounded representation "
         "(representation: bounded, bounded_version 7.9, no contract_version)."
@@ -605,6 +608,7 @@ def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
         "properties"
     ]["code"]["enum"]
     assert decision_codes == [
+        "invalid_request",
         "invalid_spec",
         "origin_not_allowed",
         "payload_too_large",
@@ -1009,7 +1013,186 @@ def test_human_access_errors_leave_decision_error_enum_unchanged(spec):
     schemas = spec["components"]["schemas"]
     codes = schemas["DecisionRequestRefused"]["properties"]["error"]["properties"]["code"]["enum"]
     assert codes == [
-        "invalid_spec", "origin_not_allowed", "payload_too_large",
+        "invalid_request", "invalid_spec", "origin_not_allowed", "payload_too_large",
         "snapshot_changed", "snapshot_not_loaded", "snapshot_refused", "snapshot_unavailable",
     ]
-    assert schemas["HumanGateRefused"]["properties"]["error"]["properties"]["code"]["enum"] == sorted(generator.human_error_codes())
+    human = set(schemas["HumanGateRefused"]["properties"]["error"]["properties"]["code"]["enum"])
+    assert human.isdisjoint(codes)
+    assert human == set(generator.human_error_codes())
+
+
+# ── published schemas match the responses and the parsers (MODEL-458) ────────
+
+def _nullable_to_jsonschema(value: Any) -> Any:
+    """OpenAPI 3.0 `nullable` is not a JSON Schema keyword. Make it one."""
+    if isinstance(value, list):
+        return [_nullable_to_jsonschema(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    converted = {key: _nullable_to_jsonschema(item) for key, item in value.items() if key != "nullable"}
+    if value.get("nullable") and "type" in converted:
+        kind = converted["type"]
+        if isinstance(kind, list):
+            if "null" not in kind:
+                converted["type"] = [*kind, "null"]
+        else:
+            converted["type"] = [kind, "null"]
+    return converted
+
+
+def _schema_problems(document: dict[str, Any], schema: dict[str, Any], instance: Any) -> list[str]:
+    if "$ref" in schema or "components" not in schema:
+        schema = {**schema, "components": document["components"]}
+    validator = jsonschema.Draft202012Validator(schema)
+
+    def leaves(error: jsonschema.ValidationError) -> list[str]:
+        if not error.context:
+            return [f"{list(error.absolute_path)} {error.message}"]
+        return [leaf for child in error.context for leaf in leaves(child)]
+
+    return [leaf for error in validator.iter_errors(instance) for leaf in leaves(error)]
+
+
+def _component_problems(spec: dict[str, Any], instance: Any, name: str) -> list[str]:
+    document = _nullable_to_jsonschema(spec)
+    return _schema_problems(document, {"$ref": f"#/components/schemas/{name}"}, instance)
+
+
+def _status_problems(spec: dict[str, Any], path: str, status: int, instance: Any) -> list[str]:
+    document = _nullable_to_jsonschema(spec)
+    schema = document["paths"][path]["post"]["responses"][str(status)]["content"]["application/json"]["schema"]
+    return _schema_problems(document, schema, instance)
+
+
+def test_widened_output_ranges_took_a_contract_major() -> None:
+    """Nullable fields, open maps and a new decide refusal code are majors."""
+    assert service.SCHEMA_VERSION == "2.0"
+    assert policy.SCHEMA_VERSION == "2.0"
+    assert decide.contract.CONTRACT_VERSION == "2.20"
+    assert decide.contract.BOUNDED_VERSION == "1.5"
+    assert decide.contract.MODEL_COMPARISON_VERSION == "1.1"
+
+
+def test_coding_rank_success_matches_rank_response(spec: dict[str, Any]) -> None:
+    from tests.test_rank_worker import _catalogue
+
+    export, hardware, _ = _catalogue()
+    status, body = service.rank(
+        {"use_case": "coding"}, export, hardware, "audit", "https://modelspec.test")
+    assert status == 200
+    assert _component_problems(spec, body, "RankResponse") == []
+
+
+@pytest.mark.parametrize("use_case", sorted(USE_CASE_PROFILES))
+def test_every_use_case_rank_matches_rank_response(spec: dict[str, Any], use_case: str) -> None:
+    from tests.test_rank_worker import _catalogue
+
+    export, hardware, _ = _catalogue()
+    status, body = service.rank(
+        {"use_case": use_case}, export, hardware, "audit", "https://modelspec.test")
+    assert status in (200, 422), body
+    if status == 200:
+        assert _component_problems(spec, body, "RankResponse") == [], use_case
+    else:
+        assert _status_problems(spec, "/v1/rank", status, body) == [], use_case
+
+
+def test_no_match_matches_its_status_schema(spec: dict[str, Any]) -> None:
+    status, body = service.rank(
+        {"use_case": "coding", "constraints": {"max_cost_per_million_input_tokens": 0}},
+        generator._export(), generator._HARDWARE, generator._COMMIT, generator._ORIGIN)
+    assert status == 422
+    assert _status_problems(spec, "/v1/rank", status, body) == []
+
+
+def test_sparse_authoring_guide_matches_rank_response(spec: dict[str, Any]) -> None:
+    status, body = service.rank(
+        {"use_case": "coding"}, generator._export(), generator._HARDWARE,
+        generator._COMMIT, generator._ORIGIN)
+    assert status == 200, body
+    sparse = copy.deepcopy(body)
+    sections = sparse["authoring_guide"]["guide"]["sections"]
+    del sections["failure_modes"]
+    assert _component_problems(spec, sparse, "RankResponse") == []
+
+
+_POLICY_BLOCKS = {
+    "licence": {"allowed": ["mit"]},
+    "origin": {"permitted_countries": ["US"]},
+    "residency": {"required_regions": ["eu-west-1"]},
+    "commercial_use": {"required": True},
+}
+
+
+def _policy_subset_payloads() -> list[tuple[str, dict[str, Any], bool]]:
+    names = tuple(_POLICY_BLOCKS)
+    cases = []
+    for size in range(1, len(names) + 1):
+        for combo in itertools.combinations(names, size):
+            policy_body = {name: _POLICY_BLOCKS[name] for name in combo}
+            for paid in (False, True):
+                for require in (False, True):
+                    cases.append((
+                        "+".join(combo) + ("/paid" if paid else "/public")
+                        + ("/strict" if require else "/report"),
+                        {"policy": policy_body, "require_no_undetermined": require},
+                        paid,
+                    ))
+    return cases
+
+
+_POLICY_CASES = _policy_subset_payloads()
+
+
+@pytest.mark.parametrize("label,payload,paid", _POLICY_CASES, ids=[case[0] for case in _POLICY_CASES])
+def test_policy_constraint_subsets_match_their_status_schema(
+        spec: dict[str, Any], label: str, payload: dict[str, Any], paid: bool) -> None:
+    status, body = generator._policy_answer(payload, paid=paid)
+    assert status in (200, 422), body
+    assert _status_problems(spec, "/v1/policy-check", status, body) == [], label
+
+
+@pytest.mark.parametrize("payload", [
+    {"use_case": "coding", "environment": None},
+    {"use_case": "coding", "constraints": None},
+    {"use_case": "coding", "limit": None},
+    {"use_case": "coding", "constraints": {"price_sensitivity": None}},
+    {"use_case": "coding", "constraints": {"include_rehosts": None}},
+])
+def test_rank_optional_nulls_match_the_parser(spec: dict[str, Any], payload: dict[str, Any]) -> None:
+    service.parse_request(payload, set())
+    assert _component_problems(spec, payload, "RankRequest") == []
+
+
+@pytest.mark.parametrize("payload", [
+    {"policy": {}},
+    {"policy": {"name": "named-only"}},
+    {"policy": {"licence": {}}},
+    {"policy": {"origin": {}}},
+    {"policy": {"licence": {"allowed": [], "prohibited": []}}},
+    {"policy": {"origin": {"permitted_countries": [], "prohibited_countries": []}}},
+])
+def test_empty_policy_shapes_are_outside_the_request_schema(
+        spec: dict[str, Any], payload: dict[str, Any]) -> None:
+    with pytest.raises(policy.RequestError):
+        policy.parse_request(payload, set())
+    assert _component_problems(spec, payload, "PolicyCheckRequest")
+
+
+from tests.test_x402 import _Req, _entry_env, entry  # noqa: E402, F401
+
+
+@pytest.mark.parametrize("path,raw,status", [
+    ("/v1/rank", "[]", 400),
+    ("/v1/rank", "{bad", 400),
+    ("/v1/rank", "x" * 16385, 413),
+    ("/v1/decide", "{bad", 400),
+    ("/v1/policy-check", "x" * 262145, 413),
+], ids=["rank_shape", "rank_json", "rank_oversize", "decide_json", "policy_oversize"])
+def test_transport_errors_match_openapi(entry, spec, path, raw, status):
+    worker = entry.Default()
+    worker.env = _entry_env(ACCESS_ENFORCED="true", X402_ENABLED="false")
+    response = asyncio.run(worker.fetch(_Req(
+        path, raw, headers={"Authorization": "Bearer test_audit"})))
+    assert response.status == status, response.body
+    assert _status_problems(spec, path, status, response.json()) == []

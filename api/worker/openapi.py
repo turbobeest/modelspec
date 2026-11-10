@@ -903,6 +903,7 @@ def _request_schema() -> dict[str, Any]:
             "use_case": {"type": "string", "enum": sorted(service.USE_CASE_PROFILES)},
             "environment": {
                 "type": "object",
+                "nullable": True,
                 "additionalProperties": False,
                 "properties": {
                     "hardware": {"type": "string", "nullable": True},
@@ -925,12 +926,14 @@ def _request_schema() -> dict[str, Any]:
                     "max_cost_per_million_input_tokens": {"type": "number", "minimum": 0,
                                                           "nullable": True},
                     "price_sensitivity": {"type": "number", "minimum": 0, "maximum": 1,
-                                          "default": 0.0},
-                    "include_rehosts": {"type": "boolean", "default": False},
+                                          "default": 0.0, "nullable": True},
+                    "include_rehosts": {"type": "boolean", "default": False,
+                                        "nullable": True},
                 },
+                "nullable": True,
             },
             "limit": {"type": "integer", "minimum": 0, "maximum": service.MAX_LIMIT,
-                      "default": service.DEFAULT_LIMIT},
+                      "default": service.DEFAULT_LIMIT, "nullable": True},
         },
     }
 
@@ -986,12 +989,22 @@ def _policy_request_schema() -> dict[str, Any]:
         return {"type": "object", "additionalProperties": False, **extra,
                 "properties": properties}
 
+    def one_nonempty_list(name: str) -> dict[str, Any]:
+        return {"required": [name], "properties": {
+            name: {"type": "array", "minItems": 1},
+        }}
+
+    def either_list(left: str, right: str) -> dict[str, Any]:
+        return {"anyOf": [one_nonempty_list(left), one_nonempty_list(right)]}
+
     schema = block({
         "policy": block({
             "name": {"type": "string", "nullable": True},
-            "licence": block({"allowed": strings(), "prohibited": strings()}),
+            "licence": block({"allowed": strings(), "prohibited": strings()},
+                             **either_list("allowed", "prohibited")),
             "origin": block({"permitted_countries": strings(),
-                             "prohibited_countries": strings()}),
+                             "prohibited_countries": strings()},
+                            **either_list("permitted_countries", "prohibited_countries")),
             "residency": block({
                 "required_regions": {"type": "array", "minItems": 1,
                                      "items": {"type": "string", "minLength": 1}},
@@ -1006,7 +1019,12 @@ def _policy_request_schema() -> dict[str, Any]:
                              "default": True},
                 "accept_restricted": {"type": "boolean", "nullable": True, "default": False},
             }),
-        }),
+        }, anyOf=[
+            {"required": ["licence"]},
+            {"required": ["origin"]},
+            {"required": ["residency"]},
+            {"required": ["commercial_use"]},
+        ]),
         "require_no_undetermined": {"type": "boolean", "nullable": True, "default": False},
         "models": strings(maxItems=policy.MAX_NAMED_MODELS),
         "platforms": {"type": "array", "nullable": True,
@@ -1790,7 +1808,7 @@ def _feedback_paths() -> dict[str, Any]:
                 },
                 "responses": {
                     "200": _json_body("Deleted.", {"$ref": "#/components/schemas/FeedbackResult"}),
-                    **{s: e for s, e in errors.items() if s in {"400", "403", "404", "413", "429"}},
+                    **{s: e for s, e in errors.items() if s in {"400", "403", "404", "413", "429", "503"}},
                     "405": method,
                 },
             },
@@ -2044,6 +2062,15 @@ def _policy_schemas(used: set[str]) -> dict[str, Any]:
     undetermined["properties"]["error"]["properties"]["examples"]["items"] = {
         "$ref": "#/components/schemas/UndeterminedRow"}
 
+    def nullable_why(node: dict[str, Any]) -> None:
+        determinations = (node.get("properties") or {}).get("determinations") or {}
+        why = (determinations.get("properties") or {}).get("why")
+        if isinstance(why, dict):
+            why["nullable"] = True
+
+    nullable_why(response)
+    nullable_why(undetermined)
+
     return {
         "PolicyCheckRequest": _describe(_policy_request_schema(), "PolicyCheckRequest", used),
         "PolicyCheckResponse": response,
@@ -2283,7 +2310,9 @@ def _decision_schemas() -> dict[str, Any]:
     }
     schemas["DecisionRequestRefused"] = refused(
         "decide",
-        shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
+        shared_refusals | {
+            "invalid_request", "invalid_spec", "snapshot_changed", "snapshot_not_loaded",
+        },
     )
     schemas["DecisionRequestRefused"]["properties"]["error"]["properties"].update({
         "issues": {
@@ -2313,8 +2342,8 @@ def _decision_schemas() -> dict[str, Any]:
     schemas["DecisionRequestRefused"]["properties"]["coverage"] = {
         "$ref": "#/components/schemas/DecisionCoverageRefusal",
     }
-    # Reachable only with evidence_for, so it belongs to the bounded
-    # representation and leaves the 2.x decision error enum unchanged.
+    # Reachable only with evidence_for, so explanation_unavailable stays on
+    # the bounded representation and off the decision error enum.
     schemas["DecisionBoundedRefused"] = {
         "type": "object",
         "additionalProperties": False,
@@ -2640,6 +2669,75 @@ def _hardware_fit_schemas() -> dict[str, Any]:
     return schemas
 
 
+def _guide_claim_schema() -> dict[str, Any]:
+    """One sourced authoring claim. Empty section arrays still name this item."""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["sources", "text"],
+        "properties": {
+            "text": {"type": "string", "minLength": 1},
+            "sources": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["accessed", "kind", "title", "url"],
+                    "properties": {
+                        "accessed": {"type": "string"},
+                        "kind": {"type": "string", "enum": [
+                            "provider-guidance", "system-card", "release-notes", "model-docs",
+                        ]},
+                        "title": {"type": "string"},
+                        "url": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+
+def _filter_value_schema() -> dict[str, Any]:
+    """A rank filter value: a cost, a boolean, or a hardware id."""
+    return {"anyOf": [{"type": "number"}, {"type": "boolean"}, {"type": "string"}]}
+
+
+def _correct_rank_response(schema: dict[str, Any]) -> None:
+    """Replace sample-only ranges with the ranges the ranker actually returns."""
+    row = schema["properties"]["result"]["items"]["properties"]
+    weights = sorted({
+        benchmark
+        for profile in service.USE_CASE_PROFILES.values()
+        for benchmark in profile.get("benchmark_weights", {})
+    })
+    contributions: dict[str, Any] = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {name: {"type": "number"} for name in weights},
+    }
+    previous = row.get("benchmark_contributions") or {}
+    if previous.get("description"):
+        contributions["description"] = previous["description"]
+    row["benchmark_contributions"] = contributions
+    for field in ("context_window", "cost_input", "scores_as_of"):
+        if field in row:
+            row[field]["nullable"] = True
+    guide = schema["properties"]["authoring_guide"]["properties"]["guide"]
+    guide["required"] = ["applies_to", "as_of", "sections", "status"]
+    sections = guide["properties"]["sections"]
+    sections.pop("required", None)
+    sections["additionalProperties"] = False
+    for child in sections["properties"].values():
+        child["type"] = "array"
+        child["items"] = _guide_claim_schema()
+
+
+def _correct_no_match(schema: dict[str, Any]) -> None:
+    schema["properties"]["eliminated_by"]["properties"]["value"] = _filter_value_schema()
+    schema["properties"]["elimination_trace"]["items"]["properties"]["value"] = _filter_value_schema()
+
+
 def build_spec() -> dict[str, Any]:
     # Two real answers, merged: the example request (whose `managed_api` hosting
     # populates `applied.unbound`) and a fully constrained one (which binds every
@@ -2672,12 +2770,14 @@ def build_spec() -> dict[str, Any]:
                              "description": "Benchmark IDs mapped to cite-only source URLs; excluded from verified counts."},
     })
     response_schema["properties"]["result"]["items"] = _describe(row_schema, "RankedModel", used)
+    _correct_rank_response(response_schema)
 
     no_match_schema = _apply_vocabularies(_describe(
         _merge(_infer(errors["no_match"][1]), _infer(errors["insufficient_evidence"][1]))
         ["properties"]["error"], "NoMatchError", used))
     no_match_schema["properties"]["code"]["enum"] = sorted(
         {errors[code][1]["error"]["code"] for code in ("no_match", "insufficient_evidence")})
+    _correct_no_match(no_match_schema)
 
     refused_codes = ("invalid_request", "unknown_use_case", "unknown_hardware",
                      "unknown_hosting", "unknown_runtime")
@@ -2687,6 +2787,8 @@ def build_spec() -> dict[str, Any]:
     refused_schema = _describe(refused, "RequestRefusedError", used)
     refused_schema["properties"]["code"]["enum"] = sorted(
         {errors[code][1]["error"]["code"] for code in refused_codes})
+    if "accepted" in refused_schema.get("required", []):
+        refused_schema["required"].remove("accepted")
 
     request_schema = _describe(_request_schema(), "RankRequest", used)
     health_schema: dict[str, Any] = {}
@@ -3462,7 +3564,8 @@ def build_spec() -> dict[str, Any]:
                     "required": ["code", "message"],
                     "properties": {
                         "code": {"type": "string",
-                                 "enum": sorted(entry_codes) or ["not_found"]},
+                                 "enum": sorted(set(entry_codes) | {"payload_too_large"})
+                                 or ["not_found"]},
                         "message": {"type": "string"},
                         "accepted": {"type": "array", "items": {"type": "string"}},
                     },
@@ -3912,8 +4015,9 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
     """Check a value against the spec's schema. Enough of JSON Schema to bite.
 
     Covers what this spec uses: types, nullable, enum, required, nested
-    properties and items, maxItems, `oneOf` with a discriminator (the policy
-    verdicts), and `not`/`anyOf` (a variant forbidding its siblings' keys).
+    properties and items, minItems, maxItems, `oneOf` with a discriminator
+    (the policy verdicts), and `not`/`anyOf`. An `anyOf` miss is recorded and
+    sibling keywords are still checked. `oneOf` selects one variant.
     """
     schema = _resolve(schema, spec)
     if "oneOf" in schema:
@@ -3927,11 +4031,10 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
         matching = [s for s in schema["oneOf"] if not _validate(value, s, spec, path)]
         return [] if len(matching) == 1 else [
             f"{path}: matches {len(matching)} of the spec's oneOf variants, not exactly 1"]
-    if "anyOf" in schema:
-        if all(_validate(value, s, spec, path) for s in schema["anyOf"]):
-            return [f"{path}: matches none of the spec's anyOf"]
-        return []
     problems: list[str] = []
+    if "anyOf" in schema:
+        if all(_validate(value, branch, spec, path) for branch in schema["anyOf"]):
+            problems.append(f"{path}: matches none of the spec's anyOf")
     if "not" in schema and not _validate(value, schema["not"], spec, path):
         problems.append(f"{path}: carries a key the spec forbids on this variant")
     kind = schema.get("type")
@@ -3961,6 +4064,8 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
             if name in value:
                 problems += _validate(value[name], child, spec, f"{path}.{name}")
     if kind == "array":
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            problems.append(f"{path}: {len(value)} items, spec requires {schema['minItems']}")
         if "maxItems" in schema and len(value) > schema["maxItems"]:
             problems.append(f"{path}: {len(value)} items, spec allows {schema['maxItems']}")
         for index, entry in enumerate(value[:3]):

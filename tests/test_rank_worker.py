@@ -24,6 +24,7 @@ Every vector below exercises one of those.
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import glob
 import importlib.util
@@ -50,6 +51,7 @@ from pipeline import ranking  # noqa: E402
 from pipeline.ranking import authoring_guides_from_cards  # noqa: E402
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import derive_graph  # noqa: E402
+from tests.test_x402 import _Req, _entry_env, entry  # noqa: E402, F401
 
 WORKER_ROOT = REPO_ROOT / "api" / "worker"
 WORKER_SRC = WORKER_ROOT / "src"
@@ -456,6 +458,12 @@ def test_no_floor_is_written_down_a_second_time() -> None:
             code = line.split("#", 1)[0]
             if "=" not in code or "==" in code:
                 continue
+            # Skip only a quoted dotted envelope version. "2.0" collides with
+            # float(MIN_BENCHMARK_COUNT). A number on the same line is scanned.
+            rhs = code.split("=", 1)[1].strip()
+            if (re.search(r"\bSCHEMA_VERSION\s*=", code)
+                    and re.fullmatch(r"""["']\d+\.\d+["']""", rhs)):
+                continue
             for literal in re.findall(r"(?<![\w.])\d+\.\d+(?![\w.])", code):
                 assert float(literal) not in floors, (
                     f"{path.name}: {line.strip()!r} writes a ranking floor down again; "
@@ -712,8 +720,58 @@ def test_every_rank_response_says_it_is_deprecated_and_points_at_decide() -> Non
         assert "fallback" in notice["message"]
         assert notice["next"] == {"method": "POST", "url": "https://api.modelspec.dev/v1/decide",
                                   "guide": "https://modelspec.dev/agents.md"}
-    # Additive: the envelope version is unchanged.
-    assert ok[1]["schema_version"] == "1.0"
+    assert ok[1]["schema_version"] == service.SCHEMA_VERSION == "2.0"
+
+
+def _reject_json_constant(token: str) -> None:
+    raise AssertionError("invalid JSON constant " + token)
+
+
+@pytest.mark.parametrize("number", ["1e999", "1" + "0" * 400], ids=["overflow_float", "overflow_integer"])
+@pytest.mark.parametrize("field", ["max_cost_per_million_input_tokens", "price_sensitivity"])
+def test_unrepresentable_rank_numbers_are_correctable_errors(number: str, field: str) -> None:
+    export = _guided_export()
+    payload = {"use_case": "coding", "constraints": {field: json.loads(number)}}
+    with pytest.raises(service.RequestError) as caught:
+        service.rank(payload, export, None, SERVICE_COMMIT, ORIGIN)
+    assert caught.value.status == service.HTTP_BAD_REQUEST
+    assert caught.value.code == "invalid_request"
+    assert field in caught.value.message
+    status, body = service.error_response(caught.value, export, SERVICE_COMMIT, ORIGIN)
+    parsed = json.loads(json.dumps(body), parse_constant=_reject_json_constant)
+    assert status == service.HTTP_BAD_REQUEST
+    assert parsed["error"]["code"] == "invalid_request"
+    assert field in parsed["error"]["message"]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("price_sensitivity", 0),
+    ("price_sensitivity", 1),
+    ("max_cost_per_million_input_tokens", 0),
+    ("max_cost_per_million_input_tokens", 1.5),
+])
+def test_finite_rank_numbers_keep_their_meaning(field: str, value: float) -> None:
+    parsed = service.parse_request(
+        {"use_case": "coding", "constraints": {field: value}}, set())
+    if field == "price_sensitivity":
+        assert parsed["price_sensitivity"] == value
+    else:
+        assert parsed["max_cost"] == value
+
+
+@pytest.mark.parametrize("number", ["1e999", "1" + "0" * 400], ids=["overflow_float", "overflow_integer"])
+@pytest.mark.parametrize("field", ["max_cost_per_million_input_tokens", "price_sensitivity"])
+@pytest.mark.parametrize("enforced,key", [("true", "test_audit"), ("false", None)], ids=["sandbox", "live"])
+def test_worker_refuses_unrepresentable_rank_numbers(entry, number, field, enforced, key) -> None:
+    worker = entry.Default()
+    worker.env = _entry_env(ACCESS_ENFORCED=enforced, X402_ENABLED="false")
+    headers = {"Authorization": "Bearer " + key} if key else {}
+    raw = '{"use_case":"coding","constraints":{"' + field + '":' + number + "}}"
+    response = asyncio.run(worker.fetch(_Req("/v1/rank", raw, headers=headers)))
+    body = json.loads(response.body, parse_constant=_reject_json_constant)
+    assert response.status == service.HTTP_BAD_REQUEST
+    assert body["error"]["code"] == "invalid_request"
+    assert field in body["error"]["message"]
 
 
 def test_unranged_benchmark_clamps_before_image_generation_ranking():

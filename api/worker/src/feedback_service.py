@@ -114,7 +114,8 @@ ERRORS: dict[str, tuple[int, str]] = {
     "rate_limited": (HTTP_TOO_MANY_REQUESTS,
                      "Wait retry_after seconds, then send it once."),
     "feedback_store_unavailable": (HTTP_SERVICE_UNAVAILABLE,
-                                   "Storage is on but not configured; retry later."),
+                                   "Returned when storage is not configured "
+                                   "or when a storage read or delete fails. Retry later."),
 }
 
 
@@ -475,7 +476,11 @@ async def submit(
     group = "page" if parsed.client == "page" else "api"
     global_name = f"{LIMIT_PREFIX}global/{day}/{group}"
     address_name = f"{LIMIT_PREFIX}day/{day}/{_mac(store.pepper, day, address)}"
-    total, mine = await _counter(store.kv, global_name), await _counter(store.kv, address_name)
+    try:
+        total = await _counter(store.kv, global_name)
+        mine = await _counter(store.kv, address_name)
+    except Exception:  # noqa: BLE001 - a store read failure is a refusal, not a lost record
+        return error("feedback_store_unavailable", "the feedback store could not be read; retry")
     if total >= GLOBAL_DAILY_CAP:
         return error("rate_limited", "the service has taken all the feedback it can for today",
                      retry_after=seconds_left)
@@ -551,9 +556,16 @@ async def withdraw(
     if not store.enabled or not store.ready:
         return error("receipt_not_found", "no feedback is stored under that receipt")
     name = _record_name(payload["receipt"])
-    if await store.kv.get(name) is None:
+    try:
+        stored = await store.kv.get(name)
+    except Exception:  # noqa: BLE001 - a store read failure is a refusal, not a lost record
+        return error("feedback_store_unavailable", "the feedback store could not be read; retry")
+    if stored is None:
         return error("receipt_not_found", "no feedback is stored under that receipt")
-    await store.kv.delete(name)
+    try:
+        await store.kv.delete(name)
+    except Exception:  # noqa: BLE001 - a failed delete must not acknowledge success
+        return error("feedback_store_unavailable", "the feedback could not be deleted; retry")
     return Outcome(HTTP_OK, _envelope(status="deleted", recorded=False))
 
 

@@ -1,11 +1,11 @@
 {
   "source_hashes": {
     "api/worker/openapi.yaml":
-      "7bafbe19874d65c5f1ac5b11070f096f22b75bed0aad48b12800af5ef20ef41e",
+      "6afeb541c9e76bb5b14b68bb1bb95e1fb84247ec2c8b78e981794f7237805c6c",
     "docs/agents.md":
       "f388412bbb28eaece530bae22ffed2822b7480f36302b4e05916c8c6f9439028",
     "docs/decision-contract.schema.json":
-      "e57cf8515f9abfae6b3d62261ddb55bba040cfb2595002c2cf6f3da0f2ae1dc5",
+      "d3dcffc1649d9ea4ae57e58c3059499cb9943cb1f762ce5c244d5227b3ee872f",
     "mcp/src/agent-copy.json":
       "e96214d3414d787ac61b8a5e2f1ac8060d18766bde74a66a8c2b1c0551d5b96a",
     "mcp/src/server.ts":
@@ -13,7 +13,7 @@
     "mcp/src/vocabulary.ts":
       "b500f45f6ea016386ec0a02efa095c5ff1a79674c2823ad48e2fd06b63298c04",
     "mcp/test/fixtures/decide-budget.json":
-      "89dc4b404ff4ffcacb6f2af910f0725a3900ba932d8016e3d72d66af47b10346"
+      "e191df82cd5084e9e4d1af093b99308b9de8b4084c5fad401f511182a778b200"
   },
   "tools": [
     {
@@ -28,7 +28,10 @@
             "description": "Ranking profile id, as published in /api/rank/profiles.json"
           },
           "environment": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": false,
             "properties": {
               "hardware": {
@@ -63,7 +66,10 @@
             }
           },
           "constraints": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": false,
             "properties": {
               "open_weights": {
@@ -85,12 +91,18 @@
                 ]
               },
               "include_rehosts": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               }
             }
           },
           "limit": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0,
             "maximum": 100
           }
@@ -133,6 +145,12 @@
         "properties": {
           "policy": {
             "type": "object",
+            "anyOf": [
+              {},
+              {},
+              {},
+              {}
+            ],
             "properties": {
               "name": {
                 "type": "string"
@@ -140,6 +158,22 @@
               "licence": {
                 "type": "object",
                 "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "properties": {
+                      "allowed": {
+                        "type": "array"
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "prohibited": {
+                        "type": "array"
+                      }
+                    }
+                  }
+                ],
                 "properties": {
                   "allowed": {
                     "type": "array",
@@ -158,6 +192,22 @@
               "origin": {
                 "type": "object",
                 "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "properties": {
+                      "permitted_countries": {
+                        "type": "array"
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "prohibited_countries": {
+                        "type": "array"
+                      }
+                    }
+                  }
+                ],
                 "properties": {
                   "permitted_countries": {
                     "type": "array",

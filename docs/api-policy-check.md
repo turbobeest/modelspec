@@ -86,7 +86,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/policy-check \
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "endpoint": "policy-check",
   "build": {
     "commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",

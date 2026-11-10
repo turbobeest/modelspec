@@ -79,7 +79,7 @@ def _row(model: str, rank: int = 1, **extra) -> dict:
 
 def _decision(**overrides) -> Decision:
     base = {
-        "contract_version": "2.19",
+        "contract_version": "2.20",
         "decision_id": "dec_01J8ZK3Q7Y",
         "snapshot": "snap_2026-09-24T06:00Z",
         "spec_hash": "sha256:" + "0" * 64,

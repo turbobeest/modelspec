@@ -196,7 +196,7 @@ REFUSE = [
 
 
 def test_contract_version_stays_current() -> None:
-    assert CONTRACT_VERSION == "2.19"
+    assert CONTRACT_VERSION == "2.20"
 
 
 @pytest.mark.parametrize(("name", "body", "status", "models"), DECIDE, ids=[row[0] for row in DECIDE])

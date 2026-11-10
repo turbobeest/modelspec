@@ -223,7 +223,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.19"
+    assert c.CONTRACT_VERSION == "2.20"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -793,10 +793,10 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
     from decision.bounded import project
 
     decision = c.Decision.model_validate(DECISION)
-    assert decision.model_dump(mode="json")["contract_version"] == "2.19"
+    assert decision.model_dump(mode="json")["contract_version"] == "2.20"
     bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
     assert bounded["bounded_version"] == "1.5"
-    assert bounded["projects_contract"] == "2.19"
+    assert bounded["projects_contract"] == "2.20"
     assert "contract_version" not in bounded
     c.BoundedDecision.model_validate(bounded)
 
@@ -1108,6 +1108,28 @@ def test_a_wrong_access_value_names_the_accepted_form() -> None:
         "optimize": {"max": "model.context_window"},
     }, facets=None)
     assert spec.access is not None and spec.access.kind == "own_hardware"
+    for kind in ("chat_app", "coding_tool", "own_software", "own_hardware"):
+        parsed = c.parse_spec({
+            "spec_version": 1,
+            "access": {"kind": kind},
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+        assert parsed.access is not None and parsed.access.kind == kind
+
+
+@pytest.mark.parametrize("kind", [[], {}, ["chat_app"]])
+def test_a_non_string_access_kind_names_the_accepted_form(kind) -> None:
+    with pytest.raises(c.SpecError) as caught:
+        c.parse_spec({
+            "spec_version": 1,
+            "access": {"kind": kind},
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+    assert caught.value.issues[0].path.startswith("access")
+    assert caught.value.issues[0].reason == (
+        "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+        "or one of those kinds as a string"
+    )
 
 
 def test_schema_file_is_generated_from_the_types() -> None:

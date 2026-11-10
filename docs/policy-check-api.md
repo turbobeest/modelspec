@@ -250,7 +250,9 @@ A **no-commitment** finding is also a `fail` on the paid tier, and it is how a
 come back with the verdict (`documents`: URL and read date; `reason`: what
 they said instead of a region). It is never an empty `not_determined`: a card
 that publishes `withheld` is a promise that the paid tier has something to
-serve. No new `undetermined.why` value; `SCHEMA_VERSION` stays `"1.0"`.
+serve. No new `undetermined.why` value. That change left `SCHEMA_VERSION` at
+`"1.0"`. The current envelope is `"2.0"` because a paid `determinations.why`
+is null. Rank and policy-check share one OpenAPI `info.version`.
 
 ---
 

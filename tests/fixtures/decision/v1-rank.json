@@ -175,7 +175,7 @@
         "verified_contributions": 1
       }
     ],
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "service_commit": "76eabc11",
     "unranked_candidates": {
       "cap": 10,

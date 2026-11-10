@@ -5,7 +5,7 @@
 openapi: 3.0.3
 info:
   title: ModelSpec API
-  version: '1.0'
+  version: '2.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
   description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-d71e83841e122452). Call decide early with a template-based Spec; refine
     from reading and recovery hints.
@@ -386,7 +386,7 @@ paths:
               limit: 3
       responses:
         '200':
-          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.19), with optional top[].hardware_estimates and
+          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.20), with optional top[].hardware_estimates and
             unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
             1.5, no contract_version).'
           content:
@@ -974,13 +974,13 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '503':
-          description: '`feedback_store_unavailable`: Storage is on but not configured; retry later.'
+        '503': &id015
+          description: '`feedback_store_unavailable`: Returned when storage is not configured or when a storage read or delete fails. Retry later.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '405': &id015
+        '405': &id016
           description: Use POST to send and DELETE to withdraw.
           content:
             application/json:
@@ -1014,7 +1014,8 @@ paths:
           headers: *id001
         '413': *id013
         '429': *id014
-        '405': *id015
+        '503': *id015
+        '405': *id016
   /v1/signals:
     post:
       operationId: releaseSignalIntake
@@ -1040,18 +1041,18 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': &id016
+        '400': &id017
           description: The feature is off, authentication failed, the request is invalid, or storage is unavailable.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SignalError'}
           headers: *id001
-        '401': *id016
-        '404': *id016
-        '409': *id016
-        '413': *id016
-        '503': *id016
-        '405': &id017
+        '401': *id017
+        '404': *id017
+        '409': *id017
+        '413': *id017
+        '503': *id017
+        '405': &id018
           description: Wrong method for this path.
           content:
             application/json:
@@ -1082,12 +1083,12 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': *id016
-        '401': *id016
-        '404': *id016
-        '413': *id016
-        '503': *id016
-        '405': *id017
+        '400': *id017
+        '401': *id017
+        '404': *id017
+        '413': *id017
+        '503': *id017
+        '405': *id018
   /v1/signals/pending:
     get:
       operationId: releaseSignalsPending
@@ -1102,10 +1103,10 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalsPending'}
           headers: *id001
-        '401': *id016
-        '404': *id016
-        '503': *id016
-        '405': *id017
+        '401': *id017
+        '404': *id017
+        '503': *id017
+        '405': *id018
   /v1/signals/ack:
     post:
       operationId: releaseSignalAcknowledge
@@ -1125,11 +1126,11 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': *id016
-        '401': *id016
-        '404': *id016
-        '503': *id016
-        '405': *id017
+        '400': *id017
+        '401': *id017
+        '404': *id017
+        '503': *id017
+        '405': *id018
   /v1/billing/checkout:
     post:
       operationId: billingCheckout
@@ -1602,7 +1603,7 @@ components:
             used: {type: integer}
             window: {type: string}
             window_seconds: {type: integer}
-            windows: &id018
+            windows: &id019
               type: array
               items: {$ref: '#/components/schemas/Sharedddf01cbae5c7'}
           required: [code, message]
@@ -1636,7 +1637,7 @@ components:
             used: {type: integer}
             window: {type: string}
             window_seconds: {type: integer}
-            windows: *id018
+            windows: *id019
           required: [code, message]
         result:
           type: array
@@ -1657,6 +1658,7 @@ components:
             summarization, text_to_speech, translation, vision, writing_creative, writing_technical]
         environment:
           type: object
+          nullable: true
           additionalProperties: false
           properties:
             hardware: {description: 'A device id from https://modelspec.dev/api/rank/hardware.json. Keeps only models whose weights fit that device. An id not in
@@ -1685,9 +1687,10 @@ components:
             max_cost_per_million_input_tokens: {description: USD ceiling on input cost. Applied before scoring. A model with no published price is dropped by this
                 filter rather than assumed cheap., type: number, minimum: 0, nullable: true}
             price_sensitivity: {description: '0–1. How much cost weighs against quality. Every shipped profile weights cost at 0, so this is the only way to make
-                price matter.', type: number, minimum: 0, maximum: 1, default: 0.0}
-            include_rehosts: {description: Include models that are rehosts of another provider's weights., type: boolean, default: false}
-        limit: {description: 'Caps the ranked shortlist only, not the pool.', type: integer, minimum: 0, maximum: 100, default: 10}
+                price matter.', type: number, minimum: 0, maximum: 1, default: 0.0, nullable: true}
+            include_rehosts: {description: Include models that are rehosts of another provider's weights., type: boolean, default: false, nullable: true}
+          nullable: true
+        limit: {description: 'Caps the ranked shortlist only, not the pool.', type: integer, minimum: 0, maximum: 100, default: 10, nullable: true}
     RankResponse:
       type: object
       properties:
@@ -1731,40 +1734,17 @@ components:
                 sections:
                   type: object
                   properties:
-                    failure_modes:
+                    failure_modes: &id020
                       type: array
-                      items: {}
-                    formatting:
-                      type: array
-                      items: {}
-                    prompt_shape:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          sources:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                accessed: {type: string}
-                                kind: {type: string}
-                                title: {type: string}
-                                url: {type: string}
-                              required: [accessed, kind, title, url]
-                          text: {type: string}
-                        required: [sources, text]
-                    reasoning_and_tools:
-                      type: array
-                      items: {}
-                    retry_advice:
-                      type: array
-                      items: {}
-                    system_message:
-                      type: array
-                      items: {}
-                  required: [failure_modes, formatting, prompt_shape, reasoning_and_tools, retry_advice, system_message]
+                      items: {$ref: '#/components/schemas/Sharedcdda5f3578d1'}
+                    formatting: *id020
+                    prompt_shape: *id020
+                    reasoning_and_tools: *id020
+                    retry_advice: *id020
+                    system_message: *id020
+                  additionalProperties: false
                 status: {type: string}
+              required: [applies_to, as_of, sections, status]
             model_id: {description: The recommended model this block is about. Null when the shortlist is empty., type: string, nullable: true}
             state:
               description: current, stale, or absent. A stale guide is served as stale, never rewritten to current. Absent is a state, not an empty string.
@@ -1882,16 +1862,81 @@ components:
             properties:
               benchmark_contributions:
                 type: object
+                additionalProperties: false
                 properties:
                   aider_polyglot: {type: number}
+                  aime_2025: {type: number}
+                  aime_2026: {type: number}
+                  alpaca_eval: {type: number}
+                  arc_challenge: {type: number}
                   arena_elo_coding: {type: number}
+                  arena_elo_hard_prompts: {type: number}
+                  arena_elo_math: {type: number}
                   arena_elo_overall: {type: number}
+                  arena_elo_style_control: {type: number}
+                  arena_elo_vision: {type: number}
+                  bbh: {type: number}
+                  bbq: {type: number}
+                  beir: {type: number}
+                  chartqa: {type: number}
+                  clip_score: {type: number}
+                  critpt: {type: number}
+                  docvqa: {type: number}
+                  fid: {type: number}
+                  finbench: {type: number}
+                  finqa: {type: number}
+                  flores: {type: number}
+                  gpqa_diamond: {type: number}
+                  gsm8k: {type: number}
+                  hellaswag: {type: number}
+                  helm_safety: {type: number}
                   humaneval: {type: number}
+                  ifeval: {type: number}
+                  legalbench: {type: number}
                   live_code_bench: {type: number}
+                  math_500: {type: number}
+                  mathvista: {type: number}
+                  medmcqa: {type: number}
+                  medqa: {type: number}
+                  mgsm: {type: number}
+                  miracl: {type: number}
+                  mmlu_astronomy: {type: number}
+                  mmlu_biology: {type: number}
+                  mmlu_business_ethics: {type: number}
+                  mmlu_chemistry: {type: number}
+                  mmlu_clinical_knowledge: {type: number}
+                  mmlu_computer_science: {type: number}
+                  mmlu_jurisprudence: {type: number}
+                  mmlu_physics: {type: number}
+                  mmlu_pro: {type: number}
+                  mmlu_professional_accounting: {type: number}
+                  mmlu_professional_law: {type: number}
+                  mmmu: {type: number}
+                  mos_tts: {type: number}
+                  mt_bench: {type: number}
+                  mteb_classification: {type: number}
+                  mteb_clustering: {type: number}
+                  mteb_overall: {type: number}
+                  mteb_retrieval: {type: number}
+                  multipl_e: {type: number}
+                  multipl_e_cpp: {type: number}
+                  multipl_e_go: {type: number}
+                  multipl_e_java: {type: number}
+                  multipl_e_javascript: {type: number}
+                  multipl_e_python: {type: number}
+                  multipl_e_rust: {type: number}
+                  multipl_e_typescript: {type: number}
+                  pubmedqa: {type: number}
                   scicode: {type: number}
+                  swe_bench_agent: {type: number}
                   swe_bench_verified: {type: number}
+                  tau_bench: {type: number}
                   terminal_bench: {type: number}
-                required: [aider_polyglot, arena_elo_coding, arena_elo_overall, humaneval, live_code_bench, swe_bench_verified]
+                  toxigen: {type: number}
+                  truthfulqa: {type: number}
+                  web_arena: {type: number}
+                  wer_librispeech: {type: number}
+                  wildbench: {type: number}
               benchmark_count: {type: integer}
               benchmark_coverage: {description: Share of the profile's weighted benchmarks this model has a score for., type: number}
               benchmark_estimate: {type: number}
@@ -1900,8 +1945,8 @@ components:
               benchmark_upper_bound: {type: number}
               capability_score: {type: number}
               context_score: {type: number}
-              context_window: {type: integer}
-              cost_input: {description: 'USD per million input tokens, or null when unpublished.', type: number}
+              context_window: {type: integer, nullable: true}
+              cost_input: {description: 'USD per million input tokens, or null when unpublished.', type: number, nullable: true}
               cost_score: {type: number}
               display_name: {type: string}
               evidence_basis:
@@ -1925,7 +1970,7 @@ components:
               score_kind: {type: string}
               score_lower_bound: {type: number}
               score_upper_bound: {type: number}
-              scores_as_of: {type: string}
+              scores_as_of: {type: string, nullable: true}
               type_bonus: {type: number}
               unranked_reason: {nullable: true}
               verified_benchmark_coverage: {type: number}
@@ -2040,7 +2085,11 @@ components:
                 constraint: {type: string}
                 survivors_after: {type: integer}
                 survivors_before: {type: integer}
-                value: {type: number}
+                value:
+                  anyOf:
+                  - {type: number}
+                  - {type: boolean}
+                  - {type: string}
               required: [constraint, survivors_after, survivors_before, value]
             elimination_trace:
               description: Every filter, in the order the scorer applies them.
@@ -2051,7 +2100,11 @@ components:
                   constraint: {type: string}
                   survivors_after: {type: integer}
                   survivors_before: {type: integer}
-                  value: {type: string}
+                  value:
+                    anyOf:
+                    - {type: number}
+                    - {type: boolean}
+                    - {type: string}
                 required: [constraint, survivors_after, survivors_before, value]
             message: {type: string}
             ranking_status:
@@ -2083,7 +2136,7 @@ components:
               type: array
               items: {type: string}
             message: {type: string}
-          required: [accepted, code, message]
+          required: [code, message]
         result:
           type: array
           items: {}
@@ -2105,7 +2158,7 @@ components:
 
         devices. A spec may give the bare kind as a string.'
       properties:
-        kind: &id048
+        kind: &id050
           enum: [chat_app, coding_tool, own_software, own_hardware]
           type: string
         harness:
@@ -2117,8 +2170,8 @@ components:
     DecisionAllOf:
       additionalProperties: false
       properties:
-        all: &id019
-          items: &id045
+        all: &id021
+          items: &id047
             anyOf:
             - {type: string}
             - {$ref: '#/components/schemas/DecisionCompare'}
@@ -2129,11 +2182,11 @@ components:
             - {$ref: '#/components/schemas/DecisionAllOf'}
             - {$ref: '#/components/schemas/DecisionNotOf'}
           type: array
-        soft: &id020
+        soft: &id022
           anyOf:
           - {$ref: '#/components/schemas/DecisionSoft'}
           - {type: 'null'}
-        unknown: &id021
+        unknown: &id023
           anyOf:
           - enum: [list, fail, pass]
             type: string
@@ -2143,19 +2196,19 @@ components:
     DecisionAnyOf:
       additionalProperties: false
       properties:
-        any: *id019
-        soft: *id020
-        unknown: *id021
+        any: *id021
+        soft: *id022
+        unknown: *id023
       required: [any]
       type: object
     DecisionBandEntry:
       additionalProperties: false
       description: One model in a band, through its best offering. Added in 2.7 (MODEL-206).
       properties:
-        model: &id022 {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
+        model: &id024 {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
         score: {type: number}
-        score_interval: &id028
+        score_interval: &id030
           maxItems: 2
           minItems: 2
           prefixItems:
@@ -2177,7 +2230,7 @@ components:
         estimates:
           items: {$ref: '#/components/schemas/DecisionDimensionEstimate'}
           type: array
-        warnings: &id039
+        warnings: &id041
           description: Assurance warnings for this row.
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
@@ -2203,29 +2256,29 @@ components:
         basis: {type: string}
         band_probability: {exclusiveMaximum: 1, exclusiveMinimum: 0, type: number}
         thin_interval_width: {exclusiveMinimum: 0, type: number}
-        leader: &id025
+        leader: &id027
           anyOf:
-          - *id022
+          - *id024
           - {type: 'null'}
-        best: &id023
+        best: &id025
           items: {$ref: '#/components/schemas/DecisionBandEntry'}
           type: array
-        rest: *id023
-        thin: *id023
+        rest: *id025
+        thin: *id025
       required: [basis, band_probability, thin_interval_width]
       type: object
     DecisionBenchmarkEstimateChange:
       additionalProperties: false
       description: How one model's domain estimate changed after removing evidence. Added in 1.12.
       properties:
-        model: *id022
+        model: *id024
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        before: &id024
+        before: &id026
           anyOf:
           - {$ref: '#/components/schemas/DecisionEstimate'}
           - {type: 'null'}
-        after: *id024
-        removed_drivers: &id031
+        after: *id026
+        removed_drivers: &id033
           items: {$ref: '#/components/schemas/DecisionEvidenceItem'}
           type: array
       required: [model, domain]
@@ -2234,7 +2287,7 @@ components:
       additionalProperties: false
       description: Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12.
       properties:
-        benchmarks: &id027
+        benchmarks: &id029
           items: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
           type: array
         estimate_changes:
@@ -2266,12 +2319,12 @@ components:
 
         when they share the best value.'
       properties:
-        dimension: &id032 {pattern: '^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$', type: string}
+        dimension: &id034 {pattern: '^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$', type: string}
         weight: {type: number}
         share: {maximum: 1, minimum: 0, type: number}
         estimated: {type: boolean}
-        leaders: &id026
-          items: *id022
+        leaders: &id028
+          items: *id024
           type: array
         value:
           anyOf:
@@ -2281,13 +2334,13 @@ components:
           anyOf:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
-        runner_up: *id025
+        runner_up: *id027
         p_runner_up:
           anyOf:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
-        order: *id026
-        thin: *id026
+        order: *id028
+        thin: *id028
       required: [dimension, weight, share, estimated]
       type: object
     DecisionBoundedDecision:
@@ -2295,7 +2348,7 @@ components:
       properties:
         representation: {const: bounded, type: string}
         bounded_version: {const: '1.5', type: string}
-        projects_contract: {const: '2.19', type: string}
+        projects_contract: {const: '2.20', type: string}
         decision_id: {type: string}
         snapshot: {type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2303,7 +2356,7 @@ components:
         explain: {$ref: '#/components/schemas/DecisionResponse/properties/explain'}
         status: {$ref: '#/components/schemas/DecisionResponse/properties/status'}
         answer: {$ref: '#/components/schemas/DecisionResponse/properties/answer'}
-        pick: *id025
+        pick: *id027
         warnings: {$ref: '#/components/schemas/DecisionResponse/properties/warnings'}
         truncated: {$ref: '#/components/schemas/DecisionResponse/properties/truncated'}
         out_of_lineup: {type: integer}
@@ -2373,13 +2426,13 @@ components:
         facts:
           items: {$ref: '#/components/schemas/DecisionShownFact'}
           type: array
-        contributions: &id044
+        contributions: &id046
           items: {$ref: '#/components/schemas/DecisionContribution'}
           type: array
-        evidence: &id040
+        evidence: &id042
           items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
           type: array
-        unknown_facets: *id027
+        unknown_facets: *id029
         hardware_estimates:
           items: {$ref: '#/components/schemas/DecisionHardwareEstimate'}
           type: array
@@ -2435,12 +2488,12 @@ components:
           - {type: number}
           - {format: date, type: string}
           - {type: string}
-        qualifiers: &id050
+        qualifiers: &id052
           anyOf:
           - {$ref: '#/components/schemas/DecisionEvidenceQualifiers'}
           - {type: 'null'}
-        soft: *id020
-        unknown: *id021
+        soft: *id022
+        unknown: *id023
       required: [facet, op, value]
       type: object
     DecisionComparisonEvidence:
@@ -2480,15 +2533,15 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        interval: &id035
+        interval: &id037
           anyOf:
-          - *id028
+          - *id030
           - {type: 'null'}
         n:
           anyOf:
           - {type: integer}
           - {type: 'null'}
-        citation: &id029
+        citation: &id031
           anyOf:
           - {$ref: '#/components/schemas/DecisionFactCitation'}
           - {type: 'null'}
@@ -2513,17 +2566,17 @@ components:
         source_ids:
           items: {type: string}
           type: array
-        citation: *id029
+        citation: *id031
       required: [facet, state, value, unit]
       type: object
     DecisionComparisonModel:
       additionalProperties: false
       properties:
-        model: *id022
+        model: *id024
         lifecycle:
           enum: [active, deprecated, retired]
           type: string
-        facts: &id030
+        facts: &id032
           items: {$ref: '#/components/schemas/DecisionComparisonFact'}
           type: array
         offerings:
@@ -2538,7 +2591,7 @@ components:
       additionalProperties: false
       properties:
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
-        facts: *id030
+        facts: *id032
       required: [offering, facts]
       type: object
     DecisionComparisonOmitted:
@@ -2606,12 +2659,12 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        evidence: *id031
+        evidence: *id033
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        preferred_value: &id043
+        preferred_value: &id045
           anyOf:
           - {type: boolean}
           - {type: integer}
@@ -2624,7 +2677,7 @@ components:
           - enum: [satisfied, not_satisfied, unknown]
             type: string
           - {type: 'null'}
-        refinement: &id034
+        refinement: &id036
           anyOf:
           - {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
           - {type: 'null'}
@@ -2676,7 +2729,7 @@ components:
             minItems: 1
             type: array
           - {type: 'null'}
-        evidence_for: *id025
+        evidence_for: *id027
         router_config:
           anyOf:
           - {$ref: '#/components/schemas/DecisionRouterConfigOptions'}
@@ -2723,7 +2776,7 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
-        contract_version: {const: '2.19', default: '2.19', type: string}
+        contract_version: {const: '2.20', default: '2.20', type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', type: string}
         signature_verified: {default: false, type: boolean}
@@ -2734,7 +2787,7 @@ components:
         status:
           enum: [answered, partial, no_feasible]
           type: string
-        answer: &id037
+        answer: &id039
           anyOf:
           - discriminator:
               mapping: {separated: '#/components/schemas/DecisionSeparatedAnswer', tied: '#/components/schemas/DecisionTiedAnswer'}
@@ -2756,7 +2809,7 @@ components:
         by_model:
           items: {$ref: '#/components/schemas/DecisionModelRow'}
           type: array
-        may_qualify: &id051
+        may_qualify: &id053
           items: {$ref: '#/components/schemas/DecisionMayQualify'}
           type: array
         eliminated: {$ref: '#/components/schemas/DecisionEliminated'}
@@ -2789,7 +2842,7 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/DecisionWithEstate'}
           - {type: 'null'}
-        excluded_plans: &id052
+        excluded_plans: &id054
           items: {$ref: '#/components/schemas/DecisionPlanExclusion'}
           type: array
         feedback: {$ref: '#/components/schemas/DecisionFeedbackPointer'}
@@ -2807,9 +2860,9 @@ components:
       additionalProperties: false
       description: A band entry's estimate on one weighted capability. Added in 2.7 (MODEL-206).
       properties:
-        dimension: *id032
+        dimension: *id034
         value: {type: number}
-        interval: *id028
+        interval: *id030
         benchmarks: {minimum: 0, type: integer}
         direct_benchmarks: {minimum: 0, type: integer}
       required: [dimension, value, interval, benchmarks, direct_benchmarks]
@@ -2818,7 +2871,7 @@ components:
       additionalProperties: false
       properties:
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        items: *id031
+        items: *id033
       required: [domain, items]
       type: object
     DecisionEliminated:
@@ -2847,20 +2900,20 @@ components:
 
         takes its key and its plans with it.'
       properties:
-        providers: &id033
+        providers: &id035
           items: {maxLength: 120, minLength: 1, type: string}
           maxItems: 64
           type: array
-        plans: *id033
-        devices: *id033
-        exhausted: *id033
+        plans: *id035
+        devices: *id035
+        exhausted: *id035
       type: object
     DecisionEstateGap:
       additionalProperties: false
       description: Why the two answers differ, or that they do not.
       properties:
         same_answer: {type: boolean}
-        unreachable_models: *id026
+        unreachable_models: *id028
         summary: {type: string}
       required: [same_answer, summary]
       type: object
@@ -2913,8 +2966,8 @@ components:
       properties:
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
         value: {type: number}
-        interval: *id028
-        harness: &id036
+        interval: *id030
+        harness: &id038
           anyOf:
           - {pattern: '^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$', type: string}
           - {type: 'null'}
@@ -2927,7 +2980,7 @@ components:
     DecisionEvidenceItem:
       additionalProperties: false
       properties:
-        requested_domain: *id034
+        requested_domain: *id036
         record_id:
           anyOf:
           - {type: string}
@@ -2950,7 +3003,7 @@ components:
           anyOf:
           - {minimum: 1, type: integer}
           - {type: 'null'}
-        interval: *id035
+        interval: *id037
         quality_flags:
           items:
             enum: [deprecated, contamination_warning]
@@ -2963,7 +3016,7 @@ components:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        harness: *id036
+        harness: *id038
         harness_unregistered: {default: false, type: boolean}
         date: {format: date, type: string}
         date_type:
@@ -2989,7 +3042,7 @@ components:
           anyOf:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
-        citation: *id029
+        citation: *id031
       required: [benchmark, value, measured_by, date, date_type, source, directness]
       type: object
     DecisionEvidenceQualifiers:
@@ -3005,7 +3058,7 @@ components:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        harness: *id036
+        harness: *id038
         measured_after:
           anyOf:
           - {format: date, type: string}
@@ -3072,8 +3125,8 @@ components:
         status:
           enum: [answered, partial, no_feasible]
           type: string
-        leader: *id025
-        answer: *id037
+        leader: *id027
+        answer: *id039
       required: [add, status]
       type: object
     DecisionHardware:
@@ -3124,10 +3177,10 @@ components:
       description: '``facet in {a, b}`` or ``facet not in {a, b}``. Values are kept sorted and unique.'
       properties:
         facet: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        in: &id038
+        in: &id040
           anyOf:
-          - &id041
-            items: &id046
+          - &id043
+            items: &id048
               anyOf:
               - {type: boolean}
               - {type: integer}
@@ -3136,9 +3189,9 @@ components:
               - {type: string}
             type: array
           - {type: 'null'}
-        not_in: *id038
-        soft: *id020
-        unknown: *id021
+        not_in: *id040
+        soft: *id022
+        unknown: *id023
       required: [facet]
       type: object
     DecisionInventoryProfile:
@@ -3158,7 +3211,7 @@ components:
         harnesses:
           items: {pattern: '^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$', type: string}
           type: array
-        rules: *id019
+        rules: *id021
         budget:
           anyOf:
           - {$ref: '#/components/schemas/DecisionBudget'}
@@ -3170,14 +3223,14 @@ components:
       description: '``known(facet)``: passes when the facet is known. It is never unknown itself.'
       properties:
         known: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
-        soft: *id020
+        soft: *id022
       required: [known]
       type: object
     DecisionLexStep:
       additionalProperties: false
       properties:
-        max: *id034
-        min: *id034
+        max: *id036
+        min: *id036
         within:
           anyOf:
           - {$ref: '#/components/schemas/DecisionTolerance'}
@@ -3186,7 +3239,7 @@ components:
     DecisionLocalModel:
       additionalProperties: false
       properties:
-        model: *id022
+        model: *id024
         hardware:
           anyOf:
           - {$ref: '#/components/schemas/DecisionHardware'}
@@ -3200,21 +3253,21 @@ components:
     DecisionMayQualify:
       additionalProperties: false
       properties:
-        model: *id022
-        offering: &id042
+        model: *id024
+        offering: &id044
           anyOf:
           - {$ref: '#/components/schemas/DecisionOfferingRef'}
           - {type: 'null'}
-        unknown: *id027
-        warnings: *id039
+        unknown: *id029
+        warnings: *id041
       required: [model, unknown]
       type: object
     DecisionMemberEvidence:
       additionalProperties: false
       description: Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354).
       properties:
-        model: *id022
-        evidence: *id040
+        model: *id024
+        evidence: *id042
         omitted_items: {minimum: 0, type: integer}
       required: [model, evidence, omitted_items]
       type: object
@@ -3238,7 +3291,7 @@ components:
       description: Two to four distinct model IDs, in the caller's display order.
       properties:
         models:
-          items: *id022
+          items: *id024
           maxItems: 4
           minItems: 2
           type: array
@@ -3248,8 +3301,8 @@ components:
     DecisionModelElimination:
       additionalProperties: false
       properties:
-        values: *id041
-        offering: *id042
+        values: *id043
+        offering: *id044
         unit:
           anyOf:
           - {type: string}
@@ -3257,21 +3310,21 @@ components:
         records:
           items: {type: string}
           type: array
-        model: *id022
+        model: *id024
         condition: {type: string}
-        value: *id043
+        value: *id045
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id039
+        warnings: *id041
       required: [model, condition]
       type: object
     DecisionModelEliminationGroup:
       additionalProperties: false
       description: One eliminated model, with its model row or offering rows. Added in 1.6.
       properties:
-        model: *id022
+        model: *id024
         model_elimination:
           anyOf:
           - {$ref: '#/components/schemas/DecisionModelElimination'}
@@ -3284,7 +3337,7 @@ components:
     DecisionModelEvidence:
       additionalProperties: false
       properties:
-        model: *id022
+        model: *id024
         status:
           enum: [ranked, may_qualify, eliminated]
           type: string
@@ -3293,8 +3346,8 @@ components:
           anyOf:
           - {type: integer}
           - {type: 'null'}
-        evidence: *id040
-        contributions: *id044
+        evidence: *id042
+        contributions: *id046
         unknown:
           items: {type: string}
           type: array
@@ -3322,19 +3375,19 @@ components:
           anyOf:
           - {type: number}
           - {type: 'null'}
-        unknown: *id027
+        unknown: *id029
         reason:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id039
+        warnings: *id041
       required: [offering, status]
       type: object
     DecisionModelRef:
       additionalProperties: false
       description: 'The right-hand side of a relative condition: ``coding >= model(lab/example-model)``.'
       properties:
-        model: *id022
+        model: *id024
       required: [model]
       type: object
     DecisionModelRow:
@@ -3348,7 +3401,7 @@ components:
 
         Eliminated models appear only when the explanation carries eliminations.'
       properties:
-        model: *id022
+        model: *id024
         status:
           enum: [ranked, may_qualify, eliminated]
           type: string
@@ -3368,14 +3421,14 @@ components:
     DecisionNearMiss:
       additionalProperties: false
       properties:
-        values: *id041
+        values: *id043
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
         condition: {type: string}
         facet:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        value: *id043
+        value: *id045
         distance:
           anyOf:
           - {type: number}
@@ -3408,7 +3461,7 @@ components:
           items: {type: string}
           type: array
         candidates:
-          items: *id022
+          items: *id024
           maxItems: 8
           type: array
         candidates_total: {minimum: 0, type: integer}
@@ -3417,9 +3470,9 @@ components:
     DecisionNotOf:
       additionalProperties: false
       properties:
-        not: *id045
-        soft: *id020
-        unknown: *id021
+        not: *id047
+        soft: *id022
+        unknown: *id023
       required: [not]
       type: object
     DecisionNumberOrigin:
@@ -3442,8 +3495,8 @@ components:
       additionalProperties: false
       description: Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``.
       properties:
-        max: *id034
-        min: *id034
+        max: *id036
+        min: *id036
         lexicographic:
           anyOf:
           - items: {$ref: '#/components/schemas/DecisionLexStep'}
@@ -3472,7 +3525,7 @@ components:
       additionalProperties: false
       description: Why one offering of an eliminated model left the lineup. Added in 1.6.
       properties:
-        values: *id041
+        values: *id043
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
         unit:
           anyOf:
@@ -3482,18 +3535,18 @@ components:
           items: {type: string}
           type: array
         condition: {type: string}
-        value: *id043
+        value: *id045
         formula:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        warnings: *id039
+        warnings: *id041
       required: [offering, condition]
       type: object
     DecisionOfferingRef:
       additionalProperties: false
       properties:
-        model: *id022
+        model: *id024
         provider:
           anyOf:
           - {type: string}
@@ -3558,7 +3611,7 @@ components:
           anyOf:
           - {type: string}
           - {type: 'null'}
-        resolves_to: *id026
+        resolves_to: *id028
         rule: {type: string}
       required: [rule]
       type: object
@@ -3618,14 +3671,14 @@ components:
       additionalProperties: false
       description: A weighted preference for one value of a boolean or enum facet.
       properties:
-        prefer: *id046
+        prefer: *id048
         weight: {exclusiveMinimum: 0, type: number}
       required: [prefer, weight]
       type: object
     DecisionProfileOffering:
       additionalProperties: false
       properties:
-        model: *id022
+        model: *id024
         provider: {type: string}
         region:
           anyOf:
@@ -3667,7 +3720,7 @@ components:
 
         or estimated response fields; they never repeat a free-text task.'
       properties:
-        tied: *id026
+        tied: *id028
         not_applied:
           items: {type: string}
           type: array
@@ -3694,7 +3747,7 @@ components:
         domain: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
         refinement: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
         value: {type: number}
-        interval: *id028
+        interval: *id030
         evidence_count: {minimum: 0, type: integer}
       required: [key, domain, refinement, value, interval, evidence_count]
       type: object
@@ -3769,7 +3822,7 @@ components:
       properties:
         rank: {minimum: 1, type: integer}
         offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
-        model: *id025
+        model: *id027
         model_rank:
           anyOf:
           - {minimum: 1, type: integer}
@@ -3778,12 +3831,12 @@ components:
           anyOf:
           - {type: number}
           - {type: 'null'}
-        harness: *id036
+        harness: *id038
         effort:
           anyOf:
           - {pattern: '^[a-z0-9_-]+$', type: string}
           - {type: 'null'}
-        evidence: *id040
+        evidence: *id042
         estimates:
           anyOf:
           - items: {$ref: '#/components/schemas/DecisionEstimate'}
@@ -3803,7 +3856,7 @@ components:
           - {maximum: 1, minimum: 0, type: number}
           - {type: 'null'}
         soft_penalty: {default: 0.0, minimum: 0, type: number}
-        contributions: *id044
+        contributions: *id046
         warnings:
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
@@ -3826,29 +3879,29 @@ components:
       additionalProperties: false
       properties:
         kind: {const: separated, type: string}
-        members: &id047
-          items: *id022
+        members: &id049
+          items: *id024
           maxItems: 1
           minItems: 1
           type: array
-        leader: *id022
+        leader: *id024
         basis: {type: string}
         tie_breakers: {$ref: '#/components/schemas/DecisionTieBreakers'}
-        deterministic_order: *id047
+        deterministic_order: *id049
       required: [kind, members, leader, basis, tie_breakers, deterministic_order]
       type: object
     DecisionShownFact:
       additionalProperties: false
       properties:
         facet: {type: string}
-        value: &id056
+        value: &id058
           anyOf:
           - {type: boolean}
           - {type: integer}
           - {type: number}
           - {format: date, type: string}
           - {type: string}
-          - *id041
+          - *id043
           - {type: 'null'}
         unit:
           anyOf:
@@ -3868,7 +3921,7 @@ components:
         source_ids:
           items: {type: string}
           type: array
-        citation: *id029
+        citation: *id031
       required: [facet]
       type: object
     DecisionSingleGate:
@@ -3924,12 +3977,12 @@ components:
                 type: string
             type: object
           - {type: 'null'}
-        exclude_benchmarks: *id027
+        exclude_benchmarks: *id029
         task_tokens:
           anyOf:
           - {$ref: '#/components/schemas/DecisionTaskTokens'}
           - {type: 'null'}
-        where: *id019
+        where: *id021
         optimize: {$ref: '#/components/schemas/DecisionObjective'}
         unknowns: {const: default, default: default, type: string}
         explain:
@@ -3948,7 +4001,7 @@ components:
         access:
           anyOf:
           - {$ref: '#/components/schemas/DecisionAccess'}
-          - *id048
+          - *id050
           - {type: 'null'}
       required: [spec_version, optimize]
       type: object
@@ -3984,22 +4037,22 @@ components:
     DecisionTieBreakers:
       additionalProperties: false
       properties:
-        cheapest: *id025
-        open_weights: *id025
-        most_independently_measured: *id025
-        fastest: *id025
+        cheapest: *id027
+        open_weights: *id027
+        most_independently_measured: *id027
+        fastest: *id027
       type: object
     DecisionTiedAnswer:
       additionalProperties: false
       properties:
         kind: {const: tied, type: string}
-        members: &id049
-          items: *id022
+        members: &id051
+          items: *id024
           minItems: 2
           type: array
         basis: {type: string}
         tie_breakers: {$ref: '#/components/schemas/DecisionTieBreakers'}
-        deterministic_order: *id049
+        deterministic_order: *id051
       required: [kind, members, basis, tie_breakers, deterministic_order]
       type: object
     DecisionTippingPoint:
@@ -4014,8 +4067,8 @@ components:
           anyOf:
           - {type: number}
           - {type: 'null'}
-        new_top: *id025
-        refinement: *id034
+        new_top: *id027
+        refinement: *id036
       required: [description]
       type: object
     DecisionTolerance:
@@ -4047,12 +4100,12 @@ components:
           maxItems: 2
           minItems: 2
           prefixItems:
-          - *id046
-          - *id046
+          - *id048
+          - *id048
           type: array
-        qualifiers: *id050
-        soft: *id020
-        unknown: *id021
+        qualifiers: *id052
+        soft: *id022
+        unknown: *id023
       required: [facet, between]
       type: object
     DecisionWithEstate:
@@ -4062,11 +4115,11 @@ components:
         status:
           enum: [answered, partial, no_feasible]
           type: string
-        answer: *id037
+        answer: *id039
         results:
           items: {$ref: '#/components/schemas/DecisionEstateResult'}
           type: array
-        may_qualify: *id051
+        may_qualify: *id053
         truncated: {$ref: '#/components/schemas/DecisionTruncated'}
         gap: {$ref: '#/components/schemas/DecisionEstateGap'}
         gain:
@@ -4075,7 +4128,7 @@ components:
         warnings:
           items: {pattern: '^[a-z0-9_]+$', type: string}
           type: array
-        excluded_plans: *id052
+        excluded_plans: *id054
       required: [status, gap]
       type: object
     DecisionRecovery:
@@ -4096,11 +4149,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
-        snapshot: &id053
+        snapshot: &id055
           anyOf:
           - {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
           - {type: 'null'}
@@ -4111,15 +4164,15 @@ components:
           properties:
             code:
               type: string
-              enum: [invalid_spec, origin_not_allowed, payload_too_large, snapshot_changed, snapshot_not_loaded, snapshot_refused, snapshot_unavailable]
+              enum: [invalid_request, invalid_spec, origin_not_allowed, payload_too_large, snapshot_changed, snapshot_not_loaded, snapshot_refused, snapshot_unavailable]
             message: {type: string}
             issues:
               type: array
               items: {type: object}
               description: Each issue has path, condition, field and reason. An issue about a value outside the facet's vocabulary also has value, value_type, allowed_values
                 (when the list is finite) and next, the vocabulary lookup for that facet.
-            requested: &id054 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
-            current: &id055 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
+            requested: &id056 {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
+            current: &id057 {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
             recovery:
               type: array
               maxItems: 5
@@ -4141,7 +4194,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4168,7 +4221,7 @@ components:
           enum: ['1.5']
         projects_contract:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4189,11 +4242,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
-        snapshot: *id053
+        snapshot: *id055
         error:
           type: object
           additionalProperties: false
@@ -4207,8 +4260,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id056
+            current: *id057
     DecisionSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4216,7 +4269,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [decide]
@@ -4232,11 +4285,11 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]
-        snapshot: *id053
+        snapshot: *id055
         error:
           type: object
           additionalProperties: false
@@ -4250,8 +4303,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id056
+            current: *id057
     ComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4259,7 +4312,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]
@@ -4279,7 +4332,7 @@ components:
         endpoint:
           type: string
           enum: [compare-models]
-        snapshot: *id053
+        snapshot: *id055
         error:
           type: object
           additionalProperties: false
@@ -4292,8 +4345,8 @@ components:
             issues:
               type: array
               items: {type: object}
-            requested: *id054
-            current: *id055
+            requested: *id056
+            current: *id057
     ModelComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -4322,7 +4375,7 @@ components:
       additionalProperties: false
       required: [model, provider, region, tier]
       properties:
-        model: *id022
+        model: *id024
         provider:
           anyOf:
           - {type: string}
@@ -4347,7 +4400,7 @@ components:
       additionalProperties: false
       required: [value, unit, records]
       properties:
-        value: *id056
+        value: *id058
         unit:
           anyOf:
           - {type: string}
@@ -4391,7 +4444,7 @@ components:
           type: string
           enum: [facet]
         facet: {type: string}
-        offering: &id057
+        offering: &id059
           oneOf:
           - {$ref: '#/components/schemas/ComparisonOfferingRef'}
           - {$ref: '#/components/schemas/ComparisonOfferingChange'}
@@ -4405,7 +4458,7 @@ components:
         kind:
           type: string
           enum: [cost_per_task]
-        offering: *id057
+        offering: *id059
         old: {$ref: '#/components/schemas/ComparisonCostValue'}
         new: {$ref: '#/components/schemas/ComparisonCostValue'}
     ComparisonCapabilityChange:
@@ -4417,7 +4470,7 @@ components:
           type: string
           enum: [capability]
         domain: {type: string}
-        offering: *id057
+        offering: *id059
         old: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
         new: {$ref: '#/components/schemas/ComparisonCapabilityValue'}
     ComparisonValueChange:
@@ -4433,7 +4486,7 @@ components:
       additionalProperties: false
       required: [model, entered, left, rank_changed, may_qualify, values]
       properties:
-        model: *id022
+        model: *id024
         entered: {type: boolean}
         left:
           type: object
@@ -4478,7 +4531,7 @@ components:
           additionalProperties: false
           required: [old, new]
           properties:
-            old: &id058
+            old: &id060
               type: object
               additionalProperties: false
               required: [id, as_of]
@@ -4488,7 +4541,7 @@ components:
                   anyOf:
                   - {type: string}
                   - {type: 'null'}
-            new: *id058
+            new: *id060
         status:
           type: object
           additionalProperties: false
@@ -4521,7 +4574,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.19']
+          enum: ['2.20']
         endpoint:
           type: string
           enum: [compare]
@@ -4589,11 +4642,11 @@ components:
         kv_bytes_per_token: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
         runtime_headroom_bytes: {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
         device: {minimum: 0, type: integer}
-        kv_cache_bytes: &id059
+        kv_cache_bytes: &id061
           anyOf:
           - {minimum: 0, type: integer}
           - {minimum: 0, type: number}
-        required_bytes: *id059
+        required_bytes: *id061
         margin_bytes:
           anyOf:
           - {type: integer}
@@ -4625,10 +4678,10 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: &id061
+        sources: &id063
           items: {$ref: '#/components/schemas/HardwareFitCitation'}
           type: array
-        credits: &id062
+        credits: &id064
           anyOf:
           - {$ref: '#/components/schemas/HardwareFitExhaustedCredits'}
           - {type: 'null'}
@@ -4660,11 +4713,11 @@ components:
     HardwareFitRequest:
       additionalProperties: false
       properties:
-        model: &id060
+        model: &id062
           anyOf:
           - {maxLength: 512, minLength: 1, pattern: \S, type: string}
           - {type: 'null'}
-        sku: *id060
+        sku: *id062
         device_count:
           anyOf:
           - {maximum: 1024, minimum: 1, type: integer}
@@ -4673,8 +4726,8 @@ components:
           anyOf:
           - {exclusiveMinimum: 0, maximum: 1000000, type: number}
           - {type: 'null'}
-        runtime: *id060
-        quantisation: *id060
+        runtime: *id062
+        quantisation: *id062
         batch:
           anyOf:
           - {maximum: 1000000, minimum: 1, type: integer}
@@ -4700,8 +4753,8 @@ components:
           anyOf:
           - {$ref: '#/components/schemas/HardwareFitSourcedNumber'}
           - {$ref: '#/components/schemas/HardwareFitHeadroomNotRequired'}
-        kv_cache_bytes: *id059
-        lower_bound_bytes: *id059
+        kv_cache_bytes: *id061
+        lower_bound_bytes: *id061
         margin_bytes:
           anyOf:
           - {type: integer}
@@ -4715,8 +4768,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id061
-        credits: *id062
+        sources: *id063
+        credits: *id064
         status: {const: estimated, type: string}
         margin_bytes:
           anyOf:
@@ -4747,8 +4800,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id061
-        credits: *id062
+        sources: *id063
+        credits: *id064
         status: {const: measured, type: string}
         measured_fit: {type: boolean}
         measurement: {$ref: '#/components/schemas/HardwareFitMeasurement'}
@@ -4760,7 +4813,7 @@ components:
       additionalProperties: false
       properties:
         record_id: {maxLength: 512, minLength: 1, pattern: \S, type: string}
-        source_ids: &id063
+        source_ids: &id065
           items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
           type: array
         observed_at: {format: date, type: string}
@@ -4781,9 +4834,9 @@ components:
     HardwareFitProvenance:
       additionalProperties: false
       properties:
-        value: *id059
-        record_id: *id060
-        source_ids: *id063
+        value: *id061
+        record_id: *id062
+        source_ids: *id065
         provenance:
           enum: [sourced, caller]
           type: string
@@ -4796,7 +4849,7 @@ components:
     HardwareFitSourcedNumber:
       additionalProperties: false
       properties:
-        value: *id059
+        value: *id061
         record_id: {maxLength: 512, minLength: 1, pattern: \S, type: string}
         source_ids:
           items: {maxLength: 512, minLength: 1, pattern: \S, type: string}
@@ -4811,8 +4864,8 @@ components:
         endpoint: {const: hardware-fit, default: hardware-fit, type: string}
         snapshot: {type: string}
         request: {$ref: '#/components/schemas/HardwareFitRequest'}
-        sources: *id061
-        credits: *id062
+        sources: *id063
+        credits: *id064
         status: {const: undetermined, type: string}
         missing:
           items: {$ref: '#/components/schemas/HardwareFitMissingInput'}
@@ -4912,25 +4965,44 @@ components:
           description: 'The constraints to check. State at least one of licence, origin, residency, commercial_use: an empty policy is a 400, never a clean pass.'
           type: object
           additionalProperties: false
+          anyOf:
+          - required: [licence]
+          - required: [origin]
+          - required: [residency]
+          - required: [commercial_use]
           properties:
             name: {description: 'Optional label, echoed back.', type: string, nullable: true}
             licence:
               description: Matched against the card's license_type. A card naming no licence is undetermined, never allowed.
               type: object
               additionalProperties: false
+              anyOf:
+              - required: [allowed]
+                properties:
+                  allowed: {type: array, minItems: 1}
+              - required: [prohibited]
+                properties:
+                  prohibited: {type: array, minItems: 1}
               properties:
-                allowed: &id064
+                allowed: &id066
                   type: array
                   nullable: true
                   items: {type: string, minLength: 1}
-                prohibited: *id064
+                prohibited: *id066
             origin:
               description: Country codes, as the card records origin_country. A blank country is undetermined, never allowed.
               type: object
               additionalProperties: false
+              anyOf:
+              - required: [permitted_countries]
+                properties:
+                  permitted_countries: {type: array, minItems: 1}
+              - required: [prohibited_countries]
+                properties:
+                  prohibited_countries: {type: array, minItems: 1}
               properties:
-                permitted_countries: *id064
-                prohibited_countries: *id064
+                permitted_countries: *id066
+                prohibited_countries: *id066
             residency:
               description: 'Regions spelled as the platform publishes them. Matched literally: no country is mapped onto a cloud region.'
               type: object
@@ -4987,7 +5059,7 @@ components:
     PolicyCheckResponse:
       type: object
       properties:
-        build: &id067
+        build: &id069
           type: object
           properties:
             built_at: {type: string}
@@ -5039,7 +5111,7 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: &id068
+                commercial_use: &id070
                   type: object
                   properties:
                     accept_restricted: {type: boolean}
@@ -5065,7 +5137,7 @@ components:
                       type: array
                       items: {type: string}
                   required: [permitted_countries, prohibited_countries]
-                residency: &id069
+                residency: &id071
                   type: object
                   required: [match, required_regions]
                   properties:
@@ -5104,21 +5176,21 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: &id065
+                commercial_use: &id067
                   type: object
                   properties:
                     satisfied: {type: integer}
                     undetermined: {type: integer}
                     violated: {type: integer}
                   required: [satisfied, undetermined, violated]
-                licence: *id065
-                origin: *id065
-                residency: *id065
+                licence: *id067
+                origin: *id067
+                residency: *id067
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {description: 'Counted over models, not rows: passes somewhere, not everywhere.', type: integer}
             rows: {type: integer}
-            verdicts: &id070
+            verdicts: &id072
               type: object
               properties:
                 fail: {type: integer}
@@ -5194,7 +5266,7 @@ components:
             also_violated:
               type: array
               items: {type: string}
-            constraint: &id066
+            constraint: &id068
               type: string
               enum: [licence, origin, commercial_use, residency]
             eliminated_by: {$ref: '#/components/schemas/ViolatedCheck'}
@@ -5249,7 +5321,7 @@ components:
     SatisfiedCheck:
       type: object
       properties:
-        constraint: *id066
+        constraint: *id068
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         satisfied:
           type: object
@@ -5291,7 +5363,7 @@ components:
     ViolatedCheck:
       type: object
       properties:
-        constraint: *id066
+        constraint: *id068
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
@@ -5348,7 +5420,7 @@ components:
     UndeterminedCheck:
       type: object
       properties:
-        constraint: *id066
+        constraint: *id068
         requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
@@ -5429,7 +5501,7 @@ components:
     UndeterminedPresent:
       type: object
       properties:
-        build: *id067
+        build: *id069
         determinations:
           type: object
           properties:
@@ -5445,7 +5517,7 @@ components:
                 residency_platforms: {type: integer}
               required: [commercial_use_records, generated_on, loaded, residency_platforms]
             undetermined_for_lack_of_entitlement: {type: integer}
-            why: {type: string}
+            why: {type: string, nullable: true}
           required: [answered_from, entitlement, included, store, undetermined_for_lack_of_entitlement, why]
         endpoint: {type: string}
         error:
@@ -5474,8 +5546,8 @@ components:
             constraints:
               type: object
               properties:
-                commercial_use: *id068
-                residency: *id069
+                commercial_use: *id070
+                residency: *id071
             name: {nullable: true}
             require_no_undetermined: {type: boolean}
           required: [constraints, name, require_no_undetermined]
@@ -5501,20 +5573,20 @@ components:
             by_constraint:
               type: object
               properties:
-                commercial_use: *id065
-                residency: *id065
+                commercial_use: *id067
+                residency: *id067
             models_checked: {type: integer}
             models_undetermined_somewhere: {type: integer}
             models_with_a_passing_platform: {type: integer}
             rows: {type: integer}
-            verdicts: *id070
+            verdicts: *id072
           required: [by_constraint, models_checked, models_undetermined_somewhere, models_with_a_passing_platform, rows, verdicts]
       required: [build, determinations, endpoint, error, export_origin, policy, provenance, result, schema_version, service_commit, summary]
     DeterminationsUnavailable:
       type: object
       required: [build, endpoint, error, export_origin, result, schema_version, service_commit]
       properties:
-        build: *id067
+        build: *id069
         endpoint: {type: string}
         error:
           type: object
@@ -5641,7 +5713,7 @@ components:
             code:
               type: string
               enum: [export_unavailable, human_burst_limit, human_challenge_required, human_day_limit, human_gate_unavailable, human_intent_limit, human_origin_required,
-                human_sweep_limit, method_not_allowed, not_found, origin_not_allowed, visit_token_expired, visit_token_invalid]
+                human_sweep_limit, method_not_allowed, not_found, origin_not_allowed, payload_too_large, visit_token_expired, visit_token_invalid]
             message: {type: string}
             accepted:
               type: array
@@ -5655,12 +5727,12 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: &id071 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
-        provider: *id071
+        model_name: &id073 {type: string, minLength: 1, maxLength: 300, pattern: '^\S(?:[\s\S]*\S)?$'}
+        provider: *id073
         first_seen_url: {type: string, maxLength: 300, format: uri, pattern: '^https://(www\.)?(x\.com|twitter\.com)/'}
         timestamp: {type: string, maxLength: 300, format: date-time}
         confidence: {type: number, minimum: 0, maximum: 1}
-        signal_id: &id072 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
+        signal_id: &id074 {type: string, minLength: 1, maxLength: 128, pattern: '^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}
     ReleaseDiscovery:
       description: 'A primary-source watcher discovery (MODEL-216). The same six fields as release-signal v1; the signal ID starts with watch: and first_seen_url
         is the lab or provider page that listed the model. A discovery is a trigger, never evidence.'
@@ -5668,8 +5740,8 @@ components:
       additionalProperties: false
       required: [model_name, provider, first_seen_url, timestamp, confidence, signal_id]
       properties:
-        model_name: *id071
-        provider: *id071
+        model_name: *id073
+        provider: *id073
         first_seen_url:
           type: string
           maxLength: 300
@@ -5684,7 +5756,7 @@ components:
       additionalProperties: false
       required: [signal_id, result]
       properties:
-        signal_id: *id072
+        signal_id: *id074
         result: {type: string, nullable: true}
         pr_url: {type: string, nullable: true, format: uri}
         recheck_due: {type: string, format: date}
@@ -5703,7 +5775,7 @@ components:
         status:
           type: string
           enum: [accepted, duplicate, acknowledged]
-        signal_id: *id072
+        signal_id: *id074
         recheck_days:
           type: array
           items:
@@ -5738,7 +5810,7 @@ components:
           enum: ['1']
         service_commit: {type: string}
         endpoint: {type: string}
-        error: &id073
+        error: &id075
           type: object
           required: [code, message]
           properties:
@@ -5823,6 +5895,26 @@ components:
           type: array
           items: {}
           maxItems: 0
+    Sharedcdda5f3578d1:
+      additionalProperties: false
+      properties:
+        sources:
+          items:
+            additionalProperties: false
+            properties:
+              accessed: {type: string}
+              kind:
+                enum: [provider-guidance, system-card, release-notes, model-docs]
+                type: string
+              title: {type: string}
+              url: {type: string}
+            required: [accessed, kind, title, url]
+            type: object
+          minItems: 1
+          type: array
+        text: {minLength: 1, type: string}
+      required: [sources, text]
+      type: object
     Shared4ff9f6a29ddb:
       properties:
         accept_restricted: {type: boolean}
@@ -5907,7 +5999,7 @@ components:
     Sharede25eeefc86ea:
       properties:
         endpoint: {type: string}
-        error: *id073
+        error: *id075
         result:
           items: {}
           type: array

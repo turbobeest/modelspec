@@ -45,7 +45,11 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.19"
+# 2.20 lists invalid_request among the published decide HTTP refusal codes.
+# The service already returned it. The decision shape and every declared
+# range are unchanged. Bounded stays at BOUNDED_VERSION. Named comparison
+# stays at MODEL_COMPARISON_VERSION.
+CONTRACT_VERSION = "2.20"
 MODEL_COMPARISON_VERSION = "1.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────
@@ -1178,7 +1182,7 @@ class Access(_ExcludeIf):
     @field_validator("kind", mode="before")
     @classmethod
     def _named_kind(cls, value: Any) -> Any:
-        if value not in _ACCESS_KINDS:
+        if not isinstance(value, str) or value not in _ACCESS_KINDS:
             raise ValueError(ACCESS_FORM)
         return value
 

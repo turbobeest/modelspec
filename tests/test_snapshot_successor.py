@@ -102,7 +102,7 @@ def deploy(entry, monkeypatch, utc_clock, primary, successor=None):
             snapshot = load_snapshot_bytes(raw, key=None, public_keys={})
             blobs[path] = json.dumps({
                 "snapshot": snapshot.snapshot_id,
-                "vocabulary_version": "1.0", "contract_version": "2.19",
+                "vocabulary_version": "1.0", "contract_version": "2.20",
                 "facets": [{"id": "offering.price.input", "has_data": True,
                             "values": [snapshot.fact(OFFERING, "offering.price.input").value]}],
             }).encode()
@@ -175,9 +175,9 @@ def test_keyed_decide_uses_the_correct_price_and_snapshot_at_the_boundary(
         assert body["results"][0]["cost_per_task"] == price
         if bounded:
             assert body["bounded_version"] == "1.5"
-            assert body["projects_contract"] == "2.19"
+            assert body["projects_contract"] == "2.20"
         else:
-            assert body["contract_version"] == "2.19"
+            assert body["contract_version"] == "2.20"
         held = module._decision_holder(worker.env.EXPORT_ORIGIN).snapshot
         assert held.fact(OFFERING, "offering.price.input").value == (2 if index == 0 else 4)
         assert held.fact(OFFERING, "offering.price.output").value == (10 if index == 0 else 20)
@@ -225,7 +225,7 @@ def test_health_selects_the_serving_snapshot_even_before_the_first_decision(
         utc_clock[0][0] = instant
         response = request(worker, "/v1/health")
         assert response.status == 200, response.json()
-        assert response.json()["schema_version"] == "1.0"
+        assert response.json()["schema_version"] == "2.0"
         expected_id = (load_snapshot_bytes(signed_pair[index], key=KEY, public_keys={}).snapshot_id
                        if index is not None else None)
         assert response.json()["decision_snapshot"] == {

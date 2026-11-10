@@ -136,7 +136,7 @@ Every response — success or failure — carries `build.commit` and
 
 ```jsonc
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "endpoint": "rank",
   "build": { "commit": "b1cb67d…", "built_at": "…", "export_schema_version": "3.0" },
   "service_commit": "…",
@@ -163,6 +163,13 @@ Every response — success or failure — carries `build.commit` and
   "result": [ { "model_id": …, "score": …, "cost_input": …, "evidence_basis": "mixed", … } ]
 }
 ```
+
+`schema_version` is `"2.0"`. Rank and policy-check share one OpenAPI
+`info.version`. 2.0 publishes ranges the 1.0 document omitted:
+`benchmark_contributions` names the profile's benchmark ids and requires none
+of them, `context_window`, `cost_input` and `scores_as_of` may be null, an
+elimination `value` is a number, boolean or string, and an authoring-guide
+section may be omitted.
 
 `deprecation` (MODEL-316) is on every response the rank service writes: 200,
 400, 422, 502 and access refusals. `/v1/rank` is the retired fixed-benchmark

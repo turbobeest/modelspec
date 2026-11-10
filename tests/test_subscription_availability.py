@@ -161,7 +161,7 @@ def test_bounded_worker_answer_keeps_plan_exclusion_reason():
     assert status == 200
     assert body["representation"] == "bounded"
     assert body["bounded_version"] == "1.5"
-    assert body["projects_contract"] == "2.19"
+    assert body["projects_contract"] == "2.20"
     [excluded] = body["excluded_plans"]
     assert excluded["plan"] == MAX
     assert "closed to new buyers" in excluded["reason"]
