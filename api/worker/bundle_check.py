@@ -12,6 +12,26 @@ from pathlib import Path
 
 RUNTIME_MODULES = {"_pyodide", "js", "pyodide"}
 
+# Lexical scopes the Worker does not execute. The path includes every enclosing
+# class and function, so a nested function does not inherit a builder's exclusion.
+NON_WORKER_SCOPES = {
+    ("decision.snapshot", ("_Compiler",)),
+    ("decision.snapshot", ("collect_repo",)),
+    ("decision.snapshot", ("build_from_repo",)),
+    ("decision.snapshot", ("_load_ed25519_private_key",)),
+    ("decision.snapshot", ("env_ed25519_signer",)),
+    ("decision.snapshot", ("verify_vocabulary",)),
+    ("decision.normalise", ("normalise_document",)),
+    ("pipeline.ranking", ("main",)),
+}
+
+# Imported only when load_snapshot_bytes is given a nonempty Ed25519 public-key
+# set. Preload passes public_keys={} and a request load passes an HMAC key.
+HMAC_ONLY_IMPORTS = {
+    "cryptography.exceptions",
+    "cryptography.hazmat.primitives.asymmetric.ed25519",
+}
+
 
 @dataclass(frozen=True)
 class MissingImport:
@@ -59,12 +79,19 @@ def _absolute_from_import(module: str, path: Path, node: ast.ImportFrom) -> str:
 def _imports(path: Path, module: str, known: set[str]) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     found: set[str] = set()
-    def visit(statements: list[ast.stmt]) -> None:
+
+    def visit(statements: list[ast.stmt], scope: tuple[str, ...] = ()) -> None:
         for node in statements:
             if isinstance(node, ast.Import):
                 found.update(alias.name for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
                 base = _absolute_from_import(module, path, node)
+                if (
+                    module == "decision.snapshot"
+                    and scope == ("load_snapshot_bytes",)
+                    and base in HMAC_ONLY_IMPORTS
+                ):
+                    continue
                 if base:
                     found.add(base)
                 for alias in node.names:
@@ -74,20 +101,28 @@ def _imports(path: Path, module: str, known: set[str]) -> set[str]:
             elif isinstance(node, ast.If):
                 # An annotation-only import is not executed at module load.
                 if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
-                    visit(node.orelse)
+                    visit(node.orelse, scope)
                 else:
-                    visit(node.body)
-                    visit(node.orelse)
+                    visit(node.body, scope)
+                    visit(node.orelse, scope)
             elif isinstance(node, (ast.Try, ast.TryStar)):
-                visit(node.body)
-                visit(node.orelse)
-                visit(node.finalbody)
+                visit(node.body, scope)
+                visit(node.orelse, scope)
+                visit(node.finalbody, scope)
                 for handler in node.handlers:
-                    visit(handler.body)
+                    visit(handler.body, scope)
             elif isinstance(node, (ast.With, ast.AsyncWith)):
-                visit(node.body)
-            elif isinstance(node, ast.ClassDef):
-                visit(node.body)
+                visit(node.body, scope)
+            elif isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+                visit(node.body, scope)
+                visit(node.orelse, scope)
+            elif isinstance(node, ast.Match):
+                for case in node.cases:
+                    visit(case.body, scope)
+            elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                nested = (*scope, node.name)
+                if (module, nested) not in NON_WORKER_SCOPES:
+                    visit(node.body, nested)
 
     visit(tree.body)
 
