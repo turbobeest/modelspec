@@ -459,6 +459,14 @@ def test_claim_requires_a_configured_ledger(explicit):
     asyncio.run(scenario())
 
 
+def test_unbound_watermark_is_not_a_stored_period():
+    async def scenario():
+        with pytest.raises(credits.StoreNotConfigured):
+            await credits.UnboundLedger().invoice_watermark("holder")
+
+    asyncio.run(scenario())
+
+
 def test_plan_claim_funds_invoice_and_completes_selection_together():
     async def scenario():
         ctx = Ctx(lambda value: {"v": value})

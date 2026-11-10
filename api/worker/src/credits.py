@@ -2159,7 +2159,7 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def invoice_watermark(self, holder: str) -> int:
-        return 0
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def entitlement_view(self, holder: str) -> dict[str, Any]:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
