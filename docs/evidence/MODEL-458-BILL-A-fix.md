@@ -509,3 +509,24 @@ already held.
 
 After the change, the focused billing command was 292 passed, exit 0. The
 invoice case ran on `MemoryLedger` and on the durable ledger.
+
+### A recovering invoice restores an unclaimed subscription
+
+When `invoice.paid` is accepted for a row with no key, the row is written
+paid and active with the pending allowance, on `MemoryLedger` and on the
+durable ledger. Claim then returns a key on the paid tier with that
+allowance. A row that already has a key keeps the round-5 copy: the ledger
+decides, then the copy writes the tier. With no recovering invoice, claim
+still returns the downgrade tier.
+
+Before the change:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_recovering_invoice_after_a_failed_payment_restores_an_unclaimed_row tests/test_billing.py::test_recovering_invoice_after_deletion_restores_an_unclaimed_row tests/test_billing.py::test_unclaimed_subscription_downgrade_reaches_the_claim
+```
+
+Result: 4 failed, 3 passed, exit 1. Both recovery sequences left the claim
+on the downgrade tier. The unclaimed downgrade with no recovering invoice
+stayed green.
+
+After the change, the focused billing command was 296 passed, exit 0.

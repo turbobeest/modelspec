@@ -2775,6 +2775,109 @@ def test_unclaimed_subscription_downgrade_reaches_the_claim(policy, kind):
     run(scenario())
 
 
+class _RecoverySql:
+    def __init__(self) -> None:
+        self.table: dict[str, str] = {}
+
+    def exec(self, query: str, *params: Any):
+        class Cursor:
+            def __init__(self, row: Any) -> None:
+                self._row = row
+
+            def one(self) -> Any:
+                if self._row is None:
+                    raise RuntimeError("no row")
+                return self._row
+
+        if query.startswith("INSERT"):
+            self.table[params[0]] = params[1]
+            return Cursor(None)
+        if query.startswith("SELECT"):
+            value = self.table.get(params[0])
+            return Cursor(None if value is None else {"v": value})
+        return Cursor(None)
+
+
+class _RecoveryCtx:
+    def __init__(self) -> None:
+        self.storage = type("Storage", (), {"sql": _RecoverySql()})()
+        self._gate = asyncio.Lock()
+
+    async def blockConcurrencyWhile(self, callback):
+        async with self._gate:
+            return await callback()
+
+
+def _recovery_ledger(kind: str, kv: MemoryKV):
+    if kind == "memory":
+        return credits.MemoryLedger()
+    import credits_do
+    from types import SimpleNamespace
+
+    obj = credits_do.CreditsObject(_RecoveryCtx(), env=SimpleNamespace(ACCESS=kv))
+    namespace = SimpleNamespace(idFromName=lambda name: name, get=lambda _id: obj)
+    return credits.DurableLedger(namespace)
+
+
+async def _claim_unclaimed(kv, ledger, policy):
+    return await billing.claim(session_id=SESSION, kv=kv, policy=policy, now=T0,
+                               service_commit=COMMIT, ledger=ledger)
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_recovering_invoice_after_a_failed_payment_restores_an_unclaimed_row(policy, kind):
+    """An unclaimed row downgraded by a failed payment is paid again after invoice.paid."""
+    async def scenario():
+        kv = MemoryKV()
+        ledger = _recovery_ledger(kind, kv)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_recover_fail_checkout", created=100)).status == 200
+        failed = invoice_obj(id="in_n", paid=False, period_start=300, period_end=400)
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.payment_failed", failed,
+            "evt_recover_fail", created=300)
+        assert outcome.body["action"] == "downgraded"
+        paid = invoice_obj(id="in_n", period_start=300, period_end=400)
+        restored = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_recover_paid", created=310)
+        assert restored.status == 200
+        claimed = await _claim_unclaimed(kv, ledger, policy)
+        assert claimed.status == 200, claimed.body
+        assert claimed.body["tier"] == "paid"
+        assert (await ledger.balance(_billing_holder(claimed.body["key"]))).monthly == 4000
+        row = await billing.store.load_subscription(kv, SUB)
+        assert row.tier == "paid" and row.status == "active"
+    run(scenario())
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable"])
+def test_recovering_invoice_after_deletion_restores_an_unclaimed_row(policy, kind):
+    """An unclaimed row downgraded by deletion is paid again by a later period."""
+    async def scenario():
+        kv = MemoryKV()
+        ledger = _recovery_ledger(kind, kv)
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed", checkout_obj(),
+            "evt_recover_del_checkout", created=100)).status == 200
+        deleted = {"id": SUB, "status": "canceled", "customer": CUS, "canceled_at": 300}
+        outcome = await _dated_event(
+            kv, ledger, policy, "customer.subscription.deleted", deleted,
+            "evt_recover_del", created=300)
+        assert outcome.body["action"] == "downgraded"
+        paid = invoice_obj(id="in_later", period_start=400, period_end=500)
+        restored = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_recover_later", created=400)
+        assert restored.status == 200
+        claimed = await _claim_unclaimed(kv, ledger, policy)
+        assert claimed.status == 200, claimed.body
+        assert claimed.body["tier"] == "paid"
+        assert (await ledger.balance(_billing_holder(claimed.body["key"]))).monthly == 4000
+        row = await billing.store.load_subscription(kv, SUB)
+        assert row.tier == "paid" and row.status == "active"
+    run(scenario())
+
+
 class _FailKeyTierPut(MemoryKV):
     """Fail the next key-record put. The allowance write has already landed."""
 

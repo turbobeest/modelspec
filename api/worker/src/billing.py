@@ -997,7 +997,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         pending_monthly=mapping.credits, pending_invoice_id=invoice_id,
         plan_name=mapping.name, plan_credits=mapping.credits,
         key_fingerprint=fingerprint,
-        promote=isinstance(ledger, credits.UnboundLedger))
+        promote=(isinstance(ledger, credits.UnboundLedger)
+                 or not (bound or fingerprint)))
     await store.record_chronology(
         kv, subscription_id, now=now, policy=policy,
         customer_id=_id(obj.get("customer")), invoice_id=invoice_id,
