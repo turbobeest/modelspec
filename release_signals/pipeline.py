@@ -272,7 +272,12 @@ _JSON_LD_MAX_INTEGER_DIGITS = 1000
 
 
 def _json_ld_unreadable(text: str) -> bool:
-    """True when a JSON-LD block nests past the depth bound or holds a huge integer."""
+    """True when nesting is deeper than the bound, or an integer is too long.
+
+    Depth rises on ``{`` and ``[`` and falls on ``}`` and ``]``, outside
+    strings. It does not go below zero. Brackets inside strings, including
+    after an escaped quote, do not move it.
+    """
     depth = 0
     digits = 0
     in_string = False
@@ -295,6 +300,11 @@ def _json_ld_unreadable(text: str) -> bool:
             digits = 0
             if depth > _JSON_LD_MAX_DEPTH:
                 return True
+            continue
+        if char in "}]":
+            if depth:
+                depth -= 1
+            digits = 0
             continue
         if char.isdigit():
             digits += 1

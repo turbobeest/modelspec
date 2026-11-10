@@ -23,6 +23,8 @@ from release_signals.pipeline import (
     FetchResult,
     FirecrawlBudget,
     RequiredSourceError,
+    _JSON_LD_MAX_DEPTH,
+    _JsonLd,
     _models_dev_listing,
     draft_signal,
     require_allowed_source,
@@ -2038,3 +2040,93 @@ def test_json_ld_nested_past_the_depth_bound_is_skipped(tmp_path: Path) -> None:
     result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
     assert result.resolution.status == "new"
     assert _release_date(result) == "2026-09-26"
+
+
+def _json_ld_page(payload: str) -> bytes:
+    return (
+        '<script type="application/ld+json">' + payload + "</script>"
+        "<h1>Acme launches Orbit 2.</h1>"
+    ).encode()
+
+
+def _json_ld_documents(page: bytes) -> list[dict]:
+    parser = _JsonLd()
+    parser.feed(page.decode())
+    return parser.documents
+
+
+def _identity_json(depth: int, published: str) -> str:
+    extra = '{"k":' * (depth - 1) + "1" + "}" * (depth - 1)
+    return (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        f'"datePublished":"{published}","extra":{extra}}}'
+    )
+
+
+def test_json_ld_list_of_seventy_siblings_is_read(tmp_path: Path) -> None:
+    rows = [{"name": f"Sibling {index}"} for index in range(69)]
+    rows.append({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-03-03",
+    })
+    page = _json_ld_page(json.dumps(rows, separators=(",", ":")))
+    documents = _json_ld_documents(page)
+    names = [row["name"] for row in documents]
+    assert names == [f"Sibling {index}" for index in range(69)] + ["Orbit 2"]
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-03-03"
+
+
+def test_json_ld_graph_of_seventy_objects_is_read(tmp_path: Path) -> None:
+    payload = json.dumps({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-03-04",
+        "@graph": [{"name": f"Node {index}"} for index in range(70)],
+    }, separators=(",", ":"))
+    page = _json_ld_page(payload)
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert [row["name"] for row in documents[0]["@graph"]] == [
+        f"Node {index}" for index in range(70)
+    ]
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-03-04"
+
+
+def test_json_ld_nested_at_the_depth_bound_is_read(tmp_path: Path) -> None:
+    assert _JSON_LD_MAX_DEPTH == 64
+    page = _json_ld_page(_identity_json(_JSON_LD_MAX_DEPTH, "2026-04-04"))
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert documents[0]["datePublished"] == "2026-04-04"
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-04-04"
+
+
+def test_json_ld_one_level_past_the_depth_bound_is_skipped(tmp_path: Path) -> None:
+    payload = _identity_json(_JSON_LD_MAX_DEPTH + 1, "2026-01-15")
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> None:
+    note = 'quote \\" then ' + ("{[" * 80) + ("}]" * 80)
+    payload = json.dumps({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-05-05",
+        "note": note,
+    }, separators=(",", ":"))
+    page = _json_ld_page(payload)
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert documents[0]["note"] == note
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-05-05"
