@@ -740,6 +740,12 @@ def test_fewest_matches_the_per_index_search_on_generated_cases():
         for _ in range(count):
             where, domains = _draw_generated(rng)
             check(lineup, where, domains, mismatches)
+    full_where, many = _many_blocking_sets(63)
+    cut = full_where[4:7] + full_where[11:]
+    for _ in range(8):
+        count = rng.randint(1, 3)
+        where = [rng.choice(cut) for _ in range(count)]
+        check(many, where, frozenset(), mismatches)
     assert mismatches == []
 
 
