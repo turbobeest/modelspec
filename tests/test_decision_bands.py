@@ -260,3 +260,89 @@ def test_a_lexicographic_objective_has_no_bands(budget_snapshot) -> None:
     assert decision.bands is None and decision.blend == []
     assert "bands" not in decision.model_dump(mode="json")
     assert "blend" not in decision.model_dump(mode="json")
+
+
+def test_pairwise_probability_at_band_threshold_joins_best():
+    from math import sqrt
+
+    from decision.contract import Objective
+    from decision.optimise import EvidenceSelector, optimise
+    from tests.test_decision_optimise import evidence_index, evidence_value
+
+    half_width = bands.PUBLISHED_INTERVAL_Z / 0.6744897501960817
+    snapshot = evidence_index({
+        "lab/leader": [evidence_value(value=11, interval=(11, 11))],
+        "lab/challenger": [evidence_value(
+            value=10, interval=(10 - half_width, 10 + half_width),
+        )],
+    })
+    rows = optimise(
+        snapshot, snapshot.candidates(), Objective(max="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    ).results
+    distributions = {
+        row.candidate_id: bands.Distribution(row.score, sqrt(bands.published_variance(row)))
+        for row in rows
+    }
+    banded = bands.band(rows, distributions, lambda cid: cid, {})
+    assert banded.p_beats["lab/challenger"] == 0.25
+    assert [row.candidate_id for row in banded.best] == ["lab/leader", "lab/challenger"]
+    assert banded.rest == ()
+
+
+def test_cost_blend_uses_cheapest_offering_per_model():
+    from tests.test_decision_optimise import run
+
+    rows = run(
+        {"a-cheap": {"cost": 1}, "a-dear": {"cost": 10}, "b": {"cost": 5}},
+        {"min": "cost"},
+    ).results
+    (term,) = bands.blend(
+        rows,
+        lambda cid: "lab/a" if cid.startswith("a-") else "lab/b",
+        lambda _distributions: {},
+    )
+    assert term.leaders == ["lab/a"]
+    assert term.value == 1
+    assert term.order == ["lab/a", "lab/b"]
+
+
+def test_band_estimate_counts_direct_and_proxy_benchmarks_separately():
+    from decision.contract import Objective, OfferingRef
+    from decision.optimise import optimise
+
+    metadata = {"direction": "higher_is_better", "sample_size": 500, "random_baseline": 0}
+    names = ("direct", "proxy1", "proxy2")
+    inputs = SnapshotInputs(
+        models=[model("lab/a"), model("lab/b")],
+        evidence=[
+            evidence(mid, bench, score)
+            for mid, score in (("lab/a", 70), ("lab/b", 60))
+            for bench in names
+        ],
+        sources=SOURCES,
+        benchmark_domains={
+            "direct": [("software_engineering", "direct")],
+            "proxy1": [("software_engineering", "proxy")],
+            "proxy2": [("software_engineering", "proxy")],
+        },
+        benchmark_metadata={name: metadata for name in names},
+    )
+    snapshot = load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 9, 25)))
+    rows = optimise(
+        snapshot, snapshot.candidates(), Objective(max="software_engineering"),
+        domains={"software_engineering"},
+    ).results
+    view = bands.entries(
+        bands.Banded(rows[0], tuple(rows), (), (), {}),
+        snapshot,
+        lambda cid: OfferingRef(model=cid),
+        lambda cid: None,
+        {},
+    )
+    assert [entry.model for entry in view.best] == ["lab/a", "lab/b"]
+    for entry in view.best:
+        (estimate,) = entry.estimates
+        assert estimate.dimension == "software_engineering"
+        assert estimate.benchmarks == 3
+        assert estimate.direct_benchmarks == 1

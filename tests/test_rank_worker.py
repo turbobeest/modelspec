@@ -715,3 +715,49 @@ def test_every_rank_response_says_it_is_deprecated_and_points_at_decide() -> Non
     # Additive: the envelope version is unchanged.
     assert ok[1]["schema_version"] == "1.0"
 
+
+def test_unranged_benchmark_clamps_before_image_generation_ranking():
+    candidate = ranking.Candidate(
+        "lab/image", "Synthetic image model", "Example", "image-gen",
+        benchmark_scores={
+            "fid": 1.0,
+            "clip_score": 150.0,
+            "arena_elo_overall": 1000.0,
+            "arena_elo_vision": 1000.0,
+        },
+    )
+    status, body = service.rank(
+        {"use_case": "image_generation", "limit": 1},
+        {"candidates": [candidate.to_json()]},
+        None,
+        SERVICE_COMMIT,
+        ORIGIN,
+    )
+    assert status == 200
+    row = body["result"][0]
+    assert row["score"] == 39.0
+    assert row["benchmark_score"] == 24.0
+    assert row["benchmark_contributions"]["clip_score"] == 30.0
+
+
+def test_tier_three_capability_keeps_its_declared_coding_contribution():
+    weights = USE_CASE_PROFILES["coding"]["benchmark_weights"]
+    candidate = ranking.Candidate(
+        "lab/coder", "Synthetic coder", "Example", "llm-code",
+        benchmark_scores={name: 0.0 for name in weights},
+        capability_tiers={"coding": "tier-3"},
+    )
+    status, body = service.rank(
+        {"use_case": "coding", "limit": 1},
+        {"candidates": [candidate.to_json()]},
+        None,
+        SERVICE_COMMIT,
+        ORIGIN,
+    )
+    assert status == 200
+    row = body["result"][0]
+    # 3 * 0.30 / 0.65 * 2 rounds to 2.77. The first preferred type adds 15.
+    assert row["benchmark_score"] == 0.0
+    assert row["capability_score"] == 2.77
+    assert row["score"] == 17.77
+

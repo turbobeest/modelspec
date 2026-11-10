@@ -801,3 +801,17 @@ def test_excluded_bits_match_who_the_filter_can_admit():
     admitted = feasible_ids(hosted, [])
     assert "lab/open" not in admitted
     assert any(cid.startswith("sambanova/") for cid in admitted)
+
+
+def test_equally_small_relaxations_prefer_a_numeric_gate():
+    from tests.test_relax_single import _decide, _row, _snapshot
+
+    snapshot = _snapshot([
+        _row("lab/a", "text-generator", 1000, fits=["apple_m3_max"]),
+        _row("lab/b", "text-generator", 10000, fits=["nvidia_rtx_5090"]),
+    ])
+    answer = _decide(snapshot, [
+        "model.fits_hardware in {apple_m3_max}",
+        "model.context_window >= 8000",
+    ])
+    assert answer.relax == ["model.context_window >= 8000"]
