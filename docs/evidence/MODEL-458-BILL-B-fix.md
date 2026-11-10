@@ -114,3 +114,41 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 Final integration result: `983 passed, 3 skipped in 72.16s`. Two skips are opt-in deployed-site/API checks; one requires a built site distribution, which this Worker-only change does not build.
 
 GitHub CLI version: 2.103.3. `git diff --check` passes. Full CI, deployment behavior, historical production records and live payment/meter delivery were not observed. No production switches, legal terms, prices, plans, release tags or frozen data changed.
+
+## Round 2
+
+The previous head failed pytest shards 5/8, 7/8 and 8/8. The other required checks were green.
+
+Shard 5/8, six failures in `tests/test_agent_guide.py`:
+
+- `test_openapi_size_and_all_response_header_descriptions`: the generated document was 233147 bytes, above the 233000 byte cap.
+- `test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget`
+- `test_harness_prompt_arms_replay_offline` for mcp/http and both control arms
+
+Shard 7/8, six failures:
+
+- `tests/test_generated_pins.py::test_generated_pin_files_are_byte_stable[qa/fixtures/mcp-tools.json]`
+- `tests/test_generated_pins.py::test_capture_freshness_check_rejects_a_stale_pin`
+- four `tests/test_agent_gaps.py` harness runs: rescore, dry-run, spend cap, and the MCP first-turn budget
+
+Shard 8/8, five failures in `tests/test_agent_harness.py`:
+
+- `test_mcp_capture_matches_current_public_sources`
+- `test_full_dry_replay_has_no_network_or_keys` for claude, openai and gemini
+- `test_live_wire_loop_and_separate_judge_share_the_invocation_budget`
+
+The harness and pin failures stop at `MCP definitions drifted` / `qa/fixtures/mcp-tools.json is stale`. The capture still hashed the previous OpenAPI document. The size failure is the three credit-balance refusal responses each embedding `CreditsRefused`. Loading that document already matched the intended contract. Sharing one content object in `build_spec` and regenerating brings the file to 232972 bytes. The generator renumbered later YAML anchors. The loaded document is unchanged. `python -m qa.contracts` changes only the OpenAPI digest in `qa/fixtures/mcp-tools.json`.
+
+Commands:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_agent_guide.py tests/test_agent_gaps.py tests/test_agent_harness.py tests/test_generated_pins.py tests/test_api_docs.py::test_the_committed_spec_is_what_the_implementation_generates
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider --tb=short tests/test_x402.py::test_balance_is_queryable_by_the_holder tests/test_x402.py::test_balance_query_without_a_key_is_401 tests/test_x402.py::test_entry_credits_query tests/test_x402.py::test_entry_credits_authenticates_before_reading_ledger tests/test_x402.py::test_entry_credits_reads_are_unmetered
+```
+
+OpenAPI `--check` passed. Focused results: `205 passed in 34.85s` and `23 passed in 0.76s`. `git diff --check` passed. Python 3.14.4, pytest 9.1.1, Git 2.50.1.
+
+The new CI run was not observed at the time of this record. No production switch, legal text, price, plan, release tag, or frozen data changed.

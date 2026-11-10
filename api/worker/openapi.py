@@ -2863,6 +2863,10 @@ def build_spec() -> dict[str, Any]:
                            "and vocabulary. Machine callers use an API key.",
         }
         page_security.append({"visitToken": []})
+    # One content object. Repeating this schema puts the generated document over its size cap.
+    credits_refused = {
+        "application/json": {"schema": {"$ref": "#/components/schemas/CreditsRefused"}},
+    }
     return {
         "openapi": "3.0.3",
         "info": {
@@ -2976,15 +2980,18 @@ def build_spec() -> dict[str, Any]:
                         "200": _json_body(
                             "The holder's available and reserved units.",
                             {"$ref": "#/components/schemas/CreditsBalance"}),
-                        str(x402.HTTP_UNAUTHORIZED): _json_body(
-                            "missing_holder: an active live API key is required; sandbox keys have no live balance.",
-                            {"$ref": "#/components/schemas/CreditsRefused"}),
-                        str(access.HTTP_FORBIDDEN): _json_body(
-                            "missing_holder: the presented key is inactive.",
-                            {"$ref": "#/components/schemas/CreditsRefused"}),
-                        str(x402.HTTP_STORE_UNAVAILABLE): _json_body(
-                            "credits_store_not_configured: credit account authentication or the credit ledger is unavailable.",
-                            {"$ref": "#/components/schemas/CreditsRefused"}),
+                        str(x402.HTTP_UNAUTHORIZED): {
+                            "description": "missing_holder: an active live API key is required; sandbox keys have no live balance.",
+                            "content": credits_refused,
+                        },
+                        str(access.HTTP_FORBIDDEN): {
+                            "description": "missing_holder: the presented key is inactive.",
+                            "content": credits_refused,
+                        },
+                        str(x402.HTTP_STORE_UNAVAILABLE): {
+                            "description": "credits_store_not_configured: credit account authentication or the credit ledger is unavailable.",
+                            "content": credits_refused,
+                        },
                         not_found[0]: not_found[1],
                         str(service.HTTP_METHOD_NOT_ALLOWED): transport(
                             service.HTTP_METHOD_NOT_ALLOWED, "/v1/credits takes GET.")[1],
