@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from contextlib import ExitStack
 from datetime import date
 from pathlib import Path
@@ -20,6 +21,7 @@ from decision.sources import get_source_response
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import (
     FetchResult,
+    RequiredSourceError,
     draft_signal,
     gather_signal,
     require_allowed_source,
@@ -256,16 +258,21 @@ def main() -> int:
     parser.add_argument("--recheck-day", type=int)
     parser.add_argument("--closed-unmerged-pr")
     args = parser.parse_args()
-    result = process(
-        args.pending,
-        args.result,
-        root=args.root,
-        audit_path=args.audit_json,
-        report_path=args.report_json,
-        signal_id=args.signal_id,
-        recheck_day=args.recheck_day,
-        closed_unmerged_pr=args.closed_unmerged_pr,
-    )
+    try:
+        result = process(
+            args.pending,
+            args.result,
+            root=args.root,
+            audit_path=args.audit_json,
+            report_path=args.report_json,
+            signal_id=args.signal_id,
+            recheck_day=args.recheck_day,
+            closed_unmerged_pr=args.closed_unmerged_pr,
+        )
+    except RequiredSourceError as exc:
+        # Leave the queue and the card unchanged. Exit 2 is a retry, not an acknowledgement.
+        print(str(exc), file=sys.stderr)
+        return 2
     print(json.dumps(result, sort_keys=True))
     return 0
 
