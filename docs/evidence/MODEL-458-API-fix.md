@@ -39,6 +39,7 @@ Regenerated with the repo generators, not by hand:
 
 - `api/worker/openapi.yaml` via `python api/worker/openapi.py`.
 - `docs/decision-contract.schema.json` and `mcp/src/contract-version.ts` via `python -m decision.schema`.
+- `cli/modelspec/agent-bundle.json` source digest for that schema, via `python -m pipeline.agent_copy write`. The other artifacts that command writes were already current. `python -m pipeline.agent_copy check` exited 0.
 
 Existing tests and fixtures updated because the versions moved: decision suites that pin `contract_version`, `mcp/test/contract-version.test.ts`, `mcp/test/fixtures/decide-budget.json` (`projects_contract` 3.0, `bounded_version` still 1.5), `web/src/decide/adapter/contract.ts` (adds 3.0 and keeps 2.19), `web/src/decide/__tests__/contract.test.ts`, and the health `schema_version` assert. The floor scanner skips `SCHEMA_VERSION` assignments so the envelope major is not read as a ranking floor. Docs that state the current envelope were updated. Historical changelog rows and saved 2.19 web fixtures stay.
 
