@@ -306,3 +306,43 @@ def test_cost_blend_uses_cheapest_offering_per_model():
     assert term.value == 1
     assert term.order == ["lab/a", "lab/b"]
 
+
+def test_band_estimate_counts_direct_and_proxy_benchmarks_separately():
+    from decision.contract import Objective, OfferingRef
+    from decision.optimise import optimise
+
+    metadata = {"direction": "higher_is_better", "sample_size": 500, "random_baseline": 0}
+    names = ("direct", "proxy1", "proxy2")
+    inputs = SnapshotInputs(
+        models=[model("lab/a"), model("lab/b")],
+        evidence=[
+            evidence(mid, bench, score)
+            for mid, score in (("lab/a", 70), ("lab/b", 60))
+            for bench in names
+        ],
+        sources=SOURCES,
+        benchmark_domains={
+            "direct": [("software_engineering", "direct")],
+            "proxy1": [("software_engineering", "proxy")],
+            "proxy2": [("software_engineering", "proxy")],
+        },
+        benchmark_metadata={name: metadata for name in names},
+    )
+    snapshot = load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 9, 25)))
+    rows = optimise(
+        snapshot, snapshot.candidates(), Objective(max="software_engineering"),
+        domains={"software_engineering"},
+    ).results
+    view = bands.entries(
+        bands.Banded(rows[0], tuple(rows), (), (), {}),
+        snapshot,
+        lambda cid: OfferingRef(model=cid),
+        lambda cid: None,
+        {},
+    )
+    assert [entry.model for entry in view.best] == ["lab/a", "lab/b"]
+    for entry in view.best:
+        (estimate,) = entry.estimates
+        assert estimate.dimension == "software_engineering"
+        assert estimate.benchmarks == 3
+        assert estimate.direct_benchmarks == 1
