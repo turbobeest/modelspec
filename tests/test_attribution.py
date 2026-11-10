@@ -19,6 +19,8 @@ from __future__ import annotations
 import dataclasses
 import json
 import sys
+import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -293,6 +295,55 @@ def test_spent_budget_stops_calls_and_leaves_creators_null(registry):
     result = at.attribute("alibaba", api["alibaba"]["models"]["kimi-k3"], "kimi-k3")
     assert (result.creator, result.status) == (None, A.UNAVAILABLE)
     assert judge.calls == []
+
+
+def test_shared_reserve_admits_only_as_many_callers_as_the_allowance():
+    workers = 8
+    admitted = 3
+    amount = 10
+    start = threading.Barrier(workers)
+    gate = threading.Barrier(workers)
+    builtin_max = max
+
+    def slow_max(*values):
+        observed = builtin_max(*values)
+        time.sleep(0)
+        try:
+            gate.wait(timeout=1)
+        except threading.BrokenBarrierError:
+            pass
+        return observed
+
+    class ContendedBudget(A.Budget):
+        """The pool shares one allowance. The yield is the max lookup reserve calls."""
+
+    budget = ContendedBudget(admitted * amount)
+    results: list[bool] = []
+    record = threading.Lock()
+
+    def reserve() -> None:
+        start.wait()
+        try:
+            budget.reserve(amount)
+        except A.JudgeUnavailable:
+            ok = False
+        else:
+            ok = True
+        with record:
+            results.append(ok)
+
+    A.max = slow_max
+    threads = [threading.Thread(target=reserve) for _ in range(workers)]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    finally:
+        del A.max
+
+    assert sum(results) == admitted
+    assert budget.reserved == admitted * amount
 
 
 # ── Input allowance at the transport boundary ────────────────────
