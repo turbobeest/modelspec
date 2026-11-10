@@ -972,6 +972,28 @@ def test_render_cli_rejects_excluded_text_the_post_does_not_show(breakdown, tmp_
     assert not (tmp_path / "charts").exists()
 
 
+def test_render_cli_rejects_excluded_text_joined_only_in_the_post(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    row = next(
+        item for item in data["claims_vs_evidence"]["claims"]
+        if item["benchmark"] == "swe_bench_pro"
+    )
+    reading = row["readings"][0]
+    first_flag = "Za"
+    second_flag = "pier"
+    reading["quality_flags"] = [first_flag, second_flag]
+    reading["limitations"] = None
+    candidate = Breakdown.model_validate(data)
+    guard_output(candidate.sources, candidate.model_dump(mode="json", by_alias=True))
+    post, _charts = render(candidate)
+    with pytest.raises(BreakdownError):
+        guard_output(candidate.sources, post)
+    code, out = _render_serialized(data, tmp_path, "joined-flags")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
 def test_render_cli_writes_a_valid_serialized_breakdown(breakdown, tmp_path) -> None:
     code, out = _render_serialized(
         breakdown.model_dump(mode="json", by_alias=True), tmp_path, "valid")
