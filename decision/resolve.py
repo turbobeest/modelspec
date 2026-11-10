@@ -30,14 +30,22 @@ from decision.registry import facet as registry_facet
 
 @dataclass(frozen=True)
 class Resolved:
-    """A spec that has passed the registry, with profile rules already in front."""
+    """A spec that has passed the registry, with profile rules already in front.
+
+    ``include_retired`` follows ``conditions``. A trial that drops a gate with
+    ``dataclasses.replace`` therefore keeps retired models only while a
+    remaining condition still asks for them.
+    """
 
     spec: Spec
     profile: InventoryProfile | None
     conditions: tuple[Any, ...]
-    include_retired: bool
     facets: FacetLookup
     objective_qualifiers: Mapping[str, EvidenceQualifiers]
+
+    @property
+    def include_retired(self) -> bool:
+        return any(asks_for_retired(cond) for cond in self.conditions)
 
 
 def _is_lifecycle(facet_id: str) -> bool:
@@ -101,7 +109,6 @@ def resolve(
         spec=spec,
         profile=profile,
         conditions=conditions,
-        include_retired=any(asks_for_retired(cond) for cond in conditions),
         facets=lookup,
         objective_qualifiers=spec.optimize.qualifiers,
     )
