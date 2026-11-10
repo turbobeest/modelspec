@@ -52,8 +52,11 @@ ANALYSIS = (
      "nothing qualifies.", GH + "docs/decision-contract.md#the-decision"),
     ("Cost", "Cost per task at your token counts, plan break-even, and what you "
      "already pay for.", GH + "docs/decision-contract.md#access-and-plans-model-200"),
-    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Keep the "
-     "spec, the snapshot and the decision contract version, and the same answer comes back next quarter.", "/method/#reproducible"),
+    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. The same "
+     "spec and contract reproduce an answer while that snapshot is available. "
+     "The hosted API serves only its current snapshot; an older pin is refused. "
+     "Retry with latest for a new answer and keep the "
+     "original decision for your records.", "/method/#reproducible"),
     ("Independence", "No referral fees, no paid placement. The commitment is "
      "published, and checkable as data.", "/legal/neutrality/"),
 )

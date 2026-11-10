@@ -13,6 +13,7 @@ import yaml
 
 from pipeline.load import LoadError, split_front_matter
 from schema.card import ModelCard
+from schema.yaml_loader import duplicate_key_diagnostics
 
 CARD = """---
 model_id: lab/yaml
@@ -113,6 +114,66 @@ def test_malformed_public_yaml_preserves_python_diagnostics(loader_mode, monkeyp
         expected.value.problem_mark.line, expected.value.problem_mark.column
     )
     assert diagnostic.__context__ is None
+
+
+def test_duplicate_aliases_load_and_report(loader_mode):
+    yaml_text = "aliases: [first]\naliases: [second]"
+    front, _ = split_front_matter(f"---\n{yaml_text}\n---\n")
+    assert front["aliases"] == ["second"]
+    found = duplicate_key_diagnostics(yaml_text)
+    assert [item.diagnostic(line_offset=1) for item in found] == [
+        "duplicate_yaml_key: line 3, column 1"
+    ]
+    rendered = " ".join(item.diagnostic() for item in found)
+    assert "first" not in rendered
+    assert "second" not in rendered
+
+
+@pytest.mark.parametrize("mapping", [
+    "outer: {private-key: first, private-key: second}",
+    "outer: {yes: first, 1: second}",
+    "outer: {&key private-key: first, *key: second}",
+    "outer: {<<: {a: 1}, <<: {b: 2}}",
+])
+def test_nested_duplicate_mapping_is_reported(loader_mode, mapping):
+    front, _ = split_front_matter(f"---\n{mapping}\n---\n")
+    assert front == yaml.safe_load(mapping)
+    found = duplicate_key_diagnostics(mapping)
+    assert found
+    rendered = " ".join(item.diagnostic() for item in found)
+    assert rendered.startswith("duplicate_yaml_key:")
+    assert "private-key" not in rendered
+    assert "first" not in rendered
+
+
+def test_safe_tags_and_authored_merge_overrides_remain_supported(loader_mode):
+    text = """---
+base: &base {a: 1, b: 2}
+other: &other {a: 3, c: 4}
+merged: &merged {<<: [*base, *other], b: 5}
+reused: {<<: *merged, c: 6}
+again: *merged
+boolean: yes
+day: 2026-11-09
+binary: !!binary SGVsbG8=
+set: !!set {one: null, two: null}
+value-key: {=: text}
+---
+"""
+    front, _ = split_front_matter(text)
+    assert front["merged"] == {"a": 1, "b": 5, "c": 4}
+    assert front["reused"] == {"a": 1, "b": 5, "c": 6}
+    assert front["again"] is front["merged"]
+    assert front["boolean"] is True
+    assert front["day"] == date(2026, 11, 9)
+    assert front["binary"] == b"Hello"
+    assert front["set"] == {"one", "two"}
+    assert front["value-key"] == {"=": "text"}
+
+
+def test_quoted_merge_key_is_distinct_from_merge_directive(loader_mode):
+    front, _ = split_front_matter('---\nbase: &base {a: 1}\nmerged: {<<: *base, "<<": literal}\n---\n')
+    assert front["merged"] == {"a": 1, "<<": "literal"}
 
 
 def _best_cpu_time(read: Callable[[], object]) -> float:

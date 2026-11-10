@@ -396,8 +396,12 @@ With the switch enabled, `pipeline.build` renders every public page from the
 repository's frozen image even when given a private checkout. This covers the
 full tree, landing statistics, graph, model and benchmark pages, structured
 data, social cards, Markdown twins and `llms-full.txt`. The output filter keeps
-only these `/api` files: `build.json`, `rank/profiles.json`,
-`rank/class-fit.json` and `feedback/v1.schema.json`. Class-fit examples also
+these `/api` files: `build.json`, `coverage.json`, `rank/profiles.json`,
+`rank/class-fit.json` and `feedback/v1.schema.json`. It also retains versioned
+public blog snapshots at
+`decision/snapshots/snap_<16 lowercase hex digits>.json.gz`. The authoritative
+allowlist is `KEEP_API` plus `is_retained_snapshot` in
+[`pipeline/public_data.py`](../../pipeline/public_data.py). Class-fit examples
 come from the frozen image. New bulk exports are denied by default.
 
 Removed routes, including every member of the wildcard families:
@@ -568,10 +572,14 @@ the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
 memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
 A steady-memory failure blocks deployment, including the six-hourly refresh,
 so the currently deployed Worker remains until a passing refresh. The public
-PR/bundle probe uses public fixtures and a synthetic key, is warning-only,
-and reports its outcome in the step summary. A flaky probe therefore cannot
-block flag-off production deploys. Runtime loaders and native libraries stay
-intact. Deploy probes use private data.
+PR memory job uses public fixtures and a synthetic key. Its 115 MiB
+pull-request gate applies to both current and successor candidate periods;
+either period exceeding the limit fails the job. Growth above 1 MiB against
+the matching period on main emits a separate warning, even when the total
+passes. Missing or invalid measurements fail. See
+[Worker memory at pull-request time](worker-memory.md) for the workload and
+comparison procedure. Runtime loaders and native libraries stay intact.
+Deploy probes use private data and retain the 120 MiB limit.
 The schedule runs no job when the split is off. Pip/uv caches retain their
 original flag-off behavior and are disabled for private builds. MCP does not
 pass an empty data-split variable when the repository variable is unset.

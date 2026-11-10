@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     import httpx
 
 from decision.azure_pricing import wait_for_selected_prices
+from decision.excluded import excluded_sources
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
@@ -205,6 +206,41 @@ def due(
 USER_AGENT = "ModelSpec-SourceCheck/1.0 (+https://modelspec.dev)"
 
 
+class ExcludedSource(ValueError):
+    """The requested source or a resolved origin is excluded."""
+
+
+def require_allowed_source_urls(url: str, resolved_urls: Iterable[str] = ()) -> None:
+    rules = excluded_sources()
+    if any(rules.url(origin) for origin in (url, *resolved_urls)):
+        raise ExcludedSource("excluded source")
+
+
+def get_source_response(
+    client: httpx.Client, url: str, *,
+    before_request: Callable[[str], None] | None = None, **kwargs: Any,
+) -> httpx.Response:
+    """Apply source admission before each HTTP request, including redirects."""
+    import httpx
+
+    history = []
+    request = None
+    while True:
+        require_allowed_source_urls(url)
+        if before_request is not None:
+            before_request(url)
+        response = (client.get(url, follow_redirects=False, **kwargs) if request is None
+                    else client.send(request, auth=None, follow_redirects=False))
+        if not response.has_redirect_location:
+            response.history = history
+            return response
+        if len(history) >= 20:
+            raise httpx.TooManyRedirects("source redirect limit reached", request=response.request)
+        history.append(response)
+        request = response.next_request
+        url = str(request.url)
+
+
 @dataclass(frozen=True)
 class FetchResult:
     outcome: Literal["ok", "not_modified", "unreachable"]
@@ -271,20 +307,23 @@ class Fetcher:
             headers["if-none-match"] = etag
         if last_modified:
             headers["if-modified-since"] = last_modified
-        host = urlsplit(url).hostname or ""
         error = "no attempt"
         status: int | None = None
         delay = 0.0
         for attempt in range(self.retries + 1):
             if attempt:
                 self.sleep(delay)
-            self._wait_for_host(host)
             delay = min(self.backoff * 2**attempt, self.max_backoff)
             status = None
             try:
-                response = self.client.get(
-                    url, headers=headers, timeout=self.timeout, follow_redirects=True
+                response = get_source_response(
+                    self.client, url, headers=headers, timeout=self.timeout,
+                    before_request=lambda target: self._wait_for_host(urlsplit(target).hostname or ""),
                 )
+            except ExcludedSource:
+                return FetchResult("unreachable", error="excluded source")
+            except httpx.TooManyRedirects:
+                return FetchResult("unreachable", error="source redirect limit reached")
             except httpx.TimeoutException as exc:
                 error = f"timeout: {exc}"
                 continue

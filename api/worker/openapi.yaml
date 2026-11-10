@@ -7,7 +7,7 @@ info:
   title: ModelSpec API
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-f226d9942791da1c). Call decide early with a template-based Spec; refine
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-d71e83841e122452). Call decide early with a template-based Spec; refine
     from reading and recovery hints.
 
 
@@ -1029,7 +1029,7 @@ paths:
             schema: {$ref: '#/components/schemas/ReleaseSignal'}
       responses:
         '200':
-          description: The identical signal was already pending.
+          description: The identical payload is already stored for this signal_id.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
@@ -5933,4 +5933,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-f226d9942791da1c}
+      schema: {type: string, const: 1-d71e83841e122452}
