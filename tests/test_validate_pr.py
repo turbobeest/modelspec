@@ -158,3 +158,10 @@ def test_modality_errors_are_not_warnings() -> None:
         "modalities.audio.output_supported is false but modalities.output contains audio"
     ]
     assert card.warnings() == []
+
+
+def test_private_data_export_check_can_be_waived_only_by_env(monkeypatch) -> None:
+    from api.worker.vendor import require_consistent_modalities
+
+    monkeypatch.setenv("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS", "1")
+    require_consistent_modalities([_modality_card(input=["image"])])

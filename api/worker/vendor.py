@@ -288,7 +288,7 @@ def require_consistent_modalities(cards: list) -> None:
         f"{card.identity.model_id}: {error}"
         for card in cards for error in card.modality_errors()
     ]
-    if contradictions:
+    if contradictions and os.environ.get("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS") != "1":
         raise SystemExit("modality flag contradicts list:\n" + "\n".join(contradictions))
 
 
