@@ -485,8 +485,11 @@ The local entry points are:
 python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs ux --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs aeo --business-repo ~/dev/modelspec-business
+python -m qa.subscription_jobs aeo --business-repo ~/dev/modelspec-business --no-publish --report-out ~/aeo-report
 python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data --cli claude --judge claude=codex,grok
 ```
+
+`--no-publish` and `--report-out DIR` are accepted only together. The private host publishes through its own draft-only publisher, so this mode writes the job report and the pull-request body under `DIR` and does not commit, push, or open a pull request. Neither flag combines with `--dry-run`.
 
 `--judge CLI=J1,J2` is repeatable and applies to the scenarios job only. The TUI
 runner accepts the same option. Each pair must name two distinct families, and
@@ -516,9 +519,12 @@ before the first task, and every launch rechecks status and inventory. Missing
 or changed evidence refuses the job. Vendor API-key/token environment variables,
 including empty variables, refuse all jobs and dry runs. There is no API fallback
 for the four subscription vendors. No job starts login or refreshes doctor for you.
-The scenarios job defaults to Claude, Codex and Grok; Gemini readiness refuses
-with the retirement reason above. AEO still lists Gemini as an engine, so it
-refuses until its engine set changes.
+The scenarios job defaults to Claude, Codex and Grok. Gemini readiness refuses
+with the retirement reason above. AEO's engine file must still name Gemini with
+the other three subscription engines and Perplexity. The default run and any
+selected-CLI run do not start Gemini. Its cells read `skipped (retired)`, the
+run is partial, and it does not write a new `BASELINE`. `--cli gemini` refuses
+before a task, with that same retirement reason.
 
 Execution is serial and uses the existing quota and usage-limit checks. Job
 quotas default to 400 CLI starts per family for all 74 scenarios, 40 for the UX
@@ -553,8 +559,9 @@ attached screenshots. Reports keep schema version 1 at
 `reports/ux/<UTC-day>.json` and `.md`, with private evidence beneath
 `<day>/<run-id>/`. Findings remain for human triage.
 
-AEO uses Claude WebSearch/WebFetch, Codex live web search, Gemini's
-`google_web_search` grounding and Grok web/X search. A search counts only when
+AEO uses Claude WebSearch/WebFetch, Codex live web search and Grok web/X search.
+Gemini remains named in the engine file and is skipped as retired, as above.
+A search counts only when
 the CLI transcript records a successful native search tool, not when the answer
 claims it searched. Four vendor API references are removed from the business
 config. Subscription models match the shared doctor-certified profiles; the
@@ -568,13 +575,19 @@ Only the selected CLIs need receipts, and each still fails closed without one.
 Unselected engines' cells read `skipped (not selected)`, and Gemini's read
 `skipped (retired)`, so such a run is partial.
 Late failures keep completed answers and costs, fill every unrun cell with
-`skipped (<reason>)`, and publish the partial reports. Partial runs identify
-themselves in the JSON and Markdown and do not establish a new `BASELINE`.
+`skipped (<reason>)`, and the wrapper still emits the partial reports. Partial
+runs identify themselves in the JSON and Markdown and do not establish a new
+`BASELINE`.
 
-Every live job fetches the private repository's main branch, creates a new
-worktree and branch, stages only the existing report paths, pushes that branch
-and opens a private PR. It never changes the main checkout's branch. A failed
-publication retains its worktree and prints its path for recovery. The shell
+Every live job fetches the private repository's main branch and creates a new
+worktree and branch. It never changes the main checkout's branch. Without
+`--no-publish`, it stages only the existing report paths, pushes that branch
+and opens a private PR. With `--no-publish` and `--report-out DIR`, it writes
+the job report to `DIR/report.md` and the pull-request body to `DIR/body.md`,
+then removes the worktree. It does not run git add, commit, push, or gh.
+`DIR` is mode 0700 and the two files are mode 0600. A symlink or an existing
+non-empty directory is refused. A failed publication retains its worktree and
+prints its path for recovery. The shell
 wrapper used by schedules also runs the merged public engine from a fresh
 detached worktree. No reports or private task definitions enter this public tree.
 
@@ -800,7 +813,7 @@ Offline coverage:
 
 ```sh
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest \
-  tests/test_subscription_jobs.py tests/test_tui_harness.py tests/test_aeo_visibility.py -q
+  tests/test_subscription_jobs.py tests/test_subscription_report_out.py tests/test_tui_harness.py tests/test_aeo_visibility.py -q
 ```
 
 The UX contract integration checks use the private helper files read-only on
