@@ -3142,3 +3142,50 @@ def test_rotation_copies_the_ledger_tier(policy):
         assert rotated.status == 200
         assert (await keys.lookup(kv, rotated.body["key"])).tier == "paid"
     run(scenario())
+
+
+def test_replayed_invoice_leaves_an_unrecorded_spent_account_on_the_paid_tier(policy):
+    """A replay does not downgrade an account the ledger has not recorded."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        holder = _billing_holder(key)
+        paid = invoice_obj(id="in_spent", period_start=100, period_end=200)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_spent_paid", created=100)).status == 200
+        account = ledger.state.accounts[holder]
+        account.monthly = 0
+        account.monthly_entitled = None
+        account.entitlement_generation = 0
+        account.canceled_at = 0
+        account.canceled_subscription_id = ""
+        account.invoice_period_watermark = 0
+        replay = await _dated_event(
+            kv, ledger, policy, "invoice.paid", paid, "evt_spent_replay", created=500)
+        assert replay.status == 200
+        assert (await keys.lookup(kv, key)).tier == "paid"
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored is not None
+        assert stored.tier == "paid" and stored.status == "active"
+    run(scenario())
+
+
+def test_rejected_first_invoice_for_a_second_subscription_writes_no_row(policy):
+    """A stale first invoice for a subscription with no row leaves no row."""
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy, bound=True)
+        fingerprint = keys.fingerprint(key)
+        paid = invoice_obj(id="in_bound", period_start=300, period_end=400)
+        assert (await _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                                   "evt_bound_paid", created=300)).status == 200
+        older = invoice_obj(
+            id="in_older_second", subscription=SUB2, period_start=100, period_end=200,
+            subscription_details={"metadata": {"modelspec_key_fingerprint": fingerprint}})
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", older, "evt_older_second", created=100)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "ignored"
+        assert await billing.store.load_subscription(kv, SUB2) is None
+        assert (await keys.lookup(kv, key)).tier == "paid"
+    run(scenario())

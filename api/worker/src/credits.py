@@ -1187,10 +1187,11 @@ class LedgerState:
         holder = self._funding_holder(holder)
         acc = self.accounts.get(holder)
         if acc is None:
-            return {"generation": 0, "entitled": False}
+            return {"generation": 0, "entitled": False, "canceled_at": 0}
         return {
             "generation": int(acc.entitlement_generation),
             "entitled": _implied_entitled(acc),
+            "canceled_at": int(acc.canceled_at),
         }
 
     def transfer(self, src: str, dst: str) -> bool:
@@ -2349,7 +2350,11 @@ class DurableLedger:
         data = await self._call("entitlement_view", holder)
         to_py = getattr(data, "to_py", None)
         row = to_py() if callable(to_py) else data
-        return {"generation": int(row["generation"]), "entitled": bool(row["entitled"])}
+        return {
+            "generation": int(row["generation"]),
+            "entitled": bool(row["entitled"]),
+            "canceled_at": int(row.get("canceled_at") or 0),
+        }
 
     async def transfer(self, src: str, dst: str) -> bool:
         return bool(await self._call("transfer", src, dst))

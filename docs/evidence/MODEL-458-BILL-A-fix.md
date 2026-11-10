@@ -380,8 +380,9 @@ checkout id, and a later `invoice.paid` with `billing_reason`
 `subscription_create` credits again. Reusing that synthetic id as the grant
 returns replay before `invoice_period_watermark` is stored.
 
-A cancellation or failed payment on a row with no key returned `no_key` and
-left the row's tier. Round 5 writes the downgrade tier and inactive status.
+Round 4: a cancellation or failed payment on a row with no key returned
+`no_key` and left the row's tier. Round 5 writes the downgrade tier and
+inactive status.
 
 ## Round 5
 
@@ -612,3 +613,32 @@ Command: the rotation test alone.
 
 - Rotation always writes the downgrade tier: 1 failed, exit 1. The entitled key rotated to the downgrade tier.
 - The generation test is replaced by otherwise: 1 failed, exit 1. The generation-zero key rotated to the downgrade tier.
+
+### A replay leaves an unrecorded account, and a rejected first invoice writes no row
+
+A replay does not downgrade an account whose ledger generation is zero and
+whose `canceled_at` is unset. The copy returns without writing the key or
+the row. `entitlement_view` now includes `canceled_at`, including on the
+durable ledger. An absent account reports generation zero, not entitled,
+and `canceled_at` zero.
+
+A first `invoice.paid` the ledger rejects, for a subscription that has no
+row yet, writes no row. The decision uses the row's key when it has one,
+and otherwise the key named on the event when that key exists. It returns
+before the row write.
+
+Before the change:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_replayed_invoice_leaves_an_unrecorded_spent_account_on_the_paid_tier tests/test_billing.py::test_rejected_first_invoice_for_a_second_subscription_writes_no_row tests/test_billing.py::test_replayed_invoice_keeps_a_pre_round_account_on_the_paid_tier
+```
+
+Result: 2 failed, 1 passed, exit 1. The replay moved the spent unrecorded
+key to the downgrade tier. The rejected first invoice left a row. The
+pre-round account that still derives entitled stayed paid.
+
+After the change, the focused billing command was 304 passed, exit 0.
+
+The round-4 remaining note now names that round as the one whose `no_key`
+answer left the row's tier. Round 5 writes the downgrade tier and inactive
+status.

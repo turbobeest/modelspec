@@ -628,6 +628,19 @@ async def _copy_grant_tier(kv: Any, subscription_id: str, *, ledger: Any,
     """Copy the ledger tier after a grant the row's key can hold."""
     if grant in _GRANT_SKIPS_TIER or isinstance(ledger, credits.UnboundLedger):
         return
+    stored = await store.load_subscription(kv, subscription_id)
+    if stored is not None and stored.key_fingerprint and ledger is not None:
+        try:
+            view = await ledger.entitlement_view(
+                credits.holder_from_fingerprint(stored.key_fingerprint))
+        except credits.StoreNotConfigured:
+            view = None
+        # Generation zero and no stored cancellation: the ledger has not
+        # recorded an allowance for this key. A replay must not downgrade it.
+        if (isinstance(view, dict) and not view.get("entitled")
+                and int(view.get("generation") or 0) == 0
+                and int(view.get("canceled_at") or 0) == 0):
+            return
     await _sync_entitlement_tier(
         kv, subscription_id, ledger=ledger, policy=policy,
         mapping_tier=mapping_tier)
@@ -961,24 +974,29 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
     fingerprint = _fingerprint_from_obj(obj)
     period_start, period_end = _invoice_period(obj, policy)
     existing = await store.load_subscription(kv, subscription_id)
+    bound = existing.key_fingerprint if existing is not None else ""
+    # No row yet: decide from the key named on the event, before any write.
+    holder_fp = bound
+    if (not holder_fp and fingerprint and ledger is not None
+            and not isinstance(ledger, credits.UnboundLedger)
+            and await keys.lookup_fingerprint(kv, fingerprint) is not None):
+        holder_fp = fingerprint
     # A rejected grant must not store its period or move the row. The watermark
     # read is that reject when the period ended early; it writes nothing.
-    if (existing is not None and existing.key_fingerprint and period_end
-            and ledger is not None):
+    if holder_fp and period_end and ledger is not None:
         try:
             mark = await ledger.invoice_watermark(
-                credits.holder_from_fingerprint(existing.key_fingerprint))
+                credits.holder_from_fingerprint(holder_fp))
         except credits.StoreNotConfigured:
             mark = 0
         if int(mark or 0) and period_end < int(mark or 0):
             return "ignored", None
     probed = None
-    bound = existing.key_fingerprint if existing is not None else ""
-    if (bound and ledger is not None
+    if (holder_fp and ledger is not None
             and not isinstance(ledger, credits.UnboundLedger)):
         try:
             probed = await ledger.set_monthly(
-                credits.holder_from_fingerprint(bound),
+                credits.holder_from_fingerprint(holder_fp),
                 mapping.credits, invoice_id, mapping.name,
                 _id(obj.get("customer")),
                 period_end=int(period_end or 0),

@@ -414,6 +414,8 @@ the pending-allowance grant pass the subscription id.
 
 A grant the ledger rejects leaves the subscription row's tier, status, and
 key fingerprint unchanged, and leaves the stored invoice period unchanged.
+A first `invoice.paid` the ledger rejects, for a subscription that has no
+row yet, writes no row.
 `invoice.paid`, Checkout, and the pending-allowance grant copy the ledger
 entitlement onto the key when the row has a key. The copy runs for every
 grant the key can hold, including a replay. A replay after a later
@@ -423,7 +425,8 @@ Rotation, a replay that only re-reads the ledger, and the settle step after
 a cancellation or a failed payment write the row's tier when it is set and
 is not the downgrade tier, and the Price's tier only when the row's tier is
 empty or the downgrade tier. A key that is not entitled gets the downgrade
-tier.
+tier. A replay leaves the key and the row unchanged when the ledger
+generation is zero and `canceled_at` is unset.
 
 An account stored before `monthly_entitled` derives entitlement from a
 positive monthly balance, or from a stored paid watermark with `canceled_at`
