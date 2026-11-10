@@ -412,8 +412,9 @@ def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
         found = _search_indexes(budget, resolved, snapshot, conditions, hard)
         return [] if found is None else found
     # A larger lineup can make a negated best gate pass, so the anchored
-    # proposal is not exact. The budgeted per-index search is.
-    if any(_best_is_negated(conditions[index]) for index in hard):
+    # proposal is not exact. That includes a best gate on the class or on a
+    # requested domain. The budgeted per-index search is.
+    if any(_best_is_negated(cond) for cond in conditions if cond.soft is None):
         found = _search_indexes(budget, resolved, snapshot, conditions, hard)
         return [] if found is None else found
     groups = _equivalent_groups(conditions, hard)

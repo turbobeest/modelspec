@@ -405,6 +405,69 @@ def test_a_negated_best_gate_matches_the_per_index_search():
         assert relax.fewest(resolved, index, frozenset()) == _per_index(resolved, index)
 
 
+def test_a_negated_best_gate_on_a_requested_domain_matches_the_per_index_search():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {"model.context_window": 100, "model.max_output_tokens": 30},
+        "lab/b": {"model.context_window": 40, "model.max_output_tokens": 90},
+        "lab/c": {"model.context_window": 70, "model.max_output_tokens": 60},
+    })
+    domains = frozenset({"model.context_window"})
+    positive = (
+        (
+            [
+                "model.max_output_tokens >= best(0)",
+                "model.context_window >= best(10)",
+                "model.max_output_tokens >= 80",
+            ],
+            ["model.max_output_tokens >= best(0.0)"],
+        ),
+        (
+            [
+                "any(model.context_window >= best(0); model.max_output_tokens <= 40)",
+                "model.max_output_tokens >= best(10)",
+                "model.max_output_tokens >= 80",
+            ],
+            ["model.max_output_tokens >= best(10.0)"],
+        ),
+    )
+    for where, literal in positive:
+        resolved = _resolved(where)
+        answer = relax.fewest(resolved, index, domains)
+        assert answer == _per_index(resolved, index, domains)
+        assert answer == literal
+    negated = (
+        (
+            [
+                "model.max_output_tokens >= best(0)",
+                "not(model.context_window >= best(10))",
+                "model.max_output_tokens >= 80",
+            ],
+            ["model.max_output_tokens >= 80"],
+        ),
+        (
+            [
+                "any(not(model.context_window >= best(0)); model.max_output_tokens <= 40)",
+                "model.max_output_tokens >= best(10)",
+                "model.max_output_tokens >= 80",
+            ],
+            ["model.max_output_tokens >= 80"],
+        ),
+    )
+    got = []
+    oracle = []
+    literals = []
+    for where, literal in negated:
+        resolved = _resolved(where)
+        got.append(relax.fewest(resolved, index, domains))
+        oracle.append(_per_index(resolved, index, domains))
+        literals.append(literal)
+    assert got == oracle
+    assert got == literals
+
+
 def test_fewest_matches_the_per_index_search_on_generated_cases():
     import random
 
