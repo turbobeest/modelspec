@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import typing
 from collections.abc import Callable, Mapping
@@ -930,6 +931,13 @@ class Preference(_Strict):
     prefer: Scalar
     weight: float = Field(gt=0)
 
+    @field_validator("weight")
+    @classmethod
+    def _finite_weight(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("a preference weight must be finite")
+        return value
+
 
 class Objective(_Strict):
     """Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``."""
@@ -1013,6 +1021,8 @@ class Objective(_Strict):
             raise ValueError("weights is empty")
         for facet, term in weights.items():
             weight = term.weight if isinstance(term, Preference) else term
+            if isinstance(weight, float) and not math.isfinite(weight):
+                raise ValueError(f"weight for {facet} must be finite")
             if not weight > 0:
                 raise ValueError(f"weight for {facet} must be positive; put - on the facet "
                                  "to minimise it")
@@ -1734,6 +1744,15 @@ class NearMiss(_Strict):
     value: Scalar | None = None
     distance: float | None = None
     unit: str | None = None
+
+    @field_validator("distance", mode="before")
+    @classmethod
+    def _omit_nonfinite_distance(cls, value: Any) -> Any:
+        # A non-finite distance is not strict JSON. Null is already the
+        # absent distance, so the response stays a decision.
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        return value
     records: list[str] = Field(default_factory=list)
     #: How a computed value was reached, with the numbers. Added in 1.3.
     formula: str | None = None

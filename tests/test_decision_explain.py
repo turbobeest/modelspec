@@ -398,6 +398,43 @@ def test_missing_provenance_and_unverified_measurements_do_not_get_explained(ind
         decide(spec("summary"), index, facets=facets)
 
 
+def test_retired_context_elimination_keeps_its_snapshot_record():
+    """A retired model that misses a context floor still cites the measured fact."""
+    from decision.snapshot import load_built_snapshot
+    from tests.snapshot_records import SOURCES as record_sources
+    from tests.snapshot_records import model as record_model
+
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[record_model("lab/old", lifecycle="retired", context=64)],
+            sources=record_sources,
+        ),
+        gate=False,
+        as_of=date(2026, 10, 8),
+    )
+    snapshot = load_built_snapshot(built, include_archive=True, source="retired near miss")
+    decision = decide(parse_spec({
+        "spec_version": 1,
+        "where": ["model.lifecycle = retired", "model.context_window >= 128"],
+        "optimize": {"max": "model.context_window"},
+        "explain": "full",
+    }, facets=facets), snapshot, facets=facets)
+    rows = [
+        row for row in decision.eliminated.models
+        if row.condition == "model.context_window >= 128"
+    ]
+    assert len(rows) == 1
+    assert rows[0].value == 64
+    assert rows[0].unit == "tokens"
+    assert rows[0].records == ["lab/old#model.context_window"]
+    matched = [
+        origin for origin in decision.number_origins
+        if origin.records == ["lab/old#model.context_window"]
+    ]
+    assert len(matched) == 1
+    assert matched[0].basis == "snapshot measurement"
+
+
 def test_benchmark_objective_uses_optimize_tipping_points(index):
     decision = decide(
         spec(

@@ -7,7 +7,7 @@ place the inventory profile's standing rules in front of ``where``.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from decision.contract import (
@@ -30,14 +30,33 @@ from decision.registry import facet as registry_facet
 
 @dataclass(frozen=True)
 class Resolved:
-    """A spec that has passed the registry, with profile rules already in front."""
+    """A spec that has passed the registry, with profile rules already in front.
+
+    ``include_retired`` is stored from the conditions present at resolution.
+    Dropping a gate goes through ``without``, which recomputes it from the
+    conditions that remain. A trial that only reorders or rewrites a condition
+    keeps the stored value.
+    """
 
     spec: Spec
     profile: InventoryProfile | None
     conditions: tuple[Any, ...]
-    include_retired: bool
     facets: FacetLookup
     objective_qualifiers: Mapping[str, EvidenceQualifiers]
+    include_retired: bool = False
+
+
+def without(resolved: Resolved, indexes) -> Resolved:
+    """The resolved spec without those conditions, retired admission recomputed."""
+    omit = frozenset(indexes)
+    conditions = tuple(
+        cond for index, cond in enumerate(resolved.conditions) if index not in omit
+    )
+    return replace(
+        resolved,
+        conditions=conditions,
+        include_retired=any(asks_for_retired(cond) for cond in conditions),
+    )
 
 
 def _is_lifecycle(facet_id: str) -> bool:
@@ -101,7 +120,7 @@ def resolve(
         spec=spec,
         profile=profile,
         conditions=conditions,
-        include_retired=any(asks_for_retired(cond) for cond in conditions),
         facets=lookup,
         objective_qualifiers=spec.optimize.qualifiers,
+        include_retired=any(asks_for_retired(cond) for cond in conditions),
     )
