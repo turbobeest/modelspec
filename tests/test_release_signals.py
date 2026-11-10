@@ -1488,6 +1488,8 @@ _PRIMARY = "https://acme.example/models"
             b"[" * 200000,
             id="two-hundred-thousand-nested-brackets",
         ),
+        pytest.param(_MODELS_DEV, b"[]", id="top-level-array"),
+        pytest.param(_MODELS_DEV, b"null", id="top-level-null"),
     ],
 )
 def test_bad_required_source_exits_with_controlled_failure(
