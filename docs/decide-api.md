@@ -46,7 +46,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`2.19`.
+`3.0`.
 
 ```http
 POST /v1/decide
@@ -148,7 +148,7 @@ to the legacy library/CLI path, not the installed thin CLI.
 ## Response
 
 A successful body is the decision contract's Decision object without a Worker
-wrapper, as compact JSON (contract 2.19). This keeps it byte-identical to the
+wrapper, as compact JSON (contract 3.0). This keeps it byte-identical to the
 JSON printed by `modelspec decide --json` for the same Spec and Snapshot. It is
 shown indented here for reading.
 
@@ -159,7 +159,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.19",
+  "contract_version": "3.0",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -297,7 +297,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "2.19",
+  "contract_version": "3.0",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {

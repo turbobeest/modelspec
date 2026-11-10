@@ -44,7 +44,10 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.19"
+# 3.0 adds invalid_request to the decide HTTP refusal code enum. Decision
+# success fields are unchanged. Bounded stays at BOUNDED_VERSION. Named
+# comparison stays at MODEL_COMPARISON_VERSION.
+CONTRACT_VERSION = "3.0"
 MODEL_COMPARISON_VERSION = "1.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────

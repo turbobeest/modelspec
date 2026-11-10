@@ -64,7 +64,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "endpoint": "rank",
   "build": {
     "commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
@@ -313,7 +313,7 @@ daily limit. Visit tokens are free. Prices:
 
 ## Stability
 
-`schema_version` (`"1.0"`) versions this envelope; `build.export_schema_version`
+`schema_version` (`"2.0"`) versions this envelope; `build.export_schema_version`
 the catalogue. Widening a field's range bumps that contract's major
 ([`cli-contract.md`](cli-contract.md)). Ignore added fields within a major.
 

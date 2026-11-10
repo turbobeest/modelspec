@@ -458,6 +458,10 @@ def test_no_floor_is_written_down_a_second_time() -> None:
             code = line.split("#", 1)[0]
             if "=" not in code or "==" in code:
                 continue
+            # Envelope majors are not ranking floors. "2.0" collides with
+            # float(MIN_BENCHMARK_COUNT).
+            if re.search(r"\bSCHEMA_VERSION\s*=", code):
+                continue
             for literal in re.findall(r"(?<![\w.])\d+\.\d+(?![\w.])", code):
                 assert float(literal) not in floors, (
                     f"{path.name}: {line.strip()!r} writes a ranking floor down again; "
@@ -714,8 +718,7 @@ def test_every_rank_response_says_it_is_deprecated_and_points_at_decide() -> Non
         assert "fallback" in notice["message"]
         assert notice["next"] == {"method": "POST", "url": "https://api.modelspec.dev/v1/decide",
                                   "guide": "https://modelspec.dev/agents.md"}
-    # Additive: the envelope version is unchanged.
-    assert ok[1]["schema_version"] == "1.0"
+    assert ok[1]["schema_version"] == service.SCHEMA_VERSION == "2.0"
 
 
 def _reject_json_constant(token: str) -> None:

@@ -83,10 +83,12 @@ from __future__ import annotations
 
 from typing import Any
 
-#: Bumped only for an incompatible change to this envelope. Independent of
-#: `rank_service.SCHEMA_VERSION`, of the CLI envelope, and of
-#: `build.export_schema_version`.
-SCHEMA_VERSION = "1.0"
+#: Bumped only for an incompatible change to this envelope. The CLI envelope
+#: and `build.export_schema_version` are separate. Rank and policy-check share
+#: one OpenAPI `info.version`, so this matches `rank_service.SCHEMA_VERSION`.
+#: 2.0 records the wider response ranges that document omitted, including a
+#: null `determinations.why` on a paid answer.
+SCHEMA_VERSION = "2.0"
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400

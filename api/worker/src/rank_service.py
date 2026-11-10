@@ -48,15 +48,21 @@ from pipeline.ranking import Candidate, rank_report
 #:
 #: MODEL-81 added `authoring_guide` as an always-present envelope field (the
 #: recommended model's card guide, or a documented absent state). That is a
-#: new field, not a widening of an existing one, so this stays 1.0 under
-#: MODEL-59. `result` rows are unchanged. A bump here would also bump
-#: policy-check: the two endpoints share one OpenAPI `info.version`.
+#: new field, not a widening of an existing one, so MODEL-81 left this at 1.0
+#: (MODEL-59). `result` rows were unchanged. Rank and policy-check share one
+#: OpenAPI `info.version`, so a later bump moves both.
 #:
 #: MODEL-110 added `unranked_candidates` the same way: a new always-present
-#: field, not a widened one, so still 1.0.
+#: field, not a widened one, so that change left this at 1.0.
 #:
 #: MODEL-316 added `deprecation` the same way, on every response.
-SCHEMA_VERSION = "1.0"
+#:
+#: 2.0 records response ranges the 1.0 document omitted. `benchmark_contributions`
+#: is the profile's benchmark ids, `context_window`, `cost_input` and
+#: `scores_as_of` may be null, an elimination `value` is a number, boolean or
+#: string, and an authoring-guide section may be absent. The CLI envelope stays
+#: 1.0.
+SCHEMA_VERSION = "2.0"
 
 #: `/v1/rank` is the retired fixed-benchmark ranking (MODEL-316). A clean agent
 #: fell back to it when decide named no leader, and its stale scores led it to
