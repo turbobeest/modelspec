@@ -27,6 +27,12 @@ def _vendor():
     return module
 
 
+@pytest.fixture(autouse=True)
+def _frozen_models_keep_old_modality_contradictions(monkeypatch):
+    """The stand-in private data is the frozen public image (MODEL-457)."""
+    monkeypatch.setenv("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS", "1")
+
+
 @pytest.fixture(scope="module")
 def private(tmp_path_factory):
     tree = tmp_path_factory.mktemp("private-data")
