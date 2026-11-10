@@ -339,12 +339,15 @@ POST /v1/policy-check
                         "accept_restricted": false }     // default: a conditional
   },                                                     // grant is not a pass
   "require_no_undetermined": false,
-  "models":    ["meta/llama-3-70b"],   // optional; max 500
   "platforms": ["aws_bedrock"],        // optional
   "verdicts":  ["fail", "undetermined"],  // optional row filter; counts are unaffected
   "limit": 50, "offset": 0
 }
 ```
+
+The example omits the optional `models` filter and checks every model on the
+selected platform. To narrow it, use model IDs from the catalogue answering
+your request; an unknown ID is refused.
 
 A policy with no constraints is **refused**. "Every model passes" against
 nothing is technically true, useless, and exactly what a caller who mistyped a
