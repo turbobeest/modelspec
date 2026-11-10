@@ -792,16 +792,33 @@ def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
     assert "<a " not in re.sub(r"<sup>.*?</sup>", "", item)
 
 
-def test_record_text_with_a_line_break_is_one_code_span(breakdown) -> None:
-    raw = "alpha line\nbeta line 4"
+@pytest.mark.parametrize(
+    "separator",
+    ["\n", "\r", "\x0b", "\x0c", "\x85", "\u2028", "\u2029"],
+    ids=[
+        "line-feed",
+        "carriage-return",
+        "vertical-tab",
+        "form-feed",
+        "next-line",
+        "line-separator",
+        "paragraph-separator",
+    ],
+)
+def test_record_text_with_a_line_break_is_one_code_span(breakdown, separator: str) -> None:
+    raw = f"alpha line{separator}beta line 4"
     row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
     built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
     post, _charts = render(built)
     assert "`alpha line beta line 4`" in post
+    line = next(item for item in post.splitlines() if "`alpha line beta line 4`" in item)
+    assert separator not in line
     html = _site_html(post, built.sources)
     codes = re.findall(r"<code>(.*?)</code>", html)
     assert any(
-        "alpha line" in code and "beta line 4" in code and "\n" not in code for code in codes
+        "alpha line" in code and "beta line 4" in code and "\n" not in code
+        and separator not in code
+        for code in codes
     )
 
 
