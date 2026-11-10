@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import typing
 from collections.abc import Callable, Mapping
@@ -176,7 +177,15 @@ def _iso_date(value: Any) -> Any:
     return value
 
 
-Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_iso_date)]
+def _finite_scalar(value: Any) -> Any:
+    """Dates stay dates. Floats must be finite; integers are not floats."""
+    value = _iso_date(value)
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("a number must be finite")
+    return value
+
+
+Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_finite_scalar)]
 #: For a field named ``date``, whose default would shadow the type in its class.
 Day = date
 
@@ -254,6 +263,8 @@ class BestRef(_Strict):
         # missing model(…) by the value union.
         if isinstance(value, bool) or not isinstance(value, int | float) or value < 0:
             raise ValueError(f"the margin in best(m) is a number, 0 or more; got {value!r}")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"the margin in best(m) is a finite number, 0 or more; got {value!r}")
         return value
 
 
@@ -867,6 +878,9 @@ class Tolerance(_Strict):
     def _one(self) -> Tolerance:
         if (self.relative is None) == (self.absolute is None):
             raise ValueError("a tolerance is exactly one of relative, absolute")
+        number = self.absolute if self.absolute is not None else self.relative
+        if isinstance(number, float) and not math.isfinite(number):
+            raise ValueError("a tolerance must be finite")
         return self
 
 
@@ -926,6 +940,13 @@ class Preference(_Strict):
 
     prefer: Scalar
     weight: float = Field(gt=0)
+
+    @field_validator("weight")
+    @classmethod
+    def _finite_weight(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("a preference weight must be finite")
+        return value
 
 
 class Objective(_Strict):
@@ -1010,6 +1031,8 @@ class Objective(_Strict):
             raise ValueError("weights is empty")
         for facet, term in weights.items():
             weight = term.weight if isinstance(term, Preference) else term
+            if isinstance(weight, float) and not math.isfinite(weight):
+                raise ValueError(f"weight for {facet} must be finite")
             if not weight > 0:
                 raise ValueError(f"weight for {facet} must be positive; put - on the facet "
                                  "to minimise it")
@@ -1060,6 +1083,13 @@ class Hardware(_Strict):
     count: int = Field(default=1, ge=1)
     memory_gb: float | None = Field(default=None, gt=0)
 
+    @field_validator("memory_gb")
+    @classmethod
+    def _finite_memory(cls, value: float | None) -> float | None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError("memory_gb must be finite")
+        return value
+
 
 class LocalModel(_Strict):
     model: ModelId
@@ -1069,6 +1099,13 @@ class LocalModel(_Strict):
 
 class Budget(_Strict):
     max_cost_per_task_usd: float | None = Field(default=None, gt=0)
+
+    @field_validator("max_cost_per_task_usd")
+    @classmethod
+    def _finite_budget(cls, value: float | None) -> float | None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError("max_cost_per_task_usd must be finite")
+        return value
 
 
 class InventoryProfile(_Strict):

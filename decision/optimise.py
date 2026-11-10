@@ -6,10 +6,12 @@ MODEL-145 resolves offering identities and registered source IDs for transport.
 """
 from __future__ import annotations
 
+import math
+import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
-from math import isclose, isfinite
+from math import frexp, isclose, isfinite, log2
 from typing import TYPE_CHECKING, Literal
 
 from decision.contract import EvidenceQualifiers, Objective, Preference, Tolerance
@@ -320,6 +322,58 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
     return float(item.value), tuple(item.source_ids), (item,), None, None
 
 
+def _log2_abs(value: float) -> float:
+    magnitude = abs(value)
+    if magnitude == 0.0 or not isfinite(magnitude):
+        return -math.inf if magnitude == 0.0 else math.inf
+    mantissa, exponent = frexp(magnitude)
+    return exponent + log2(mantissa)
+
+
+def _nonfinite_total(values: list[DimensionContribution], penalty: float) -> bool:
+    if any(item.value is None for item in values):
+        return False
+    if not isfinite(sum(item.value * item.weight for item in values) - penalty):
+        return True
+    if any(item.interval is None for item in values):
+        return False
+    return any(
+        not isfinite(sum(item.interval[end] * item.weight for item in values) - penalty)
+        for end in (0, 1)
+    )
+
+
+def _overflow_shift(
+    contributions: dict[str, list[DimensionContribution]],
+    penalties: Mapping[str, Mapping[str, float]] | None,
+) -> int:
+    """Power of two that keeps every scalar score finite. Zero leaves bits unchanged."""
+    needs = False
+    worst = -math.inf
+    for cid, values in contributions.items():
+        penalty = sum((penalties or {}).get(cid, {}).values())
+        if _nonfinite_total(values, penalty):
+            needs = True
+        logs = []
+        for item in values:
+            if item.value is None or item.weight == 0.0:
+                continue
+            components = [item.value]
+            if item.interval is not None:
+                components.extend(item.interval)
+            for component in components:
+                if component != 0.0:
+                    logs.append(_log2_abs(component) + _log2_abs(item.weight))
+        if penalty != 0.0 and isfinite(penalty):
+            logs.append(_log2_abs(penalty))
+        if logs:
+            worst = max(worst, max(logs) + log2(len(logs)))
+    if not needs:
+        return 0
+    shift = math.ceil(worst - (log2(sys.float_info.max) - 1))
+    return max(1, shift)
+
+
 def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Objective, *,
              penalties: Mapping[str, Mapping[str, float]] | None = None,
              evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
@@ -423,11 +477,20 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
             contributions[cid].append(DimensionContribution(
                 signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],
                 readings[cid][3], interval=interval))
+    shift = _overflow_shift(contributions, penalties)
+    if shift:
+        for cid in cids:
+            contributions[cid] = [
+                replace(item, weight=math.ldexp(item.weight, -shift))
+                for item in contributions[cid]
+            ]
     complete, missing = [], []
     for cid in cids:
         parts = tuple(sorted((penalties or {}).get(cid, {}).items()))
         if any(not isfinite(p) or p < 0 for _, p in parts):
             raise ValueError("penalties must be finite and nonnegative")
+        if shift:
+            parts = tuple((name, math.ldexp(amount, -shift)) for name, amount in parts)
         penalty = sum(p for _, p in parts)
         values = contributions[cid]
         unknown = any(c.value is None for c in values)
