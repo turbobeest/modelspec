@@ -167,7 +167,7 @@ Both assertions in the file are unchanged.
 A search for the same access-wiring environment used on a billing route
 found no other file missing the binding. `tests/test_friends_access.py`
 sets the binding only for decide cases that ask for one. Those cases do
-not claim a purchase and were left as they are. The other worker billing
+not claim a purchase and were not edited. The other worker billing
 environments already supply the binding.
 
 Before the fixture change, from the worktree:
@@ -192,7 +192,8 @@ data changed.
 ## Review fix round
 
 Origin/main was merged before these findings. The monthly claim fall-through,
-allowance generation, transfer, and the dispute ACCESS binding stayed in place.
+allowance generation, transfer, and the dispute ACCESS binding were already
+on the branch.
 Focused billing and credits tests passed on that merge before the findings.
 
 ### Later paid period after a terminal subscription
@@ -203,8 +204,8 @@ cancellation stays stale. A later paid period applies again. A
 applies again. `unpaid` is not terminal.
 
 `test_newer_paid_period_applies_after_terminal_status` and
-`test_active_subscription_update_applies_after_cancellation` failed first
-(`ignored` against `credited` and `restored`). They pass after the change.
+`test_active_subscription_update_applies_after_cancellation` failed first.
+They pass after the change.
 
 ### Overlapped older payment_failed
 
@@ -228,10 +229,10 @@ completed claim with no nonce still returns 410.
 Changed expectations:
 
 - `test_completed_claim_keeps_its_owner_after_restart`: the retry after the
-  completion write expects 200 and the same key while the nonce remains. The
-  following claim is still 410. It previously expected 410 on that retry.
+  completion write expects 200. It previously expected 410. The following
+  claim expects 410.
 - `test_claim_funding_preserves_selected_owner` with funding already done:
-  expects 200 and the same key. It previously expected 410.
+  expects 200. It previously expected 410.
 
 Before the change those two tests were 4 failed, 2 passed, exit 1
 (`410` against `200`). After the change the same two tests, plus the unfunded
@@ -243,8 +244,8 @@ When `invoice_paid` is set and an invoice period is stored, an
 `invoice.payment_failed` with no line period and no invoice period is stale.
 `clear_monthly` with no period still clears.
 
-`test_payment_failed_without_period_keeps_a_stored_paid_period` failed first
-(`downgraded` against `ignored`). It passes after the change.
+`test_payment_failed_without_period_keeps_a_stored_paid_period` failed first.
+It passes after the change.
 
 ### Docs
 
@@ -368,17 +369,9 @@ No production flag, price, plan, legal text, or frozen data changed.
 
 ### Remaining
 
-Round 4 left the no-period checkout grant and the unclaimed-subscription
-behaviour.
-
-Checkout with no invoice id is unchanged. The stored grant id is the synthetic
-checkout id, and a later `invoice.paid` with `billing_reason`
-`subscription_create` credits again. Reusing that synthetic id as the grant
-returns replay before `invoice_period_watermark` is stored.
-
-Round 4: a cancellation or failed payment on a row with no key returned
-`no_key` and left the row's tier. Round 5 writes the downgrade tier and
-inactive status.
+A Checkout with no invoice id and a later `invoice.paid` whose
+`billing_reason` is `subscription_create` are one grant. That rule is not
+enforced yet.
 
 ## Round 5
 
@@ -399,10 +392,10 @@ suite was 262 passed, exit 0.
 
 ### An unclaimed subscription still downgrades
 
-A cancellation or failed payment accepted on a row with no key writes the
-downgrade tier and inactive status and answers `downgraded`. A later claim
-mints the key on that tier. `test_prepared_claim_respects_current_billing_state`
-asserts the claimed key's tier and the row.
+A row with no key takes the downgrade tier and inactive status when a
+cancellation or failed payment is accepted. Claim mints the key on that tier.
+`test_prepared_claim_respects_current_billing_state` asserts the claimed
+key's tier and the row.
 
 Before: 3 failed, 2 passed, exit 1. After: 12 passed, exit 0. Focused billing
 tests then: 265 passed, exit 0.
@@ -421,11 +414,12 @@ exit 0.
 
 ### A rejected grant does not write the row
 
-An invoice the ledger rejects returns `ignored` before the subscription row
-or its period is stored. Rotation copies the ledger entitlement onto the new
-key. A ledger generation of zero has no allowance write, and the row tier
-stands. When the row already names the successor and that account has a
-clear, the new key takes the downgrade tier. The cancellation pairs in
+A grant the ledger rejects leaves the subscription row's tier, status, and
+key fingerprint unchanged, and leaves the stored invoice period unchanged.
+Rotation copies the ledger entitlement onto the new key. A ledger generation
+of zero has no allowance write, and the row tier stands. When the row already
+names the successor and that account has a clear, the new key takes the
+downgrade tier. The cancellation pairs in
 `test_overlapped_old_failure_keeps_newer_paid_allowance` also assert the
 subscription row's tier and status, across 18 schedules.
 
@@ -446,9 +440,8 @@ After this change, the focused billing suite was 272 passed, exit 0.
 
 `test_invoice_period_is_recorded_before_its_allowance` is now
 `test_a_failed_period_write_does_not_grant_the_allowance_twice`. The invoice
-period is stored after the ledger accepts the grant. The assertion in the
-middle of that test therefore sees the granted allowance, and the retry is a
-replay.
+period is stored after the ledger accepts the grant. The middle assertion
+follows that write, and the retry is a replay.
 
 The round-4 sentence that said `monthly_entitled` defaults to false is
 corrected above. An absent field is derived.
@@ -467,9 +460,8 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 
 Result: 272 passed, exit 0.
 
-`tests/test_friends_billing.py` joined the same run after rotation left the
-row tier in place when the ledger generation is zero. That run was 286
-passed, exit 0.
+`tests/test_friends_billing.py` joined the same run for the generation-zero
+rotation case. That run was 286 passed, exit 0.
 
 Both older review probes passed: 7 passed, exit 0, and 2 passed, exit 0.
 
@@ -508,10 +500,10 @@ invoice case ran on `MemoryLedger` and on the durable ledger.
 
 When `invoice.paid` is accepted for a row with no key, the row is written
 paid and active with the pending allowance, on `MemoryLedger` and on the
-durable ledger. Claim then returns a key on the paid tier with that
-allowance. A row that already has a key keeps the round-5 copy: the ledger
-decides, then the copy writes the tier. With no recovering invoice, claim
-still returns the downgrade tier.
+durable ledger. Claim mints the key on that tier with the allowance. A row
+that already has a key keeps the round-5 copy: the ledger decides, then the
+copy writes the tier. With no recovering invoice, claim mints the downgrade
+tier.
 
 Before the change:
 
@@ -527,10 +519,10 @@ After the change, the focused billing command was 296 passed, exit 0.
 
 `canceled_subscription_id` is stored and read on `MemoryLedger`, on the
 durable ledger over the credits object, and on the credits object itself.
-Both ids known and different: the grant is not stale, and an accepted grant
-clears the stored cancellation. The same id keeps the period rule, including
-a grant with no period end. An unknown id on either side keeps that period
-rule too. `fund_claim`, `grant_monthly`, and `transfer` carry the id.
+Both ids known and different: the grant is independent of that cancellation,
+and an accepted grant clears the stored cancellation. The same id keeps the
+period rule, including a grant with no period end. An unknown id on either
+side keeps that period rule too. `fund_claim`, `grant_monthly`, and `transfer` carry the id.
 An account stored with the field loads it. An account stored without the
 field loads the empty default.
 
@@ -541,30 +533,24 @@ edit is reverted. Command:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_credits_do.py::test_cancellation_subscription_id_on_every_ledger tests/test_credits_do.py::test_a_stored_cancellation_subscription_id_loads
 ```
 
-- Durable `set_monthly` drops the id: 1 failed, 3 passed, exit 1. The durable row's different-subscription grant was `stale`.
-- Durable `clear_monthly` drops the id: 1 failed, 3 passed, exit 1. Same grant, `stale`.
-- Durable `fund_claim` drops the id: 1 failed, 3 passed, exit 1. The funded claim was `stale`.
-- Credits object `set_monthly` drops the id: 3 failed, 1 passed, exit 1. The object and durable rows, and a stored account loaded through the object, granted `stale`.
-- Credits object `clear_monthly` drops the id: 2 failed, 2 passed, exit 1. The object and durable rows were `stale`.
-- Credits object `fund_claim` drops the id: 2 failed, 2 passed, exit 1. Those two funded claims were `stale`.
-- `grant_monthly` drops the id: 2 failed, 2 passed, exit 1. Memory and durable returned `stale` instead of `granted`.
-- The account loader does not read the field: 3 failed, 1 passed, exit 1. The loaded id was empty.
-- `transfer` does not copy the id onto an existing holder: 3 failed, 1 passed, exit 1. The grant after the transfer was `stale`.
+- Durable `set_monthly` drops the id: 1 failed, 3 passed, exit 1.
+- Durable `clear_monthly` drops the id: 1 failed, 3 passed, exit 1.
+- Durable `fund_claim` drops the id: 1 failed, 3 passed, exit 1.
+- Credits object `set_monthly` drops the id: 3 failed, 1 passed, exit 1.
+- Credits object `clear_monthly` drops the id: 2 failed, 2 passed, exit 1.
+- Credits object `fund_claim` drops the id: 2 failed, 2 passed, exit 1.
+- `grant_monthly` drops the id: 2 failed, 2 passed, exit 1.
+- The account loader does not read the field: 3 failed, 1 passed, exit 1.
+- `transfer` does not copy the id onto an existing holder: 3 failed, 1 passed, exit 1.
 
 After each revert the same command passed: 4 passed, exit 0. No production file kept an edit.
 
-### A stale Checkout link leaves the row, and a replay copies the tier
+### A rejected Checkout link, and a replay copies the tier
 
-A cancellation stored with no subscription id, then a Checkout that would
-link a key onto a row that still holds a pending allowance: the answer is
-`ignored`, the key stays on the downgrade tier, the row has no key, and
-`pending_monthly` is unchanged.
-
-A Checkout that links a key copies the tier after the link. The row's tier
-in that case is the downgrade tier, so attaching alone would leave the key
-there; the copy writes the paid tier. A replayed Checkout copies the tier
-the ledger's current state implies. After a cancellation the key has not
-yet copied, that tier is the downgrade tier.
+A grant the ledger rejects leaves the subscription row's tier, status, and
+key fingerprint unchanged, and leaves `pending_monthly` unchanged. A Checkout
+that links a key copies the ledger entitlement onto the key, including a
+replay.
 
 These tests pass with no production change. Each temporary edit is reverted.
 Command:
@@ -573,25 +559,23 @@ Command:
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_stale_checkout_link_leaves_the_row_and_the_allowance tests/test_billing.py::test_checkout_link_and_replay_copy_the_ledger_tier
 ```
 
-- The stale grant still attaches the key: 1 failed, 1 passed, exit 1. The key moved to the paid tier.
+- The stale grant attaches the key: 1 failed, 1 passed, exit 1.
 - Setting `pending_monthly` to 0 on the stale return: 1 failed, 1 passed, exit 1.
-- The link step no longer returns the rejected answer: 1 failed, 1 passed, exit 1. The action was `already_entitled`.
-- The copy after the link path is removed: 1 failed, 1 passed, exit 1. The linked key stayed on the downgrade tier.
-- The later copy runs only on a first grant: 1 failed, 1 passed, exit 1. The replayed key stayed on the paid tier.
+- The link step no longer returns the rejected answer: 1 failed, 1 passed, exit 1.
+- The copy after the link path is removed: 1 failed, 1 passed, exit 1.
+- The later copy runs only on a first grant: 1 failed, 1 passed, exit 1.
 
 After each revert the same command passed: 2 passed, exit 0.
 
-### The failure schedule keeps the paid row, and rotation keeps a generation of zero
+### The failure schedule and rotation
 
-The overlapped failure case now checks the row as well as the key. All 18
-failure schedules, two orders and three pauses on each side, returned the
-paid tier, allowance 4000, row tier paid, and status active. All 18
-cancellation schedules stayed on the downgrade tier with an inactive row.
-
-Rotation of an entitled paid key, with no promotion code and a generation
-above zero, keeps the paid tier. A key whose allowance was cleared rotates
-to the downgrade tier. A generation of zero, with a paid row tier, keeps
-that row tier.
+The overlapped failure case checks the row as well as the key. Rotation, a
+replay that only re-reads the ledger, and the settle step after a
+cancellation or a failed payment write the row's tier when it is set and is
+not the downgrade tier, and the Price's tier only when the row's tier is
+empty or the downgrade tier. A key that is not entitled gets the downgrade
+tier. A ledger generation of zero has no allowance write, and the row tier
+stands.
 
 ```sh
 env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_billing.py::test_overlapped_old_failure_keeps_newer_paid_allowance tests/test_billing.py::test_rotation_copies_the_ledger_tier
@@ -602,16 +586,15 @@ Result: 2 passed, exit 0.
 The rotation test fails under each temporary edit, then the edit is reverted.
 Command: the rotation test alone.
 
-- Rotation always writes the downgrade tier: 1 failed, exit 1. The entitled key rotated to the downgrade tier.
-- The generation test is replaced by otherwise: 1 failed, exit 1. The generation-zero key rotated to the downgrade tier.
+- Rotation always writes the downgrade tier (`tests/test_billing.py::test_rotation_copies_the_ledger_tier`): 1 failed, exit 1.
+- The generation test is replaced by otherwise (`tests/test_billing.py::test_rotation_copies_the_ledger_tier`): 1 failed, exit 1.
 
 ### A replay leaves an unrecorded account, and a rejected first invoice writes no row
 
-A replay does not downgrade an account when the ledger view is not entitled,
-the generation is zero, and `canceled_at` is unset. The copy returns without
-writing the key or the row. `entitlement_view` now includes `canceled_at`,
-including on the durable ledger. An absent account reports generation zero, not entitled,
-and `canceled_at` zero.
+A replay leaves the key and the row unchanged when the ledger view is not
+entitled, the generation is zero, and `canceled_at` is unset.
+`entitlement_view` includes `canceled_at`, including on the durable ledger.
+An absent account reports generation zero and `canceled_at` zero.
 
 A first `invoice.paid` the ledger rejects, for a subscription that has no
 row yet, writes no row. The decision uses the row's key when it has one,
@@ -628,10 +611,6 @@ Result: 2 failed, 1 passed, exit 1.
 
 After the change, the focused billing command was 304 passed, exit 0.
 
-The round-4 remaining note now names that round as the one whose `no_key`
-answer left the row's tier. Round 5 writes the downgrade tier and inactive
-status.
-
 Both older review probes passed after these changes: 7 passed, exit 0, and
 2 passed, exit 0. No contract file, OpenAPI file, or `contract_version`
 changed. No production flag, price, plan, legal text, or frozen data changed.
@@ -644,10 +623,8 @@ file changed in this round.
 
 ### A resubscribe writes the mapping tier
 
-When an event carries a mapping, that mapping's tier is written. After a
-cancellation the row and the key are on the downgrade tier. A later
-`invoice.paid` under the same promotion, and a Checkout that links the key,
-write the mapping tier. The invoice case runs on `MemoryLedger` and on the
+A Friends subscription stays on the friends tier when it resubscribes under
+the same promotion code. The invoice case runs on `MemoryLedger` and on the
 durable ledger.
 
 ```sh
@@ -665,12 +642,9 @@ The same command fails under each temporary edit, then the edit is reverted.
 
 The Checkout copy after `record_entitlement` passes `mapping_tier=""` and the
 same command stays 3 passed, exit 0. Two sequences outside those tests were
-tried: a first Checkout with no stored row, and a Checkout for a stored
-downgrade row that already has a key, no invoice id, and a status outside the
-terminal set. `record_entitlement` writes `mapping.tier` before that copy.
-`_copy_grant_tier` returns without writing when the row has no key. When the
-row already holds `mapping.tier`, a copy that receives `""` writes the row
-tier. Neither sequence changes under the edit. The edit was reverted.
+tried: a first Checkout with no stored row, and a Checkout for a stored row
+that already has a key, no invoice id, and a status outside the terminal set.
+Neither sequence makes the edit observable. The edit was reverted.
 
 ### An unbound link keeps the pending allowance
 
@@ -716,8 +690,7 @@ exit 0.
 ### The before-records keep counts, and the replay sentence matches the view
 
 Each round's before-record keeps its test selector and its counts with the
-exit code. Sentences that said what the account, key, row, or allowance ended
-as are removed. The enforced rule stays once in the section above the counts.
+exit code. The enforced rule stays once in the section above the counts.
 `docs/billing.md` says a replay leaves the key and the row unchanged when the
 ledger view is not entitled, the generation is zero, and `canceled_at` is
 unset. The round-6 rule sentence says the same.
@@ -731,3 +704,20 @@ older review probes were re-run: 7 passed, 2 passed, 1 passed, 1 passed,
 8 passed, 1 passed, and 4 passed, each exit 0. No contract file, OpenAPI
 file, or `contract_version` changed. No production flag, price, plan, legal
 text, or frozen data changed.
+
+## Round 8
+
+Text only. No test, production file, or `docs/billing.md` change.
+
+Each decision keeps one present-tense rule, its selectors, and its counts
+with the exit code. Each temporary-edit bullet keeps the edit in code terms
+and the counts with the exit code. The selector is the command above the
+bullet.
+
+Before the push, the file was searched for the ten words named for this
+round. Every hit was read. A hit that is an enforced rule, a count, a
+command, a selector, or a fact about a file, a shard, a memory figure, or
+local output stays in the file. This section does not restate any sentence
+taken out.
+
+The follow-up list is the Remaining note in round 4.
