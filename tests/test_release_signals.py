@@ -23,6 +23,7 @@ from release_signals.pipeline import (
     FetchResult,
     FirecrawlBudget,
     RequiredSourceError,
+    _models_dev_listing,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -1709,3 +1710,101 @@ def test_prohibited_release_url_stays_a_value_error(
     assert card.read_text() == original
     assert pending.read_text() == pending_text
     assert not result_path.exists()
+
+
+def test_required_source_diagnostic_is_on_stderr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    card = tmp_path / "models" / "acme" / "orbit-2.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        "---\n"
+        "model_id: acme/orbit-2\n"
+        "display_name: Orbit 2\n"
+        "provider: acme\n"
+        "provider_display: Acme\n"
+        "version: orbit-2\n"
+        "---\n"
+    )
+    pending = tmp_path / "pending.json"
+    pending.write_text(json.dumps({"signals": [{
+        "model_name": "Orbit 2",
+        "provider": "Acme",
+        "first_seen_url": "https://x.com/acme/status/1",
+        "timestamp": "2026-09-26T12:00:00Z",
+        "confidence": 0.9,
+        "signal_id": "audit-1",
+    }]}))
+
+    def fetch(url: str) -> FetchResult:
+        assert url == _MODELS_DEV, f"unexpected fetch: {url}"
+        return FetchResult(url, b"", "application/json")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(tmp_path / "result.json"),
+    ])
+
+    assert processor.main() == 2
+    output = capsys.readouterr()
+    assert _MODELS_DEV in output.err
+    assert "required source" in output.err
+    assert "required source" not in output.out
+    assert _MODELS_DEV not in output.out
+
+
+@pytest.mark.parametrize(
+    "filler",
+    [
+        pytest.param(None, id="null"),
+        pytest.param(0, id="zero"),
+        pytest.param("", id="empty-string"),
+        pytest.param([], id="empty-list"),
+    ],
+)
+def test_falsy_provider_row_is_an_empty_row(filler: object) -> None:
+    _provider_id, listing = _models_dev_listing(
+        {
+            "zzz": filler,
+            "acme": {
+                "name": "Elsewhere",
+                "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+            },
+        },
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert listing["name"] == "Orbit 2"
+
+
+def test_provider_matches_by_key_alone() -> None:
+    provider_id, listing = _models_dev_listing(
+        {"acme": {"models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}}}},
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert provider_id == "acme"
+    assert listing["id"] == "orbit-2"
+
+
+def test_provider_matches_by_name_alone() -> None:
+    provider_id, listing = _models_dev_listing(
+        {
+            "labs": {
+                "name": "Acme",
+                "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+            },
+        },
+        "Acme",
+        "Orbit 2",
+        source_url=_MODELS_DEV,
+    )
+    assert provider_id == "labs"
+    assert listing["id"] == "orbit-2"
