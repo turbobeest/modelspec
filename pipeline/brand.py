@@ -16,6 +16,7 @@ compositions copy it from the real build (`.github/workflows/deploy-sites.yml`).
 
 from __future__ import annotations
 
+import html
 import json
 import shutil
 import struct
@@ -102,12 +103,24 @@ def head_links() -> str:
 
 
 def social_meta(title: str, *, path: str = "/", image_name: str = "og-card.png",
-                image_alt: str = "ModelSpec") -> str:
+                image_alt: str = "ModelSpec", description: str | None = None,
+                page_type: str | None = "website") -> str:
     """Social metadata for a page, defaulting to the site-wide fallback card."""
-    image = f"{SITE}/{image_name}"
+    image = html.escape(f"{SITE}/{image_name}", quote=True)
+    title = html.escape(title, quote=True)
+    url = html.escape(f"{SITE}{path}", quote=True)
+    image_alt = html.escape(image_alt, quote=True)
+    type_meta = (f'<meta property="og:type" content="{html.escape(page_type, quote=True)}">\n'
+                 if page_type is not None else "")
+    description_meta = (
+        f'<meta property="og:description" content="{html.escape(description, quote=True)}">\n'
+        if description is not None else ""
+    )
     return (
-        f'<meta property="og:title" content="{title}">\n'
-        f'<meta property="og:url" content="{SITE}{path}">\n'
+        description_meta
+        + type_meta
+        + f'<meta property="og:title" content="{title}">\n'
+        f'<meta property="og:url" content="{url}">\n'
         f'<meta property="og:image" content="{image}">\n'
         '<meta property="og:image:width" content="1200">\n'
         '<meta property="og:image:height" content="630">\n'
