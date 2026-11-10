@@ -458,9 +458,11 @@ def test_no_floor_is_written_down_a_second_time() -> None:
             code = line.split("#", 1)[0]
             if "=" not in code or "==" in code:
                 continue
-            # Envelope majors are not ranking floors. "2.0" collides with
-            # float(MIN_BENCHMARK_COUNT).
-            if re.search(r"\bSCHEMA_VERSION\s*=", code):
+            # Skip only a quoted dotted envelope version. "2.0" collides with
+            # float(MIN_BENCHMARK_COUNT). A number on the same line is scanned.
+            rhs = code.split("=", 1)[1].strip()
+            if (re.search(r"\bSCHEMA_VERSION\s*=", code)
+                    and re.fullmatch(r"""["']\d+\.\d+["']""", rhs)):
                 continue
             for literal in re.findall(r"(?<![\w.])\d+\.\d+(?![\w.])", code):
                 assert float(literal) not in floors, (
