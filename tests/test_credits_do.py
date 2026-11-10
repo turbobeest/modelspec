@@ -11,8 +11,10 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -749,6 +751,196 @@ def test_funding_after_transfer_reaches_the_live_account(kind, funding):
         assert (await ledger.balance(src)).available == 0
         assert not (await ledger.reserve(src, 1)).ok
         assert not (await ledger.take_read(src, 10, 100, 10)).ok
+    asyncio.run(scenario())
+
+
+class _Namespace:
+    """One CreditsObject, reached the way DurableLedger reaches the binding."""
+
+    def __init__(self) -> None:
+        self.obj = credits_do.CreditsObject(Ctx(lambda value: {"v": value}), env=None)
+
+    def idFromName(self, name: str) -> str:  # noqa: N802 - the Workers API name
+        return name
+
+    def get(self, _id: str):
+        return self.obj
+
+
+class _LedgerSurface:
+    """MemoryLedger, the durable ledger, or the credits object, one result shape."""
+
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
+        if kind == "memory":
+            self.ledger = credits.MemoryLedger()
+        elif kind == "durable":
+            self.ledger = credits.DurableLedger(_Namespace())
+        else:
+            self.ledger = credits_do.CreditsObject(
+                Ctx(lambda value: {"v": value}), env=None)
+
+    def _result(self, value: Any) -> credits.CreditResult:
+        if isinstance(value, dict):
+            return credits.CreditResult.from_json(value)
+        return value
+
+    async def set_monthly(self, holder: str, units: int, invoice_id: str, **fields: Any):
+        return self._result(await self.ledger.set_monthly(
+            holder, units, invoice_id, fields.get("plan", ""),
+            fields.get("customer_id", ""),
+            period_end=int(fields.get("period_end") or 0),
+            period_start=int(fields.get("period_start") or 0),
+            subscription_id=str(fields.get("subscription_id") or "")))
+
+    async def clear_monthly(self, holder: str, *, watermark: int = 0,
+                            subscription_id: str = ""):
+        return self._result(await self.ledger.clear_monthly(
+            holder, watermark=watermark, subscription_id=subscription_id))
+
+    async def save_claim(self, payment_id: str, holder: str) -> None:
+        await self.ledger.save_claim(
+            payment_id, {"holder": holder, "units": 100, "stage": "prepared"},
+            kind="monthly", units=100, tx="session")
+
+    async def fund_claim(self, holder: str, claim_id: str, invoice_id: str, *,
+                         subscription_id: str):
+        return self._result(await self.ledger.fund_claim(
+            holder, claim_id, invoice_id, 100, "Solo", "",
+            subscription_id=subscription_id))
+
+    async def transfer(self, src: str, dst: str) -> bool:
+        return bool(await self.ledger.transfer(src, dst))
+
+
+async def _cancellation_id_table(surface: _LedgerSurface) -> None:
+    """D5, on one ledger. A different known subscription is not stale."""
+    cleared = await surface.clear_monthly("key:diff", watermark=300, subscription_id="sub_x")
+    assert cleared.reason == "cleared"
+    other = await surface.set_monthly("key:diff", 100, "in_diff_y", subscription_id="sub_y")
+    assert other.credited, other
+    reopened = await surface.set_monthly("key:diff", 100, "in_diff_x", subscription_id="sub_x")
+    assert reopened.credited, reopened
+
+    await surface.clear_monthly("key:before", watermark=300, subscription_id="sub_x")
+    before = await surface.set_monthly(
+        "key:before", 100, "in_before", period_start=200, period_end=400,
+        subscription_id="sub_x")
+    assert before.reason == "stale"
+
+    await surface.clear_monthly("key:at", watermark=300, subscription_id="sub_x")
+    at_cancel = await surface.set_monthly(
+        "key:at", 100, "in_at", period_start=300, period_end=400, subscription_id="sub_x")
+    assert at_cancel.credited
+    assert (await surface.set_monthly(
+        "key:at", 50, "in_at_follow", subscription_id="sub_x")).credited
+
+    await surface.clear_monthly("key:after", watermark=300, subscription_id="sub_x")
+    after = await surface.set_monthly(
+        "key:after", 100, "in_after", period_start=360, period_end=500,
+        subscription_id="sub_x")
+    assert after.credited
+
+    await surface.clear_monthly("key:noend", watermark=300, subscription_id="sub_x")
+    no_end = await surface.set_monthly(
+        "key:noend", 100, "in_noend", period_start=400, subscription_id="sub_x")
+    assert no_end.reason == "stale"
+    await surface.clear_monthly("key:bare", watermark=300, subscription_id="sub_x")
+    assert (await surface.set_monthly(
+        "key:bare", 100, "in_bare", subscription_id="sub_x")).reason == "stale"
+
+    await surface.clear_monthly("key:unknown-grant", watermark=300, subscription_id="sub_x")
+    assert (await surface.set_monthly(
+        "key:unknown-grant", 100, "in_unknown_grant")).reason == "stale"
+    await surface.clear_monthly(
+        "key:unknown-grant-period", watermark=300, subscription_id="sub_x")
+    assert (await surface.set_monthly(
+        "key:unknown-grant-period", 100, "in_unknown_grant_period",
+        period_start=360, period_end=500)).credited
+
+    await surface.clear_monthly("key:unknown-cancel", watermark=300, subscription_id="")
+    assert (await surface.set_monthly(
+        "key:unknown-cancel", 100, "in_unknown_cancel", subscription_id="sub_y")).reason == "stale"
+    await surface.clear_monthly("key:both", watermark=300, subscription_id="")
+    assert (await surface.set_monthly("key:both", 100, "in_both")).reason == "stale"
+    await surface.clear_monthly("key:both-period", watermark=300, subscription_id="")
+    assert (await surface.set_monthly(
+        "key:both-period", 100, "in_both_period", period_start=360, period_end=500)).credited
+
+    await surface.clear_monthly("key:fund", watermark=300, subscription_id="sub_x")
+    await surface.save_claim("claim:fund", "key:fund")
+    funded = await surface.fund_claim(
+        "key:fund", "claim:fund", "in_fund_y", subscription_id="sub_y")
+    assert funded.credited, funded
+
+    assert (await surface.set_monthly("key:src", 10, "in_src")).credited
+    assert (await surface.clear_monthly(
+        "key:src", watermark=300, subscription_id="sub_x")).reason == "cleared"
+    assert (await surface.set_monthly("key:dst", 1, "in_dst")).credited
+    assert await surface.transfer("key:src", "key:dst")
+    moved = await surface.set_monthly("key:dst", 100, "in_moved", subscription_id="sub_y")
+    assert moved.credited, moved
+
+
+async def _grant_monthly_carries_the_id(surface: _LedgerSurface) -> None:
+    import access_billing
+    import access_config
+    import access_keys
+    from access_kv import MemoryKV
+
+    kv = MemoryKV()
+    policy = access_config.load_policy()
+    secret, record = await access_keys.issue(
+        kv, tier="paid", owner="fixture", now=datetime(2026, 6, 1, tzinfo=UTC),
+        policy=policy)
+    fingerprint = access_keys.fingerprint(secret)
+    holder = credits.holder_from_fingerprint(fingerprint)
+    await access_billing._write_sub(kv, access_billing.SubscriptionRecord(
+        subscription_id="sub_y", customer_id="cus", price_id="price",
+        tier="paid", status="active", key_fingerprint=fingerprint,
+        key_id=record.key_id, created_at="2026-06-01T00:00:00Z",
+        pending_monthly=0, plan_name="Solo", plan_credits=100))
+    assert (await surface.clear_monthly(
+        holder, watermark=300, subscription_id="sub_x")).reason == "cleared"
+    granted = await access_billing.grant_monthly(
+        kv, "sub_y", ledger=surface.ledger, units=100, invoice_id="in_grant_y",
+        plan="Solo")
+    assert granted == "granted"
+
+
+@pytest.mark.parametrize("kind", ["memory", "durable", "object"])
+def test_cancellation_subscription_id_on_every_ledger(kind):
+    async def scenario():
+        surface = _LedgerSurface(kind)
+        await _cancellation_id_table(surface)
+        if kind != "object":
+            await _grant_monthly_carries_the_id(surface)
+
+    asyncio.run(scenario())
+
+
+def test_a_stored_cancellation_subscription_id_loads():
+    named = credits._Account.from_json({
+        "canceled_at": 300, "canceled_subscription_id": "sub_x"})
+    assert named.canceled_subscription_id == "sub_x"
+    assert credits._Account.from_json({"canceled_at": 300}).canceled_subscription_id == ""
+
+    async def scenario():
+        ctx = Ctx(lambda value: {"v": value})
+        state = credits.LedgerState()
+        state.accounts["key:held"] = credits._Account(
+            canceled_at=300, canceled_subscription_id="sub_x")
+        ctx.storage.sql.table["state"] = json.dumps(state.to_json())
+        obj = credits_do.CreditsObject(ctx, env=None)
+        loaded = credits.CreditResult.from_json(await obj.set_monthly(
+            "key:held", 100, "in_loaded", "Solo", "", 0, 0, "sub_y"))
+        assert loaded.credited
+        ctx.storage.sql.table["state"] = json.dumps({
+            "accounts": {"key:bare": {"canceled_at": 300}}, "payments": {}})
+        bare = credits.CreditResult.from_json(await obj.set_monthly(
+            "key:bare", 100, "in_bare_load", "Solo", "", 0, 0, "sub_y"))
+        assert bare.reason == "stale"
+
     asyncio.run(scenario())
 
 

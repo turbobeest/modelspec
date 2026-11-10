@@ -530,3 +530,33 @@ on the downgrade tier. The unclaimed downgrade with no recovering invoice
 stayed green.
 
 After the change, the focused billing command was 296 passed, exit 0.
+
+### The cancellation subscription id reaches every ledger
+
+`canceled_subscription_id` is stored and read on `MemoryLedger`, on the
+durable ledger over the credits object, and on the credits object itself.
+Both ids known and different: the grant is not stale, and an accepted grant
+clears the stored cancellation. The same id keeps the period rule, including
+a grant with no period end. An unknown id on either side keeps that period
+rule too. `fund_claim`, `grant_monthly`, and `transfer` carry the id.
+An account stored with the field loads it. An account stored without the
+field loads the empty default.
+
+The same tests fail when the id is dropped, one edit at a time, then the
+edit is reverted. Command:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_credits_do.py::test_cancellation_subscription_id_on_every_ledger tests/test_credits_do.py::test_a_stored_cancellation_subscription_id_loads
+```
+
+- Durable `set_monthly` drops the id: 1 failed, 3 passed, exit 1. The durable row's different-subscription grant was `stale`.
+- Durable `clear_monthly` drops the id: 1 failed, 3 passed, exit 1. Same grant, `stale`.
+- Durable `fund_claim` drops the id: 1 failed, 3 passed, exit 1. The funded claim was `stale`.
+- Credits object `set_monthly` drops the id: 3 failed, 1 passed, exit 1. The object and durable rows, and a stored account loaded through the object, granted `stale`.
+- Credits object `clear_monthly` drops the id: 2 failed, 2 passed, exit 1. The object and durable rows were `stale`.
+- Credits object `fund_claim` drops the id: 2 failed, 2 passed, exit 1. Those two funded claims were `stale`.
+- `grant_monthly` drops the id: 2 failed, 2 passed, exit 1. Memory and durable returned `stale` instead of `granted`.
+- The account loader does not read the field: 3 failed, 1 passed, exit 1. The loaded id was empty.
+- `transfer` does not copy the id onto an existing holder: 3 failed, 1 passed, exit 1. The grant after the transfer was `stale`.
+
+After each revert the same command passed: 4 passed, exit 0. No production file kept an edit.
