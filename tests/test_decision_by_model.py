@@ -216,3 +216,103 @@ def test_why_not_a_model_cut_by_the_limit_says_the_limit_did_it(index):
     answer = why_not(decision, "lab/beta")
     assert answer.verdict == "not_in_decision"
     assert "limit" in answer.summary
+
+
+def _context_index(contexts, *, hosted):
+    models = [
+        model(mid, facts=[
+            fact(
+                "model", mid, "model.context_window", context,
+                state="known" if context is not None else "unknown",
+            ),
+        ])
+        for mid, context in contexts.items()
+    ]
+    offerings = [offering(mid, "p1") for mid in contexts] if hosted else []
+    built = build_snapshot(
+        SnapshotInputs(models=models, offerings=offerings, sources=SOURCES),
+        gate=False,
+        as_of=date(2026, 10, 1),
+    )
+    return load_built_snapshot(built, include_archive=True, source="by_model test build")
+
+
+def _context_decision(index, where, *, own_hardware=False):
+    request = {
+        "spec_version": 1,
+        "where": where,
+        "optimize": {"max": "model.context_window"},
+        "explain": "full",
+    }
+    if own_hardware:
+        request["access"] = {"kind": "own_hardware"}
+    return decide(parse_spec(request, facets=facets), index, facets=facets)
+
+
+def test_why_not_counts_only_ranked_models():
+    decision = _context_decision(
+        _context_index(
+            {"lab/a": 200_000, "lab/b": 128_000, "lab/c": 64_000, "lab/d": None},
+            hosted=True,
+        ),
+        ["model.context_window >= 100000"],
+    )
+    assert {row.model: row.status for row in decision.by_model} == {
+        "lab/a": "ranked",
+        "lab/b": "ranked",
+        "lab/c": "eliminated",
+        "lab/d": "may_qualify",
+    }
+    answer = why_not(decision, "lab/b")
+    assert answer.model_rank == 2
+    assert answer.ranked_models == 2
+    assert answer.summary == (
+        "lab/b ranked #2 of 2 model(s). No single weight change puts it first."
+    )
+
+
+def test_why_not_keeps_relaxation_cost_for_unverified_governance_must():
+    """A suffixed jurisdiction Must still keeps its relaxation cost.
+
+    The own-hardware reach admits no candidate once that Must is removed,
+    so the retained cost reports admits 0.
+    """
+    decision = _context_decision(
+        _context_index({"lab/a": 128_000}, hosted=False),
+        ["origin.lab_jurisdiction in {US}"],
+        own_hardware=True,
+    )
+    answer = why_not(decision, "lab/a")
+    assert [failed.condition for failed in answer.failed] == [
+        "origin.lab_jurisdiction in {US}: eliminated: "
+        "Lab jurisdiction not verified; unknown(list)",
+    ]
+    assert [(cost.condition, cost.admits) for cost in answer.constraint_costs] == [
+        ("origin.lab_jurisdiction in {US}", 0),
+    ]
+    assert answer.summary == (
+        "lab/a was eliminated: it failed origin.lab_jurisdiction in {US}: eliminated: "
+        "Lab jurisdiction not verified; unknown(list). "
+        "Relaxing origin.lab_jurisdiction in {US} would admit 0 candidate(s)."
+    )
+
+
+def test_why_not_does_not_extend_tie_to_outside_model():
+    decision = _context_decision(
+        _context_index(
+            {"lab/a": 200_000, "lab/b": 200_000, "lab/c": 64_000},
+            hosted=True,
+        ),
+        [],
+    )
+    assert decision.answer is not None
+    assert decision.answer.kind == "tied"
+    assert list(decision.answer.members) == ["lab/a", "lab/b"]
+    answer = why_not(decision, "lab/c")
+    assert answer.verdict == "ranked"
+    assert answer.model_rank == 3
+    assert answer.ranked_models == 3
+    assert "tied for the answer" not in answer.summary
+    assert answer.summary == (
+        "lab/c ranked #3 of 3 model(s). No single weight change puts it first."
+    )
