@@ -129,13 +129,15 @@ def test_trust_duplicate_diagnostic_survives_calibration(tmp_path, monkeypatch, 
     assert "first" not in str(findings)
 
 
-def test_calibration_reports_duplicate_collection_failure(tmp_path):
+def test_calibration_keeps_the_duplicate_diagnostic_when_the_page_loads(tmp_path):
     (tmp_path / "models").mkdir()
     (tmp_path / "models/example.md").write_text("---\nmodel_id: test/model\n---\n")
     (tmp_path / "benchmarks").mkdir()
     (tmp_path / "benchmarks/example.md").write_text("---\nid: example\naliases: []\naliases: []\n---\n")
     c = load(tmp_path)
+    assert c.boards["example"]["aliases"] == []
     registry = load_registry()
     calibrate(c, tmp_path, registry, date(2026, 11, 9))
     rules = {f["rule"] for f in run(c, registry, date(2026, 11, 9))["findings"]}
-    assert {"duplicate_yaml_key", "snapshot_build"} <= rules
+    assert "duplicate_yaml_key" in rules
+    assert "snapshot_build" not in rules

@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from schema.benchmark import unknown_key_paths
-from schema.yaml_loader import DuplicateKeyError, load_yaml
+from schema.yaml_loader import duplicate_key_diagnostics, load_yaml
 from decision.labs import Lab
 from decision.model import (
     evidence_verification_value,
@@ -56,7 +56,7 @@ class Catalogue:
     logged_verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
 
 
-def _document(path: Path) -> Any:
+def _yaml_text(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     if path.suffix == ".md":
         lines = text.splitlines()
@@ -64,7 +64,7 @@ def _document(path: Path) -> Any:
             raise ValueError("missing front matter")
         end = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
         text = "\n".join(lines[1:end])
-    return load_yaml(text)
+    return text
 
 
 def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
@@ -72,14 +72,15 @@ def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
 
     def read(path):
         try:
-            return _document(path)
-        except DuplicateKeyError as exc:
-            line = exc.problem_mark.line + 1 + (path.suffix == ".md")
-            c.inventory_findings.append(Finding(
-                f"{path.relative_to(root)}:{line}:{exc.problem_mark.column + 1}",
-                "document", "duplicate_yaml_key",
-            ))
-            return None
+            text = _yaml_text(path)
+            line_offset = path.suffix == ".md"
+            for item in duplicate_key_diagnostics(text):
+                mark = item.problem_mark
+                c.inventory_findings.append(Finding(
+                    f"{path.relative_to(root)}:{mark.line + 1 + line_offset}:{mark.column + 1}",
+                    "document", "duplicate_yaml_key",
+                ))
+            return load_yaml(text)
         except (ValueError, StopIteration, yaml.YAMLError, OSError):
             c.findings.append(Finding(str(path.relative_to(root)), "document", "parse"))
             return None

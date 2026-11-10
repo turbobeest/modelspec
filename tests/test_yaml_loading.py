@@ -13,6 +13,7 @@ import yaml
 
 from pipeline.load import LoadError, split_front_matter
 from schema.card import ModelCard
+from schema.yaml_loader import duplicate_key_diagnostics
 
 CARD = """---
 model_id: lab/yaml
@@ -115,12 +116,17 @@ def test_malformed_public_yaml_preserves_python_diagnostics(loader_mode, monkeyp
     assert diagnostic.__context__ is None
 
 
-def test_duplicate_aliases_are_rejected(loader_mode):
-    text = "---\naliases: [first]\naliases: [second]\n---\n"
-    with pytest.raises(LoadError, match="duplicate_yaml_key: line 3, column 1") as found:
-        split_front_matter(text)
-    assert "first" not in str(found.value)
-    assert "second" not in str(found.value)
+def test_duplicate_aliases_load_and_report(loader_mode):
+    yaml_text = "aliases: [first]\naliases: [second]"
+    front, _ = split_front_matter(f"---\n{yaml_text}\n---\n")
+    assert front["aliases"] == ["second"]
+    found = duplicate_key_diagnostics(yaml_text)
+    assert [item.diagnostic(line_offset=1) for item in found] == [
+        "duplicate_yaml_key: line 3, column 1"
+    ]
+    rendered = " ".join(item.diagnostic() for item in found)
+    assert "first" not in rendered
+    assert "second" not in rendered
 
 
 @pytest.mark.parametrize("mapping", [
@@ -129,11 +135,15 @@ def test_duplicate_aliases_are_rejected(loader_mode):
     "outer: {&key private-key: first, *key: second}",
     "outer: {<<: {a: 1}, <<: {b: 2}}",
 ])
-def test_nested_duplicate_mapping_is_rejected(loader_mode, mapping):
-    with pytest.raises(LoadError, match="duplicate_yaml_key") as found:
-        split_front_matter(f"---\n{mapping}\n---\n")
-    assert "private-key" not in str(found.value)
-    assert "first" not in str(found.value)
+def test_nested_duplicate_mapping_is_reported(loader_mode, mapping):
+    front, _ = split_front_matter(f"---\n{mapping}\n---\n")
+    assert front == yaml.safe_load(mapping)
+    found = duplicate_key_diagnostics(mapping)
+    assert found
+    rendered = " ".join(item.diagnostic() for item in found)
+    assert rendered.startswith("duplicate_yaml_key:")
+    assert "private-key" not in rendered
+    assert "first" not in rendered
 
 
 def test_safe_tags_and_authored_merge_overrides_remain_supported(loader_mode):
