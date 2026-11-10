@@ -584,12 +584,17 @@ def _worker_snapshot_call_sites() -> list[tuple[str, str, str]]:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         sites.extend(_snapshot_sites_in_tree(tree, path.relative_to(root).as_posix()))
+    repo_snapshot = REPO_ROOT / "decision" / "snapshot.py"
+    tree = ast.parse(repo_snapshot.read_text(encoding="utf-8"), filename=str(repo_snapshot))
+    sites.extend(_snapshot_sites_in_tree(tree, "decision/snapshot.py"))
     return sites
 
 
 def test_every_worker_snapshot_call_is_a_site_the_hmac_test_checks() -> None:
     assert sorted(_worker_snapshot_call_sites()) == [
         ("decide_service.py", "load_snapshot", "load_snapshot_bytes"),
+        ("decision/snapshot.py", "load_built_snapshot", "load_snapshot_bytes"),
+        ("decision/snapshot.py", "load_snapshot", "load_snapshot_bytes"),
         ("entry.py", "<module>", "load_snapshot_bytes"),
     ]
 
