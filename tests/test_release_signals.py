@@ -1808,3 +1808,21 @@ def test_provider_matches_by_name_alone() -> None:
     )
     assert provider_id == "labs"
     assert listing["id"] == "orbit-2"
+
+
+def test_required_source_error_bounds_the_built_message() -> None:
+    url = _PRIMARY
+    long_detail = "x" * 100000 + "\nsecond line"
+    long_error = RequiredSourceError(url, long_detail)
+    long_text = str(long_error)
+    assert len(long_text) <= 500
+    assert long_text.startswith(f"required source {url} failed: ")
+    assert "\n" not in long_text
+    assert "\r" not in long_text
+    assert long_detail[:4] in long_text
+
+    short_detail = "kept whole\nsecond line"
+    short_text = str(RequiredSourceError(url, short_detail))
+    assert short_text == f"required source {url} failed: kept whole second line"
+    assert "\n" not in short_text
+    assert "\r" not in short_text
