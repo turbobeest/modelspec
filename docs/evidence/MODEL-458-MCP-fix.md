@@ -1,6 +1,10 @@
 MODEL-458-MCP execution evidence
 
-Status: blocked on authorization for two generated-artifact dependencies.
+Round 2 is the current record and follows the round 1 notes. Round 1 stopped before the generated companions were updated.
+
+## Round 1
+
+Status at the end of round 1: blocked on authorization for two generated-artifact dependencies.
 The executor's file list omits `api/worker/openapi.py` and
 `mcp/test/__snapshots__/server.test.ts.snap`. Both remain unchanged. The first
 must describe the new authentication operation before regenerating the allowed
@@ -101,3 +105,18 @@ data were not changed. The aggregate MCP text cap remains 16,384 UTF-8 bytes.
 A separate agent reviewed the completed code diff and reported no additional
 actionable defects. That source review did not execute tests and does not
 replace the pending independent review.
+
+## Round 2
+
+CI at `4245e5ec` failed on companions that still described the server from before round 1. The five findings are unchanged. This round updates the generator and the files the checks derive from it.
+
+| Check | Cause | Change |
+| --- | --- | --- |
+| pytest shard 6/8 and Rank Worker bundle | `GET /v1/auth-check` is routed and absent from the generated spec | `api/worker/openapi.py` describes the operation. `api/worker/openapi.yaml` is regenerated. |
+| pytest shard 5/8, `tests/test_visit_gate_off.py` | Six recorded 404 bodies omit the new route | The test inserts `GET /v1/auth-check` before `POST /v1/billing/checkout`. The historical recording is unchanged. |
+| pytest shards 5/8, 7/8 and 8/8 | `qa/fixtures/mcp-tools.json` source hashes were stale, so harness commands exited before their assertions | Regenerated with `python -m qa.contracts`. The six nested blocks advertise `additionalProperties: false`. Outer rank and policy objects stay open. |
+| MCP Worker tests | The tools/list snapshot lacked those six declarations, and the job's `python3` could not import the modules `decision.contract` loads | Snapshot regenerated with Vitest. The test job installs `pydantic==2.13.5` and `PyYAML==6.0.3`. A pull request that edits `.github/workflows/` is merged by a person. |
+
+The generated spec is 235,366 bytes and 58,838 tokens. The size ceilings are 236,000 bytes and 59,000 tokens. First-turn estimates are Claude 9,372, OpenAI 9,464 and Gemini 9,567. The headroom assertion is 9,600. The 10,000 first-turn cap and the 16,384 byte cap are unchanged.
+
+No Worker import, snapshot or export field, or ranking row changed, so the private-data memory probe was not run and the public bundle was not re-vendored. `openapi.py --check` exited 0. The first focused serial pytest exited 1: 2 failed, 155 passed, 2 skipped. Those two failures were the OpenAPI token count (58,838) and the Gemini first-turn estimate (9,567). After the ceilings above were set, that pair exited 0. Before the snapshot update, MCP tests exited 1: 362 passed, 1 failed. After Vitest updated the snapshot, MCP tests exited 0 (363 passed) and typecheck exited 0. No local full suite, production deployment, or paid-provider call was run. Production switches, prices, plans, legal text, ranking floors, release tags and frozen data were not changed.
