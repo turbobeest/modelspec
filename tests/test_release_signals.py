@@ -1826,3 +1826,37 @@ def test_required_source_error_bounds_the_built_message() -> None:
     assert short_text == f"required source {url} failed: kept whole second line"
     assert "\n" not in short_text
     assert "\r" not in short_text
+
+
+def test_required_source_error_bounds_a_long_url() -> None:
+    url = ("h" * 300) + "Z" + ("h" * 99699)
+    error = RequiredSourceError(url, "detail")
+    rendered = str(error)
+    flat = url.replace("\r", " ").replace("\n", " ")
+    assert error.url == url
+    assert len(rendered) <= 500
+    assert "\n" not in rendered
+    assert "\r" not in rendered
+    assert rendered.startswith("required source " + flat[:300] + "...")
+    assert "Z" not in rendered
+
+
+def test_required_source_error_flattens_a_url_line_break() -> None:
+    url = "https://acme.example/a\r\nb"
+    error = RequiredSourceError(url, "detail")
+    rendered = str(error)
+    flat = url.replace("\r", " ").replace("\n", " ")
+    assert error.url == url
+    assert len(rendered) <= 500
+    assert "\n" not in rendered
+    assert "\r" not in rendered
+    assert rendered.startswith("required source " + flat[:300])
+    assert rendered.startswith(f"required source {flat} failed: ")
+
+
+def test_required_source_error_keeps_a_short_url_message() -> None:
+    url = _PRIMARY
+    detail = "models.dev returned no provider map"
+    error = RequiredSourceError(url, detail)
+    assert error.url == url
+    assert str(error) == f"required source {url} failed: {detail}"
