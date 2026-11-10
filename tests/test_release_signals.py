@@ -1783,6 +1783,25 @@ def test_falsy_provider_row_is_an_empty_row(filler: object) -> None:
     assert listing["name"] == "Orbit 2"
 
 
+@pytest.mark.parametrize(
+    "filler",
+    [
+        pytest.param(None, id="null"),
+        pytest.param(0, id="zero"),
+        pytest.param("", id="empty-string"),
+        pytest.param([], id="empty-list"),
+    ],
+)
+def test_falsy_matching_provider_row_has_no_models_map(filler: object) -> None:
+    with pytest.raises(RequiredSourceError, match="provider row has no models map"):
+        _models_dev_listing(
+            {"acme": filler},
+            "Acme",
+            "Orbit 2",
+            source_url=_MODELS_DEV,
+        )
+
+
 def test_provider_matches_by_key_alone() -> None:
     provider_id, listing = _models_dev_listing(
         {"acme": {"models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}}}},
