@@ -887,19 +887,16 @@ class ModelCard(BaseModel):
             return True
         return bool(self._coverage_types() & applicable)
 
-    def warnings(self) -> list[str]:
-        """Non-fatal catalogue checks. CI reports these; they do not invalidate the card."""
-        out: list[str] = []
-        if (
-            self.licensing.open_weights is True
-            and self.licensing.license_type is LicenseType.PROPRIETARY
-        ):
-            out.append(
-                "open_weights is true with license_type proprietary: "
-                "a proprietary licence does not distribute downloadable weights"
-            )
-        # Warning-only: the MODEL-452 audit found contradictions on data main.
+    def modality_errors(self) -> list[str]:
+        """Modality flags that contradict the input/output lists (MODEL-457).
+
+        An error, not a warning: the validation gates (`validate_card`, the
+        private-data load at deploy) reject a card with any. It is not a model
+        validator because the frozen public data image still holds old
+        contradictions that must keep loading until that image is refreshed.
+        """
         mods = self.modalities
+        out: list[str] = []
         for direction, kind, field, supported in (
             ("input", Modality.IMAGE, "vision.supported", mods.vision.supported),
             ("output", Modality.IMAGE, "image_generation.supported", mods.image_generation.supported),
@@ -914,6 +911,19 @@ class ModelCard(BaseModel):
                     f"modalities.{field} is {str(supported).lower()} but modalities.{direction} "
                     f"{'contains' if listed else 'does not contain'} {kind.value}"
                 )
+        return out
+
+    def warnings(self) -> list[str]:
+        """Non-fatal catalogue checks. CI reports these; they do not invalidate the card."""
+        out: list[str] = []
+        if (
+            self.licensing.open_weights is True
+            and self.licensing.license_type is LicenseType.PROPRIETARY
+        ):
+            out.append(
+                "open_weights is true with license_type proprietary: "
+                "a proprietary licence does not distribute downloadable weights"
+            )
         return out
 
     @property

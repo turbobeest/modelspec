@@ -282,6 +282,16 @@ def _show_coverage_log() -> None:
     _coverage_log_ready = True
 
 
+def require_consistent_modalities(cards: list) -> None:
+    """MODEL-457: private data must not publish a card whose modality flags contradict its lists."""
+    contradictions = [
+        f"{card.identity.model_id}: {error}"
+        for card in cards for error in card.modality_errors()
+    ]
+    if contradictions:
+        raise SystemExit("modality flag contradicts list:\n" + "\n".join(contradictions))
+
+
 def export_data(out: Path, data_dir: Path) -> None:
     """Build only the exports consumed by the Worker, using the shared builders."""
     sys.path.insert(0, str(REPO_ROOT))
@@ -299,6 +309,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         registry.use_root(root)
         models = load_models(root)
         cards = [ModelCard.from_yaml_file(str(model.path)) for model in models]
+        require_consistent_modalities(cards)
         build = export.make_build(load_catalogue(root), root).to_json()
         devices = hardware.load_devices(root)
         graph = derive_graph(cards, hardware.device_classes(devices))
