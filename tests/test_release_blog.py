@@ -764,6 +764,14 @@ def test_record_text_with_a_backtick_and_a_digit_is_one_code_span(breakdown) -> 
     assert any("Run with" in code and "20" in code and "flag" in code for code in codes)
 
 
+def test_record_text_replaces_a_backtick_with_an_apostrophe(breakdown) -> None:
+    raw = "use a `tick` here"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert "`use a 'tick' here`" in post
+
+
 def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
     raw = (
         "See <https://other.example/page> and [a note](https://other.example/note) "
@@ -782,6 +790,64 @@ def test_record_text_with_markup_and_no_digit_stays_literal(breakdown) -> None:
     assert "other.example/note" in item
     assert "tick" in item
     assert "<a " not in re.sub(r"<sup>.*?</sup>", "", item)
+
+
+@pytest.mark.parametrize(
+    "separator",
+    ["\n", "\r", "\x0b", "\x0c", "\x85", "\u2028", "\u2029"],
+    ids=[
+        "line-feed",
+        "carriage-return",
+        "vertical-tab",
+        "form-feed",
+        "next-line",
+        "line-separator",
+        "paragraph-separator",
+    ],
+)
+def test_record_text_with_a_line_break_is_one_code_span(breakdown, separator: str) -> None:
+    raw = f"alpha line{separator}beta line 4"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert "`alpha line beta line 4`" in post
+    line = next(item for item in post.splitlines() if "`alpha line beta line 4`" in item)
+    assert separator not in line
+    html = _site_html(post, built.sources)
+    codes = re.findall(r"<code>(.*?)</code>", html)
+    assert any(
+        "alpha line" in code and "beta line 4" in code and "\n" not in code
+        and separator not in code
+        for code in codes
+    )
+
+
+def test_record_text_with_a_blank_line_does_not_open_a_heading_or_list(breakdown) -> None:
+    raw = "keeper\n\n# Extra title\n- extra item"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    built = _with_claim(breakdown, row.model_copy(update={"limitations": raw}))
+    post, _charts = render(built)
+    assert not any(line.startswith("# Extra title") for line in post.splitlines())
+    assert not any(line.startswith("- extra item") for line in post.splitlines())
+    html = _site_html(post, built.sources)
+    visible = re.sub(r"<code>.*?</code>", "", html, flags=re.DOTALL)
+    assert "Extra title" not in visible
+    assert "extra item" not in visible
+    assert "keeper" in html
+
+
+def test_record_text_with_a_line_break_before_a_link_adds_no_outbound_link(breakdown) -> None:
+    raw = "see the note\n[more](https://other.example/record)"
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    reading = row.readings[0].model_copy(update={"limitations": raw, "quality_flags": []})
+    changed = row.model_copy(update={"readings": [reading], "limitations": None})
+    built = _with_claim(breakdown, changed)
+    post, _charts = render(built)
+    html = _site_html(post, built.sources)
+    hrefs = re.findall(r'href="([^"]*)"', html)
+    assert all("other.example" not in href for href in hrefs)
+    assert "see the note" in html
+    assert "other.example/record" in html
 
 
 def test_refused_word_in_an_independent_reading_blocks_the_render(breakdown) -> None:
@@ -926,6 +992,28 @@ def test_render_cli_rejects_excluded_text_the_post_does_not_show(breakdown, tmp_
     post, _charts = render(candidate)
     assert hidden not in post
     code, out = _render_serialized(data, tmp_path, "hidden-rule")
+    assert code == 2
+    assert not out.exists()
+    assert not (tmp_path / "charts").exists()
+
+
+def test_render_cli_rejects_excluded_text_joined_only_in_the_post(breakdown, tmp_path) -> None:
+    data = breakdown.model_dump(mode="json", by_alias=True)
+    row = next(
+        item for item in data["claims_vs_evidence"]["claims"]
+        if item["benchmark"] == "swe_bench_pro"
+    )
+    reading = row["readings"][0]
+    first_flag = "Za"
+    second_flag = "pier"
+    reading["quality_flags"] = [first_flag, second_flag]
+    reading["limitations"] = None
+    candidate = Breakdown.model_validate(data)
+    guard_output(candidate.sources, candidate.model_dump(mode="json", by_alias=True))
+    post, _charts = render(candidate)
+    with pytest.raises(BreakdownError):
+        guard_output(candidate.sources, post)
+    code, out = _render_serialized(data, tmp_path, "joined-flags")
     assert code == 2
     assert not out.exists()
     assert not (tmp_path / "charts").exists()

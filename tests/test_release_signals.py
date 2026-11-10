@@ -23,6 +23,8 @@ from release_signals.pipeline import (
     FetchResult,
     FirecrawlBudget,
     RequiredSourceError,
+    _JSON_LD_MAX_DEPTH,
+    _JsonLd,
     _models_dev_listing,
     draft_signal,
     require_allowed_source,
@@ -2000,3 +2002,279 @@ def test_required_source_error_keeps_a_short_url_message() -> None:
     error = RequiredSourceError(url, detail)
     assert error.url == url
     assert str(error) == f"required source {url} failed: {detail}"
+
+
+_HOMEPAGE = "https://acme.example/models/orbit-1"
+_HF_ORBIT_1 = "https://huggingface.co/api/models?search=Orbit+1&limit=20"
+_MALFORMED_RELEASE_URLS = [
+    pytest.param("/orbit/notes", id="relative-path"),
+    pytest.param("javascript:alert(1)", id="javascript"),
+    pytest.param("https:///orbit", id="no-host"),
+    pytest.param({"href": "https://acme.example/not-a-string"}, id="non-string"),
+    pytest.param("q" * 100000, id="hundred-thousand-characters"),
+    pytest.param("https://[::1", id="unclosed-ipv6"),
+    pytest.param("https://[x]/", id="invalid-ipv6"),
+    pytest.param("http://acme.example/orbit", id="http-not-https"),
+]
+
+
+def _listing_payload(release_url: object, *, homepage: str | None) -> dict:
+    listing: dict[str, object] = {
+        "id": "orbit-1", "name": "Orbit 1", "release_url": release_url,
+    }
+    if homepage is not None:
+        listing["homepage"] = homepage
+    return {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": listing,
+                "orbit-9": {
+                    "id": "orbit-9",
+                    "name": "Orbit 9",
+                    "release_url": "q" * 100000,
+                },
+            },
+        }
+    }
+
+
+@pytest.mark.parametrize("release_url", _MALFORMED_RELEASE_URLS)
+def test_malformed_release_url_is_not_a_primary_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, release_url: object,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    payload = _listing_payload(release_url, homepage=_HOMEPAGE)
+    replies = {
+        _MODELS_DEV: FetchResult(
+            _MODELS_DEV, json.dumps(payload).encode(), "application/json",
+        ),
+        _HOMEPAGE: FetchResult(
+            _HOMEPAGE, b"<html><body>Acme releases Orbit 1.</body></html>", "text/html",
+        ),
+        _HF_ORBIT_1: FetchResult(_HF_ORBIT_1, b"[]", "application/json"),
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        requested.append(url)
+        assert url in replies, url
+        return replies[url]
+
+    def run_refresh(**_kwargs: object):
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 0
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert result["status"] == "existing"
+    assert result["sources"][0] == _HOMEPAGE
+    assert release_url not in requested
+    assert _HOMEPAGE in requested
+
+
+@pytest.mark.parametrize("release_url", _MALFORMED_RELEASE_URLS)
+def test_malformed_release_url_matches_a_missing_field(
+    tmp_path: Path, release_url: object,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    present = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-2": {"id": "orbit-2", "name": "Orbit 2", "release_url": release_url},
+            },
+        }
+    }
+    absent = {
+        "acme": {
+            "name": "Acme",
+            "models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}},
+        }
+    }
+
+    def fetch_for(body: dict):
+        encoded = json.dumps(body).encode()
+
+        def fetch(url: str) -> FetchResult:
+            assert url == _MODELS_DEV, url
+            return FetchResult(url, encoded, "application/json")
+
+        return fetch
+
+    with pytest.raises(ValueError, match="does not name a primary provider source") as bad:
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=fetch_for(present),
+            read_date=date(2026, 9, 26),
+        )
+    with pytest.raises(ValueError, match="does not name a primary provider source") as gone:
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=fetch_for(absent),
+            read_date=date(2026, 9, 26),
+        )
+    assert str(bad.value) == str(gone.value)
+
+
+def _hostile_json_ld_page(payload: str) -> bytes:
+    readable = (
+        '<script type="application/ld+json">'
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-09-26"}</script>'
+    )
+    return (
+        '<script type="application/ld+json">' + payload + "</script>"
+        + readable
+        + "<h1>Acme launches Orbit 2.</h1>"
+    ).encode()
+
+
+def _release_date(result: DraftResult) -> str:
+    assert result.card_path is not None
+    front = yaml.safe_load(result.card_path.read_text(encoding="utf-8").split("---", 2)[1])
+    return str(front["release_date"])
+
+
+def test_json_ld_with_a_long_integer_is_skipped(tmp_path: Path) -> None:
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","n":' + ("9" * 5000) + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_nested_past_the_depth_bound_is_skipped(tmp_path: Path) -> None:
+    nested = '{"a":' * 2000 + "1" + "}" * 2000
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","extra":' + nested + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def _json_ld_page(payload: str) -> bytes:
+    return (
+        '<script type="application/ld+json">' + payload + "</script>"
+        "<h1>Acme launches Orbit 2.</h1>"
+    ).encode()
+
+
+def _json_ld_documents(page: bytes) -> list[dict]:
+    parser = _JsonLd()
+    parser.feed(page.decode())
+    return parser.documents
+
+
+def _identity_json(depth: int, published: str) -> str:
+    extra = '{"k":' * (depth - 1) + "1" + "}" * (depth - 1)
+    return (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        f'"datePublished":"{published}","extra":{extra}}}'
+    )
+
+
+def test_json_ld_list_of_seventy_siblings_is_read(tmp_path: Path) -> None:
+    rows = [{"name": f"Sibling {index}"} for index in range(69)]
+    rows.append({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-03-03",
+    })
+    page = _json_ld_page(json.dumps(rows, separators=(",", ":")))
+    documents = _json_ld_documents(page)
+    names = [row["name"] for row in documents]
+    assert names == [f"Sibling {index}" for index in range(69)] + ["Orbit 2"]
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-03-03"
+
+
+def test_json_ld_graph_of_seventy_objects_is_read(tmp_path: Path) -> None:
+    payload = json.dumps({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-03-04",
+        "@graph": [{"name": f"Node {index}"} for index in range(70)],
+    }, separators=(",", ":"))
+    page = _json_ld_page(payload)
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert [row["name"] for row in documents[0]["@graph"]] == [
+        f"Node {index}" for index in range(70)
+    ]
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-03-04"
+
+
+def test_json_ld_nested_at_the_depth_bound_is_read(tmp_path: Path) -> None:
+    assert _JSON_LD_MAX_DEPTH == 64
+    page = _json_ld_page(_identity_json(_JSON_LD_MAX_DEPTH, "2026-04-04"))
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert documents[0]["datePublished"] == "2026-04-04"
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-04-04"
+
+
+def test_json_ld_one_level_past_the_depth_bound_is_skipped(tmp_path: Path) -> None:
+    payload = _identity_json(_JSON_LD_MAX_DEPTH + 1, "2026-01-15")
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+@pytest.mark.parametrize("width", [2000, 5000])
+def test_json_ld_integer_longer_than_the_digit_bound_is_skipped(
+    tmp_path: Path, width: int,
+) -> None:
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","n":' + ("9" * width) + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_two_thousand_level_nest_is_skipped(tmp_path: Path) -> None:
+    nested = '{"a":' * 2000 + "1" + "}" * 2000
+    payload = (
+        '{"name":"Orbit 2","publisher":{"name":"Acme"},'
+        '"datePublished":"2026-01-15","extra":' + nested + "}"
+    )
+    result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-09-26"
+
+
+def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> None:
+    note = 'quote \\" then ' + ("{[" * 80) + ("}]" * 80)
+    payload = json.dumps({
+        "name": "Orbit 2",
+        "publisher": {"name": "Acme"},
+        "datePublished": "2026-05-05",
+        "note": note,
+    }, separators=(",", ":"))
+    page = _json_ld_page(payload)
+    documents = _json_ld_documents(page)
+    assert len(documents) == 1
+    assert documents[0]["note"] == note
+    result = _draft_visible_signal(tmp_path, page)
+    assert result.resolution.status == "new"
+    assert _release_date(result) == "2026-05-05"

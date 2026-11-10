@@ -194,6 +194,19 @@ def resolve_signal(signal, root: Path) -> Resolution:
     return Resolution("new", model_id, (), "no exact catalogue alias matched")
 
 
+def _absolute_https_url(value: object) -> str | None:
+    """An absolute https URL with a host, or None when the value is not one."""
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    if parsed.scheme != "https" or not parsed.hostname:
+        return None
+    return value
+
+
 def require_allowed_source(url: str) -> str:
     parsed = urlsplit(url)
     if parsed.scheme not in {"http", "https"}:
@@ -257,6 +270,54 @@ def _models_dev_listing(
     return str(provider_id), listing
 
 
+_JSON_LD_MAX_DEPTH = 64
+_JSON_LD_MAX_INTEGER_DIGITS = 1000
+
+
+def _json_ld_unreadable(text: str) -> bool:
+    """True when nesting is deeper than the bound, or an integer is too long.
+
+    Depth rises on ``{`` and ``[`` and falls on ``}`` and ``]``, outside
+    strings. It does not go below zero. Brackets inside strings, including
+    after an escaped quote, do not move it.
+    """
+    depth = 0
+    digits = 0
+    in_string = False
+    escape = False
+    for char in text:
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+            digits = 0
+            continue
+        if char in "{[":
+            depth += 1
+            digits = 0
+            if depth > _JSON_LD_MAX_DEPTH:
+                return True
+            continue
+        if char in "}]":
+            if depth:
+                depth -= 1
+            digits = 0
+            continue
+        if char.isdigit():
+            digits += 1
+            if digits > _JSON_LD_MAX_INTEGER_DIGITS:
+                return True
+            continue
+        digits = 0
+    return False
+
+
 class _JsonLd(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -277,9 +338,12 @@ class _JsonLd(HTMLParser):
         if tag.casefold() != "script" or not self.capture:
             return
         self.capture = False
+        raw = "".join(self.buffer)
+        if _json_ld_unreadable(raw):
+            return
         try:
-            value = json.loads("".join(self.buffer))
-        except json.JSONDecodeError:
+            value = json.loads(raw)
+        except Exception:
             return
         values = value if isinstance(value, list) else [value]
         self.documents.extend(item for item in values if isinstance(item, dict))
@@ -503,10 +567,16 @@ def gather_signal(
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates, str(exc)
         ))
-    primary_candidates = [
-        require_allowed_source(str(listing[field]))
-        for field in PRIMARY_URL_FIELDS if listing.get(field)
-    ]
+    primary_candidates = []
+    for field in PRIMARY_URL_FIELDS:
+        value = listing.get(field)
+        if not value:
+            continue
+        if field == "release_url":
+            value = _absolute_https_url(value)
+            if value is None:
+                continue
+        primary_candidates.append(require_allowed_source(str(value)))
     primary_candidates = list(dict.fromkeys(primary_candidates))
     if not primary_candidates:
         primary_candidates = [

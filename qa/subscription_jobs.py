@@ -562,6 +562,48 @@ def report_worktree(repository: Path, job: str, day: str, root: Path):
         git_command(repository, "worktree", "remove", str(destination))
 
 
+def require_report_directory(directory: Path) -> Path:
+    """Accept a new path or an empty directory. Refuse a symlink or any existing entry."""
+    if directory.is_symlink():
+        raise ValueError(f"Report directory must not be a symlink: {directory}")
+    directory = tui_harness.private_output(directory)
+    if directory.is_symlink():
+        raise ValueError(f"Report directory must not be a symlink: {directory}")
+    if directory.exists():
+        if not directory.is_dir():
+            raise ValueError(f"Report directory must be a directory: {directory}")
+        if any(directory.iterdir()):
+            raise ValueError(f"Report directory is not empty: {directory}")
+    elif not directory.parent.is_dir():
+        raise ValueError(f"Report directory parent is missing: {directory.parent}")
+    return directory
+
+
+def job_report_file(tree: Path, job: str, day: str) -> Path:
+    root = tree / REPORT_PATHS[job]
+    path = root / day / "report.md" if job == "aeo" else root / f"{day}.md"
+    if path.is_symlink():
+        raise ValueError(f"Report file must not be a symlink: {path}")
+    return path
+
+
+def emit_local_report(tree: Path, job: str, day: str, directory: Path, body: str) -> None:
+    """Copy the job report and the pull-request body. Modes are 0700 and 0600."""
+    directory = require_report_directory(directory)
+    if not directory.exists():
+        directory.mkdir(mode=0o700)
+    directory.chmod(0o700)
+    report = job_report_file(tree, job, day).read_text(encoding="utf-8")
+    for name, content in (("report.md", report), ("body.md", body)):
+        path = directory / name
+        if path.is_symlink() or path.exists():
+            raise ValueError(f"Report file must be a new file: {path}")
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        path.chmod(0o600)
+
+
 def publish(worktree: Path, job: str, branch: str, day: str, body: str) -> str:
     title = f"{'AEO visibility run' if job == 'aeo' else 'qa: private decide UX report' if job == 'ux' else 'data: agent scenario report'} {day} (MODEL-309)"
     git_command(worktree, "add", "--", REPORT_PATHS[job])
@@ -615,6 +657,14 @@ def main(argv=None) -> int:
     parser.add_argument("--ablation-metadata", type=Path, help="Proxy manifest; required for proxy dry runs")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
+        "--no-publish", action="store_true",
+        help="Write the report and pull-request body locally instead of publishing",
+    )
+    parser.add_argument(
+        "--report-out", type=Path,
+        help="Directory for report.md and body.md; required with --no-publish",
+    )
+    parser.add_argument(
         "--resume", action="store_true",
         help="Skip scenario rows already recorded by an interrupted run "
              "with the same CLIs, scenarios, day, engine, ModelSpec key presence and judge pairs",
@@ -636,6 +686,11 @@ def main(argv=None) -> int:
     parser.add_argument("--base-url", default="https://modelspec.dev/decide/")
     args = parser.parse_args(argv)
     try:
+        if args.no_publish != (args.report_out is not None):
+            raise ValueError("--no-publish and --report-out must be set together")
+        if args.no_publish and args.dry_run:
+            raise ValueError("--no-publish cannot be combined with --dry-run")
+        report_dir = require_report_directory(args.report_out) if args.no_publish else None
         if args.resume and args.dry_run:
             raise ValueError("--resume cannot be combined with --dry-run")
         if args.resume and args.job != "scenarios":
@@ -715,7 +770,11 @@ def main(argv=None) -> int:
             else:
                 with report_worktree(repository, args.job, args.date, state) as (tree, branch):
                     body = execute(tree)
-                    print(publish(tree, args.job, branch, args.date, body))
+                    if args.no_publish:
+                        emit_local_report(tree, args.job, args.date, report_dir, body)
+                        print(f"Local report: {report_dir}. No git add, commit, push, or pull request.")
+                    else:
+                        print(publish(tree, args.job, branch, args.date, body))
         return 0
     except (ValueError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"Subscription job refused/failed: {redact(str(exc))}")
