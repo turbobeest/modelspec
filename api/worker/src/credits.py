@@ -552,6 +552,9 @@ class _TakenRead:
 class _Account:
     monthly: int = 0
     allowance_generation: int = 0
+    # Period end of the last applied paid invoice, or the cancellation time.
+    # Absent on rows written before this field: from_json loads that as 0.
+    invoice_period_watermark: int = 0
     reserved: int = 0
     next_res: int = 1
     reservations: dict[int, _Reservation] = field(default_factory=dict)
@@ -599,6 +602,7 @@ class _Account:
         return {
             "monthly": self.monthly,
             "allowance_generation": self.allowance_generation,
+            "invoice_period_watermark": self.invoice_period_watermark,
             "available": self.monthly + sum(g.remaining for g in self.packs if g.remaining > 0),
             "reserved": self.reserved,
             "next_res": self.next_res,
@@ -662,6 +666,7 @@ class _Account:
         return cls(
             monthly=monthly,
             allowance_generation=int(data.get("allowance_generation") or 0),
+            invoice_period_watermark=int(data.get("invoice_period_watermark") or 0),
             reserved=int(data.get("reserved") or 0),
             next_res=int(data.get("next_res") or 1),
             reservations=reservations,
@@ -971,11 +976,14 @@ class LedgerState:
         return ReversalResult(True, payment_id, False, purchased, restored=units)
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
-                    plan: str = "", customer_id: str = "") -> CreditResult:
+                    plan: str = "", customer_id: str = "",
+                    period_end: int = 0) -> CreditResult:
         """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id.
 
         A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
+        `period_end` is the invoice period. A period that ends at or before the
+        stored watermark is stale and does not change the allowance.
         """
         holder = self._funding_holder(holder)
         rec = self.payments.get(invoice_id)
@@ -985,6 +993,11 @@ class LedgerState:
                     or (claim is not None and claim.get("holder") != holder)):
                 reason = "replay" if rec.get("holder") == holder else "conflict"
                 return CreditResult(False, reason, int(rec.get("units") or 0))
+        period_end = int(period_end or 0)
+        current = self.accounts.get(holder)
+        mark = current.invoice_period_watermark if current is not None else 0
+        if period_end and mark and period_end <= mark:
+            return CreditResult(False, "stale", 0)
         if units < 0:
             return CreditResult(False, "zero", 0)
         updated = {
@@ -998,21 +1011,48 @@ class LedgerState:
         acc.monthly = int(units)
         acc.allowance_generation += 1
         acc.overage_used = 0
+        if period_end:
+            acc.invoice_period_watermark = max(acc.invoice_period_watermark, period_end)
         if plan:
             acc.plan = plan
         if customer_id:
             acc.stripe_customer_id = customer_id
         return CreditResult(True, "", int(units))
 
-    def clear_monthly(self, holder: str) -> CreditResult:
-        """Zero the monthly allowance and stop overage. Pack grants are untouched."""
+    def clear_monthly(self, holder: str, period_end: int = 0,
+                      watermark: int = 0) -> CreditResult:
+        """Zero the monthly allowance and stop overage. Pack grants are untouched.
+
+        `period_end` is a failed invoice. It does not move the watermark, so the
+        same period can still be paid afterwards. `watermark` is a cancellation
+        time: a time older than an applied period is stale, and an accepted
+        cancellation stores that time.
+        """
         holder = self._funding_holder(holder)
+        period_end = int(period_end or 0)
+        watermark = int(watermark or 0)
+        current = self.accounts.get(holder)
+        mark = current.invoice_period_watermark if current is not None else 0
+        if watermark:
+            if mark and watermark < mark:
+                return CreditResult(False, "stale", 0)
+        elif period_end and mark and period_end <= mark:
+            return CreditResult(False, "stale", 0)
         acc = self._acc(holder)
+        if watermark:
+            acc.invoice_period_watermark = max(acc.invoice_period_watermark, watermark)
         acc.monthly = 0
         acc.allowance_generation += 1
         acc.overage_used = 0
         acc.plan = ""
         return CreditResult(True, "cleared", 0)
+
+    def invoice_watermark(self, holder: str) -> int:
+        holder = self._funding_holder(holder)
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return 0
+        return int(acc.invoice_period_watermark)
 
     def transfer(self, src: str, dst: str) -> bool:
         """Move an account to a new holder (key rotation)."""
@@ -1050,6 +1090,8 @@ class LedgerState:
         if existing.reservations or existing.taken_reads:
             _ensure_meter_id(existing)
         existing.monthly += acc.monthly
+        existing.invoice_period_watermark = max(
+            existing.invoice_period_watermark, acc.invoice_period_watermark)
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
         offset = existing.next_res
@@ -1628,9 +1670,13 @@ class Ledger(Protocol):
                          tx: str, expires_at: str = "") -> CreditResult: ...
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> CreditResult: ...
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0) -> CreditResult: ...
 
-    async def clear_monthly(self, holder: str) -> CreditResult: ...
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0) -> CreditResult: ...
+
+    async def invoice_watermark(self, holder: str) -> int: ...
 
     async def transfer(self, src: str, dst: str) -> bool: ...
 
@@ -1756,14 +1802,23 @@ class MemoryLedger:
             return self.state.spend_paid(holder, payment_id, units, tx, expires_at)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> CreditResult:
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0) -> CreditResult:
         async with self._lock:
             return self.state.set_monthly(
-                holder, units, invoice_id, plan, customer_id)
+                holder, units, invoice_id, plan, customer_id,
+                period_end=int(period_end or 0))
 
-    async def clear_monthly(self, holder: str) -> CreditResult:
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0) -> CreditResult:
         async with self._lock:
-            return self.state.clear_monthly(holder)
+            return self.state.clear_monthly(
+                holder, period_end=int(period_end or 0),
+                watermark=int(watermark or 0))
+
+    async def invoice_watermark(self, holder: str) -> int:
+        async with self._lock:
+            return self.state.invoice_watermark(holder)
 
     async def transfer(self, src: str, dst: str) -> bool:
         async with self._lock:
@@ -1919,11 +1974,16 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> CreditResult:
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0) -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
-    async def clear_monthly(self, holder: str) -> CreditResult:
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0) -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def invoice_watermark(self, holder: str) -> int:
+        return 0
 
     async def transfer(self, src: str, dst: str) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -2082,13 +2142,21 @@ class DurableLedger:
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> CreditResult:
-        data = await self._call("set_monthly", holder, int(units), invoice_id, plan, customer_id)
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0) -> CreditResult:
+        data = await self._call(
+            "set_monthly", holder, int(units), invoice_id, plan, customer_id,
+            int(period_end or 0))
         return CreditResult.from_json(dict(data))
 
-    async def clear_monthly(self, holder: str) -> CreditResult:
-        data = await self._call("clear_monthly", holder)
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0) -> CreditResult:
+        data = await self._call(
+            "clear_monthly", holder, int(period_end or 0), int(watermark or 0))
         return CreditResult.from_json(dict(data))
+
+    async def invoice_watermark(self, holder: str) -> int:
+        return int(await self._call("invoice_watermark", holder))
 
     async def transfer(self, src: str, dst: str) -> bool:
         return bool(await self._call("transfer", src, dst))

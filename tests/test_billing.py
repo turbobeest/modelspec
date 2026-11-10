@@ -1182,8 +1182,10 @@ def test_invoice_paid_with_fingerprint_attaches_to_existing_key(policy):
 
 def test_a_paid_invoice_grants_monthly_through_an_invoice_only_ledger(policy):
     class InvoiceLedger(credits.MemoryLedger):
-        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id=""):
-            return await super().set_monthly(holder, units, invoice_id, plan, customer_id)
+        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id="",
+                              period_end=0):
+            return await super().set_monthly(
+                holder, units, invoice_id, plan, customer_id, period_end=period_end)
 
     kv = MemoryKV()
     ledger = InvoiceLedger()
@@ -1871,6 +1873,41 @@ def test_newer_paid_period_applies_after_terminal_status(policy, terminal):
         assert outcome.body["action"] == "credited"
         assert (await keys.lookup(kv, key)).tier == "paid"
         assert (await ledger.balance(_billing_holder(key))).monthly == 4000
+    run(scenario())
+
+
+def test_overlapped_old_failure_keeps_newer_paid_allowance(policy):
+    class YieldingKV(MemoryKV):
+        async def get(self, name):
+            result = await super().get(name)
+            await asyncio.sleep(0)
+            return result
+
+        async def put(self, name, value, **kwargs):
+            await super().put(name, value, **kwargs)
+            await asyncio.sleep(0)
+
+    async def one(index):
+        kv, ledger = YieldingKV(), credits.MemoryLedger()
+        key = await _billing_purchase(kv, ledger, policy)
+        paid = invoice_obj(id=f"in_new_{index}", created=300,
+                           period_start=300, period_end=400)
+        failed = invoice_obj(id=f"in_old_{index}", paid=False, created=100,
+                             period_start=100, period_end=200)
+        await asyncio.gather(
+            _dated_event(kv, ledger, policy, "invoice.paid", paid,
+                         f"evt_paid_{index}", created=300),
+            _dated_event(kv, ledger, policy, "invoice.payment_failed", failed,
+                         f"evt_fail_{index}", created=150),
+        )
+        record = await keys.lookup(kv, key)
+        balance = await ledger.balance(_billing_holder(key))
+        return record.tier, balance.monthly
+
+    async def scenario():
+        outcomes = [await one(index) for index in range(30)]
+        assert outcomes == [("paid", 4000)] * 30
+
     run(scenario())
 
 

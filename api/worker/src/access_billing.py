@@ -288,11 +288,14 @@ async def record_chronology(kv: Any, subscription_id: str, *, now: datetime,
         stored = replace(
             stored, subscription_status=subscription_status,
             subscription_updated_at=max(updated_at, stored.subscription_updated_at))
-    if invoice_id and (period_start or period_end or not (
-            stored.invoice_period_start or stored.invoice_period_end)):
-        stored = replace(
-            stored, invoice_id=invoice_id, invoice_period_start=period_start,
-            invoice_period_end=period_end, invoice_paid=paid)
+    if invoice_id:
+        incoming = (period_start, period_end)
+        stored_period = (stored.invoice_period_start, stored.invoice_period_end)
+        # An older period must not replace a newer one when the two handlers overlap.
+        if not any(stored_period) or (any(incoming) and incoming >= stored_period):
+            stored = replace(
+                stored, invoice_id=invoice_id, invoice_period_start=period_start,
+                invoice_period_end=period_end, invoice_paid=paid)
     await _write_sub(kv, stored)
 
 
@@ -750,7 +753,8 @@ async def _rotate_serialized(kv: Any, current_key: str, *, now: datetime,
 
 
 async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
-                        units: int, invoice_id: str, plan: str) -> str:
+                        units: int, invoice_id: str, plan: str,
+                        period_end: int = 0) -> str:
     """SET monthly on the claimed key, or remember it for claim. Packs untouched."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
@@ -765,7 +769,10 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
                 return "pending"
             result = await ledger.set_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
-                units, invoice_id, plan, stored.customer_id)
+                units, invoice_id, plan, stored.customer_id,
+                period_end=int(period_end or 0))
+            if result.reason == "stale":
+                return "stale"
             if result.credited and stored.pending_monthly:
                 await _write_sub(kv, replace(stored, pending_monthly=0,
                                              plan_name=plan or stored.plan_name,
@@ -780,17 +787,26 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
     return "pending"
 
 
-async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any) -> str:
-    """Zero monthly remaining. Pack grants stay."""
+async def clear_monthly(kv: Any, subscription_id: str, *, ledger: Any,
+                        period_end: int = 0, watermark: int = 0) -> str:
+    """Zero monthly remaining. Pack grants stay.
+
+    `period_end` rejects a failed invoice that ended at or before the stored
+    watermark. `watermark` is the cancellation time. A stale clear leaves the
+    allowance and the subscription row alone.
+    """
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
         return "no_key"
     if stored.key_fingerprint and ledger is not None:
         try:
-            await ledger.clear_monthly(
-                credits.holder_from_fingerprint(stored.key_fingerprint))
+            result = await ledger.clear_monthly(
+                credits.holder_from_fingerprint(stored.key_fingerprint),
+                period_end=int(period_end or 0), watermark=int(watermark or 0))
         except credits.StoreNotConfigured:
             return "store_unbound"
+        if result.reason == "stale":
+            return "stale"
     await _write_sub(kv, replace(stored, pending_monthly=0))
     return "cleared"
 

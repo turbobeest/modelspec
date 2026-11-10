@@ -124,18 +124,25 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "") -> dict[str, Any]:
+                          plan: str = "", customer_id: str = "",
+                          period_end: int = 0) -> dict[str, Any]:
         state = self._stored()
         result = state.set_monthly(holder, int(units), str(invoice_id),
-                                   str(plan or ""), str(customer_id or ""))
+                                   str(plan or ""), str(customer_id or ""),
+                                   period_end=int(period_end or 0))
         self._save(state)
         return result.to_json()
 
-    async def clear_monthly(self, holder: str) -> dict[str, Any]:
+    async def clear_monthly(self, holder: str, period_end: int = 0,
+                            watermark: int = 0) -> dict[str, Any]:
         state = self._stored()
-        result = state.clear_monthly(holder)
+        result = state.clear_monthly(str(holder), period_end=int(period_end or 0),
+                                     watermark=int(watermark or 0))
         self._save(state)
         return result.to_json()
+
+    async def invoice_watermark(self, holder: str) -> int:
+        return self._stored().invoice_watermark(str(holder))
 
     async def transfer(self, src: str, dst: str) -> bool:
         state = self._stored()
