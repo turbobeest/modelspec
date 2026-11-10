@@ -1891,6 +1891,9 @@ _MALFORMED_RELEASE_URLS = [
     pytest.param("https:///orbit", id="no-host"),
     pytest.param({"href": "https://acme.example/not-a-string"}, id="non-string"),
     pytest.param("q" * 100000, id="hundred-thousand-characters"),
+    pytest.param("https://[::1", id="unclosed-ipv6"),
+    pytest.param("https://[x]/", id="invalid-ipv6"),
+    pytest.param("http://acme.example/orbit", id="http-not-https"),
 ]
 
 

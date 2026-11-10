@@ -198,7 +198,10 @@ def _absolute_https_url(value: object) -> str | None:
     """An absolute https URL with a host, or None when the value is not one."""
     if not isinstance(value, str):
         return None
-    parsed = urlsplit(value)
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
     if parsed.scheme != "https" or not parsed.hostname:
         return None
     return value
