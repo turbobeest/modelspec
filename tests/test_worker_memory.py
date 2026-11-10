@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import array
 import json
 import os
 import shutil
 import subprocess
 import sys
+import types
 from datetime import date
 from pathlib import Path
 
@@ -32,6 +34,89 @@ console.log(JSON.stringify(assessMemory(
                             cwd=ROOT, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
+
+
+def _attribution_counter():
+    """The diagnostic helper embedded in the memory probe, not a second copy."""
+    source = (ROOT / "api/worker/measure_memory.cjs").read_text(encoding="utf-8")
+    helper = source.split("def deep_bytes(value, seen=None):", 1)[1].split("\nsnapshots =", 1)[0]
+    namespace = {"sys": sys, "types": types}
+    exec("def deep_bytes(value, seen=None):" + helper, namespace)
+    return namespace["deep_bytes"]
+
+
+def test_snapshot_attribution_counts_fact_payload():
+    from decision.snapshot import FactValue
+
+    payload = bytearray(1024 * 1024)
+    value = FactValue("known", payload)
+    measured = _attribution_counter()({"fact": value})
+    assert measured >= len(payload), (
+        f"counted {measured} bytes while retaining a {len(payload)}-byte payload"
+    )
+
+
+def test_snapshot_attribution_counts_lazy_driver_rows():
+    from decision.snapshot import _Drivers
+
+    raw = {"model": {"domain": [["r" * (1024 * 1024), "b", None, 1.0, 1.0, 1.0]]}}
+    drivers = _Drivers(raw)
+    measured = _attribution_counter()(drivers)
+    assert measured >= 1024 * 1024, (
+        f"counted {measured} bytes for a lazy driver mapping retaining 1 MiB"
+    )
+
+
+def test_snapshot_attribution_counts_slots_and_deduplicates_cycles():
+    class Slotted:
+        __slots__ = ("payload", "cycle")
+
+    obj = Slotted()
+    obj.payload = bytearray(1024 * 1024)
+    obj.cycle = obj
+    measured = _attribution_counter()([obj, obj])
+    assert 1024 * 1024 <= measured < 1024 * 1024 + 1024
+
+
+def test_snapshot_attribution_skips_module_function_and_class_graphs():
+    payload = bytearray(1024 * 1024)
+    module = types.ModuleType("probe")
+    module.payload = payload
+
+    def function():
+        return payload
+
+    class Box:
+        pass
+
+    Box.payload = payload
+    counter = _attribution_counter()
+    assert counter(module) == 0
+    assert counter(function) == 0
+    assert counter(Box) == 0
+    assert counter(payload) >= len(payload)
+
+
+def test_snapshot_attribution_counts_a_shared_payload_once():
+    payload = bytearray(1024 * 1024)
+    measured = _attribution_counter()([payload, payload])
+    assert len(payload) <= measured < len(payload) + 1024
+
+
+def test_attribution_labels_distinguish_python_graph_bytes_from_the_gate():
+    source = (ROOT / "api/worker/measure_memory.cjs").read_text(encoding="utf-8")
+    assert source.index("steady_bytes: steady") < source.index("result.attribution")
+    assert "python_retained_graph_bytes" in source
+    assert "categories_overlap" in source
+    assert "wasm_bytes" in source
+    assert "process_rss" in source
+
+
+def test_snapshot_attribution_counts_array_storage_without_boxing_items():
+    values = array.array("I", [1]) * (256 * 1024)
+    measured = _attribution_counter()(values)
+    assert measured == sys.getsizeof(values)
+    assert measured < len(values) * sys.getsizeof(1)
 
 
 def test_memory_gate_accepts_exactly_115_mib_and_rejects_one_byte_above():

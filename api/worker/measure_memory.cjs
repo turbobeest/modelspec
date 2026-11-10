@@ -172,16 +172,43 @@ record_stage('after_policy_check')
     result.attribution = JSON.parse(await py.runPythonAsync(`
 def deep_bytes(value, seen=None):
     seen = set() if seen is None else seen
-    identity = id(value)
-    if identity in seen:
-        return 0
-    seen.add(identity)
-    size = sys.getsizeof(value)
-    if isinstance(value, dict):
-        return size + sum(deep_bytes(k, seen) + deep_bytes(v, seen) for k, v in value.items())
-    if isinstance(value, (list, tuple, set, frozenset)):
-        return size + sum(deep_bytes(v, seen) for v in value)
-    return size
+    root = value
+    total = 0
+    stack = [root]
+    while stack:
+        current = stack.pop()
+        identity = id(current)
+        if identity in seen or isinstance(current, (type, types.ModuleType, types.FunctionType, types.BuiltinFunctionType, types.BuiltinMethodType, types.MethodType)):
+            continue
+        seen.add(identity)
+        total += sys.getsizeof(current)
+        if isinstance(current, (dict, types.MappingProxyType)):
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (list, tuple, set, frozenset)):
+            stack.extend(current)
+        try:
+            instance_dict = vars(current)
+        except TypeError:
+            instance_dict = None
+        if isinstance(instance_dict, (dict, types.MappingProxyType)) and instance_dict is not current:
+            stack.append(instance_dict)
+        for cls in type(current).__mro__:
+            slots = getattr(cls, '__slots__', ())
+            if isinstance(slots, str):
+                slots = (slots,)
+            if not isinstance(slots, tuple):
+                try:
+                    slots = tuple(slots)
+                except TypeError:
+                    continue
+            for slot in slots:
+                if not isinstance(slot, str) or slot in {'__dict__', '__weakref__'}:
+                    continue
+                if not hasattr(current, slot):
+                    continue
+                stack.append(getattr(current, slot))
+    return total
 snapshots = [value for value in (held, getattr(entry, '_bundled_decision_successor', None)) if value is not None]
 details = []
 for snapshot in snapshots:
@@ -204,7 +231,7 @@ for snapshot in snapshots:
         'hardware_fit_bytes': deep_bytes(getattr(snapshot, '_hardware_fit', None)),
         'hardware_provenance_bytes': deep_bytes(getattr(snapshot, '_hardware_fit_record_table', None)),
     })
-json.dumps({'snapshots': details, 'vocabulary_bytes': deep_bytes([
+json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, 'distinct_from': ['wasm_bytes', 'steady_bytes', 'process_rss'], 'snapshots': details, 'vocabulary_bytes': deep_bytes([
     getattr(entry, '_bundled_vocabulary', None), getattr(entry, '_bundled_vocabulary_text', None),
     getattr(entry, '_bundled_successor_vocabulary', None), getattr(entry, '_bundled_successor_vocabulary_text', None),
 ])})
