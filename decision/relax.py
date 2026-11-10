@@ -242,11 +242,15 @@ def _candidate_blocks(resolved, snapshot, conditions, hard: list[int],
     always_blocks = 0
     fixed_retired = False
     for index, cond in enumerate(conditions):
-        if cond.soft is not None or index in hard_set:
+        # A best reference needs the anchor. Callers score those with one.
+        if cond.soft is not None or index in hard_set or _has_best(cond):
             continue
         always_blocks |= _blocked_bits(run, cond)
         fixed_retired = fixed_retired or asks_for_retired(cond)
-    group_blocks = [_blocked_bits(run, conditions[group[0]]) for group in groups]
+    group_blocks = [
+        0 if _has_best(conditions[group[0]]) else _blocked_bits(run, conditions[group[0]])
+        for group in groups
+    ]
     group_retired = [
         any(asks_for_retired(conditions[index]) for index in group) for group in groups
     ]
@@ -303,6 +307,12 @@ def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard:
     plain = [group for group in groups if not _has_best(conditions[group[0]])]
     best_groups = [group for group in groups if _has_best(conditions[group[0]])]
     best_indexes = [index for group in best_groups for index in group]
+    hard_set = set(hard)
+    fixed = [
+        cond
+        for index, cond in enumerate(conditions)
+        if cond.soft is None and index not in hard_set and _has_best(cond)
+    ]
     by_plain: dict[tuple[int, ...], list[int]] = {}
     order: list[tuple[int, ...]] = []
     for indexes, bit in _candidate_blocks(resolved, snapshot, conditions, hard, plain):
@@ -314,13 +324,26 @@ def _best_proposals(budget: _FilterBudget, resolved, snapshot, conditions, hard:
     seen: set[tuple[int, ...]] = set()
     for plain_indexes in order:
         dropped = tuple(sorted(set(plain_indexes) | set(best_indexes)))
-        trial = budget.apply(without(resolved, dropped), snapshot)
+        # The anchor is the lineup before any best condition. A non-relaxable
+        # best gate stays in the question, so the measurement only omits it.
+        measured = without(resolved, dropped)
+        if fixed:
+            measured = replace(
+                measured,
+                conditions=tuple(cond for cond in measured.conditions if not _has_best(cond)),
+            )
+        trial = budget.apply(measured, snapshot)
         if trial is None:
             return None
         anchor, run = _anchor_bits(resolved, snapshot, trial.feasible)
         run.anchor = anchor
+        fixed_blocks = 0
+        for cond in fixed:
+            fixed_blocks |= _blocked_bits(run, cond)
         best_blocks = [_blocked_bits(run, conditions[group[0]]) for group in best_groups]
         for bit in by_plain[plain_indexes]:
+            if fixed_blocks & bit:
+                continue
             extra = [
                 index
                 for group, blocks in zip(best_groups, best_blocks, strict=True)

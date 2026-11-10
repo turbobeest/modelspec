@@ -15,12 +15,13 @@ model: the relaxed condition, the new threshold and its unit.
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 
 import pytest
 
-from decision.contract import CONTRACT_VERSION, parse_spec
+from decision.contract import CONTRACT_VERSION, Decision, parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
@@ -196,6 +197,53 @@ def test_a_best_margin_does_not_change_which_gate_is_fewest():
         "explain": "none",
     }, facets=facets), facets=facets)
     assert relax.fewest(resolved, index, frozenset()) == ["model.context_window >= 100"]
+
+
+def test_a_best_gate_outside_the_relaxation_returns_the_other_gate():
+    from decision import relax
+    from tests.snapshot_records import loaded_index
+
+    index = loaded_index({
+        "lab/a": {"model.context_window": 8000, "model.max_output_tokens": 100},
+        "lab/b": {"model.context_window": 1000, "model.max_output_tokens": 50},
+    })
+    where = ["model.context_window >= best(0)", "model.max_output_tokens >= 1000"]
+    resolved = _resolved(where)
+    assert relax.fewest(resolved, index, frozenset({"model.context_window"})) == [
+        "model.max_output_tokens >= 1000",
+    ]
+
+
+def test_a_best_gate_on_a_requested_domain_stays_a_decision():
+    snapshot = q10_snapshot()
+    wheres = (
+        ["offering.price.input <= 0.01", "chat_preference >= best(0)"],
+        [
+            "model.class = text-generator",
+            "offering.price.input <= 0.20",
+            "chat_preference >= best(0)",
+        ],
+        [
+            "model.class = text-generator",
+            "offering.price.input <= 0.20",
+            "chat_preference >= best(0.5)",
+            "model.context_window >= best(0)",
+        ],
+    )
+    for where in wheres:
+        spec = parse_spec({
+            "spec_version": 1,
+            "task_type": "analysis",
+            "capabilities": {"chat_preference": "required"},
+            "where": where,
+            "optimize": {"max": "arena_elo_overall @independent"},
+            "explain": "full",
+        }, facets=facets)
+        decision = decide(spec, snapshot, facets=facets)
+        text = json.dumps(decision.model_dump(mode="json"), allow_nan=False)
+        restored = Decision.model_validate_json(text)
+        assert restored.status == "no_feasible"
+        assert restored.relax == ["no complete objective values"]
 
 
 def test_equally_few_relaxations_prefer_a_numeric_cap():
