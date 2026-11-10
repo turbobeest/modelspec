@@ -3617,3 +3617,34 @@ def test_unsettled_binding_reports_at_the_pass_bound(policy):
         assert ledger.reads == 8
 
     run(scenario())
+
+
+def test_subscription_create_after_an_invoice_id_checkout_takes_the_ordinary_path(policy):
+    """A later subscription_create invoice for another id grants on the ordinary path."""
+
+    async def scenario():
+        kv, ledger = MemoryKV(), credits.MemoryLedger()
+        key, _record = await keys.issue(
+            kv, tier="paid", owner="fixture", now=T0, policy=policy)
+        meta = {"modelspec_price_id": PRICE,
+                "modelspec_key_fingerprint": keys.fingerprint(key)}
+        assert (await _dated_event(
+            kv, ledger, policy, "checkout.session.completed",
+            checkout_obj(invoice="in_checkout_grant", metadata=meta),
+            "evt_checkout_invoice")).status == 200
+        stored = await billing.store.load_subscription(kv, SUB)
+        assert stored is not None
+        assert stored.pending_invoice_id == "in_checkout_grant"
+        await _spend_billing_credits(ledger, key, 100)
+        holder = _billing_holder(key)
+        assert (await ledger.balance(holder)).monthly == 3900
+        invoice = invoice_obj(
+            id="in_create_other", billing_reason="subscription_create", metadata=meta,
+            period_start=100, period_end=200)
+        outcome = await _dated_event(
+            kv, ledger, policy, "invoice.paid", invoice, "evt_create_other", created=100)
+        assert outcome.status == 200
+        assert outcome.body["action"] == "credited"
+        assert (await ledger.balance(holder)).monthly == 4000
+
+    run(scenario())
