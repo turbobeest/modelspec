@@ -462,6 +462,8 @@ class _Reservation:
     monthly: int = 0
     packs: list[tuple[str, int]] = field(default_factory=list)
     overage: int = 0
+    origin: tuple[str, int] | None = None
+    allowance_generation: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -469,6 +471,8 @@ class _Reservation:
             "monthly": self.monthly,
             "packs": [[grant_id, amount] for grant_id, amount in self.packs],
             "overage": self.overage,
+            "origin": self.origin,
+            "allowance_generation": self.allowance_generation,
         }
 
     @classmethod
@@ -488,6 +492,8 @@ class _Reservation:
             monthly=int(data.get("monthly") or 0),
             packs=packs,
             overage=int(data.get("overage") or 0),
+            origin=tuple(data["origin"]) if data.get("origin") else None,
+            allowance_generation=int(data.get("allowance_generation") or 0),
         )
 
 
@@ -505,6 +511,8 @@ class _TakenRead:
     block: int = 0
     block_succeeded: bool = False
     charge_token: int = 0
+    origin: tuple[str, int] | None = None
+    allowance_generation: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -514,6 +522,8 @@ class _TakenRead:
             "block_before": self.block_before, "block_after": self.block_after,
             "block": self.block, "block_succeeded": self.block_succeeded,
             "charge_token": self.charge_token,
+            "origin": self.origin,
+            "allowance_generation": self.allowance_generation,
         }
 
     @classmethod
@@ -533,12 +543,15 @@ class _TakenRead:
             int(data.get("block") or 0),
             bool(data.get("block_succeeded", not data.get("block"))),
             int(data.get("charge_token") or 0),
+            tuple(data["origin"]) if data.get("origin") else None,
+            int(data.get("allowance_generation") or 0),
         )
 
 
 @dataclass
 class _Account:
     monthly: int = 0
+    allowance_generation: int = 0
     reserved: int = 0
     next_res: int = 1
     reservations: dict[int, _Reservation] = field(default_factory=dict)
@@ -566,7 +579,8 @@ class _Account:
     rotation: dict[str, Any] | None = None
 
     def overage_open(self) -> int:
-        return sum(item.overage for item in self.reservations.values())
+        return sum(item.overage for item in self.reservations.values()
+                   if item.allowance_generation == self.allowance_generation)
 
     def live_packs(self, now: str) -> list[_PackGrant]:
         return [g for g in self.packs if g.remaining > 0 and not _expired(g.expires_at, now)]
@@ -584,6 +598,7 @@ class _Account:
     def to_json(self) -> dict[str, Any]:
         return {
             "monthly": self.monthly,
+            "allowance_generation": self.allowance_generation,
             "available": self.monthly + sum(g.remaining for g in self.packs if g.remaining > 0),
             "reserved": self.reserved,
             "next_res": self.next_res,
@@ -646,6 +661,7 @@ class _Account:
                     expires_at=LEGACY_EXPIRY, source="legacy")]
         return cls(
             monthly=monthly,
+            allowance_generation=int(data.get("allowance_generation") or 0),
             reserved=int(data.get("reserved") or 0),
             next_res=int(data.get("next_res") or 1),
             reservations=reservations,
@@ -687,13 +703,28 @@ class LedgerState:
         if acc is None:
             acc = _Account()
             self.accounts[holder] = acc
-            self.meter_aliases.pop(holder, None)
         return acc
 
     def _meter_acc(self, holder: str) -> _Account | None:
         """Resolve reporting state without granting a revoked holder access."""
+        return self.accounts.get(self._funding_holder(holder))
+
+    def _funding_holder(self, holder: str) -> str:
+        """A transferred name funds the live account. Draws still refuse the alias."""
         target, _meter_id = self.meter_aliases.get(holder, (holder, ""))
-        return self.accounts.get(target)
+        return target
+
+    def _finalization(self, holder: str, token: int, *, read: bool = False
+                      ) -> tuple[_Account | None, int]:
+        acc = self._meter_acc(holder)
+        if acc is not None:
+            pending = acc.taken_reads if read else acc.reservations
+            for current, record in pending.items():
+                if (record.origin == (holder, int(token)) or (
+                        record.origin is None and holder not in self.meter_aliases
+                        and current == int(token))):
+                    return acc, current
+        return None, int(token)
 
     def credit(self, holder: str, payment_id: str, units: int,
                tx: str, expires_at: str = "", source: str = "x402") -> CreditResult:
@@ -703,6 +734,7 @@ class LedgerState:
         anything a refund or a lost dispute took before claim, and held if a
         dispute is still open.
         """
+        holder = self._funding_holder(holder)
         rec = self.payments.get(payment_id)
         if rec is not None and rec.get("pending"):
             claim = rec.get("claim")
@@ -905,15 +937,19 @@ class LedgerState:
         purchased = int(rec.get("units") or 0)
         pending = bool(rec.get("pending"))
         closed = list(rec.get("closed_disputes") or [])
+        if dispute_id in (rec.get("dispute_outcomes") or {}):
+            return ReversalResult(True, payment_id, pending, purchased)
         if dispute_id not in closed:
             closed.append(dispute_id)
         rec["closed_disputes"] = closed
-        if rec.get("hold") != dispute_id:
+        rec.setdefault("dispute_outcomes", {})[dispute_id] = "restore" if restore else "forfeit"
+        if restore and rec.get("hold") != dispute_id:
             return ReversalResult(True, payment_id, pending, purchased)
         rec.pop("hold", None)
         if pending:
             # A refund since the hold may have shrunk what claim would grant.
-            units = min(int(rec.pop("held", 0) or 0), _grantable(rec))
+            held = int(rec.pop("held", 0) or 0)
+            units = min(held, _grantable(rec)) if restore else _grantable(rec)
             if restore:
                 return ReversalResult(True, payment_id, True, purchased, restored=units)
             rec["forfeited"] = int(rec.get("forfeited") or 0) + units
@@ -922,10 +958,11 @@ class LedgerState:
         grant = self._grant(payment_id)
         if grant is None:
             return ReversalResult(True, payment_id, False, purchased)
-        units = grant.held
+        units = grant.held if restore else grant.held + grant.remaining
         grant.held = 0
         grant.hold_id = ""
         if not restore:
+            grant.remaining = 0
             rec["forfeited"] = int(rec.get("forfeited") or 0) + units
             return ReversalResult(True, payment_id, False, purchased, forfeited=units)
         if _expired(grant.expires_at, clock):
@@ -940,6 +977,7 @@ class LedgerState:
         A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
         """
+        holder = self._funding_holder(holder)
         rec = self.payments.get(invoice_id)
         if rec is not None:
             claim = rec.get("claim")
@@ -958,6 +996,7 @@ class LedgerState:
         self.payments[invoice_id] = updated
         acc = self._acc(holder)
         acc.monthly = int(units)
+        acc.allowance_generation += 1
         acc.overage_used = 0
         if plan:
             acc.plan = plan
@@ -967,8 +1006,10 @@ class LedgerState:
 
     def clear_monthly(self, holder: str) -> CreditResult:
         """Zero the monthly allowance and stop overage. Pack grants are untouched."""
+        holder = self._funding_holder(holder)
         acc = self._acc(holder)
         acc.monthly = 0
+        acc.allowance_generation += 1
         acc.overage_used = 0
         acc.plan = ""
         return CreditResult(True, "cleared", 0)
@@ -983,6 +1024,12 @@ class LedgerState:
         rotation = acc.rotation
         if rotation is not None and rotation.get("stage") != "prepared":
             return False
+        for token, reservation in acc.reservations.items():
+            if reservation.origin is None:
+                reservation.origin = (src, token)
+        for token, taken in acc.taken_reads.items():
+            if taken.origin is None:
+                taken.origin = (src, token)
         self.accounts.pop(src)
         if rotation is not None:
             acc.rotation = None
@@ -1000,11 +1047,16 @@ class LedgerState:
             _stamp_backlog_id(acc)
             self.accounts[dst] = acc
             return True
+        if existing.reservations or existing.taken_reads:
+            _ensure_meter_id(existing)
         existing.monthly += acc.monthly
         existing.reserved += acc.reserved
         existing.packs.extend(acc.packs)
         offset = existing.next_res
         for rid, reservation in acc.reservations.items():
+            reservation.allowance_generation = (
+                existing.allowance_generation
+                if reservation.allowance_generation == acc.allowance_generation else -1)
             existing.reservations[offset + rid] = reservation
         existing.next_res = offset + acc.next_res
         if acc.plan and not existing.plan:
@@ -1028,6 +1080,9 @@ class LedgerState:
             existing.read_burst += acc.read_burst
         read_offset = existing.next_read
         for token, taken in acc.taken_reads.items():
+            taken.allowance_generation = (
+                existing.allowance_generation
+                if taken.allowance_generation == acc.allowance_generation else -1)
             if taken.block:
                 taken.block += read_offset
             if taken.charge_token:
@@ -1049,6 +1104,8 @@ class LedgerState:
 
     def reserve(self, holder: str, units: int = 1, now: str = "",
                 overage_cap: int = 0) -> ReserveResult:
+        if holder in self.meter_aliases:
+            return ReserveResult(False)
         clock = now or _now_iso()
         acc = self._acc(holder)
         acc.drop_expired(clock)
@@ -1091,7 +1148,9 @@ class LedgerState:
         acc.reserved += prepaid
         rid = acc.next_res
         acc.next_res += 1
-        acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
+        acc.reservations[rid] = _Reservation(
+            units, from_monthly, pack_draws, overage,
+            allowance_generation=acc.allowance_generation)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
     def spend_paid(self, holder: str, payment_id: str, units: int, tx: str,
@@ -1109,18 +1168,19 @@ class LedgerState:
 
     def commit(self, holder: str, reservation_id: int, *,
                record_meter: bool = True) -> CommitResult:
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, reservation_id)
         if acc is None:
             return CommitResult(False)
-        reservation = acc.reservations.pop(int(reservation_id), None)
+        reservation = acc.reservations.pop(current, None)
         if reservation is None:
             return CommitResult(False)
         acc.reserved -= reservation.units - reservation.overage
         if acc.reserved < 0:
             acc.reserved = 0
-        acc.overage_used += reservation.overage
+        if reservation.allowance_generation == acc.allowance_generation:
+            acc.overage_used += reservation.overage
         if reservation.overage and record_meter:
-            ident = f"{_ensure_meter_id(acc)}:res:{int(reservation_id)}"
+            ident = self.meter_identifier(holder, "res", reservation_id)
             if len(acc.overage_pending) < PENDING_METER_CAP:
                 acc.overage_pending.append((ident, reservation.overage, _unix_now()))
             else:
@@ -1129,14 +1189,15 @@ class LedgerState:
         return CommitResult(True, reservation.overage)
 
     def release(self, holder: str, reservation_id: int) -> bool:
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, reservation_id)
         if acc is None:
             return False
-        reservation = acc.reservations.pop(int(reservation_id), None)
+        reservation = acc.reservations.pop(current, None)
         if reservation is None:
             return False
         acc.reserved -= reservation.units - reservation.overage
-        acc.monthly += reservation.monthly
+        if reservation.allowance_generation == acc.allowance_generation:
+            acc.monthly += reservation.monthly
         # A refund that found these credits reserved counted them as spent
         # (`owed`); released, they are the refund's, not the key's.
         self._return_packs(acc, list(reservation.packs))
@@ -1179,6 +1240,9 @@ class LedgerState:
                 absorbed = min(owed, amount)
                 rec["owed"] = owed - absorbed
                 amount -= absorbed
+            if int(rec.get("forfeited") or 0) or "forfeit" in (rec.get("dispute_outcomes") or {}).values():
+                rec["forfeited"] = int(rec.get("forfeited") or 0) + amount
+                continue
             if amount <= 0:
                 continue
             grant = by_id.get(grant_id)
@@ -1205,6 +1269,8 @@ class LedgerState:
         response then fails. Undo tickets from a previous UTC day are dropped
         here, without refunding them. The isolate that took them is gone.
         """
+        if holder in self.meter_aliases:
+            return ReadResult(False, "exhausted")
         clock = now or _now_iso()
         acc = self._acc(holder)
         day = clock[:10]
@@ -1260,17 +1326,18 @@ class LedgerState:
             day, minute, overage, monthly_drawn, pack_draws,
             block_before, acc.reads_in_block, acc.read_block,
             block_succeeded=not acc.read_block,
-            charge_token=token if block_before == 0 else 0)
+            charge_token=token if block_before == 0 else 0,
+            allowance_generation=acc.allowance_generation)
         return ReadResult(True, token=token, available=available, overage=overage,
                           read_count=acc.read_count, read_burst=acc.read_burst,
                           daily_cap=daily_cap, burst_limit=burst_limit)
 
     def release_read(self, holder: str, token: int) -> bool:
         """Undo one read. Refund its block only after every read in it fails."""
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, token, read=True)
         if acc is None:
             return False
-        taken = acc.taken_reads.pop(int(token), None)
+        taken = acc.taken_reads.pop(current, None)
         if taken is None:
             return False
         if acc.read_day == taken.day and acc.read_count > 0:
@@ -1289,6 +1356,8 @@ class LedgerState:
         pending = next((read for read in acc.taken_reads.values()
                         if read.block == taken.block), None)
         if pending is not None:
+            if taken.monthly or taken.overage:
+                pending.allowance_generation = taken.allowance_generation
             pending.monthly += taken.monthly
             pending.packs.extend(taken.packs)
             pending.overage += taken.overage
@@ -1297,24 +1366,25 @@ class LedgerState:
             return True
         if acc.read_block == taken.block and (taken.monthly or taken.packs or taken.overage):
             acc.reads_in_block = 0
-        acc.monthly += taken.monthly
-        if taken.overage:
-            acc.overage_used = max(0, acc.overage_used - taken.overage)
+        if taken.allowance_generation == acc.allowance_generation:
+            acc.monthly += taken.monthly
+            if taken.overage:
+                acc.overage_used = max(0, acc.overage_used - taken.overage)
         self._return_packs(acc, list(taken.packs))
         return True
 
     def keep_read(self, holder: str, token: int) -> bool:
         """Record a successful block read and drop its undo ticket."""
-        acc = self.accounts.get(holder)
+        acc, current = self._finalization(holder, token, read=True)
         if acc is None:
             return False
-        taken = acc.taken_reads.pop(int(token), None)
+        taken = acc.taken_reads.pop(current, None)
         if taken is None:
             return False
         for pending in acc.taken_reads.values():
             if pending.block == taken.block:
                 pending.block_succeeded = True
-        if taken.overage and taken.charge_token and taken.charge_token != int(token):
+        if taken.overage and taken.charge_token and taken.charge_token != current:
             # This response did not draw the credit, so its caller has no
             # overage to report. The failed drawing read cannot report it.
             self.note_unreported(holder, taken.overage, "read")

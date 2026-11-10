@@ -2,13 +2,14 @@
 
 import json
 from dataclasses import asdict
+from itertools import permutations
 from pathlib import Path
 
 import pytest
 
 from pipeline.ranking import Candidate, score, rank, rank_report, format_report, build_candidates
 from api.ranking.engine import (
-    USE_CASE_PROFILES, IncompleteEvidenceError, ModelData, RankingEngine,
+    BENCHMARK_RANGES, USE_CASE_PROFILES, IncompleteEvidenceError, ModelData, RankingEngine,
     MIN_BENCHMARK_COVERAGE, WIZARD_BENCHMARK_COVERAGE, _benchmark_evidence,
     ranking_policy,
 )
@@ -226,6 +227,46 @@ def test_graph_engine_list_interface_returns_ranked_and_report_keeps_unranked(mo
     assert [row.model_id for row in ranked] == ['y']
     assert ranked[0].rank == 1
 
+
+
+@pytest.mark.parametrize("limit, expected", [(1, ["lab/a"]), (3, ["lab/a", "lab/b", "lab/c"])])
+def test_graph_rank_exact_ties_are_independent_of_candidate_order(monkeypatch, limit, expected):
+    measurements = {name: sum(BENCHMARK_RANGES[name]) / 2
+                    for name in USE_CASE_PROFILES["safety"]["benchmark_weights"]}
+    candidates = [ModelData(mid, mid, model_type="safety-classifier", benchmark_scores=measurements)
+                  for mid in ["lab/a", "lab/b", "lab/c"]]
+    engine = RankingEngine(None)
+    for ordering in permutations(candidates):
+        monkeypatch.setattr(engine, "_fetch_candidates", lambda *args: ordering)
+        rows = engine.rank_report("safety", limit=limit)["ranked"]
+        assert [row.model_id for row in rows] == expected
+        assert [row.rank for row in rows] == list(range(1, limit + 1))
+
+
+def test_graph_rank_preserves_score_elo_and_parameter_priorities(monkeypatch):
+    candidates = []
+    for mid, fraction, elo, parameters in [
+        ("lab/score", 0.75, None, None),
+        ("lab/elo", 0.5, 1200, 1),
+        ("lab/parameters", 0.5, 1000, 200),
+        ("lab/b", 0.5, 1000, 100),
+        ("lab/a", 0.5, 1000, 100),
+        ("lab/unknown", 0.5, None, None),
+    ]:
+        measurements = {name: low + fraction * (high - low)
+                        for name in USE_CASE_PROFILES["safety"]["benchmark_weights"]
+                        for low, high in [BENCHMARK_RANGES[name]]}
+        candidates.append(ModelData(mid, mid, model_type="safety-classifier",
+                                    benchmark_scores=measurements, arena_elo_overall=elo,
+                                    total_parameters=parameters))
+    engine = RankingEngine(None)
+    monkeypatch.setattr(engine, "_fetch_candidates", lambda *args: candidates)
+    rows = engine.rank_report("safety")["ranked"]
+    assert [row.model_id for row in rows] == [
+        "lab/score", "lab/elo", "lab/parameters", "lab/a", "lab/b", "lab/unknown",
+    ]
+    assert rows[0].score > rows[1].score
+    assert len({row.score for row in rows[1:]}) == 1
 
 def test_export_versions_changed_shape_and_keeps_unranked_models(tmp_path, monkeypatch):
     from pipeline import ranking

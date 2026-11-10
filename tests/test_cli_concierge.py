@@ -5,8 +5,13 @@ from __future__ import annotations
 import copy
 import gzip
 import json
+import os
 import stat
+import subprocess
+import sys
+import threading
 import tomllib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1198,3 +1203,294 @@ def test_gzip_rate_limit_keeps_retry_after_and_guide_version(monkeypatch):
     assert result.exit_code == 6
     assert payload["retry_after"] == "60"
     assert any("pipx upgrade modelspec-dev" in line for line in payload["next"])
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+@pytest.mark.parametrize("http_status", [200, 401])
+@pytest.mark.parametrize("mixed", [False, True])
+def test_unicode_escaped_reflected_key_is_redacted(monkeypatch, json_mode, http_status, mixed):
+    escaped = "".join(
+        char if mixed and index % 2 else f"\\u{ord(char):04x}"
+        for index, char in enumerate(KEY)
+    )
+    body = '{"nested":[{"' + escaped + '":"' + escaped + '"}]}'
+    if http_status == 401:
+        body = (
+            '{"error":{"code":"invalid_api_key","message":"'
+            + escaped + '","details":' + body + '}}'
+        )
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(http_status, text=body)))
+    result = run(["vocab", *(["--json"] if json_mode else [])], keyed=True)
+    assert result.exit_code == (0 if http_status == 200 else 5), result.output
+    assert KEY not in result.stdout + result.stderr
+    if json_mode or http_status == 200:
+        payload = json.loads(result.stdout)
+        assert KEY not in json.dumps(payload)
+        details = payload if http_status == 200 else payload["error"]["details"]
+        assert details["nested"] == [{"[redacted]": "[redacted]"}]
+    else:
+        assert "[redacted]" in result.stderr
+
+
+def test_retry_after_reflected_key_is_redacted(monkeypatch):
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(
+            429, json={"error": {"code": "rate_limited", "message": "Try later"}},
+            headers={"Retry-After": KEY})))
+    result = run(["vocab", "--json"], keyed=True)
+    payload = assert_error(result, "rate_limited")
+    assert result.exit_code == 6
+    assert payload["retry_after"] == "[redacted]"
+
+
+def test_response_without_credentials_preserves_json_bytes(monkeypatch):
+    body = ' { "nested" : [{"\\u0061":"\\u0062"}], "count":1.00 }\n'
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, text=body)))
+    result = run(["vocab", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    assert result.stdout == body
+
+
+@pytest.mark.parametrize("escaped", [False, True])
+def test_response_redaction_preserves_duplicate_members(monkeypatch, escaped):
+    value = "".join(f"\\u{ord(char):04x}" for char in KEY) if escaped else KEY
+    body = '{"echo":"' + value + '","echo":"safe"}'
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, text=body)))
+    result = run(["vocab", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert json.loads(result.stdout, object_pairs_hook=list) == [
+        ("echo", "[redacted]"), ("echo", "safe")]
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+@pytest.mark.parametrize("field,value", [
+    ("headers", {"x-api-key": KEY}),
+    ("headers", {"authorization": "bearer " + KEY}),
+    ("headers", {"X-ToKeN": KEY}),
+    ("env", {"custom_api_key": KEY, "AUTH_HEADER": "bearer " + KEY}),
+    ("args", ["--header", "authorization: bearer " + KEY]),
+    ("args", ["--header", "x-api-key: " + KEY]),
+])
+def test_setup_diff_redacts_supported_header_forms(tmp_path, json_mode, field, value):
+    path = tmp_path / "mcp.json"
+    original = json.dumps({"mcpServers": {"modelspec": {"url": "old", field: value}}})
+    original = original.replace(KEY[0], f"\\u{ord(KEY[0]):04x}")
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "cursor", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "[redacted]" in result.stderr
+    assert "@@" in result.stderr
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+    assert json.loads(path.read_text())["mcpServers"]["modelspec"] == (
+        BUNDLE["clients"]["cursor"]["server"]
+    )
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_setup_minified_config_diff_does_not_disclose_other_server_credentials(tmp_path, json_mode):
+    path = tmp_path / "mcp.json"
+    neighbor = '"other":{"url":"https://other.invalid/mcp","headers":{"X-Token":"' + KEY + '"}}'
+    original = '{"mcpServers":{"modelspec":{"url":"old"},' + neighbor + '}}'
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "cursor", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "other.invalid" not in result.stderr
+    assert neighbor in path.read_text()
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_setup_toml_literal_secret_is_redacted(tmp_path, quote, json_mode):
+    path = tmp_path / "config.toml"
+    neighbor = f"[mcp_servers.other.http_headers]\nX-Token = '{KEY}'\n"
+    original = (
+        "[mcp_servers.modelspec]\nurl = 'old'\n"
+        f"[mcp_servers.modelspec.http_headers]\nx-api-key = {quote}{KEY}{quote}\n" + neighbor
+    )
+    path.write_text(original)
+    result = run(["setup", "mcp", "--client", "codex", "--config", str(path),
+                  "--write", "--yes", *(["--json"] if json_mode else [])])
+    assert result.exit_code == 0, result.output
+    assert KEY not in result.stdout + result.stderr
+    assert "[redacted]" in result.stderr
+    assert neighbor in path.read_text()
+    assert path.with_name(path.name + ".modelspec-bak").read_bytes() == original.encode()
+    assert tomllib.loads(path.read_text())["mcp_servers"]["modelspec"] == (
+        BUNDLE["clients"]["codex"]["server"]
+    )
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="POSIX named pipe")
+def test_fifo_credential_fails_promptly(tmp_path):
+    config = tmp_path / "fifo-config"
+    key = config / "modelspec" / "api-key"
+    key.parent.mkdir(parents=True)
+    os.mkfifo(key, 0o600)
+    root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ, XDG_CONFIG_HOME=str(config), PYTHONPATH=str(root))
+    env.pop("MODELSPEC_API_KEY", None)
+    process = subprocess.Popen(
+        [sys.executable, "-m", "cli.modelspec.cli", "vocab", "--json"],
+        cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        try:
+            stdout, stderr = process.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            pytest.fail("Reading a nonregular credential file did not finish within 3 seconds")
+    finally:
+        if process.poll() is None:
+            process.kill()
+        process.communicate()
+    assert process.returncode == 5, stdout + stderr
+    payload = json.loads(stdout)
+    assert payload["error"]["code"] == "auth_unreadable"
+    assert payload["next"]
+    assert "Traceback" not in stderr
+
+
+@pytest.fixture
+def loopback_response(monkeypatch):
+    state = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = state["body"].encode()
+            self.send_response(state["status"])
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+    thread.start()
+    monkeypatch.setitem(BUNDLE["urls"], "api", f"http://127.0.0.1:{server.server_port}")
+    monkeypatch.setattr(client, "_transport", None)
+    try:
+        yield state
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+@pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity", "1e999", "-1e999"])
+@pytest.mark.parametrize(
+    "http_status,exit_code", [(200, 1), (400, 1), (401, 5), (402, 6), (429, 6)]
+)
+def test_non_finite_response_is_not_successful_json(
+    loopback_response, literal, http_status, exit_code
+):
+    loopback_response.update(
+        status=http_status,
+        body=(
+            '{"error":{"code":"invalid_spec","message":"Refused","details":[{"value":'
+            + literal + '}]}}'
+            if http_status != 200 else '{"result":{"values":[' + literal + ']}}'
+        ),
+    )
+    result = run(["vocab", "--json"], keyed=True)
+
+    def reject_constant(value):
+        raise ValueError(value)
+
+    payload = json.loads(result.stdout, parse_constant=reject_constant)
+    assert result.exit_code == exit_code, result.output
+    expected = {200: "unexpected_response", 401: "invalid_api_key"}.get(http_status, "http_error")
+    assert payload["error"]["code"] == expected
+    assert payload["next"]
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("issues", [
+    None, 5, "invalid", {"path": "where"}, [{"path": "where", "message": "Choose a facet"}],
+])
+@pytest.mark.parametrize("http_status,exit_code", [(400, 1), (401, 5), (402, 6), (429, 6)])
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_malformed_hosted_issues_do_not_crash_human_mode(
+    monkeypatch, issues, http_status, exit_code, json_mode
+):
+    body = {"error": {"code": "invalid_spec", "message": "Synthetic refusal", "issues": issues}}
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(http_status, json=body)))
+    result = run(["vocab", *(["--json"] if json_mode else [])], keyed=True)
+    assert result.exit_code == exit_code, result.output
+    assert isinstance(result.exception, SystemExit), repr(result.exception)
+    assert "Traceback" not in result.output
+    if json_mode:
+        payload = assert_error(result, "invalid_spec")
+        assert payload["error"] == body["error"]
+    else:
+        assert result.stdout == ""
+        assert "Synthetic refusal" in result.stderr
+        assert "Next steps:" in result.stderr
+        if isinstance(issues, list):
+            assert json.dumps(issues[0]) in result.stderr
+        else:
+            assert result.stderr.splitlines()[1] == "Next steps:"
+
+
+@pytest.mark.parametrize("wire_bytes", [65535, 65536, 65537])
+@pytest.mark.parametrize("command", ["decide", "router", "compare"])
+@pytest.mark.parametrize("source", ["stdin", "template"])
+def test_final_request_body_obeys_wire_limit(monkeypatch, tmp_path, wire_bytes, command, source):
+    spec = {"spec_version": 1, "where": ["model.class = \u2003text-generator"],
+            "optimize": {"min": "offering.cost_per_task"}}
+    if command == "compare":
+        expected = {"compare_to": "snap_test", "spec": spec}
+        args = ["compare", "--to", "snap_test"]
+        endpoint = "/v1/compare"
+    else:
+        expected = {**spec, "fields": ["model_rank", "cost_per_task", "estimates", "p_best",
+                                       "contributions", "evidence"]}
+        args = ["decide"]
+        endpoint = "/v1/decide"
+        if command == "router":
+            expected["router_config"] = {
+                "format": "json", "include_rest": True, "include_thin": True,
+            }
+            args += ["--emit-router-config", "json", "--include-rest", "--include-thin",
+                     "--out", str(tmp_path / "router.json")]
+    initial_bytes = len(json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode())
+    spec["where"][0] = (
+        "model.class = \u2003" + " " * (wire_bytes - initial_bytes) + "text-generator"
+    )
+    expected_bytes = json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
+    assert len(expected_bytes) == wire_bytes
+    text = json.dumps(spec, ensure_ascii=False)
+    assert len(text.encode()) <= 65536
+    posted = []
+
+    def origin(request):
+        if request.method == "GET":
+            assert source == "template"
+            return httpx.Response(200, json={"templates": [{"id": "test", "spec": spec}]})
+        posted.append(request)
+        return httpx.Response(200, json={"router_config": "{}"})
+
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(origin))
+    args += ["--spec", "-"] if source == "stdin" else ["--template", "test"]
+    result = run([*args, "--json"], keyed=True, input=text if source == "stdin" else None)
+    if wire_bytes > 65536:
+        assert posted == []
+        assert result.exit_code == 1, result.output
+        assert_error(result, "spec_too_large")
+        assert not (tmp_path / "router.json").exists()
+    else:
+        assert result.exit_code == 0, result.output
+        assert len(posted) == 1
+        assert posted[0].url.path == endpoint
+        assert posted[0].headers["content-type"] == "application/json"
+        assert posted[0].content == expected_bytes

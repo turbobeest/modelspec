@@ -44,6 +44,15 @@ somebody else's logs.
 purchase to that key (pack credits ADD, a plan attaches). An unknown or
 revoked key is `401`, never treated as anonymous. See [`billing.md`](billing.md).
 
+`GET /v1/credits` and `HEAD /v1/credits` authenticate an active live key before
+reading its balance, without consuming credits or access quota. The balance
+endpoint retains its own refusal codes: `401 missing_holder` when no valid
+live key is presented, `403 missing_holder` for an inactive key, and
+`503 credits_store_not_configured` when credit account authentication or the
+credit ledger is unavailable. Sandbox keys have no live credit balance and
+receive `401 missing_holder` without reading either store. `HEAD` has the same
+status and headers as `GET`, with no response body.
+
 ## Tiers
 
 The table is `api/worker/tiers.json`. It is data: changing a limit is an edit

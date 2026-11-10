@@ -301,6 +301,58 @@ def test_file_splitter_excludes_pytest_ignored_directories(tmp_path: Path) -> No
     assert test_files(tmp_path) == [included]
 
 
+def test_file_splitter_matches_default_collection_with_cache_ignore(tmp_path: Path) -> None:
+    import subprocess
+    import sys
+
+    from scripts.pytest_shards import test_files
+
+    (tmp_path / "conftest.py").write_text((REPO_ROOT / "conftest.py").read_text())
+    expected = [
+        "benchmarks/_census/cache-copy/test_neighbor.py::test_owned",
+        "benchmarks/_census/test_census.py::test_owned",
+        "integration/test_feature.py::test_owned",
+        "test_real.py::test_owned",
+    ]
+    for node_id in expected:
+        path = tmp_path / node_id.split("::")[0]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("def test_owned(): pass\n")
+    ignored = tmp_path / "benchmarks/_census/cache/upstream/test_downloaded.py"
+    ignored.parent.mkdir(parents=True)
+    ignored.write_text('raise RuntimeError("downloaded tests must remain ignored")\n')
+    command = [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"]
+    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
+    selected = [path.relative_to(tmp_path).as_posix() for path in test_files(tmp_path)]
+
+    for files in ([], selected):
+        proc = subprocess.run(command + files, cwd=tmp_path, env=env, capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        assert sorted(line for line in proc.stdout.splitlines() if "::" in line) == expected
+    assert selected == [node_id.split("::")[0] for node_id in expected]
+
+
+@pytest.mark.parametrize("testpath", [
+    "benchmarks/_census/cache",
+    "benchmarks/_census/cache/upstream",
+    "benchmarks/_census/cache/upstream/test_downloaded.py",
+])
+def test_file_splitter_excludes_cache_from_configured_testpaths(tmp_path: Path, testpath: str) -> None:
+    from scripts.pytest_shards import test_files
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\ntestpaths = ["' + testpath + '", "integration"]\n'
+    )
+    ignored = tmp_path / "benchmarks/_census/cache/upstream/test_downloaded.py"
+    ignored.parent.mkdir(parents=True)
+    ignored.write_text('raise RuntimeError("downloaded tests must remain ignored")\n')
+    included = tmp_path / "integration/test_owned.py"
+    included.parent.mkdir()
+    included.write_text("def test_owned(): pass\n")
+
+    assert test_files(tmp_path) == [included]
+
+
 def test_file_splitter_honors_pyproject_discovery_options(tmp_path: Path) -> None:
     from scripts.pytest_shards import test_files
 
@@ -321,6 +373,24 @@ norecursedirs = ["generated"]
     (generated / "check_excluded.py").write_text("", encoding="utf-8")
 
     assert test_files(tmp_path) == [expected]
+
+
+def test_policy_shape_collection_does_not_parse_catalogue(monkeypatch) -> None:
+    import importlib.util
+
+    import schema.card
+    import yaml
+
+    def unexpected_parse(*args, **kwargs):
+        raise AssertionError("catalogue parsed while importing test definitions")
+
+    monkeypatch.setattr(yaml, "safe_load", unexpected_parse)
+    spec = importlib.util.spec_from_file_location(
+        "policy_shape_collection_probe", REPO_ROOT / "tests/test_policy_shape.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
 
 def test_file_splitter_assigns_discovered_set_once(tmp_path: Path) -> None:

@@ -33,6 +33,7 @@ import billing  # noqa: E402
 import billing_stripe  # noqa: E402
 import credits  # noqa: E402
 from access_kv import MemoryKV  # noqa: E402
+from tests.test_credits_do import durable  # noqa: E402
 
 T0 = datetime(2026, 9, 23, 14, 30, 0, tzinfo=UTC)
 TS = int(T0.timestamp())
@@ -533,3 +534,124 @@ def test_refund_and_dispute_through_the_durable_object(policy):
     assert refunded.body["credits"]["removed"] == 1200
     assert refunded.body["credits"]["already_spent"] == 50
     assert balance(ledger, holder(key)).available == 0
+
+
+def test_lost_dispute_closed_before_created_removes_unspent_credits():
+    kv, ledger = MemoryKV(), durable()
+    policy = access_config.load_policy()
+    key = bought_pack(kv, policy, ledger)
+    closed = apply(kv, policy, 'charge.dispute.closed', dispute(status='lost'), 'evt_closed_first', ledger)
+    assert closed.status == 200
+    opened = apply(kv, policy, 'charge.dispute.created', dispute(status='needs_response'), 'evt_opened_late', ledger)
+    assert opened.status == 200
+    actual = balance(ledger, holder(key))
+    assert actual.available == 0, (closed.body, opened.body, actual.to_json())
+
+@pytest.mark.parametrize("units", [5, 1250])
+def test_failed_request_after_lost_dispute_cannot_restore_credits(units):
+    kv, ledger = MemoryKV(), durable()
+    policy = access_config.load_policy()
+    key = bought_pack(kv, policy, ledger)
+    who = holder(key)
+    taken = asyncio.run(ledger.reserve(who, units))
+    assert taken.ok and taken.reservation_id is not None
+    opened = apply(kv, policy, 'charge.dispute.created', dispute(status='needs_response'), 'evt_open', ledger)
+    assert opened.status == 200
+    closed = apply(kv, policy, 'charge.dispute.closed', dispute(status='lost'), 'evt_close', ledger)
+    assert closed.status == 200
+    assert asyncio.run(ledger.release(who, taken.reservation_id))
+    actual = balance(ledger, who)
+    assert actual.available == 0, (closed.body, actual.to_json())
+
+
+@pytest.mark.parametrize("pending", [False, True])
+@pytest.mark.parametrize("opened_first", [False, True])
+@pytest.mark.parametrize("status", ["lost", "won", "warning_closed"])
+def test_terminal_dispute_is_applied_once(policy, pending, opened_first, status):
+    # Claim reads the checkout from the ledger binding. The other durable
+    # cases only move credits and keep the unbound ledger.
+    kv = MemoryKV()
+    ledger = credits.DurableLedger(_Namespace(kv)) if pending else durable()
+    key = None
+    if pending:
+        assert apply(kv, policy, "checkout.session.completed", pack_session(), "evt_buy", ledger).status == 200
+    else:
+        key = bought_pack(kv, policy, ledger)
+    if opened_first:
+        assert apply(kv, policy, "charge.dispute.created", dispute(status="needs_response"), "evt_open", ledger).status == 200
+    first = apply(kv, policy, "charge.dispute.closed", dispute(status=status), "evt_close", ledger)
+    assert first.status == 200
+    assert apply(kv, policy, "charge.dispute.created", dispute(status="needs_response"), "evt_late", ledger).status == 200
+    again = apply(kv, policy, "charge.dispute.closed", dispute(status=status), "evt_again", ledger)
+    assert again.status == 200
+    assert again.body["credits"]["restored"] == 0
+    assert again.body["credits"]["forfeited"] == 0
+    if pending:
+        claimed = claim(kv, policy, ledger)
+        if status == "lost":
+            assert claimed.status == 410
+            assert claimed.body["error"]["code"] == "purchase_refunded"
+            return
+        assert claimed.status == 200
+        key = claimed.body["key"]
+    assert key is not None
+    assert balance(ledger, holder(key)).available == (0 if status == "lost" else 1250)
+
+
+@pytest.mark.parametrize("kind", ["decision", "catalog"])
+@pytest.mark.parametrize("status", ["lost", "won", "warning_closed"])
+def test_terminal_dispute_preserves_returned_draws(policy, kind, status):
+    kv, ledger = MemoryKV(), durable()
+    key = bought_pack(kv, policy, ledger)
+    who = holder(key)
+    taken = (run(ledger.reserve(who, 5)) if kind == "decision"
+             else run(ledger.take_read(who, 10, 100, 10)))
+    assert taken.ok
+    token = taken.reservation_id if kind == "decision" else taken.token
+    assert token is not None
+    assert apply(kv, policy, "charge.dispute.created", dispute(status="needs_response"), "evt_open", ledger).status == 200
+    assert apply(kv, policy, "charge.dispute.closed", dispute(status=status), "evt_close", ledger).status == 200
+    release = ledger.release if kind == "decision" else ledger.release_read
+    assert run(release(who, token))
+    assert not run(release(who, token))
+    assert balance(ledger, who).available == (0 if status == "lost" else 1250)
+
+
+@pytest.mark.parametrize("status", ["won", "warning_closed"])
+def test_terminal_restore_respects_pack_expiry(policy, status):
+    kv, ledger = MemoryKV(), durable()
+    who = "key:expired-dispute"
+    assert run(ledger.credit(who, "pack:expiry", 5, PI,
+                             expires_at="2026-09-23T14:29:59Z", source="pack")).credited
+    assert apply(kv, policy, "charge.dispute.created", dispute(status="needs_response"), "evt_open", ledger).status == 200
+    closed = apply(kv, policy, "charge.dispute.closed", dispute(status=status), "evt_close", ledger)
+    assert closed.status == 200
+    assert closed.body["credits"]["restored"] == 0
+    assert closed.body["credits"]["expired"] == 5
+    assert balance(ledger, who).available == 0
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_legacy_terminal_record_accepts_confirmed_outcome(policy, pending):
+    kv = MemoryKV()
+    state = credits.LedgerState()
+    who, payment_id = "key:legacy-terminal", "pack:legacy-terminal"
+    taken = None
+    if pending:
+        assert state.expect(payment_id, 5, PI).credited
+    else:
+        assert state.credit(who, payment_id, 5, PI).credited
+        taken = state.reserve(who, 5)
+        assert taken.ok and taken.reservation_id is not None
+    raw = state.to_json()
+    raw["payments"][payment_id]["closed_disputes"] = [DISPUTE]
+    ledger = credits.MemoryLedger(credits.LedgerState.from_json(raw))
+    closed = apply(kv, policy, "charge.dispute.closed", dispute(status="lost"), "evt_legacy_close", ledger)
+    assert closed.status == 200
+    if pending:
+        assert run(ledger.credit(who, payment_id, 5, PI)).reason == "refunded"
+    else:
+        assert run(ledger.release(who, taken.reservation_id))
+    assert balance(ledger, who).available == 0
+    assert apply(kv, policy, "charge.dispute.closed", dispute(status="lost"), "evt_legacy_again", ledger).status == 200
+    assert balance(ledger, who).available == 0

@@ -15,6 +15,7 @@ from pathlib import Path
 DEFAULT_SHARD_COUNT = 8
 DEFAULT_DURATIONS_PATH = Path("tests/shard_durations.json")
 DEFAULT_PYTHON_FILES = ("test_*.py", "*_test.py")
+COLLECT_IGNORE = ("benchmarks/_census/cache",)
 DEFAULT_NORECURSEDIRS = (
     "*.egg",
     ".*",
@@ -54,10 +55,14 @@ def _excluded_directory(path: Path, root: Path, patterns: tuple[str, ...]) -> bo
     if path == root:
         return False
     relative = path.relative_to(root).as_posix()
-    return (path / "pyvenv.cfg").is_file() or any(
+    return _collect_ignored(path, root) or (path / "pyvenv.cfg").is_file() or any(
         fnmatch.fnmatchcase(path.name, pattern) or fnmatch.fnmatchcase(relative, pattern)
         for pattern in patterns
     )
+
+
+def _collect_ignored(path: Path, root: Path) -> bool:
+    return any(path.relative_to(root).is_relative_to(ignored) for ignored in COLLECT_IGNORE)
 
 
 def _matches_python_file(path: Path, root: Path, patterns: tuple[str, ...]) -> bool:
@@ -74,6 +79,8 @@ def test_files(root: Path) -> list[Path]:
     discovered: set[Path] = set()
     for testpath in testpaths:
         start = root / testpath
+        if _collect_ignored(start, root):
+            continue
         if start.is_file():
             if _matches_python_file(start, root, python_files):
                 discovered.add(start)
