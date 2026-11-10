@@ -701,6 +701,50 @@ def test_qualified_readings_keep_limits_and_flags_in_post(tmp_path) -> None:
         assert record_id in definition
 
 
+def _footnote_for(post: str, line: str) -> tuple[str, str]:
+    marker = re.search(r"\[\^(\d+)\]", line)
+    assert marker is not None, line
+    definition = next(item for item in post.splitlines()
+                      if item.startswith(f"[^{marker.group(1)}]"))
+    return marker.group(1), definition
+
+
+def test_each_reading_limitation_cites_its_own_record(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    first_text = "The first sample uses a held-out set."
+    second_text = "The second sample uses a public set."
+    first = row.readings[0].model_copy(update={
+        "limitations": first_text, "quality_flags": []})
+    second_id = (first.value.record_id or "reading") + "-second"
+    second = first.model_copy(update={
+        "limitations": second_text,
+        "value": first.value.model_copy(update={"record_id": second_id}),
+    })
+    changed = row.model_copy(update={"readings": [first, second], "limitations": None})
+    post, _charts = render(_with_claim(breakdown, changed))
+    first_line = next(line for line in post.splitlines() if first_text in line)
+    second_line = next(line for line in post.splitlines() if second_text in line)
+    assert first_line != second_line
+    first_mark, first_note = _footnote_for(post, first_line)
+    second_mark, second_note = _footnote_for(post, second_line)
+    assert first_mark != second_mark
+    assert first.value.record_id in first_note
+    assert second_id in second_note
+    assert second_id not in first_note
+
+
+def test_lab_limitation_appears_without_readings(breakdown) -> None:
+    row = next(r for r in breakdown.claims_vs_evidence.claims if r.benchmark == "swe_bench_pro")
+    text = "The lab figure covers a narrow slice."
+    changed = row.model_copy(update={
+        "readings": [], "limitations": text, "status": "no_independent_reading_yet"})
+    post, _charts = render(_with_claim(breakdown, changed))
+    line = next(item for item in post.splitlines() if text in item)
+    assert "lab figure" in line
+    _mark, note = _footnote_for(post, line)
+    assert row.claim.record_id in note
+
+
 def _finite_widths(svg: str) -> None:
     widths = [float(match) for match in re.findall(r'width="([0-9.eE+-]+)"', svg)]
     assert widths
