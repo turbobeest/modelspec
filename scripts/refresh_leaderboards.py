@@ -5,6 +5,8 @@ The weekly premier-set refresh updates existing evidence rows. A release-signal
 run may also add evidence to an explicitly selected existing card when one
 registered board row matches exactly and the board has an unambiguous metadata
 template. The refresh never adds a card or changes identity or licence facts.
+``--arena-latest`` reads the Arena dataset at the revision the Hugging Face
+API names. Without that flag the run keeps the pinned revision.
 Board readers produce one retained projection per board observation. New,
 changed and confirmed evidence passes through the normal two-key verification
 queue.
@@ -208,6 +210,9 @@ class RefreshReport:
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
     added: int = 0
+    arena_revision: str = ""
+    arena_revision_fallback: str | None = None
+    arena_revision_latest: bool = False
 
     def board(self, key: str) -> dict[str, Any]:
         return self.boards.setdefault(
@@ -713,11 +718,29 @@ def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Pa
     return cards
 
 
+def choose_arena_revision(latest: bool) -> readers.ArenaRevision:
+    """The pinned Arena revision, unless ``latest`` asks the dataset API.
+
+    A failed lookup keeps the pin. The returned fallback text is the report line.
+    """
+    if not latest:
+        return readers.ArenaRevision(sha=readers.ARENA_REVISION)
+    chosen = readers.resolve_arena_revision(_fetch)
+    if not readers.valid_arena_revision(chosen.sha):
+        return readers.ArenaRevision(
+            sha=readers.ARENA_REVISION,
+            fallback=chosen.fallback or "resolved sha failed validation",
+        )
+    return chosen
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         source_cache: Path | None = None,
         model_ids: Iterable[str] | None = None,
-        add_missing: bool = False) -> RefreshReport:
+        add_missing: bool = False,
+        arena_latest: bool = False) -> RefreshReport:
     date.fromisoformat(observed_at)
+    chosen = choose_arena_revision(arena_latest)
     cards = _selected_cards(root, model_ids)
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
@@ -727,8 +750,13 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
     store = CopyStore(source_cache)
-    boards, board_failures = collect_readings(observed_at, store, tau_urls)
-    report = RefreshReport(failures=list(board_failures))
+    boards, board_failures = collect_readings(observed_at, store, tau_urls, chosen.sha)
+    report = RefreshReport(
+        failures=list(board_failures),
+        arena_revision=chosen.sha,
+        arena_revision_fallback=chosen.fallback,
+        arena_revision_latest=arena_latest and chosen.fallback is None,
+    )
     registered = load_sources(root / "registry" / "sources.yaml")
     queue = Queue(root / "verification")
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
@@ -848,10 +876,19 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
 
 
 def render_report(report: RefreshReport) -> str:
-    lines = [
+    lines: list[str] = []
+    if report.arena_revision:
+        if report.arena_revision_fallback:
+            status = f"fallback to the pinned default: {report.arena_revision_fallback}"
+        elif report.arena_revision_latest:
+            status = "Hugging Face dataset sha"
+        else:
+            status = "pinned default"
+        lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
+    lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",
-    ]
+    ])
     for board, result in sorted(report.boards.items()):
         lines.append(
             f"| {board} | {result['models_read']} | {result['models_reconfirmed']} | "
@@ -1011,6 +1048,9 @@ def write_audit(path: Path, changes: Sequence[ScoreChange]) -> None:
 def write_report_json(path: Path, report: RefreshReport) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "arena_revision": report.arena_revision,
+        "arena_revision_fallback": report.arena_revision_fallback,
+        "arena_revision_latest": report.arena_revision_latest,
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
@@ -1213,11 +1253,20 @@ def _project_finbenchmark(html: str, *, url: str, page_ref: str,
                                  "harness_version as the finance-benchmark harness")
 
 
-def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]) \
+def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str],
+                     arena_revision: str | None = None) \
         -> tuple[list[BoardReading], list[RowFailure]]:
-    """Fetch every terms-compatible live board used by the premier snapshot."""
+    """Fetch every terms-compatible live board used by the premier snapshot.
+
+    ``arena_revision`` selects the Arena dataset commit. An absent or invalid
+    value keeps the pinned revision. The value is checked again before any URL
+    is built.
+    """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
+    revision = arena_revision or readers.ARENA_REVISION
+    if not readers.valid_arena_revision(revision):
+        revision = readers.ARENA_REVISION
 
     def collect(key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
                 fetch_url: str, projector: Callable[..., bytes], value_field: str,
@@ -1237,9 +1286,9 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
                                        f"{type(exc).__name__}: {exc}"))
 
-    # Arena: only the pinned CC BY 4.0 Hugging Face dataset.
+    # Arena: the CC BY 4.0 Hugging Face dataset, at the revision this run resolved.
     for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
-        fetch_url = readers.ARENA_URL.format(config=config)
+        fetch_url = readers.arena_parquet_url(config, revision)
         try:
             raw = _fetch(fetch_url)
             raw_ref = store.put(raw, source_url=fetch_url)
@@ -1466,10 +1515,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--observed-at", default=date.today().isoformat())
     parser.add_argument("--audit-json", type=Path)
     parser.add_argument("--report-json", type=Path)
+    parser.add_argument(
+        "--arena-latest",
+        action="store_true",
+        help="Read Arena at the current Hugging Face dataset revision. "
+             "A failure keeps the pinned revision and says so in the report.",
+    )
     args = parser.parse_args(argv)
     # The network collector is wired below; keeping the CLI here makes the pure
     # planning and diff guard independently testable.
-    report = run(observed_at=args.observed_at, dry_run=args.dry_run)
+    report = run(observed_at=args.observed_at, dry_run=args.dry_run,
+                 arena_latest=args.arena_latest)
     print(render_report(report))
     if args.audit_json:
         write_audit(args.audit_json, report.changes)
