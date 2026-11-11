@@ -135,6 +135,8 @@ Nine are clause 1 seats on a board under 11 rows, with no current clause. One cl
 
 Of the three seats that had both clauses, two releases are before 2026-08-13 and one is on or after that date. Two of those labs have no clause 1 model left. One lab still has a clause 1 model.
 
+The gap from the current 31 to the approved 44 is mainly clause 1: nine of the removed seats rank only on boards below the 11-row minimum and keep no other clause.
+
 ## Not observed
 
 The local full pytest suite was not run. The site build was not run. Pull-request checks were not run when this file was written. No card id, per-card count, or private data commit is in this file.
