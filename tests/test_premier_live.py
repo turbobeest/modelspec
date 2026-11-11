@@ -351,7 +351,10 @@ def test_live_board_respects_direction_versions_and_model_identity(tmp_path):
 def test_live_vision_domain_keeps_the_existing_vision_quota(tmp_path):
     root = catalogue(tmp_path)
     write_benchmark(root, "arena_sc_vision")
-    write_card(root, "lab/vision-leader", rows=[evidence("lab/vision-leader", "arena_sc_vision", 90)])
+    write_card(
+        root, "lab/vision-leader",
+        rows=[evidence("lab/vision-leader", "arena_sc_vision", 90)],
+    )
     pad_board(root, bench="arena_sc_vision")
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert document["models"][0]["slice1_group"] == "vision"
