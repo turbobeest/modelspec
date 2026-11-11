@@ -56,6 +56,10 @@ def test_exact_scores_tie_to_the_lower_model_id():
     }
 
 
+def test_an_empty_lineup_has_no_probabilities():
+    assert deterministic_probabilities({}) == {}
+
+
 def test_two_models_match_the_closed_form():
     # P(x >= y) for N(0.3, 1) against N(0, 1) is Phi(0.3 / sqrt(2)) = 0.58400.
     assert deterministic_probabilities({

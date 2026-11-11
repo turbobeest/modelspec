@@ -158,7 +158,10 @@ def test_interrupted_request_still_has_readable_spend(ledger, paid_factory):
     assert spent == 1
 
 
-@pytest.mark.parametrize('url', ['https://api.openai.com/model', URL])
+@pytest.mark.parametrize('url', [
+    'https://api.openai.com/model', URL,
+    'https://platform.claude.com/models', 'https://privacy.claude.com/models',
+])
 @pytest.mark.parametrize('retrieved_at', [None, datetime(2026, 10, 20, tzinfo=UTC)])
 def test_successful_primary_never_uses_paid_fetch_or_ledger(
     tmp_path, paid_factory, url, retrieved_at,
@@ -168,7 +171,7 @@ def test_successful_primary_never_uses_paid_fetch_or_ledger(
     result = AdmissionFallback(
         Primary(expected), tmp_path / "missing", month=MONTH, firecrawl_factory=factory
     ).fetch(url)
-    if url == URL:
+    if url != 'https://api.openai.com/model':
         expected = replace(expected, body=b'', snapshot_ref=fingerprint_bytes(BODY))
     assert result == expected and calls == []
     assert not (tmp_path / 'missing').exists()

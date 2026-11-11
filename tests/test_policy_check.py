@@ -258,6 +258,163 @@ def test_an_uncited_commercial_use_is_undetermined_not_a_pass():
     assert row["checks"][0]["undetermined"]["public_state"] == "allowed"
 
 
+def test_commercial_use_probe_body_is_unchanged():
+    """The memory probe's policy-check request, pinned byte for byte."""
+    status, body = check(
+        {"policy": {"commercial_use": {"required": True}}},
+        [_model("acme/cited", commercial="allowed", source=CITED)])
+    assert status == 200
+    assert json.dumps(body, indent=2, default=str) == """{
+  "schema_version": "2.0",
+  "endpoint": "policy-check",
+  "build": {
+    "commit": "deadbeef",
+    "built_at": "2026-09-17T00:00:00Z",
+    "eligibility_as_of": "2026-09-01",
+    "export_schema_version": "3.0"
+  },
+  "service_commit": "0123456789abcdef0123456789abcdef01234567",
+  "export_origin": "https://modelspec.test",
+  "policy": {
+    "name": null,
+    "constraints": {
+      "commercial_use": {
+        "required": true,
+        "accept_restricted": false
+      }
+    },
+    "require_no_undetermined": false
+  },
+  "determinations": {
+    "entitlement": "public_export",
+    "included": false,
+    "answered_from": "the public export only",
+    "store": {
+      "loaded": false,
+      "generated_on": null,
+      "commercial_use_records": 0,
+      "residency_platforms": 0
+    },
+    "undetermined_for_lack_of_entitlement": 0,
+    "why": "commercial_use and data_residency are determinations, and determinations are the paid tier. The endpoint itself is free and this answer is complete for every constraint the public export can settle; the checks it could not settle say so individually, with available_in_tier: paid."
+  },
+  "summary": {
+    "models_checked": 1,
+    "rows": 1,
+    "verdicts": {
+      "pass": 1,
+      "fail": 0,
+      "undetermined": 0
+    },
+    "models_with_a_passing_platform": 1,
+    "models_undetermined_somewhere": 0,
+    "by_constraint": {
+      "commercial_use": {
+        "satisfied": 1,
+        "violated": 0,
+        "undetermined": 0
+      }
+    }
+  },
+  "provenance": {
+    "determination_read_dates": {
+      "commercial_use": [
+        "2026-09-16"
+      ]
+    },
+    "determinations_generated_on": null
+  },
+  "page": {
+    "offset": 0,
+    "limit": 50,
+    "returned": 1,
+    "matching_rows": 1,
+    "truncated": false,
+    "verdicts_shown": [
+      "pass",
+      "fail",
+      "undetermined"
+    ]
+  },
+  "result": [
+    {
+      "model_id": "acme/cited",
+      "display_name": "ACME/CITED",
+      "provider": "acme",
+      "platform": "aws_bedrock",
+      "checks": [
+        {
+          "constraint": "commercial_use",
+          "requirement": {
+            "required": true,
+            "accept_restricted": false
+          },
+          "state": "satisfied",
+          "satisfied": {
+            "conditional": false,
+            "commercial_use": "allowed",
+            "conditions": null,
+            "source": {
+              "kind": "license",
+              "url": "https://example.test/LICENSE",
+              "read_on": "2026-09-16",
+              "quote": "You may use it commercially."
+            },
+            "read_on": "2026-09-16",
+            "determined_on": null,
+            "answered_from": "public_export"
+          }
+        }
+      ],
+      "verdict": "pass",
+      "passed": {
+        "constraints": [
+          "commercial_use"
+        ],
+        "conditions": []
+      }
+    }
+  ]
+}"""
+
+
+def test_a_slim_catalogue_answers_with_the_same_bytes():
+    """Unread export members are not retained, and every check still matches."""
+    import io
+
+    rich = _model("acme/cited", commercial="allowed", source=CITED)
+    rich["platforms"][0]["listed_regions"] = ["us-east-1"]
+    rich["platforms"][0]["url"] = "https://example.test/card"
+    rich["primary_provider"]["data_residency"] = ["US"]
+    rich["licence"]["tos_url"] = "https://example.test/tos"
+    other = _model("acme/other", licence="cc-by-nc-4.0", country="",
+                   commercial="restricted", conditions="research only", source=CITED,
+                   platforms=["aws_bedrock", "local"])
+    models = [rich, other]
+    export = catalogue(models)
+    loaded = service.load_policy_catalogue(io.StringIO(json.dumps(export)))
+    retained = loaded["models"][0]
+    assert isinstance(retained, service.PolicyModel)
+    assert retained.platforms == ("aws_bedrock",)
+    assert retained.license_type == "apache-2.0"
+    assert retained.license_url == "https://example.test/l"
+    assert loaded["build"] == export["build"]
+    payloads = (
+        {"policy": {"commercial_use": {"required": True}}},
+        {"policy": {"licence": {"prohibited": ["cc-by-nc-4.0"]},
+                    "origin": {"permitted_countries": ["US"]}}},
+        {"policy": {"residency": {"required_regions": ["us-east-1"]}},
+         "platforms": ["aws_bedrock"]},
+    )
+    for payload in payloads:
+        full = check(payload, models)
+        slim = service.check(payload, loaded, None, service.ENTITLEMENT_PUBLIC,
+                             SERVICE_COMMIT, ORIGIN)
+        assert full[0] == slim[0]
+        assert json.dumps(full[1], indent=2, default=str) == json.dumps(
+            slim[1], indent=2, default=str)
+
+
 # ── fail names the constraint and cites a source with a read date ────────────
 
 def test_fail_names_the_eliminating_constraint_and_cites_it():

@@ -427,11 +427,10 @@ def _documents(determination: dict[str, Any]) -> list[dict[str, str]]:
 
 # ── the four checks ──────────────────────────────────────────────────────────
 
-def check_licence(row: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
+def check_licence(row: PolicyModel, requirement: dict[str, Any]) -> dict[str, Any]:
     """The licence the card names, against the caller's allow/deny lists."""
-    licence = row.get("licence") or {}
-    value = licence.get("license_type")
-    evidence = {"license_type": value, "license_url": licence.get("license_url") or None}
+    value = row.license_type
+    evidence = {"license_type": value, "license_url": row.license_url or None}
     if not value:
         return _undetermined("licence", requirement, "not_on_card",
                              field="licensing.license_type", **evidence)
@@ -447,14 +446,13 @@ def check_licence(row: dict[str, Any], requirement: dict[str, Any]) -> dict[str,
     return _satisfied("licence", requirement, **evidence)
 
 
-def check_origin(row: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
+def check_origin(row: PolicyModel, requirement: dict[str, Any]) -> dict[str, Any]:
     """Where the model came from. A blank country is undetermined, never allowed."""
-    origin = row.get("origin") or {}
-    country = (origin.get("country") or "").strip()
+    country = (row.country or "").strip()
     if not country:
         return _undetermined("origin", requirement, "not_on_card",
                              field="licensing.origin_country")
-    evidence = {"origin_country": country, "org_type": origin.get("org_type")}
+    evidence = {"origin_country": country, "org_type": row.org_type}
     if country in requirement["prohibited_countries"]:
         return _violated("origin", requirement,
                          because=(f"the model originates in {country}, which the policy "
@@ -466,7 +464,7 @@ def check_origin(row: dict[str, Any], requirement: dict[str, Any]) -> dict[str, 
     return _satisfied("origin", requirement, **evidence)
 
 
-def check_commercial_use(row: dict[str, Any], requirement: dict[str, Any],
+def check_commercial_use(row: PolicyModel, requirement: dict[str, Any],
                          determination: dict[str, Any] | None,
                          entitled: bool) -> dict[str, Any]:
     """Is commercial use granted, and on what condition.
@@ -483,10 +481,9 @@ def check_commercial_use(row: dict[str, Any], requirement: dict[str, Any],
         origin_of_answer = "determinations"
         determined_on = determination.get("determined_on")
     else:
-        public = row.get("commercial_use") or {}
-        value = public.get("value")
-        conditions = (public.get("conditions") or "").strip()
-        raw_source = public.get("source")
+        value = row.commercial_value
+        conditions = (row.commercial_conditions or "").strip()
+        raw_source = row.commercial_source
         origin_of_answer = "public_export"
         determined_on = None
         if value not in DETERMINED_PERMISSIONS:
@@ -629,7 +626,7 @@ def check_residency(platform: str | None, requirement: dict[str, Any],
 CONSTRAINT_ORDER = ("licence", "origin", "commercial_use", "residency")
 
 
-def _row(model: dict[str, Any], platform: str | None,
+def _row(model: PolicyModel, platform: str | None,
          checks: list[dict[str, Any]]) -> dict[str, Any]:
     """One (model, platform) verdict, with the three states kept apart.
 
@@ -642,9 +639,9 @@ def _row(model: dict[str, Any], platform: str | None,
     violated = [c for c in checks if c["state"] == "violated"]
     undetermined = [c for c in checks if c["state"] == "undetermined"]
     row = {
-        "model_id": model["model_id"],
-        "display_name": model.get("display_name"),
-        "provider": model.get("provider"),
+        "model_id": model.model_id,
+        "display_name": model.display_name,
+        "provider": model.provider,
         "platform": platform,
         "checks": checks,
     }
@@ -673,8 +670,8 @@ def _row(model: dict[str, Any], platform: str | None,
     }}
 
 
-def _platforms_for(model: dict[str, Any], wanted: list[str]) -> list[str | None]:
-    available = [p["platform"] for p in (model.get("platforms") or [])]
+def _platforms_for(model: PolicyModel, wanted: list[str]) -> list[str | None]:
+    available = list(model.platforms)
     if wanted:
         available = [p for p in available if p in wanted]
         return list(available)
@@ -683,10 +680,10 @@ def _platforms_for(model: dict[str, Any], wanted: list[str]) -> list[str | None]
     return list(available) if available else [None]
 
 
-def evaluate(model: dict[str, Any], platform: str | None, constraints: dict[str, Any],
+def evaluate(model: PolicyModel, platform: str | None, constraints: dict[str, Any],
              store: dict[str, Any], unbounded: set[str], entitled: bool) -> dict[str, Any]:
     """Every constraint the policy states, against one (model, platform) pair."""
-    commercial = (store.get("commercial_use") or {}).get(model["model_id"]) if entitled else None
+    commercial = (store.get("commercial_use") or {}).get(model.model_id) if entitled else None
     residency = (store.get("residency") or {}).get(platform) if entitled and platform else None
 
     checks: list[dict[str, Any]] = []
@@ -786,6 +783,76 @@ def _read_dates(rows: list[dict[str, Any]]) -> dict[str, list[str]]:
     return {k: sorted(v) for k, v in sorted(dates.items())}
 
 
+class PolicyModel:
+    """The model fields a check reads, without a dict per nested export member.
+
+    Platform region lists, the primary provider, and unread licence members are
+    not stored. A check of one of these matches a check of the export row.
+    """
+
+    __slots__ = (
+        "model_id", "display_name", "provider", "platforms",
+        "license_type", "license_url", "country", "org_type",
+        "commercial_value", "commercial_conditions", "commercial_source",
+    )
+
+    def __init__(self, model_id: str, display_name: Any, provider: Any,
+                 platforms: tuple[str, ...], license_type: Any, license_url: Any,
+                 country: Any, org_type: Any, commercial_value: Any,
+                 commercial_conditions: Any, commercial_source: Any) -> None:
+        self.model_id = model_id
+        self.display_name = display_name
+        self.provider = provider
+        self.platforms = platforms
+        self.license_type = license_type
+        self.license_url = license_url
+        self.country = country
+        self.org_type = org_type
+        self.commercial_value = commercial_value
+        self.commercial_conditions = commercial_conditions
+        self.commercial_source = commercial_source
+
+
+def catalogue_model(model: dict[str, Any]) -> PolicyModel:
+    """Reduce one export row to a `PolicyModel` and drop the row."""
+    licence = model.get("licence") or {}
+    origin = model.get("origin") or {}
+    commercial = model.get("commercial_use") or {}
+    if not isinstance(licence, dict):
+        licence = {}
+    if not isinstance(origin, dict):
+        origin = {}
+    if not isinstance(commercial, dict):
+        commercial = {}
+    source = commercial.get("source")
+    if isinstance(source, dict):
+        source = {key: source.get(key) for key in ("kind", "url", "read_on", "quote")}
+    platforms = tuple(item["platform"] for item in (model.get("platforms") or []))
+    return PolicyModel(
+        model["model_id"], model.get("display_name"), model.get("provider"), platforms,
+        licence.get("license_type"), licence.get("license_url"),
+        origin.get("country"), origin.get("org_type"),
+        commercial.get("value"), commercial.get("conditions"), source,
+    )
+
+
+def load_policy_catalogue(stream: Any) -> dict[str, Any]:
+    """Read a catalogue and retain one slim model at a time."""
+    from decision.json_stream import Each, JSONStreamReader
+
+    reader = JSONStreamReader(stream, transforms={"models": {None: Each(catalogue_model)}})
+    export = reader.read_value()
+    reader.finish()
+    if not isinstance(export, dict):
+        raise ValueError("policy catalogue is not an object")
+    models = export.get("models")
+    if models is None:
+        export["models"] = []
+    elif not isinstance(models, list):
+        raise ValueError("policy catalogue models is not an array")
+    return export
+
+
 def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
           entitlement: str, service_commit: str, origin: str) -> tuple[int, dict[str, Any]]:
     """Answer one `POST /v1/policy-check`. Returns the status code and the body."""
@@ -802,14 +869,15 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
             status=HTTP_DETERMINATIONS_UNAVAILABLE)
     store = store or {}
 
-    catalogue = list(export.get("models") or [])
+    catalogue = [model if isinstance(model, PolicyModel) else catalogue_model(model)
+                 for model in (export.get("models") or [])]
     known_platforms = set(export.get("platform_classes", {}).get("all") or [])
     unbounded = set(export.get("platform_classes", {}).get("unbounded") or [])
     request = parse_request(payload, known_platforms)
     constraints = request["policy"]["constraints"]
 
     if request["models"]:
-        by_id = {m["model_id"]: m for m in catalogue}
+        by_id = {m.model_id: m for m in catalogue}
         missing = [m for m in request["models"] if m not in by_id]
         if missing:
             raise RequestError("unknown_model",
@@ -826,7 +894,7 @@ def check(payload: Any, export: dict[str, Any], store: dict[str, Any] | None,
     page: list[dict[str, Any]] = []
     offenders: list[dict[str, Any]] = []
     read_dates: dict[str, set[str]] = {}
-    for model in sorted(catalogue, key=lambda m: m["model_id"]):
+    for model in sorted(catalogue, key=lambda m: m.model_id):
         for platform in _platforms_for(model, request["platforms"]):
             row = evaluate(model, platform, constraints, store, unbounded, entitled)
             verdict_counts[row["verdict"]] += 1

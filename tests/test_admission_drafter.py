@@ -530,7 +530,7 @@ def test_lineup_entry_carries_verified_class_and_review_clause(tmp_path):
     ('help.openai.com', 'openai', True),
     ('docs.x.ai', 'xai', True),
     ('claude.com', 'anthropic', False),
-    ('platform.claude.com', 'anthropic', False),
+    ('platform.claude.com', 'anthropic', True),
     ('unlisted.openai.com', 'openai', False),
     ('sub.ai.google.dev', 'google', False),
 ])

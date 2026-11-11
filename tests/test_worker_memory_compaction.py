@@ -118,6 +118,49 @@ def test_generated_bundle_streams_the_same_bytes_it_reads():
     assert data.read("/api/missing.json") is None and data.stream("/api/missing.json") is None
 
 
+def test_each_converts_array_elements_as_they_are_read(monkeypatch):
+    monkeypatch.setattr(json_stream, "_CHUNK_SIZE", 1)
+    seen = []
+
+    def mark(item):
+        seen.append(item["n"])
+        return item["n"]
+
+    reader = json_stream.JSONStreamReader(
+        io.StringIO(json.dumps({"rows": [{"n": 1}, {"n": 2}], "tail": "kept"})),
+        transforms={"rows": {None: json_stream.Each(mark)}})
+    result = reader.read_value()
+    reader.finish()
+    assert result == {"rows": [1, 2], "tail": "kept"}
+    assert seen == [1, 2]
+
+
+def test_rank_export_keeps_one_candidate_list_and_the_same_rank_bytes():
+    from api.worker.src import rank_service
+
+    rows = [
+        {"model_id": "lab/a", "display_name": "A", "provider": "lab",
+         "benchmark_scores": {"humaneval": 80.0}, "cited_facts": [{"facet": "model.class"}]},
+        {"model_id": "lab/b", "display_name": "B", "provider": "lab"},
+    ]
+    export = {"build": {"commit": "abc", "export_schema_version": "3.0"},
+              "authoring_guides": {}, "candidates": rows}
+    meta, prepared = rank_service.load_rank_export(io.StringIO(json.dumps(export)))
+    assert "candidates" not in meta
+    assert meta["build"] == export["build"]
+    direct = rank_service.candidates_from_export(export)
+    assert [c.model_id for c in prepared] == [c.model_id for c in direct]
+    assert prepared[0].cited_facts == direct[0].cited_facts
+    assert prepared[1].cited_facts is direct[1].cited_facts
+    assert prepared[1].cited_benchmarks is direct[1].cited_benchmarks
+    payload = {"use_case": "coding", "limit": 2}
+    streamed = rank_service.rank(payload, meta, None, "commit", "https://modelspec.test",
+                                 prepared_candidates=prepared)
+    whole = rank_service.rank(payload, export, None, "commit", "https://modelspec.test")
+    assert streamed[0] == whole[0]
+    assert json.dumps(streamed[1], indent=2, default=str) == json.dumps(whole[1], indent=2, default=str)
+
+
 def test_uncited_rank_candidates_share_one_empty_citation_value():
     from api.worker.src import rank_service
 

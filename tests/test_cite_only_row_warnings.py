@@ -133,6 +133,7 @@ def test_each_band_keeps_citation_on_its_affected_row_only(name):
 @pytest.mark.parametrize("host", [
     "x.ai", "docs.x.ai", "perplexity.ai", "www.anthropic.com", "developers.openai.com",
     "help.openai.com", "chatgpt.com", "cursor.com",
+    "platform.claude.com", "privacy.claude.com",
 ])
 @pytest.mark.parametrize("position", ["rest", "eliminated", "recommended", "tied"])
 def test_grok_warning_stays_on_its_row_unless_the_answer_recommends_it(host, position):

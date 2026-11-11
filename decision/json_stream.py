@@ -15,7 +15,17 @@ _VALUE_END = ",]}:" + _WHITESPACE
 #: decoded: member name (or ``"*"`` for any member) to a subtrie, and ``None``
 #: to the conversion for the value at that path. Converting while reading keeps
 #: a large container's decoded form from being held whole (MODEL-417).
+#: ``None: Each(fn)`` converts each array element and drops it before the next.
 Transforms = Mapping[str | None, Any]
+
+
+class Each:
+    """Convert one JSON array element, then drop that element."""
+
+    __slots__ = ("convert",)
+
+    def __init__(self, convert: Callable[[Any], Any]):
+        self.convert = convert
 
 
 class JSONStreamReader:
@@ -143,12 +153,37 @@ class JSONStreamReader:
                 raise self._error("missing JSON array value separator")
             self._cursor += 1
 
+    def _mapped_array(self, convert: Callable[[Any], Any]) -> list[Any]:
+        # Do not raw-decode the array: that retains every element until it ends.
+        self._cursor += 1
+        result = []
+        self._whitespace()
+        if self._starts("]"):
+            self._cursor += 1
+            return result
+        while True:
+            item = self.read_value()
+            result.append(convert(item))
+            del item
+            self._whitespace()
+            if self._starts("]"):
+                self._cursor += 1
+                return result
+            if not self._starts(","):
+                raise self._error("missing JSON array value separator")
+            self._cursor += 1
+            self._whitespace()
+
     def _read_transformed(self, transforms: Transforms | None) -> Any:
         if transforms is None:
             return self.read_value()
         self._whitespace()
-        value = self._object(transforms) if self._starts("{") else self.read_value()
         convert: Callable[[Any], Any] | None = transforms.get(None)
+        if isinstance(convert, Each):
+            if not self._starts("["):
+                raise self._error("expected a JSON array")
+            return self._mapped_array(convert.convert)
+        value = self._object(transforms) if self._starts("{") else self.read_value()
         return value if convert is None else convert(value)
 
     def read_value(self) -> Any:

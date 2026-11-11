@@ -58,7 +58,7 @@ import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
-from io import BytesIO, TextIOWrapper
+from io import BytesIO, StringIO, TextIOWrapper
 from urllib.parse import parse_qs, urlparse
 
 # Load the private bundle before request schemas.
@@ -292,7 +292,7 @@ if globals().get("bundled_data") is not None:
     if _rank_source is not None:
         # Malformed required candidates must fail deployment snapshot creation.
         with TextIOWrapper(_rank_source, encoding="utf-8") as _rank_stream:
-            _rank_export = load_json(_rank_stream)
+            _rank_export, _prepared = service.load_rank_export(_rank_stream)
         _hardware_bytes = None
         try:
             _hardware_bytes = bundled_data.read(HARDWARE_PATH)
@@ -301,8 +301,8 @@ if globals().get("bundled_data") is not None:
             _hardware = None
         _cache.update(candidates=_rank_export,
                       hardware=_hardware,
-                      prepared=service.candidates_from_export(_rank_export))
-        del _rank_export, _hardware_bytes, _hardware
+                      prepared=_prepared)
+        del _rank_export, _prepared, _hardware_bytes, _hardware
     del _rank_source
 
 
@@ -404,7 +404,7 @@ async def _load_export(origin: str, *, force: bool = False):
         return _cache["candidates"], _cache["hardware"]
 
     try:
-        candidates = await _get_json(origin + CANDIDATES_PATH)
+        candidates, prepared = await _read_rank_export(origin)
     except Exception as exc:  # noqa: BLE001 - surfaced on /v1/health, never swallowed
         _cache["error"] = f"{type(exc).__name__}: {exc}"
         if _cache["candidates"] is not None:
@@ -417,9 +417,44 @@ async def _load_export(origin: str, *, force: bool = False):
         hardware = None
 
     _cache.update({"at": time.time(), "candidates": candidates,
-                   "prepared": service.candidates_from_export(candidates),
+                   "prepared": prepared,
                    "hardware": hardware, "error": None})
     return candidates, hardware
+
+
+async def _read_rank_export(origin: str):
+    """The rank export as retained metadata plus one `Candidate` per row."""
+    url = origin + CANDIDATES_PATH
+    bundled, raw = _bundled_read(url, stream=True)
+    if bundled:
+        if raw is None:
+            raise RuntimeError("private bundle is missing a required export")
+        with TextIOWrapper(raw, encoding="utf-8") as stream:
+            return service.load_rank_export(stream)
+    response = await fetch(url)
+    if not response.ok:
+        raise RuntimeError(f"{url} returned HTTP {response.status}")
+    return service.load_rank_export(StringIO(await response.text()))
+
+
+async def _read_policy_catalogue(origin: str):
+    """Stream the catalogue into the fields a check reads.
+
+    The export's other members (region lists, the primary provider) are dropped
+    as each model is read, so the isolate does not keep a second fat copy
+    (MODEL-409).
+    """
+    url = origin + POLICY_PATH
+    bundled, raw = _bundled_read(url, stream=True)
+    if bundled:
+        if raw is None:
+            raise RuntimeError("private bundle is missing a required export")
+        with TextIOWrapper(raw, encoding="utf-8") as stream:
+            return policy_service.load_policy_catalogue(stream)
+    response = await fetch(url)
+    if not response.ok:
+        raise RuntimeError(f"{url} returned HTTP {response.status}")
+    return policy_service.load_policy_catalogue(StringIO(await response.text()))
 
 
 async def _load_policy_catalogue(origin: str):
@@ -432,7 +467,7 @@ async def _load_policy_catalogue(origin: str):
     if fresh and _policy_cache["catalogue"] is not None:
         return _policy_cache["catalogue"]
     try:
-        catalogue = await _get_json(origin + POLICY_PATH)
+        catalogue = await _read_policy_catalogue(origin)
     except Exception as exc:  # noqa: BLE001 - surfaced on /v1/health, never swallowed
         _policy_cache["error"] = f"{type(exc).__name__}: {exc}"
         if _policy_cache["catalogue"] is not None:
@@ -2210,7 +2245,13 @@ class Default(WorkerEntrypoint):
             candidates, _ = await _load_export(origin)
             loaded = True
             build = candidates.get("build") or {}
-            model_count = len(candidates.get("candidates") or [])
+            rows = candidates.get("candidates")
+            if isinstance(rows, list):
+                model_count = len(rows)
+            elif _cache.get("candidates") is candidates and _cache.get("prepared") is not None:
+                model_count = len(_cache["prepared"])
+            else:
+                model_count = 0
         except Exception as exc:  # noqa: BLE001 - the diagnosis is the point
             error = f"{type(exc).__name__}: {exc}"
 

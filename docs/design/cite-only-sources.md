@@ -10,7 +10,11 @@ build configuration, with `schema_version: 1` and `cite_only_hosts` containing
 `x.ai`, `docs.x.ai`, and `perplexity.ai`. It is not curated model data and is
 not one of the frozen paths in `pipeline/data_source.py:30`. Private overlays
 retain this configuration. No private data PR or edits to the 718 existing
-premier facts are part of this change.
+premier facts are part of this change. Later decisions append hosts in that
+file. MODEL-436 added `www.anthropic.com`, `developers.openai.com`,
+`help.openai.com`, `chatgpt.com` and `cursor.com`. MODEL-409-HOSTS adds
+`platform.claude.com` and `privacy.claude.com`. `claude.com` and
+`support.claude.com` stay off the list.
 
 A shared, standard-library retention module loads this file. Hosts are
 case-insensitive, ignore a terminal dot and port, and match the named host or
