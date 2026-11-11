@@ -73,6 +73,7 @@ class Resolution:
     model_id: str | None
     candidates: tuple[str, ...] = ()
     reason: str = ""
+    suffix_stripped: bool = False
 
 
 @dataclass(frozen=True)
@@ -146,6 +147,59 @@ def _provider_slugs(signal_provider: str, models_dir: Path) -> tuple[str, ...]:
     return tuple(sorted(slugs))
 
 
+def _catalogue_matches(
+    signal_provider: str, provider: str, wanted: str, root: Path,
+) -> list[str]:
+    """Card ids whose exact alias normalises to `wanted`."""
+    matches: list[str] = []
+    known_path = root / "scripts" / "models_dev_known_identities.yaml"
+    if known_path.is_file():
+        known = load_known_identities(known_path)
+        for listed, canonical in known.items():
+            listed_provider, separator, listed_name = listed.partition("/")
+            canonical_path = (root / "models" / canonical).with_suffix(".md")
+            if (
+                separator
+                and attribution.normalise(listed_provider) in {
+                    attribution.normalise(provider),
+                    attribution.normalise(signal_provider),
+                }
+                and attribution.normalise(listed_name) == wanted
+                and canonical_path.is_file()
+            ):
+                matches.append(canonical)
+    for path in sorted((root / "models" / provider).glob("*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        aliases = {
+            attribution.normalise(str(front.get("display_name") or "")),
+            attribution.normalise(str(front.get("version") or "")),
+            attribution.normalise(model_id.rsplit("/", 1)[-1]),
+            attribution.normalise(path.stem),
+        }
+        if wanted in aliases:
+            matches.append(model_id)
+    return sorted(set(matches))
+
+
+def _one_trailing_suffix(model_name: str) -> str | None:
+    """Normalised name with one trailing `.1` or `-1` removed.
+
+    A second suffix stays in place. `Orbit 1.1.1` becomes `orbit-1-1`, and
+    `orbit-1-1-1` becomes `orbit-1-1`. An empty remainder is not a name.
+    """
+    if model_name.endswith(".1"):
+        base = attribution.normalise(model_name[:-2])
+        if base:
+            return base
+    normalised = attribution.normalise(model_name)
+    if normalised.endswith("-1"):
+        base = normalised[:-2].strip("-")
+        if base:
+            return base
+    return None
+
+
 def resolve_signal(signal, root: Path) -> Resolution:
     """Resolve only exact aliases. Ambiguity stays explicit."""
     models_dir = root / "models"
@@ -157,39 +211,24 @@ def resolve_signal(signal, root: Path) -> Resolution:
         )
     provider = providers[0]
     wanted = attribution.normalise(signal.model_name)
-    matches: list[str] = []
-    known_path = root / "scripts" / "models_dev_known_identities.yaml"
-    if known_path.is_file():
-        known = load_known_identities(known_path)
-        for listed, canonical in known.items():
-            listed_provider, separator, listed_name = listed.partition("/")
-            canonical_path = root / "models" / canonical.replace("/", "/", 1)
-            canonical_path = canonical_path.with_suffix(".md")
-            if (
-                separator
-                and attribution.normalise(listed_provider) in {
-                    attribution.normalise(provider), attribution.normalise(signal.provider)
-                }
-                and attribution.normalise(listed_name) == wanted
-                and canonical_path.is_file()
-            ):
-                matches.append(canonical)
-    for path in sorted((models_dir / provider).glob("*.md")):
-        front = _front(path)
-        model_id = str(front.get("model_id") or "")
-        aliases = {
-            attribution.normalise(str(front.get("display_name") or "")),
-            attribution.normalise(str(front.get("version") or "")),
-            attribution.normalise(model_id.rsplit("/", 1)[-1]),
-            attribution.normalise(path.stem),
-        }
-        if wanted in aliases:
-            matches.append(model_id)
-    matches = sorted(set(matches))
+    matches = _catalogue_matches(signal.provider, provider, wanted, root)
     if len(matches) == 1:
         return Resolution("existing", matches[0], tuple(matches), "exact catalogue alias")
     if len(matches) > 1:
         return Resolution("uncertain", None, tuple(matches), "more than one exact alias matched")
+    stripped = _one_trailing_suffix(signal.model_name)
+    if stripped is not None and stripped != wanted:
+        stripped_matches = _catalogue_matches(signal.provider, provider, stripped, root)
+        if len(stripped_matches) == 1:
+            return Resolution(
+                "existing", stripped_matches[0], tuple(stripped_matches),
+                "suffix_stripped", suffix_stripped=True,
+            )
+        if len(stripped_matches) > 1:
+            return Resolution(
+                "uncertain", None, tuple(stripped_matches),
+                "the name with one trailing suffix matched more than one card",
+            )
     model_id = f"{provider}/{slugify(signal.model_name)}"
     return Resolution("new", model_id, (), "no exact catalogue alias matched")
 
