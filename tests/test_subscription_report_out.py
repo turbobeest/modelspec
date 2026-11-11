@@ -4,6 +4,7 @@ from __future__ import annotations
 import fcntl
 import os
 import re
+import shutil
 import stat
 import subprocess
 import time
@@ -474,8 +475,8 @@ def _run_wrapper(fixture, interpreter=None):
 
     The wrapper's PATH starts with Homebrew, and this Mac has a real git
     there. A git function defined for that shell is the double. Direct
-    execution follows the shebang, so bash reads BASH_ENV. launchd passes
-    the file to /bin/zsh, which reads ZDOTDIR/.zshenv instead.
+    execution follows the shebang, so bash reads BASH_ENV. An explicit
+    zsh reads ZDOTDIR/.zshenv instead.
     """
     env = {
         'PATH': '/usr/bin:/bin',
@@ -552,7 +553,18 @@ def test_subscription_job_wrapper_forwards_args_offline(tmp_path):
     _assert_wrapper_forwarded(completed, fixture)
 
 
-def test_subscription_job_wrapper_under_zsh_forwards_the_same_args(tmp_path):
+def test_subscription_job_wrapper_under_bash_forwards_the_same_args(tmp_path):
+    bash = shutil.which('bash')
+    assert bash
     fixture = _wrapper_fixture(tmp_path)
-    completed = _run_wrapper(fixture, interpreter='/bin/zsh')
+    completed = _run_wrapper(fixture, interpreter=bash)
+    _assert_wrapper_forwarded(completed, fixture)
+
+
+@pytest.mark.skipif(shutil.which('zsh') is None, reason='zsh is not on PATH')
+def test_subscription_job_wrapper_under_zsh_forwards_the_same_args(tmp_path):
+    zsh = shutil.which('zsh')
+    assert zsh
+    fixture = _wrapper_fixture(tmp_path)
+    completed = _run_wrapper(fixture, interpreter=zsh)
     _assert_wrapper_forwarded(completed, fixture)
