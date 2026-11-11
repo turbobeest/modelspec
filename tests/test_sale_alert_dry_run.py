@@ -82,7 +82,7 @@ def test_preview_both_sales_redacts_secrets_without_http(monkeypatch, http, caps
         channel: {
             "token": "[REDACTED]", "user": "[REDACTED]",
             "title": "ModelSpec sale", "message": message,
-            "priority": "0", "ttl": "900",
+            "priority": "0", "sound": "cashregister", "ttl": "900",
         }
         for channel, message in MESSAGES.items()
     }
