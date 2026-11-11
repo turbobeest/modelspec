@@ -121,9 +121,9 @@
     //   npx wrangler secret put VISITOR_HMAC_KEY
     //   npx wrangler secret put VISITOR_HMAC_KEY --env staging
     // Without it a keyless visitor gets no meter id and takes the paid path.
-    // MODEL-113. Grok Bot release-signal intake. Keep this off until Jamie
-    // creates the two Wrangler secrets and configures Grok Bot.
-    "SIGNALS_ENABLED": "false",
+    // MODEL-113. Grok Bot release-signal intake. On since 2026-11-10 (Jamie):
+    // SIGNALS_HMAC_SECRET and SIGNALS_READ_KEY are Wrangler secrets.
+    "SIGNALS_ENABLED": "true",
     // MODEL-221. Feedback storage (POST /v1/feedback). Ships OFF: the endpoint
     // validates, rate-limits in memory and answers `not_recorded`, and writes
     // nothing anywhere. Turning it on is Jamie's call, after the privacy
