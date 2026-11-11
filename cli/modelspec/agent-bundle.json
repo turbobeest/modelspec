@@ -828,7 +828,7 @@
     "api/worker/tiers.json":
       "e142a6a34d21803872eaed986a0b3b900f4f1e7af206943200a52c42684e3a39",
     "api/worker/wrangler.jsonc":
-      "473788e46e44a1858f015cde6742e35d053f77d17bb303c0cced969db1ef7b10",
+      "ee0b5fffecdc481f18094dc7d182af5e9c69bc3170e2613d66866b119dc1af9c",
     "docs/decision-contract.schema.json":
       "d3dcffc1649d9ea4ae57e58c3059499cb9943cb1f762ce5c244d5227b3ee872f",
     "pipeline/agent_copy.py":
