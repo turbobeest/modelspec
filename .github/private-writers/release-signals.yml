@@ -2,6 +2,8 @@
 name: Process release signals
 permissions:
   contents: read
+env:
+  MAX_RELEASE_SIGNAL_WORK_ITEMS: "10"
 concurrency:
   group: release-signals
   cancel-in-progress: false
@@ -36,16 +38,28 @@ jobs:
       - name: Build the isolated-work matrix
         id: matrix
         run: |
-          matrix="$(jq -c '{work: (
-            [.signals[]? | {signal_id: .signal_id, recheck_day: 0, pr_url: null}] +
-            [.rechecks[]? | {
-              signal_id: .signal.signal_id,
-              recheck_day: .day,
-              pr_url: (.pr_url // null)
-            }]
-          )}' "$RUNNER_TEMP/pending.json")"
+          selected="$(jq -c --argjson limit "$MAX_RELEASE_SIGNAL_WORK_ITEMS" '
+            (
+              [.signals[]? | {
+                _sort: [.timestamp, .signal_id],
+                signal_id,
+                recheck_day: 0,
+                pr_url: (.pr_url // null)
+              }] | sort_by(._sort)
+            ) + (
+              [.rechecks[]? | {
+                _sort: [.due // "", .signal.timestamp // "", .signal.signal_id],
+                signal_id: .signal.signal_id,
+                recheck_day: .day,
+                pr_url: (.pr_url // null)
+              }] | sort_by(._sort)
+            )
+            | .[ :$limit]
+            | map(del(._sort))
+          ' "$RUNNER_TEMP/pending.json")"
+          matrix="$(jq -nc --argjson work "$selected" '{work: $work}')"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "count=$(jq '[.signals[]?, .rechecks[]?] | length' "$RUNNER_TEMP/pending.json")" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq 'length' <<<"$selected")" >> "$GITHUB_OUTPUT"
       - name: Preserve pending work for each isolated job
         uses: actions/upload-artifact@v4
         with:
@@ -314,6 +328,13 @@ jobs:
             --recheck-day "$RECHECK_DAY" \
             "${closed_pr[@]}"
           cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the signal result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signal-result-${{ matrix.work.signal_id }}-${{ matrix.work.recheck_day }}
+          path: ${{ runner.temp }}/result.json
+          if-no-files-found: ignore
       - name: Retain allowed pricing copies and citation metadata for review
         if: always()
         uses: actions/upload-artifact@v4
@@ -345,30 +366,14 @@ jobs:
               print(f"failures={result.get('failures', 0)}", file=handle)
               print(f"quarantined={result.get('quarantined', 0)}", file=handle)
           PY
-      - name: Flag an uncertain identity
-        id: uncertain
-        if: steps.classify.outputs.resolution == 'uncertain'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
-        run: |
-          issue_url="$(gh issue create \
-            --title "release signal needs identity review: $SIGNAL_ID" \
-            --label new-model \
-            --body-file "$RUNNER_TEMP/result.json")"
-          echo "url=$issue_url" >> "$GITHUB_OUTPUT"
       - name: Flag a new-model PR closed without merge
         id: closed_pr
         if: steps.classify.outputs.resolution == 'closed_unmerged'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
+          PR_URL: ${{ matrix.work.pr_url }}
         run: |
-          issue_url="$(gh issue create \
-            --title "release signal PR closed without merge: $SIGNAL_ID" \
-            --label new-model \
-            --body-file "$RUNNER_TEMP/result.json")"
-          echo "url=$issue_url" >> "$GITHUB_OUTPUT"
+          url="$PR_URL"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - name: Validate cards and run two-key verification
         if: steps.classify.outputs.changed == 'true'
         env:
@@ -449,7 +454,7 @@ jobs:
       - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks
         if: steps.classify.outputs.resolution != 'empty'
         env:
-          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || steps.uncertain.outputs.url || matrix.work.pr_url || '' }}
+          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || matrix.work.pr_url || '' }}
           MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
         run: |
           python -I - "$RUNNER_TEMP/ack.json" <<'PY'
@@ -475,5 +480,50 @@ jobs:
     defaults:
       run:
         working-directory: data
+  review:
+    name: Open one identity-review issue
+    needs: [pending, process]
+    if: always() && needs.pending.result == 'success' && needs.pending.outputs.count != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Prepare the private review label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create new-model --color 0E8A16 --description 'Release identity needs human review' --force
+      - name: Download signal results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-signal-result-*
+          path: ${{ runner.temp }}/signal-results
+      - name: Open one issue for uncertain identities
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/signal-results"
+          find "$RUNNER_TEMP/signal-results" -type f -name '*.json' | sort > "$RUNNER_TEMP/result-files.txt"
+          if [ ! -s "$RUNNER_TEMP/result-files.txt" ]; then
+            exit 0
+          fi
+          files=()
+          while IFS= read -r path; do
+            files+=("$path")
+          done < "$RUNNER_TEMP/result-files.txt"
+          jq -s 'map(select(.status == "uncertain") | {signal_id, reason})' "${files[@]}" > "$RUNNER_TEMP/uncertain.json"
+          if [ "$(jq 'length' "$RUNNER_TEMP/uncertain.json")" -eq 0 ]; then
+            exit 0
+          fi
+          today="$(date -u +%F)"
+          {
+            echo "Signals whose identity could not be resolved."
+            echo
+            jq -r '.[] | "- \(.signal_id): \(.reason)"' "$RUNNER_TEMP/uncertain.json"
+          } > "$RUNNER_TEMP/issue-body.md"
+          gh issue create \
+            --title "release signals needing identity review ($today)" \
+            --label new-model \
+            --body-file "$RUNNER_TEMP/issue-body.md"
 'on':
   workflow_dispatch: null

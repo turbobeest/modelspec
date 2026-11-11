@@ -469,8 +469,8 @@ def test_ambiguous_lab_and_model_relationship_is_flagged_for_identity_review(
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
     )
-    assert "if: steps.classify.outputs.resolution == 'uncertain'" in workflow
-    assert "release signal needs identity review" in workflow
+    assert "release signals needing identity review" in workflow
+    assert workflow.count("gh issue create") == 1
 
 
 def test_models_dev_prices_do_not_change_existing_card_prices(
@@ -1496,6 +1496,158 @@ def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
     import asyncio
 
     asyncio.run(scenario())
+
+
+def _run_pending_matrix(tmp_path: Path, pending: dict, limit: str) -> dict[str, str]:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(item for item in workflow["jobs"]["pending"]["steps"] if item.get("id") == "matrix")
+    (tmp_path / "pending.json").write_text(json.dumps(pending), encoding="utf-8")
+    output = tmp_path / "github-output"
+    result = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        env=os.environ | {
+            "RUNNER_TEMP": str(tmp_path),
+            "GITHUB_OUTPUT": str(output),
+            "MAX_RELEASE_SIGNAL_WORK_ITEMS": limit,
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    parsed: dict[str, str] = {}
+    for line in output.read_text(encoding="utf-8").splitlines():
+        key, value = line.split("=", 1)
+        parsed[key] = value
+    return parsed
+
+
+def test_each_run_keeps_at_most_ten_work_items_signals_before_rechecks(tmp_path: Path) -> None:
+    workflow_text = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
+        encoding="utf-8"
+    )
+    assert 'MAX_RELEASE_SIGNAL_WORK_ITEMS: "10"' in workflow_text
+    workflow = yaml.safe_load(workflow_text)
+    matrix = next(item for item in workflow["jobs"]["pending"]["steps"] if item.get("id") == "matrix")
+    assert "[:10]" not in matrix["run"]
+    assert '--argjson limit "$MAX_RELEASE_SIGNAL_WORK_ITEMS"' in matrix["run"]
+    signals = [
+        {"signal_id": f"s{index:02d}", "timestamp": f"2026-01-{index:02d}T00:00:00Z"}
+        for index in (3, 1, 2, 12, 4, 5, 6, 7, 8, 9, 10, 11)
+    ]
+    rechecks = [
+        {
+            "day": 7, "due": "2026-02-02", "pr_url": "https://github.com/example/repo/pull/2",
+            "signal": {"signal_id": "r-late", "timestamp": "2026-01-02T00:00:00Z"},
+        },
+        {
+            "day": 1, "due": "2026-02-01", "pr_url": None,
+            "signal": {"signal_id": "r-early", "timestamp": "2026-01-09T00:00:00Z"},
+        },
+        {
+            "day": 30, "due": "2026-02-01",
+            "signal": {"signal_id": "r-tie", "timestamp": "2026-01-01T00:00:00Z"},
+        },
+    ]
+    capped = _run_pending_matrix(tmp_path, {"signals": signals, "rechecks": rechecks}, "2")
+    assert capped["count"] == "2"
+    capped_work = json.loads(capped["matrix"])["work"]
+    assert [item["signal_id"] for item in capped_work] == ["s01", "s02"]
+    assert [item["recheck_day"] for item in capped_work] == [0, 0]
+    assert [item["pr_url"] for item in capped_work] == [None, None]
+
+    selected = _run_pending_matrix(
+        tmp_path, {"signals": signals[:2], "rechecks": rechecks}, "10",
+    )
+    # signals[:2] is the shuffled prefix (s03, s01), not the two oldest.
+    work = json.loads(selected["matrix"])["work"]
+    assert selected["count"] == "5"
+    assert [item["signal_id"] for item in work] == ["s01", "s03", "r-tie", "r-early", "r-late"]
+    assert [item["recheck_day"] for item in work] == [0, 0, 30, 1, 7]
+    assert work[3]["pr_url"] is None
+    assert work[4]["pr_url"] == "https://github.com/example/repo/pull/2"
+
+    review = workflow["jobs"]["review"]
+    assert review["name"] == "Open one identity-review issue"
+    assert review["needs"] == ["pending", "process"]
+    assert "needs.pending.outputs.count != '0'" in review["if"]
+    review_runs = "\n".join(step.get("run") or "" for step in review["steps"])
+    assert "python" not in review_runs
+    assert "release signals needing identity review" in review_runs
+    assert 'select(.status == "uncertain")' in review_runs
+    assert workflow_text.count("gh issue create") == 1
+    process_steps = workflow["jobs"]["process"]["steps"]
+    uploaded = [
+        step for step in process_steps
+        if step.get("uses") == "actions/upload-artifact@v4"
+        and step.get("with", {}).get("path") == "${{ runner.temp }}/result.json"
+    ]
+    assert len(uploaded) == 1
+    assert uploaded[0]["if"] == "always()"
+    assert uploaded[0]["with"]["if-no-files-found"] == "ignore"
+    closed = next(step for step in process_steps if step.get("id") == "closed_pr")
+    assert "gh issue create" not in (closed.get("run") or "")
+    assert "Flag a new-model PR closed without merge" == closed["name"]
+    ack = next(step for step in process_steps if "Acknowledge the signal" in step.get("name", ""))
+    assert "steps.uncertain.outputs.url" not in ack["env"]["RESULT_URL"]
+
+
+def test_the_roll_up_opens_one_issue_only_for_uncertain_results(tmp_path: Path) -> None:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["review"]["steps"]
+        if item.get("name") == "Open one issue for uncertain identities"
+    )
+    results = tmp_path / "signal-results"
+    (results / "a").mkdir(parents=True)
+    (results / "b").mkdir()
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (results / "b" / "result.json").write_text(json.dumps({
+        "status": "ignored", "signal_id": "s-b", "reason": "test signal",
+    }), encoding="utf-8")
+    stub = tmp_path / "bin"
+    stub.mkdir()
+    (stub / "gh").write_text(
+        "#!/bin/bash\nprintf '%s\\n' \"$*\" > \"$RUNNER_TEMP/gh-args\"\n",
+        encoding="utf-8",
+    )
+    (stub / "gh").chmod(0o755)
+    env = os.environ | {
+        "RUNNER_TEMP": str(tmp_path),
+        "GH_TOKEN": "offline-fixture",
+        "PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
+    }
+
+    opened = subprocess.run(
+        ["bash", "-e", "-c", step["run"]], cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert opened.returncode == 0, opened.stderr
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "release signals needing identity review" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "- s-a: two cards" in (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+    assert "s-b" not in (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "existing", "signal_id": "s-a", "reason": "",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    quiet = subprocess.run(
+        ["bash", "-e", "-c", step["run"]], cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert quiet.returncode == 0, quiet.stderr
+    assert not (tmp_path / "gh-args").exists()
 
 
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
