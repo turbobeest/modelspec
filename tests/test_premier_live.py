@@ -10,9 +10,11 @@ import pytest
 import yaml
 
 from scripts import premier_slice1
+from scripts.premier_slice1 import rank_board
 from tests.snapshot_records import SOURCES, evidence, fact
 
 TODAY = date(2026, 10, 4)
+BENCH = "terminal_bench_v4_0"
 
 
 def write_yaml(path, value):
@@ -33,6 +35,15 @@ def write_card(root, model_id, *, release="2026-01-01", rows=(), status="active"
     return path
 
 
+def write_benchmark(root, bench_id, *, domain="software_engineering", direction="higher_is_better"):
+    path = root / "benchmarks" / f"{bench_id}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("---\n" + yaml.safe_dump({
+        "id": bench_id, "domains": [{"id": domain, "directness": "direct"}],
+        "metric": {"unit": "percent", "min_score": 0, "max_score": 100, "direction": direction},
+    }) + "---\nFixture board.\n")
+
+
 def catalogue(tmp_path):
     root = tmp_path / "data"
     write_yaml(root / "registry/sources.yaml", {
@@ -46,19 +57,24 @@ def catalogue(tmp_path):
         "local": {"max_memory_gb": 24, "candidates": []},
     })
     write_yaml(root / "premier/slice-1.yaml", {"models": []})
-    path = root / "benchmarks/quality.md"
-    path.parent.mkdir()
-    path.write_text("---\n" + yaml.safe_dump({
-        "id": "quality", "domains": [{"id": "software_engineering", "directness": "direct"}],
-        "metric": {"unit": "percent", "min_score": 0, "max_score": 100,
-                   "direction": "higher_is_better"},
-    }) + "---\nFixture board.\n")
+    write_benchmark(root, BENCH)
     return root
+
+
+def pad_board(root, count=10, *, bench=BENCH, status="sunset", lab="pad", base=1):
+    """Extra rows so a named board is long enough for a top 10 to exclude someone."""
+    for number in range(count):
+        mid = f"{lab}/pad-{number:02d}"
+        write_card(
+            root, mid, status=status,
+            rows=[evidence(mid, bench, base + number)],
+        )
 
 
 def test_live_cli_proposes_recent_lab_release_with_clause_2_and_noop(tmp_path):
     root = catalogue(tmp_path)
-    write_card(root, "lab/leader", rows=[evidence("lab/leader", "quality", 90)])
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)])
+    pad_board(root)
     write_card(root, "lab/new-release", release="2026-09-29")
     output, diff = tmp_path / "proposal.yaml", tmp_path / "diff.json"
     command = [sys.executable, str(Path(premier_slice1.__file__)), "--data-dir", str(root),
@@ -96,16 +112,16 @@ def test_live_score_change_moves_a_seat_and_keeps_cutoff_ties(tmp_path):
     root = catalogue(tmp_path)
     for number in range(11):
         mid = f"lab/model-{number:02}"
-        write_card(root, mid, rows=[evidence(mid, "quality", 90 - number)])
+        write_card(root, mid, rows=[evidence(mid, BENCH, 90 - number)])
     before = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert len(before["models"]) == 10
-    write_card(root, "lab/model-10", rows=[evidence("lab/model-10", "quality", 95)])
+    write_card(root, "lab/model-10", rows=[evidence("lab/model-10", BENCH, 95)])
     after = premier_slice1.build(data_dir=root, as_of=TODAY)
     changes = premier_slice1.membership_diff(after, before)
     assert [r["model_id"] for r in changes["added"]] == ["lab/model-10"]
     assert [r["model_id"] for r in changes["removed"]] == ["lab/model-09"]
     assert changes["added"][0]["clauses"][0]["clause"] == 1
-    write_card(root, "lab/model-09", rows=[evidence("lab/model-09", "quality", 82)])
+    write_card(root, "lab/model-09", rows=[evidence("lab/model-09", BENCH, 82)])
     tied = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert len(tied["models"]) == 11
 
@@ -117,9 +133,10 @@ def test_live_score_change_moves_a_seat_and_keeps_cutoff_ties(tmp_path):
 ])
 def test_live_ignores_unverified_stale_future_or_excluded_scores(tmp_path, bad):
     root = catalogue(tmp_path)
-    write_card(root, "lab/leader", rows=[evidence("lab/leader", "quality", 80)])
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 80)])
+    pad_board(root)
     write_card(root, "other/unqualified", rows=[
-        evidence("other/unqualified", "quality", 99, **bad),
+        evidence("other/unqualified", BENCH, 99, **bad),
     ])
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert [row["model_id"] for row in document["models"]] == ["lab/leader"]
@@ -128,7 +145,7 @@ def test_live_ignores_unverified_stale_future_or_excluded_scores(tmp_path, bad):
 def test_live_retires_models_and_preserves_only_explicit_reviewer_additions(tmp_path):
     root = catalogue(tmp_path)
     write_card(root, "lab/retired", status="sunset", rows=[
-        evidence("lab/retired", "quality", 90),
+        evidence("lab/retired", BENCH, 90),
     ])
     write_card(root, "lab/reviewed")
     write_card(root, "lab/packet")
@@ -150,8 +167,9 @@ def test_live_retires_models_and_preserves_only_explicit_reviewer_additions(tmp_
 def test_recent_release_qualifies_through_a_retired_labs_past_year_leader(tmp_path):
     root = catalogue(tmp_path)
     write_card(root, "lab/old-leader", status="sunset", rows=[
-        evidence("lab/old-leader", "quality", 90),
+        evidence("lab/old-leader", BENCH, 90),
     ])
+    pad_board(root)
     write_card(root, "lab/new-release", release="2026-09-29")
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert [row["model_id"] for row in document["models"]] == ["lab/new-release"]
@@ -160,7 +178,8 @@ def test_recent_release_qualifies_through_a_retired_labs_past_year_leader(tmp_pa
 
 def test_unregistered_offering_tier_cannot_block_other_admission_clauses(tmp_path):
     root = catalogue(tmp_path)
-    write_card(root, "lab/leader", rows=[evidence("lab/leader", "quality", 90)])
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)])
+    pad_board(root)
     write_card(root, "lab/new-release", release="2026-09-29")
     write_yaml(root / "offerings/sambanova/lab/leader.yaml", [{
         "model": "lab/leader", "provider": "sambanova", "region": "global",
@@ -174,7 +193,7 @@ def test_live_uses_current_verified_prices_for_budget_seats(tmp_path):
     root = catalogue(tmp_path)
     for number in range(14):
         mid = f"lab/model-{number:02}"
-        write_card(root, mid, rows=[evidence(mid, "quality", 90 - number)])
+        write_card(root, mid, rows=[evidence(mid, BENCH, 90 - number)])
         oid = f"sambanova/{mid}/global/standard"
         write_yaml(root / "offerings/sambanova" / f"{mid}.yaml", [{
             "model": mid, "provider": "sambanova", "region": "global", "tier": "standard",
@@ -199,7 +218,7 @@ def test_live_uses_current_verified_prices_for_budget_seats(tmp_path):
 def test_budget_clause_does_not_add_the_frontier_one_year_cutoff(tmp_path):
     root = catalogue(tmp_path)
     mid = "lab/budget-model"
-    write_card(root, mid, rows=[evidence(mid, "quality", 80, day="2025-01-01")])
+    write_card(root, mid, rows=[evidence(mid, BENCH, 80, day="2025-01-01")])
     oid = f"sambanova/{mid}/global/standard"
     write_yaml(root / "offerings/sambanova" / f"{mid}.yaml", [{
         "model": mid, "provider": "sambanova", "region": "global", "tier": "standard",
@@ -213,27 +232,123 @@ def test_budget_clause_does_not_add_the_frontier_one_year_cutoff(tmp_path):
 
 def test_live_board_respects_direction_versions_and_model_identity(tmp_path):
     root = catalogue(tmp_path)
-    benchmark = root / "benchmarks/quality.md"
+    benchmark = root / "benchmarks" / f"{BENCH}.md"
     benchmark.write_text(benchmark.read_text().replace("higher_is_better", "lower_is_better"))
     for number in range(11):
         mid = f"lab/model-{number:02}"
-        write_card(root, mid, rows=[evidence(mid, "quality", number + 1)])
-    # The same slug at a different lab is a different model, on another version.
-    row = evidence("other/model-00", "quality", 99)
+        write_card(root, mid, rows=[evidence(mid, BENCH, number + 1)])
+    # Same slug, different model, different recorded version: one named board.
+    row = evidence("other/model-00", BENCH, 0)
     row["benchmark_version"] = "2.0"
     write_card(root, "other/model-00", rows=[row])
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     ids = {row["model_id"] for row in document["models"]}
-    assert "lab/model-00" in ids and "other/model-00" in ids
-    assert "lab/model-10" not in ids
-    assert len(ids) == 11
+    assert "other/model-00" in ids and "lab/model-00" in ids
+    assert "lab/model-09" not in ids and "lab/model-10" not in ids
+    assert len(ids) == 10
+    boards = {
+        clause["board"]
+        for row in document["models"]
+        for clause in row["clauses"]
+        if clause["clause"] == 1
+    }
+    assert boards == {"terminal-bench-4.0"}
 
 
 def test_live_vision_domain_keeps_the_existing_vision_quota(tmp_path):
     root = catalogue(tmp_path)
-    path = root / "benchmarks/quality.md"
-    path.write_text(path.read_text().replace("software_engineering", "vision_documents"))
-    write_card(root, "lab/vision-leader", rows=[evidence("lab/vision-leader", "quality", 90)])
+    write_benchmark(root, "arena_sc_vision")
+    write_card(root, "lab/vision-leader", rows=[evidence("lab/vision-leader", "arena_sc_vision", 90)])
+    pad_board(root, bench="arena_sc_vision")
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert document["models"][0]["slice1_group"] == "vision"
-    assert document["models"][0]["clauses"][0]["domain"] == "vision_documents"
+    assert document["models"][0]["clauses"][0]["domain"] == "vision"
+    assert document["models"][0]["clauses"][0]["board"] == "arena-vision"
+
+
+def _rows(board_id, count, *, score_of):
+    return {
+        "id": board_id,
+        "domain": "software-engineering",
+        "url": "https://board.example.org/results",
+        "rows": [
+            {
+                "name": f"model-{number:02d}",
+                "model_id": f"lab/model-{number:02d}",
+                "score": score_of(number),
+                "date": "2026-08-01",
+                "org": "lab",
+            }
+            for number in range(count)
+        ],
+    }
+
+
+def test_board_shorter_than_the_top_10_admits_nobody():
+    ranked = rank_board(_rows("terminal-bench-4.0", 10, score_of=lambda n: 100 - n))
+    assert len(ranked) == 10
+    assert [row["top10"] for row in ranked] == [False] * 10
+    approved = rank_board(
+        _rows("mteb-eng-v2-rerank", 2, score_of=lambda n: 50 - n),
+        minimum_rows=premier_slice1.APPROVED_LINEUP_MINIMUM_ROWS,
+    )
+    assert [row["top10"] for row in approved] == [True, True]
+
+
+def test_eleven_rows_keep_the_top_10_and_a_tie_at_the_cutoff():
+    ranked = rank_board(_rows("terminal-bench-4.0", 11, score_of=lambda n: 100 - n))
+    assert [row["top10"] for row in ranked] == [True] * 10 + [False]
+    tied = _rows("terminal-bench-4.0", 11, score_of=lambda n: 80 if n >= 9 else 100 - n)
+    ranked = rank_board(tied)
+    assert sum(row["top10"] for row in ranked) == 11
+
+
+def test_unmapped_benchmark_does_not_open_a_board(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, "side-quest")
+    for number in range(11):
+        mid = f"lab/side-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, "side-quest", 100 - number)])
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["models"] == []
+    assert document["counts"]["clause_1_cards"] == 0
+
+
+def test_named_board_with_ten_rows_selects_nobody(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(10):
+        mid = f"lab/model-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number)])
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["models"] == []
+    assert document["counts"]["clause_1_cards"] == 0
+
+
+def test_mapped_boards_are_the_named_slice1_set():
+    named = {board["id"] for board in premier_slice1.leaderboards()}
+    mapped = set(premier_slice1.SLICE1_BENCHMARK_BOARDS.values()) | {
+        "epoch-swe-bench-verified",
+        "swe-bench-verified-bash",
+    }
+    assert mapped <= named
+    assert named - mapped == {"matharena-expected", "mteb-multilingual-v2-rerank"}
+    assert premier_slice1.slice1_board_id(
+        "swe_bench_verified",
+        source_url="https://epoch.ai/benchmarks/swe-bench-verified",
+    ) == "epoch-swe-bench-verified"
+    assert premier_slice1.slice1_board_id(
+        "swe_bench_verified",
+        source_url="https://www.swebench.com/verified",
+        harness="unregistered",
+        version="SWE-bench Verified, bash-only (mini-SWE-agent), official leaderboard",
+    ) == "swe-bench-verified-bash"
+    assert premier_slice1.slice1_board_id(
+        "swe_bench_verified",
+        source_url="https://www.swebench.com/verified",
+        harness="unregistered",
+    ) is None
+    assert premier_slice1.slice1_board_id(
+        "swe_bench_verified",
+        source_url="https://www.anthropic.com/news",
+    ) is None
+    assert premier_slice1.slice1_board_id("aime_2026") is None

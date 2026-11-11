@@ -25,6 +25,7 @@ import re
 import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 
@@ -88,6 +89,26 @@ MAJOR_PLATFORMS = (
     "sambanova",
     "nvidia_nim",
 )
+# Evidence benchmark id to the slice-1 board that benchmark's leaderboard file feeds.
+# matharena-expected and mteb-multilingual-v2-rerank have no evidence benchmark id.
+# swe_bench_verified is two boards; slice1_board_id splits it by source host.
+SLICE1_BENCHMARK_BOARDS = {
+    "arena_elo_style_control": "arena-text",
+    "arena_webdev": "arena-webdev",
+    "arena_sc_vision": "arena-vision",
+    "swe_bench_pro": "swe-bench-pro",
+    "terminal_bench_v4_0": "terminal-bench-4.0",
+    "frontiermath_tiers_1_3_v2": "epoch-frontiermath-tiers-1-3-v2",
+    "gpqa_diamond": "epoch-gpqa-diamond",
+    "hle": "scale-hle",
+    "mteb_eng_v2": "mteb-eng-v2",
+    "mteb_multilingual_v2": "mteb-multilingual-v2",
+    "mteb_v2_reranking": "mteb-eng-v2-rerank",
+}
+# A top 10 has to leave someone off the board. The approved lineup counted a
+# shorter board in full, and --check still does.
+MINIMUM_CLAUSE1_ROWS = 11
+APPROVED_LINEUP_MINIMUM_ROWS = 1
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
 VISION_DOMAINS = {"vision", "vision_documents"}
 
@@ -350,7 +371,30 @@ def leaderboards() -> list[dict]:
     return boards
 
 
-def rank_board(board: dict) -> list[dict]:
+def slice1_board_id(
+    benchmark_id: str,
+    *,
+    harness: str | None = None,
+    version: str | None = None,
+    source_url: str | None = None,
+    configuration: str | None = None,
+) -> str | None:
+    """Named slice-1 board for one evidence row, or None when the row is not on that set."""
+    if benchmark_id == "swe_bench_verified":
+        host = (urlparse(source_url or "").hostname or "").lower()
+        if host == "epoch.ai" or host.endswith(".epoch.ai"):
+            return "epoch-swe-bench-verified"
+        text = " ".join(part for part in (harness, version, configuration) if part).lower()
+        bash = (harness or "").lower() == "mini-swe-agent" or (
+            "bash-only" in text and "mini-swe-agent" in text
+        )
+        if host in {"swebench.com", "www.swebench.com"} and bash:
+            return "swe-bench-verified-bash"
+        return None
+    return SLICE1_BENCHMARK_BOARDS.get(benchmark_id)
+
+
+def rank_board(board: dict, *, minimum_rows: int = MINIMUM_CLAUSE1_ROWS) -> list[dict]:
     """Best score per model identity, then a rank. Ties at the cutoff all count."""
     best: dict[str, dict] = {}
     direction = -1 if board.get("direction") == "lower_is_better" else 1
@@ -373,13 +417,14 @@ def rank_board(board: dict) -> list[dict]:
     ordered = sorted(best.values(), key=lambda item: (-direction * item["score"], item["slug"]))
     if not ordered:
         return []
-    cutoff = ordered[min(9, len(ordered) - 1)]["score"]
+    admits = len(ordered) >= minimum_rows
+    cutoff = ordered[min(9, len(ordered) - 1)]["score"] if admits else None
     ranked = []
     for index, item in enumerate(ordered, start=1):
         item = dict(item)
         item["rank"] = index
-        # A tie with the 10th score stays in. A shorter board counts every row.
-        item["top10"] = direction * item["score"] >= direction * cutoff
+        # A tie with the 10th score stays in. Below minimum_rows, nobody is in.
+        item["top10"] = admits and direction * item["score"] >= direction * cutoff
         item["board"] = board["id"]
         item["domain"] = board["domain"]
         item["url"] = item.get("url", board["url"])
@@ -747,12 +792,13 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         protected_release = (as_of - timedelta(days=5)).isoformat()
         fresh_boards = {board["id"] for board in boards}
         reviewer_clauses = live["reviewer_clauses"]
+    minimum_rows = APPROVED_LINEUP_MINIMUM_ROWS if data_dir is None else MINIMUM_CLAUSE1_ROWS
     index = match_index(cards, aliases)
 
     missing: list[dict] = []
     by_model: dict[str, dict] = {}
     for board in boards:
-        for hit in rank_board(board):
+        for hit in rank_board(board, minimum_rows=minimum_rows):
             if not hit["top10"]:
                 continue
             if hit["date"] and hit["date"] < year_start:
