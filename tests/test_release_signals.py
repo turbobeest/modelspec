@@ -2700,3 +2700,39 @@ def test_a_registered_lab_page_that_names_the_model_identifies_the_lab(
     assert result["status"] == "new"
     assert result["model_id"] == "acme/orbit-9"
     assert primary in (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+
+
+def test_a_test_signal_is_ignored_and_writes_no_catalogue_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = (tmp_path / "models" / "acme" / "orbit-1.md").read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    audit_path = tmp_path / "audit.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="acme-embodied-walker",
+        signal_id="test-orbit-9",
+    )]}))
+    fetched: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        fetched.append(url)
+        raise AssertionError(f"fetched {url}")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, audit_path=audit_path,
+    )
+
+    assert result["status"] == "ignored"
+    assert result["reason"] == "test signal"
+    assert result["model_id"] is None
+    assert result["signal_id"] == "test-orbit-9"
+    assert fetched == []
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "ignored"
+    assert not audit_path.exists()
+    assert (tmp_path / "models" / "acme" / "orbit-1.md").read_bytes() == before
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+    assert not (tmp_path / "offerings").exists()

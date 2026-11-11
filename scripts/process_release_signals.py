@@ -128,6 +128,17 @@ def process(
             "pr_url": closed_unmerged_pr,
             "reason": "the original new-model PR was closed without merge",
         }
+    elif signal.signal_id.startswith("test-"):
+        result = {
+            "status": "ignored",
+            "signal_id": signal.signal_id,
+            "model_id": None,
+            "candidates": [],
+            "recheck_day": recheck.get("day") if recheck else None,
+            "recheck_due": recheck.get("due") if recheck else None,
+            "pr_url": recheck.get("pr_url") if recheck else None,
+            "reason": "test signal",
+        }
     else:
         resolution = resolve_signal(signal, root)
         result = {
