@@ -26,31 +26,19 @@ Sources: [registry schema](https://static.modelcontextprotocol.io/schemas/2025-1
 [official publishing workflow](https://github.com/modelcontextprotocol/registry/blob/v1.8.1/docs/modelcontextprotocol-io/github-actions.mdx),
 and [publisher v1.8.1](https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.1).
 
-## Smithery listing
+## Key header and server card
 
-After review, merge, and a successful MCP deployment, publish the remote URL
-with the required API-key configuration below. Replace `YOUR_SMITHERY_NAMESPACE`
-with the namespace owned by the publishing account:
-
-```bash
-smithery mcp publish "https://api.modelspec.dev/mcp" \
-  -n @YOUR_SMITHERY_NAMESPACE/modelspec \
-  --config-schema '{"type":"object","properties":{"apiKey":{"type":"string","title":"ModelSpec API key","description":"Create one at https://modelspec.dev/pricing/","x-from":{"header":"x-api-key"},"x-to":{"header":"x-api-key"}}},"required":["apiKey"]}'
-```
-
-Smithery collects each user's ModelSpec key and forwards it as the raw
-`x-api-key` header value. The MCP Worker converts it to
-`Authorization: Bearer <key>` for API calls. This alias applies only to MCP;
-direct `/v1/*` API calls still accept only Bearer authentication.
+Clients may send the key as `Authorization: Bearer <key>` or as the raw
+`x-api-key` header. The MCP Worker converts `x-api-key` to
+`Authorization: Bearer <key>` for API calls, and rejects a request whose two
+credentials differ. This alias applies only to MCP; direct `/v1/*` API calls
+still accept only Bearer authentication.
 
 The public server card requires no key. Its `serverInfo` matches `initialize`,
 including the deployed commit as its version. It declares
 `authentication: {"required": true, "schemes": ["bearer"]}` and generates its
 tools from the same registrations as `tools/list`. The card uses
 `Cache-Control: public, max-age=300`.
-
-Sources: [Smithery publishing](https://smithery.ai/docs/build/publish) and
-[configuration transport](https://smithery.ai/docs/build/session-config).
 
 ## SDK and transport
 
