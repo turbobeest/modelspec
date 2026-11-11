@@ -317,7 +317,7 @@ def watch_source(
         and (seen.created is None or seen.created >= cutoff)
         and (catalogued is None or not catalogued(seen))
     )
-    if catalogued is not None and len(new) > source.max_new:
+    if len(new) > source.max_new:
         return SourceRun(
             source, "burst",
             f"{len(new)} new IDs at once, above {source.max_new}; the source may have "
