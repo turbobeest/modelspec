@@ -80,6 +80,14 @@ API response is `2026-11-11T04:01:46.000Z`. Fallback was not used.
 `docs/design/first-row-filing.md` is design only, 86 lines. No filing code
 was added.
 
+## Shard timings
+
+`tests/test_arena_revision.py` had no row in `tests/shard_durations.json`.
+`test_shard_timings_cover_the_current_suite_and_browser_modules` then saw
+362 of 382 modules, under the 0.95 gate. A serial JUnit run of that file,
+read by `durations_from_junit` in `scripts/refresh_shard_durations.py`,
+recorded 0.011 seconds. That one row was inserted. The other rows stayed.
+
 ## Not run
 
 No full local suite, site build, Worker memory probe, or workflow edit.
