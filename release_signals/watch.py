@@ -181,6 +181,15 @@ def _page(source: Source, text: str, registry: Registry) -> dict[str, Seen]:
     ]
     found: dict[str, Seen] = {}
     for match in token.finditer(text):
+        start, end = match.span()
+        # A flight record is `.$<id>.<digits>:$`. The id pattern can swallow
+        # the trailing `.<digits>`, so that suffix counts when `:$` follows.
+        if text[max(0, start - 2):start] == ".$":
+            continue
+        if re.match(r"\.\d+:\$", text[end:]):
+            continue
+        if re.search(r"\.\d+$", text[start:end]) and text[end:end + 2] == ":$":
+            continue
         name = match.group(0).lower()
         if source.require_digit and not re.search(r"\d", name):
             continue

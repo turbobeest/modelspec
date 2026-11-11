@@ -543,6 +543,33 @@ def test_one_model_on_several_sources_shares_one_signal_id() -> None:
     assert len(long) == 128 and long.startswith("watch:acme:")
 
 
+def test_page_extraction_skips_serialised_ids_and_keeps_listed_ones() -> None:
+    """A Next.js flight record `.$<id>.<digits>:$` is not a listed model id."""
+    registry = load_registry()
+    source = next(item for item in registry.sources if item.id == "anthropic-models")
+    page = (
+        '["$","section",".$claude-opus-4-20250514.1:$section"]\n'
+        "Listed: claude-opus-4-20250514, claude-opus-5.5, and claude-sonnet-4-5.1.\n"
+    )
+    found = extract(source, page.encode(), registry)
+    assert set(found) == {
+        "claude-opus-4-20250514",
+        "claude-opus-5.5",
+        "claude-sonnet-4-5.1",
+    }
+    assert signal_id(source.provider, "claude-opus-5.5") == signal_id(
+        source.provider, "claude-opus-5-5",
+    )
+
+    # Either marker is enough. `.1:$` with no `.$` prefix is still serialisation.
+    suffix_only = "notes claude-opus-4-20250514.1:$section"
+    assert extract(source, suffix_only.encode(), registry) == {}
+
+    # `.$` with no trailing suffix is still serialisation. A bare id stays.
+    prefix_only = ".$claude-opus-5.5 is serialised. claude-haiku-4-5 is listed."
+    assert set(extract(source, prefix_only.encode(), registry)) == {"claude-haiku-4-5"}
+
+
 # ── the two contracts stay apart ─────────────────────────────────────────────
 
 def _discovery(**changes: object) -> dict[str, object]:
