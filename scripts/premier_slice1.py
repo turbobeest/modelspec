@@ -105,10 +105,12 @@ SLICE1_BENCHMARK_BOARDS = {
     "mteb_multilingual_v2": "mteb-multilingual-v2",
     "mteb_v2_reranking": "mteb-eng-v2-rerank",
 }
-# A top 10 has to leave someone off the board. The approved lineup counted a
-# shorter board in full, and --check still does.
-MINIMUM_CLAUSE1_ROWS = 11
+# The approved lineup admits the top 10 of a board of any length. That is the
+# default for --check and for a live proposal. STRICT_BOARD_ROWS turns on the
+# stricter count, so a top 10 leaves someone off the board.
 APPROVED_LINEUP_MINIMUM_ROWS = 1
+STRICT_CLAUSE1_ROWS = 11
+STRICT_BOARD_ROWS = False
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
 VISION_DOMAINS = {"vision", "vision_documents"}
 
@@ -394,8 +396,17 @@ def slice1_board_id(
     return SLICE1_BENCHMARK_BOARDS.get(benchmark_id)
 
 
-def rank_board(board: dict, *, minimum_rows: int = MINIMUM_CLAUSE1_ROWS) -> list[dict]:
+def clause1_minimum_rows() -> int:
+    """Rows clause 1 requires before a board admits its top 10."""
+    if STRICT_BOARD_ROWS:
+        return STRICT_CLAUSE1_ROWS
+    return APPROVED_LINEUP_MINIMUM_ROWS
+
+
+def rank_board(board: dict, *, minimum_rows: int | None = None) -> list[dict]:
     """Best score per model identity, then a rank. Ties at the cutoff all count."""
+    if minimum_rows is None:
+        minimum_rows = clause1_minimum_rows()
     best: dict[str, dict] = {}
     direction = -1 if board.get("direction") == "lower_is_better" else 1
     for row in board["rows"]:
@@ -792,7 +803,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         protected_release = (as_of - timedelta(days=5)).isoformat()
         fresh_boards = {board["id"] for board in boards}
         reviewer_clauses = live["reviewer_clauses"]
-    minimum_rows = APPROVED_LINEUP_MINIMUM_ROWS if data_dir is None else MINIMUM_CLAUSE1_ROWS
+    minimum_rows = clause1_minimum_rows()
     index = match_index(cards, aliases)
 
     missing: list[dict] = []
@@ -1252,7 +1263,15 @@ def main() -> int:
                         help="live evaluation date, UTC today by default")
     parser.add_argument("--output", type=Path, help="write the live proposed YAML to this path")
     parser.add_argument("--diff", type=Path, help="write the live membership diff as JSON")
+    parser.add_argument(
+        "--strict-board-rows",
+        action="store_true",
+        help="use the strict clause 1 row count instead of the approved lineup default",
+    )
     args = parser.parse_args()
+    if args.strict_board_rows:
+        global STRICT_BOARD_ROWS
+        STRICT_BOARD_ROWS = True
     if not args.data_dir and (args.as_of or args.output or args.diff):
         parser.error("--as-of, --output and --diff require --data-dir")
     if args.data_dir:

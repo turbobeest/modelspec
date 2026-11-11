@@ -380,7 +380,8 @@ def _rows(board_id, count, *, score_of):
     }
 
 
-def test_board_shorter_than_the_top_10_admits_nobody():
+def test_board_shorter_than_the_top_10_admits_nobody(monkeypatch):
+    monkeypatch.setattr(premier_slice1, "STRICT_BOARD_ROWS", True)
     ranked = rank_board(_rows("terminal-bench-4.0", 10, score_of=lambda n: 100 - n))
     assert len(ranked) == 10
     assert [row["top10"] for row in ranked] == [False] * 10
@@ -389,6 +390,24 @@ def test_board_shorter_than_the_top_10_admits_nobody():
         minimum_rows=premier_slice1.APPROVED_LINEUP_MINIMUM_ROWS,
     )
     assert [row["top10"] for row in approved] == [True, True]
+
+
+def test_five_row_board_admits_its_five_by_default():
+    ranked = rank_board(_rows("terminal-bench-4.0", 5, score_of=lambda n: 100 - n))
+    assert len(ranked) == 5
+    assert [row["top10"] for row in ranked] == [True] * 5
+
+
+def test_live_five_row_board_selects_its_five_by_default(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(5):
+        mid = f"lab/model-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number)])
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert [row["model_id"] for row in document["models"]] == [
+        f"lab/model-{number:02d}" for number in range(5)
+    ]
+    assert document["counts"]["clause_1_cards"] == 5
 
 
 def test_eleven_rows_keep_the_top_10_and_a_tie_at_the_cutoff():
@@ -410,7 +429,8 @@ def test_unmapped_benchmark_does_not_open_a_board(tmp_path):
     assert document["counts"]["clause_1_cards"] == 0
 
 
-def test_named_board_with_ten_rows_selects_nobody(tmp_path):
+def test_named_board_with_ten_rows_selects_nobody(tmp_path, monkeypatch):
+    monkeypatch.setattr(premier_slice1, "STRICT_BOARD_ROWS", True)
     root = catalogue(tmp_path)
     for number in range(10):
         mid = f"lab/model-{number:02d}"
