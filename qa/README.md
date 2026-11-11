@@ -589,7 +589,8 @@ then removes the worktree. It does not run git add, commit, push, or gh.
 non-empty directory is refused. A failed publication retains its worktree and
 prints its path for recovery. The shell
 wrapper used by schedules also runs the merged public engine from a fresh
-detached worktree. No reports or private task definitions enter this public tree.
+detached worktree. `qa/run-subscription-job.sh` runs under bash on macOS and Linux.
+No reports or private task definitions enter this public tree.
 
 ### ModelSpec key for agent runs
 
