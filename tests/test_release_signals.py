@@ -2263,6 +2263,53 @@ def test_json_ld_two_thousand_level_nest_is_skipped(tmp_path: Path) -> None:
     assert _release_date(result) == "2026-09-26"
 
 
+def test_existing_card_stays_existing_when_the_source_refresh_misses_the_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = card.read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    models_dev_url = "https://models.dev/api.json"
+    primary_url = "https://acme.example/models/orbit-1"
+    payload = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": {
+                    "id": "orbit-1", "name": "Orbit 1", "release_url": primary_url,
+                },
+            },
+        },
+    }
+    replies = {
+        models_dev_url: FetchResult(
+            models_dev_url, json.dumps(payload).encode(), "application/json",
+        ),
+        primary_url: FetchResult(
+            primary_url, b"<p>Orbit 1 by Other Lab.</p>", "text/html",
+        ),
+    }
+    refreshed: dict[str, object] = {}
+
+    def run_refresh(**kwargs: object):
+        refreshed.update(kwargs)
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "existing"
+    assert result["model_id"] == "acme/orbit-1"
+    assert result["identity_error"] == "the primary source does not identify the stated lab"
+    assert card.read_bytes() == before
+    assert refreshed["model_ids"] == ("acme/orbit-1",)
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "existing"
+
+
 def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> None:
     note = 'quote \\" then ' + ("{[" * 80) + ("}]" * 80)
     payload = json.dumps({

@@ -208,22 +208,17 @@ def process(
                 fetch=_fetch,
                 discover_huggingface=True,
             )
-            if gathered.resolution.status == "uncertain":
-                result.update({
-                    "status": "uncertain",
-                    "model_id": None,
-                    "candidates": list(gathered.resolution.candidates),
-                    "reason": gathered.resolution.reason,
-                })
-                result_path.write_text(
-                    json.dumps(result, indent=2) + "\n", encoding="utf-8"
-                )
-                return result
-            result["sources"] = list(gathered.evidence_urls)
-            result["gather_failures"] = list(gathered.gather_failures)
-            result["card"] = str(update_existing_card(
-                gathered, root=root, read_date=date.today()
-            ).relative_to(root))
+            if gathered.resolution.status != "existing":
+                # The catalogue match stands. A later source that cannot
+                # restate the lab is logged, and the score refresh still runs.
+                result["identity_error"] = gathered.resolution.reason
+                result["gather_failures"] = list(gathered.gather_failures)
+            else:
+                result["sources"] = list(gathered.evidence_urls)
+                result["gather_failures"] = list(gathered.gather_failures)
+                result["card"] = str(update_existing_card(
+                    gathered, root=root, read_date=date.today()
+                ).relative_to(root))
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,
