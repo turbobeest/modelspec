@@ -19,7 +19,7 @@ Focused pytest was serial, with `-q -p no:cacheprovider` and no `-n`. Exit codes
 
 `ruff check scripts/premier_slice1.py scripts/premier_live.py tests/test_premier_live.py` printed `All checks passed!` and exited 0.
 
-Later commits do not change `scripts/premier_slice1.py`. The frozen suite below was run after the clause 1 commit.
+The frozen suite below was run after the clause 1 commit. A later commit changes the row-count default. Its checks are in Default row minimum.
 
 ## Clause 1
 
@@ -136,6 +136,72 @@ Nine are clause 1 seats on a board under 11 rows, with no current clause. One cl
 Of the three seats that had both clauses, two releases are before 2026-08-13 and one is on or after that date. Two of those labs have no clause 1 model left. One lab still has a clause 1 model.
 
 The gap from the current 31 to the approved 44 is mainly clause 1: nine of the removed seats rank only on boards below the 11-row minimum and keep no other clause.
+
+## Default row minimum
+
+`4300692232ca1677510f5a906a2d7495d778ce40` makes the approved lineup's row count the default. A board of any length admits its top 10. `STRICT_BOARD_ROWS` is off unless `--strict-board-rows` is set.
+
+The new test failed on the previous default. `test_five_row_board_admits_its_five_by_default` expected five admitted rows and got five refused rows. `test_board_shorter_than_the_top_10_admits_nobody` raised `AttributeError` because `STRICT_BOARD_ROWS` was missing. Command:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_premier_live.py::test_board_shorter_than_the_top_10_admits_nobody tests/test_premier_live.py::test_five_row_board_admits_its_five_by_default
+```
+
+Exit 1. 2 failed in 0.28s.
+
+After the change:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_premier_live.py
+```
+
+Exit 0. 30 passed in 3.04s.
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_premier_slice1.py
+```
+
+Exit 0. 7 passed in 49.42s. `ruff check scripts/premier_slice1.py scripts/premier_live.py tests/test_premier_live.py` printed `All checks passed!` and exited 0.
+
+The re-run below uses that default. Both commands exited 0. They went through `~/.codex-g2/heavy.sh`. The proposer wrote a proposal and a membership diff, an aggregator kept the counts, and those files were deleted. The detached worktrees were removed after the counts were taken.
+
+Approval-era command, as of 2026-09-30:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/premier_slice1.py \
+  --data-dir <approval-era worktree> --as-of 2026-09-30 \
+  --output <scratch proposal> --diff <scratch diff>
+```
+
+Current command, as of 2026-11-11:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/premier_slice1.py \
+  --data-dir <current main worktree> --as-of 2026-11-11 \
+  --output <scratch proposal> --diff <scratch diff>
+```
+
+`--report` with no flag still prints the approved counts: selected 44, clause 1 cards 70, clause 2 pool 45, clause 3 pool 7.
+
+Approval-era proposer, as of 2026-09-30. Selected 41. Clause 1 cards 34. Clause 2 pool 43. Clause 3 pool 8. Added 0. Removed 3. Selected by quota: frontier-generation 15, open-weights-generation 13, embedding 6, rerank 2, vision 4, decision 1. The live window starts 2026-07-02. Eight selected models carry clause 3. The approved file has 7.
+
+Current proposer, as of 2026-11-11. Selected 41. Clause 1 cards 34. Clause 2 pool 26. Clause 3 pool 8. Added 1. Removed 4. Selected by quota matches the approval-era run. The live window starts 2026-08-13. The added seat is frontier-generation and clause 2 only, and the release is on or after 2026-11-06. Eight selected models carry clause 3.
+
+The strict switch on the same catalogues and dates reproduces the earlier run. Approval-era: selected 31, clause 1 cards 22, clause 2 pool 37, clause 3 pool 8. Current: selected 31, clause 1 cards 22, clause 2 pool 24, clause 3 pool 8. Selected by quota on both: frontier-generation 15, open-weights-generation 11, embedding 0, rerank 0, vision 4, decision 1.
+
+The approved file selects 44. Its counts are clause 1 cards 70, clause 2 pool 45, clause 3 pool 7. Selected by quota: frontier-generation 18, open-weights-generation 13, embedding 6, rerank 2, vision 4, decision 1. Its release window starts 2026-06-26.
+
+Clause 1 is 34 on both catalogues. Thirty-seven approved clause 1 cards have no row on a live named board, and one card enters. Of the 37, 35 are active and 2 are sunset. Thirty-six have approved evidence on a frozen board of at least 11 rows. One has approved evidence only on a board with no mapped evidence benchmark id. The entrant is in the top 10 of a board of at least 11 rows, and the row date is inside the past year. Twelve of the 34 are in the top 10 only on a board under 11 rows. The strict switch drops those 12 and counts 22. Losing 37 and gaining 1 changes the clause 1 count from 70 to 34.
+
+Clause 2 on the approval-era catalogue is 43. One approved card was released before the live window, 2026-07-02. One belongs to a lab with no live clause 1 model. No card enters. Losing 2 changes the clause 2 count from 45 to 43.
+
+Clause 2 on the current catalogue is 26. Twenty-four approved cards were released before the live window, 2026-08-13. One belongs to a lab with no live clause 1 model. Six cards enter that are not in the approval-era catalogue. Losing 25 and gaining 6 changes the clause 2 count from 45 to 26.
+
+Clause 3 is 8 on both catalogues. No approved clause 3 card drops out. The extra card reaches three providers only after an offering is unioned onto the card.
+
+The approval-era selection removes 3 frontier-generation seats and adds none. Two of the removed seats still carry clauses 1 and 2 and sit outside the frontier quota. One carries clause 2 only and sits outside that quota. Every other group matches the approved count. The frontier count goes from 18 to 15.
+
+The current selection removes 4 frontier-generation seats and adds 1. Three removed seats still carry clauses 1 and 2 and sit outside the frontier quota. One removed seat carries clause 2 only and sits outside that quota. The added seat carries clause 2 only and falls inside the five-day protected window. The frontier count goes from 18 to 15. Every other group matches the approved count.
 
 ## Not observed
 
