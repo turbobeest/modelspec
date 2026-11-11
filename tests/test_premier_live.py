@@ -500,6 +500,20 @@ def test_cite_only_guaranteed_facts_follow_the_approved_switch(tmp_path, monkeyp
     assert refused["counts"]["clause_3_pool"] == 0
 
 
+def test_snapshot_cited_fact_without_log_verification_does_not_count(tmp_path):
+    root = catalogue(tmp_path)
+    add_source(root, "src-cite", "https://www.anthropic.com/docs/models")
+    mid = "shelf/unlogged-cited"
+    write_card(
+        root, mid,
+        availability=major_availability("aws_bedrock", "google_vertex_ai", "groq"),
+        facts=guaranteed_facts(mid, source="src-cite"),
+    )
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["models"] == []
+    assert document["counts"]["clause_3_pool"] == 0
+
+
 def test_fixture_follows_the_approved_rule(tmp_path):
     root = catalogue(tmp_path)
     for number in range(11):

@@ -16,7 +16,8 @@ from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
 from pipeline.data_source import check_private
 
 # The approved lineup counted the lab API as one recorded provider, and a
-# cite-only guaranteed fact as verified. Both switches default to that lineup.
+# cite-only guaranteed fact as verified when the verification log records it.
+# Both switches default to that lineup. A snapshot citation alone does not.
 COUNT_LAB_API = True
 CITE_ONLY_FACTS_COUNT_AS_VERIFIED = True
 
@@ -35,8 +36,6 @@ def _cited_or_verified(index: LoadedSnapshot, record_id: str | None) -> bool:
     if record_id is None:
         return False
     record = index.record(record_id)
-    if (record.get("citation") or {}).get("status") == "cited":
-        return True
     return (record.get("verification") or {}).get("outcome") == "verified"
 
 

@@ -61,6 +61,22 @@ The full live file after the change exited 0. 27 passed in 2.81s. The same comma
 
 `COUNT_LAB_API` and `CITE_ONLY_FACTS_COUNT_AS_VERIFIED` both default to true. Card providers stay, offerings in the major-provider set are unioned in, and a cite-only guaranteed fact counts when the verification log records it. Setting either switch to false is the stricter check.
 
+A snapshot citation does not count unless that log records the fact. `test_snapshot_cited_fact_without_log_verification_does_not_count` failed while the citation-status branch was still there. The focused command was:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_premier_live.py::test_snapshot_cited_fact_without_log_verification_does_not_count
+```
+
+Exit 1. 1 failed in 1.20s. The fixture card was selected on clause 3.
+
+The same file after the branch was removed:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_premier_live.py
+```
+
+Exit 0. 28 passed in 3.05s. `ruff check scripts/premier_live.py tests/test_premier_live.py` printed `All checks passed!` and exited 0. The switch test still shows that setting `CITE_ONLY_FACTS_COUNT_AS_VERIFIED` to false refuses a cite-only card the log did verify.
+
 ## Private re-run
 
 Both runs used a detached worktree of the private data repo. The approval-era worktree is the approval-era seed. The current worktree is current main. Neither commit hash is recorded here. The proposer wrote a proposal file and a membership diff, an aggregator kept only the counts below, and those files were deleted. The worktrees were removed after this file was written.
