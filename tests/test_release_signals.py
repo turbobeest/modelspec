@@ -1567,12 +1567,12 @@ def test_pending_gate_counts_valid_queues_and_dispatches_once(tmp_path, signals,
         assert not calls.exists()
 
 
-def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:
+def test_worker_endpoint_is_on_and_vendors_the_shared_contract() -> None:
     wrangler = (ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     vendor = (ROOT / "api" / "worker" / "vendor.py").read_text(encoding="utf-8")
     entry = (ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
 
-    assert '"SIGNALS_ENABLED": "false"' in wrangler
+    assert '"SIGNALS_ENABLED": "true"' in wrangler
     assert 'Path("release_signals/contract.py")' in vendor
     assert '"POST /v1/signals"' in entry
     assert '"GET /v1/signals/pending"' in entry
