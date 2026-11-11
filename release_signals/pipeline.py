@@ -499,8 +499,20 @@ class _VisibleText(HTMLParser):
             self.parts.append(data)
 
 
+def _contains_name(text: str, name: str) -> bool:
+    """True when the normalised model name is a hyphen-bounded token in the text."""
+    haystack = attribution.normalise(text)
+    needle = attribution.normalise(name)
+    if not needle:
+        return False
+    return re.search(rf"(^|-){re.escape(needle)}(-|$)", haystack) is not None
+
+
 def _primary_identity(
-    page: FetchResult, expected_name: str, expected_provider: str
+    page: FetchResult,
+    expected_name: str,
+    expected_provider: str,
+    lab_hosts: frozenset[str] = frozenset(),
 ) -> tuple[str, str]:
     parser = _JsonLd()
     html = page.body.decode("utf-8", errors="replace")
@@ -548,11 +560,18 @@ def _primary_identity(
                 continue
             if attribution.normalise(name) == normalised_name:
                 publishers.add(attribution.normalise(provider))
-        if publishers != {normalised_provider}:
+        if publishers == {normalised_provider}:
+            return expected_name, ""
+        if publishers:
             raise IdentityUncertainError(
                 "the primary source does not identify the stated lab"
             )
-        return expected_name, ""
+        host = _page_host(page.url)
+        if host and _host_is(host, lab_hosts) and _contains_name(text, expected_name):
+            return expected_name, ""
+        raise IdentityUncertainError(
+            "the primary source does not identify the stated lab"
+        )
     if len(matches) != 1:
         raise IdentityUncertainError(
             "the primary source identifies more than one matching model"
@@ -684,7 +703,8 @@ def _gather_unlisted(
     require_allowed_source(primary.url)
     try:
         display_name, release_date = _primary_identity(
-            primary, signal.model_name, signal.provider
+            primary, signal.model_name, signal.provider,
+            lab_hosts=registered_lab_hosts(root, signal.provider),
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
@@ -781,7 +801,8 @@ def gather_signal(
     primary = _fetch_allowed(fetch, primary_url)
     try:
         display_name, release_date = _primary_identity(
-            primary, signal.model_name, signal.provider
+            primary, signal.model_name, signal.provider,
+            lab_hosts=registered_lab_hosts(root, signal.provider),
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(

@@ -28,6 +28,7 @@ from release_signals.pipeline import (
     _JSON_LD_MAX_DEPTH,
     _JsonLd,
     _models_dev_listing,
+    _primary_identity,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -2634,3 +2635,68 @@ def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> 
     result = _draft_visible_signal(tmp_path, page)
     assert result.resolution.status == "new"
     assert _release_date(result) == "2026-05-05"
+
+
+def test_a_registered_lab_page_that_names_the_model_identifies_the_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from urllib.parse import urlencode
+
+    bare = FetchResult(
+        "https://models.acme.example/orbit-9", b"<h1>Orbit 9</h1>", "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(bare, "Orbit 9", "Acme")
+    assert _primary_identity(
+        bare, "Orbit 9", "Acme", lab_hosts=frozenset({"models.acme.example"}),
+    ) == ("Orbit 9", "")
+    credited = FetchResult(
+        "https://models.acme.example/orbit-9",
+        b"<p>Orbit 9 by Other Lab.</p>",
+        "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(
+            credited, "Orbit 9", "Acme", lab_hosts=frozenset({"models.acme.example"}),
+        )
+    wrong_publisher = FetchResult(
+        "https://models.acme.example/orbit-9",
+        b'<script type="application/ld+json">'
+        b'{"name":"Orbit 9","publisher":{"name":"Other Lab"}}'
+        b"</script><h1>Orbit 9</h1>",
+        "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(
+            wrong_publisher, "Orbit 9", "Acme",
+            lab_hosts=frozenset({"models.acme.example"}),
+        )
+
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    primary = f"https://{host}/orbit-9"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:orbit-9",
+        first_seen_url=primary,
+    )]}))
+    search = "https://huggingface.co/api/models?" + urlencode({"search": "Orbit 9", "limit": 20})
+    replies = _empty_models_dev()
+    replies[primary] = FetchResult(primary, b"<h1>Orbit 9</h1>", "text/html")
+    replies[search] = FetchResult(search, b"[]", "application/json")
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert primary in (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
