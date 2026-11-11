@@ -119,6 +119,14 @@ One approved clause 2 seat has no clause 1 board and is outside the clause 2 quo
 
 None of the 13 is a seat whose only clause 1 boards are the two named boards that have no mapped evidence benchmark id. The quota gaps against the approved 44 are frontier-generation 3, open-weights-generation 2, embedding 6, and rerank 2. Those four gaps sum to 13.
 
+The review re-ran the approval-era command above after the snapshot-cited branch was removed. Exit 0. The aggregates are the same: selected 31, clause 1 cards 22, clause 2 pool 37, clause 3 pool 8. Selected by quota is unchanged: frontier-generation 15, open-weights-generation 11, embedding 0, rerank 0, vision 4, decision 1. Added 0. Removed 13. The detached worktree was removed after these counts were taken.
+
+Clause 1 cards fall from 70 to 22. Forty-nine approved clause 1 cards are absent and one card enters. Thirty-seven of the absent cards rank only on boards below the 11-row minimum. One of those 37 ranks only on a named board that has no mapped evidence benchmark id. The other 12 do not appear on the live rows of a board that still has at least 11 rows.
+
+Clause 2 pool falls from 45 to 37. Seven approved clause 2 cards belong to a lab with no model on a live clause 1 board. One was released before the live window start, 2026-07-02.
+
+Clause 3 pool rises from 7 to 8. The extra card reaches three providers only after offerings are unioned onto the card. No approved clause 3 card drops out. Eight selected models carry clause 3. The approved file has 7.
+
 ## Current differences
 
 The current run removes 14 approved seats and adds 1 clause 2 seat. Removed-reason counts: clause 1 outside quota 2, clause 2 outside quota 1, no current clause 11.
