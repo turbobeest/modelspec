@@ -185,7 +185,7 @@ class FactResult:
         if self.claim is None:
             return {}
         return {ref.source_id: {"snapshot_ref": ref.snapshot_ref,
-                                "retrieved_at": ref.retrieved_at.isoformat(),
+                                "retrieved_at": _utc_retrieved_at(ref.retrieved_at),
                                 "resolved_urls": [str(url) for url in ref.resolved_urls]}
                 for ref in self.claim.sources
                 if ref.source_id in self.copies and ref.retrieved_at is not None}
@@ -899,6 +899,15 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
 # --- writing ------------------------------------------------------------------------------------
 
 
+def _utc_retrieved_at(when: datetime) -> str:
+    """UTC as the loader dumps it: ``YYYY-MM-DDTHH:MM:SSZ``, never ``+00:00``.
+
+    Fractional seconds stay when the instant has them, matching
+    ``model_dump(mode="json")`` for the same ``datetime``.
+    """
+    return when.isoformat().replace("+00:00", "Z")
+
+
 def _dump_value(value: Any) -> str:
     """``value: <value>`` on one line. A string with a line break is written as a
     double-quoted JSON string, which is also valid YAML, so no continuation line
@@ -956,7 +965,7 @@ def rewrite_fact(text: str, change: FactResult) -> str:
             out.append(f"{m.group(1)}snapshot_ref: {change.copies[current_source][1]}\n")
             if cited:
                 ref = refs[current_source]
-                out.append(f"{m.group(1)}retrieved_at: '{ref.retrieved_at.isoformat()}'\n")
+                out.append(f"{m.group(1)}retrieved_at: '{_utc_retrieved_at(ref.retrieved_at)}'\n")
                 out.append(f"{m.group(1)}resolved_urls: {json.dumps([str(url) for url in ref.resolved_urls])}\n")
         elif cited and current_source in change.copies and re.match(
                 r"^\s*(retrieved_at|resolved_urls):", line):
@@ -1007,7 +1016,7 @@ def check_value_only(before: str, after: str, changes: Sequence[FactResult]) -> 
             for source in expected_sources:
                 if source["source_id"] in change.copies:
                     ref = refs[source["source_id"]]
-                    source.update(retrieved_at=ref.retrieved_at.isoformat(),
+                    source.update(retrieved_at=_utc_retrieved_at(ref.retrieved_at),
                                   resolved_urls=[str(url) for url in ref.resolved_urls])
         if new["sources"] != expected_sources:
             raise ValueError(f"{fid}: the rewrite changed its sources")
