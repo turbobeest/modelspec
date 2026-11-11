@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from scripts import premier_slice1
+from scripts import premier_live, premier_slice1
 from scripts.premier_slice1 import rank_board
 from tests.snapshot_records import SOURCES, evidence, fact
 
@@ -22,16 +22,24 @@ def write_yaml(path, value):
     path.write_text(yaml.safe_dump(value, sort_keys=False))
 
 
-def write_card(root, model_id, *, release="2026-01-01", rows=(), status="active", facts=()):
+def write_card(root, model_id, *, release="2026-01-01", rows=(), status="active", facts=(),
+               availability=None):
     path = root / "models" / f"{model_id}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("---\n" + yaml.safe_dump({
+    payload = {
         "model_id": model_id, "display_name": model_id, "provider": model_id.split("/")[0],
         "model_type": "llm-chat", "release_date": release, "status": status,
         "licensing": {"open_weights": False},
         "facts": [fact("model", model_id, "model.weights_openness", "closed_weights"), *facts],
         "benchmarks": {"evidence": list(rows)},
-    }, sort_keys=False) + "---\nFixture.\n")
+    }
+    if availability:
+        payload = {
+            **{key: value for key, value in payload.items() if key != "benchmarks"},
+            "availability": availability,
+            "benchmarks": payload["benchmarks"],
+        }
+    path.write_text("---\n" + yaml.safe_dump(payload, sort_keys=False) + "---\nFixture.\n")
     return path
 
 
@@ -59,6 +67,91 @@ def catalogue(tmp_path):
     write_yaml(root / "premier/slice-1.yaml", {"models": []})
     write_benchmark(root, BENCH)
     return root
+
+
+GUARANTEED_VALUES = {
+    "model.class": "text-generator",
+    "model.input_modalities": ["text"],
+    "model.output_modalities": ["text"],
+    "model.context_window": 128000,
+    "model.max_output_tokens": 8192,
+    "model.weights_openness": "closed_weights",
+    "licence.commercial_use": "permitted",
+    "licence.user_cap": "unbounded",
+    "licence.output_training": "prohibited",
+    "licence.fine_tuning": "prohibited",
+    "origin.lab_jurisdiction": ["US"],
+    "origin.base_lineage": [],
+    "origin.weights_hosting": ["US"],
+    "model.release_date": "2026-01-01",
+    "model.lifecycle": "active",
+    "feature.tool_calling": True,
+    "feature.structured_output": True,
+    "feature.effort_controls": False,
+    "feature.batch": False,
+    "feature.streaming": True,
+}
+
+
+def major_availability(*names, lab_api=False):
+    block = {}
+    if lab_api:
+        block["primary_provider"] = {
+            "api_endpoint": "https://lab.example/v1",
+            "model_id_on_platform": "wide",
+        }
+    for name in names:
+        block[name] = {"available": True}
+    return block
+
+
+def guaranteed_facts(model_id, *, source="src-lab-docs"):
+    return [
+        fact("model", model_id, facet, value, source=source)
+        for facet, value in GUARANTEED_VALUES.items()
+        if facet != "model.weights_openness"
+    ]
+
+
+def log_guaranteed(root, model_id):
+    from decision.model import value_hash
+
+    path = root / "verification/log.jsonl"
+    lines = []
+    for facet, value in GUARANTEED_VALUES.items():
+        lines.append(json.dumps({
+            "outcome": "verified",
+            "date": "2026-09-20",
+            "collector": {"agent": "collector-a", "model_family": "family-a", "method": "read"},
+            "verifier": {"agent": "verifier-b", "model_family": "family-b", "method": "re-read"},
+            "method": "re-read the cited region",
+            "target": {
+                "kind": "fact",
+                "id": f"{model_id}#{facet}",
+                "value_hash": value_hash(value),
+            },
+        }))
+    path.write_text(path.read_text() + "\n".join(lines) + "\n")
+
+
+def add_source(root, source_id, url):
+    path = root / "registry/sources.yaml"
+    data = yaml.safe_load(path.read_text())
+    data["sources"].append({"id": source_id, "url": url})
+    write_yaml(path, data)
+
+
+def write_clause3_card(root, model_id, *, availability, source="src-lab-docs"):
+    write_card(
+        root, model_id, availability=availability,
+        facts=guaranteed_facts(model_id, source=source),
+    )
+    log_guaranteed(root, model_id)
+
+
+def clause_numbers(document, model_id):
+    row = next(row for row in document["models"] if row["model_id"] == model_id)
+    return {clause["clause"] for clause in row["clauses"]}
 
 
 def pad_board(root, count=10, *, bench=BENCH, status="sunset", lab="pad", base=1):
@@ -352,3 +445,77 @@ def test_mapped_boards_are_the_named_slice1_set():
         source_url="https://www.anthropic.com/news",
     ) is None
     assert premier_slice1.slice1_board_id("aime_2026") is None
+
+
+def test_card_recorded_providers_satisfy_clause_3(tmp_path):
+    root = catalogue(tmp_path)
+    write_clause3_card(root, "shelf/wide-model", availability=major_availability(
+        "aws_bedrock", "google_vertex_ai", lab_api=True,
+    ))
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert clause_numbers(document, "shelf/wide-model") == {3}
+
+
+def test_lab_api_switch_drops_a_card_that_reaches_three_only_through_it(tmp_path, monkeypatch):
+    root = catalogue(tmp_path)
+    write_clause3_card(root, "shelf/wide-model", availability=major_availability(
+        "aws_bedrock", "google_vertex_ai", lab_api=True,
+    ))
+    monkeypatch.setattr(premier_live, "COUNT_LAB_API", False)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["models"] == []
+    assert document["counts"]["clause_3_pool"] == 0
+
+
+def test_an_offering_fills_out_the_card_providers(tmp_path):
+    root = catalogue(tmp_path)
+    mid = "shelf/wide-model"
+    write_clause3_card(root, mid, availability=major_availability(
+        "aws_bedrock", "google_vertex_ai",
+    ))
+    write_yaml(root / "offerings/sambanova/shelf/wide-model.yaml", [{
+        "model": mid, "provider": "sambanova", "region": "global", "tier": "standard",
+        "facts": [],
+    }])
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert clause_numbers(document, mid) == {3}
+
+
+def test_cite_only_guaranteed_facts_follow_the_approved_switch(tmp_path, monkeypatch):
+    root = catalogue(tmp_path)
+    add_source(root, "src-cite", "https://www.anthropic.com/docs/models")
+    mid = "shelf/cited-model"
+    write_clause3_card(
+        root, mid, source="src-cite",
+        availability=major_availability("aws_bedrock", "google_vertex_ai", "groq"),
+    )
+    admitted = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert clause_numbers(admitted, mid) == {3}
+    monkeypatch.setattr(premier_live, "CITE_ONLY_FACTS_COUNT_AS_VERIFIED", False)
+    refused = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert refused["models"] == []
+    assert refused["counts"]["clause_3_pool"] == 0
+
+
+def test_fixture_follows_the_approved_rule(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(11):
+        mid = f"lab/seat-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number)])
+    write_benchmark(root, "side-quest")
+    for number in range(11):
+        mid = f"quest/side-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, "side-quest", 100 - number)])
+    write_card(root, "lab/fresh", release="2026-09-29")
+    write_clause3_card(root, "shelf/wide-model", availability=major_availability(
+        "aws_bedrock", "google_vertex_ai", lab_api=True,
+    ))
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    expected = {f"lab/seat-{number:02d}" for number in range(10)} | {
+        "lab/fresh", "shelf/wide-model",
+    }
+    assert {row["model_id"] for row in document["models"]} == expected
+    for number in range(10):
+        assert 1 in clause_numbers(document, f"lab/seat-{number:02d}")
+    assert 2 in clause_numbers(document, "lab/fresh")
+    assert 3 in clause_numbers(document, "shelf/wide-model")

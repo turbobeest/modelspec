@@ -15,6 +15,11 @@ from decision.registry import default as default_registry
 from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
 from pipeline.data_source import check_private
 
+# The approved lineup counted the lab API as one recorded provider, and a
+# cite-only guaranteed fact as verified. Both switches default to that lineup.
+COUNT_LAB_API = True
+CITE_ONLY_FACTS_COUNT_AS_VERIFIED = True
+
 
 def _verified_record(index: LoadedSnapshot, record_id: str | None) -> bool:
     if record_id is None:
@@ -24,6 +29,24 @@ def _verified_record(index: LoadedSnapshot, record_id: str | None) -> bool:
         not record.get("citation")
         and (record.get("verification") or {}).get("outcome") == "verified"
     )
+
+
+def _cited_or_verified(index: LoadedSnapshot, record_id: str | None) -> bool:
+    if record_id is None:
+        return False
+    record = index.record(record_id)
+    if (record.get("citation") or {}).get("status") == "cited":
+        return True
+    return (record.get("verification") or {}).get("outcome") == "verified"
+
+
+def _guaranteed_verified(
+    index: LoadedSnapshot, model_id: str, facets: set[str], logged: bool,
+) -> bool:
+    if CITE_ONLY_FACTS_COUNT_AS_VERIFIED and logged:
+        return True
+    check = _cited_or_verified if CITE_ONLY_FACTS_COUNT_AS_VERIFIED else _verified_record
+    return all(check(index, index.fact(model_id, facet).record_id) for facet in facets)
 
 
 def load_inputs(root: Path, as_of: date) -> dict:
@@ -79,10 +102,10 @@ def load_inputs(root: Path, as_of: date) -> dict:
     for model_id, card in cards.items():
         if model_id not in active:
             card["status"] = "sunset"
-        card["platforms"] = []
-        card["guaranteed_facts_verified"] = model_id in active and all(
-            _verified_record(index, index.fact(model_id, facet).record_id)
-            for facet in guaranteed
+        if not COUNT_LAB_API:
+            card["platforms"] = [name for name in card["platforms"] if name != "lab_api"]
+        card["guaranteed_facts_verified"] = model_id in active and _guaranteed_verified(
+            index, model_id, guaranteed, bool(card["guaranteed_facts_verified"]),
         )
 
     major_providers = {
