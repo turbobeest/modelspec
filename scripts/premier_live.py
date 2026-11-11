@@ -7,15 +7,19 @@ import math
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.parse import quote
 
 import yaml
 
 from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
 from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
-from decision.units import unit_id
 from pipeline.data_source import check_private
+
+# The approved lineup counted the lab API as one recorded provider, and a
+# cite-only guaranteed fact as verified when the verification log records it.
+# Both switches default to that lineup. A snapshot citation alone does not.
+COUNT_LAB_API = True
+CITE_ONLY_FACTS_COUNT_AS_VERIFIED = True
 
 
 def _verified_record(index: LoadedSnapshot, record_id: str | None) -> bool:
@@ -28,13 +32,31 @@ def _verified_record(index: LoadedSnapshot, record_id: str | None) -> bool:
     )
 
 
+def _cited_or_verified(index: LoadedSnapshot, record_id: str | None) -> bool:
+    if record_id is None:
+        return False
+    record = index.record(record_id)
+    return (record.get("verification") or {}).get("outcome") == "verified"
+
+
+def _guaranteed_verified(
+    index: LoadedSnapshot, model_id: str, facets: set[str], logged: bool,
+) -> bool:
+    if CITE_ONLY_FACTS_COUNT_AS_VERIFIED and logged:
+        return True
+    check = _cited_or_verified if CITE_ONLY_FACTS_COUNT_AS_VERIFIED else _verified_record
+    return all(check(index, index.fact(model_id, facet).record_id) for facet in facets)
+
+
 def load_inputs(root: Path, as_of: date) -> dict:
     """Adapt admitted records without writing a snapshot or changing the lineup."""
     from scripts.premier_slice1 import (
         MAJOR_PLATFORMS,
         SLICE_CLASSES,
+        leaderboards,
         load_cards,
         local_candidate_universe,
+        slice1_board_id,
     )
 
     root = check_private(root)
@@ -79,10 +101,10 @@ def load_inputs(root: Path, as_of: date) -> dict:
     for model_id, card in cards.items():
         if model_id not in active:
             card["status"] = "sunset"
-        card["platforms"] = []
-        card["guaranteed_facts_verified"] = model_id in active and all(
-            _verified_record(index, index.fact(model_id, facet).record_id)
-            for facet in guaranteed
+        if not COUNT_LAB_API:
+            card["platforms"] = [name for name in card["platforms"] if name != "lab_api"]
+        card["guaranteed_facts_verified"] = model_id in active and _guaranteed_verified(
+            index, model_id, guaranteed, bool(card["guaranteed_facts_verified"]),
         )
 
     major_providers = {
@@ -100,6 +122,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
         card["platforms"] = sorted(set(card["platforms"]))
 
     earliest = as_of - timedelta(days=365)
+    pinned_domain = {board["id"]: board["domain"] for board in leaderboards()}
     boards = {}
     evidence_by_model = {}
     for model_id, evidence in index.corpus_evidence():
@@ -118,30 +141,33 @@ def load_inputs(root: Path, as_of: date) -> dict:
         if evidence.date is None or evidence.date < earliest:
             continue
         metric = inputs.benchmark_metadata.get(evidence.benchmark_id)
-        if metric is None:
+        if metric is None or not inputs.benchmark_domains.get(evidence.benchmark_id):
             continue
         url = record.get("source_url") or index.source_url(evidence.source_ids[0])
-        for domain, _directness in inputs.benchmark_domains.get(evidence.benchmark_id, ()):
-            key = (
-                evidence.benchmark_id, evidence.version, evidence.subcategory,
-                evidence.harness, unit_id(evidence.unit), card["class_id"], domain,
-            )
-            board = boards.setdefault(key, {
-                "id": "/".join(quote(str(part), safe="") if part is not None else "-"
-                               for part in key),
-                "domain": domain,
-                "url": url,
-                "direction": metric.get("direction", "higher_is_better"),
-                "rows": [],
-            })
-            board["rows"].append({
-                "name": record.get("model_id_as_evaluated") or model_id,
-                "model_id": model_id,
-                "score": evidence.value,
-                "date": evidence.date.isoformat(),
-                "org": card["provider"],
-                "url": url,
-            })
+        board_id = slice1_board_id(
+            evidence.benchmark_id,
+            harness=evidence.harness,
+            version=evidence.version,
+            source_url=url,
+            configuration=record.get("configuration"),
+        )
+        if board_id not in pinned_domain:
+            continue
+        board = boards.setdefault(board_id, {
+            "id": board_id,
+            "domain": pinned_domain[board_id],
+            "url": url,
+            "direction": metric.get("direction", "higher_is_better"),
+            "rows": [],
+        })
+        board["rows"].append({
+            "name": record.get("model_id_as_evaluated") or model_id,
+            "model_id": model_id,
+            "score": evidence.value,
+            "date": evidence.date.isoformat(),
+            "org": card["provider"],
+            "url": url,
+        })
 
     cheapest = {}
     for offering in inputs.offerings:
