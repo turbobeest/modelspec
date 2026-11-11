@@ -22,6 +22,8 @@ from release_signals.pipeline import (
     DraftResult,
     FetchResult,
     FirecrawlBudget,
+    IdentityUncertainError,
+    ModelsDevNotListed,
     RequiredSourceError,
     _JSON_LD_MAX_DEPTH,
     _JsonLd,
@@ -2261,6 +2263,237 @@ def test_json_ld_two_thousand_level_nest_is_skipped(tmp_path: Path) -> None:
     result = _draft_visible_signal(tmp_path, _hostile_json_ld_page(payload))
     assert result.resolution.status == "new"
     assert _release_date(result) == "2026-09-26"
+
+
+class _PriceFetcher:
+    credits_spent = 0
+
+
+def _watch_lab(root: Path, host: str) -> None:
+    registry = root / "registry"
+    registry.mkdir(parents=True, exist_ok=True)
+    (registry / "release-watch.yaml").write_text(
+        "sources:\n"
+        "- id: acme-models\n"
+        "  kind: page\n"
+        f"  url: https://{host}/models\n"
+        "  provider: acme\n"
+        "  pattern: orbit\n"
+        "  confidence: 0.9\n",
+        encoding="utf-8",
+    )
+
+
+def _empty_models_dev() -> dict[str, FetchResult]:
+    url = "https://models.dev/api.json"
+    return {
+        url: FetchResult(
+            url,
+            json.dumps({"acme": {"name": "Acme", "models": {}}}).encode(),
+            "application/json",
+        ),
+    }
+
+
+def test_zero_models_dev_rows_are_not_listed_and_several_stay_uncertain() -> None:
+    with pytest.raises(ModelsDevNotListed):
+        _models_dev_listing(
+            {"other": {"name": "Other", "models": {"x": {"name": "X"}}}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+    with pytest.raises(ModelsDevNotListed):
+        _models_dev_listing(
+            {"acme": {"name": "Acme", "models": {}}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+    with pytest.raises(IdentityUncertainError, match="exactly one model"):
+        _models_dev_listing(
+            {"acme": {"name": "Acme", "models": {
+                "a": {"id": "a", "name": "Orbit 9"},
+                "b": {"id": "b", "name": "Orbit 9"},
+            }}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+
+
+def test_not_listed_uses_a_registered_lab_page_and_names_other_host_classes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from urllib.parse import urlencode
+
+    from decision.retention import cite_only_hosts
+
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    primary = f"https://{host}/orbit-9"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    queued = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:orbit-9",
+        first_seen_url=primary,
+    )
+    pending.write_text(json.dumps({"signals": [queued]}))
+    search = "https://huggingface.co/api/models?" + urlencode({"search": "Orbit 9", "limit": 20})
+    replies = _empty_models_dev()
+    replies[primary] = FetchResult(primary, b"<h1>Acme launches Orbit 9.</h1>", "text/html")
+    replies[search] = FetchResult(search, b"[]", "application/json")
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        requested.append(url)
+        return replies[url]
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    assert card.is_file()
+    assert primary in card.read_text(encoding="utf-8")
+    assert "https://models.dev/api.json" in requested
+    assert primary in requested
+
+    def run_blocked(row: dict[str, object], forbidden: str) -> dict:
+        drafted = tmp_path / "models" / "acme" / "orbit-9.md"
+        if drafted.exists():
+            drafted.unlink()
+        blocked_pending = tmp_path / "blocked.json"
+        blocked_result = tmp_path / "blocked-result.json"
+        blocked_pending.write_text(json.dumps({"signals": [row]}))
+        seen: list[str] = []
+
+        def blocked_fetch(url: str) -> FetchResult:
+            seen.append(url)
+            if forbidden in url:
+                raise AssertionError(f"fetched a refused host: {url}")
+            return _empty_models_dev()["https://models.dev/api.json"]
+
+        monkeypatch.setattr(processor, "_fetch", blocked_fetch)
+        outcome = processor.process(
+            blocked_pending, blocked_result, root=tmp_path, price_fetcher=_PriceFetcher(),
+        )
+        assert all(forbidden not in url for url in seen)
+        assert not drafted.exists()
+        return outcome
+
+    tweet = run_blocked(signal(model_name="Orbit 9", signal_id="grok-orbit-9"), "x.com")
+    assert tweet["status"] == "uncertain"
+    assert tweet["model_id"] is None
+    assert "host class signal-only" in tweet["reason"]
+
+    outsider = run_blocked(signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:news",
+        first_seen_url="https://news.example/orbit-9",
+    ), "https://news.example/orbit-9")
+    assert outsider["status"] == "uncertain"
+    assert "host class unregistered" in outsider["reason"]
+
+    excluded_host = sorted(REMOVED_HOSTS)[0]
+    lab_page = f"https://{host}/orbit-excluded"
+    excluded_card = tmp_path / "models" / "acme" / "orbit-9.md"
+    if excluded_card.exists():
+        excluded_card.unlink()
+    excluded_pending = tmp_path / "excluded.json"
+    excluded_result = tmp_path / "excluded-result.json"
+    excluded_pending.write_text(json.dumps({"signals": [signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:excluded",
+        first_seen_url=lab_page,
+    )]}))
+    excluded_seen: list[str] = []
+
+    def excluded_fetch(url: str) -> FetchResult:
+        excluded_seen.append(url)
+        if excluded_host in url:
+            raise AssertionError(f"fetched a refused host: {url}")
+        if url == lab_page:
+            return FetchResult(
+                f"https://{excluded_host}/orbit-9",
+                b"<h1>Acme launches Orbit 9.</h1>",
+                "text/html",
+            )
+        return _empty_models_dev()["https://models.dev/api.json"]
+
+    monkeypatch.setattr(processor, "_fetch", excluded_fetch)
+    excluded = processor.process(
+        excluded_pending, excluded_result, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+    assert all(excluded_host not in url for url in excluded_seen)
+    assert not excluded_card.exists()
+    assert excluded["status"] == "uncertain"
+    assert "host class excluded" in excluded["reason"]
+
+    cite_host = cite_only_hosts()[0]
+    cited = run_blocked(signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:cited",
+        first_seen_url=f"https://{cite_host}/orbit-9",
+    ), f"https://{cite_host}/orbit-9")
+    assert cited["status"] == "uncertain"
+    assert "host class cite-only" in cited["reason"]
+
+
+def test_several_models_dev_listings_are_not_guessed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 9")]}))
+    payload = {"acme": {"name": "Acme", "models": {
+        "a": {"id": "a", "name": "Orbit 9", "release_url": "https://models.acme.example/a"},
+        "b": {"id": "b", "name": "Orbit 9", "release_url": "https://models.acme.example/b"},
+    }}}
+    models_dev_url = "https://models.dev/api.json"
+    monkeypatch.setattr(processor, "_fetch", lambda url: FetchResult(
+        url, json.dumps(payload).encode(), "application/json",
+    ))
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "exactly one" in result["reason"]
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_existing_card_stays_existing_when_models_dev_does_not_list_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = card.read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    monkeypatch.setattr(
+        processor, "_fetch", lambda url: _empty_models_dev()["https://models.dev/api.json"],
+    )
+    refreshed: dict[str, object] = {}
+
+    def run_refresh(**kwargs: object):
+        refreshed.update(kwargs)
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "existing"
+    assert result["model_id"] == "acme/orbit-1"
+    assert "not_listed" in result["identity_error"]
+    assert card.read_bytes() == before
+    assert refreshed["model_ids"] == ("acme/orbit-1",)
 
 
 def test_one_trailing_suffix_resolves_to_the_unsuffixed_card(
