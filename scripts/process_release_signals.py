@@ -19,6 +19,7 @@ import httpx
 
 from decision.sources import get_source_response
 from release_signals.contract import ReleaseSignal
+from release_signals.scope import out_of_scope_reason
 from release_signals.pipeline import (
     FetchResult,
     RequiredSourceError,
@@ -138,6 +139,17 @@ def process(
             "recheck_due": recheck.get("due") if recheck else None,
             "pr_url": recheck.get("pr_url") if recheck else None,
             "reason": "test signal",
+        }
+    elif reason := out_of_scope_reason(signal.provider, signal.model_name):
+        result = {
+            "status": "out_of_scope",
+            "signal_id": signal.signal_id,
+            "model_id": None,
+            "candidates": [],
+            "recheck_day": recheck.get("day") if recheck else None,
+            "recheck_due": recheck.get("due") if recheck else None,
+            "pr_url": recheck.get("pr_url") if recheck else None,
+            "reason": reason,
         }
     else:
         resolution = resolve_signal(signal, root)
