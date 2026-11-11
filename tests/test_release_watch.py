@@ -460,7 +460,9 @@ def test_a_burst_of_new_ids_is_held_for_a_person(world) -> None:
     assert all(signal.first_seen_url != PAGE for signal in discoveries(runs, NOW))
 
 
-def _live_page_report(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, count: int) -> tuple[int, dict]:
+def _live_page_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, count: int,
+) -> tuple[int, dict]:
     """Run the live watcher command on one fixture page. It passes no catalogue predicate."""
     real = yaml.safe_load((ROOT / "registry" / "release-watch.yaml").read_text(encoding="utf-8"))
     catalogue = tmp_path / "catalogue"
@@ -810,6 +812,49 @@ def test_every_source_answering_exits_zero(world, tmp_path, monkeypatch) -> None
     monkeypatch.setattr(release_watch, "http_fetch", lambda user_agent: replay("after"))
     assert release_watch.main(["--registry", str(registry_path),
                                "--baseline", str(baseline_path)]) == 0
+
+
+def test_run_report_counts_filed_ids_whose_created_is_missing() -> None:
+    router = Source("router", "openrouter", OPENROUTER, 0.8, providers={"acme": "acme"})
+    page = Source("page", "page", PAGE, 0.9, provider="acme", pattern=r"orbit-[a-z0-9-]+")
+    registry = Registry("fixture", 30, r"gguf", r"sdk", (router, page))
+    recent = 1790712000
+
+    def fetch(url: str) -> Response:
+        if url.endswith("/robots.txt"):
+            return Response(404, b"")
+        if url == OPENROUTER:
+            return Response(200, json.dumps({"data": [
+                {"id": "acme/orbit-old", "created": 0},
+                {"id": "acme/orbit-new", "created": recent},
+                {"id": "acme/orbit-blank"},
+            ]}).encode())
+        return Response(200, b"orbit-4")
+
+    runs = run_all(
+        registry, {router.id: frozenset(), page.id: frozenset()}, fetch=fetch, now=NOW,
+    )
+    filed = [signal.model_name for signal in discoveries(runs, NOW)]
+    assert "orbit-old" not in filed
+    assert "orbit-blank" in filed
+    assert "orbit-4" in filed
+    result = release_watch.report(runs, discoveries(runs, NOW), None, NOW)
+    assert [row["missing_created"] for row in result["sources"]] == [1, 1]
+    assert "`router` 1" in release_watch.summary(result)
+    assert "`page` 1" in release_watch.summary(result)
+
+    # A carded id is rejected rather than filed, so its missing created time is not counted.
+    from release_signals.watch import Catalogue
+    carded = Catalogue(labs={}, aliases={"acme": frozenset({"orbit-4"})})
+    filtered = filter_releases(runs, NOW, catalogue=carded)
+    filed_report = release_watch.report(
+        runs, filtered["signals"], None, NOW, filtered=filtered,
+    )
+    assert [row["missing_created"] for row in filed_report["sources"]] == [1, 0]
+
+    burst = SourceRun(router, "burst", "2 new IDs at once, above 1", 2, runs[0].new)
+    held = release_watch.report([burst], [], None, NOW)
+    assert held["sources"][0]["missing_created"] == 0
 
 
 SHIM = '''

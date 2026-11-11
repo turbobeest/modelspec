@@ -199,6 +199,19 @@ def _issue_body(signal: ReleaseSignal, group: dict | None = None) -> str:
     )
 
 
+def _missing_created(run: SourceRun, filtered: dict | None) -> int:
+    """Ids this source filed with no created time. A burst or a rejection files nothing."""
+    if run.status != "ok":
+        return 0
+    if filtered is None:
+        return sum(seen.created is None for seen in run.new)
+    return sum(
+        row["source_id"] == run.source.id and row["created"] is None
+        for group in filtered["groups"]
+        for row in group["evidence"]
+    )
+
+
 def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
            posted: Sequence[dict] | None, now: datetime, *, filtered: dict | None = None) -> dict:
     return {
@@ -211,6 +224,7 @@ def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
                 "detail": run.detail,
                 "listed": run.listed,
                 "new": [seen.key for seen in run.new],
+                "missing_created": _missing_created(run, filtered),
             }
             for run in runs
         ],
@@ -243,6 +257,15 @@ def summary(result: dict) -> str:
         + f"{len(result['discoveries'])} discoveries.",
         f"Filtered out: {len(result.get('rejected', []))} observations.",
     ]
+    missing = [
+        (row["id"], row["missing_created"])
+        for row in result["sources"]
+        if row.get("missing_created")
+    ]
+    if missing:
+        lines.append("Filed with no created time: " + ", ".join(
+            f"`{source_id}` {count}" for source_id, count in missing
+        ) + ".")
     reasons = Counter(row["reason"] for row in result.get("rejected", []))
     lines.extend(f"- {reason}: {count}" for reason, count in sorted(reasons.items()))
     if result["discoveries"]:
