@@ -1166,6 +1166,39 @@ def test_a_multi_paragraph_quoted_value_is_replaced_whole(new: str) -> None:
     assert out[:9] == old[:9] and out[10:12] == old[12:14] and out[13:] == old[15:]
 
 
+def test_a_cited_rewrite_stamps_retrieved_at_as_utc_z() -> None:
+    """The loader dumps a UTC instant with a trailing Z. The writer must match it."""
+    when = datetime(2026, 11, 10, 7, 45, 29, 54783, tzinfo=UTC)
+    expected = "2026-11-10T07:45:29.054783Z"
+    old_ref = "sha256:" + "1" * 64
+    new_ref = "sha256:" + "2" * 64
+    claim = Claim(
+        target=TargetRef(kind="fact", id=PRO_PRICE),
+        subject="example/subscription/pro",
+        names=("Example Pro",),
+        field="offering.subscription.price",
+        value=20,
+        collector=COLLECTOR,
+        sources=(SourceRef(
+            source_id="example-plans", snapshot_ref=new_ref, cited_regions=["page"],
+            retrieved_at=when,
+        ),),
+    )
+    change = price_reread.FactResult(
+        PRO_PRICE, "offering.subscription.price", PLAN_FILE, ("example-plans",),
+        Status.CITED, "known", 20,
+        copies={"example-plans": (old_ref, new_ref)}, claim=claim)
+    rewritten = rewrite_fact(QUOTED, change)
+    stamped = next(
+        fact["sources"][0]["retrieved_at"]
+        for offering in yaml.safe_load(rewritten) for fact in offering["facts"]
+        if fact["id"] == PRO_PRICE)
+    assert stamped == expected
+    assert stamped.endswith("Z") and "+00:00" not in rewritten
+    assert change.citations()["example-plans"]["retrieved_at"] == expected
+    check_value_only(QUOTED, rewritten, [change])
+
+
 def test_a_value_change_never_reaches_the_rewriter(estate, monkeypatch) -> None:
     """Only cite-only citations are rewritten; a value change has no write path."""
     root, _ = estate
