@@ -163,3 +163,47 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 
 Exit 0. `236 passed`. Callers that replace `collect_readings` now accept the
 `arena_complete` keyword `run` passes.
+
+### Seven configs at head
+
+One dry run on 2026-11-11 with `MODELSPEC_ARENA_REVISION=latest`. The reader
+is `refresh_leaderboards.run` with an empty scratch root, `dry_run=True`, and
+a scratch copy cache. A fetch whose host is not huggingface.co fails before
+the request. The catalogue was not written.
+
+Eight HTTPS requests, each status 200. No ninth request. No fallback.
+
+| Request | Bytes |
+|---|---:|
+| `https://huggingface.co/api/datasets/lmarena-ai/leaderboard-dataset` | 22695 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/document/latest-00000-of-00001.parquet` | 7637 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/text/latest-00000-of-00001.parquet` | 626995 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/text_factuality/latest-00000-of-00001.parquet` | 211644 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/text_style_control/latest-00000-of-00001.parquet` | 627640 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/vision/latest-00000-of-00001.parquet` | 64607 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/vision_style_control/latest-00000-of-00001.parquet` | 64600 |
+| `.../resolve/4217986c2fa1163d072e7a3dda637bb56cce8d79/webdev/latest-00000-of-00001.parquet` | 31920 |
+
+The dataset prefix on the parquet URLs is
+`https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset`.
+
+Revision `4217986c2fa1163d072e7a3dda637bb56cce8d79`. `lastModified` is
+`2026-11-11T04:01:46.000Z`.
+
+| Config | At head | Parquet rows | Overall rows the reader keeps | Publish date |
+|---|---|---:|---:|---|
+| document | present | 46 | 46 | 2026-11-09 |
+| text | present | 11175 | 421 | 2026-11-09 |
+| text_factuality | present | 4079 | 190 | 2026-11-09 |
+| text_style_control | present | 11175 | 421 | 2026-11-09 |
+| vision | present | 1161 | 167 | 2026-11-09 |
+| vision_style_control | present | 1161 | 167 | 2026-11-09 |
+| webdev | present | 672 | 156 | 2026-11-10 |
+
+A latest run against this repository's frozen `registry/sources.yaml` still
+writes no Arena rows. Those source URLs name the pin
+`1880dbebff5ba3e2dd3865ecf6fc43539c2099db`, which is not the revision above.
+The weekly workflow stays on `pinned`. The proof used a scratch root, so it
+did not load that registry.
+`test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revision`
+covers the refusal.
