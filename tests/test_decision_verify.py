@@ -2798,6 +2798,34 @@ def _repo(tmp_path, store) -> Path:
     return root
 
 
+def test_the_verify_flag_is_off_unless_the_job_asks(tmp_path, store, monkeypatch) -> None:
+    from cli.modelspec import legacy as cli_mod
+
+    seen = []
+    real = verify.StoredRegions
+
+    class RecordingRegions(real):
+        def __init__(self, *args, **kwargs):
+            seen.append(kwargs.get("skip_absent_copies", False))
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(verify, "StoredRegions", RecordingRegions)
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
+    root = _repo(tmp_path, store)
+    help_text = CliRunner().invoke(
+        cli_mod.app, ["verify", "--help"],
+        env={"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "160"})
+    assert help_text.exit_code == 0, help_text.output
+    help_plain = " ".join(help_text.output.replace("│", " ").split())
+    assert "cache that holds only the copies it fetched itself" in help_plain
+    plain = CliRunner().invoke(cli_mod.app, ["verify", "--root", str(root), "--json"])
+    assert plain.exit_code == 0, plain.output
+    opted = CliRunner().invoke(
+        cli_mod.app, ["verify", "--root", str(root), "--skip-absent-copies", "--json"])
+    assert opted.exit_code == 0, opted.output
+    assert seen == [False, True]
+
+
 def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monkeypatch) -> None:
     from cli.modelspec import legacy as cli_mod
 

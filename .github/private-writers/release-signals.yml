@@ -407,7 +407,7 @@ jobs:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
         run: |
           python -I -m scripts.validate_pr --all > "$RUNNER_TEMP/card-validation.json"
-          python -I -m cli.modelspec.legacy verify --json > "$RUNNER_TEMP/verification.json"
+          python -I -m cli.modelspec.legacy verify --skip-absent-copies --json > "$RUNNER_TEMP/verification.json"
       - name: Run the MODEL-111 accuracy harness
         if: steps.classify.outputs.changed == 'true'
         run: python -I -m scripts.accuracy --profile pr --output-dir "$RUNNER_TEMP/accuracy"
