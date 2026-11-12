@@ -332,14 +332,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-signal-result-${{ matrix.work.signal_id }}-${{ matrix.work.recheck_day }}
+          name: release-signal-result-${{ strategy.job-index }}
           path: ${{ runner.temp }}/result.json
           if-no-files-found: ignore
       - name: Retain allowed pricing copies and citation metadata for review
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-signal-price-copies-${{ matrix.work.signal_id }}-${{ matrix.work.recheck_day }}
+          name: release-signal-price-copies-${{ strategy.job-index }}
           path: ${{ runner.temp }}/source-copies
           retention-days: 35
           if-no-files-found: ignore
@@ -448,7 +448,7 @@ jobs:
         if: steps.classify.outputs.score_only == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: release-signal-audit-${{ steps.classify.outputs.signal_id }}
+          name: release-signal-audit-${{ strategy.job-index }}
           path: ${{ runner.temp }}/audit.json
           if-no-files-found: error
       - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks

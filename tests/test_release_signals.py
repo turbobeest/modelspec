@@ -1597,6 +1597,51 @@ def test_each_run_keeps_at_most_ten_work_items_signals_before_rechecks(tmp_path:
     assert "steps.uncertain.outputs.url" not in ack["env"]["RESULT_URL"]
 
 
+def test_per_job_artifact_names_keep_signal_punctuation_out() -> None:
+    from fnmatch import fnmatch
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    signal_id = "watch:acme/orbit-6.1"
+    job_index = "4"
+    expected = {
+        "${{ runner.temp }}/result.json": "release-signal-result-",
+        "${{ runner.temp }}/source-copies": "release-signal-price-copies-",
+        "${{ runner.temp }}/audit.json": "release-signal-audit-",
+    }
+    rendered_names: dict[str, str] = {}
+    for step in workflow["jobs"]["process"]["steps"]:
+        if step.get("uses") != "actions/upload-artifact@v4":
+            continue
+        path = step.get("with", {}).get("path")
+        if path not in expected:
+            continue
+        template = step["with"]["name"]
+        rendered = (
+            template
+            .replace("${{ matrix.work.signal_id }}", signal_id)
+            .replace("${{ steps.classify.outputs.signal_id }}", signal_id)
+            .replace("${{ matrix.work.recheck_day }}", "1")
+            .replace("${{ strategy.job-index }}", job_index)
+        )
+        assert "${{" not in rendered
+        assert ":" not in rendered
+        assert "/" not in rendered
+        assert signal_id not in rendered
+        prefix = expected[path]
+        assert rendered == f"{prefix}{job_index}"
+        rendered_names[path] = rendered
+    assert set(rendered_names) == set(expected)
+    pattern = next(
+        step["with"]["pattern"]
+        for step in workflow["jobs"]["review"]["steps"]
+        if step.get("uses") == "actions/download-artifact@v4"
+    )
+    assert pattern == "release-signal-result-*"
+    assert fnmatch(rendered_names["${{ runner.temp }}/result.json"], pattern)
+
+
 def test_the_roll_up_opens_one_issue_only_for_uncertain_results(tmp_path: Path) -> None:
     import os
     import subprocess
