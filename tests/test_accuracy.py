@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
-import subprocess
 import sys
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -479,76 +476,90 @@ def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) 
     assert accuracy.PROFILES["data-pr"] == ("deterministic_correctness", "output_parity")
 
 
-def _engine_with_linked_models(tmp_path: Path) -> Path:
+def _linked_engine(tmp_path: Path) -> Path:
     repo = tmp_path / "engine"
     private = tmp_path / "private-models"
-    (repo / "models").mkdir(parents=True)
+    repo.mkdir()
     private.mkdir()
-    (repo / "models" / "marker.txt").write_text("public\n", encoding="utf-8")
-    (private / "marker.txt").write_text("private\n", encoding="utf-8")
-    env = os.environ.copy()
-    env.update({
-        "GIT_AUTHOR_NAME": "test",
-        "GIT_AUTHOR_EMAIL": "test@example.com",
-        "GIT_COMMITTER_NAME": "test",
-        "GIT_COMMITTER_EMAIL": "test@example.com",
-    })
-    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
-    subprocess.run(["git", "add", "models"], cwd=repo, check=True, capture_output=True, env=env)
-    subprocess.run(
-        ["git", "commit", "-m", "public image"], cwd=repo, check=True, capture_output=True, env=env,
-    )
-    shutil.rmtree(repo / "models")
     (repo / "models").symlink_to(private)
     return repo
 
 
-def test_run_golden_scores_the_committed_image_when_data_is_linked_out(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    repo = _engine_with_linked_models(tmp_path)
-    seen = {}
-
-    def fake_run(*, root, snapshot_file, output_dir, report_date):
-        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
-        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
-
-    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+def test_pr_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
     monkeypatch.setattr(
-        accuracy, "load_recall_baseline",
-        lambda path: accuracy.RecallBaseline(
-            snapshot="snap", as_of=date(2026, 11, 12), verdicts={},
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "run_golden", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo), "--profile", "pr", "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_nightly_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.run_profile(root=repo, profile="nightly")
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_an_ordinary_directory_still_runs_the_pr_profile(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
         ),
     )
     monkeypatch.setattr(
-        accuracy, "recall_ratchet",
+        accuracy, "output_parity",
+        lambda *args, **kwargs: accuracy.LayerResult("output_parity", "pass", True, "ok"),
+    )
+    monkeypatch.setattr(
+        accuracy, "run_golden",
         lambda *args, **kwargs: accuracy.LayerResult(
             "frozen_image_engine_recall", "pass", True, "ok",
         ),
     )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
 
-    accuracy.run_golden(repo, None, date(2026, 11, 12), gating=True)
+    report = accuracy.run_profile(root=repo, profile="pr")
 
-    assert seen["marker"] == "public\n"
+    assert report.status == "pass"
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness", "frozen_image_engine_recall", "output_parity",
+    ]
 
 
-def test_update_recall_baseline_reads_the_committed_image(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    repo = _engine_with_linked_models(tmp_path)
-    (repo / "tests" / "recall").mkdir(parents=True)
-    seen = {}
-
-    def fake_run(*, root, snapshot_file, output_dir, report_date):
-        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
-        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
-
-    monkeypatch.setattr("scripts.recall_run.run", fake_run)
-    accuracy.update_recall_baseline(
-        root=repo, snapshot_file=None, as_of=date(2026, 11, 12),
+def test_data_pr_profile_runs_on_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
     )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
 
-    assert seen["marker"] == "public\n"
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+
+    assert report.status == "pass"
+    assert report.profile == "data-pr"
 
 
 def test_run_golden_reads_data_that_stays_inside_the_root(

@@ -11,23 +11,20 @@ a data pull request cannot change, and on a linked tree it still reads the
 private registry. The engine's own CI owns that check. The nightly profile
 gates current-data freshness, re-reads verified values, compares domain leaders
 with permitted independent boards, and reports recall changes without gating
-on them.
+on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
 """
 
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import logging
 import os
 import random
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
-from contextlib import contextmanager
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
@@ -696,102 +693,26 @@ def _recall_update_command(as_of: date) -> str:
     )
 
 
-def _data_path_escapes(root: Path, relative: str) -> bool:
-    """True when a data path is a symlink whose target sits outside `root`."""
-    current = root
-    for part in Path(relative).parts:
-        current = current / part
-        if not current.is_symlink():
-            if not current.exists():
-                return False
-            continue
-        try:
-            resolved = current.resolve()
-        except OSError:
-            return True
-        try:
-            resolved.relative_to(root.resolve())
-        except ValueError:
-            return True
-        return False
-    return False
-
-
-def _extract_committed_data(root: Path, dest: Path, paths: Sequence[str]) -> None:
-    if not paths:
-        dest.mkdir(parents=True, exist_ok=True)
-        return
-    completed = subprocess.run(
-        ["git", "-C", str(root), "archive", "--format=tar", "HEAD", "--", *paths],
-        capture_output=True,
-    )
-    if completed.returncode != 0:
-        raise ValueError("frozen-image recall cannot read the committed public image")
-    dest.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(fileobj=io.BytesIO(completed.stdout), mode="r:") as archive:
-        kwargs = {"filter": "data"} if sys.version_info >= (3, 12) else {}
-        archive.extractall(dest, **kwargs)
-
-
-def _link_public_tree(root: Path, dest: Path) -> None:
-    """Symlink the non-data tree. Extracted data files stay the committed bytes."""
-    from pipeline.data_source import DATA_PATHS
-
-    data_dirs = {path for path in DATA_PATHS if "/" not in path}
-    data_files = {path for path in DATA_PATHS if "/" in path}
-    for child in root.iterdir():
-        if child.name == ".git" or child.name in data_dirs:
-            continue
-        destination = dest / child.name
-        nested = [path for path in data_files if path.startswith(child.name + "/")]
-        if nested and child.is_dir() and not child.is_symlink():
-            destination.mkdir(exist_ok=True)
-            for item in child.iterdir():
-                if f"{child.name}/{item.name}" in data_files or (destination / item.name).exists():
-                    continue
-                (destination / item.name).symlink_to(item.absolute())
-            continue
-        if not destination.exists():
-            destination.symlink_to(child.absolute())
-
-
-@contextmanager
-def public_image_root(root: Path):
-    """Yield a root whose data paths are the committed public image.
-
-    The release-signals job replaces data paths with symlinks into the private
-    checkout. Frozen-image recall still has to score the committed tree. When
-    nothing escapes, yield `root` unchanged.
-    """
+def linked_data_path(root: Path) -> str | None:
+    """The first data path that is a symlink, or None on an ordinary checkout."""
     from pipeline.data_source import DATA_PATHS
 
     root = Path(root)
-    escaped = [
-        relative for relative in DATA_PATHS
-        if _data_path_escapes(root, relative)
-    ]
-    if not escaped:
-        yield root
+    for relative in DATA_PATHS:
+        current = root
+        for part in Path(relative).parts:
+            current = current / part
+            if current.is_symlink():
+                return current.relative_to(root).as_posix()
+    return None
+
+
+def _refuse_linked_profile(root: Path, profile: str) -> None:
+    if profile not in ("pr", "nightly"):
         return
-    inside = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
-        capture_output=True,
-    )
-    if inside.returncode != 0:
-        raise ValueError("frozen-image recall cannot read the committed public image")
-    committed = []
-    for relative in escaped:
-        probe = subprocess.run(
-            ["git", "-C", str(root), "cat-file", "-e", f"HEAD:{relative}"],
-            capture_output=True,
-        )
-        if probe.returncode == 0:
-            committed.append(relative)
-    with tempfile.TemporaryDirectory(prefix="modelspec-public-image-") as temporary:
-        image = Path(temporary)
-        _extract_committed_data(root, image, committed)
-        _link_public_tree(root, image)
-        yield image
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
 
 
 def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
@@ -825,11 +746,9 @@ def run_golden(
 ) -> LayerResult:
     from scripts.recall_run import run
 
-    with public_image_root(root) as image, tempfile.TemporaryDirectory(
-        prefix="modelspec-recall-",
-    ) as temporary:
+    with tempfile.TemporaryDirectory(prefix="modelspec-recall-") as temporary:
         result = run(
-            root=image,
+            root=root,
             snapshot_file=snapshot_file,
             output_dir=Path(temporary),
             report_date=as_of,
@@ -861,11 +780,9 @@ def update_recall_baseline(
     from scripts.recall_run import run
 
     path = root / "tests" / "recall" / "baseline.json"
-    with public_image_root(root) as image, tempfile.TemporaryDirectory(
-        prefix="modelspec-recall-baseline-",
-    ) as temporary:
+    with tempfile.TemporaryDirectory(prefix="modelspec-recall-baseline-") as temporary:
         result = run(
-            root=image,
+            root=root,
             snapshot_file=snapshot_file,
             output_dir=Path(temporary),
             report_date=as_of,
@@ -1838,6 +1755,7 @@ def run_profile(
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
+    _refuse_linked_profile(root, profile)
     as_of = as_of or date.today()
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
