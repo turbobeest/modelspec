@@ -107,6 +107,23 @@ def test_review_names_follow_the_normalised_model_name() -> None:
         assert out_of_scope_reason("Voice AI", name) is None
 
 
+def test_an_image_token_keeps_embedding_captioning_and_text_models() -> None:
+    for name in (
+        "amazon.titan-embed-image-v1",
+        "blip-image-captioning-large",
+        "nomic-embed-image-v2",
+        "image-text-to-text-7b",
+    ):
+        assert out_of_scope_reason("Acme", name) is None
+    for name in (
+        "flux-3-image-klein",
+        "gpt-image-2-6",
+        "minimax-h3-image",
+        "text-to-image-xl",
+    ):
+        assert out_of_scope_reason("Acme", name) == "image generation"
+
+
 def test_an_out_of_scope_alias_writes_nothing_and_does_not_resolve(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:

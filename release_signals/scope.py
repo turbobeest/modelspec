@@ -6,7 +6,19 @@ import re
 
 from scripts.attribution import normalise
 
-_IMAGE_TOKEN_EXCEPTIONS = frozenset({"vl", "vlm", "vision", "omni", "multimodal"})
+_IMAGE_TOKEN_EXCEPTIONS = frozenset({
+    "vl",
+    "vlm",
+    "vision",
+    "omni",
+    "multimodal",
+    "embed",
+    "embedding",
+    "embeddings",
+    "captioning",
+    "clip",
+    "text",
+})
 
 _RULES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
