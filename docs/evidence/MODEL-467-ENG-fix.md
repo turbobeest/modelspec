@@ -135,3 +135,31 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ```
 
 Exit 0. `24 passed`. `registry/sources.yaml` was not edited.
+
+### One revision for every Arena config
+
+The three new tests against the per-config reader. Exit 1. `2 failed, 1 passed`.
+A resolver fallback was not a failure row. A missing `document` config at
+head was not re-read at the pin, and the configs that were present stayed on
+the head revision. The all-seven read already passed.
+
+`latest` mode now fetches every Arena config before it projects. When any
+required config is missing and the resolved revision is not the pin, that
+revision is not projected. Every Arena config is read at the pin, and one
+`config fallback:` failure names the missing configs. A resolver fallback is
+also a failure row, and the summary line `fallback to the pinned default`
+stays. The report revision, and the registry comparison, are the revision
+that was read.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py
+```
+
+Exit 0. `27 passed`.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py tests/test_release_signals.py
+```
+
+Exit 0. `236 passed`. Callers that replace `collect_readings` now accept the
+`arena_complete` keyword `run` passes.

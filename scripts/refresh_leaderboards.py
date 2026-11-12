@@ -797,16 +797,35 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
     store = CopyStore(source_cache)
-    boards, board_failures = collect_readings(observed_at, store, tau_urls, chosen.sha)
+    # A resolved head is complete only when every config can be read there.
+    # The pin, and a resolver that already fell back to the pin, stay per config.
+    complete = (
+        latest and chosen.fallback is None and chosen.sha != readers.ARENA_REVISION
+    )
+    boards, board_failures = collect_readings(
+        observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
+    )
+    failures = list(board_failures)
+    if chosen.fallback:
+        failures.insert(0, RowFailure(
+            "*", "arena", readers.ARENA_DATASET_API,
+            f"resolver fallback: {chosen.fallback}",
+        ))
+    config_fallback = next(
+        (row.reason for row in failures if row.reason.startswith("config fallback:")),
+        None,
+    )
+    effective = readers.ARENA_REVISION if config_fallback else chosen.sha
+    report_fallback = chosen.fallback or config_fallback
     report = RefreshReport(
-        failures=list(board_failures),
-        arena_revision=chosen.sha,
-        arena_revision_fallback=chosen.fallback,
-        arena_revision_latest=latest and chosen.fallback is None,
+        failures=failures,
+        arena_revision=effective,
+        arena_revision_fallback=report_fallback,
+        arena_revision_latest=latest and report_fallback is None,
     )
     registered = load_sources(root / "registry" / "sources.yaml")
     if latest:
-        conflict = registry_revision_conflict(registered, boards, chosen.sha)
+        conflict = registry_revision_conflict(registered, boards, effective)
         if conflict:
             report.failures.append(RowFailure(
                 "*",
@@ -1311,13 +1330,17 @@ def _project_finbenchmark(html: str, *, url: str, page_ref: str,
 
 
 def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str],
-                     arena_revision: str | None = None) \
-        -> tuple[list[BoardReading], list[RowFailure]]:
+                     arena_revision: str | None = None, *,
+                     arena_complete: bool = False,
+                     ) -> tuple[list[BoardReading], list[RowFailure]]:
     """Fetch every terms-compatible live board used by the premier snapshot.
 
     ``arena_revision`` selects the Arena dataset commit. An absent or invalid
     value keeps the pinned revision. The value is checked again before any URL
-    is built.
+    is built. ``arena_complete`` requires every Arena config at that revision.
+    When one config is missing and the revision is not the pin, the abandoned
+    revision is not projected: every Arena config is read at the pin, and one
+    config-fallback failure names the missing configs.
     """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
@@ -1343,33 +1366,80 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
                                        f"{type(exc).__name__}: {exc}"))
 
-    # Arena: the CC BY 4.0 Hugging Face dataset, at the revision this run resolved.
-    for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
-        fetch_url = readers.arena_parquet_url(config, revision)
-        try:
-            raw = _fetch(fetch_url)
-            raw_ref = store.put(raw, source_url=fetch_url)
+    # Arena: the CC BY 4.0 Hugging Face dataset, at one revision for every config.
+    def arena_source_id(config: str) -> str:
+        if config == "webdev":
+            return "model-143-evidence-arena-webdev-json"
+        return readers.arena_source(config)
+
+    def fetch_arena(at: str) -> tuple[dict[str, tuple[bytes, str, str]], list[RowFailure]]:
+        kept: dict[str, tuple[bytes, str, str]] = {}
+        missed: list[RowFailure] = []
+        for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
+            fetch_url = readers.arena_parquet_url(config, at)
+            try:
+                raw = _fetch(fetch_url)
+                raw_ref = store.put(raw, source_url=fetch_url)
+            except Exception as exc:
+                missed.append(RowFailure(
+                    "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                ))
+                continue
+            kept[config] = (raw, raw_ref, fetch_url)
+        return kept, missed
+
+    def project_arena(kept: dict[str, tuple[bytes, str, str]]) \
+            -> tuple[list[BoardReading], list[RowFailure]]:
+        produced: list[BoardReading] = []
+        missed: list[RowFailure] = []
+        for config, (raw, raw_ref, fetch_url) in kept.items():
+            produced_here: list[BoardReading] = []
+            error: RowFailure | None = None
             for benchmark, (cfg, category) in ARENA_BOARDS.items():
                 if cfg != config:
                     continue
-                projected = readers.project_arena(
-                    raw, config, category, url=fetch_url, page_ref=raw_ref,
-                    read_date=observed_at,
-                )
-                readings.append(_reading_from_projection(
+                try:
+                    projected = readers.project_arena(
+                        raw, config, category, url=fetch_url, page_ref=raw_ref,
+                        read_date=observed_at,
+                    )
+                except Exception as exc:
+                    error = RowFailure(
+                        "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                    )
+                    break
+                produced_here.append(_reading_from_projection(
                     key=f"arena:{benchmark}",
-                    source_id=(
-                        "model-143-evidence-arena-webdev-json"
-                        if config == "webdev"
-                        else readers.arena_source(config)
-                    ),
+                    source_id=arena_source_id(config),
                     benchmarks=(benchmark,), source_url=fetch_url, projected=projected,
                     observed_at=observed_at, value_field="rating", store=store,
                     card_urls=("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",),
                 ))
-        except Exception as exc:
-            failures.append(RowFailure("*", f"arena:{config}", fetch_url,
-                                       f"{type(exc).__name__}: {exc}"))
+            if error is None:
+                produced.extend(produced_here)
+            else:
+                missed.append(error)
+        return produced, missed
+
+    kept, missed = fetch_arena(revision)
+    if arena_complete and missed and revision != readers.ARENA_REVISION:
+        pin = readers.ARENA_REVISION
+        pin_kept, pin_missed = fetch_arena(pin)
+        pin_readings, pin_errors = project_arena(pin_kept)
+        readings.extend(pin_readings)
+        missing = ", ".join(sorted(row.benchmark.removeprefix("arena:") for row in missed))
+        failures.append(RowFailure(
+            "*", "arena", readers.ARENA_DATASET_API,
+            f"config fallback: revision {revision} is missing {missing}; "
+            f"reading the pinned revision {pin} for every Arena config",
+        ))
+        failures.extend(pin_missed)
+        failures.extend(pin_errors)
+    else:
+        produced, project_errors = project_arena(kept)
+        readings.extend(produced)
+        failures.extend(missed)
+        failures.extend(project_errors)
 
     # Epoch publishes one CC BY 4.0 archive; all files in this block share one fetch.
     try:

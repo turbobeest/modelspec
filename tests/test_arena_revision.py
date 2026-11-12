@@ -107,7 +107,7 @@ def test_run_without_the_flag_reads_the_pin(
 
     seen: dict = {}
 
-    def collect(_observed_at, _store, _tau_urls, arena_revision=None):
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
         seen["revision"] = arena_revision
         return [], []
 
@@ -134,7 +134,7 @@ def test_run_with_the_flag_records_the_resolved_revision(
 
     seen: dict = {}
 
-    def collect(_observed_at, _store, _tau_urls, arena_revision=None):
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
         seen["revision"] = arena_revision
         return [], []
 
@@ -166,7 +166,7 @@ def test_run_with_the_flag_names_a_fallback_and_still_finishes(
 
     seen: dict = {}
 
-    def collect(_observed_at, _store, _tau_urls, arena_revision=None):
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
         seen["revision"] = arena_revision
         return [], []
 
@@ -537,3 +537,129 @@ def test_weekly_workflow_keeps_the_arena_revision_pinned() -> None:
     assert "MODELSPEC_ARENA_REVISION: pinned" in text
     assert "revision-free" in text
     assert "--arena-latest" not in text
+
+
+ARENA_CONFIGS = {
+    "text", "text_style_control", "vision", "vision_style_control",
+    "document", "text_factuality", "webdev",
+}
+
+
+def _config_of(url: str) -> str:
+    return url.split("/resolve/", 1)[1].split("/", 2)[1]
+
+
+def test_resolver_fallback_is_a_reported_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    def resolve(_fetch):
+        return refresh.readers.ArenaRevision(sha=PIN, fallback="OSError: offline")
+
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([], []))
+    monkeypatch.delenv(ENV, raising=False)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+        arena_latest=True,
+    )
+
+    assert report.arena_revision == PIN
+    reasons = [row.reason for row in report.failures]
+    assert any(reason.startswith("resolver fallback:") and "OSError: offline" in reason
+               for reason in reasons)
+    assert "resolver fallback:" in refresh.render_report(report)
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert any(row["reason"].startswith("resolver fallback:") for row in payload["failures"])
+
+
+def test_latest_mode_reads_all_seven_configs_at_one_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    fetched: list[str] = []
+    projected: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        if url == API:
+            return json.dumps({"sha": NEW}).encode()
+        if "leaderboard-dataset/resolve/" in url and NEW in url:
+            return b"fixture"
+        raise OSError(url)
+
+    def project(_parquet, _config, _category, *, url, page_ref, read_date):
+        projected.append(url)
+        return refresh.readers.document(
+            [{"model_name": "Example", "rating": 1.0, "leaderboard_publish_date": "2026-11-01"}],
+            url=url, page_ref=page_ref, read_date=read_date, note="test",
+        )
+
+    monkeypatch.setenv(ENV, "latest")
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+    monkeypatch.setattr(refresh.readers, "project_arena", project)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+        source_cache=tmp_path / "copies",
+    )
+
+    head = [url for url in fetched if "leaderboard-dataset/resolve/" in url]
+    assert {_config_of(url) for url in head} == ARENA_CONFIGS
+    assert all(NEW in url for url in head)
+    assert all(NEW in url for url in projected)
+    assert len(projected) == len(refresh.ARENA_BOARDS)
+    assert report.arena_revision == NEW
+    assert not any(row.reason.startswith("config fallback:") for row in report.failures)
+
+
+def test_latest_mode_falls_back_every_config_when_one_is_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    fetched: list[str] = []
+    projected: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        if url == API:
+            return json.dumps({"sha": NEW}).encode()
+        if "/document/" in url and NEW in url:
+            raise OSError("missing")
+        if "leaderboard-dataset/resolve/" in url:
+            return b"fixture"
+        raise OSError(url)
+
+    def project(_parquet, _config, _category, *, url, page_ref, read_date):
+        projected.append(url)
+        return refresh.readers.document(
+            [{"model_name": "Example", "rating": 1.0, "leaderboard_publish_date": "2026-11-01"}],
+            url=url, page_ref=page_ref, read_date=read_date, note="test",
+        )
+
+    monkeypatch.setenv(ENV, "latest")
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+    monkeypatch.setattr(refresh.readers, "project_arena", project)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+        source_cache=tmp_path / "copies",
+    )
+
+    head = [url for url in fetched if NEW in url and "leaderboard-dataset/resolve/" in url]
+    pin = [url for url in fetched if PIN in url and "leaderboard-dataset/resolve/" in url]
+    assert {_config_of(url) for url in head} == ARENA_CONFIGS
+    assert {_config_of(url) for url in pin} == ARENA_CONFIGS
+    assert projected
+    assert all(PIN in url and NEW not in url for url in projected)
+    assert len(projected) == len(refresh.ARENA_BOARDS)
+    assert report.arena_revision == PIN
+    fallbacks = [row for row in report.failures if row.reason.startswith("config fallback:")]
+    assert len(fallbacks) == 1
+    assert "document" in fallbacks[0].reason
+    assert PIN in fallbacks[0].reason
+    assert "config fallback:" in refresh.render_report(report)
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert sum(row["reason"].startswith("config fallback:") for row in payload["failures"]) == 1
