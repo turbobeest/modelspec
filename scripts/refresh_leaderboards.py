@@ -797,13 +797,15 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
     store = CopyStore(source_cache)
-    # A resolved head is complete only when every config can be read there.
-    # The pin, and a resolver that already fell back to the pin, stay per config.
+    # Latest mode writes Arena rows only when the head resolved and every
+    # config was read there. A resolver failure, or any failed head fetch,
+    # writes none. The pin stays per config.
     complete = (
         latest and chosen.fallback is None and chosen.sha != readers.ARENA_REVISION
     )
     boards, board_failures = collect_readings(
         observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
+        skip_arena=latest and chosen.fallback is not None,
     )
     failures = list(board_failures)
     if chosen.fallback:
@@ -815,7 +817,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         (row.reason for row in failures if row.reason.startswith("config fallback:")),
         None,
     )
-    effective = readers.ARENA_REVISION if config_fallback else chosen.sha
+    effective = chosen.sha
     report_fallback = chosen.fallback or config_fallback
     report = RefreshReport(
         failures=failures,
@@ -1332,15 +1334,17 @@ def _project_finbenchmark(html: str, *, url: str, page_ref: str,
 def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str],
                      arena_revision: str | None = None, *,
                      arena_complete: bool = False,
+                     skip_arena: bool = False,
                      ) -> tuple[list[BoardReading], list[RowFailure]]:
     """Fetch every terms-compatible live board used by the premier snapshot.
 
     ``arena_revision`` selects the Arena dataset commit. An absent or invalid
     value keeps the pinned revision. The value is checked again before any URL
     is built. ``arena_complete`` requires every Arena config at that revision.
-    When one config is missing and the revision is not the pin, the abandoned
-    revision is not projected: every Arena config is read at the pin, and one
-    config-fallback failure names the missing configs.
+    When one of those fetches fails or the config is missing, this run writes
+    no Arena rows and one failure names the gap. It does not read the pin
+    instead. ``skip_arena`` writes no Arena rows; the caller reports why.
+    Pinned mode still writes each config it could read.
     """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
@@ -1421,25 +1425,23 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 missed.append(error)
         return produced, missed
 
-    kept, missed = fetch_arena(revision)
-    if arena_complete and missed and revision != readers.ARENA_REVISION:
-        pin = readers.ARENA_REVISION
-        pin_kept, pin_missed = fetch_arena(pin)
-        pin_readings, pin_errors = project_arena(pin_kept)
-        readings.extend(pin_readings)
-        missing = ", ".join(sorted(row.benchmark.removeprefix("arena:") for row in missed))
-        failures.append(RowFailure(
-            "*", "arena", readers.ARENA_DATASET_API,
-            f"config fallback: revision {revision} is missing {missing}; "
-            f"reading the pinned revision {pin} for every Arena config",
-        ))
-        failures.extend(pin_missed)
-        failures.extend(pin_errors)
-    else:
-        produced, project_errors = project_arena(kept)
-        readings.extend(produced)
-        failures.extend(missed)
-        failures.extend(project_errors)
+    if not skip_arena:
+        kept, missed = fetch_arena(revision)
+        if arena_complete and missed:
+            missing = ", ".join(sorted(
+                row.benchmark.removeprefix("arena:") for row in missed
+            ))
+            detail = "; ".join(row.reason for row in missed)
+            failures.append(RowFailure(
+                "*", "arena", readers.ARENA_DATASET_API,
+                f"config fallback: revision {revision} is missing {missing}; "
+                f"no Arena rows written ({detail})",
+            ))
+        else:
+            produced, project_errors = project_arena(kept)
+            readings.extend(produced)
+            failures.extend(missed)
+            failures.extend(project_errors)
 
     # Epoch publishes one CC BY 4.0 archive; all files in this block share one fetch.
     try:

@@ -235,3 +235,38 @@ No full local suite, site build, or Worker memory probe. No ranking floor,
 legal text, contract, or source-terms class. `registry/sources.yaml` was not
 edited. `.github/private-writers/release-signals.yml` was not edited.
 `scripts/premier_slice1.py` and `scripts/premier_live.py` were not edited.
+
+## Round 3
+
+Merged `origin/main` (`8f5d8a4f`, MODEL-468) first. The parent of the review
+fixes is `c2d7095a3d54c6234cd9cde8d165777d267e5a11`.
+
+Environment: Python 3.14.4, pytest 9.1.1, Git 2.50.1. Tests are serial and
+offline. The interpreter is the repository virtualenv.
+
+### Latest fallback writes no Arena rows
+
+Three tests against the pin re-read. Exit 1. `3 failed`. Each failure is
+`assert 1200.0 == 1100.0`: a resolver error, a missing `document` config, and
+a `webdev` timeout each rewrote the Arena score with the older reading.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py::test_latest_resolver_error_writes_no_arena_rows tests/test_arena_revision.py::test_latest_missing_config_writes_no_arena_rows tests/test_arena_revision.py::test_latest_config_timeout_writes_no_arena_rows
+```
+
+`latest` mode now writes no Arena rows when the resolver fails, or when any
+of the seven head fetches fails or is missing. One failure names the reason.
+The pin is not read as a substitute. A FrontierCode row in the same run still
+changes. Pinned mode still writes the configs it could read.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py
+```
+
+Exit 0. `30 passed`.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py
+```
+
+Exit 0. `64 passed`.

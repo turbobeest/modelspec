@@ -614,7 +614,163 @@ def test_latest_mode_reads_all_seven_configs_at_one_revision(
     assert not any(row.reason.startswith("config fallback:") for row in report.failures)
 
 
-def test_latest_mode_falls_back_every_config_when_one_is_missing(
+FRONTIER_DATA = "https://cognition.com/data/frontiercode-leaderboard/data.json"
+FRONTIER_ID = "model-160-frontiercode"
+TEXT_ID = "model-160-arena-text"
+
+
+def _frontier_bytes() -> bytes:
+    return json.dumps({
+        "v1_1": {
+            "data": {
+                "Example Model": {
+                    "none": {"main": {"new_score": 0.5, "correct": 0.25}},
+                },
+            },
+        },
+    }).encode()
+
+
+def _changed_arena(_parquet, _config, _category, *, url, page_ref, read_date):
+    return refresh.readers.document(
+        [{
+            "model_name": "Example Model",
+            "rating": 1200.0,
+            "leaderboard_publish_date": "2026-11-09",
+        }],
+        url=url, page_ref=page_ref, read_date=read_date, note="test",
+    )
+
+
+def _two_board_card(root: Path) -> Path:
+    frontier_url = refresh.readers.FRONTIERCODE_URL
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        f"""---
+model_id: lab/model
+display_name: Example Model
+version: example
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: Example Model
+    score: 1100.0
+    unit: Arena score (Elo scale)
+    source_url: {DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    id: lab/model#arena_elo_overall#old
+    sources:
+    - source_id: {TEXT_ID}
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+  - benchmark_id: frontiercode_v1_1
+    model_id_as_evaluated: Example Model
+    score: 10.0
+    unit: percent
+    source_url: {frontier_url}
+    source_kind: benchmark_author
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    id: lab/model#frontiercode_v1_1#old
+    sources:
+    - source_id: {FRONTIER_ID}
+      snapshot_ref: sha256:{'c' * 64}
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    return card
+
+
+def _scores(card: Path) -> dict[str, float]:
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    return {
+        row["benchmark_id"]: row["score"]
+        for row in front["benchmarks"]["evidence"]
+    }
+
+
+def _arena_failures(report: refresh.RefreshReport) -> list[refresh.RowFailure]:
+    return [
+        row for row in report.failures
+        if row.benchmark == "arena"
+        or row.benchmark.startswith("arena:")
+        or row.benchmark.startswith("arena_")
+    ]
+
+
+def _latest_with_other_board(monkeypatch, tmp_path, fetch, project):
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    card = _two_board_card(root)
+    _registry(root, {
+        TEXT_ID: (
+            "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+            f"{PIN}/text/latest-00000-of-00001.parquet"
+        ),
+        FRONTIER_ID: refresh.readers.FRONTIERCODE_URL,
+    })
+    (root / "verification").mkdir(parents=True)
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+    monkeypatch.setattr(refresh.readers, "project_arena", project)
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/model",), arena_latest=True,
+    )
+    return report, card
+
+
+def _assert_latest_fallback_writes_nothing(report, card, fetched, projected) -> None:
+    assert _scores(card)["arena_elo_overall"] == 1100.0
+    assert _scores(card)["frontiercode_v1_1"] == 50.0
+    assert [change.benchmark for change in report.changes] == ["frontiercode_v1_1"]
+    assert projected == []
+    assert not any(
+        "leaderboard-dataset/resolve/" in url and PIN in url for url in fetched
+    )
+    assert len(_arena_failures(report)) == 1
+
+
+def test_latest_resolver_error_writes_no_arena_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    fetched: list[str] = []
+    projected: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        if url == API:
+            raise OSError("offline")
+        if "leaderboard-dataset/resolve/" in url:
+            return b"fixture"
+        if url == FRONTIER_DATA:
+            return _frontier_bytes()
+        raise OSError(url)
+
+    def project(_parquet, _config, _category, *, url, page_ref, read_date):
+        projected.append(url)
+        return _changed_arena(
+            _parquet, _config, _category, url=url, page_ref=page_ref, read_date=read_date,
+        )
+
+    report, card = _latest_with_other_board(monkeypatch, tmp_path, fetch, project)
+
+    _assert_latest_fallback_writes_nothing(report, card, fetched, projected)
+    assert not any("leaderboard-dataset/resolve/" in url for url in fetched)
+    reason = _arena_failures(report)[0].reason
+    assert reason.startswith("resolver fallback:")
+    assert "OSError" in reason
+    assert "offline" in reason
+
+
+def test_latest_missing_config_writes_no_arena_rows(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     fetched: list[str] = []
@@ -628,6 +784,81 @@ def test_latest_mode_falls_back_every_config_when_one_is_missing(
             raise OSError("missing")
         if "leaderboard-dataset/resolve/" in url:
             return b"fixture"
+        if url == FRONTIER_DATA:
+            return _frontier_bytes()
+        raise OSError(url)
+
+    def project(_parquet, _config, _category, *, url, page_ref, read_date):
+        projected.append(url)
+        return _changed_arena(
+            _parquet, _config, _category, url=url, page_ref=page_ref, read_date=read_date,
+        )
+
+    report, card = _latest_with_other_board(monkeypatch, tmp_path, fetch, project)
+
+    _assert_latest_fallback_writes_nothing(report, card, fetched, projected)
+    head = [url for url in fetched if NEW in url and "leaderboard-dataset/resolve/" in url]
+    assert {_config_of(url) for url in head} == ARENA_CONFIGS
+    reason = _arena_failures(report)[0].reason
+    assert reason.startswith("config fallback:")
+    assert "document" in reason
+    assert "no Arena rows written" in reason
+    assert "OSError" in reason
+    assert PIN not in reason
+    assert report.arena_revision == NEW
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert sum(row["reason"].startswith("config fallback:") for row in payload["failures"]) == 1
+
+
+def test_latest_config_timeout_writes_no_arena_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    fetched: list[str] = []
+    projected: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        if url == API:
+            return json.dumps({"sha": NEW}).encode()
+        if "/webdev/" in url and NEW in url:
+            raise TimeoutError("timed out")
+        if "leaderboard-dataset/resolve/" in url:
+            return b"fixture"
+        if url == FRONTIER_DATA:
+            return _frontier_bytes()
+        raise OSError(url)
+
+    def project(_parquet, _config, _category, *, url, page_ref, read_date):
+        projected.append(url)
+        return _changed_arena(
+            _parquet, _config, _category, url=url, page_ref=page_ref, read_date=read_date,
+        )
+
+    report, card = _latest_with_other_board(monkeypatch, tmp_path, fetch, project)
+
+    _assert_latest_fallback_writes_nothing(report, card, fetched, projected)
+    reason = _arena_failures(report)[0].reason
+    assert reason.startswith("config fallback:")
+    assert "webdev" in reason
+    assert "TimeoutError" in reason
+    assert "no Arena rows written" in reason
+    assert report.arena_revision == NEW
+
+
+def test_pinned_mode_keeps_the_arena_configs_it_could_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    fetched: list[str] = []
+    projected: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        fetched.append(url)
+        if "/document/" in url:
+            raise OSError("missing")
+        if "leaderboard-dataset/resolve/" in url:
+            return b"fixture"
         raise OSError(url)
 
     def project(_parquet, _config, _category, *, url, page_ref, read_date):
@@ -637,7 +868,7 @@ def test_latest_mode_falls_back_every_config_when_one_is_missing(
             url=url, page_ref=page_ref, read_date=read_date, note="test",
         )
 
-    monkeypatch.setenv(ENV, "latest")
+    monkeypatch.delenv(ENV, raising=False)
     monkeypatch.setattr(refresh, "_fetch", fetch)
     monkeypatch.setattr(refresh.readers, "project_arena", project)
 
@@ -646,20 +877,17 @@ def test_latest_mode_falls_back_every_config_when_one_is_missing(
         source_cache=tmp_path / "copies",
     )
 
-    head = [url for url in fetched if NEW in url and "leaderboard-dataset/resolve/" in url]
-    pin = [url for url in fetched if PIN in url and "leaderboard-dataset/resolve/" in url]
-    assert {_config_of(url) for url in head} == ARENA_CONFIGS
-    assert {_config_of(url) for url in pin} == ARENA_CONFIGS
+    kept = [
+        benchmark for benchmark, (config, _category) in refresh.ARENA_BOARDS.items()
+        if config != "document"
+    ]
+    assert len(projected) == len(kept)
     assert projected
-    assert all(PIN in url and NEW not in url for url in projected)
-    assert len(projected) == len(refresh.ARENA_BOARDS)
+    assert all(PIN in url and "/document/" not in url for url in projected)
+    assert not any(row.reason.startswith("config fallback:") for row in report.failures)
+    assert any(
+        row.benchmark == "arena:document" and row.reason.startswith("OSError:")
+        for row in report.failures
+    )
     assert report.arena_revision == PIN
-    fallbacks = [row for row in report.failures if row.reason.startswith("config fallback:")]
-    assert len(fallbacks) == 1
-    assert "document" in fallbacks[0].reason
-    assert PIN in fallbacks[0].reason
-    assert "config fallback:" in refresh.render_report(report)
-    path = tmp_path / "report.json"
-    refresh.write_report_json(path, report)
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    assert sum(row["reason"].startswith("config fallback:") for row in payload["failures"]) == 1
+    assert report.arena_revision_fallback is None
