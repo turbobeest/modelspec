@@ -723,6 +723,7 @@ def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Pa
 
 ARENA_REVISION_ENV = "MODELSPEC_ARENA_REVISION"
 _SHA_IN_URL = re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])")
+_SHA_PATH = re.compile(r"/(?:resolve|tree|blob)/([0-9a-f]{7,40})(?![0-9a-f])")
 
 
 def arena_revision_setting(explicit: bool | None = None) -> bool:
@@ -745,21 +746,45 @@ def arena_revision_setting(explicit: bool | None = None) -> bool:
     )
 
 
+def _cited_shas(url: str) -> list[str]:
+    """Commit SHAs a registry URL names.
+
+    A 40-character hex string counts anywhere in the URL. A hex path segment
+    of 7 to 40 characters counts after ``/resolve/``, ``/tree/``, or
+    ``/blob/``. ``resolve/main`` and a URL with no revision name none.
+    """
+    lowered = str(url).lower()
+    found: list[str] = []
+    for sha in (*_SHA_IN_URL.findall(lowered), *_SHA_PATH.findall(lowered)):
+        if sha not in found:
+            found.append(sha)
+    return found
+
+
+def _sha_agrees(cited: str, revision: str) -> bool:
+    """True when one SHA is the other, or the shorter one is its prefix."""
+    short, longer = (cited, revision) if len(cited) <= len(revision) else (revision, cited)
+    return longer.startswith(short)
+
+
 def registry_revision_conflict(registered: Mapping[str, Any], boards: Sequence[BoardReading],
                               revision: str) -> list[str]:
     """Arena source ids whose registry URL names a commit other than ``revision``.
 
-    A URL with no commit SHA is not a conflict. The caller writes no Arena
-    rows when this list is not empty.
+    An abbreviated SHA matches by prefix. A URL with no commit SHA, including
+    ``resolve/main`` and the dataset root, is not a conflict. The caller
+    writes no Arena rows when this list is not empty. Both revision modes
+    call it.
     """
     conflict: list[str] = []
+    wanted = revision.lower()
     source_ids = sorted({board.source_id for board in boards if board.key.startswith("arena:")})
     for source_id in source_ids:
         source = registered.get(source_id)
         if source is None:
             continue
-        shas = _SHA_IN_URL.findall(str(source.url).lower())
-        if any(sha != revision for sha in shas):
+        shas = _cited_shas(str(source.url))
+        if any(not _sha_agrees(sha, wanted) for sha in shas):
             conflict.append(source_id)
     return conflict
 
@@ -826,16 +851,15 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         arena_revision_latest=latest and report_fallback is None,
     )
     registered = load_sources(root / "registry" / "sources.yaml")
-    if latest:
-        conflict = registry_revision_conflict(registered, boards, effective)
-        if conflict:
-            report.failures.append(RowFailure(
-                "*",
-                "arena",
-                readers.ARENA_DATASET_API,
-                "the registry cites a different revision: " + ", ".join(conflict),
-            ))
-            boards = [board for board in boards if not board.key.startswith("arena:")]
+    conflict = registry_revision_conflict(registered, boards, effective)
+    if conflict:
+        report.failures.append(RowFailure(
+            "*",
+            "arena",
+            readers.ARENA_DATASET_API,
+            "the registry cites a different revision: " + ", ".join(conflict),
+        ))
+        boards = [board for board in boards if not board.key.startswith("arena:")]
     queue = Queue(root / "verification")
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]] = {}

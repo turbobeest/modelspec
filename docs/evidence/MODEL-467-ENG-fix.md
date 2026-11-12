@@ -270,3 +270,34 @@ PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refr
 ```
 
 Exit 0. `64 passed`.
+
+### Registry citation in both modes
+
+Against the check that ran only in `latest` and only on a 40-character SHA.
+Exit 1. `6 failed, 10 passed`. A pinned run whose registry cites another
+full SHA still wrote the Arena row. A 12-character SHA after `resolve`,
+`tree`, and `blob` was not reported. A 7-character SHA and a 12-character
+SHA that are not prefixes of the revision that was read still wrote the row.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py::test_pinned_mode_writes_no_arena_rows_when_the_registry_cites_another_revision tests/test_arena_revision.py::test_a_differing_abbreviation_is_a_registry_conflict tests/test_arena_revision.py::test_an_abbreviated_sha_that_does_not_match_writes_no_arena_rows
+```
+
+The check now runs in both modes. A hex segment of 7 to 40 characters after
+`/resolve/`, `/tree/`, or `/blob/` is a SHA and matches by prefix.
+`resolve/main`, a 6-character segment, and the dataset root are not
+conflicts. `registry/sources.yaml` at the pin `1880dbebff5ba3e2dd3865ecf6fc43539c2099db`
+is not a conflict, and a pinned run whose registry cites that pin still
+writes the row.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py
+```
+
+Exit 0. `46 passed`.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py
+```
+
+Exit 0. `64 passed`.

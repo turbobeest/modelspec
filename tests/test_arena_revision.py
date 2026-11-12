@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -891,3 +892,167 @@ def test_pinned_mode_keeps_the_arena_configs_it_could_read(
     )
     assert report.arena_revision == PIN
     assert report.arena_revision_fallback is None
+
+
+def _run_with_boards(monkeypatch, root, cache, boards, *, latest: bool):
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: (boards, []))
+
+    def resolve(_fetch):
+        if not latest:
+            raise AssertionError("resolver was called")
+        return refresh.readers.ArenaRevision(sha=NEW, fallback=None)
+
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    (root / "verification").mkdir(exist_ok=True)
+    return refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/model",), arena_latest=latest,
+    )
+
+
+def _cited(root: Path, url: str):
+    cache = root.parent / "copies"
+    card = _arena_card(root, [("arena_elo_overall", TEXT_ID, "1100.0")])
+    _registry(root, {TEXT_ID: url})
+    board = _arena_reading(
+        cache, source_id=TEXT_ID, benchmark="arena_elo_overall", revision=PIN,
+    )
+    return card, cache, board
+
+
+def test_pinned_mode_writes_arena_rows_when_the_registry_cites_the_pin(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    card, cache, board = _cited(
+        root,
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{PIN}/text/latest-00000-of-00001.parquet",
+    )
+
+    report = _run_with_boards(monkeypatch, root, cache, [board], latest=False)
+
+    assert len(report.changes) == 1
+    assert _scores(card)["arena_elo_overall"] == 1200.0
+    assert not any("registry cites a different revision" in row.reason for row in report.failures)
+
+
+def test_pinned_mode_writes_no_arena_rows_when_the_registry_cites_another_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    card, cache, board = _cited(
+        root,
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{NEW}/text/latest-00000-of-00001.parquet",
+    )
+
+    report = _run_with_boards(monkeypatch, root, cache, [board], latest=False)
+
+    assert report.changes == []
+    assert _scores(card)["arena_elo_overall"] == 1100.0
+    conflicts = [
+        row for row in report.failures if "registry cites a different revision" in row.reason
+    ]
+    assert len(conflicts) == 1
+    assert TEXT_ID in conflicts[0].reason
+
+
+def test_todays_registry_matches_the_pin() -> None:
+    registered = refresh.load_sources(Path("registry/sources.yaml"))
+    source_ids = set()
+    for _benchmark, (config, _category) in refresh.ARENA_BOARDS.items():
+        if config == "webdev":
+            source_ids.add("model-143-evidence-arena-webdev-json")
+        else:
+            source_ids.add(refresh.readers.arena_source(config))
+    boards = [
+        SimpleNamespace(key=f"arena:{source_id}", source_id=source_id)
+        for source_id in sorted(source_ids)
+    ]
+    cited = [str(registered[board.source_id].url) for board in boards]
+    assert any(PIN in url for url in cited)
+    assert refresh.registry_revision_conflict(registered, boards, PIN) == []
+
+
+def _conflict_for(root: Path, url: str, revision: str) -> list[str]:
+    _registry(root, {TEXT_ID: url})
+    registered = refresh.load_sources(root / "registry" / "sources.yaml")
+    board = SimpleNamespace(key="arena:arena_elo_overall", source_id=TEXT_ID)
+    return refresh.registry_revision_conflict(registered, [board], revision)
+
+
+@pytest.mark.parametrize("kind", ["resolve", "tree", "blob"])
+def test_a_matching_abbreviation_is_not_a_registry_conflict(tmp_path: Path, kind: str) -> None:
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/"
+        f"{kind}/{NEW[:12]}/text/latest-00000-of-00001.parquet"
+    )
+    assert _conflict_for(tmp_path / kind, url, NEW) == []
+
+
+@pytest.mark.parametrize("kind", ["resolve", "tree", "blob"])
+def test_a_differing_abbreviation_is_a_registry_conflict(tmp_path: Path, kind: str) -> None:
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/"
+        f"{kind}/ffffffffffff/text/latest-00000-of-00001.parquet"
+    )
+    assert _conflict_for(tmp_path / kind, url, NEW) == [TEXT_ID]
+
+
+def test_a_six_character_hex_segment_is_not_a_revision(tmp_path: Path) -> None:
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/"
+        "resolve/ffffff/text/latest-00000-of-00001.parquet"
+    )
+    assert _conflict_for(tmp_path, url, NEW) == []
+
+
+@pytest.mark.parametrize("url", [
+    "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+    + NEW[:12] + "/text/latest-00000-of-00001.parquet",
+    "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+    "main/text/latest-00000-of-00001.parquet",
+    DATASET,
+    "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+    "ffffff/text/latest-00000-of-00001.parquet",
+])
+def test_an_agreed_or_unpinned_registry_url_still_writes_arena_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, url: str,
+) -> None:
+    root = tmp_path / "repo"
+    card, cache, board = _cited(root, url)
+    board = _arena_reading(
+        cache, source_id=TEXT_ID, benchmark="arena_elo_overall", revision=NEW,
+    )
+
+    report = _run_with_boards(monkeypatch, root, cache, [board], latest=True)
+
+    assert len(report.changes) == 1
+    assert _scores(card)["arena_elo_overall"] == 1200.0
+
+
+@pytest.mark.parametrize("sha", ["abcdef0", "ffffffffffff"])
+def test_an_abbreviated_sha_that_does_not_match_writes_no_arena_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, sha: str,
+) -> None:
+    root = tmp_path / "repo"
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{sha}/text/latest-00000-of-00001.parquet"
+    )
+    card, cache, board = _cited(root, url)
+    board = _arena_reading(
+        cache, source_id=TEXT_ID, benchmark="arena_elo_overall", revision=NEW,
+    )
+
+    report = _run_with_boards(monkeypatch, root, cache, [board], latest=True)
+
+    assert report.changes == []
+    assert _scores(card)["arena_elo_overall"] == 1100.0
+    conflicts = [
+        row for row in report.failures if "registry cites a different revision" in row.reason
+    ]
+    assert len(conflicts) == 1
+    assert TEXT_ID in conflicts[0].reason
