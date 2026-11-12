@@ -296,6 +296,7 @@ def registered_lab_hosts(root: Path, provider: str) -> frozenset[str]:
 
 
 _HUGGINGFACE_NON_REPOS = frozenset({"spaces", "datasets"})
+_HF_REPO_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 
 def registered_huggingface_orgs(root: Path, provider: str) -> frozenset[str]:
@@ -337,20 +338,32 @@ def _signal_hf_orgs(root: Path, signal, resolution: Resolution) -> frozenset[str
 def _huggingface_org_repo(url: str, orgs: frozenset[str]) -> tuple[str, str] | None:
     """``(org, repo)`` when ``url`` is that lab's own model repository.
 
-    The host and the first path segment must both match. ``spaces``,
-    ``datasets``, another user's repository, and an org with no repository
-    do not. Further path segments are ignored.
+    The path is exactly ``/<org>/<repo>``. One trailing slash is allowed.
+    Each segment matches ``[A-Za-z0-9][A-Za-z0-9._-]*``. An empty segment,
+    a percent sign anywhere in the path, or any further segment is not the
+    lab's page. The query and the fragment are ignored. ``spaces`` and
+    ``datasets`` are not model repositories.
     """
     if not orgs or _page_host(url) != "huggingface.co":
         return None
     try:
-        parts = [part for part in urlsplit(url).path.split("/") if part]
+        path = urlsplit(url).path
     except ValueError:
         return None
-    if len(parts) < 2:
+    if "%" in path or not path.startswith("/"):
         return None
-    org, repo = parts[0], parts[1]
-    if org.casefold() in _HUGGINGFACE_NON_REPOS or org.casefold() not in orgs:
+    parts = path.split("/")
+    if parts[-1] == "":
+        parts = parts[:-1]
+    if len(parts) != 3 or parts[0] != "":
+        return None
+    org, repo = parts[1], parts[2]
+    if (
+        _HF_REPO_SEGMENT.fullmatch(org) is None
+        or _HF_REPO_SEGMENT.fullmatch(repo) is None
+        or org.casefold() in _HUGGINGFACE_NON_REPOS
+        or org.casefold() not in orgs
+    ):
         return None
     return org, repo
 

@@ -3477,6 +3477,84 @@ def test_a_huggingface_redirect_to_another_owner_stays_unregistered(
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/AcmeLab/%2e%2e/evil/x",
+        "//AcmeLab/orbit-9",
+        "/AcmeLab/orbit-9/discussions/7",
+        "/AcmeLab/orbit-9/tree/main",
+    ],
+)
+def test_a_huggingface_path_other_than_the_repository_is_not_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, path: str,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co" + path
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:" + path.strip("/").replace("/", "-").replace("%", "p"),
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain", path
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert page not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_huggingface_repository_with_one_trailing_slash_is_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/orbit-9/"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:trailing-slash",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["primary_kind"] == "huggingface-org"
+    assert page in seen
+
+
+def test_a_huggingface_redirect_onto_a_longer_path_is_not_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    requested = "https://huggingface.co/AcmeLab/orbit-9"
+    final = "https://huggingface.co/AcmeLab/orbit-9/tree/main"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:redirected-tree",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert requested in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
 def test_sibling_docs_hosts_identify_the_lab_and_community_openai_is_refused(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
