@@ -459,6 +459,22 @@ def _condition(key: str, value: str | None) -> str | None:
     return s
 
 
+#: Effort inside a subject cell. A hyphen is not a separator.
+_STRUCTURED_NAME_EFFORT = re.compile(
+    r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
+    re.IGNORECASE,
+)
+
+
+def structured_name_effort(name: str) -> str | None:
+    """Effort the structured reader finds in a subject, or None.
+
+    ``Example Model (High)`` names ``High``. ``example-model-high`` names none.
+    """
+    match = _STRUCTURED_NAME_EFFORT.search(str(name))
+    return match.group(1) if match else None
+
+
 _DATE_FORMATS = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y", "%Y/%m/%d")
 
 
@@ -3971,9 +3987,7 @@ class StructuredDataExtractor:
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
-                match = re.search(r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
-                                  str(subject), re.IGNORECASE)
-                effort = match.group(1) if match else None
+                effort = structured_name_effort(str(subject))
             date_ = next((normal.get(key) for key in (
                 "date", "leaderboard publish date", "started at", "snapshot read date",
                 "release date",

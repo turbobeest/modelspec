@@ -22,6 +22,7 @@ from decision.verify import (
     normalise_name,
     numbers_agree,
     parse_quantity,
+    structured_name_effort,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -146,12 +147,7 @@ def source_row(filename: str, evidence: dict) -> dict | None:
             continue
         row_effort = normal.get("reasoning effort") or normal.get("effort")
         if row_effort is None:
-            match = re.search(
-                r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
-                str(subject),
-                re.IGNORECASE,
-            )
-            row_effort = match.group(1) if match else None
+            row_effort = structured_name_effort(str(subject))
         if wanted_effort and row_effort and str(row_effort).casefold() != wanted_effort:
             continue
         candidates.append(row)
@@ -308,12 +304,7 @@ def main() -> None:
                 row["evidence_date"] = observed
             observed_effort = normal.get("reasoning effort") or normal.get("effort")
             if observed_effort is None:
-                match = re.search(
-                    r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
-                    str(subject_name),
-                    re.IGNORECASE,
-                )
-                observed_effort = match.group(1) if match else None
+                observed_effort = structured_name_effort(str(subject_name))
             eid = evidence_id(model_id, row)
             ref = SourceRef(
                 source_id=source_id(filename),
