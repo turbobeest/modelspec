@@ -610,7 +610,7 @@ No secret belongs in this repository. Tests sign fixtures with a throwaway
 
 ## Sale alerts
 
-A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. The notification auto-deletes after 5 seconds. `ttl` defaults to 5 seconds and is clamped to 1–86400. No sale history is kept beyond the dedupe marker. Priority is 0. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` ships as `"0"`.
+A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. Production sets `SALE_ALERT_TTL_SECONDS` to 900, so the notification auto-deletes after 15 minutes. Without the var, `ttl` defaults to 5 seconds; it is clamped to 1–86400. No sale history is kept beyond the dedupe marker. Priority is 0, and the sound is Pushover's built-in `cashregister`. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` is `"1"` in production and `"0"` in staging.
 
 `python scripts/sale_alert_dry_run.py` previews synthetic Stripe and x402
 payloads through the Worker's payload builder, with both secrets redacted.
@@ -623,8 +623,8 @@ the script. Missing or blank credentials stop the command before any HTTP call.
 `--channel x402` to send the x402 example instead. The script never calls Stripe,
 x402, or the deployed Worker, and makes no retries or redirect requests. It uses
 `SALE_ALERT_TTL_SECONDS`, defaulting locally to 900 seconds. An integer is required
-and the Worker bounds of 1–86400 apply. The deployed Worker retains its 5-second
-setting; use `SALE_ALERT_TTL_SECONDS=5` locally to check that duration. A successful
+and the Worker bounds of 1–86400 apply. The deployed Worker uses 900 seconds, which
+matches the local default. A successful
 exit confirms Pushover accepted the message. Observe arrival and deletion in the
 Pushover app to verify the full result.
 
@@ -632,9 +632,9 @@ Jamie's steps:
 
 1. Install Pushover and note your user key.
 2. Create a Pushover application token.
-3. From `api/worker`, run `wrangler secret put PUSHOVER_APP_TOKEN` and `wrangler secret put PUSHOVER_USER_KEY`.
-4. From the repository root with both secrets in the local environment, run `SALE_ALERT_TTL_SECONDS=5 python scripts/sale_alert_dry_run.py --send` and verify that the push disappears after the TTL.
-5. Set `SALE_ALERTS_ENABLED=true` in the Worker configuration and deploy through the normal release workflow.
+3. From `api/worker` in a checkout of current `main` (its `wrangler.jsonc` names the live account), run `wrangler secret put PUSHOVER_APP_TOKEN` and `wrangler secret put PUSHOVER_USER_KEY`.
+4. From the repository root with both secrets in the local environment, run `python scripts/sale_alert_dry_run.py --send` and verify that the push arrives and disappears after the TTL.
+5. Set `SALE_ALERTS_ENABLED` to `"1"` in the Worker configuration and deploy through the normal release workflow.
 
 ## Privacy
 

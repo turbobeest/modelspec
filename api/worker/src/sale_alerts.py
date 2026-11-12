@@ -28,6 +28,8 @@ import access
 
 PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
 TIMEOUT_MS = 5_000
+#: Pushover built-in sound, so a sale is distinct from other notices.
+SOUND = "cashregister"
 _TTL_DEFAULT = 5
 _TTL_MIN = 1
 _TTL_MAX = 86_400
@@ -74,6 +76,7 @@ def build_payload(*, token: str, user: str, channel: str, product: str,
         "message": _message(channel, product, amount_usd, ref),
         "ttl": str(_ttl(ttl)),
         "priority": "0",
+        "sound": SOUND,
     }
 
 
