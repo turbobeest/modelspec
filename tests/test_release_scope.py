@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
+import yaml
 
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import FetchResult
@@ -18,7 +20,66 @@ from release_signals.scope import (
     out_of_scope_reason,
     tag_scope,
 )
+from release_signals.watch import ROOT, Seen, Source, load_registry
 from scripts import process_release_signals as processor
+from scripts.release_watch_filter import _hub_scope_reason
+
+# Language, embedding, reranker and neighbouring types the catalogue ranks.
+# Modality types the watcher is built to skip stay out of this replay.
+_IN_SCOPE_MODEL_TYPES = frozenset({
+    "llm-chat", "llm-reasoning", "llm-code", "llm-base", "vlm",
+    "embedding-text", "embedding-multimodal", "embedding-code", "reranker",
+    "safety-classifier", "medical", "legal", "financial",
+    "reward-model", "router", "agent-model", "decision-model",
+    "adapter", "quantized-variant", "distilled", "merged", "text-encoder",
+})
+
+# 42 public cards stay rejected. 28 are named after another lab's base.
+# 14 carry an out-of-scope pipeline tag or an out-of-scope name.
+_CATALOGUE_SCOPE_EXCEPTIONS: dict[str, str] = {
+    "nvidia/bigvgan-v2-22khz-80band-256x": "audio-to-audio",
+    "nvidia/bigvgan-v2-44khz-128band-512x": "audio-to-audio",
+    "nvidia/deepseek-r1-0528-nvfp4-v2": "derivative of deepseek-ai/DeepSeek-R1-0528",
+    "nvidia/gemma-4-31b-it-nvfp4": "derivative of google/gemma-4-31B-it",
+    "nvidia/glm-5-nvfp4": "derivative of zai-org/GLM-5",
+    "nvidia/kimi-k2-5-nvfp4": "derivative of moonshotai/Kimi-K2.5",
+    "nvidia/llama-3-1-8b-instruct-fp8": "derivative of meta-llama/Llama-3.1-8B-Instruct",
+    "nvidia/llama-3-1-8b-instruct-nvfp4": "derivative of meta-llama/Llama-3.1-8B-Instruct",
+    "nvidia/llama-3-3-70b-instruct-nvfp4": "derivative of meta-llama/Llama-3.3-70B-Instruct",
+    "nvidia/personaplex-7b-v1": "audio-to-audio",
+    "nvidia/qwen3-14b-nvfp4": "derivative of Qwen/Qwen3-14B",
+    "nvidia/qwen3-30b-a3b-nvfp4": "derivative of Qwen/Qwen3-30B-A3B",
+    "nvidia/qwen3-32b-nvfp4": "derivative of Qwen/Qwen3-32B",
+    "nvidia/qwen3-5-397b-a17b-nvfp4": "derivative of Qwen/Qwen3.5-397B-A17B",
+    "qwen/qwen-vl-ocr": "ocr",
+    "stability/stable-audio-open-1-0": "text-to-audio",
+    "stability/stable-video-diffusion-img2vid-xt-1-1": "image-to-video",
+    "stability/stable-video-diffusion-img2vid-xt": "image-to-video",
+    "stability/stable-video-diffusion-img2vid": "image-to-video",
+    "stability/stable-virtual-camera": "image-to-video",
+    "tencent/songgeneration": "text-to-audio",
+    "unsloth/deepseek-ocr-2": "derivative of deepseek/deepseek-ocr-2",
+    "unsloth/gemma-4-26b-a4b-it-gguf": "derivative of google/gemma-4-26b-a4b-it",
+    "unsloth/gemma-4-31b-it-gguf": "derivative of google/gemma-4-31b-it",
+    "unsloth/gemma-4-e4b-it-gguf": "derivative of google/gemma-4-e4b-it",
+    "unsloth/glm-4-7-flash-fp8-dynamic": "derivative of zhipu/glm-4-7-flash",
+    "unsloth/gpt-oss-20b-gguf": "derivative of openai/gpt-oss-20b",
+    "unsloth/llama-3-1-8b-instruct": "derivative of meta/llama-3-1-8b-instruct",
+    "unsloth/ltx-2-3-gguf": "image-to-video",
+    "unsloth/mistral-7b-v0-3-bnb-4bit": "derivative of mistral/mistral-7b-v0-3",
+    "unsloth/qwen3-0-6b": "derivative of Qwen/Qwen3-0.6B",
+    "unsloth/qwen3-5-0-8b-gguf": "derivative of qwen/qwen3-5-0-8b",
+    "unsloth/qwen3-5-122b-a10b-gguf": "derivative of qwen/qwen3-5-122b-a10b",
+    "unsloth/qwen3-5-27b-gguf": "derivative of qwen/qwen3-5-27b",
+    "unsloth/qwen3-5-2b-gguf": "derivative of qwen/qwen3-5-2b",
+    "unsloth/qwen3-5-35b-a3b-gguf": "derivative of qwen/qwen3-5-35b-a3b",
+    "unsloth/qwen3-5-4b-gguf": "derivative of qwen/qwen3-5-4b",
+    "unsloth/qwen3-5-9b-gguf": "derivative of qwen/qwen3-5-9b",
+    "unsloth/qwen3-coder-next-gguf": "derivative of qwen/qwen3-coder-next",
+    "zhipu/cogvideox-5b-i2v": "image-to-video",
+    "zhipu/cogvideox1-5-5b-i2v": "image-to-video",
+    "zhipu/glm-4-voice-9b": "speech",
+}
 
 
 def test_named_modalities_are_out_of_scope_and_ordinary_names_stay_in() -> None:
@@ -262,3 +323,89 @@ def test_a_derivative_is_an_artefact_named_after_another_labs_base() -> None:
         "acme-lab/orbit-1-sparse", ("not-a-repository", "other-lab/Orbit-1"),
     ) == "derivative of other-lab/Orbit-1"
     assert derivative_reason("acme-lab/orbit-10-sparse", "other-lab/Orbit-1") is None
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _huggingface_repo(url: object) -> str | None:
+    if not isinstance(url, str) or "huggingface.co/" not in url:
+        return None
+    path = url.split("huggingface.co/", 1)[1].strip().strip("/").split("?", 1)[0]
+    parts = [part for part in path.split("/") if part]
+    if not parts or parts[0] in {"datasets", "spaces", "collections"}:
+        return None
+    if len(parts) < 2 or not parts[0] or not parts[1]:
+        return None
+    return f"{parts[0]}/{parts[1]}"
+
+
+def _catalogue_scope_rejections() -> dict[str, str]:
+    """Watcher scope for each in-scope card under a registered Hugging Face lab."""
+    loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+    by_dir: dict[str, tuple[Source, str]] = {}
+    for source in load_registry().sources:
+        if source.kind != "huggingface":
+            continue
+        authors = parse_qs(urlsplit(source.url).query, keep_blank_values=True).get("author", [])
+        org = authors[0] if authors else ""
+        by_dir.setdefault(source.provider, (source, org))
+        if org:
+            by_dir.setdefault(org.casefold(), (source, org))
+    rejected: dict[str, str] = {}
+    for path in sorted((ROOT / "models").glob("*/*.md")):
+        lab = path.parent.name
+        if lab not in by_dir:
+            continue
+        parts = path.read_text(encoding="utf-8").split("---", 2)
+        if len(parts) < 3:
+            continue
+        front = yaml.load(parts[1], Loader=loader)
+        if not isinstance(front, dict):
+            continue
+        model_type = _text(front.get("model_type")) or ""
+        if model_type not in _IN_SCOPE_MODEL_TYPES:
+            continue
+        source, org = by_dir[lab]
+        model_id = _text(front.get("model_id")) or f"{lab}/{path.stem}"
+        sources = front.get("sources") if isinstance(front.get("sources"), dict) else {}
+        repo = _huggingface_repo(sources.get("huggingface_url")) or f"{org}/{path.stem}"
+        tags = tuple(tag for tag in (front.get("tags") or []) if isinstance(tag, str))
+        lineage = front.get("lineage") if isinstance(front.get("lineage"), dict) else {}
+        seen = Seen(
+            repo, repo.partition("/")[2], source.provider,
+            f"https://huggingface.co/{repo}",
+            pipeline_tag=_text(front.get("pipeline_tag")),
+            tags=tags,
+            base_model=_text(lineage.get("base_model")),
+        )
+        reason = _hub_scope_reason(seen, source)
+        if reason:
+            rejected[model_id] = reason
+    return rejected
+
+
+def test_catalogue_cards_under_huggingface_labs_stay_in_scope() -> None:
+    source = Source(
+        "hf-acme", "huggingface",
+        "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+    )
+
+    def decide(repo: str, name: str, **fields: object) -> str | None:
+        return _hub_scope_reason(Seen(
+            repo, name, "Acme", f"https://huggingface.co/{repo}", **fields,
+        ), source)
+
+    assert decide(
+        "acme-lab/orbit-1-sparse", "orbit-1-sparse",
+        pipeline_tag="text-generation", base_model="other-lab/Orbit-1",
+    ) == "derivative of other-lab/Orbit-1"
+    assert decide("acme-lab/walker", "walker", pipeline_tag="robotics") == "robotics"
+    assert decide(
+        "acme-lab/pong", "pong", pipeline_tag="reinforcement-learning",
+    ) == "reinforcement-learning"
+    assert _catalogue_scope_rejections() == _CATALOGUE_SCOPE_EXCEPTIONS
