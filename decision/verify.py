@@ -37,12 +37,14 @@ same-family ``verified`` already in the log does not count
 
 Outcomes are ``verified``, ``mismatch`` (with a structured diff), ``cited``
 (source policy forbids retained bytes; no Verification is logged) and
-``unreachable`` (a fetch failed, or a retained copy's cited region cannot be
-read). A copy simply absent from this run's cache is ``skipped``, with reason
-``no retained copy in this cache: <source>#<region>``: nothing is logged and
-the claim stays queued. A claim no independent extractor could read is also
-``skipped``. Anything whose latest logged outcome is not ``verified``, and
-anything never verified, is **quarantined**.
+``unreachable`` (the copy, source or region is missing). A claim no
+independent extractor could read is ``skipped``: nothing is logged and it
+stays queued. ``StoredRegions`` can be asked to treat a copy that this cache
+does not hold as that same ``skipped``, with reason
+``no retained copy in this cache: <source>#<region>``. The default does not:
+an absent copy stays ``unreachable`` and is logged. Anything whose latest
+logged outcome is not ``verified``, and anything never verified, is
+**quarantined**.
 
 Files, under ``verification/`` at the repository root:
 
@@ -6127,9 +6129,11 @@ class StoredRegions:
     """
 
     def __init__(self, store: CopyStore, sources: Mapping[str, Source], *,
-                 cache_documents: bool = False) -> None:
+                 cache_documents: bool = False,
+                 skip_absent_copies: bool = False) -> None:
         self.store = store
         self.sources = sources
+        self.skip_absent_copies = skip_absent_copies
         self._pdf_copies: dict[str, bool] = {}
         self._documents: dict[tuple[str, RuleSet], Document] | None = \
             {} if cache_documents else None
@@ -6163,11 +6167,12 @@ class StoredRegions:
     def miss_reason(self, source_id: str, copy_ref: str, region_id: str) -> str:
         """Why ``text`` is ``None``: ``no_copy`` or ``unreachable``.
 
-        ``no_copy`` means nothing is retained for this ref and this cache
-        recorded no failed fetch. A recorded fetch failure, a present copy,
-        bytes at the copy path that do not hash to the ref, an unreadable
-        citation, or a region that cannot be read is ``unreachable``.
+        ``no_copy`` is returned only when this store was asked to skip a copy
+        the cache does not hold. A corrupt copy, an unreadable citation, and
+        an unregistered source or region stay ``unreachable``.
         """
+        if not self.skip_absent_copies:
+            return "unreachable"
         try:
             citation = self.store.citation(copy_ref)
         except ValueError:
@@ -6177,15 +6182,14 @@ class StoredRegions:
         source = self.sources.get(source_id)
         region = next((item for item in source.cited_regions if item.id == region_id), None) \
             if source else None
-        if (source is None or region is None or self.store.has(copy_ref)
-                or self.store.fetch_failed(source_id)):
+        if source is None or region is None or self.store.has(copy_ref):
             return "unreachable"
         try:
             slot = self.store.path(copy_ref)
         except ValueError:
             return "unreachable"
-        # A path that exists but does not hash to its name was retained and
-        # cannot be read. An absent path, with no failure marker, was not.
+        # Bytes at the path that do not hash to the ref were retained and
+        # cannot be read. An absent path was never stored.
         if os.path.lexists(slot):
             return "unreachable"
         return "no_copy"
@@ -6558,10 +6562,10 @@ class Result:
 
 
 def _no_copy_reason(regions: Regions, source_id: str, copy_ref: str, region_id: str) -> str | None:
-    """The skip reason when this cache never fetched the cited copy.
+    """The skip reason when an opted-in cache holds no copy of this region.
 
     A regions object that cannot say so (a test double with only ``text``)
-    keeps today's unreachable outcome.
+    keeps the unreachable outcome.
     """
     classify = getattr(regions, "miss_reason", None)
     if not callable(classify) or classify(source_id, copy_ref, region_id) != "no_copy":
@@ -6706,15 +6710,15 @@ def _verify_evidence_reading(
             _verification(claim, actor, "mismatch", today, diffs),
             tuple(diffs),
         )
-    if not reachable and reasons:
+    if not reachable and no_copy and not reasons:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
+    if not reachable:
         return Result(
             claim.target,
             "unreachable",
             _verification(claim, REGION_LOOKUP, "unreachable", today),
             reason="; ".join(reasons),
         )
-    if not reachable and no_copy:
-        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     return Result(claim.target, "skipped", reason="; ".join([*reasons, *no_copy]))
 
 
@@ -7368,21 +7372,16 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         actor, diffs = mismatch
         return Result(claim.target, "mismatch",
                       _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
-    if not reachable and reasons:
-        if not _independent(claim, REGION_LOOKUP, today):
-            return Result(claim.target, "skipped", reason="no_independent_extractor")
-        return Result(claim.target, "unreachable",
-                      _verification(claim, REGION_LOOKUP, "unreachable", today),
-                      reason="; ".join(reasons))
-    if not reachable and no_copy:
+    if not reachable and no_copy and not reasons:
         return Result(claim.target, "skipped", reason="; ".join(no_copy))
+    reason = "; ".join([*reasons, *no_copy])
     if not reachable:
         if not _independent(claim, REGION_LOOKUP, today):
             return Result(claim.target, "skipped", reason="no_independent_extractor")
         return Result(claim.target, "unreachable",
                       _verification(claim, REGION_LOOKUP, "unreachable", today),
                       reason="; ".join(reasons))
-    return Result(claim.target, "skipped", reason="; ".join([*reasons, *no_copy]))
+    return Result(claim.target, "skipped", reason=reason)
 
 
 # --- the log -------------------------------------------------------------------------------------

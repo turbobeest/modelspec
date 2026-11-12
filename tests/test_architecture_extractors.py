@@ -280,10 +280,10 @@ def test_registered_dispatch_repeats_dense_equality_and_rejects_a_changed_total(
         == "mismatch"
     )
     regions.store.path(refs[0].snapshot_ref).unlink()
-    gone = verify(c, regions, deterministic_extractors(), today=date(2026, 10, 10))
-    assert gone.outcome == "skipped"
-    assert gone.verification is None
-    assert gone.reason == "no retained copy in this cache: config#page"
+    assert (
+        verify(c, regions, deterministic_extractors(), today=date(2026, 10, 10)).outcome
+        == "unreachable"
+    )
 
 
 def test_absence_checks_all_copies_and_never_calls_an_llm(tmp_path):

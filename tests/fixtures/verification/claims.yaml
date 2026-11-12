@@ -2,8 +2,7 @@
 #
 # Every claim below was "collected" by the same agent. The correct ones must end
 # `verified`; every seeded error must end `mismatch` (with the diff fields named
-# in `expect_diff`) or `unreachable`, and so quarantined. A claim whose retained
-# copy is absent from the cache is `skipped` and stays queued. `copy` names the fixture
+# in `expect_diff`) or `unreachable`, and so quarantined. `copy` names the fixture
 # file the claim's source snapshot retained; the test stores it and pins its hash.
 collector: {agent: grok-build, model_family: grok, method: firecrawl-scrape+llm-extract}
 
@@ -192,7 +191,7 @@ claims:
     expect: skipped
     expect_diff: []
   - id: sol-copy-missing
-    error: no retained copy in this cache
+    error: the retained copy is gone
     subject: openai/gpt-6-sol
     names: [GPT-6 Sol]
     field: seeded-coding
@@ -201,7 +200,7 @@ claims:
     unit: percent
     conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
     source: {id: seeded-missing, copy: null, regions: [results]}
-    expect: skipped
+    expect: unreachable
   - id: sol-region-missing
     error: the cited region is not registered on the source
     subject: openai/gpt-6-sol

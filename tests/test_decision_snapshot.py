@@ -734,11 +734,11 @@ def test_the_gate_fails_on_one_missing_guaranteed_fact():
     assert "no source" in message
 
 
-def test_an_absent_copy_does_not_quarantine_a_verified_fact(tmp_path):
-    """A pending re-collection against an empty cache must not quarantine.
+def test_an_absent_copy_quarantines_unless_skipping_is_asked(tmp_path):
+    """An empty cache records unreachable, and the newer row closes the gate.
 
-    The latest log row is verified. Recording the missing copy as unreachable
-    would make that newer row win, and the completeness gate would drop the fact.
+    Asking ``StoredRegions`` to skip an absent copy leaves the older verified
+    row in place, so the same build still admits the fact.
     """
     from datetime import UTC, datetime
 
@@ -749,37 +749,72 @@ def test_an_absent_copy_does_not_quarantine_a_verified_fact(tmp_path):
     from decision.sources import CopyStore
 
     today = date(2026, 9, 25)
-    claim = verify.Claim(
-        target=TargetRef(kind="fact", id="lab/alpha#model.context_window"),
-        subject="lab/alpha",
-        names=("Alpha",),
-        field="model.context_window",
-        value=128000,
-        unit="tokens",
-        collector=VerificationActor(agent="collector-a", model_family="family-a", method="read"),
-        sources=(SourceRef(
-            source_id="src-lab-docs",
-            snapshot_ref="sha256:" + "0" * 64,
-            cited_regions=["r1"],
-        ),),
-    )
-    log = verify.VerificationLog(tmp_path / "verification")
-    log.append(Verification.model_validate(verification(
-        "fact", "lab/alpha#model.context_window", "verified", "2026-09-20", value=128000,
-    )))
-    queue = verify.Queue(log.directory)
-    queue.file(claim, at=datetime(2026, 9, 25, 12, tzinfo=UTC))
+    filed_at = datetime(2026, 9, 25, 12, tzinfo=UTC)
     source = Source(
         id="src-lab-docs",
         url="https://lab.example.com/docs/models",
         normaliser="html-default",
         cited_regions=[CitedRegion(id="r1", locator={"kind": "page", "value": ""})],
     )
-    regions = verify.StoredRegions(CopyStore(tmp_path / "copies"), {source.id: source})
-    verify.run(
-        queue, log, regions, verify.deterministic_extractors(), today=today,
-        at=datetime(2026, 9, 25, 12, tzinfo=UTC),
-    )
+
+    def run(root, *, skip_absent_copies: bool):
+        claim = verify.Claim(
+            target=TargetRef(kind="fact", id="lab/alpha#model.context_window"),
+            subject="lab/alpha",
+            names=("Alpha",),
+            field="model.context_window",
+            value=128000,
+            unit="tokens",
+            collector=VerificationActor(
+                agent="collector-a", model_family="family-a", method="read"),
+            sources=(SourceRef(
+                source_id="src-lab-docs",
+                snapshot_ref="sha256:" + "0" * 64,
+                cited_regions=["r1"],
+            ),),
+        )
+        log = verify.VerificationLog(root / "verification")
+        log.append(Verification.model_validate(verification(
+            "fact", "lab/alpha#model.context_window", "verified", "2026-09-20", value=128000,
+        )))
+        queue = verify.Queue(log.directory)
+        queue.file(claim, at=filed_at)
+        regions = verify.StoredRegions(
+            CopyStore(root / "copies"), {source.id: source},
+            skip_absent_copies=skip_absent_copies,
+        )
+        report = verify.run(
+            queue, log, regions, verify.deterministic_extractors(), today=today, at=filed_at,
+        )
+        return log, report
+
+    log, report = run(tmp_path / "closed", skip_absent_copies=False)
+    assert [(row.target.id, row.outcome) for row in report.results] == [
+        ("lab/alpha#model.context_window", "unreachable"),
+    ]
+    assert [row.outcome for row in log.records()] == ["verified", "unreachable"]
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(
+            inputs(
+                models=[model("lab/alpha")],
+                offerings=[],
+                evidence=[],
+                verifications=log.records(),
+            ),
+            registry=COMPLETENESS_REGISTRY,
+            premier=["lab/alpha"],
+            as_of=today,
+        )
+    assert [(gap.subject, gap.facet, gap.reason) for gap in exc.value.gaps] == [
+        ("lab/alpha", "model.context_window", "quarantined (unreachable)"),
+    ]
+
+    log, report = run(tmp_path / "open", skip_absent_copies=True)
+    assert [(row.target.id, row.outcome, row.verification) for row in report.results] == [
+        ("lab/alpha#model.context_window", "skipped", None),
+    ]
+    assert report.results[0].reason == "no retained copy in this cache: src-lab-docs#r1"
+    assert [row.outcome for row in log.records()] == ["verified"]
     built = build_snapshot(
         inputs(
             models=[model("lab/alpha")],
