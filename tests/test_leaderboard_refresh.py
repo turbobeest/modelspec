@@ -2079,6 +2079,10 @@ def _evidence_row(card: Path) -> dict:
     return refresh._front(card)["benchmarks"]["evidence"][0]
 
 
+def _arena_skip_classes(report) -> dict:
+    return report.boards["arena:text"]["rows_skipped"]
+
+
 def _verification_log(root: Path) -> dict:
     return json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
 
@@ -2245,6 +2249,7 @@ def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
 
     assert report.quarantined == []
     assert any("configuration" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"configuration": 1}
     assert _evidence_row(card)["score"] == 1100.0
 
 
@@ -2260,6 +2265,7 @@ def test_a_parenthetical_effort_the_card_does_not_name_is_not_written(
 
     assert report.quarantined == []
     assert any("effort" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"effort": 1}
     assert _evidence_row(card)["score"] == 1100.0
 
 
@@ -2276,6 +2282,7 @@ def test_a_card_effort_the_dataset_does_not_name_is_not_written(
 
     assert report.quarantined == []
     assert any("effort" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"effort": 1}
     assert _evidence_row(card)["score"] == 1100.0
     assert _evidence_row(card)["effort"] == "high"
 
@@ -2301,6 +2308,7 @@ def test_an_elo_unit_is_not_refreshed(monkeypatch, tmp_path: Path) -> None:
 
     assert report.quarantined == []
     assert any("unit" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"unit": 1}
     assert _evidence_row(card)["score"] == 1100.0
     assert _evidence_row(card)["unit"] == "elo"
 
@@ -2337,6 +2345,7 @@ def test_a_token_match_the_verifier_does_not_own_is_not_swapped(
 
     assert report.quarantined == []
     assert any("verifier" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"other-row": 1}
     row = _evidence_row(card)
     assert row["score"] == 1100.0
     assert "1210.25" not in row.get("configuration", "")
@@ -2356,6 +2365,21 @@ def test_a_match_the_verifier_does_not_own_is_not_written(
 
     assert report.quarantined == []
     assert any("verifier" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"not-owned": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_no_unique_dataset_row_is_its_own_skip_class(monkeypatch, tmp_path: Path) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Other Model",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
     assert _evidence_row(card)["score"] == 1100.0
 
 

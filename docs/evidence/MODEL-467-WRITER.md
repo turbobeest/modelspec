@@ -94,47 +94,47 @@ Second run, same process and the same cache. Latest true. Fallback null. The gat
 
 No board's planned rewrites exceeded 5000. The largest board planned 140. Every collected board was written whole, and planned rewrites equalled rows rewritten on each board. `arena_rows_left` is 0. `arena_rows_without_board` is 19.
 
-Skip classes on the second run, including rows the wrapper did not read: configuration 50, no-unique-row 154, not_read 34, unit 364, verifier 492. The not_read count is outside the board table.
+The second run skipped 1094 rows. The class split recorded for that run was mislabelled. The classifier treated the substring `unit` as the class, and the verifier uses that word for any numeric disagreement whose unit string is not byte-equal to the canonical id. The proof output was deleted with the scratch catalogue, so this file does not give a corrected split. The withdrawn labels were configuration 50, no-unique-row 154, not_read 34, unit 364, and verifier 492. The skipped column is the row count for that board. The 34 `not_read` rows sit outside the table. The table sums to 1060.
 
 | Board | Rewritten | Reconfirmed | Left | Skipped |
-|---|---:|---:|---:|---|
-| `arena_elo_coding` | 1 | 0 | 0 | unit 15, verifier 3 |
-| `arena_elo_overall` | 2 | 0 | 0 | configuration 1, unit 15, verifier 4 |
-| `arena_elo_style_control` | 140 | 0 | 0 | no-unique-row 10, unit 16, verifier 24 |
-| `arena_elo_vision` | 3 | 0 | 0 | unit 1 |
-| `arena_sc_business` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 15, verifier 24 |
-| `arena_sc_chinese` | 8 | 0 | 0 | configuration 2, unit 5, verifier 7 |
-| `arena_sc_coding` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
-| `arena_sc_creative_writing` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
-| `arena_sc_document` | 5 | 0 | 0 | unit 3, verifier 6 |
-| `arena_sc_english` | 7 | 0 | 0 | configuration 2, unit 5, verifier 9 |
-| `arena_sc_expert` | 132 | 0 | 0 | configuration 3, no-unique-row 10, unit 15, verifier 21 |
-| `arena_sc_factuality` | 6 | 0 | 0 | configuration 2, unit 4, verifier 9 |
-| `arena_sc_french` | 8 | 0 | 0 | configuration 1, unit 5, verifier 6 |
-| `arena_sc_german` | 8 | 0 | 0 | unit 5, verifier 5 |
-| `arena_sc_hard_prompts` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 23 |
-| `arena_sc_industry_entertainment_sports_media` | 7 | 0 | 0 | configuration 2, unit 5, verifier 9 |
-| `arena_sc_industry_mathematical` | 8 | 0 | 0 | configuration 2, unit 5, verifier 7 |
-| `arena_sc_industry_software_it_services` | 8 | 0 | 0 | configuration 1, unit 5, verifier 9 |
-| `arena_sc_instruction_following` | 139 | 0 | 0 | configuration 3, no-unique-row 10, unit 16, verifier 22 |
-| `arena_sc_japanese` | 6 | 0 | 0 | configuration 1, unit 5, verifier 5 |
-| `arena_sc_korean` | 8 | 0 | 0 | unit 5, verifier 5 |
-| `arena_sc_legal` | 134 | 0 | 0 | no-unique-row 10, unit 16, verifier 24 |
-| `arena_sc_longer_query` | 138 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
-| `arena_sc_math` | 134 | 0 | 0 | configuration 2, no-unique-row 9, unit 15, verifier 21 |
-| `arena_sc_medicine` | 133 | 0 | 0 | configuration 3, no-unique-row 9, unit 16, verifier 22 |
-| `arena_sc_multi_turn` | 139 | 0 | 0 | configuration 3, no-unique-row 10, unit 15, verifier 23 |
-| `arena_sc_non_english` | 139 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 24 |
-| `arena_sc_polish` | 7 | 0 | 0 | configuration 1, unit 4, verifier 5 |
-| `arena_sc_russian` | 8 | 0 | 0 | unit 5, verifier 10 |
-| `arena_sc_science` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 16, verifier 23 |
-| `arena_sc_spanish` | 7 | 0 | 0 | configuration 2, unit 5, verifier 4 |
-| `arena_sc_vision` | 51 | 0 | 0 | configuration 1, no-unique-row 5, unit 11, verifier 15 |
-| `arena_sc_vision_diagram` | 5 | 0 | 0 | configuration 1, unit 5, verifier 4 |
-| `arena_sc_vision_homework` | 5 | 0 | 0 | configuration 1, unit 5, verifier 3 |
-| `arena_sc_vision_ocr` | 4 | 0 | 0 | configuration 2, unit 5, verifier 4 |
-| `arena_sc_writing` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 23 |
-| `arena_webdev` | 52 | 0 | 0 | configuration 2, no-unique-row 1, unit 8, verifier 17 |
+|---|---:|---:|---:|---:|
+| `arena_elo_coding` | 1 | 0 | 0 | 18 |
+| `arena_elo_overall` | 2 | 0 | 0 | 20 |
+| `arena_elo_style_control` | 140 | 0 | 0 | 50 |
+| `arena_elo_vision` | 3 | 0 | 0 | 1 |
+| `arena_sc_business` | 140 | 0 | 0 | 50 |
+| `arena_sc_chinese` | 8 | 0 | 0 | 14 |
+| `arena_sc_coding` | 139 | 0 | 0 | 51 |
+| `arena_sc_creative_writing` | 139 | 0 | 0 | 51 |
+| `arena_sc_document` | 5 | 0 | 0 | 9 |
+| `arena_sc_english` | 7 | 0 | 0 | 16 |
+| `arena_sc_expert` | 132 | 0 | 0 | 49 |
+| `arena_sc_factuality` | 6 | 0 | 0 | 15 |
+| `arena_sc_french` | 8 | 0 | 0 | 12 |
+| `arena_sc_german` | 8 | 0 | 0 | 10 |
+| `arena_sc_hard_prompts` | 140 | 0 | 0 | 50 |
+| `arena_sc_industry_entertainment_sports_media` | 7 | 0 | 0 | 16 |
+| `arena_sc_industry_mathematical` | 8 | 0 | 0 | 14 |
+| `arena_sc_industry_software_it_services` | 8 | 0 | 0 | 15 |
+| `arena_sc_instruction_following` | 139 | 0 | 0 | 51 |
+| `arena_sc_japanese` | 6 | 0 | 0 | 11 |
+| `arena_sc_korean` | 8 | 0 | 0 | 10 |
+| `arena_sc_legal` | 134 | 0 | 0 | 50 |
+| `arena_sc_longer_query` | 138 | 0 | 0 | 51 |
+| `arena_sc_math` | 134 | 0 | 0 | 47 |
+| `arena_sc_medicine` | 133 | 0 | 0 | 50 |
+| `arena_sc_multi_turn` | 139 | 0 | 0 | 51 |
+| `arena_sc_non_english` | 139 | 0 | 0 | 51 |
+| `arena_sc_polish` | 7 | 0 | 0 | 10 |
+| `arena_sc_russian` | 8 | 0 | 0 | 15 |
+| `arena_sc_science` | 139 | 0 | 0 | 51 |
+| `arena_sc_spanish` | 7 | 0 | 0 | 11 |
+| `arena_sc_vision` | 51 | 0 | 0 | 32 |
+| `arena_sc_vision_diagram` | 5 | 0 | 0 | 10 |
+| `arena_sc_vision_homework` | 5 | 0 | 0 | 9 |
+| `arena_sc_vision_ocr` | 4 | 0 | 0 | 11 |
+| `arena_sc_writing` | 140 | 0 | 0 | 50 |
+| `arena_webdev` | 52 | 0 | 0 | 28 |
 
 After that run, 39 Arena benchmark ids were present. The most distinct `benchmark_version` strings on one id was 2. The most capability items with at least two models on one id was 2. The writer added no version string.
 

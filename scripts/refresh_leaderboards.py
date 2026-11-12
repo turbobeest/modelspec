@@ -44,9 +44,10 @@ from decision.model import (
     evidence_verification_value,
 )
 from decision.sources import CopyStore, load_sources
-from decision.units import unit_id
+from decision.units import UNITS, unit_id
 from decision.verify import (
     Claim,
+    Diff,
     Queue,
     StoredRegions,
     VerificationLog,
@@ -934,22 +935,29 @@ def _verifier_skip_reason(
     regions: StoredRegions,
     observed_at: str,
     extractors: Sequence[Any],
-) -> str | None:
-    """The verifier's own diff when it would reject ``row``, else None."""
+) -> tuple[str | None, tuple[Diff, ...], str]:
+    """The verifier's refusal, its diffs, and an outcome tag.
+
+    ``unowned`` means the page was read and no row belonged to the claim.
+    Skip classes read the diffs. The reason text is not a class.
+    """
     result = verify_one(
         _claim(model_id, front, row, board),
         regions,
         extractors,
         today=date.fromisoformat(observed_at),
     )
+    diffs = tuple(result.diffs)
     if result.outcome == "verified":
-        return None
-    if result.diffs:
+        return None, (), ""
+    if diffs:
         return "; ".join(
             f"verifier: {diff.field} expected {diff.expected!r} found {diff.found!r}"
-            for diff in result.diffs
-        )
-    return f"verifier: {result.reason or result.outcome}"
+            for diff in diffs
+        ), diffs, ""
+    if result.outcome == "skipped" and not (result.reason or "").strip():
+        return "verifier: skipped", (), "unowned"
+    return f"verifier: {result.reason or result.outcome}", (), ""
 
 
 def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -1193,13 +1201,69 @@ def _reading_changed(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
     ))
 
 
-def _skip_class(reason: str) -> str:
+def _shown_quantity(shown: object):
+    if shown is None or isinstance(shown, (bool, list, dict)):
+        return None
+    return parse_quantity(str(shown))
+
+
+def _magnitudes_disagree(expected: object, found: object) -> bool | None:
+    """Whether two shown readings name different numbers, ignoring unit dimension."""
+    left = _shown_quantity(expected)
+    right = _shown_quantity(found)
+    if left is None or right is None:
+        return None
+    return not numbers_agree(left.number, None, right)
+
+
+def _unit_dimension(unit: str | None) -> str | None:
+    if not unit:
+        return None
+    canonical = unit_id(unit) or unit
+    return UNITS.get(canonical, (canonical, 1.0))[0]
+
+
+def _class_from_verifier_diffs(diffs: Sequence[Diff]) -> str:
+    """What a verifier refusal was. The reason text is not consulted.
+
+    ``unit`` is only a real dimension difference on an equal number. A different
+    number on a row the verifier owns is ``other-row``, including when the diff
+    field says ``unit`` because the card's unit string is not the canonical id.
+    """
+    concrete = [
+        diff for diff in diffs
+        if diff.field in {"unit", "value", "score"} and diff.found is not None
+    ]
+    if any(_magnitudes_disagree(diff.expected, diff.found) is True for diff in concrete):
+        return "other-row"
+    # An effort diff means the verifier owned the row. A score found of None beside
+    # it is the unconfirmed score, not a row the verifier does not own.
+    if any(diff.field == "effort" for diff in diffs):
+        return "effort"
+    score_absent = any(diff.field == "score" and diff.found is None for diff in diffs)
+    if score_absent and not concrete:
+        return "not-owned"
+    for diff in concrete:
+        if _magnitudes_disagree(diff.expected, diff.found) is not False:
+            continue
+        left = _shown_quantity(diff.expected)
+        right = _shown_quantity(diff.found)
+        if left is None or right is None:
+            continue
+        if _unit_dimension(left.unit) != _unit_dimension(right.unit):
+            return "unit"
+    return "verifier"
+
+
+def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> str:
+    if outcome == "unowned" and not diffs:
+        return "not-owned"
+    if diffs:
+        return _class_from_verifier_diffs(diffs)
     text = reason.lower()
     if "no unique row" in text:
         return "no-unique-row"
-    if "unit" in text:
-        return "unit"
-    if "verifier" in text:
+    if text.startswith("verifier"):
         return "verifier"
     if "interval" in text:
         return "interval"
@@ -1295,10 +1359,10 @@ def _prepare_refreshed_row(
     regions: StoredRegions,
     extractors: Sequence[Any],
     observed_at: str,
-) -> tuple[dict[str, Any] | None, str | None]:
+) -> tuple[dict[str, Any] | None, str | None, tuple[Diff, ...], str]:
     new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
     if new is None:
-        return None, reason or "reading was not rewritten"
+        return None, reason or "reading was not rewritten", (), ""
     new["evidence_date"] = observation.evidence_date
     new["observed_at"] = observed_at
     new["verified_at"] = observed_at
@@ -1310,12 +1374,12 @@ def _prepare_refreshed_row(
     ).model_dump(mode="json")]
     new["id"] = evidence_id(model_id, new)
     if observation.reading_checked:
-        reason = _verifier_skip_reason(
+        reason, diffs, outcome = _verifier_skip_reason(
             model_id, front, new, board, regions, observed_at, extractors,
         )
         if reason:
-            return None, reason
-    return new, None
+            return None, reason, diffs, outcome
+    return new, None, (), ""
 
 
 def _refresh_arena_boards(
@@ -1341,7 +1405,12 @@ def _refresh_arena_boards(
     report.arena_rows_without_board = _arena_rows_without_board(root)
     catalogue = {**premier, **extras}
     arena_boards = [board for board in boards if board.key.startswith("arena:")]
-    plans: list[tuple[BoardReading, list[tuple[Any, ...]], list[tuple[str, str, str]], list[tuple[Path, str, dict[str, Any]]]]] = []
+    plans: list[tuple[
+        BoardReading,
+        list[tuple[Any, ...]],
+        list[tuple[str, str, str, tuple[Diff, ...], str]],
+        list[tuple[Path, str, dict[str, Any]]],
+    ]] = []
     for board in sorted(arena_boards, key=lambda item: (_board_age(item, catalogue, fronts), item.key)):
         summary = report.board(board.key)
         if board.source_id not in registered:
@@ -1354,7 +1423,7 @@ def _refresh_arena_boards(
             summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0, rows_skipped={})
             continue
         writes: list[tuple[Any, ...]] = []
-        skips: list[tuple[str, str]] = []
+        skips: list[tuple[str, str, str, tuple[Diff, ...], str]] = []
         additions: list[tuple[Path, str, dict[str, Any]]] = []
         models_read: set[str] = set()
         for model_id, path in catalogue.items():
@@ -1365,7 +1434,7 @@ def _refresh_arena_boards(
                         root=root, model_id=model_id, front=fronts[model_id], board=board,
                     )
                     for failure in failures:
-                        skips.append((failure.model_id, failure.benchmark, failure.reason))
+                        skips.append((failure.model_id, failure.benchmark, failure.reason, (), ""))
                     if added:
                         models_read.add(model_id)
                         additions.extend((path, model_id, row) for row in added)
@@ -1377,19 +1446,20 @@ def _refresh_arena_boards(
                 model_id, path.relative_to(root).as_posix(), relevant, board, revision=revision,
             )
             for failure in failures:
-                skips.append((failure.model_id, failure.benchmark, failure.reason))
+                skips.append((failure.model_id, failure.benchmark, failure.reason, (), ""))
             for observation in observations:
                 old = next(row for row in relevant
                            if row["benchmark_id"] == observation.benchmark
                            and row.get("model_id_as_evaluated") == observation.model
                            and float(row["score"]) == observation.old_value)
-                prepared, reason = _prepare_refreshed_row(
+                prepared, reason, diffs, outcome = _prepare_refreshed_row(
                     model_id, old, observation, board, fronts[model_id],
                     regions, extractors, observed_at,
                 )
                 if prepared is None:
                     skips.append((
-                        model_id, observation.benchmark, reason or "reading was not rewritten",
+                        model_id, observation.benchmark,
+                        reason or "reading was not rewritten", diffs, outcome,
                     ))
                     continue
                 kind = "rewrite" if _reading_changed(old, prepared) else "reconfirm"
@@ -1415,8 +1485,9 @@ def _refresh_arena_boards(
     for board, writes, skips, additions in plans:
         summary = report.board(board.key)
         classes: dict[str, int] = {}
-        for model_id, benchmark, reason in skips:
-            classes[_skip_class(reason)] = classes.get(_skip_class(reason), 0) + 1
+        for model_id, benchmark, reason, diffs, outcome in skips:
+            kind = _skip_class(reason, diffs, outcome)
+            classes[kind] = classes.get(kind, 0) + 1
             if not blocked:
                 report.failures.append(RowFailure(model_id, benchmark, board.source_url, reason))
                 summary["failures"].append(reason)
