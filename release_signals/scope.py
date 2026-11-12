@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from scripts.attribution import normalise
@@ -151,6 +152,37 @@ def in_scope_pipeline_tag(tag: str) -> bool:
 
 def known_pipeline_tag(tag: str) -> bool:
     return in_scope_pipeline_tag(tag) or out_of_scope_pipeline_tag(tag)
+
+
+@dataclass(frozen=True)
+class TagDecision:
+    """`decided` is false when the name rules still have to run."""
+
+    decided: bool
+    reason: str | None = None
+    tag: str | None = None
+
+
+def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
+    """Scope from the pipeline tag, then from task tags. No tag stays undecided.
+
+    An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
+    the tag itself. A set pipeline tag wins over the other tags.
+    """
+    primary = _text(pipeline_tag) or ""
+    if primary:
+        if out_of_scope_pipeline_tag(primary):
+            return TagDecision(True, primary, primary)
+        return TagDecision(True, None, primary)
+    for tag in tags:
+        text = _text(tag)
+        if text and out_of_scope_pipeline_tag(text):
+            return TagDecision(True, text, text)
+    for tag in tags:
+        text = _text(tag)
+        if text and in_scope_pipeline_tag(text):
+            return TagDecision(True, None, text)
+    return TagDecision(False)
 
 
 def _text(value: object) -> str | None:

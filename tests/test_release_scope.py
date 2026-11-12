@@ -9,7 +9,13 @@ import pytest
 
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import FetchResult
-from release_signals.scope import out_of_scope_reason
+from release_signals.scope import (
+    IN_SCOPE_PIPELINE_TAGS,
+    OUT_OF_SCOPE_PIPELINE_TAGS,
+    TagDecision,
+    out_of_scope_reason,
+    tag_scope,
+)
 from scripts import process_release_signals as processor
 
 
@@ -182,3 +188,40 @@ def test_an_out_of_scope_alias_writes_nothing_and_does_not_resolve(
     assert not audit_path.exists()
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "out_of_scope"
     assert not (tmp_path / "offerings").exists()
+
+
+@pytest.mark.parametrize("tag", sorted(IN_SCOPE_PIPELINE_TAGS))
+def test_listed_pipeline_tags_are_in_scope(tag: str) -> None:
+    assert tag_scope(tag) == TagDecision(True, None, tag)
+
+
+@pytest.mark.parametrize("tag", sorted(OUT_OF_SCOPE_PIPELINE_TAGS))
+def test_listed_pipeline_tags_are_out_of_scope_with_the_tag_as_the_reason(tag: str) -> None:
+    assert tag_scope(tag) == TagDecision(True, tag, tag)
+
+
+def test_an_audio_prefix_and_an_unknown_tag_follow_the_tag_rules() -> None:
+    assert "audio-text-to-text" not in OUT_OF_SCOPE_PIPELINE_TAGS
+    assert tag_scope("audio-text-to-text") == TagDecision(
+        True, "audio-text-to-text", "audio-text-to-text",
+    )
+    assert tag_scope("graph-ml", ("robotics",)) == TagDecision(True, None, "graph-ml")
+    assert tag_scope("Robotics", ("text-generation",)) == TagDecision(True, "Robotics", "Robotics")
+
+
+def test_no_pipeline_tag_falls_back_unless_a_task_tag_decides() -> None:
+    assert tag_scope(None, ()) == TagDecision(False)
+    assert tag_scope("", ("en", "license:mit", "transformers")) == TagDecision(False)
+    assert tag_scope("  ", ()) == TagDecision(False)
+    assert tag_scope(None, ("en", "reinforcement-learning")) == TagDecision(
+        True, "reinforcement-learning", "reinforcement-learning",
+    )
+    assert tag_scope(None, ("text-generation", "robotics")) == TagDecision(
+        True, "robotics", "robotics",
+    )
+    assert tag_scope(None, ("transformers", "text-generation")) == TagDecision(
+        True, None, "text-generation",
+    )
+    assert tag_scope("text-generation", ("robotics",)) == TagDecision(
+        True, None, "text-generation",
+    )
