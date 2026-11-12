@@ -1871,6 +1871,7 @@ def test_the_process_job_cannot_open_issues() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
     )
+    assert workflow["jobs"]["process"]["timeout-minutes"] == 20
     assert "issues" not in workflow["jobs"]["process"]["permissions"]
     assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
     for step in workflow["jobs"]["process"]["steps"]:
@@ -3881,3 +3882,63 @@ def test_an_unregistered_first_seen_url_keeps_the_provider_doc(
     assert doc in seen
     assert first_seen not in seen
     assert doc in (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+
+
+def test_one_gather_signal_scans_the_catalogue_at_most_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """Thirty Hugging Face sources must not re-read every card."""
+    from release_signals.pipeline import clear_catalogue_cache, gather_signal
+
+    clear_catalogue_cache()
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    lines = ["sources:"]
+    for index in range(30):
+        lines.extend([
+            f"- id: hf-{index}",
+            "  kind: huggingface",
+            f"  org: lab-{index}",
+            f"  provider: Fixture Lab {index}",
+            "  confidence: 0.7",
+        ])
+    _watch_sources(tmp_path, "\n".join(lines) + "\n")
+    models_dev = "https://models.dev/api.json"
+    primary = "https://acme.example/models/orbit-1"
+    payload = json.dumps({
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": {"id": "orbit-1", "name": "Orbit 1", "release_url": primary},
+            },
+        },
+    }).encode()
+    page = b"<html><body>Acme releases Orbit 1.</body></html>"
+    scans = 0
+    original_glob = Path.glob
+
+    def counting_glob(self: Path, pattern: str):
+        nonlocal scans
+        if pattern == "*/*.md" and self.name == "models":
+            scans += 1
+        return original_glob(self, pattern)
+
+    monkeypatch.setattr(Path, "glob", counting_glob)
+    row = ReleaseSignal.parse(signal(model_name="Orbit 1"))
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, payload, "application/json")
+        if url == primary:
+            return FetchResult(primary, page, "text/html")
+        raise AssertionError(url)
+
+    gathered = gather_signal(row, root=tmp_path, fetch=fetch)
+
+    assert gathered.resolution.status == "existing"
+    assert scans <= 1
+
+    clear_catalogue_cache()
+    scans = 0
+    again = gather_signal(row, root=tmp_path, fetch=fetch)
+    assert again.resolution.status == "existing"
+    assert scans == 1

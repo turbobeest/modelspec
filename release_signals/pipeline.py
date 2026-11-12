@@ -145,20 +145,43 @@ def _front(path: Path) -> dict:
     return loaded if isinstance(loaded, dict) else {}
 
 
+# One card scan and one organisation map per catalogue root for this process.
+_SLUG_INDEX: dict[Path, dict[str, frozenset[str]]] = {}
+_HF_ORG_INDEX: dict[Path, dict[str, frozenset[str]]] = {}
+
+
+def clear_catalogue_cache() -> None:
+    """Drop the card index and the Hugging Face organisation map."""
+    _SLUG_INDEX.clear()
+    _HF_ORG_INDEX.clear()
+
+
+def _slug_index(models_dir: Path) -> dict[str, frozenset[str]]:
+    """Normalised provider key to the lab slugs written on those cards."""
+    key = models_dir.resolve()
+    cached = _SLUG_INDEX.get(key)
+    if cached is not None:
+        return cached
+    index: dict[str, set[str]] = {}
+    if models_dir.is_dir():
+        for path in sorted(models_dir.glob("*/*.md")):
+            front = _front(path)
+            provider = str(front.get("provider") or path.parent.name)
+            display = str(front.get("provider_display") or "")
+            for name in {
+                attribution.normalise(provider),
+                attribution.normalise(display),
+                attribution.normalise(path.parent.name),
+            }:
+                index.setdefault(name, set()).add(provider)
+    frozen = {name: frozenset(slugs) for name, slugs in index.items()}
+    _SLUG_INDEX[key] = frozen
+    return frozen
+
+
 def _provider_slugs(signal_provider: str, models_dir: Path) -> tuple[str, ...]:
     wanted = attribution.normalise(signal_provider)
-    slugs: set[str] = set()
-    for path in sorted(models_dir.glob("*/*.md")):
-        front = _front(path)
-        provider = str(front.get("provider") or path.parent.name)
-        display = str(front.get("provider_display") or "")
-        if wanted in {
-            attribution.normalise(provider),
-            attribution.normalise(display),
-            attribution.normalise(path.parent.name),
-        }:
-            slugs.add(provider)
-    return tuple(sorted(slugs))
+    return tuple(sorted(_slug_index(models_dir).get(wanted, ())))
 
 
 def _catalogue_matches(
@@ -309,27 +332,38 @@ def registered_huggingface_orgs(root: Path, provider: str) -> frozenset[str]:
     ``kind: huggingface`` rows. The host ``huggingface.co`` is not added to
     the lab host set. A test root with no watch file has none.
     """
-    wanted = attribution.normalise(provider)
+    return _huggingface_org_index(root).get(attribution.normalise(provider), frozenset())
+
+
+def _huggingface_org_index(root: Path) -> dict[str, frozenset[str]]:
+    """Normalised lab name to the Hugging Face orgs registered for it."""
+    key = root.resolve()
+    cached = _HF_ORG_INDEX.get(key)
+    if cached is not None:
+        return cached
+    built: dict[str, set[str]] = {}
     watch = root / "registry" / "release-watch.yaml"
-    if not watch.is_file():
-        return frozenset()
-    loaded = yaml.safe_load(watch.read_text(encoding="utf-8")) or {}
-    sources = loaded.get("sources") if isinstance(loaded, Mapping) else None
-    if not isinstance(sources, list):
-        return frozenset()
-    orgs: set[str] = set()
-    for source in sources:
-        if not isinstance(source, Mapping) or str(source.get("kind") or "") != "huggingface":
-            continue
-        source_provider = str(source.get("provider") or "")
-        if attribution.normalise(source_provider) != wanted:
-            resolved = _provider_slugs(source_provider, root / "models")
-            if len(resolved) != 1 or attribution.normalise(resolved[0]) != wanted:
-                continue
-        org = str(source.get("org") or "").strip().casefold()
-        if org:
-            orgs.add(org)
-    return frozenset(orgs)
+    if watch.is_file():
+        loaded = yaml.safe_load(watch.read_text(encoding="utf-8")) or {}
+        sources = loaded.get("sources") if isinstance(loaded, Mapping) else None
+        if isinstance(sources, list):
+            slugs = _slug_index(root / "models")
+            for source in sources:
+                if not isinstance(source, Mapping) or str(source.get("kind") or "") != "huggingface":
+                    continue
+                org = str(source.get("org") or "").strip().casefold()
+                if not org:
+                    continue
+                source_provider = str(source.get("provider") or "")
+                names = {attribution.normalise(source_provider)}
+                resolved = slugs.get(attribution.normalise(source_provider), frozenset())
+                if len(resolved) == 1:
+                    names.add(attribution.normalise(next(iter(resolved))))
+                for name in names:
+                    built.setdefault(name, set()).add(org)
+    frozen = {name: frozenset(orgs) for name, orgs in built.items()}
+    _HF_ORG_INDEX[key] = frozen
+    return frozen
 
 
 def _signal_hf_orgs(root: Path, signal, resolution: Resolution) -> frozenset[str]:
