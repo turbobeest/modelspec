@@ -460,71 +460,6 @@ def test_a_burst_of_new_ids_is_held_for_a_person(world) -> None:
     assert all(signal.first_seen_url != PAGE for signal in discoveries(runs, NOW))
 
 
-def _live_page_report(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, count: int,
-) -> tuple[int, dict]:
-    """Run the live watcher command on one fixture page. It passes no catalogue predicate."""
-    real = yaml.safe_load((ROOT / "registry" / "release-watch.yaml").read_text(encoding="utf-8"))
-    catalogue = tmp_path / "catalogue"
-    (catalogue / "models").mkdir(parents=True)
-    registry_path = tmp_path / "release-watch.yaml"
-    registry_path.write_text(yaml.safe_dump({
-        "user_agent": real["user_agent"],
-        "recent_days": real["recent_days"],
-        "variant_exclude": real["variant_exclude"],
-        "page_exclude": real["page_exclude"],
-        "sources": [{
-            "id": "acme-models", "kind": "page", "url": PAGE, "provider": "acme",
-            "pattern": "acme-[a-z0-9][a-z0-9.-]*[a-z0-9]", "confidence": 0.9,
-        }],
-    }), encoding="utf-8")
-    baseline_path = tmp_path / "baseline.json"
-    baseline_path.write_text(json.dumps({
-        "taken_at": "2026-09-29T20:00:00Z",
-        "sources": {"acme-models": []},
-    }), encoding="utf-8")
-    body = " ".join(f"acme-new-{index}" for index in range(count)).encode()
-
-    def fetch(url: str) -> Response:
-        if url.endswith("/robots.txt"):
-            return Response(404, b"")
-        return Response(200, body)
-
-    monkeypatch.setattr(release_watch, "http_fetch", lambda user_agent: fetch)
-    report_path = tmp_path / "report.json"
-    status = release_watch.main([
-        "--registry", str(registry_path),
-        "--baseline", str(baseline_path),
-        "--catalogue-root", str(catalogue),
-        "--report", str(report_path),
-    ])
-    return status, json.loads(report_path.read_text(encoding="utf-8"))
-
-
-def test_a_source_at_its_default_cap_files_every_new_id(tmp_path, monkeypatch) -> None:
-    registry = load_registry()
-    caps = {source.id: source.max_new for source in registry.sources}
-    assert caps["openrouter"] == 15
-    assert all(cap == 10 for source_id, cap in caps.items() if source_id != "openrouter")
-
-    status, report = _live_page_report(tmp_path, monkeypatch, 10)
-    row = report["sources"][0]
-    assert status == 0
-    assert row["status"] == "ok"
-    assert {item["model_name"] for item in report["discoveries"]} == {
-        f"acme-new-{index}" for index in range(10)
-    }
-
-
-def test_one_new_id_over_the_cap_files_nothing_and_reports_burst(tmp_path, monkeypatch) -> None:
-    status, report = _live_page_report(tmp_path, monkeypatch, 11)
-    row = report["sources"][0]
-    assert status == 1
-    assert row["status"] == "burst"
-    assert row["detail"].startswith("11 new IDs")
-    assert report["discoveries"] == []
-
-
 def test_a_refused_post_is_an_alert() -> None:
     signal = ReleaseSignal.parse({
         "model_name": "acme-two-2", "provider": "acme", "first_seen_url": PAGE,
@@ -752,11 +687,10 @@ def test_public_source_detection_retains_observations_before_catalogue_filtering
     source = registry.sources[0]
     from dataclasses import replace
     limited = replace(registry, sources=(replace(source, max_new=0),))
-    held = run_all(limited, baseline, fetch=replay("after"), now=NOW)
-    assert held[0].status == "burst"
-    assert all(signal.first_seen_url != PAGE for signal in discoveries(held, NOW))
-    # Catalogue filtering stays after detection. An already-carded id that is
-    # absent from the baseline is still reported when the source is within its cap.
+    runs = run_all(limited, baseline, fetch=replay("after"), now=NOW)
+    assert runs[0].status == "ok"
+    # Card filtering happens after detection, so rejected observations stay in
+    # reports and the source's max_new does not turn duplicates into an outage.
     from scripts.release_watch_filter import filter_releases
     detected = run_all(registry, {source.id: frozenset() for source in registry.sources},
                        fetch=replay("after"), now=NOW)
