@@ -9,10 +9,12 @@ A score-only Arena rewrite, with the matched reading left uncopied, is refused b
 After the writer, the guard, the whole-board cap, the sentence retell, and the verifier dry run:
 
 ```sh
-env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
 ```
 
-Exit 0. 157 passed in 8.61s. Serial, no network.
+Exit 0. 187 passed in 10.15s. Python 3.14.4, pytest 9.1.1. Serial, no network.
+
+The per-class skip split from the earlier proof is withdrawn until the next real run.
 
 ## Boards
 
@@ -94,7 +96,7 @@ Second run, same process and the same cache. Latest true. Fallback null. The gat
 
 No board's planned rewrites exceeded 5000. The largest board planned 140. Every collected board was written whole, and planned rewrites equalled rows rewritten on each board. `arena_rows_left` is 0. `arena_rows_without_board` is 19.
 
-The second run skipped 1094 rows. The class split recorded for that run was mislabelled. The classifier treated the substring `unit` as the class, and the verifier uses that word for any numeric disagreement whose unit string is not byte-equal to the canonical id. The proof output was deleted with the scratch catalogue, so this file does not give a corrected split. The withdrawn labels were configuration 50, no-unique-row 154, not_read 34, unit 364, and verifier 492. The skipped column is the row count for that board. The 34 `not_read` rows sit outside the table. The table sums to 1060.
+The second run skipped 1094 rows. The class split recorded for that run was mislabelled. The classifier treated the substring `unit` as the class, and the verifier uses that word for any numeric disagreement whose unit string is not byte-equal to the canonical id. The proof output was deleted with the scratch catalogue, so this file does not give a corrected split. The withdrawn labels were configuration 50, no-unique-row 154, not_read 34, unit 364, and verifier 492. That per-class skip split is withdrawn until the next real run. The skipped column is the row count for that board. The 34 `not_read` rows sit outside the table. The table sums to 1060.
 
 | Board | Rewritten | Reconfirmed | Left | Skipped |
 |---|---:|---:|---:|---:|
