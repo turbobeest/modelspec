@@ -57,7 +57,8 @@ At 390px the router line wraps inside the hero. `documentElement.scrollWidth` eq
 
 - `python -m pipeline.agent_copy write` rewrote `mcp/src/agent-copy.json`, `docs/agents.md`, `cli/modelspec/agent-bundle.json`, and `api/worker/src/agent_guide.py` (guide version `1-9135abd62c344ffd`). Schema files and `site/holding/index.html` were unchanged.
 - `python api/worker/openapi.py` rewrote the guide-version constants in `api/worker/openapi.yaml`.
-- `python -m qa.contracts` rewrote the `docs/agents.md` and `mcp/src/agent-copy.json` hashes in `qa/fixtures/mcp-tools.json`.
+- `python -m qa.contracts` rewrote the `docs/agents.md` and `mcp/src/agent-copy.json` hashes in `qa/fixtures/mcp-tools.json`. A second run, after `openapi.py`, recorded `api/worker/openapi.yaml` as `ed0423c34e4491cec6dbc16c93768e7d42379cc4efbf956f169328987c776341`.
+- `tests/test_decision_link.py` pins the rendered agent copy at `650e4fbd502cc97191e1cec9118ed94e55721dcb2262cd07e18bb323e63bd00e` and the guide at `dbdbad3f62fae2e1aa4c501765cde583c80e01d4f8fdd33c2d8e5e7b2776e146`. The CLI text hash is unchanged.
 
 `qa/fixtures/ablation-pre682-copy.json` and `qa/fixtures/ablation-metadata.json` each had the old sentence once. Both now carry the revised sentence, and the rest of each fixture is unchanged, so the old tail does not remain outside history and evidence. The ablation convergence tests passed.
 
