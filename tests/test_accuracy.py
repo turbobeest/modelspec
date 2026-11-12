@@ -1249,6 +1249,34 @@ def test_a_plain_http_source_403_is_still_unreachable(tmp_path: Path) -> None:
     assert queue.pending() == ([], [])
 
 
+def test_a_200_the_cache_cannot_retain_stays_unreachable(tmp_path: Path) -> None:
+    """A text source that answers 200 with a PDF stores nothing. Flag off."""
+    plain = _text_source("plain", "http")
+    claim = _sourced("lab/pdf#context", "plain")
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"plain": plain},
+        [claim],
+        {
+            "https://example.test/plain": FetchResult(
+                "ok", 200, body=b"%PDF-1.4 not retained", content_type="application/pdf",
+            ),
+        },
+    )
+
+    assert unread[("fact", "lab/pdf#context")] == "source_changed"
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "unreachable"
+    assert result.details[0]["reason"] == "unreachable:plain#table"
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0,
+                             "public_image_lag": 0}
+    assert queue.recrawl_requests() == [(claim.target, "unreachable")]
+    assert log.latest()[("fact", "lab/pdf#context")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+    assert not (tmp_path / "copies" / "fetch-failures").exists()
+
+
 def test_a_403_on_a_rendered_source_beside_a_failed_http_source_stays_unreachable(
     tmp_path: Path,
 ) -> None:

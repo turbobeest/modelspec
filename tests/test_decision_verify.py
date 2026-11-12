@@ -1642,6 +1642,271 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
     assert log.path.read_text() == before
 
 
+def test_a_fetch_that_failed_in_this_run_is_unreachable_and_logged(store, log) -> None:
+    from decision.sources import FetchResult, recheck
+
+    source = Source(
+        id="seeded-missing",
+        url="https://gone.example.test/page",
+        normaliser="html-default",
+        cited_regions=[CitedRegion(id="results", locator={"kind": "table", "value": "0"})],
+    )
+
+    class _Down:
+        def fetch(self, url, **kwargs):
+            return FetchResult("unreachable", 503, error="HTTP 503")
+
+    fetched = recheck([source], {}, [], fetcher=_Down(), store=store, now=NOW)
+    state = fetched.states["seeded-missing"]
+    assert state.consecutive_failures == 1
+    assert state.quarantined is False
+    assert not (store.root / "fetch-failures").exists()
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-copy-missing")
+    src = entry["source"]
+    claim = verify.Claim(
+        target=TargetRef(kind=entry.get("kind", "evidence"), id=entry["id"]),
+        subject=entry["subject"],
+        names=tuple(entry["names"]),
+        field=entry["field"],
+        label=entry.get("label"),
+        value=entry["value"],
+        unit=entry.get("unit"),
+        conditions=entry.get("conditions", {}),
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id=src["id"], snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=src["regions"]),),
+    )
+    queue = verify.Queue(log.directory)
+    queue.file(claim, at=NOW)
+    regions = verify.StoredRegions(store, {source.id: source})
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [
+        ("sol-copy-missing", "unreachable")]
+    assert report.results[0].reason == "unreachable:seeded-missing#results"
+    assert report.results[0].verification is not None
+    assert log.latest()[("evidence", "sol-copy-missing")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+
+
+def _unretained(entry: dict) -> verify.Claim:
+    src = entry["source"]
+    return verify.Claim(
+        target=TargetRef(kind=entry.get("kind", "evidence"), id=entry["id"]),
+        subject=entry["subject"],
+        names=tuple(entry["names"]),
+        field=entry["field"],
+        label=entry.get("label"),
+        value=entry["value"],
+        unit=entry.get("unit"),
+        conditions=entry.get("conditions", {}),
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id=src["id"], snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=src["regions"]),),
+    )
+
+
+def _queue_unretained(log, *wanted: str) -> verify.Queue:
+    queue = verify.Queue(log.directory)
+    for entry in SPEC["claims"]:
+        if entry["id"] in wanted:
+            queue.file(_unretained(entry), at=NOW)
+    return queue
+
+
+def test_an_empty_cache_is_unreachable_and_logged(store, log) -> None:
+    regions = verify.StoredRegions(store, verify.load_sources(FIXTURES / "sources.yaml"))
+    queue = _queue_unretained(log, "sol-default", "sol-context")
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [
+        ("sol-default", "unreachable"),
+        ("sol-context", "unreachable"),
+    ]
+    assert [r.reason for r in report.results] == [
+        "unreachable:seeded-leaderboard#results",
+        "unreachable:seeded-model-page#specs",
+    ]
+    assert all(r.verification is not None for r in report.results)
+    assert [record.outcome for record in log.records()] == ["unreachable", "unreachable"]
+    assert report.counts["unreachable"] == 2
+    assert report.counts["skipped_no_copy"] == 0
+    assert queue.pending() == ([], [])
+
+
+def test_an_empty_cache_skips_claims_when_asked_and_leaves_them_queued(store, log) -> None:
+    regions = verify.StoredRegions(
+        store, verify.load_sources(FIXTURES / "sources.yaml"), skip_absent_copies=True,
+    )
+    queue = _queue_unretained(log, "sol-default", "sol-context")
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome, r.verification) for r in report.results] == [
+        ("sol-default", "skipped", None),
+        ("sol-context", "skipped", None),
+    ]
+    assert [r.reason for r in report.results] == [
+        "no retained copy in this cache: seeded-leaderboard#results",
+        "no retained copy in this cache: seeded-model-page#specs",
+    ]
+    assert log.records() == []
+    assert report.counts["skipped"] == 2
+    assert report.counts["skipped_no_copy"] == 2
+    pending, unknown = queue.pending()
+    assert unknown == []
+    assert [claim.target.id for claim in pending] == ["sol-default", "sol-context"]
+
+
+def test_opt_in_keeps_a_corrupt_copy_unreachable_and_logged(store, log) -> None:
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-default")
+    claim = _claim(entry, store)
+    store.path(claim.sources[0].snapshot_ref).write_bytes(b"not the retained copy")
+    regions = verify.StoredRegions(
+        store, verify.load_sources(FIXTURES / "sources.yaml"), skip_absent_copies=True,
+    )
+    queue = verify.Queue(log.directory)
+    queue.file(claim, at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [("sol-default", "unreachable")]
+    assert report.results[0].verification is not None
+    assert report.results[0].reason == "unreachable:seeded-leaderboard#results"
+    assert log.latest()[("evidence", "sol-default")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+
+
+def test_opt_in_keeps_an_unregistered_source_and_a_bad_citation_fail_closed(
+    store, log,
+) -> None:
+    sources = verify.load_sources(FIXTURES / "sources.yaml")
+    regions = verify.StoredRegions(store, sources, skip_absent_copies=True)
+    missing = "sha256:" + "0" * 64
+    slot = store.path(missing)
+    slot.parent.mkdir(parents=True, exist_ok=True)
+    slot.with_suffix(".citation.json").write_text("{", encoding="utf-8")
+
+    def claim_for(source_id: str, region: str, ref: str) -> verify.Claim:
+        entry = next(row for row in SPEC["claims"] if row["id"] == "sol-default")
+        return verify.Claim(
+            target=TargetRef(kind="evidence", id=f"{source_id}-{region}"),
+            subject=entry["subject"],
+            names=tuple(entry["names"]),
+            field=entry["field"],
+            label=entry.get("label"),
+            value=entry["value"],
+            unit=entry.get("unit"),
+            conditions=entry.get("conditions", {}),
+            collector=COLLECTOR,
+            sources=(SourceRef(source_id=source_id, snapshot_ref=ref, cited_regions=[region]),),
+        )
+
+    queue = verify.Queue(log.directory)
+    filed = [
+        claim_for("not-a-source", "results", "sha256:" + "ab" * 32),
+        claim_for("seeded-leaderboard", "no-such-region", "sha256:" + "cd" * 32),
+        claim_for("seeded-leaderboard", "results", missing),
+    ]
+    for claim in filed:
+        queue.file(claim, at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    # An unreadable citation is refused by the cite-only door before the
+    # absent-copy rule. The opt-in must not reclassify it as a missing copy.
+    assert [(r.target.id, r.outcome) for r in report.results] == [
+        ("not-a-source-results", "unreachable"),
+        ("seeded-leaderboard-no-such-region", "unreachable"),
+        ("seeded-leaderboard-results", "skipped"),
+    ]
+    assert [r.reason for r in report.results] == [
+        "unreachable:not-a-source#results",
+        "unreachable:seeded-leaderboard#no-such-region",
+        "malformed source URL or citation record; not verified",
+    ]
+    assert report.results[2].verification is None
+    assert "no retained copy" not in (report.results[2].reason or "")
+    closed = verify.StoredRegions(store, sources)
+    same = verify.verify(filed[2], closed, verify.deterministic_extractors(), today=TODAY)
+    assert (same.outcome, same.reason, same.verification) == (
+        report.results[2].outcome, report.results[2].reason, None)
+    assert [r.verification is not None for r in report.results] == [True, True, False]
+    assert len(log.records()) == 2
+
+
+def test_an_evidence_reading_with_no_sources_stays_unreachable(store) -> None:
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-default")
+    claim = verify.Claim(
+        target=TargetRef(kind="evidence", id="no-sources"),
+        subject=entry["subject"],
+        names=tuple(entry["names"]),
+        field=entry["field"],
+        value={"score": entry["value"]},
+        unit=entry.get("unit"),
+        collector=COLLECTOR,
+        sources=(SourceRef(
+            source_id="seeded-leaderboard",
+            snapshot_ref="sha256:" + "a" * 64,
+            cited_regions=["results"],
+        ),),
+    )
+    object.__setattr__(claim, "sources", ())
+    regions = verify.StoredRegions(store, verify.load_sources(FIXTURES / "sources.yaml"))
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "unreachable"
+    assert result.verification is not None
+    assert result.reason == ""
+
+
+def test_a_stored_regions_subclass_with_an_all_zero_ref_stays_unreachable(store) -> None:
+    """A failed rendered re-read pins the fetch to an all-zero ref. Flag off."""
+    missing = "sha256:" + "0" * 64
+    source = Source(
+        id="page",
+        url="https://example.test/page",
+        normaliser="html-default",
+        cited_regions=[CitedRegion(id="body", locator={"kind": "page", "value": ""})],
+    )
+    sources = {source.id: source}
+
+    class CurrentSourceRegions(verify.StoredRegions):
+        def __init__(self, source_id: str) -> None:
+            super().__init__(store, sources)
+            self.current = source_id
+
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+            if source_id != self.current:
+                return None
+            return super().text(source_id, copy_ref, region_id)
+
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/alpha#model.context_window"),
+        subject="lab/alpha",
+        names=("Alpha",),
+        field="model.context_window",
+        value=128000,
+        unit="tokens",
+        collector=VerificationActor(agent="collector", model_family="grok", method="read"),
+        sources=(SourceRef(source_id="page", snapshot_ref=missing, cited_regions=["body"]),),
+    )
+    result = verify.verify(
+        claim, CurrentSourceRegions("page"), verify.deterministic_extractors(), today=TODAY,
+    )
+    assert result.outcome == "unreachable"
+    assert result.verification is not None
+    assert result.reason == "unreachable:page#body"
+    assert CurrentSourceRegions("page").skip_absent_copies is False
+
+
+def test_a_retained_copy_that_matches_is_verified(store, regions, log) -> None:
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-default")
+    queue = verify.Queue(log.directory)
+    queue.file(_claim(entry, store), at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [("sol-default", "verified")]
+    assert log.latest()[("evidence", "sol-default")].outcome == "verified"
+    assert queue.pending() == ([], [])
+
+
 # --- two keys ----------------------------------------------------------------------------------
 
 
@@ -2533,6 +2798,34 @@ def _repo(tmp_path, store) -> Path:
     return root
 
 
+def test_the_verify_flag_is_off_unless_the_job_asks(tmp_path, store, monkeypatch) -> None:
+    from cli.modelspec import legacy as cli_mod
+
+    seen = []
+    real = verify.StoredRegions
+
+    class RecordingRegions(real):
+        def __init__(self, *args, **kwargs):
+            seen.append(kwargs.get("skip_absent_copies", False))
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(verify, "StoredRegions", RecordingRegions)
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
+    root = _repo(tmp_path, store)
+    help_text = CliRunner().invoke(
+        cli_mod.app, ["verify", "--help"],
+        env={"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "160"})
+    assert help_text.exit_code == 0, help_text.output
+    help_plain = " ".join(help_text.output.replace("│", " ").split())
+    assert "cache that holds only the copies it fetched itself" in help_plain
+    plain = CliRunner().invoke(cli_mod.app, ["verify", "--root", str(root), "--json"])
+    assert plain.exit_code == 0, plain.output
+    opted = CliRunner().invoke(
+        cli_mod.app, ["verify", "--root", str(root), "--skip-absent-copies", "--json"])
+    assert opted.exit_code == 0, opted.output
+    assert seen == [False, True]
+
+
 def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monkeypatch) -> None:
     from cli.modelspec import legacy as cli_mod
 
@@ -2544,6 +2837,8 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
               for k in ("verified", "mismatch", "unreachable", "skipped")}
     for outcome, n in counts.items():
         assert f"{outcome}: {n}" in result.output
+    assert "no copy:" in result.output
+    assert "skipped_no_copy" not in result.output
     assert "sol-max-filed-as-default" in result.output
     assert (root / "verification" / "log.jsonl").is_file()
 
@@ -2552,7 +2847,8 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
     assert again.exit_code == 0, again.output
     payload = json.loads(again.output)
     assert payload["changed_only"] is True
-    assert payload["counts"] == {"verified": 0, "mismatch": 0, "unreachable": 0, "skipped": 0}
+    assert payload["counts"] == {
+        "verified": 0, "mismatch": 0, "unreachable": 0, "skipped": 0, "skipped_no_copy": 0}
 
 
 def test_cli_claude_reader_uses_an_injected_extractor(tmp_path, store, monkeypatch) -> None:

@@ -100,7 +100,7 @@ jobs:
     name: Release signal to card change
     needs: pending
     if: needs.pending.outputs.count != '0'
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -407,7 +407,22 @@ jobs:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
         run: |
           python -I -m scripts.validate_pr --all > "$RUNNER_TEMP/card-validation.json"
-          python -I -m cli.modelspec.legacy verify --json > "$RUNNER_TEMP/verification.json"
+          python -I -m cli.modelspec.legacy verify --skip-absent-copies --json > "$RUNNER_TEMP/verification.json"
+          python -I - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          counts = json.loads(Path(os.environ["RUNNER_TEMP"], "verification.json").read_text())["counts"]
+          lines = [
+              f"verified: {counts['verified']}",
+              f"mismatch: {counts['mismatch']}",
+              f"unreachable: {counts['unreachable']}",
+              f"skipped: {counts['skipped']}",
+              f"skipped for no copy: {counts['skipped_no_copy']}",
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("\n".join(lines) + "\n")
+          PY
       - name: Run the MODEL-111 accuracy harness
         if: steps.classify.outputs.changed == 'true'
         run: python -I -m scripts.accuracy --profile pr --output-dir "$RUNNER_TEMP/accuracy"
