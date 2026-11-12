@@ -293,6 +293,7 @@
   "tests/test_release_blog.py": 1.473,
   "tests/test_release_blog_platforms.py": 171.139,
   "tests/test_release_pipeline.py": 8.516,
+  "tests/test_release_scope.py": 0.003,
   "tests/test_release_signal_prices.py": 2.262,
   "tests/test_release_signals.py": 0.247,
   "tests/test_release_watch.py": 26.548,

@@ -42,6 +42,14 @@ class IdentityUncertainError(ValueError):
     """The gathered sources do not establish one model and lab identity."""
 
 
+class ModelsDevNotListed(Exception):
+    """models.dev has no provider row, or no model row, for this signal."""
+
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
+        super().__init__(f"models.dev not_listed: {kind}")
+
+
 class RequiredSourceError(Exception):
     """A mandatory source body cannot be read. The pending signal stays queued.
 
@@ -85,6 +93,8 @@ class DraftResult:
     offering_path: Path | None = None
     price_gaps: tuple[dict, ...] = ()
     price_sources: tuple[dict, ...] = ()
+    models_dev: str = ""
+    primary_host: str = ""
 
 
 @dataclass(frozen=True)
@@ -97,6 +107,7 @@ class GatherResult:
     supporting_urls: tuple[str, ...] = ()
     evidence_urls: tuple[str, ...] = ()
     gather_failures: tuple[str, ...] = ()
+    models_dev: str = ""
 
 
 @dataclass(frozen=True)
@@ -146,6 +157,41 @@ def _provider_slugs(signal_provider: str, models_dir: Path) -> tuple[str, ...]:
     return tuple(sorted(slugs))
 
 
+def _catalogue_matches(
+    signal_provider: str, provider: str, wanted: str, root: Path,
+) -> list[str]:
+    """Card ids whose exact alias normalises to `wanted`."""
+    matches: list[str] = []
+    known_path = root / "scripts" / "models_dev_known_identities.yaml"
+    if known_path.is_file():
+        known = load_known_identities(known_path)
+        for listed, canonical in known.items():
+            listed_provider, separator, listed_name = listed.partition("/")
+            canonical_path = (root / "models" / canonical).with_suffix(".md")
+            if (
+                separator
+                and attribution.normalise(listed_provider) in {
+                    attribution.normalise(provider),
+                    attribution.normalise(signal_provider),
+                }
+                and attribution.normalise(listed_name) == wanted
+                and canonical_path.is_file()
+            ):
+                matches.append(canonical)
+    for path in sorted((root / "models" / provider).glob("*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        aliases = {
+            attribution.normalise(str(front.get("display_name") or "")),
+            attribution.normalise(str(front.get("version") or "")),
+            attribution.normalise(model_id.rsplit("/", 1)[-1]),
+            attribution.normalise(path.stem),
+        }
+        if wanted in aliases:
+            matches.append(model_id)
+    return sorted(set(matches))
+
+
 def resolve_signal(signal, root: Path) -> Resolution:
     """Resolve only exact aliases. Ambiguity stays explicit."""
     models_dir = root / "models"
@@ -157,35 +203,7 @@ def resolve_signal(signal, root: Path) -> Resolution:
         )
     provider = providers[0]
     wanted = attribution.normalise(signal.model_name)
-    matches: list[str] = []
-    known_path = root / "scripts" / "models_dev_known_identities.yaml"
-    if known_path.is_file():
-        known = load_known_identities(known_path)
-        for listed, canonical in known.items():
-            listed_provider, separator, listed_name = listed.partition("/")
-            canonical_path = root / "models" / canonical.replace("/", "/", 1)
-            canonical_path = canonical_path.with_suffix(".md")
-            if (
-                separator
-                and attribution.normalise(listed_provider) in {
-                    attribution.normalise(provider), attribution.normalise(signal.provider)
-                }
-                and attribution.normalise(listed_name) == wanted
-                and canonical_path.is_file()
-            ):
-                matches.append(canonical)
-    for path in sorted((models_dir / provider).glob("*.md")):
-        front = _front(path)
-        model_id = str(front.get("model_id") or "")
-        aliases = {
-            attribution.normalise(str(front.get("display_name") or "")),
-            attribution.normalise(str(front.get("version") or "")),
-            attribution.normalise(model_id.rsplit("/", 1)[-1]),
-            attribution.normalise(path.stem),
-        }
-        if wanted in aliases:
-            matches.append(model_id)
-    matches = sorted(set(matches))
+    matches = _catalogue_matches(signal.provider, provider, wanted, root)
     if len(matches) == 1:
         return Resolution("existing", matches[0], tuple(matches), "exact catalogue alias")
     if len(matches) > 1:
@@ -205,6 +223,92 @@ def _absolute_https_url(value: object) -> str | None:
     if parsed.scheme != "https" or not parsed.hostname:
         return None
     return value
+
+
+def _page_host(url: str) -> str:
+    """Host of an https URL, without a leading www. Empty when the URL is not https."""
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return ""
+    if parsed.scheme != "https" or not parsed.hostname:
+        return ""
+    return parsed.hostname.casefold().removeprefix("www.")
+
+
+def _host_is(host: str, names: frozenset[str]) -> bool:
+    """Exact host, or a subdomain when the registry entry is written `*.parent`."""
+    for name in names:
+        if name.startswith("*."):
+            parent = name[2:]
+            if parent and host.endswith("." + parent):
+                return True
+        elif host == name:
+            return True
+    return False
+
+
+def _signal_lab_hosts(root: Path, signal, resolution: Resolution) -> frozenset[str]:
+    """Hosts for the signal's provider text and for the resolved catalogue lab."""
+    hosts = set(registered_lab_hosts(root, signal.provider))
+    model_id = resolution.model_id or ""
+    lab, separator, _rest = model_id.partition("/")
+    if separator and lab:
+        hosts.update(registered_lab_hosts(root, lab))
+    return frozenset(hosts)
+
+
+def registered_lab_hosts(root: Path, provider: str) -> frozenset[str]:
+    """Hosts registered for this lab in code or in this root's watch file.
+
+    The watch file is read only when ``root/registry/release-watch.yaml`` exists.
+    A test root with no watch file does not inherit the repository watch list.
+    """
+    from scripts.admission_drafter import LAB_HOSTS
+
+    wanted = attribution.normalise(provider)
+    hosts: set[str] = set()
+    for slug, names in LAB_HOSTS.items():
+        if attribution.normalise(slug) != wanted:
+            continue
+        for name in names:
+            host = name.casefold().removeprefix("www.")
+            if host:
+                hosts.add(host)
+    watch = root / "registry" / "release-watch.yaml"
+    if not watch.is_file():
+        return frozenset(hosts)
+    loaded = yaml.safe_load(watch.read_text(encoding="utf-8")) or {}
+    sources = loaded.get("sources") if isinstance(loaded, Mapping) else None
+    if not isinstance(sources, list):
+        return frozenset(hosts)
+    for source in sources:
+        if not isinstance(source, Mapping) or str(source.get("kind") or "") != "page":
+            continue
+        if attribution.normalise(str(source.get("provider") or "")) != wanted:
+            continue
+        host = _page_host(str(source.get("url") or ""))
+        if host:
+            hosts.add(host)
+    return frozenset(hosts)
+
+
+def first_seen_host_class(url: str, lab_hosts: frozenset[str]) -> str:
+    """Classify a first-seen URL. ``lab`` wins over cite-only for a registered lab host."""
+    from decision.retention import cite_only_hosts
+
+    host = _page_host(url)
+    if not host:
+        return "invalid"
+    if any(host == blocked or host.endswith(f".{blocked}") for blocked in SIGNAL_ONLY_HOSTS):
+        return "signal-only"
+    if excluded_sources().url(url):
+        return "excluded"
+    if _host_is(host, lab_hosts):
+        return "lab"
+    if _host_is(host, frozenset(cite_only_hosts())):
+        return "cite-only"
+    return "unregistered"
 
 
 def require_allowed_source(url: str) -> str:
@@ -244,6 +348,8 @@ def _models_dev_listing(
         row_name = attribution.normalise(str(row.get("name", "")))
         if attribution.normalise(str(key)) == wanted_provider or row_name == wanted_provider:
             provider_rows.append((key, row))
+    if len(provider_rows) == 0:
+        raise ModelsDevNotListed("provider")
     if len(provider_rows) != 1:
         raise IdentityUncertainError("models.dev did not identify exactly one provider")
     provider_id, provider_row = provider_rows[0]
@@ -260,6 +366,8 @@ def _models_dev_listing(
             attribution.normalise(str(raw.get("name", ""))),
         }
     ]
+    if len(matches) == 0:
+        raise ModelsDevNotListed("model")
     if len(matches) != 1:
         raise IdentityUncertainError(
             "models.dev did not identify exactly one model listing"
@@ -380,8 +488,20 @@ class _VisibleText(HTMLParser):
             self.parts.append(data)
 
 
+def _contains_name(text: str, name: str) -> bool:
+    """True when the normalised model name is a hyphen-bounded token in the text."""
+    haystack = attribution.normalise(text)
+    needle = attribution.normalise(name)
+    if not needle:
+        return False
+    return re.search(rf"(^|-){re.escape(needle)}(-|$)", haystack) is not None
+
+
 def _primary_identity(
-    page: FetchResult, expected_name: str, expected_provider: str
+    page: FetchResult,
+    expected_name: str,
+    expected_provider: str,
+    lab_hosts: frozenset[str] = frozenset(),
 ) -> tuple[str, str]:
     parser = _JsonLd()
     html = page.body.decode("utf-8", errors="replace")
@@ -429,11 +549,18 @@ def _primary_identity(
                 continue
             if attribution.normalise(name) == normalised_name:
                 publishers.add(attribution.normalise(provider))
-        if publishers != {normalised_provider}:
+        if publishers == {normalised_provider}:
+            return expected_name, ""
+        if publishers:
             raise IdentityUncertainError(
                 "the primary source does not identify the stated lab"
             )
-        return expected_name, ""
+        host = _page_host(page.url)
+        if host and _host_is(host, lab_hosts) and _contains_name(text, expected_name):
+            return expected_name, ""
+        raise IdentityUncertainError(
+            "the primary source does not identify the stated lab"
+        )
     if len(matches) != 1:
         raise IdentityUncertainError(
             "the primary source identifies more than one matching model"
@@ -532,6 +659,71 @@ def _load_required_json(page: FetchResult) -> object:
         raise RequiredSourceError(page.url, f"{type(exc).__name__}: {exc}") from exc
 
 
+def _gather_unlisted(
+    signal,
+    resolution: Resolution,
+    *,
+    root: Path,
+    fetch: Callable[[str], FetchResult],
+    models_dev_url: str,
+    discover_huggingface: bool,
+) -> GatherResult:
+    """Use the signal's own first-seen page when models.dev has no row.
+
+    The page is fetched only when its host is a registered lab host. The final
+    URL after redirects is classified again. Any other host class stays uncertain
+    and is not fetched.
+    """
+    lab_hosts = _signal_lab_hosts(root, signal, resolution)
+    kind = first_seen_host_class(signal.first_seen_url, lab_hosts)
+    if kind != "lab":
+        return GatherResult(Resolution(
+            "uncertain", None, resolution.candidates,
+            f"models.dev not_listed; host class {kind}",
+        ))
+    requested = require_allowed_source(signal.first_seen_url)
+    primary = fetch(requested)
+    final_kind = first_seen_host_class(primary.url, lab_hosts)
+    if final_kind != "lab":
+        return GatherResult(Resolution(
+            "uncertain", None, resolution.candidates,
+            f"models.dev not_listed; host class {final_kind}",
+        ))
+    require_allowed_source(primary.url)
+    try:
+        display_name, release_date = _primary_identity(
+            primary, signal.model_name, signal.provider,
+            lab_hosts=lab_hosts,
+        )
+    except IdentityUncertainError as exc:
+        return GatherResult(Resolution(
+            "uncertain", None, resolution.candidates, str(exc)
+        ))
+    failures: list[str] = []
+    supporting: list[str] = []
+    if discover_huggingface:
+        huggingface_url, failure = _huggingface_repo(
+            fetch=fetch,
+            model_name=display_name,
+            provider=resolution.model_id.split("/", 1)[0] if resolution.model_id else signal.provider,
+        )
+        if failure:
+            failures.append(failure)
+        if huggingface_url:
+            supporting.append(huggingface_url)
+    return GatherResult(
+        resolution=resolution,
+        display_name=display_name,
+        release_date=release_date,
+        provider_id="",
+        primary_url=primary.url,
+        supporting_urls=tuple(supporting),
+        evidence_urls=tuple(dict.fromkeys((primary.url, *supporting))),
+        gather_failures=tuple(failures),
+        models_dev="not_listed",
+    )
+
+
 def gather_signal(
     signal,
     *,
@@ -562,6 +754,16 @@ def gather_signal(
                 f"signal names lab {signal.provider!r}, but the attribution cascade names "
                 f"{attributed.creator!r}; identity is uncertain"
             )
+    except ModelsDevNotListed as exc:
+        # An existing card keeps its identity. A new signal may use its own lab page.
+        if resolution.status == "existing":
+            return GatherResult(Resolution(
+                "uncertain", None, resolution.candidates, str(exc)
+            ))
+        return _gather_unlisted(
+            signal, resolution, root=root, fetch=fetch,
+            models_dev_url=models_dev_url, discover_huggingface=discover_huggingface,
+        )
     except IdentityUncertainError as exc:
         # RequiredSourceError is not caught here, so a broken source stays pending.
         return GatherResult(Resolution(
@@ -589,7 +791,8 @@ def gather_signal(
     primary = _fetch_allowed(fetch, primary_url)
     try:
         display_name, release_date = _primary_identity(
-            primary, signal.model_name, signal.provider
+            primary, signal.model_name, signal.provider,
+            lab_hosts=_signal_lab_hosts(root, signal, resolution),
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
@@ -724,6 +927,16 @@ def draft_signal(
     supporting_urls = list(gathered.supporting_urls)
     huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
     api_docs_url = next((url for url in supporting_urls if url != huggingface_url), primary_url)
+    sources = {
+        "models_dev_url": (
+            f"https://models.dev/{gathered.provider_id}" if gathered.provider_id else ""
+        ),
+        "provider_docs_url": api_docs_url,
+        "huggingface_url": huggingface_url,
+        "last_scraped_pricing": "",
+    }
+    if gathered.models_dev != "not_listed":
+        sources["last_scraped_models_dev"] = accessed
     front = {
         "model_id": resolution.model_id,
         "display_name": display_name,
@@ -732,13 +945,7 @@ def draft_signal(
         "release_date": release_date,
         "cost": {},
         "benchmarks": {"scores": {}, "evidence": []},
-        "sources": {
-            "models_dev_url": f"https://models.dev/{gathered.provider_id}",
-            "provider_docs_url": api_docs_url,
-            "huggingface_url": huggingface_url,
-            "last_scraped_models_dev": accessed,
-            "last_scraped_pricing": "",
-        },
+        "sources": sources,
         "card_schema_version": "3.0",
         "card_author": "release-signal-pipeline",
         "card_created": accessed,
@@ -783,6 +990,8 @@ def draft_signal(
         root / offering.offering_path if offering.offering_path else None,
         tuple(price_report["gaps"]),
         tuple(price_report["sources"]),
+        gathered.models_dev,
+        _page_host(primary_url) if gathered.models_dev == "not_listed" else "",
     )
 
 

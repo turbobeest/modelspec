@@ -19,6 +19,7 @@ import httpx
 
 from decision.sources import get_source_response
 from release_signals.contract import ReleaseSignal
+from release_signals.scope import out_of_scope_reason
 from release_signals.pipeline import (
     FetchResult,
     RequiredSourceError,
@@ -128,6 +129,28 @@ def process(
             "pr_url": closed_unmerged_pr,
             "reason": "the original new-model PR was closed without merge",
         }
+    elif signal.signal_id.startswith("test-"):
+        result = {
+            "status": "ignored",
+            "signal_id": signal.signal_id,
+            "model_id": None,
+            "candidates": [],
+            "recheck_day": recheck.get("day") if recheck else None,
+            "recheck_due": recheck.get("due") if recheck else None,
+            "pr_url": recheck.get("pr_url") if recheck else None,
+            "reason": "test signal",
+        }
+    elif reason := out_of_scope_reason(signal.provider, signal.model_name):
+        result = {
+            "status": "out_of_scope",
+            "signal_id": signal.signal_id,
+            "model_id": None,
+            "candidates": [],
+            "recheck_day": recheck.get("day") if recheck else None,
+            "recheck_due": recheck.get("due") if recheck else None,
+            "pr_url": recheck.get("pr_url") if recheck else None,
+            "reason": reason,
+        }
     else:
         resolution = resolve_signal(signal, root)
         result = {
@@ -184,6 +207,9 @@ def process(
             )
             result["price_gaps"] = list(drafted.price_gaps)
             result["price_sources"] = list(drafted.price_sources)
+            if drafted.models_dev == "not_listed":
+                result["models_dev"] = drafted.models_dev
+                result["primary_host"] = drafted.primary_host
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,
@@ -208,22 +234,17 @@ def process(
                 fetch=_fetch,
                 discover_huggingface=True,
             )
-            if gathered.resolution.status == "uncertain":
-                result.update({
-                    "status": "uncertain",
-                    "model_id": None,
-                    "candidates": list(gathered.resolution.candidates),
-                    "reason": gathered.resolution.reason,
-                })
-                result_path.write_text(
-                    json.dumps(result, indent=2) + "\n", encoding="utf-8"
-                )
-                return result
-            result["sources"] = list(gathered.evidence_urls)
-            result["gather_failures"] = list(gathered.gather_failures)
-            result["card"] = str(update_existing_card(
-                gathered, root=root, read_date=date.today()
-            ).relative_to(root))
+            if gathered.resolution.status != "existing":
+                # The catalogue match stands. A later source that cannot
+                # restate the lab is logged, and the score refresh still runs.
+                result["identity_error"] = gathered.resolution.reason
+                result["gather_failures"] = list(gathered.gather_failures)
+            else:
+                result["sources"] = list(gathered.evidence_urls)
+                result["gather_failures"] = list(gathered.gather_failures)
+                result["card"] = str(update_existing_card(
+                    gathered, root=root, read_date=date.today()
+                ).relative_to(root))
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,

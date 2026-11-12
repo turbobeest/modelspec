@@ -22,10 +22,13 @@ from release_signals.pipeline import (
     DraftResult,
     FetchResult,
     FirecrawlBudget,
+    IdentityUncertainError,
+    ModelsDevNotListed,
     RequiredSourceError,
     _JSON_LD_MAX_DEPTH,
     _JsonLd,
     _models_dev_listing,
+    _primary_identity,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -466,8 +469,8 @@ def test_ambiguous_lab_and_model_relationship_is_flagged_for_identity_review(
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
     )
-    assert "if: steps.classify.outputs.resolution == 'uncertain'" in workflow
-    assert "release signal needs identity review" in workflow
+    assert "release signals needing identity review" in workflow
+    assert workflow.count("gh issue create") == 1
 
 
 def test_models_dev_prices_do_not_change_existing_card_prices(
@@ -1495,6 +1498,391 @@ def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
     asyncio.run(scenario())
 
 
+def _run_pending_matrix(
+    tmp_path: Path, pending: dict, limit: str, run: str = "0",
+) -> dict[str, str]:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(item for item in workflow["jobs"]["pending"]["steps"] if item.get("id") == "matrix")
+    (tmp_path / "pending.json").write_text(json.dumps(pending), encoding="utf-8")
+    output = tmp_path / "github-output"
+    result = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        env=os.environ | {
+            "RUNNER_TEMP": str(tmp_path),
+            "GITHUB_OUTPUT": str(output),
+            "MAX_RELEASE_SIGNAL_WORK_ITEMS": limit,
+            "GITHUB_RUN_NUMBER": run,
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    parsed: dict[str, str] = {}
+    for line in output.read_text(encoding="utf-8").splitlines():
+        key, value = line.split("=", 1)
+        parsed[key] = value
+    return parsed
+
+
+def test_each_run_keeps_at_most_ten_work_items_signals_before_rechecks(tmp_path: Path) -> None:
+    workflow_text = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
+        encoding="utf-8"
+    )
+    assert 'MAX_RELEASE_SIGNAL_WORK_ITEMS: "10"' in workflow_text
+    workflow = yaml.safe_load(workflow_text)
+    matrix = next(item for item in workflow["jobs"]["pending"]["steps"] if item.get("id") == "matrix")
+    assert "[:10]" not in matrix["run"]
+    assert '--argjson limit "$MAX_RELEASE_SIGNAL_WORK_ITEMS"' in matrix["run"]
+    signals = [
+        {"signal_id": f"s{index:02d}", "timestamp": f"2026-01-{index:02d}T00:00:00Z"}
+        for index in (3, 1, 2, 12, 4, 5, 6, 7, 8, 9, 10, 11)
+    ]
+    rechecks = [
+        {
+            "day": 7, "due": "2026-02-02", "pr_url": "https://github.com/example/repo/pull/2",
+            "signal": {"signal_id": "r-late", "timestamp": "2026-01-02T00:00:00Z"},
+        },
+        {
+            "day": 1, "due": "2026-02-01", "pr_url": None,
+            "signal": {"signal_id": "r-early", "timestamp": "2026-01-09T00:00:00Z"},
+        },
+        {
+            "day": 30, "due": "2026-02-01",
+            "signal": {"signal_id": "r-tie", "timestamp": "2026-01-01T00:00:00Z"},
+        },
+    ]
+    capped = _run_pending_matrix(tmp_path, {"signals": signals, "rechecks": rechecks}, "2")
+    assert capped["count"] == "2"
+    capped_work = json.loads(capped["matrix"])["work"]
+    assert [item["signal_id"] for item in capped_work] == ["s01", "r-tie"]
+    assert [item["recheck_day"] for item in capped_work] == [0, 30]
+    assert [item["pr_url"] for item in capped_work] == [None, None]
+
+    selected = _run_pending_matrix(
+        tmp_path, {"signals": signals[:2], "rechecks": rechecks}, "10",
+    )
+    # signals[:2] is the shuffled prefix (s03, s01), not the two oldest.
+    work = json.loads(selected["matrix"])["work"]
+    assert selected["count"] == "5"
+    assert [item["signal_id"] for item in work] == ["s01", "s03", "r-tie", "r-early", "r-late"]
+    assert [item["recheck_day"] for item in work] == [0, 0, 30, 1, 7]
+    assert work[3]["pr_url"] is None
+    assert work[4]["pr_url"] == "https://github.com/example/repo/pull/2"
+
+    review = workflow["jobs"]["review"]
+    assert review["name"] == "Open one identity-review issue"
+    assert review["needs"] == ["pending", "process"]
+    assert "needs.pending.outputs.count != '0'" in review["if"]
+    review_runs = "\n".join(step.get("run") or "" for step in review["steps"])
+    assert "python" not in review_runs
+    assert "release signals needing identity review" in review_runs
+    assert 'select(.status == "uncertain")' in review_runs
+    assert workflow_text.count("gh issue create") == 1
+    process_steps = workflow["jobs"]["process"]["steps"]
+    uploaded = [
+        step for step in process_steps
+        if step.get("uses") == "actions/upload-artifact@v4"
+        and step.get("with", {}).get("path") == "${{ runner.temp }}/result.json"
+    ]
+    assert len(uploaded) == 1
+    assert uploaded[0]["if"] == "always()"
+    assert uploaded[0]["with"]["if-no-files-found"] == "ignore"
+    closed = next(step for step in process_steps if step.get("id") == "closed_pr")
+    assert "gh issue create" not in (closed.get("run") or "")
+    assert "Flag a new-model PR closed without merge" == closed["name"]
+    ack = next(step for step in process_steps if "Acknowledge the signal" in step.get("name", ""))
+    assert "steps.uncertain.outputs.url" not in ack["env"]["RESULT_URL"]
+
+
+def test_pending_selection_rotates_instead_of_blocking_the_queue(tmp_path: Path) -> None:
+    signals = [
+        {"signal_id": f"s{index:02d}", "timestamp": f"2026-01-{index + 1:02d}T00:00:00Z"}
+        for index in range(12)
+    ]
+    rechecks = [
+        {
+            "day": 1,
+            "due": f"2026-03-{index + 1:02d}",
+            "pr_url": None,
+            "signal": {"signal_id": f"r{index}", "timestamp": "2026-01-01T00:00:00Z"},
+        }
+        for index in range(5)
+    ]
+
+    def selected_ids(name: str, run: str, pending: dict) -> list[str]:
+        directory = tmp_path / name
+        directory.mkdir()
+        parsed = _run_pending_matrix(directory, pending, "10", run)
+        assert parsed["count"] == str(len(json.loads(parsed["matrix"])["work"]))
+        return [item["signal_id"] for item in json.loads(parsed["matrix"])["work"]]
+
+    full = {"signals": signals, "rechecks": rechecks}
+    assert selected_ids("run1", "1", full) == [
+        "s01", "s02", "s03", "s04", "s05", "s06", "s07", "r1", "r2", "r3",
+    ]
+    assert selected_ids("run2", "2", full) == [
+        "s02", "s03", "s04", "s05", "s06", "s07", "s08", "r2", "r3", "r4",
+    ]
+    assert selected_ids("run13", "13", full) == [
+        "s01", "s02", "s03", "s04", "s05", "s06", "s07", "r3", "r4", "r0",
+    ]
+    assert selected_ids("few-signals", "1", {
+        "signals": signals[:2], "rechecks": rechecks,
+    }) == ["s00", "s01", "r0", "r1", "r2", "r3", "r4"]
+    assert selected_ids("few-rechecks", "1", {
+        "signals": signals, "rechecks": rechecks[:1],
+    }) == ["s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "r0"]
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    empty = _run_pending_matrix(empty_dir, {"signals": [], "rechecks": []}, "10", "1")
+    assert empty["count"] == "0"
+    assert json.loads(empty["matrix"])["work"] == []
+
+
+def test_per_job_artifact_names_keep_signal_punctuation_out() -> None:
+    from fnmatch import fnmatch
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    signal_id = "watch:acme/orbit-6.1"
+    job_index = "4"
+    expected = {
+        "${{ runner.temp }}/result.json": "release-signal-result-",
+        "${{ runner.temp }}/source-copies": "release-signal-price-copies-",
+        "${{ runner.temp }}/audit.json": "release-signal-audit-",
+    }
+    rendered_names: dict[str, str] = {}
+    for step in workflow["jobs"]["process"]["steps"]:
+        if step.get("uses") != "actions/upload-artifact@v4":
+            continue
+        path = step.get("with", {}).get("path")
+        if path not in expected:
+            continue
+        assert step["with"].get("overwrite") is True
+        template = step["with"]["name"]
+        rendered = (
+            template
+            .replace("${{ matrix.work.signal_id }}", signal_id)
+            .replace("${{ steps.classify.outputs.signal_id }}", signal_id)
+            .replace("${{ matrix.work.recheck_day }}", "1")
+            .replace("${{ strategy.job-index }}", job_index)
+        )
+        assert "${{" not in rendered
+        assert ":" not in rendered
+        assert "/" not in rendered
+        assert signal_id not in rendered
+        prefix = expected[path]
+        assert rendered == f"{prefix}{job_index}"
+        rendered_names[path] = rendered
+    assert set(rendered_names) == set(expected)
+    pattern = next(
+        step["with"]["pattern"]
+        for step in workflow["jobs"]["review"]["steps"]
+        if step.get("uses") == "actions/download-artifact@v4"
+    )
+    assert pattern == "release-signal-result-*"
+    assert fnmatch(rendered_names["${{ runner.temp }}/result.json"], pattern)
+
+
+def _gh_invocations(run: str) -> list[str]:
+    lines = run.splitlines()
+    calls: list[str] = []
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if stripped.startswith("#") or not stripped.startswith("gh "):
+            index += 1
+            continue
+        parts = [stripped]
+        while parts[-1].endswith("\\"):
+            index += 1
+            parts.append(lines[index].strip())
+        calls.append(" ".join(part.removesuffix("\\").strip() for part in parts))
+        index += 1
+    return calls
+
+
+def test_review_job_gh_calls_name_the_repository() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    review = workflow["jobs"]["review"]
+    job_env = dict(review.get("env") or {})
+    calls: list[str] = []
+    for step in review["steps"]:
+        step_env = {**job_env, **dict(step.get("env") or {})}
+        for call in _gh_invocations(step.get("run") or ""):
+            calls.append(call)
+            assert "GH_REPO" in step_env or "--repo" in call
+    assert calls == [
+        "gh label create new-model --color 0E8A16 "
+        "--description 'Release identity needs human review' --force",
+        "gh issue create --title \"release signals needing identity review ($today)\" "
+        "--label new-model --body-file \"$RUNNER_TEMP/issue-body.md\"",
+    ]
+    assert review["env"]["GH_REPO"] == "${{ github.repository }}"
+
+
+def test_the_roll_up_opens_one_issue_only_for_uncertain_results(tmp_path: Path) -> None:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["review"]["steps"]
+        if item.get("name") == "Open one issue for uncertain identities"
+    )
+    results = tmp_path / "signal-results"
+    (results / "a").mkdir(parents=True)
+    (results / "b").mkdir()
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (results / "b" / "result.json").write_text(json.dumps({
+        "status": "ignored", "signal_id": "s-b", "reason": "test signal",
+    }), encoding="utf-8")
+    stub = tmp_path / "bin"
+    stub.mkdir()
+    (stub / "gh").write_text(
+        "#!/bin/bash\nprintf '%s\\n' \"$*\" > \"$RUNNER_TEMP/gh-args\"\n",
+        encoding="utf-8",
+    )
+    (stub / "gh").chmod(0o755)
+    env = os.environ | {
+        "RUNNER_TEMP": str(tmp_path),
+        "GH_TOKEN": "offline-fixture",
+        "PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
+    }
+
+    opened = subprocess.run(
+        ["bash", "-e", "-c", step["run"]], cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert opened.returncode == 0, opened.stderr
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "release signals needing identity review" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "- s-a: two cards" in (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+    assert "s-b" not in (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "existing", "signal_id": "s-a", "reason": "",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    quiet = subprocess.run(
+        ["bash", "-e", "-c", step["run"]], cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert quiet.returncode == 0, quiet.stderr
+    assert not (tmp_path / "gh-args").exists()
+
+
+def _run_review_issue_step(tmp_path: Path) -> str:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["review"]["steps"]
+        if item.get("name") == "Open one issue for uncertain identities"
+    )
+    stub = tmp_path / "bin"
+    stub.mkdir(exist_ok=True)
+    (stub / "gh").write_text(
+        "#!/bin/bash\nprintf '%s\\n' \"$*\" > \"$RUNNER_TEMP/gh-args\"\n",
+        encoding="utf-8",
+    )
+    (stub / "gh").chmod(0o755)
+    env = os.environ | {
+        "RUNNER_TEMP": str(tmp_path),
+        "GH_TOKEN": "offline-fixture",
+        "PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
+    }
+    opened = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert opened.returncode == 0, opened.stderr
+    return (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+
+
+def test_the_roll_up_lists_a_closed_unmerged_result_under_its_own_heading(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "signal-results"
+    (results / "a").mkdir(parents=True)
+    (results / "b").mkdir()
+    (results / "c").mkdir()
+    pr_url = "https://github.com/example/repo/pull/294"
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (results / "b" / "result.json").write_text(json.dumps({
+        "status": "ignored", "signal_id": "s-b", "reason": "test signal",
+    }), encoding="utf-8")
+    (results / "c" / "result.json").write_text(json.dumps({
+        "status": "closed_unmerged",
+        "signal_id": "s-c",
+        "reason": "the original new-model PR was closed without merge",
+        "pr_url": pr_url,
+    }), encoding="utf-8")
+
+    body = _run_review_issue_step(tmp_path)
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "- s-a: two cards" in body
+    assert "s-b" not in body
+    assert "New-model pull requests closed without merge" in body
+    closed_line = (
+        "- s-c: the original new-model PR was closed without merge "
+        f"({pr_url})"
+    )
+    assert closed_line in body
+
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "existing", "signal_id": "s-a", "reason": "",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    (tmp_path / "issue-body.md").unlink()
+    closed_only = _run_review_issue_step(tmp_path)
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "Signals whose identity could not be resolved." not in closed_only
+    assert "New-model pull requests closed without merge" in closed_only
+    assert "s-a" not in closed_only
+    assert "s-b" not in closed_only
+
+    (results / "c" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    uncertain_only = _run_review_issue_step(tmp_path)
+    assert "- s-a: two cards" in uncertain_only
+    assert "New-model pull requests closed without merge" not in uncertain_only
+
+
+def test_the_process_job_cannot_open_issues() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    assert "issues" not in workflow["jobs"]["process"]["permissions"]
+    assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
+    for step in workflow["jobs"]["process"]["steps"]:
+        run = step.get("run") or ""
+        assert "gh label" not in run
+        assert "gh issue" not in run
+    review_runs = "\n".join(
+        step.get("run") or "" for step in workflow["jobs"]["review"]["steps"]
+    )
+    assert "gh label create new-model" in review_runs
+
+
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
@@ -2263,6 +2651,416 @@ def test_json_ld_two_thousand_level_nest_is_skipped(tmp_path: Path) -> None:
     assert _release_date(result) == "2026-09-26"
 
 
+class _PriceFetcher:
+    credits_spent = 0
+
+
+def _watch_lab(root: Path, host: str) -> None:
+    registry = root / "registry"
+    registry.mkdir(parents=True, exist_ok=True)
+    (registry / "release-watch.yaml").write_text(
+        "sources:\n"
+        "- id: acme-models\n"
+        "  kind: page\n"
+        f"  url: https://{host}/models\n"
+        "  provider: acme\n"
+        "  pattern: orbit\n"
+        "  confidence: 0.9\n",
+        encoding="utf-8",
+    )
+
+
+def _empty_models_dev() -> dict[str, FetchResult]:
+    url = "https://models.dev/api.json"
+    return {
+        url: FetchResult(
+            url,
+            json.dumps({"acme": {"name": "Acme", "models": {}}}).encode(),
+            "application/json",
+        ),
+    }
+
+
+def test_a_lab_host_matches_exactly_or_a_registered_wildcard() -> None:
+    from release_signals.pipeline import first_seen_host_class
+
+    community = "https://community.openai.com/topic"
+    platform = "https://platform.openai.com/docs"
+    docs = "https://docs.platform.openai.com/docs"
+    assert first_seen_host_class(community, frozenset({"platform.openai.com"})) == "unregistered"
+    assert first_seen_host_class(community, frozenset({"openai.com"})) == "unregistered"
+    assert first_seen_host_class(platform, frozenset({"platform.openai.com"})) == "lab"
+    assert first_seen_host_class(
+        "https://www.platform.openai.com/docs", frozenset({"platform.openai.com"}),
+    ) == "lab"
+    assert first_seen_host_class(docs, frozenset({"platform.openai.com"})) == "unregistered"
+    assert first_seen_host_class(docs, frozenset({"*.platform.openai.com"})) == "lab"
+    assert first_seen_host_class(community, frozenset({"*.openai.com"})) == "lab"
+
+
+def test_a_display_provider_uses_the_resolved_lab_hosts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = tmp_path / "models" / "mistral" / "small.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        "---\n"
+        "model_id: mistral/small\n"
+        "display_name: Mistral Small\n"
+        "provider: mistral\n"
+        "provider_display: Mistral AI\n"
+        "version: small\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    page = "https://mistral.ai/news/new-chat"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="New Chat",
+        provider="Mistral AI",
+        signal_id="watch:mistral:new-chat",
+        first_seen_url=page,
+    )]}))
+    models_dev = "https://models.dev/api.json"
+    replies = {
+        models_dev: FetchResult(models_dev, b"{}", "application/json"),
+        page: FetchResult(page, b"<h1>Mistral AI launches New Chat.</h1>", "text/html"),
+    }
+    seen: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        seen.append(url)
+        if url in replies:
+            return replies[url]
+        if url.startswith("https://huggingface.co/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "mistral/new-chat"
+    assert page in seen
+    assert (tmp_path / "models" / "mistral" / "new-chat.md").is_file()
+
+
+def test_zero_models_dev_rows_are_not_listed_and_several_stay_uncertain() -> None:
+    with pytest.raises(ModelsDevNotListed):
+        _models_dev_listing(
+            {"other": {"name": "Other", "models": {"x": {"name": "X"}}}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+    with pytest.raises(ModelsDevNotListed):
+        _models_dev_listing(
+            {"acme": {"name": "Acme", "models": {}}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+    with pytest.raises(IdentityUncertainError, match="exactly one model"):
+        _models_dev_listing(
+            {"acme": {"name": "Acme", "models": {
+                "a": {"id": "a", "name": "Orbit 9"},
+                "b": {"id": "b", "name": "Orbit 9"},
+            }}},
+            "Acme", "Orbit 9", source_url="https://models.dev/api.json",
+        )
+
+
+def test_not_listed_uses_a_registered_lab_page_and_names_other_host_classes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from urllib.parse import urlencode
+
+    from decision.retention import cite_only_hosts
+
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    primary = f"https://{host}/orbit-9"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    queued = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:orbit-9",
+        first_seen_url=primary,
+    )
+    pending.write_text(json.dumps({"signals": [queued]}))
+    search = "https://huggingface.co/api/models?" + urlencode({"search": "Orbit 9", "limit": 20})
+    replies = _empty_models_dev()
+    replies[primary] = FetchResult(primary, b"<h1>Acme launches Orbit 9.</h1>", "text/html")
+    replies[search] = FetchResult(search, b"[]", "application/json")
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        requested.append(url)
+        return replies[url]
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    assert card.is_file()
+    assert primary in card.read_text(encoding="utf-8")
+    assert "https://models.dev/api.json" in requested
+    assert primary in requested
+    assert result["models_dev"] == "not_listed"
+    assert result["primary_host"] == host
+    assert all("models.dev" not in url for url in result["sources"])
+    drafted_front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert "last_scraped_models_dev" not in drafted_front["sources"]
+    assert "https://models.dev" not in card.read_text(encoding="utf-8")
+
+    def run_blocked(row: dict[str, object], forbidden: str) -> dict:
+        drafted = tmp_path / "models" / "acme" / "orbit-9.md"
+        if drafted.exists():
+            drafted.unlink()
+        blocked_pending = tmp_path / "blocked.json"
+        blocked_result = tmp_path / "blocked-result.json"
+        blocked_pending.write_text(json.dumps({"signals": [row]}))
+        seen: list[str] = []
+
+        def blocked_fetch(url: str) -> FetchResult:
+            seen.append(url)
+            if forbidden in url:
+                raise AssertionError(f"fetched a refused host: {url}")
+            return _empty_models_dev()["https://models.dev/api.json"]
+
+        monkeypatch.setattr(processor, "_fetch", blocked_fetch)
+        outcome = processor.process(
+            blocked_pending, blocked_result, root=tmp_path, price_fetcher=_PriceFetcher(),
+        )
+        assert all(forbidden not in url for url in seen)
+        assert not drafted.exists()
+        return outcome
+
+    tweet = run_blocked(signal(model_name="Orbit 9", signal_id="grok-orbit-9"), "x.com")
+    assert tweet["status"] == "uncertain"
+    assert tweet["model_id"] is None
+    assert "host class signal-only" in tweet["reason"]
+
+    outsider = run_blocked(signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:news",
+        first_seen_url="https://news.example/orbit-9",
+    ), "https://news.example/orbit-9")
+    assert outsider["status"] == "uncertain"
+    assert "host class unregistered" in outsider["reason"]
+
+    excluded_host = sorted(REMOVED_HOSTS)[0]
+    lab_page = f"https://{host}/orbit-excluded"
+    excluded_card = tmp_path / "models" / "acme" / "orbit-9.md"
+    if excluded_card.exists():
+        excluded_card.unlink()
+    excluded_pending = tmp_path / "excluded.json"
+    excluded_result = tmp_path / "excluded-result.json"
+    excluded_pending.write_text(json.dumps({"signals": [signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:excluded",
+        first_seen_url=lab_page,
+    )]}))
+    excluded_seen: list[str] = []
+
+    def excluded_fetch(url: str) -> FetchResult:
+        excluded_seen.append(url)
+        if excluded_host in url:
+            raise AssertionError(f"fetched a refused host: {url}")
+        if url == lab_page:
+            return FetchResult(
+                f"https://{excluded_host}/orbit-9",
+                b"<h1>Acme launches Orbit 9.</h1>",
+                "text/html",
+            )
+        return _empty_models_dev()["https://models.dev/api.json"]
+
+    monkeypatch.setattr(processor, "_fetch", excluded_fetch)
+    excluded = processor.process(
+        excluded_pending, excluded_result, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+    assert all(excluded_host not in url for url in excluded_seen)
+    assert not excluded_card.exists()
+    assert excluded["status"] == "uncertain"
+    assert "host class excluded" in excluded["reason"]
+
+    cite_host = cite_only_hosts()[0]
+    cited = run_blocked(signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:cited",
+        first_seen_url=f"https://{cite_host}/orbit-9",
+    ), f"https://{cite_host}/orbit-9")
+    assert cited["status"] == "uncertain"
+    assert "host class cite-only" in cited["reason"]
+
+
+def test_several_models_dev_listings_are_not_guessed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 9")]}))
+    payload = {"acme": {"name": "Acme", "models": {
+        "a": {"id": "a", "name": "Orbit 9", "release_url": "https://models.acme.example/a"},
+        "b": {"id": "b", "name": "Orbit 9", "release_url": "https://models.acme.example/b"},
+    }}}
+    models_dev_url = "https://models.dev/api.json"
+    monkeypatch.setattr(processor, "_fetch", lambda url: FetchResult(
+        url, json.dumps(payload).encode(), "application/json",
+    ))
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "exactly one" in result["reason"]
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_existing_card_stays_existing_when_models_dev_does_not_list_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = card.read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    monkeypatch.setattr(
+        processor, "_fetch", lambda url: _empty_models_dev()["https://models.dev/api.json"],
+    )
+    refreshed: dict[str, object] = {}
+
+    def run_refresh(**kwargs: object):
+        refreshed.update(kwargs)
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "existing"
+    assert result["model_id"] == "acme/orbit-1"
+    assert "not_listed" in result["identity_error"]
+    assert card.read_bytes() == before
+    assert refreshed["model_ids"] == ("acme/orbit-1",)
+
+
+def test_a_dotted_successor_stays_new_when_only_the_predecessor_is_carded(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-6", display="Orbit 6", version="orbit-6")
+    before = card.read_bytes()
+    found = resolve_signal(
+        ReleaseSignal.parse(signal(model_name="Orbit 6.1")), tmp_path,
+    )
+
+    assert found.status == "new"
+    assert found.model_id == "acme/orbit-6-1"
+    assert found.candidates == ()
+
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 6.1")]}))
+    monkeypatch.setattr(
+        processor, "_fetch",
+        lambda url: _empty_models_dev()["https://models.dev/api.json"],
+    )
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result.get("model_id") != "acme/orbit-6"
+    assert result["status"] != "existing"
+    assert "suffix_stripped" not in result
+    assert card.read_bytes() == before
+    assert not (tmp_path / "models" / "acme" / "orbit-6-1.md").exists()
+
+
+def test_a_suffixed_name_that_is_itself_a_card_resolves_to_that_card(tmp_path: Path) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _write_card(tmp_path, "acme", "orbit-1-1", display="Orbit 1.1", version="orbit-1.1")
+
+    found = resolve_signal(
+        ReleaseSignal.parse(signal(model_name="Orbit 1.1")), tmp_path,
+    )
+
+    assert (found.status, found.model_id) == ("existing", "acme/orbit-1-1")
+
+
+def test_a_dotted_name_does_not_attach_to_unsuffixed_cards(tmp_path: Path) -> None:
+    _write_card(tmp_path, "acme", "shared-a", display="Shared", version="shared")
+    _write_card(tmp_path, "acme", "shared-b", display="Shared", version="shared")
+
+    found = resolve_signal(
+        ReleaseSignal.parse(signal(model_name="Shared.1")), tmp_path,
+    )
+
+    assert found.status == "new"
+    assert found.model_id == "acme/shared-1"
+    assert found.candidates == ()
+
+
+def test_existing_card_stays_existing_when_the_source_refresh_misses_the_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = card.read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    models_dev_url = "https://models.dev/api.json"
+    primary_url = "https://acme.example/models/orbit-1"
+    payload = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": {
+                    "id": "orbit-1", "name": "Orbit 1", "release_url": primary_url,
+                },
+            },
+        },
+    }
+    replies = {
+        models_dev_url: FetchResult(
+            models_dev_url, json.dumps(payload).encode(), "application/json",
+        ),
+        primary_url: FetchResult(
+            primary_url, b"<p>Orbit 1 by Other Lab.</p>", "text/html",
+        ),
+    }
+    refreshed: dict[str, object] = {}
+
+    def run_refresh(**kwargs: object):
+        refreshed.update(kwargs)
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "existing"
+    assert result["model_id"] == "acme/orbit-1"
+    assert result["identity_error"] == "the primary source does not identify the stated lab"
+    assert card.read_bytes() == before
+    assert refreshed["model_ids"] == ("acme/orbit-1",)
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "existing"
+
+
 def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> None:
     note = 'quote \\" then ' + ("{[" * 80) + ("}]" * 80)
     payload = json.dumps({
@@ -2278,3 +3076,104 @@ def test_json_ld_brackets_inside_strings_do_not_change_depth(tmp_path: Path) -> 
     result = _draft_visible_signal(tmp_path, page)
     assert result.resolution.status == "new"
     assert _release_date(result) == "2026-05-05"
+
+
+def test_a_registered_lab_page_that_names_the_model_identifies_the_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from urllib.parse import urlencode
+
+    bare = FetchResult(
+        "https://models.acme.example/orbit-9", b"<h1>Orbit 9</h1>", "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(bare, "Orbit 9", "Acme")
+    assert _primary_identity(
+        bare, "Orbit 9", "Acme", lab_hosts=frozenset({"models.acme.example"}),
+    ) == ("Orbit 9", "")
+    credited = FetchResult(
+        "https://models.acme.example/orbit-9",
+        b"<p>Orbit 9 by Other Lab.</p>",
+        "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(
+            credited, "Orbit 9", "Acme", lab_hosts=frozenset({"models.acme.example"}),
+        )
+    wrong_publisher = FetchResult(
+        "https://models.acme.example/orbit-9",
+        b'<script type="application/ld+json">'
+        b'{"name":"Orbit 9","publisher":{"name":"Other Lab"}}'
+        b"</script><h1>Orbit 9</h1>",
+        "text/html",
+    )
+    with pytest.raises(IdentityUncertainError, match="stated lab"):
+        _primary_identity(
+            wrong_publisher, "Orbit 9", "Acme",
+            lab_hosts=frozenset({"models.acme.example"}),
+        )
+
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    primary = f"https://{host}/orbit-9"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:orbit-9",
+        first_seen_url=primary,
+    )]}))
+    search = "https://huggingface.co/api/models?" + urlencode({"search": "Orbit 9", "limit": 20})
+    replies = _empty_models_dev()
+    replies[primary] = FetchResult(primary, b"<h1>Orbit 9</h1>", "text/html")
+    replies[search] = FetchResult(search, b"[]", "application/json")
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert primary in (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+
+
+def test_a_test_signal_is_ignored_and_writes_no_catalogue_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    before = (tmp_path / "models" / "acme" / "orbit-1.md").read_bytes()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    audit_path = tmp_path / "audit.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="acme-embodied-walker",
+        signal_id="test-orbit-9",
+    )]}))
+    fetched: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        fetched.append(url)
+        raise AssertionError(f"fetched {url}")
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, audit_path=audit_path,
+    )
+
+    assert result["status"] == "ignored"
+    assert result["reason"] == "test signal"
+    assert result["model_id"] is None
+    assert result["signal_id"] == "test-orbit-9"
+    assert fetched == []
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "ignored"
+    assert not audit_path.exists()
+    assert (tmp_path / "models" / "acme" / "orbit-1.md").read_bytes() == before
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+    assert not (tmp_path / "offerings").exists()
