@@ -964,9 +964,25 @@ def gather_signal(
             hf_orgs=hf_orgs,
         )
     except IdentityUncertainError as exc:
-        return GatherResult(Resolution(
-            "uncertain", None, resolution.candidates, str(exc)
-        ))
+        if not preferred_first_seen:
+            return GatherResult(Resolution(
+                "uncertain", None, resolution.candidates, str(exc)
+            ))
+        primary_url = require_allowed_source(str(provider_doc))
+        primary = _fetch_allowed(fetch, primary_url)
+        try:
+            display_name, release_date, identity_basis = _primary_identity(
+                primary, signal.model_name, signal.provider,
+                lab_hosts=lab_hosts,
+                hf_orgs=hf_orgs,
+            )
+        except IdentityUncertainError as doc_exc:
+            return GatherResult(Resolution(
+                "uncertain", None, resolution.candidates, str(doc_exc)
+            ))
+        preferred_first_seen = False
+        if primary_url not in supporting_urls:
+            supporting_urls.append(primary_url)
     for url in supporting_urls:
         _fetch_allowed(fetch, url)
 

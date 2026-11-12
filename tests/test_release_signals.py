@@ -4200,3 +4200,101 @@ def test_an_existing_huggingface_primary_fills_an_empty_huggingface_url(
     )
     assert front["sources"]["provider_docs_url"] == kept_docs
     assert front["sources"]["huggingface_url"] == page
+
+
+_DOC_IDENTITY = (
+    b'<script type="application/ld+json">'
+    b'{"name":"Orbit 9","publisher":{"name":"Acme"},"datePublished":"2026-09-26"}'
+    b"</script>"
+)
+
+
+def test_a_first_seen_page_without_the_name_falls_back_to_the_provider_doc(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:doc-fallback",
+            first_seen_url=page,
+        ),
+        {
+            page: FetchResult(page, b"<html><title>weights</title></html>", "text/html"),
+            doc: FetchResult(doc, _DOC_IDENTITY, "text/html"),
+        },
+        doc=doc,
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "json-ld"
+    assert page in seen
+    assert doc in seen
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    text = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    assert front["sources"]["provider_docs_url"] == doc
+    assert str(front["release_date"]) == "2026-09-26"
+    assert page not in text
+
+
+def test_the_provider_doc_is_not_requested_when_the_first_seen_page_succeeds(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:doc-not-requested",
+            first_seen_url=page,
+        ),
+        {
+            page: FetchResult(page, b"<h1>Orbit 9</h1>", "text/html"),
+            doc: FetchResult(doc, _DOC_IDENTITY, "text/html"),
+        },
+        doc=doc,
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert doc not in seen
+    assert page in (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+
+
+def test_both_identity_pages_fail_before_a_card_is_drafted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    blank = b"<html><title>weights</title></html>"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:both-uncertain",
+            first_seen_url=page,
+        ),
+        {
+            page: FetchResult(page, blank, "text/html"),
+            doc: FetchResult(doc, blank, "text/html"),
+        },
+        doc=doc,
+    )
+
+    assert result["status"] == "uncertain"
+    assert doc in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
