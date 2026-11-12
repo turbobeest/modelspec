@@ -2,9 +2,11 @@
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
 The PR profile runs deterministic correctness, frozen-image engine recall, and
-output parity. The nightly profile gates current-data freshness, re-reads verified
-values, compares domain leaders with permitted independent boards, and reports
-recall changes without gating on them.
+output parity. The data-pr profile is that catalogue check for a release-signal
+card: the same two gates, with output parity reported as omitted because those
+suites read checked-in fixtures. The nightly profile gates current-data freshness,
+re-reads verified values, compares domain leaders with permitted independent
+boards, and reports recall changes without gating on them.
 """
 
 from __future__ import annotations
@@ -33,8 +35,13 @@ DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
+    "data-pr": ("deterministic_correctness", "frozen_image_engine_recall"),
     "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
+_DATA_PR_OMITTED_PARITY = (
+    "Omitted: these suites read checked-in contract, vocabulary, "
+    "and registry fixtures, not the catalogue."
+)
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
 
@@ -1664,6 +1671,20 @@ def write_report(report: AccuracyReport, output_dir: str | Path) -> tuple[Path, 
     return markdown, payload
 
 
+def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
+    if profile != "data-pr":
+        return ()
+    return (
+        LayerResult(
+            "output_parity",
+            "report",
+            False,
+            _DATA_PR_OMITTED_PARITY,
+            {"omitted": 1},
+        ),
+    )
+
+
 def run_profile(
     *,
     root: Path = ROOT,
@@ -1713,7 +1734,7 @@ def run_profile(
                     root,
                     snapshot_file,
                     as_of,
-                    gating=profile == "pr",
+                    gating=profile in ("pr", "data-pr"),
                     approved_baseline_path=approved_recall_baseline,
                 )
             )
@@ -1738,6 +1759,8 @@ def run_profile(
             )
         else:
             raise ValueError(f"unknown accuracy layer: {layer}")
+    if layers is None:
+        results.extend(omitted_layers(profile))
     return AccuracyReport(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         profile=profile,

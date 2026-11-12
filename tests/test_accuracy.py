@@ -414,6 +414,45 @@ def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path,
     assert report.snapshot == snapshot.snapshot_id
 
 
+def test_data_pr_profile_omits_output_parity_and_records_why(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: snapshot)
+    parity_calls = []
+
+    def parity(*args, **kwargs):
+        parity_calls.append(args)
+        return accuracy.LayerResult("output_parity", "pass", True, "ran")
+
+    monkeypatch.setattr(accuracy, "output_parity", parity)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args: accuracy.LayerResult("deterministic_correctness", "pass", True, "ok"),
+    )
+
+    def recall(root, snapshot_file, as_of, *, gating, approved_baseline_path):
+        assert gating is True
+        return accuracy.LayerResult("frozen_image_engine_recall", "pass", gating, "ok")
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+    report = accuracy.run_profile(profile="data-pr")
+
+    assert parity_calls == []
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness",
+        "frozen_image_engine_recall",
+        "output_parity",
+    ]
+    omitted = report.layers[-1]
+    assert omitted.status == "report"
+    assert omitted.gating is False
+    assert omitted.summary == (
+        "Omitted: these suites read checked-in contract, vocabulary, "
+        "and registry fixtures, not the catalogue."
+    )
+    assert report.status == "pass"
+    assert "output_parity" not in accuracy.PROFILES["data-pr"]
+
+
 def _recall_question(
     question_id: str, verdict: str, cause: str = "engine_behavior"
 ) -> QuestionResult:

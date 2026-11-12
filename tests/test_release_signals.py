@@ -1947,7 +1947,7 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
     assert "secrets.GITHUB_TOKEN" in workflow
     assert "python -I -m cli.modelspec.legacy verify --skip-absent-copies --json" in workflow
-    assert "python -I -m scripts.accuracy --profile pr" in workflow
+    assert "python -I -m scripts.accuracy --profile data-pr" in workflow
     assert "python -I -m scripts.recall_run" in workflow
     assert "new-model" in workflow
     assert "--draft" in workflow

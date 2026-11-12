@@ -425,7 +425,7 @@ jobs:
           PY
       - name: Run the MODEL-111 accuracy harness
         if: steps.classify.outputs.changed == 'true'
-        run: python -I -m scripts.accuracy --profile pr --output-dir "$RUNNER_TEMP/accuracy"
+        run: python -I -m scripts.accuracy --profile data-pr --output-dir "$RUNNER_TEMP/accuracy"
       - name: Run the MODEL-160 recall report
         if: steps.classify.outputs.changed == 'true'
         run: |
