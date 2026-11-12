@@ -196,6 +196,7 @@ class RowObservation:
     reading_publish_date: str | None = None
     reading_revision: str = ""
     reading_checked: bool = False
+    reading_rank: int | None = None
 
     @property
     def changed(self) -> bool:
@@ -430,6 +431,19 @@ def _matched_interval(
     return (lo, hi), None
 
 
+def _matched_rank(row: Mapping[str, Any]) -> int | None:
+    value = row.get("rank")
+    if value is None or value == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not number.is_integer():
+        return None
+    return int(number)
+
+
 def _matched_votes(row: Mapping[str, Any]) -> int | None:
     value = row.get("vote_count")
     if value is None:
@@ -493,6 +507,7 @@ _CI_QUOTE = re.compile(
     r"(?i)\b(?:ci|interval)\s+(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)"
 )
 _VOTES_QUOTE = re.compile(r"(?i)(?<!\w)(-?\d+(?:\.\d+)?)\s+votes\b")
+_RANK_QUOTE = re.compile(r"(?i)\brank\s+(\d+)\b")
 _EFFORT_QUOTE = re.compile(
     r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
 )
@@ -522,12 +537,13 @@ def _retell_reading(
     new_observed: str,
     new_revision: str,
     new_effort: str | None,
+    new_rank: int | None = None,
 ) -> str | None:
-    """Rewrite quoted publish date, rating, interval, votes and revision.
+    """Rewrite quoted publish date, rating, interval, votes, rank and revision.
 
     Returns None when a labeled quote cannot be replaced without leaving the
     previous reading in the sentence. A sentence that quotes none of those
-    is returned unchanged.
+    is returned unchanged. A quoted rank with no replacement rank is refused.
     """
     if not isinstance(text, str) or not text:
         return text if isinstance(text, str) else ""
@@ -535,8 +551,10 @@ def _retell_reading(
     quoted_score = False
     quoted_interval = False
     quoted_votes = False
+    quoted_rank = False
     quoted_publish = False
     quoted_revision = False
+    old_rank_number: float | None = None
     old_hex = ""
     loose_numbers: list[float] = []
 
@@ -586,6 +604,16 @@ def _retell_reading(
         quoted_votes = True
         return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
 
+    def rank(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_rank, old_rank_number
+        literal = match.group(1)
+        if new_rank is None:
+            unsafe = True
+            return match.group(0)
+        quoted_rank = True
+        old_rank_number = float(literal)
+        return match.group(0).replace(literal, str(int(new_rank)), 1)
+
     def published(match: re.Match[str]) -> str:
         nonlocal unsafe, quoted_publish
         if not new_publish:
@@ -606,6 +634,9 @@ def _retell_reading(
     bracket_quotes = {(float(low), float(high)) for low, high in _BRACKET_QUOTE.findall(text)}
     if len(bracket_quotes) > 1:
         return None
+    rank_quotes = {int(value) for value in _RANK_QUOTE.findall(text)}
+    if len(rank_quotes) > 1:
+        return None
     if hexes:
         old_hex = next(iter(hexes))
         if not new_revision:
@@ -623,6 +654,7 @@ def _retell_reading(
     text = _BRACKET_QUOTE.sub(bounds, text)
     text = _CI_QUOTE.sub(bounds, text)
     text = _VOTES_QUOTE.sub(votes, text)
+    text = _RANK_QUOTE.sub(rank, text)
     text = _PUBLISH_QUOTE.sub(published, text)
     text = _OBSERVED_QUOTE.sub(observed, text)
     if new_effort and _EFFORT_QUOTE.search(text):
@@ -632,7 +664,7 @@ def _retell_reading(
         text = _EFFORT_QUOTE.sub(lambda match: f"{match.group(1)}{new_effort}", text)
     if unsafe:
         return None
-    if quoted_score or quoted_interval or quoted_votes:
+    if quoted_score or quoted_interval or quoted_votes or quoted_rank:
         watched: list[float] = []
         if quoted_score:
             watched.append(float(old_score))
@@ -640,12 +672,16 @@ def _retell_reading(
             watched.extend(float(item) for item in old_interval)
         if quoted_votes and old_n is not None:
             watched.append(float(old_n))
+        if quoted_rank and old_rank_number is not None:
+            watched.append(old_rank_number)
         watched.extend(loose_numbers)
         fresh = [float(new_score)]
         if new_interval is not None:
             fresh.extend(new_interval)
         if new_n is not None:
             fresh.append(float(new_n))
+        if quoted_rank and new_rank is not None:
+            fresh.append(float(new_rank))
         for token in _NUMBER_TOKEN.findall(text):
             value = float(token)
             stale = any(_numbers_close(old, value) for old in watched)
@@ -690,6 +726,8 @@ def _copy_matched_reading(
         return None, "matched row does not state the interval this row quotes"
     if old.get("n") is not None and observation.reading_n is None:
         return None, "matched row does not state the vote count this row quotes"
+    if _RANK_QUOTE.search(str(old.get("configuration") or "")) and observation.reading_rank is None:
+        return None, "configuration quotes a rank the matched row does not state"
     new["score"] = observation.new_value
     if observation.reading_interval is not None:
         new["interval"] = [observation.reading_interval[0], observation.reading_interval[1]]
@@ -713,6 +751,7 @@ def _copy_matched_reading(
         new_observed=_iso_day(observed_at),
         new_revision=observation.reading_revision,
         new_effort=written_effort,
+        new_rank=observation.reading_rank,
     )
     if told is None:
         return None, "configuration still quotes the previous reading"
@@ -729,6 +768,7 @@ def _copy_matched_reading(
         new_observed=_iso_day(observed_at),
         new_revision=observation.reading_revision,
         new_effort=written_effort,
+        new_rank=observation.reading_rank,
     )
     if version is None:
         return None, "benchmark_version still quotes the previous reading"
@@ -830,6 +870,7 @@ def _plan_observations(
             reading_publish_date=source_date if arena_board else None,
             reading_revision=board_revision,
             reading_checked=arena_board,
+            reading_rank=_matched_rank(match) if arena_board else None,
         ))
     return observations, failures
 

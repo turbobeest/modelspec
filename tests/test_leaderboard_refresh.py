@@ -2108,7 +2108,8 @@ def test_refreshed_arena_row_verifies_against_the_matched_reading(
     assert "2222 votes" in row["configuration"]
     assert "2026-11-02" in row["configuration"]
     assert "2026-11-11" in row["configuration"]
-    assert "rank 4" in row["configuration"]
+    assert "rank 3" in row["configuration"]
+    assert "rank 4" not in row["configuration"]
     for stale in ("1100", "1080", "1120", "1000", "2026-10-01"):
         assert stale not in row["configuration"]
     assert _ARENA_NEW[:12] in row["benchmark_version"]
@@ -2181,6 +2182,29 @@ def test_a_quoted_interval_is_rewritten_when_the_card_field_is_empty(
     log = _verification_log(root)
     assert log["outcome"] == "verified"
     assert log["diff"] is None
+
+
+def test_a_quoted_rank_with_no_dataset_rank_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1210.25,
+            "rating_lower": 1190.5,
+            "rating_upper": 1230.75,
+            "vote_count": 2222,
+            "leaderboard_publish_date": "2026-11-02",
+        }],
+    )
+
+    assert any("rank" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert "rank 4" in _evidence_row(card)["configuration"]
 
 
 def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
