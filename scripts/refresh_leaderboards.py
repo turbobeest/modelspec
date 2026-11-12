@@ -1504,20 +1504,57 @@ def _body(path: Path) -> str:
     return path.read_text(encoding="utf-8").split("---", 2)[2]
 
 
+_REFRESH_SIGNATURE = frozenset({
+    "score", "observed_at", "verified_at", "evidence_date", "id", "sources",
+})
+
+
+def _reading_refreshed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """True when this run rewrote the score-bearing reading."""
+    return any(before.get(key) != after.get(key) for key in _REFRESH_SIGNATURE)
+
+
+def _effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Effort may change only from null to the level the card id names."""
+    old, new = before.get("effort"), after.get("effort")
+    if old == new:
+        return True
+    if old not in (None, ""):
+        return False
+    if not isinstance(new, str) or not new.strip():
+        return False
+    named = effort_named_on_card(str(before.get("model_id_as_evaluated") or ""))
+    return named is not None and reading_effort("", new) == named
+
+
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    When ``source_publishes_row_date`` is false for the row's source URL and
-    the new evidence day is the observation, it may also replace the standalone
-    word ``read`` plus a date in the configuration, and change date_type from
-    ``published`` to ``evaluated``. ``re-read`` is not that citation. A dated
-    projector keeps both fields, including when this row's date value is
-    missing. An unknown source URL does too.
+    A row whose score, dates, id or sources changed may also change ``interval``
+    and ``n``. On that same row, ``configuration`` and ``benchmark_version``
+    may change, and ``effort`` may change from null to the level named by the
+    unchanged ``model_id_as_evaluated``. When ``source_publishes_row_date`` is
+    false for the row's source URL and the new evidence day is the observation,
+    a row may also replace the standalone word ``read`` plus a date in the
+    configuration, and change date_type from ``published`` to ``evaluated``.
+    ``re-read`` is not that citation. A dated projector keeps both fields,
+    including when this row's date value is missing. An unknown source URL
+    does too.
     """
+    refreshed = _reading_refreshed(before, after)
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
+    if refreshed:
+        for key in ("interval", "n", "benchmark_version"):
+            old.pop(key, None)
+            new.pop(key, None)
+        if _effort_refresh_allowed(before, after):
+            old.pop("effort", None)
+            new.pop("effort", None)
+        old.pop("configuration", None)
+        new.pop("configuration", None)
     dated_by_source = source_publishes_row_date(str(before.get("source_url") or ""))
     if old.get("configuration") != new.get("configuration"):
         if not observation_dated(
@@ -1567,8 +1604,10 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row whose source URL is an
-    observation projector, dated by the observation,
+    date, ID and source-snapshot binding. A row that changes one of those may
+    also change its interval and vote count, its configuration and benchmark
+    version, and its effort from null to the level its model id names. A row
+    whose source URL is an observation projector, dated by the observation,
     may also make its configuration's standalone ``read <date>`` and date_type
     match that date.
     A ``re-read`` phrase is not that edit. A dated projector keeps both fields,

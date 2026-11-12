@@ -1056,6 +1056,94 @@ def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path
     assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
+def test_score_only_check_accepts_interval_and_vote_count_on_a_refreshed_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    assert refresh.check_score_only(before, after).ok
+
+
+def test_score_only_check_accepts_effort_configuration_and_version_on_a_refreshed_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _card("2026-09-24").replace(
+        "model_id_as_evaluated: Stable Model",
+        "model_id_as_evaluated: example-model-high",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        "    effort: high\n"
+        "    configuration: rating 73.0\n"
+        "    benchmark_version: revision 0123456789ab\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    assert refresh.check_score_only(before, after).ok
+
+
+def test_score_only_check_refuses_a_changed_model_id(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "model_id_as_evaluated: Stable Model",
+        "model_id_as_evaluated: Other Model",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_changed_benchmark_id(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "benchmark_id: fixture_benchmark",
+        "benchmark_id: other_benchmark",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_changed_source_url(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "source_url: https://example.test/leaderboard.json",
+        "source_url: https://example.test/other.json",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_effort_the_card_id_does_not_name(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
 def test_a_sentence_that_quotes_no_reading_is_left_unchanged() -> None:
     text = "Text Arena overall, style-controlled"
     assert refresh._retell_reading(
