@@ -93,6 +93,8 @@ class DraftResult:
     offering_path: Path | None = None
     price_gaps: tuple[dict, ...] = ()
     price_sources: tuple[dict, ...] = ()
+    models_dev: str = ""
+    primary_host: str = ""
 
 
 @dataclass(frozen=True)
@@ -105,6 +107,7 @@ class GatherResult:
     supporting_urls: tuple[str, ...] = ()
     evidence_urls: tuple[str, ...] = ()
     gather_failures: tuple[str, ...] = ()
+    models_dev: str = ""
 
 
 @dataclass(frozen=True)
@@ -697,8 +700,9 @@ def _gather_unlisted(
         provider_id="",
         primary_url=primary.url,
         supporting_urls=tuple(supporting),
-        evidence_urls=tuple(dict.fromkeys((primary.url, models_dev_url, *supporting))),
+        evidence_urls=tuple(dict.fromkeys((primary.url, *supporting))),
         gather_failures=tuple(failures),
+        models_dev="not_listed",
     )
 
 
@@ -905,6 +909,16 @@ def draft_signal(
     supporting_urls = list(gathered.supporting_urls)
     huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
     api_docs_url = next((url for url in supporting_urls if url != huggingface_url), primary_url)
+    sources = {
+        "models_dev_url": (
+            f"https://models.dev/{gathered.provider_id}" if gathered.provider_id else ""
+        ),
+        "provider_docs_url": api_docs_url,
+        "huggingface_url": huggingface_url,
+        "last_scraped_pricing": "",
+    }
+    if gathered.models_dev != "not_listed":
+        sources["last_scraped_models_dev"] = accessed
     front = {
         "model_id": resolution.model_id,
         "display_name": display_name,
@@ -913,15 +927,7 @@ def draft_signal(
         "release_date": release_date,
         "cost": {},
         "benchmarks": {"scores": {}, "evidence": []},
-        "sources": {
-            "models_dev_url": (
-                f"https://models.dev/{gathered.provider_id}" if gathered.provider_id else ""
-            ),
-            "provider_docs_url": api_docs_url,
-            "huggingface_url": huggingface_url,
-            "last_scraped_models_dev": accessed,
-            "last_scraped_pricing": "",
-        },
+        "sources": sources,
         "card_schema_version": "3.0",
         "card_author": "release-signal-pipeline",
         "card_created": accessed,
@@ -966,6 +972,8 @@ def draft_signal(
         root / offering.offering_path if offering.offering_path else None,
         tuple(price_report["gaps"]),
         tuple(price_report["sources"]),
+        gathered.models_dev,
+        _page_host(primary_url) if gathered.models_dev == "not_listed" else "",
     )
 
 

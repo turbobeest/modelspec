@@ -2647,6 +2647,12 @@ def test_not_listed_uses_a_registered_lab_page_and_names_other_host_classes(
     assert primary in card.read_text(encoding="utf-8")
     assert "https://models.dev/api.json" in requested
     assert primary in requested
+    assert result["models_dev"] == "not_listed"
+    assert result["primary_host"] == host
+    assert all("models.dev" not in url for url in result["sources"])
+    drafted_front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert "last_scraped_models_dev" not in drafted_front["sources"]
+    assert "https://models.dev" not in card.read_text(encoding="utf-8")
 
     def run_blocked(row: dict[str, object], forbidden: str) -> dict:
         drafted = tmp_path / "models" / "acme" / "orbit-9.md"
