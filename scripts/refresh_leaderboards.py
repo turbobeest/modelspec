@@ -79,6 +79,7 @@ OBSERVATION_DATE_TYPE = "evaluated"
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "ModelSpec-Leaderboard-Refresh/1.0 (+https://modelspec.dev)"
 ARENA_DATASET = "lmarena-ai/leaderboard-dataset"
+ARENA_DATASET_ROOT = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
 ARENA_REVISION = readers.ARENA_REVISION
 #: Arena evidence rows written in one run. Premier cards are written first.
 #: Rows past this wait for the next run.
@@ -1668,47 +1669,83 @@ def _reading_refreshed(before: Mapping[str, Any], after: Mapping[str, Any]) -> b
     return any(before.get(key) != after.get(key) for key in _REFRESH_SIGNATURE)
 
 
-def _effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
-    """Effort may change only from null to the level the card id names."""
+def _arena_dataset_root_url(url: object) -> bool:
+    return str(url or "").rstrip("/") == ARENA_DATASET_ROOT
+
+
+def _arena_reading_row(row: Mapping[str, Any]) -> bool:
+    return (
+        str(row.get("benchmark_id") or "").startswith("arena_")
+        and _arena_dataset_root_url(row.get("source_url"))
+    )
+
+
+_MASK_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_MASK_HEX = re.compile(r"(?i)\b[0-9a-f]{7,40}\b")
+_MASK_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def _mask_quoted_figures(text: str) -> str:
+    """Dates, then hex strings, then numbers, so only the wording remains."""
+    masked = _MASK_DATE.sub("0", text)
+    masked = _MASK_HEX.sub("0", masked)
+    return _MASK_NUMBER.sub("0", masked)
+
+
+def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
+    """The canonical effort ``split_model_cell`` reads on this model id."""
+    text = str(model_id_as_evaluated or "")
+    found = structured_name_effort(text)
+    if found is not None:
+        return split_model_cell(f"({found})")[1]
+    return split_model_cell(text)[1]
+
+
+def _arena_effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Null or empty effort may become the canonical level, and nothing else."""
+    if before.get("model_id_as_evaluated") != after.get("model_id_as_evaluated"):
+        return False
     old, new = before.get("effort"), after.get("effort")
     if old == new:
         return True
     if old not in (None, ""):
         return False
-    if not isinstance(new, str) or not new.strip():
-        return False
-    named = effort_named_on_card(str(before.get("model_id_as_evaluated") or ""))
-    return named is not None and reading_effort("", new) == named
+    named = _verifier_named_effort(before.get("model_id_as_evaluated"))
+    return named is not None and new == named
 
 
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    A row whose score, dates, id or sources changed may also change ``interval``
-    and ``n``. On that same row, ``configuration`` and ``benchmark_version``
-    may change, and ``effort`` may change from null to the level named by the
-    unchanged ``model_id_as_evaluated``. When ``source_publishes_row_date`` is
-    false for the row's source URL and the new evidence day is the observation,
-    a row may also replace the standalone word ``read`` plus a date in the
-    configuration, and change date_type from ``published`` to ``evaluated``.
-    ``re-read`` is not that citation. A dated projector keeps both fields,
-    including when this row's date value is missing. An unknown source URL
-    does too.
+    On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
+    ``configuration`` may change only when the two strings match after dates,
+    hex strings and numbers are masked. ``effort`` may change only from null
+    or empty to the canonical level the unchanged ``model_id_as_evaluated``
+    names. ``benchmark_version`` never changes. On every other row, when
+    ``source_publishes_row_date`` is false and the new evidence day is the
+    observation, a row may replace the standalone word ``read`` plus a date
+    in the configuration, and change date_type from ``published`` to
+    ``evaluated``. ``re-read`` is not that citation. A dated projector keeps
+    both fields, including when this row's date value is missing. An unknown
+    source URL does too.
     """
     refreshed = _reading_refreshed(before, after)
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
-    if refreshed:
-        for key in ("interval", "n", "benchmark_version"):
+    if refreshed and _arena_reading_row(before) and _arena_reading_row(after):
+        for key in ("interval", "n"):
             old.pop(key, None)
             new.pop(key, None)
-        if _effort_refresh_allowed(before, after):
+        if _mask_quoted_figures(str(before.get("configuration") or "")) == _mask_quoted_figures(
+            str(after.get("configuration") or ""),
+        ):
+            old.pop("configuration", None)
+            new.pop("configuration", None)
+        if _arena_effort_refresh_allowed(before, after):
             old.pop("effort", None)
             new.pop("effort", None)
-        old.pop("configuration", None)
-        new.pop("configuration", None)
     dated_by_source = source_publishes_row_date(str(before.get("source_url") or ""))
     if old.get("configuration") != new.get("configuration"):
         if not observation_dated(
@@ -1758,12 +1795,13 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row that changes one of those may
-    also change its interval and vote count, its configuration and benchmark
-    version, and its effort from null to the level its model id names. A row
-    whose source URL is an observation projector, dated by the observation,
-    may also make its configuration's standalone ``read <date>`` and date_type
-    match that date.
+    date, ID and source-snapshot binding. A refreshed Arena dataset-root row
+    may also change its interval and vote count, a configuration whose wording
+    is unchanged once dates, hex strings and numbers are masked, and its
+    effort from null to the canonical level its model id names.
+    ``benchmark_version`` stays. A row whose source URL is an observation
+    projector, dated by the observation, may also make its configuration's
+    standalone ``read <date>`` and date_type match that date.
     A ``re-read`` phrase is not that edit. A dated projector keeps both fields,
     including when its date value is missing and when the stored evidence day
     already equals ``observed_at``. Verification JSONL files may only grow.

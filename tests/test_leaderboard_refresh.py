@@ -1056,7 +1056,23 @@ def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path
     assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
-def test_score_only_check_accepts_interval_and_vote_count_on_a_refreshed_row(
+def _arena_guard_card(observed_at: str, *, model: str = "Example Model (High)") -> str:
+    return _card(observed_at).replace(
+        "benchmark_id: fixture_benchmark", "benchmark_id: arena_text",
+    ).replace(
+        "source_url: https://example.test/leaderboard.json",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+    ).replace(
+        "model_id_as_evaluated: Stable Model", f"model_id_as_evaluated: {model}",
+    ).replace("unit: percent", "unit: Arena score (Elo scale)")
+
+
+def _guard_result(tmp_path: Path, before_text: str, after_text: str):
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+    return refresh.check_score_only(before, after)
+
+
+def test_score_only_check_refuses_interval_and_vote_count_on_a_non_arena_row(
     tmp_path: Path,
 ) -> None:
     before_text = _card("2026-09-24")
@@ -1064,28 +1080,146 @@ def test_score_only_check_accepts_interval_and_vote_count_on_a_refreshed_row(
         "    id: lab/model#stable\n",
         "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
     )
-    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+    result = _guard_result(tmp_path, before_text, after_text)
 
-    assert refresh.check_score_only(before, after).ok
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
-def test_score_only_check_accepts_effort_configuration_and_version_on_a_refreshed_row(
+def test_score_only_check_accepts_interval_and_vote_count_on_a_refreshed_arena_row(
     tmp_path: Path,
 ) -> None:
-    before_text = _card("2026-09-24").replace(
-        "model_id_as_evaluated: Stable Model",
-        "model_id_as_evaluated: example-model-high",
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/",
     )
     after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_accepts_a_figures_only_configuration_on_an_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
         "    date_type: published\n",
         "    date_type: published\n"
-        "    effort: high\n"
-        "    configuration: rating 73.0\n"
-        "    benchmark_version: revision 0123456789ab\n",
+        "    configuration: rating 1100, CI 1080 to 1120, votes 100, rank 4, "
+        "revision aaaaaaa, published 2026-09-01\n",
     )
-    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "rating 1100, CI 1080 to 1120, votes 100, rank 4, "
+        "revision aaaaaaa, published 2026-09-01",
+        "rating 1200.5, CI 1180 to 1220, votes 200, rank 3, "
+        "revision bbbbbbbbbbbb, published 2026-11-12",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
 
-    assert refresh.check_score_only(before, after).ok
+
+def test_score_only_check_refuses_a_configuration_wording_change_on_an_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: rating 1100 overall\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "rating 1100 overall", "rating 1200 on the style-controlled board",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_null_effort_becoming_the_canonical_level(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_non_canonical_effort_spelling(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: High\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_effort_changing_from_a_stored_value(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "effort: high", "effort: max",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_benchmark_version_on_any_row(tmp_path: Path) -> None:
+    for root_name, before_text in (
+        ("arena", _arena_guard_card("2026-09-24")),
+        ("other", _card("2026-09-24")),
+    ):
+        after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+            "    date_type: published\n",
+            "    date_type: published\n    benchmark_version: revision 0123456789ab\n",
+        )
+        result = _guard_result(tmp_path / root_name, before_text, after_text)
+        assert not result.ok
+        assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_the_arena_widening_on_a_non_arena_row(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24").replace(
+        "model_id_as_evaluated: Stable Model",
+        "model_id_as_evaluated: Example Model (High)",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: rating 1100\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "rating 1100", "rating 1200",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_arena_widening_when_the_source_is_not_the_dataset_root(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/main",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_score_only_check_refuses_a_changed_model_id(tmp_path: Path) -> None:
