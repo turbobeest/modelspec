@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -417,43 +418,52 @@ def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path,
     assert report.snapshot == snapshot.snapshot_id
 
 
-def test_data_pr_profile_omits_output_parity_and_records_why(monkeypatch) -> None:
+def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) -> None:
     snapshot = FakeSnapshot()
-    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: snapshot)
-    parity_calls = []
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: snapshot)
+    commands = []
 
-    def parity(*args, **kwargs):
-        parity_calls.append(args)
-        return accuracy.LayerResult("output_parity", "pass", True, "ran")
+    def run_command(name, command, cwd):
+        commands.append((name, tuple(command), Path(cwd)))
+        return accuracy.LayerResult(name, "pass", True, "ok", duration_seconds=0.1)
 
-    monkeypatch.setattr(accuracy, "output_parity", parity)
+    monkeypatch.setattr(accuracy, "_run_command", run_command)
     monkeypatch.setattr(
         accuracy, "deterministic_correctness",
         lambda *args: accuracy.LayerResult("deterministic_correctness", "pass", True, "ok"),
     )
+    monkeypatch.setattr(
+        accuracy, "run_golden",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", kwargs.get("gating", True), "ok",
+        ),
+    )
 
-    def recall(root, snapshot_file, as_of, *, gating, approved_baseline_path):
-        assert gating is True
-        return accuracy.LayerResult("frozen_image_engine_recall", "pass", gating, "ok")
-
-    monkeypatch.setattr(accuracy, "run_golden", recall)
     report = accuracy.run_profile(profile="data-pr")
+    config = accuracy.load_config()
+    parity_commands = [command for name, command, _cwd in commands if name == "output_parity"]
 
-    assert parity_calls == []
+    assert parity_commands == [
+        (sys.executable, "-m", "pytest", "-q", *config.parity.python_test_paths),
+    ]
+    assert all("vitest" not in command for command in parity_commands)
     assert [row.name for row in report.layers] == [
         "deterministic_correctness",
         "frozen_image_engine_recall",
         "output_parity",
+        "output_parity_web",
     ]
-    omitted = report.layers[-1]
+    assert report.layers[2].status == "pass"
+    assert report.layers[2].gating is True
+    omitted = report.layers[3]
     assert omitted.status == "report"
     assert omitted.gating is False
     assert omitted.summary == (
-        "Omitted: these suites read checked-in contract, vocabulary, "
-        "and registry fixtures, not the catalogue."
+        "Omitted: the vitest half reads checked-in fixtures and needs Node "
+        "packages the job does not install."
     )
     assert report.status == "pass"
-    assert "output_parity" not in accuracy.PROFILES["data-pr"]
+    assert "output_parity" in accuracy.PROFILES["data-pr"]
 
 
 def _engine_with_linked_models(tmp_path: Path) -> Path:

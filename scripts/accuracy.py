@@ -2,11 +2,13 @@
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
 The PR profile runs deterministic correctness, frozen-image engine recall, and
-output parity. The data-pr profile is that catalogue check for a release-signal
-card: the same two gates, with output parity reported as omitted because those
-suites read checked-in fixtures. The nightly profile gates current-data freshness,
-re-reads verified values, compares domain leaders with permitted independent
-boards, and reports recall changes without gating on them.
+output parity. The data-pr profile is the catalogue check for a release-signal
+card: those same gates, except the vitest half of output parity is reported as
+omitted. That half reads checked-in fixtures and needs Node packages the job
+does not install. The Python parity suites stay a gate because they read the
+catalogue. The nightly profile gates current-data freshness, re-reads verified
+values, compares domain leaders with permitted independent boards, and reports
+recall changes without gating on them.
 """
 
 from __future__ import annotations
@@ -38,12 +40,16 @@ DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
-    "data-pr": ("deterministic_correctness", "frozen_image_engine_recall"),
+    "data-pr": (
+        "deterministic_correctness",
+        "frozen_image_engine_recall",
+        "output_parity",
+    ),
     "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
-_DATA_PR_OMITTED_PARITY = (
-    "Omitted: these suites read checked-in contract, vocabulary, "
-    "and registry fixtures, not the catalogue."
+_DATA_PR_OMITTED_VITEST = (
+    "Omitted: the vitest half reads checked-in fixtures and needs Node "
+    "packages the job does not install."
 )
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
@@ -593,12 +599,25 @@ def deterministic_correctness(root: Path, config: SuiteConfig) -> LayerResult:
     )
 
 
-def output_parity(root: Path, config: SuiteConfig) -> LayerResult:
+def output_parity(root: Path, config: SuiteConfig, include_web: bool = True) -> LayerResult:
     python_result = _run_command(
         "output_parity",
         (sys.executable, "-m", "pytest", "-q", *config.python_test_paths),
         cwd=root,
     )
+    if not include_web:
+        failed = python_result.status == "fail"
+        return LayerResult(
+            "output_parity",
+            "fail" if failed else "pass",
+            True,
+            "Python output-parity suites passed."
+            if not failed
+            else "At least one output-parity suite failed.",
+            {"commands": 1, "failed": int(failed)},
+            [python_result.details],
+            round(python_result.duration_seconds or 0, 3),
+        )
     web_command = (
         "npm",
         "exec",
@@ -775,10 +794,10 @@ def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
         return ()
     return (
         LayerResult(
-            "output_parity",
+            "output_parity_web",
             "report",
             False,
-            _DATA_PR_OMITTED_PARITY,
+            _DATA_PR_OMITTED_VITEST,
             {"omitted": 1},
         ),
     )
@@ -1844,7 +1863,7 @@ def run_profile(
                 )
             )
         elif layer == "output_parity":
-            results.append(output_parity(root, config.parity))
+            results.append(output_parity(root, config.parity, profile != "data-pr"))
         elif layer == "data_fidelity":
             results.append(
                 data_fidelity(
