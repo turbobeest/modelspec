@@ -21,6 +21,7 @@ from release_signals import watch
 from release_signals.watch import (
     Registry,
     Response,
+    Seen,
     Source,
     SourceRun,
     _normalise,
@@ -543,6 +544,51 @@ def test_one_model_on_several_sources_shares_one_signal_id() -> None:
     assert len(long) == 128 and long.startswith("watch:acme:")
 
 
+def test_page_extraction_unwraps_serialised_ids_and_keeps_prose() -> None:
+    """A flight key `.$<id>.<digits>:` keeps the id. Other `$` matches are dropped."""
+    registry = load_registry()
+    anthropic = next(item for item in registry.sources if item.id == "anthropic-models")
+    openai = next(item for item in registry.sources if item.id == "openai-models")
+    deepseek = next(item for item in registry.sources if item.id == "deepseek-models")
+    page = (
+        '["$","section",".$claude-opus-4-20250514.1:$section"]\n'
+        "Listed: claude-opus-4-20250514, claude-opus-5.5, claude-opus-5.1, "
+        "claude-sonnet-4-5.1, and claude-sonnet-5.5.\n"
+    )
+    found = extract(anthropic, page.encode(), registry)
+    assert set(found) == {
+        "claude-opus-4-20250514",
+        "claude-opus-5.5",
+        "claude-opus-5.1",
+        "claude-sonnet-4-5.1",
+        "claude-sonnet-5.5",
+    }
+    assert signal_id(anthropic.provider, "claude-opus-5.5") == signal_id(
+        anthropic.provider, "claude-opus-5-5",
+    )
+
+    # The key is the only copy. A dotted id keeps its own dots and loses the index.
+    assert set(extract(anthropic, b".$claude-opus-5.5.1:", registry)) == {"claude-opus-5.5"}
+    assert set(extract(anthropic, b".$claude-opus-4-20250514.1:$x", registry)) == {
+        "claude-opus-4-20250514",
+    }
+
+    # A `$` prefix that is not `.$<id>.<digits>:` cannot be split from a version.
+    assert extract(anthropic, b'".0:$claude-opus-4-8.1"', registry) == {}
+
+    # `.$` without that index is still serialisation. A bare id stays.
+    prefix_only = ".$claude-opus-5.5 is serialised. claude-haiku-4-5 is listed."
+    assert set(extract(anthropic, prefix_only.encode(), registry)) == {"claude-haiku-4-5"}
+
+    # Text with no preceding `$` is kept, including a price glued on with `:$`.
+    assert set(extract(anthropic, b"notes claude-opus-4-20250514.1:$section", registry)) == {
+        "claude-opus-4-20250514.1",
+    }
+    assert set(extract(openai, b"gpt-6.1:$2.50", registry)) == {"gpt-6.1"}
+    assert set(extract(openai, b"gpt-7.1 is listed", registry)) == {"gpt-7.1"}
+    assert set(extract(deepseek, b"deepseek-v5.2:$1", registry)) == {"deepseek-v5.2"}
+
+
 # ── the two contracts stay apart ─────────────────────────────────────────────
 
 def _discovery(**changes: object) -> dict[str, object]:
@@ -719,6 +765,69 @@ def test_every_source_answering_exits_zero(world, tmp_path, monkeypatch) -> None
     monkeypatch.setattr(release_watch, "http_fetch", lambda user_agent: replay("after"))
     assert release_watch.main(["--registry", str(registry_path),
                                "--baseline", str(baseline_path)]) == 0
+
+
+def test_run_report_counts_filed_ids_whose_created_is_missing() -> None:
+    router = Source("router", "openrouter", OPENROUTER, 0.8, providers={"acme": "acme"})
+    page = Source("page", "page", PAGE, 0.9, provider="acme", pattern=r"orbit-[a-z0-9-]+")
+    registry = Registry("fixture", 30, r"gguf", r"sdk", (router, page))
+    recent = 1790712000
+
+    def fetch(url: str) -> Response:
+        if url.endswith("/robots.txt"):
+            return Response(404, b"")
+        if url == OPENROUTER:
+            return Response(200, json.dumps({"data": [
+                {"id": "acme/orbit-old", "created": 0},
+                {"id": "acme/orbit-new", "created": recent},
+                {"id": "acme/orbit-blank"},
+            ]}).encode())
+        return Response(200, b"orbit-4")
+
+    runs = run_all(
+        registry, {router.id: frozenset(), page.id: frozenset()}, fetch=fetch, now=NOW,
+    )
+    filed = [signal.model_name for signal in discoveries(runs, NOW)]
+    assert "orbit-old" not in filed
+    assert "orbit-blank" in filed
+    assert "orbit-4" in filed
+    result = release_watch.report(runs, discoveries(runs, NOW), None, NOW)
+    assert [row["missing_created"] for row in result["sources"]] == [1, 1]
+    text = release_watch.summary(result)
+    assert "`router` 1" in text
+    assert "`page` 1" not in text
+
+    hub = Source(
+        "hub", "huggingface", "https://huggingface.co/api/models?author=acme",
+        0.7, provider="acme",
+    )
+    hub_run = SourceRun(hub, "ok", "", 1, (
+        Seen("acme/orbit-hub", "orbit-hub", "acme", hub.url),
+    ))
+    mixed = release_watch.report(
+        [runs[0], hub_run, runs[1]], discoveries(runs, NOW), None, NOW,
+    )
+    assert [row["missing_created"] for row in mixed["sources"]] == [1, 1, 1]
+    mixed_text = release_watch.summary(mixed)
+    assert "`router` 1" in mixed_text and "`hub` 1" in mixed_text
+    assert "`page` 1" not in mixed_text
+    page_only = release_watch.report([runs[1]], discoveries(runs, NOW), None, NOW)
+    assert page_only["sources"][0]["missing_created"] == 1
+    assert "Filed with no created time" not in release_watch.summary(page_only)
+
+    # A carded id is rejected rather than filed, so its missing created time is not counted.
+    from release_signals.watch import Catalogue
+    carded = Catalogue(labs={}, aliases={"acme": frozenset({"orbit-4"})})
+    filtered = filter_releases(runs, NOW, catalogue=carded)
+    filed_report = release_watch.report(
+        runs, filtered["signals"], None, NOW, filtered=filtered,
+    )
+    assert [row["missing_created"] for row in filed_report["sources"]] == [1, 0]
+
+    burst = SourceRun(router, "burst", "2 new IDs at once, above 1", 2, runs[0].new)
+    held = release_watch.report([burst], [], None, NOW)
+    assert held["sources"][0]["missing_created"] == 0
+    assert "Filed with no created time" not in release_watch.summary(held)
 
 
 SHIM = '''
