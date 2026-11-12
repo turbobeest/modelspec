@@ -931,6 +931,7 @@ def gather_signal(
         str(listing[field]) for field in SUPPORTING_URL_FIELDS if listing.get(field)
     ))
     first_seen_kind = _accepted_page_kind(signal.first_seen_url, lab_hosts, hf_orgs)
+    preferred_first_seen = False
     if (
         not primary_candidates
         and provider_doc
@@ -939,6 +940,7 @@ def gather_signal(
     ):
         primary_candidates = [require_allowed_source(signal.first_seen_url)]
         raw_supporting = [url for url in raw_supporting if url != str(provider_doc)]
+        preferred_first_seen = True
     elif not primary_candidates:
         primary_candidates = [require_allowed_source(url) for url in raw_supporting]
     supporting_urls = [require_allowed_source(url) for url in raw_supporting]
@@ -946,6 +948,14 @@ def gather_signal(
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
     primary = _fetch_allowed(fetch, primary_url)
+    if preferred_first_seen:
+        final_kind = _accepted_page_kind(primary.url, lab_hosts, hf_orgs)
+        if final_kind not in {"lab", "huggingface-org"}:
+            return GatherResult(Resolution(
+                "uncertain", None, resolution.candidates,
+                f"host class {final_kind}",
+            ))
+        primary_url = primary.url
     try:
         display_name, release_date, identity_basis = _primary_identity(
             primary, signal.model_name, signal.provider,

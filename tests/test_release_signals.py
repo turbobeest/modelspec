@@ -3942,3 +3942,139 @@ def test_one_gather_signal_scans_the_catalogue_at_most_once(
     again = gather_signal(row, root=tmp_path, fetch=fetch)
     assert again.resolution.status == "existing"
     assert scans == 1
+
+
+def _run_listed(
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+    row: dict[str, object],
+    pages: dict[str, FetchResult],
+    *,
+    doc: str,
+) -> tuple[dict, list[str]]:
+    pending = root / "pending.json"
+    pending.write_text(json.dumps({"signals": [row]}), encoding="utf-8")
+    seen: list[str] = []
+    models_dev = "https://models.dev/api.json"
+
+    def fetch(url: str) -> FetchResult:
+        seen.append(url)
+        if url in pages:
+            return pages[url]
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+    result = processor.process(
+        pending, root / "result.json", root=root, price_fetcher=_PriceFetcher(),
+    )
+    return result, seen
+
+
+def _watch_lab_and_org(root: Path, host: str, org: str) -> None:
+    _watch_sources(
+        root,
+        "sources:\n"
+        "- id: acme-models\n"
+        "  kind: page\n"
+        f"  url: https://{host}/models\n"
+        "  provider: acme\n"
+        "  pattern: orbit\n"
+        "  confidence: 0.9\n"
+        "- id: hf-1\n"
+        "  kind: huggingface\n"
+        f"  org: {org}\n"
+        "  provider: acme\n"
+        "  confidence: 0.7\n",
+    )
+
+
+def test_a_first_seen_org_redirect_to_another_owner_stays_unregistered(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    requested = "https://huggingface.co/AcmeLab/orbit-9"
+    final = "https://huggingface.co/other-user/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:listed-redirect-owner",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        doc=doc,
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert doc not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_first_seen_lab_redirect_to_an_unregistered_host_stays_unregistered(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    requested = f"https://{host}/changelog/orbit-9"
+    final = "https://news.example/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:listed-redirect-host",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        doc=doc,
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert doc not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_first_seen_lab_redirect_to_the_org_repository_uses_the_repo_name(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab_and_org(tmp_path, host, "AcmeLab")
+    requested = f"https://{host}/changelog/orbit-9"
+    final = "https://huggingface.co/AcmeLab/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    result, seen = _run_listed(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:listed-redirect-repo",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Orbit 9</h1>", "text/html")},
+        doc=doc,
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "repo-name"
+    assert doc not in seen
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert front["sources"]["huggingface_url"] == final
+    assert front["sources"]["provider_docs_url"] == ""
+    assert requested not in front["sources"].values()
