@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -451,6 +454,118 @@ def test_data_pr_profile_omits_output_parity_and_records_why(monkeypatch) -> Non
     )
     assert report.status == "pass"
     assert "output_parity" not in accuracy.PROFILES["data-pr"]
+
+
+def _engine_with_linked_models(tmp_path: Path) -> Path:
+    repo = tmp_path / "engine"
+    private = tmp_path / "private-models"
+    (repo / "models").mkdir(parents=True)
+    private.mkdir()
+    (repo / "models" / "marker.txt").write_text("public\n", encoding="utf-8")
+    (private / "marker.txt").write_text("private\n", encoding="utf-8")
+    env = os.environ.copy()
+    env.update({
+        "GIT_AUTHOR_NAME": "test",
+        "GIT_AUTHOR_EMAIL": "test@example.com",
+        "GIT_COMMITTER_NAME": "test",
+        "GIT_COMMITTER_EMAIL": "test@example.com",
+    })
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "add", "models"], cwd=repo, check=True, capture_output=True, env=env)
+    subprocess.run(
+        ["git", "commit", "-m", "public image"], cwd=repo, check=True, capture_output=True, env=env,
+    )
+    shutil.rmtree(repo / "models")
+    (repo / "models").symlink_to(private)
+    return repo
+
+
+def test_run_golden_scores_the_committed_image_when_data_is_linked_out(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    repo = _engine_with_linked_models(tmp_path)
+    seen = {}
+
+    def fake_run(*, root, snapshot_file, output_dir, report_date):
+        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
+        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
+
+    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+    monkeypatch.setattr(
+        accuracy, "load_recall_baseline",
+        lambda path: accuracy.RecallBaseline(
+            snapshot="snap", as_of=date(2026, 11, 12), verdicts={},
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "recall_ratchet",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+
+    accuracy.run_golden(repo, None, date(2026, 11, 12), gating=True)
+
+    assert seen["marker"] == "public\n"
+
+
+def test_update_recall_baseline_reads_the_committed_image(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    repo = _engine_with_linked_models(tmp_path)
+    (repo / "tests" / "recall").mkdir(parents=True)
+    seen = {}
+
+    def fake_run(*, root, snapshot_file, output_dir, report_date):
+        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
+        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
+
+    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+    accuracy.update_recall_baseline(
+        root=repo, snapshot_file=None, as_of=date(2026, 11, 12),
+    )
+
+    assert seen["marker"] == "public\n"
+
+
+def test_run_golden_reads_data_that_stays_inside_the_root(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    (repo / "models" / "marker.txt").write_text("local\n", encoding="utf-8")
+    seen = {}
+
+    def fake_run(*, root, snapshot_file, output_dir, report_date):
+        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
+        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
+
+    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+    monkeypatch.setattr(
+        accuracy, "load_recall_baseline",
+        lambda path: accuracy.RecallBaseline(
+            snapshot="snap", as_of=date(2026, 11, 12), verdicts={},
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "recall_ratchet",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+
+    accuracy.run_golden(repo, None, date(2026, 11, 12), gating=True)
+
+    assert seen["marker"] == "local\n"
+
+
+def test_committed_public_image_recall_matches_the_baseline() -> None:
+    result = accuracy.run_golden(accuracy.ROOT, None, date.today(), gating=True)
+
+    assert result.status == "pass"
+    assert result.gating is True
+    assert result.counts["improvements"] == 0
+    assert result.counts["regressions"] == 0
 
 
 def _recall_question(
