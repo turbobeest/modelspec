@@ -1478,6 +1478,7 @@ def test_the_arena_row_cap_reports_rows_left(
     assert _scores(first)["arena_elo_overall"] == 1100.0
     assert _scores(second)["arena_elo_overall"] == 1100.0
     assert report.arena_rows_left == 2
+    assert report.boards["arena:arena_elo_overall"]["rows_planned_rewrites"] == 2
     assert "Arena rows left for the next run: 2" in refresh.render_report(report)
     path = tmp_path / "report.json"
     refresh.write_report_json(path, report)
@@ -1553,6 +1554,7 @@ def test_a_board_that_fits_is_written_and_the_next_board_waits(
     newer_summary = report.boards["arena:arena_webdev"]
     assert newer_summary["rows_left"] == 1
     assert newer_summary["rows_rewritten"] == 0
+    assert newer_summary["rows_planned_rewrites"] == 1
 
 
 def test_moving_arena_benchmarks_ignore_version_and_boardless_ids(tmp_path: Path) -> None:

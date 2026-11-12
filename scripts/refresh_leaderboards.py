@@ -1422,6 +1422,7 @@ def _refresh_arena_boards(
                 summary["failures"].append(reason)
         summary["rows_skipped"] = classes
         board_rewrites = sum(1 for write in writes if write[-1] == "rewrite") + len(additions)
+        summary["rows_planned_rewrites"] = board_rewrites
         if blocked:
             summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0)
             continue
