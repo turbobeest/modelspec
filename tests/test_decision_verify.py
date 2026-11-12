@@ -1726,6 +1726,8 @@ def test_an_empty_cache_skips_claims_and_leaves_them_queued(store, log) -> None:
         "no retained copy in this cache: seeded-model-page#specs",
     ]
     assert log.records() == []
+    assert report.counts["skipped"] == 2
+    assert report.counts["skipped_no_copy"] == 2
     pending, unknown = queue.pending()
     assert unknown == []
     assert [claim.target.id for claim in pending] == ["sol-default", "sol-context"]
@@ -2652,7 +2654,8 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
     assert again.exit_code == 0, again.output
     payload = json.loads(again.output)
     assert payload["changed_only"] is True
-    assert payload["counts"] == {"verified": 0, "mismatch": 0, "unreachable": 0, "skipped": 0}
+    assert payload["counts"] == {
+        "verified": 0, "mismatch": 0, "unreachable": 0, "skipped": 0, "skipped_no_copy": 0}
 
 
 def test_cli_claude_reader_uses_an_injected_extractor(tmp_path, store, monkeypatch) -> None:

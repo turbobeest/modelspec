@@ -7578,10 +7578,14 @@ class RunReport:
     @property
     def counts(self) -> dict[str, int]:
         counts = dict.fromkeys(("verified", "mismatch", "unreachable", "skipped"), 0)
+        skipped_no_copy = 0
         for r in self.results:
             if r.outcome == "cited":
                 counts.setdefault("cited", 0)
             counts[r.outcome] += 1
+            if r.outcome == "skipped" and _only_no_copy(r.reason):
+                skipped_no_copy += 1
+        counts["skipped_no_copy"] = skipped_no_copy
         return counts
 
     def to_dict(self) -> dict[str, Any]:
@@ -7596,6 +7600,14 @@ class RunReport:
             ],
             "unknown": [ref_str(t) for t in self.unknown],
         }
+
+
+def _only_no_copy(reason: str | None) -> bool:
+    """True when every segment of ``reason`` is an absent-copy skip."""
+    if not reason:
+        return False
+    parts = [part.strip() for part in reason.split(";")]
+    return all(part.startswith("no retained copy in this cache:") for part in parts)
 
 
 def ref_str(target: TargetRef) -> str:
