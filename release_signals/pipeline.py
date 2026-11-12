@@ -1030,8 +1030,14 @@ def draft_signal(
     release_date = gathered.release_date
     primary_url = gathered.primary_url
     supporting_urls = list(gathered.supporting_urls)
-    huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
-    api_docs_url = next((url for url in supporting_urls if url != huggingface_url), primary_url)
+    if gathered.primary_kind == "huggingface-org":
+        huggingface_url = primary_url
+        api_docs_url = ""
+    else:
+        huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
+        api_docs_url = next(
+            (url for url in supporting_urls if url != huggingface_url), primary_url,
+        )
     sources = {
         "models_dev_url": (
             f"https://models.dev/{gathered.provider_id}" if gathered.provider_id else ""

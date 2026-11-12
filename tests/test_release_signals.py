@@ -3420,6 +3420,29 @@ def test_huggingface_org_identity_is_the_repository_name_only(
     assert page in seen
 
 
+def test_a_huggingface_org_card_files_the_repository_as_huggingface_url(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/orbit-9"
+    result, _seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:filed-repo",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert front["sources"]["huggingface_url"] == page
+    assert front["sources"]["provider_docs_url"] == ""
+
+
 def test_a_lab_page_records_page_text_or_json_ld_identity(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
