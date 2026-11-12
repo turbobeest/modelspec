@@ -2837,6 +2837,8 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
               for k in ("verified", "mismatch", "unreachable", "skipped")}
     for outcome, n in counts.items():
         assert f"{outcome}: {n}" in result.output
+    assert "no copy:" in result.output
+    assert "skipped_no_copy" not in result.output
     assert "sol-max-filed-as-default" in result.output
     assert (root / "verification" / "log.jsonl").is_file()
 

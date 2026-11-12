@@ -1901,6 +1901,23 @@ def test_only_the_release_signals_verify_step_skips_absent_copies() -> None:
     assert "--skip-absent-copies" not in others
 
 
+def test_the_verify_step_writes_outcome_counts_to_the_step_summary() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["process"]["steps"]
+        if item.get("name") == "Validate cards and run two-key verification"
+    )
+    run = step["run"]
+    for label in (
+        "verified:", "mismatch:", "unreachable:", "skipped:",
+        "skipped for no copy:", "GITHUB_STEP_SUMMARY",
+    ):
+        assert label in run
+    assert "results" not in run
+
+
 def test_the_process_job_cannot_open_issues() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")

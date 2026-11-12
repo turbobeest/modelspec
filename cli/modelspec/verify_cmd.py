@@ -92,7 +92,11 @@ def verify(
     scope = "re-queued by change detection" if changed_only else "queued"
     typer.echo(f"Checked what was {scope}: {len(report.results)} value(s).")
     for outcome, n in report.counts.items():
+        if outcome == "skipped_no_copy":
+            continue
         typer.echo(f"  {outcome}: {n}")
+        if outcome == "skipped":
+            typer.echo(f"    no copy: {report.counts['skipped_no_copy']}")
     for r in report.results:
         if r.outcome == "verified":
             continue
