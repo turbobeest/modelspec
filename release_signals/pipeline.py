@@ -462,7 +462,7 @@ def _fetch_allowed(fetch: Callable[[str], FetchResult], url: str) -> FetchResult
 
 def _models_dev_listing(
     payload: object, provider: str, model_name: str, *, source_url: str,
-) -> tuple[str, dict]:
+) -> tuple[str, dict, str | None]:
     if not isinstance(payload, Mapping):
         raise RequiredSourceError(source_url, "models.dev returned no provider map")
     wanted_provider = attribution.normalise(provider)
@@ -503,10 +503,11 @@ def _models_dev_listing(
         )
     listing = matches[0]
     doc = provider_row.get("doc")
-    if doc and not listing.get("api_docs_url"):
+    provider_doc = None
+    if doc and "api_docs_url" not in listing:
         listing["api_docs_url"] = doc
-        listing["_provider_doc"] = doc
-    return str(provider_id), listing
+        provider_doc = doc
+    return str(provider_id), listing, provider_doc
 
 
 _JSON_LD_MAX_DEPTH = 64
@@ -634,7 +635,7 @@ def _primary_identity(
     expected_provider: str,
     lab_hosts: frozenset[str] = frozenset(),
     hf_orgs: frozenset[str] = frozenset(),
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     repo = _huggingface_org_repo(page.url, hf_orgs)
     if repo is not None:
         if attribution.normalise(repo[1]) == attribution.normalise(expected_name):
@@ -886,7 +887,7 @@ def gather_signal(
     listing_response = _fetch_allowed(fetch, models_dev_url)
     models_dev_payload = _load_required_json(listing_response)
     try:
-        provider_id, listing = _models_dev_listing(
+        provider_id, listing, provider_doc = _models_dev_listing(
             models_dev_payload, signal.provider, signal.model_name,
             source_url=listing_response.url,
         )
@@ -916,7 +917,6 @@ def gather_signal(
         ))
     lab_hosts = _signal_lab_hosts(root, signal, resolution)
     hf_orgs = _signal_hf_orgs(root, signal, resolution)
-    provider_doc = listing.pop("_provider_doc", None)
     primary_candidates = []
     for field in PRIMARY_URL_FIELDS:
         value = listing.get(field)
@@ -944,7 +944,6 @@ def gather_signal(
         preferred_first_seen = True
     elif not primary_candidates:
         primary_candidates = [require_allowed_source(url) for url in raw_supporting]
-    supporting_urls = [require_allowed_source(url) for url in raw_supporting]
     if not primary_candidates:
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
@@ -981,8 +980,11 @@ def gather_signal(
                 "uncertain", None, resolution.candidates, str(doc_exc)
             ))
         preferred_first_seen = False
-        if primary_url not in supporting_urls:
-            supporting_urls.append(primary_url)
+        if str(provider_doc) not in raw_supporting:
+            raw_supporting.append(str(provider_doc))
+    supporting_urls = list(dict.fromkeys(
+        require_allowed_source(url) for url in raw_supporting
+    ))
     for url in supporting_urls:
         _fetch_allowed(fetch, url)
 

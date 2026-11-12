@@ -2280,7 +2280,7 @@ def test_required_source_diagnostic_is_on_stderr(
     ],
 )
 def test_falsy_provider_row_is_an_empty_row(filler: object) -> None:
-    _provider_id, listing = _models_dev_listing(
+    _provider_id, listing, _provider_doc = _models_dev_listing(
         {
             "zzz": filler,
             "acme": {
@@ -2315,7 +2315,7 @@ def test_falsy_matching_provider_row_has_no_models_map(filler: object) -> None:
 
 
 def test_provider_matches_by_key_alone() -> None:
-    provider_id, listing = _models_dev_listing(
+    provider_id, listing, _provider_doc = _models_dev_listing(
         {"acme": {"models": {"orbit-2": {"id": "orbit-2", "name": "Orbit 2"}}}},
         "Acme",
         "Orbit 2",
@@ -2326,7 +2326,7 @@ def test_provider_matches_by_key_alone() -> None:
 
 
 def test_provider_matches_by_name_alone() -> None:
-    provider_id, listing = _models_dev_listing(
+    provider_id, listing, _provider_doc = _models_dev_listing(
         {
             "labs": {
                 "name": "Acme",
@@ -4298,3 +4298,112 @@ def test_both_identity_pages_fail_before_a_card_is_drafted(
     assert result["status"] == "uncertain"
     assert doc in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_primary_identity_reports_how_the_page_matched() -> None:
+    import typing
+
+    assert typing.get_type_hints(_primary_identity)["return"] == tuple[str, str, str]
+
+
+def test_an_explicit_empty_api_docs_url_is_left_empty() -> None:
+    doc = "https://docs.sibling.example/orbit-9"
+    _provider_id, listing, provider_doc = _models_dev_listing(
+        {"acme": {
+            "name": "Acme",
+            "doc": doc,
+            "models": {"orbit-9": {"id": "orbit-9", "name": "Orbit 9", "api_docs_url": ""}},
+        }},
+        "Acme",
+        "Orbit 9",
+        source_url="https://models.dev/api.json",
+    )
+
+    assert listing["api_docs_url"] == ""
+    assert provider_doc is None
+    assert listing.get("_provider_doc") != doc
+
+
+def test_a_model_row_does_not_supply_the_provider_doc() -> None:
+    doc = "https://docs.sibling.example/orbit-9"
+    evil = "https://evil.example/stolen"
+    _provider_id, listing, provider_doc = _models_dev_listing(
+        {"acme": {
+            "name": "Acme",
+            "doc": doc,
+            "models": {"orbit-9": {
+                "id": "orbit-9", "name": "Orbit 9", "_provider_doc": evil,
+            }},
+        }},
+        "Acme",
+        "Orbit 9",
+        source_url="https://models.dev/api.json",
+    )
+
+    assert listing["_provider_doc"] == evil
+    assert listing["api_docs_url"] == doc
+    assert provider_doc == doc
+
+
+def test_a_prohibited_supporting_url_does_not_raise_before_identity(tmp_path: Path) -> None:
+    from release_signals.pipeline import gather_signal
+
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-9"
+    release = "https://acme.example/models/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    payload = json.dumps({"acme": {
+        "name": "Acme",
+        "models": {"orbit-9": {
+            "id": "orbit-9", "name": "Orbit 9",
+            "release_url": release,
+            "api_docs_url": prohibited,
+        }},
+    }}).encode()
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, payload, "application/json")
+        if url == release:
+            return FetchResult(release, b"<html><title>weights</title></html>", "text/html")
+        raise AssertionError(url)
+
+    gathered = gather_signal(
+        ReleaseSignal.parse(signal(model_name="Orbit 9")),
+        root=tmp_path,
+        fetch=fetch,
+    )
+
+    assert gathered.resolution.status == "uncertain"
+    assert "does not identify" in gathered.resolution.reason
+
+
+def test_a_prohibited_supporting_url_is_refused_after_identity(tmp_path: Path) -> None:
+    from release_signals.pipeline import gather_signal
+
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-9"
+    release = "https://acme.example/models/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    payload = json.dumps({"acme": {
+        "name": "Acme",
+        "models": {"orbit-9": {
+            "id": "orbit-9", "name": "Orbit 9",
+            "release_url": release,
+            "api_docs_url": prohibited,
+        }},
+    }}).encode()
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, payload, "application/json")
+        if url == release:
+            return FetchResult(release, b"<h1>Acme releases Orbit 9</h1>", "text/html")
+        raise AssertionError(url)
+
+    with pytest.raises(ValueError, match="excluded source"):
+        gather_signal(
+            ReleaseSignal.parse(signal(model_name="Orbit 9")),
+            root=tmp_path,
+            fetch=fetch,
+        )
