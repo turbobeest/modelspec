@@ -63,7 +63,7 @@ Recall on that catalogue, date 2026-11-12, against the approved baseline already
 
 ## Round 2 review
 
-The writer does not write `benchmark_version`. In latest mode, before any Arena row is written, a planned rewrite whose `benchmark_version` names a dataset revision different from the revision read blocks every Arena write. The run reports one failure, `the cards' benchmark_version still names a revision`, and the count. A version with no revision proceeds. The revision that was read stays in the source snapshot, the audit record, and a configuration sentence that already quotes a revision.
+The writer does not write `benchmark_version`. In both revision modes, before any Arena row is written, a planned rewrite whose `benchmark_version` names a dataset revision different from the revision read blocks every Arena write. The run reports one failure, `the cards' benchmark_version still names a revision`, and the count. A version with no revision proceeds. The revision that was read stays in the source snapshot, the audit record, and a configuration sentence that already quotes a revision.
 
 Latest mode with no explicit model selection and no resolver fallback includes every catalogue row on each real Arena board, premier and non-premier. `_moving_arena_benchmarks` is not that inclusion rule. It ignores `benchmark_version`, and it ignores `arena_*` ids that are not in `ARENA_BOARDS`. Those rows are reported once as `arena_rows_without_board`. Pinned mode and an explicit model selection do not expand.
 

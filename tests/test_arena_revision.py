@@ -1446,8 +1446,8 @@ def test_the_arena_row_cap_reports_rows_left(
         "models:\n- model_id: lab/first\n- model_id: lab/second\n", encoding="utf-8",
     )
     _registry(root, {"model-160-arena-text": DATASET})
-    first = _named_arena_card(root, "lab/first", "1100.0", "aaaaaaaaaaaa")
-    second = _named_arena_card(root, "lab/second", "1100.0", "aaaaaaaaaaaa")
+    first = _named_arena_card(root, "lab/first", "1100.0", "")
+    second = _named_arena_card(root, "lab/second", "1100.0", "")
     monkeypatch.setattr(refresh, "ARENA_ROWS_PER_RUN", 1)
     cache = tmp_path / "copies"
     source_id = "model-160-arena-text"
@@ -1497,6 +1497,56 @@ def test_latest_mode_writes_nothing_when_benchmark_version_names_another_revisio
     assert _scores(other)["arena_elo_overall"] == 900.0
     reasons = [row.reason for row in report.failures if "benchmark_version still names a revision" in row.reason]
     assert reasons == ["the cards' benchmark_version still names a revision (2)"]
+    assert report.arena_rows_left == 0
+
+
+def test_pinned_mode_writes_when_benchmark_version_names_the_pin(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """Today's versions quote no other revision, so the pinned gate does not fire."""
+    root = tmp_path / "repo"
+    premier, other = _catalogue(root, cited=PIN[:12])
+
+    report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=False)
+
+    assert _scores(premier)["arena_elo_overall"] == 1200.0
+    assert _scores(other)["arena_elo_overall"] == 900.0
+    assert not any(
+        "benchmark_version still names a revision" in row.reason for row in report.failures
+    )
+    written = refresh._front(premier)["benchmarks"]["evidence"][0]["benchmark_version"]
+    assert PIN[:12] in written
+
+
+def test_pinned_mode_writes_when_benchmark_version_names_no_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    premier, _other = _catalogue(root, cited="")
+
+    report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=False)
+
+    assert _scores(premier)["arena_elo_overall"] == 1200.0
+    assert not any(
+        "benchmark_version still names a revision" in row.reason for row in report.failures
+    )
+
+
+def test_pinned_mode_writes_nothing_when_benchmark_version_names_another_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+
+    report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=False)
+
+    assert _scores(premier)["arena_elo_overall"] == 1100.0
+    assert _scores(other)["arena_elo_overall"] == 900.0
+    reasons = [
+        row.reason for row in report.failures
+        if "benchmark_version still names a revision" in row.reason
+    ]
+    assert reasons == ["the cards' benchmark_version still names a revision (1)"]
     assert report.arena_rows_left == 0
 
 
