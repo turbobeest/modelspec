@@ -834,7 +834,7 @@
     "pipeline/agent_copy.py":
       "ef4e75fe8acb53d93f69d5eaf8681767993ea916fff318eca8051819148faf1f",
     "pipeline/entity.py":
-      "9b02638ffd9992e30ed5a2b15e95befa7daa7397d999725f632a0893eb3972a7",
+      "7c0df9ffd75bbd46b2de1e31e6f4128236ec4c4b775ca8a16c4735f2f0a37e61",
     "pipeline/pricing.py":
       "79d7da2cf887ddfcb973da89b687e49330a812569beba0703e51108144ce7b52",
     "pipeline/worker_flags.py":

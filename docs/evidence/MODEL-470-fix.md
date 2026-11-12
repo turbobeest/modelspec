@@ -111,4 +111,8 @@ Both exited 0. The lint reported 0 findings and 5366 files. A second build of `5
 
 Phone metrics, both captures: `innerWidth` 390, `innerHeight` 844, `devicePixelRatio` 1, `scrollWidth` 390. On the current page the router line's two line boxes are 330px and 113px, and the element's scroll width equals its client width.
 
-Not observed here: the pull request's GitHub checks after this push, a browser session against modelspec.dev, and the `web/` test suite.
+The branch was behind `origin/main` (`3c9bc73a`, MODEL-468). That merge does not touch the round-2 files.
+
+The first GitHub check after the round-2 push failed while installing the package. `hatch_build.py` refused `cli/modelspec/agent-bundle.json` because the digest of `pipeline/entity.py` was stale. Pytest shards, the package smoke test, the rank Worker bundle, and the Worker memory job all stopped on that same `ValueError`. `python -m pipeline.agent_copy write` changed only that digest. `python -m pipeline.agent_copy check` exited 0.
+
+Not observed here: a browser session against modelspec.dev, and the `web/` test suite.
