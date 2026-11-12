@@ -468,7 +468,9 @@ _RANK_QUOTE = re.compile(r"(?i)\brank\s+(\d+)\b")
 _EFFORT_QUOTE = re.compile(
     r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
 )
-_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")
+# A number directly before a full stop is a token. A decimal point is part of the number.
+_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)")
+_TICKET_ID = re.compile(r"[A-Z]+-\d+")
 
 
 def _format_like(literal: str, value: float) -> str:
@@ -499,8 +501,10 @@ def _retell_reading(
     """Rewrite quoted publish date, rating, interval, votes, rank and revision.
 
     Returns None when a labeled quote cannot be replaced without leaving the
-    previous reading in the sentence. A sentence that quotes none of those
-    is returned unchanged. A quoted rank with no replacement rank is refused.
+    previous reading in the sentence. The stale check reads the sentence with
+    ISO dates and ticket ids removed, and it does not watch the old rank.
+    A sentence that quotes none of those is returned unchanged. A quoted rank
+    with no replacement rank is refused.
     """
     if not isinstance(text, str) or not text:
         return text if isinstance(text, str) else ""
@@ -511,7 +515,6 @@ def _retell_reading(
     quoted_rank = False
     quoted_publish = False
     quoted_revision = False
-    old_rank_number: float | None = None
     old_hex = ""
     loose_numbers: list[float] = []
 
@@ -562,13 +565,12 @@ def _retell_reading(
         return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
 
     def rank(match: re.Match[str]) -> str:
-        nonlocal unsafe, quoted_rank, old_rank_number
+        nonlocal unsafe, quoted_rank
         literal = match.group(1)
         if new_rank is None:
             unsafe = True
             return match.group(0)
         quoted_rank = True
-        old_rank_number = float(literal)
         return match.group(0).replace(literal, str(int(new_rank)), 1)
 
     def published(match: re.Match[str]) -> str:
@@ -629,8 +631,6 @@ def _retell_reading(
             watched.extend(float(item) for item in old_interval)
         if quoted_votes and old_n is not None:
             watched.append(float(old_n))
-        if quoted_rank and old_rank_number is not None:
-            watched.append(old_rank_number)
         watched.extend(loose_numbers)
         fresh = [float(new_score)]
         if new_interval is not None:
@@ -639,7 +639,8 @@ def _retell_reading(
             fresh.append(float(new_n))
         if quoted_rank and new_rank is not None:
             fresh.append(float(new_rank))
-        for token in _NUMBER_TOKEN.findall(text):
+        checked = _TICKET_ID.sub(" ", _MASK_DATE.sub(" ", text))
+        for token in _NUMBER_TOKEN.findall(checked):
             value = float(token)
             stale = any(_numbers_close(old, value) for old in watched)
             current = any(_numbers_close(item, value) for item in fresh)
@@ -2089,6 +2090,24 @@ def _mask_quoted_figures(text: str) -> str:
     return _MASK_NUMBER.sub("0", masked)
 
 
+def _text_outside_checked_figures(text: str) -> str:
+    """Characters that are not an ISO date and not a checked number token."""
+    spans = [match.span() for match in _MASK_DATE.finditer(text)]
+    spans.extend((start, start + len(token)) for start, token in _uncovered_numbers(text))
+    spans.sort()
+    kept: list[str] = []
+    cursor = 0
+    for start, end in spans:
+        if end <= cursor:
+            continue
+        if start < cursor:
+            start = cursor
+        kept.append(text[cursor:start])
+        cursor = end
+    kept.append(text[cursor:])
+    return "".join(kept)
+
+
 def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
     """Numbers outside a date or a hex revision, with the index of each token."""
     covered = [
@@ -2181,10 +2200,12 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
 
     On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
     ``configuration`` may change only when the two strings match after dates,
-    hex strings and numbers are masked, and every changed number is the after
-    row's score, an interval bound, ``n``, a date on that row, or the number
-    after ``rank``. ``effort`` may change only from null
-    or empty to the canonical level the unchanged ``model_id_as_evaluated``
+    hex strings and numbers are masked, every character outside a checked
+    number token and an ISO date is byte-identical, and every changed number
+    is the after row's score, an interval bound, ``n``, a date on that row,
+    or the number after ``rank``. A digit glued to a letter, a hex string,
+    and a run of 7 digits stay in that byte comparison. ``effort`` may change
+    only from null or empty to the canonical level the unchanged ``model_id_as_evaluated``
     names. ``benchmark_version`` never changes. On every other row, when
     ``source_publishes_row_date`` is false and the new evidence day is the
     observation, a row may replace the standalone word ``read`` plus a date
@@ -2206,6 +2227,8 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
         after_configuration = str(after.get("configuration") or "")
         if (
             _mask_quoted_figures(before_configuration) == _mask_quoted_figures(after_configuration)
+            and _text_outside_checked_figures(before_configuration)
+            == _text_outside_checked_figures(after_configuration)
             and _changed_figures_are_the_reading(before_configuration, after_configuration, after)
         ):
             old.pop("configuration", None)
@@ -2264,9 +2287,10 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     Existing evidence rows may change their score, observation/verification
     date, ID and source-snapshot binding. A refreshed Arena dataset-root row
     may also change its interval and vote count, a configuration whose wording
-    is unchanged once dates, hex strings and numbers are masked and whose
-    changed numbers are that row's own figures, and its
-    effort from null to the canonical level its model id names.
+    is unchanged once dates, hex strings and numbers are masked, whose
+    characters outside a checked number token and an ISO date are
+    byte-identical, and whose changed numbers are that row's own figures.
+    Its effort may change from null to the canonical level its model id names.
     ``benchmark_version`` stays. A row whose source URL is an observation
     projector, dated by the observation, may also make its configuration's
     standalone ``read <date>`` and date_type match that date.
