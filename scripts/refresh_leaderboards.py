@@ -1850,14 +1850,22 @@ def _measured_length(text: str, pr_url_budget: int) -> int:
     return len(text) + text.count(_PR_URL_TOKEN) * growth
 
 
-def _omitted_change_rows(count: int) -> str:
+def _omitted_rows(count: int, kind: str) -> str:
     if count == 1:
-        subject = "1 change row was left out"
+        subject = f"1 {kind} row was left out"
     else:
-        subject = f"{count} change rows were left out"
+        subject = f"{count} {kind} rows were left out"
     return (
         f"{subject}. The full report is in the run's {_REPORT_ARTIFACT} artifact."
     )
+
+
+def _omitted_change_rows(count: int) -> str:
+    return _omitted_rows(count, "change")
+
+
+def _omitted_failure_rows(count: int) -> str:
+    return _omitted_rows(count, "failure")
 
 
 def _opening_line(lines: list[str]) -> str:
@@ -1870,17 +1878,22 @@ def _opening_line(lines: list[str]) -> str:
     return ""
 
 
-def _markdown_table(lines: list[str], header_prefix: str) -> list[str]:
-    for index, line in enumerate(lines):
-        if not line.startswith(header_prefix):
+def _board_tables(lines: list[str]) -> list[list[str]]:
+    """Every markdown table whose header starts with ``| Board |``."""
+    tables: list[list[str]] = []
+    index = 0
+    while index < len(lines):
+        if not lines[index].startswith("| Board |"):
+            index += 1
             continue
-        table = [line]
+        table = [lines[index]]
         cursor = index + 1
         while cursor < len(lines) and lines[cursor].startswith("|"):
             table.append(lines[cursor])
             cursor += 1
-        return table
-    return []
+        tables.append(table)
+        index = cursor
+    return tables
 
 
 def _table_in_section(lines: list[str], heading: str) -> list[str]:
@@ -1909,40 +1922,68 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
     opening = _opening_line(lines)
     arena = next((line for line in lines if line.startswith("Arena revision:")), "")
     arena_left = next((line for line in lines if line.startswith("Arena rows left")), "")
-    board = _markdown_table(lines, "| Board |")
-    failures = _table_in_section(lines, "## Failures")
+    no_board = next((line for line in lines if line.startswith("Arena rows with no board:")), "")
+    boards = _board_tables(lines)
+    failure_table = _table_in_section(lines, "## Failures")
+    failure_header, failure_rows = (
+        (failure_table[:2], failure_table[2:]) if len(failure_table) >= 2 else (failure_table, [])
+    )
     change_header, change_rows = _change_table(lines)
 
-    def assemble(rows: list[str], omitted: int) -> str:
+    def assemble(
+        changes: list[str], omitted_changes: int,
+        failures: list[str], omitted_failures: int,
+    ) -> str:
         parts: list[str] = []
         if opening:
             parts.append(opening)
-        if arena:
-            parts.extend(["", arena] if parts else [arena])
-        if arena_left:
-            parts.extend(["", arena_left] if parts else [arena_left])
-        if board:
-            parts.extend(["", *board] if parts else list(board))
-        if failures:
-            block = ["## Failures", "", *failures]
+        for line in (arena, arena_left, no_board):
+            if line:
+                parts.extend(["", line] if parts else [line])
+        for table in boards:
+            parts.extend(["", *table] if parts else list(table))
+        if failures or omitted_failures:
+            block = ["## Failures", "", *failure_header, *failures]
             parts.extend(["", *block] if parts else block)
-        if rows:
-            block = ["## Score changes", "", *change_header, *rows]
+        if omitted_failures:
+            note = _omitted_failure_rows(omitted_failures)
+            parts.extend(["", note] if parts else [note])
+        if changes:
+            block = ["## Score changes", "", *change_header, *changes]
             parts.extend(["", *block] if parts else block)
-        if omitted:
-            note = _omitted_change_rows(omitted)
+        if omitted_changes:
+            note = _omitted_change_rows(omitted_changes)
             parts.extend(["", note] if parts else [note])
         return "\n".join(parts) + "\n"
 
-    kept: list[str] = []
-    for row in change_rows:
-        trial = kept + [row]
-        candidate = assemble(trial, len(change_rows) - len(trial))
-        if _measured_length(candidate, pr_url_budget) <= limit:
-            kept = trial
-        else:
-            break
-    return assemble(kept, len(change_rows) - len(kept))
+    def fits(changes: list[str], failures: list[str]) -> bool:
+        candidate = assemble(
+            changes, len(change_rows) - len(changes),
+            failures, len(failure_rows) - len(failures),
+        )
+        return _measured_length(candidate, pr_url_budget) <= limit
+
+    kept_changes: list[str] = []
+    kept_failures = list(failure_rows)
+    if fits(kept_changes, kept_failures):
+        for row in change_rows:
+            trial = kept_changes + [row]
+            if fits(trial, kept_failures):
+                kept_changes = trial
+            else:
+                break
+    else:
+        kept_failures = []
+        for row in failure_rows:
+            trial = kept_failures + [row]
+            if fits([], trial):
+                kept_failures = trial
+            else:
+                break
+    return assemble(
+        kept_changes, len(change_rows) - len(kept_changes),
+        kept_failures, len(failure_rows) - len(kept_failures),
+    )
 
 
 def fit_pull_request_body(
@@ -1953,9 +1994,9 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    per-board table and the failures table in full, then as many score-change
-    rows as fit. The cut is on a row boundary. One line says how many change
-    rows were left out and that the full report is in the run's
+    rows-left line, the no-board line, and both per-board tables in full.
+    Score-change rows are cut first, then failure rows, each on a row
+    boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.
     """
     if _measured_length(body, pr_url_budget) <= limit:

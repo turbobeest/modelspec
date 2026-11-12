@@ -1892,6 +1892,29 @@ def test_pull_request_body_over_the_limit_cuts_on_a_change_row() -> None:
     assert "leaderboard-refresh-report" in note
 
 
+def test_pull_request_body_keeps_both_board_tables_when_failures_are_cut() -> None:
+    report = _refresh_report(changes=2271, failures=1060)
+    report.boards["arena"].update(
+        rows_rewritten=10, rows_reconfirmed=2, rows_left=0, rows_skipped={"configuration": 3},
+    )
+    report.arena_rows_without_board = 19
+    body = _weekly_pull_request_body(report)
+    fitted = refresh.fit_pull_request_body(body)
+
+    assert len(fitted) < refresh._PR_BODY_LIMIT
+    assert "| Board | Models read |" in fitted
+    assert "| Board | Rewritten |" in fitted
+    assert "Arena rows with no board: 19" in fitted
+    failure_rows = _marked_lines(body, "`fail_bench`")
+    kept = _marked_lines(fitted, "`fail_bench`")
+    assert kept == failure_rows[:len(kept)]
+    assert len(kept) < len(failure_rows)
+    omitted = len(failure_rows) - len(kept)
+    note = next(line for line in fitted.splitlines() if "failure" in line and "left out" in line)
+    assert str(omitted) in note
+    assert "leaderboard-refresh-report" in note
+
+
 def test_pull_request_body_keeps_every_failure_row_when_changes_are_cut() -> None:
     body = _weekly_pull_request_body(_refresh_report(changes=40, failures=6))
     failure_rows = _marked_lines(body, "`fail_bench`")
