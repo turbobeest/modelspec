@@ -543,31 +543,49 @@ def test_one_model_on_several_sources_shares_one_signal_id() -> None:
     assert len(long) == 128 and long.startswith("watch:acme:")
 
 
-def test_page_extraction_skips_serialised_ids_and_keeps_listed_ones() -> None:
-    """A Next.js flight record `.$<id>.<digits>:$` is not a listed model id."""
+def test_page_extraction_unwraps_serialised_ids_and_keeps_prose() -> None:
+    """A flight key `.$<id>.<digits>:` keeps the id. Other `$` matches are dropped."""
     registry = load_registry()
-    source = next(item for item in registry.sources if item.id == "anthropic-models")
+    anthropic = next(item for item in registry.sources if item.id == "anthropic-models")
+    openai = next(item for item in registry.sources if item.id == "openai-models")
+    deepseek = next(item for item in registry.sources if item.id == "deepseek-models")
     page = (
         '["$","section",".$claude-opus-4-20250514.1:$section"]\n'
-        "Listed: claude-opus-4-20250514, claude-opus-5.5, and claude-sonnet-4-5.1.\n"
+        "Listed: claude-opus-4-20250514, claude-opus-5.5, claude-opus-5.1, "
+        "claude-sonnet-4-5.1, and claude-sonnet-5.5.\n"
     )
-    found = extract(source, page.encode(), registry)
+    found = extract(anthropic, page.encode(), registry)
     assert set(found) == {
         "claude-opus-4-20250514",
         "claude-opus-5.5",
+        "claude-opus-5.1",
         "claude-sonnet-4-5.1",
+        "claude-sonnet-5.5",
     }
-    assert signal_id(source.provider, "claude-opus-5.5") == signal_id(
-        source.provider, "claude-opus-5-5",
+    assert signal_id(anthropic.provider, "claude-opus-5.5") == signal_id(
+        anthropic.provider, "claude-opus-5-5",
     )
 
-    # Either marker is enough. `.1:$` with no `.$` prefix is still serialisation.
-    suffix_only = "notes claude-opus-4-20250514.1:$section"
-    assert extract(source, suffix_only.encode(), registry) == {}
+    # The key is the only copy. A dotted id keeps its own dots and loses the index.
+    assert set(extract(anthropic, b".$claude-opus-5.5.1:", registry)) == {"claude-opus-5.5"}
+    assert set(extract(anthropic, b".$claude-opus-4-20250514.1:$x", registry)) == {
+        "claude-opus-4-20250514",
+    }
 
-    # `.$` with no trailing suffix is still serialisation. A bare id stays.
+    # A `$` prefix that is not `.$<id>.<digits>:` cannot be split from a version.
+    assert extract(anthropic, b'".0:$claude-opus-4-8.1"', registry) == {}
+
+    # `.$` without that index is still serialisation. A bare id stays.
     prefix_only = ".$claude-opus-5.5 is serialised. claude-haiku-4-5 is listed."
-    assert set(extract(source, prefix_only.encode(), registry)) == {"claude-haiku-4-5"}
+    assert set(extract(anthropic, prefix_only.encode(), registry)) == {"claude-haiku-4-5"}
+
+    # Text with no preceding `$` is kept, including a price glued on with `:$`.
+    assert set(extract(anthropic, b"notes claude-opus-4-20250514.1:$section", registry)) == {
+        "claude-opus-4-20250514.1",
+    }
+    assert set(extract(openai, b"gpt-6.1:$2.50", registry)) == {"gpt-6.1"}
+    assert set(extract(openai, b"gpt-7.1 is listed", registry)) == {"gpt-7.1"}
+    assert set(extract(deepseek, b"deepseek-v5.2:$1", registry)) == {"deepseek-v5.2"}
 
 
 # ── the two contracts stay apart ─────────────────────────────────────────────
