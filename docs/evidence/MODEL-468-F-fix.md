@@ -8,7 +8,7 @@ Branch `model-468-f`. Base `b2a1f6404f7b43b9d6c75b81756e722f188f6765`. Implement
 - `2da8db8406504e53bcff52d2c602a70f2e185b19` process job timeout 30 minutes
 - `67d192e8130d6fe3c43f529e844d74546203a5b0` `skipped_no_copy` count
 
-The head is the commit that adds this file.
+This file was added in `a33a70d8bcc3ac1cb420378e07823c3f7066af3a`. The corrupt-copy distinction is `55c618eea2ab4a05f6f26ac1da1dda0d7bd5229f`.
 
 Python 3.14.4 and pytest 9.1.1, from `/Users/terbeest/dev/modelspec/.venv`. Focused pytest was serial, with no `-n` and no cache provider. Exit codes were read directly. No live network.
 
@@ -47,6 +47,18 @@ Exit 0. 456 passed in 2.15s.
 
 The release-signals process job `timeout-minutes` is 30. `test_the_process_job_cannot_open_issues` pins it.
 
+## CI follow-up
+
+Pull request 1057, workflow run 43244932426. Pytest shard 6/8 and shard 8/8 failed, and the `Run pytest` check failed because those shards failed. Three tests got `skipped` where they required `unreachable`: a corrupt copy, a deleted xAI page copy, and a deleted architecture config copy.
+
+A file at the copy path whose bytes do not hash to the ref is a retained copy that cannot be read. `miss_reason` returns `unreachable` when that path exists. A path that does not exist, with no failure marker, stays `no_copy`.
+
+The corrupt-copy case stays `unreachable`, reason `unreachable:pricing#page`, with a verification. The two deleted-copy cases are `skipped`, with no verification. Their reasons are `no retained copy in this cache: pricing#page` and `no retained copy in this cache: config#page`.
+
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_xai_matrix_reader.py tests/test_architecture_extractors.py`
+
+Exit 0. 501 passed in 0.94s. Same Python 3.14.4 and pytest 9.1.1.
+
 ## Not observed
 
-No full pytest suite, no site build, and no shard remeasure. No live fetch. No Worker deploy, no Linear write, and no merge. CI on the pull request had not been observed when this file was written.
+No full pytest suite locally, and no site build in this note. No live fetch. No Worker deploy, no Linear write, and no merge. The follow-up pull-request checks after the corrupt-copy commit had not been observed when this note was added.
