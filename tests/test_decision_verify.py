@@ -1660,7 +1660,7 @@ def test_a_fetch_that_failed_in_this_run_is_unreachable_and_logged(store, log) -
     state = fetched.states["seeded-missing"]
     assert state.consecutive_failures == 1
     assert state.quarantined is False
-    assert store.fetch_failed("seeded-missing")
+    assert not (store.root / "fetch-failures").exists()
     entry = next(row for row in SPEC["claims"] if row["id"] == "sol-copy-missing")
     src = entry["source"]
     claim = verify.Claim(
