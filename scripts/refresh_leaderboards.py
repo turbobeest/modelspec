@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Refresh evidence from registered live boards (MODEL-124 and MODEL-113).
 
-The weekly premier-set refresh updates existing evidence rows. A release-signal
+The weekly premier-set refresh updates existing evidence rows. In latest
+mode, every catalogue card with a row on a collected Arena board is refreshed
+with that board. A board is written whole or left whole. ``ARENA_ROWS_PER_RUN``
+counts rewritten rows and stops before the next board would pass it. A release-signal
 run may also add evidence to an explicitly selected existing card when one
 registered board row matches exactly and the board has an unambiguous metadata
 template. The refresh never adds a card or changes identity or licence facts.
@@ -41,13 +44,19 @@ from decision.model import (
     evidence_verification_value,
 )
 from decision.sources import CopyStore, load_sources
-from decision.units import unit_id
+from decision.units import UNITS, unit_id
 from decision.verify import (
     Claim,
+    Diff,
     Queue,
     StoredRegions,
     VerificationLog,
     deterministic_extractors,
+    numbers_agree,
+    parse_quantity,
+    split_model_cell,
+    structured_name_effort,
+    verify as verify_one,
 )
 from decision.verify import (
     run as verify_claims,
@@ -71,7 +80,10 @@ OBSERVATION_DATE_TYPE = "evaluated"
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "ModelSpec-Leaderboard-Refresh/1.0 (+https://modelspec.dev)"
 ARENA_DATASET = "lmarena-ai/leaderboard-dataset"
+ARENA_DATASET_ROOT = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
 ARENA_REVISION = readers.ARENA_REVISION
+#: Rewritten Arena rows in one run. A board that would pass this waits, whole.
+ARENA_ROWS_PER_RUN = 5000
 ARENA_BOARDS = {
     **readers.ARENA,
     "arena_webdev": ("webdev", "overall"),
@@ -173,6 +185,14 @@ class RowObservation:
     evidence_date: str
     #: ``source_publishes_row_date`` on the card row's source URL.
     source_dated: bool = False
+    #: The matched dataset row's reading. Empty until ``_plan_observations`` fills it.
+    reading_interval: tuple[float, float] | None = None
+    reading_n: int | None = None
+    reading_effort: str | None = None
+    reading_publish_date: str | None = None
+    reading_revision: str = ""
+    reading_checked: bool = False
+    reading_rank: int | None = None
 
     @property
     def changed(self) -> bool:
@@ -213,6 +233,12 @@ class RefreshReport:
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
     added: int = 0
+    #: Arena rows on boards this run left whole. Skips and a revision gate are not counted.
+    arena_rows_left: int = 0
+    #: Arena rows whose benchmark id is not one of ``ARENA_BOARDS``.
+    arena_rows_without_board: int = 0
+    #: Arena rows whose ``source_url`` is not the dataset root.
+    arena_rows_off_root: int = 0
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
@@ -379,11 +405,320 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _numbers_close(claimed: float, found: object) -> bool:
+    quantity = parse_quantity(str(found))
+    return quantity is not None and numbers_agree(float(claimed), None, quantity)
+
+
+def _matched_interval(
+    row: Mapping[str, Any], score: float,
+) -> tuple[tuple[float, float] | None, str | None]:
+    """Rounded rating bounds that contain ``score``, or a reason not to write."""
+    lower, upper = row.get("rating_lower"), row.get("rating_upper")
+    if lower is None and upper is None:
+        return None, None
+    if lower is None or upper is None:
+        return None, "matched row states only one side of the interval"
+    lo, hi = round(float(lower), 2), round(float(upper), 2)
+    if score < lo:
+        lo = round(float(score), 2)
+    if score > hi:
+        hi = round(float(score), 2)
+    if lo > hi or not (lo <= score <= hi):
+        return None, "matched interval does not contain the score"
+    if not _numbers_close(lo, lower) or not _numbers_close(hi, upper):
+        return None, "matched interval does not contain the score"
+    return (lo, hi), None
+
+
+def _matched_rank(row: Mapping[str, Any]) -> int | None:
+    value = row.get("rank")
+    if value is None or value == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not number.is_integer():
+        return None
+    return int(number)
+
+
+def _matched_votes(row: Mapping[str, Any]) -> int | None:
+    value = row.get("vote_count")
+    if value is None:
+        value = row.get("n")
+    if value is None:
+        return None
+    return int(value)
+
+
+_REVISION_QUOTE = re.compile(r"(?i)\brevision\s+([0-9a-f]{7,40})\b")
+_PUBLISH_QUOTE = re.compile(
+    r"(?i)\b(?:publication date|leaderboard_publish_date)\s+(\d{4}-\d{2}-\d{2})\b"
+)
+_OBSERVED_QUOTE = re.compile(r"(?i)\bObserved\s+(\d{4}-\d{2}-\d{2})\b")
+_RATING_QUOTE = re.compile(r"(?i)\brating\s+(-?\d+(?:\.\d+)?)")
+_BRACKET_QUOTE = re.compile(r"\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]")
+_CI_QUOTE = re.compile(
+    r"(?i)\b(?:ci|interval)\s+(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)"
+)
+_VOTES_QUOTE = re.compile(r"(?i)(?<!\w)(-?\d+(?:\.\d+)?)\s+votes\b")
+_RANK_QUOTE = re.compile(r"(?i)\brank\s+(\d+)\b")
+_EFFORT_QUOTE = re.compile(
+    r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
+)
+_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")
+
+
+def _format_like(literal: str, value: float) -> str:
+    if "." in literal:
+        return f"{value:.{len(literal.split('.', 1)[1])}f}"
+    rounded = round(value)
+    if abs(value - rounded) < 1e-9:
+        return str(int(rounded))
+    return f"{value:.2f}"
+
+
+def _retell_reading(
+    text: object,
+    *,
+    old_score: float,
+    new_score: float,
+    old_interval: object,
+    new_interval: tuple[float, float] | None,
+    old_n: object,
+    new_n: int | None,
+    old_dates: tuple[str, ...],
+    new_publish: str | None,
+    new_observed: str,
+    new_revision: str,
+    new_effort: str | None,
+    new_rank: int | None = None,
+) -> str | None:
+    """Rewrite quoted publish date, rating, interval, votes, rank and revision.
+
+    Returns None when a labeled quote cannot be replaced without leaving the
+    previous reading in the sentence. A sentence that quotes none of those
+    is returned unchanged. A quoted rank with no replacement rank is refused.
+    """
+    if not isinstance(text, str) or not text:
+        return text if isinstance(text, str) else ""
+    unsafe = False
+    quoted_score = False
+    quoted_interval = False
+    quoted_votes = False
+    quoted_rank = False
+    quoted_publish = False
+    quoted_revision = False
+    old_rank_number: float | None = None
+    old_hex = ""
+    loose_numbers: list[float] = []
+
+    def rating(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_score
+        literal = match.group(1)
+        if not _numbers_close(old_score, literal):
+            unsafe = True
+            return match.group(0)
+        quoted_score = True
+        return match.group(0).replace(literal, _format_like(literal, new_score), 1)
+
+    def bounds(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_interval
+        left, right = match.group(1), match.group(2)
+        if new_interval is None:
+            unsafe = True
+            return match.group(0)
+        if old_interval is None:
+            # The interval is quoted in the sentence and absent from the field.
+            # Rewrite it only when the quote contains the score it belongs to.
+            low, high = float(left), float(right)
+            if low > high or not (low <= float(old_score) <= high):
+                unsafe = True
+                return match.group(0)
+            loose_numbers.extend((low, high))
+        else:
+            low, high = old_interval
+            if not _numbers_close(float(low), left) or not _numbers_close(float(high), right):
+                unsafe = True
+                return match.group(0)
+        quoted_interval = True
+        rewritten = match.group(0).replace(left, _format_like(left, new_interval[0]), 1)
+        return rewritten.replace(right, _format_like(right, new_interval[1]), 1)
+
+    def votes(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_votes
+        literal = match.group(1)
+        if new_n is None:
+            unsafe = True
+            return match.group(0)
+        if old_n is not None and not _numbers_close(float(old_n), literal):
+            unsafe = True
+            return match.group(0)
+        if old_n is None:
+            loose_numbers.append(float(literal))
+        quoted_votes = True
+        return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
+
+    def rank(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_rank, old_rank_number
+        literal = match.group(1)
+        if new_rank is None:
+            unsafe = True
+            return match.group(0)
+        quoted_rank = True
+        old_rank_number = float(literal)
+        return match.group(0).replace(literal, str(int(new_rank)), 1)
+
+    def published(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_publish
+        if not new_publish:
+            unsafe = True
+            return match.group(0)
+        quoted_publish = True
+        return match.group(0).replace(match.group(1), new_publish, 1)
+
+    def observed(match: re.Match[str]) -> str:
+        return match.group(0).replace(match.group(1), new_observed, 1)
+
+    hexes = {item.lower() for item in _REVISION_QUOTE.findall(text)}
+    if len(hexes) > 1:
+        return None
+    vote_quotes = {float(value) for value in _VOTES_QUOTE.findall(text)}
+    if len(vote_quotes) > 1:
+        return None
+    bracket_quotes = {(float(low), float(high)) for low, high in _BRACKET_QUOTE.findall(text)}
+    if len(bracket_quotes) > 1:
+        return None
+    rank_quotes = {int(value) for value in _RANK_QUOTE.findall(text)}
+    if len(rank_quotes) > 1:
+        return None
+    if hexes:
+        old_hex = next(iter(hexes))
+        if not new_revision:
+            return None
+        quoted_revision = True
+        if not new_revision.lower().startswith(old_hex):
+            shortened = new_revision.lower()[:len(old_hex)]
+
+            def revision(match: re.Match[str]) -> str:
+                return match.group(0).replace(match.group(1), shortened, 1)
+
+            text = _REVISION_QUOTE.sub(revision, text)
+
+    text = _RATING_QUOTE.sub(rating, text)
+    text = _BRACKET_QUOTE.sub(bounds, text)
+    text = _CI_QUOTE.sub(bounds, text)
+    text = _VOTES_QUOTE.sub(votes, text)
+    text = _RANK_QUOTE.sub(rank, text)
+    text = _PUBLISH_QUOTE.sub(published, text)
+    text = _OBSERVED_QUOTE.sub(observed, text)
+    if new_effort and _EFFORT_QUOTE.search(text):
+        found_levels = {match.group(2).casefold() for match in _EFFORT_QUOTE.finditer(text)}
+        if len(found_levels) > 1:
+            return None
+        text = _EFFORT_QUOTE.sub(lambda match: f"{match.group(1)}{new_effort}", text)
+    if unsafe:
+        return None
+    if quoted_score or quoted_interval or quoted_votes or quoted_rank:
+        watched: list[float] = []
+        if quoted_score:
+            watched.append(float(old_score))
+        if quoted_interval and old_interval is not None:
+            watched.extend(float(item) for item in old_interval)
+        if quoted_votes and old_n is not None:
+            watched.append(float(old_n))
+        if quoted_rank and old_rank_number is not None:
+            watched.append(old_rank_number)
+        watched.extend(loose_numbers)
+        fresh = [float(new_score)]
+        if new_interval is not None:
+            fresh.extend(new_interval)
+        if new_n is not None:
+            fresh.append(float(new_n))
+        if quoted_rank and new_rank is not None:
+            fresh.append(float(new_rank))
+        for token in _NUMBER_TOKEN.findall(text):
+            value = float(token)
+            stale = any(_numbers_close(old, value) for old in watched)
+            current = any(_numbers_close(item, value) for item in fresh)
+            if stale and not current:
+                return None
+    if quoted_publish:
+        allowed = {day for day in (new_publish, new_observed) if day}
+        for day in old_dates:
+            if day and day not in allowed and day in text:
+                return None
+    if quoted_revision and old_hex and old_hex in text:
+        if not new_revision.lower().startswith(old_hex):
+            return None
+    return text
+
+
+def _copy_matched_reading(
+    old: Mapping[str, Any], observation: RowObservation, *, observed_at: str,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Copy the matched reading onto ``old``. None when that would contradict it."""
+    new = dict(old)
+    if not observation.reading_checked:
+        new["score"] = observation.new_value
+        return new, None
+    stored_effort = old.get("effort")
+    named_effort = _verifier_named_effort(old.get("model_id_as_evaluated"))
+    # Null effort may become the level the verifier reads on the model id.
+    # A stored effort stays. The dry run refuses a level the dataset does not show.
+    if stored_effort in (None, "") and named_effort is not None:
+        written_effort = named_effort
+    else:
+        written_effort = None if stored_effort in (None, "") else stored_effort
+    if old.get("interval") is not None and observation.reading_interval is None:
+        return None, "matched row does not state the interval this row quotes"
+    if old.get("n") is not None and observation.reading_n is None:
+        return None, "matched row does not state the vote count this row quotes"
+    if _RANK_QUOTE.search(str(old.get("configuration") or "")) and observation.reading_rank is None:
+        return None, "configuration quotes a rank the matched row does not state"
+    new["score"] = observation.new_value
+    if observation.reading_interval is not None:
+        new["interval"] = [observation.reading_interval[0], observation.reading_interval[1]]
+    if observation.reading_n is not None:
+        new["n"] = observation.reading_n
+    if written_effort is not None and stored_effort != written_effort:
+        new["effort"] = written_effort
+    old_dates = tuple(dict.fromkeys(filter(None, (
+        _iso_day(old.get("evidence_date")), _iso_day(old.get("observed_at")),
+    ))))
+    told = _retell_reading(
+        old.get("configuration") or "",
+        old_score=float(old.get("score")),
+        new_score=float(observation.new_value),
+        old_interval=old.get("interval"),
+        new_interval=observation.reading_interval,
+        old_n=old.get("n"),
+        new_n=observation.reading_n,
+        old_dates=old_dates,
+        new_publish=observation.reading_publish_date,
+        new_observed=_iso_day(observed_at),
+        new_revision=observation.reading_revision,
+        new_effort=written_effort,
+        new_rank=observation.reading_rank,
+    )
+    if told is None:
+        return None, "configuration still quotes the previous reading"
+    if told != (old.get("configuration") or ""):
+        new["configuration"] = told
+    new.pop("benchmark_version", None)
+    new["benchmark_version"] = old.get("benchmark_version")
+    return new, None
+
+
 def _plan_observations(
     model_id: str,
     card: str,
     evidence_rows: Sequence[Mapping[str, Any]],
     board: BoardReading,
+    *,
+    revision: str = "",
 ) -> tuple[list[RowObservation], list[RowFailure]]:
     """Plan observations of existing rows; never add one."""
     observations: list[RowObservation] = []
@@ -401,14 +736,25 @@ def _plan_observations(
                 f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
             ))
             continue
-        new = _value(board, match, evidence.get("unit"))
-        if str(evidence.get("benchmark_id", "")).startswith("arena_"):
-            new = round(new, 2)
+        raw = _value(board, match, evidence.get("unit"))
         old = float(evidence["score"])
+        new = raw
         if readers.numbers_agree(old, evidence.get("unit"),
                                  readers.parse_quantity(str(new), evidence.get("unit"))):
             new = old
+        interval, interval_reason = _matched_interval(match, new)
+        if interval_reason:
+            failures.append(RowFailure(
+                model_id, str(evidence.get("benchmark_id")), board.source_url,
+                interval_reason,
+            ))
+            continue
         source_date = _source_measurement_date(match)
+        cited = _cited_shas(board.source_url)
+        arena_board = board.key.startswith("arena:")
+        # The Arena revision belongs to Arena boards. Another board keeps a
+        # commit its own URL cites, and otherwise none.
+        board_revision = (cited[-1] if cited else revision) if arena_board else (cited[-1] if cited else "")
         observations.append(RowObservation(
             card=card,
             model_id=model_id,
@@ -420,6 +766,12 @@ def _plan_observations(
             observed_date=board.observed_at,
             evidence_date=source_date or board.observed_at,
             source_dated=source_publishes_row_date(str(evidence.get("source_url") or "")),
+            reading_interval=interval if arena_board else None,
+            reading_n=_matched_votes(match) if arena_board else None,
+            reading_publish_date=source_date if arena_board else None,
+            reading_revision=board_revision,
+            reading_checked=arena_board,
+            reading_rank=_matched_rank(match) if arena_board else None,
         ))
     return observations, failures
 
@@ -475,7 +827,9 @@ def _rewrite_card(
         lines = block.splitlines()
         if fields is None:
             names = [
-                name for name in (*always, "date_type", "configuration")
+                name for name in (
+                    *always, "date_type", "configuration", "interval", "n", "effort",
+                )
                 if name in always or replacement.get(name) != row.get(name)
             ]
         else:
@@ -573,6 +927,39 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         collector=COLLECTOR,
         sources=(source,),
     )
+
+
+def _verifier_skip_reason(
+    model_id: str,
+    front: Mapping[str, Any],
+    row: Mapping[str, Any],
+    board: BoardReading,
+    regions: StoredRegions,
+    observed_at: str,
+    extractors: Sequence[Any],
+) -> tuple[str | None, tuple[Diff, ...], str]:
+    """The verifier's refusal, its diffs, and an outcome tag.
+
+    ``unowned`` means the page was read and no row belonged to the claim.
+    Skip classes read the diffs. The reason text is not a class.
+    """
+    result = verify_one(
+        _claim(model_id, front, row, board),
+        regions,
+        extractors,
+        today=date.fromisoformat(observed_at),
+    )
+    diffs = tuple(result.diffs)
+    if result.outcome == "verified":
+        return None, (), ""
+    if diffs:
+        return "; ".join(
+            f"verifier: {diff.field} expected {diff.expected!r} found {diff.found!r}"
+            for diff in diffs
+        ), diffs, ""
+    if result.outcome == "skipped" and not (result.reason or "").strip():
+        return "verifier: skipped", (), "unowned"
+    return f"verifier: {result.reason or result.outcome}", (), ""
 
 
 def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -767,6 +1154,159 @@ def _sha_agrees(cited: str, revision: str) -> bool:
     return longer.startswith(short)
 
 
+def _arena_rows_without_board(root: Path) -> int:
+    """Rows whose benchmark id starts with ``arena_`` and is not a known board."""
+    count = 0
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping):
+                continue
+            benchmark = str(row.get("benchmark_id") or "")
+            if benchmark.startswith("arena_") and benchmark not in ARENA_BOARDS:
+                count += 1
+    return count
+
+
+def _arena_rows_off_root(root: Path) -> int:
+    """Arena rows whose ``source_url`` is not the dataset root."""
+    count = 0
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping):
+                continue
+            benchmark = str(row.get("benchmark_id") or "")
+            if (
+                benchmark.startswith("arena_")
+                and not _arena_dataset_root_url(row.get("source_url"))
+            ):
+                count += 1
+    return count
+
+
+def _version_names_other_revision(version: object, revision: str) -> bool:
+    return any(
+        not _sha_agrees(quoted.lower(), revision.lower())
+        for quoted in _REVISION_QUOTE.findall(str(version or ""))
+    )
+
+
+def _configuration_without_observed(value: object) -> object:
+    """The configuration with the date inside each ``Observed <date>`` removed."""
+    if not isinstance(value, str):
+        return value
+    return _OBSERVED_QUOTE.sub(
+        lambda match: match.group(0).replace(match.group(1), ""), value,
+    )
+
+
+def _reading_changed(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
+    """True when the reading changed.
+
+    A new date inside an existing ``Observed <date>`` phrase is not a new
+    reading. Adding or removing that phrase still is.
+    """
+    if any(old.get(key) != new.get(key) for key in ("score", "interval", "n", "effort")):
+        return True
+    return (
+        _configuration_without_observed(old.get("configuration"))
+        != _configuration_without_observed(new.get("configuration"))
+    )
+
+
+def _shown_quantity(shown: object):
+    if shown is None or isinstance(shown, (bool, list, dict)):
+        return None
+    return parse_quantity(str(shown))
+
+
+def _magnitudes_disagree(expected: object, found: object) -> bool | None:
+    """Whether two shown readings name different numbers, ignoring unit dimension."""
+    left = _shown_quantity(expected)
+    right = _shown_quantity(found)
+    if left is None or right is None:
+        return None
+    return not numbers_agree(left.number, None, right)
+
+
+def _unit_dimension(unit: str | None) -> str | None:
+    if not unit:
+        return None
+    canonical = unit_id(unit) or unit
+    return UNITS.get(canonical, (canonical, 1.0))[0]
+
+
+def _class_from_verifier_diffs(diffs: Sequence[Diff]) -> str:
+    """What a verifier refusal was. The reason text is not consulted.
+
+    ``unit`` is only a real dimension difference on an equal number. A different
+    number on a row the verifier owns is ``other-row``, including when the diff
+    field says ``unit`` because the card's unit string is not the canonical id.
+    """
+    concrete = [
+        diff for diff in diffs
+        if diff.field in {"unit", "value", "score"} and diff.found is not None
+    ]
+    if any(_magnitudes_disagree(diff.expected, diff.found) is True for diff in concrete):
+        return "other-row"
+    # An effort diff means the verifier owned the row. A score found of None beside
+    # it is the unconfirmed score, not a row the verifier does not own.
+    if any(diff.field == "effort" for diff in diffs):
+        return "effort"
+    score_absent = any(diff.field == "score" and diff.found is None for diff in diffs)
+    if score_absent and not concrete:
+        return "not-owned"
+    for diff in concrete:
+        if _magnitudes_disagree(diff.expected, diff.found) is not False:
+            continue
+        left = _shown_quantity(diff.expected)
+        right = _shown_quantity(diff.found)
+        if left is None or right is None:
+            continue
+        if _unit_dimension(left.unit) != _unit_dimension(right.unit):
+            return "unit"
+    return "verifier"
+
+
+def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> str:
+    if outcome == "unowned" and not diffs:
+        return "not-owned"
+    if diffs:
+        return _class_from_verifier_diffs(diffs)
+    text = reason.lower()
+    if "no unique row" in text:
+        return "no-unique-row"
+    if text.startswith("verifier"):
+        return "verifier"
+    if "interval" in text:
+        return "interval"
+    if "rank" in text:
+        return "rank"
+    if "configuration" in text:
+        return "configuration"
+    return "other"
+
+
+def _cards_on_benchmarks(root: Path, benchmarks: set[str], skip: set[str]) -> dict[str, Path]:
+    """Catalogue cards, other than ``skip``, that have a row on ``benchmarks``."""
+    found: dict[str, Path] = {}
+    if not benchmarks:
+        return found
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        if not model_id or model_id in skip:
+            continue
+        rows = (front.get("benchmarks") or {}).get("evidence") or []
+        if any(
+            str(row.get("benchmark_id") or "") in benchmarks
+            for row in rows if isinstance(row, Mapping)
+        ):
+            found[model_id] = path
+    return found
+
+
 def registry_revision_conflict(registered: Mapping[str, Any], boards: Sequence[BoardReading],
                               revision: str) -> list[str]:
     """Arena source ids whose registry URL names a commit other than ``revision``.
@@ -805,6 +1345,215 @@ def choose_arena_revision(latest: bool) -> readers.ArenaRevision:
     return chosen
 
 
+def _relevant_rows(front: Mapping[str, Any], board: BoardReading) -> list[Mapping[str, Any]]:
+    accepted = board.card_urls or frozenset({board.source_url})
+    rows = (front.get("benchmarks") or {}).get("evidence") or []
+    return [
+        row for row in rows
+        if row.get("benchmark_id") in board.benchmark_ids
+        and str(row.get("source_url") or "") in accepted
+    ]
+
+
+def _write_age(writes: Sequence[tuple]) -> str:
+    """Oldest stored day among rows this run will write. A missing day sorts first."""
+    days = [
+        _iso_day(old.get("observed_at"))
+        for _path, _model, old, _prepared, _observation, _kind in writes
+    ]
+    return min(days) if days else ""
+
+
+def _prepare_refreshed_row(
+    model_id: str,
+    old: Mapping[str, Any],
+    observation: RowObservation,
+    board: BoardReading,
+    front: Mapping[str, Any],
+    regions: StoredRegions,
+    extractors: Sequence[Any],
+    observed_at: str,
+) -> tuple[dict[str, Any] | None, str | None, tuple[Diff, ...], str]:
+    new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
+    if new is None:
+        return None, reason or "reading was not rewritten", (), ""
+    new["evidence_date"] = observation.evidence_date
+    new["observed_at"] = observed_at
+    new["verified_at"] = observed_at
+    new = align_observation_dating(new)
+    new["sources"] = [SourceRef(
+        source_id=board.source_id,
+        snapshot_ref=board.snapshot_ref,
+        cited_regions=["rows"],
+    ).model_dump(mode="json")]
+    new["id"] = evidence_id(model_id, new)
+    if observation.reading_checked:
+        reason, diffs, outcome = _verifier_skip_reason(
+            model_id, front, new, board, regions, observed_at, extractors,
+        )
+        if reason:
+            return None, reason, diffs, outcome
+    return new, None, (), ""
+
+
+def _refresh_arena_boards(
+    *,
+    root: Path,
+    report: RefreshReport,
+    boards: Sequence[BoardReading],
+    premier: Mapping[str, Path],
+    extras: Mapping[str, Path],
+    fronts: Mapping[str, Any],
+    registered: Mapping[str, Any],
+    regions: StoredRegions,
+    extractors: Sequence[Any],
+    observed_at: str,
+    revision: str,
+    gate: bool,
+    add_missing: bool,
+    pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]],
+    pending_additions: dict[Path, list[dict[str, Any]]],
+    claims: list[Claim],
+) -> None:
+    """Write each Arena board whole, oldest planned write first, or leave it whole."""
+    report.arena_rows_without_board = _arena_rows_without_board(root)
+    report.arena_rows_off_root = _arena_rows_off_root(root)
+    catalogue = {**premier, **extras}
+    arena_boards = [board for board in boards if board.key.startswith("arena:")]
+    plans: list[tuple[
+        BoardReading,
+        list[tuple[Any, ...]],
+        list[tuple[str, str, str, tuple[Diff, ...], str]],
+        list[tuple[Path, str, dict[str, Any]]],
+    ]] = []
+    for board in arena_boards:
+        summary = report.board(board.key)
+        if board.source_id not in registered:
+            failure = RowFailure(
+                "*", ",".join(sorted(board.benchmark_ids)), board.source_url,
+                f"source is not registered: {board.source_id}",
+            )
+            report.failures.append(failure)
+            summary["failures"].append(failure.reason)
+            summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0, rows_skipped={})
+            continue
+        writes: list[tuple[Any, ...]] = []
+        skips: list[tuple[str, str, str, tuple[Diff, ...], str]] = []
+        additions: list[tuple[Path, str, dict[str, Any]]] = []
+        models_read: set[str] = set()
+        for model_id, path in catalogue.items():
+            relevant = _relevant_rows(fronts[model_id], board)
+            if not relevant:
+                if add_missing and model_id in premier:
+                    added, failures = _new_evidence(
+                        root=root, model_id=model_id, front=fronts[model_id], board=board,
+                    )
+                    for failure in failures:
+                        skips.append((failure.model_id, failure.benchmark, failure.reason, (), ""))
+                    if added:
+                        models_read.add(model_id)
+                        additions.extend((path, model_id, row) for row in added)
+                continue
+            for row in relevant:
+                if _match(board, row) is not None:
+                    models_read.add(model_id)
+            observations, failures = _plan_observations(
+                model_id, path.relative_to(root).as_posix(), relevant, board, revision=revision,
+            )
+            for failure in failures:
+                skips.append((failure.model_id, failure.benchmark, failure.reason, (), ""))
+            for observation in observations:
+                old = next(row for row in relevant
+                           if row["benchmark_id"] == observation.benchmark
+                           and row.get("model_id_as_evaluated") == observation.model
+                           and float(row["score"]) == observation.old_value)
+                prepared, reason, diffs, outcome = _prepare_refreshed_row(
+                    model_id, old, observation, board, fronts[model_id],
+                    regions, extractors, observed_at,
+                )
+                if prepared is None:
+                    skips.append((
+                        model_id, observation.benchmark,
+                        reason or "reading was not rewritten", diffs, outcome,
+                    ))
+                    continue
+                kind = "rewrite" if _reading_changed(old, prepared) else "reconfirm"
+                writes.append((path, model_id, old, prepared, observation, kind))
+        summary["models_read"] = len(models_read)
+        plans.append((board, writes, skips, additions))
+    plans.sort(key=lambda item: (_write_age(item[1]), item[0].key))
+
+    blocked = 0
+    if gate:
+        blocked = sum(
+            1
+            for _board, writes, _skips, _additions in plans
+            for _path, _model, old, _prepared, _observation, _kind in writes
+            if _version_names_other_revision(old.get("benchmark_version"), revision)
+        )
+        if blocked:
+            report.failures.append(RowFailure(
+                "*", "arena", readers.ARENA_DATASET_API,
+                f"the cards' benchmark_version still names a revision ({blocked})",
+            ))
+    rewrites = 0
+    stopped = False
+    for board, writes, skips, additions in plans:
+        summary = report.board(board.key)
+        classes: dict[str, int] = {}
+        for model_id, benchmark, reason, diffs, outcome in skips:
+            kind = _skip_class(reason, diffs, outcome)
+            classes[kind] = classes.get(kind, 0) + 1
+            if not blocked:
+                report.failures.append(RowFailure(model_id, benchmark, board.source_url, reason))
+                summary["failures"].append(reason)
+        summary["rows_skipped"] = classes
+        board_rewrites = sum(1 for write in writes if write[-1] == "rewrite") + len(additions)
+        summary["rows_planned_rewrites"] = board_rewrites
+        if blocked:
+            summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0)
+            continue
+        if board_rewrites > ARENA_ROWS_PER_RUN:
+            reason = (
+                f"board is too large for the cap "
+                f"({board_rewrites} rewrites, cap {ARENA_ROWS_PER_RUN})"
+            )
+            failure = RowFailure(
+                "*", ",".join(sorted(board.benchmark_ids)), board.source_url, reason,
+            )
+            report.failures.append(failure)
+            summary["failures"].append(reason)
+            summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0)
+            continue
+        if stopped or rewrites + board_rewrites > ARENA_ROWS_PER_RUN:
+            stopped = True
+            summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=len(writes) + len(additions))
+            report.arena_rows_left += len(writes) + len(additions)
+            continue
+        rewrites += board_rewrites
+        summary["rows_rewritten"] = sum(1 for write in writes if write[-1] == "rewrite")
+        summary["rows_reconfirmed"] = sum(1 for write in writes if write[-1] == "reconfirm")
+        summary["rows_left"] = 0
+        reconfirmed_models: set[str] = set()
+        for path, model_id, old, prepared, observation, kind in writes:
+            pending_updates.setdefault(path, []).append((evidence_key(old), prepared))
+            claims.append(_claim(model_id, fronts[model_id], prepared, board))
+            if observation.changed:
+                report.changes.append(observation.score_change())
+            else:
+                report.reconfirmed.append(observation)
+                reconfirmed_models.add(model_id)
+        for path, model_id, row in additions:
+            pending_additions.setdefault(path, []).append(row)
+            claims.append(_claim(model_id, fronts[model_id], row, board))
+            report.added += 1
+        summary["models_reconfirmed"] += len(reconfirmed_models)
+        summary["values_changed"] = sum(
+            1 for change in report.changes
+            if change.source == board.source_url and change.benchmark in board.benchmark_ids
+        )
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         source_cache: Path | None = None,
         model_ids: Iterable[str] | None = None,
@@ -813,7 +1562,15 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     date.fromisoformat(observed_at)
     latest = arena_revision_setting(arena_latest)
     chosen = choose_arena_revision(latest)
-    cards = _selected_cards(root, model_ids)
+    premier = _selected_cards(root, model_ids)
+    extras: dict[str, Path] = {}
+    # Latest mode, and only the weekly path (no explicit model_ids), refreshes
+    # every catalogue card on a real Arena board. Pinned mode and an explicit
+    # selection stay on the selected cards. A resolver fallback does not expand.
+    if model_ids is None and latest and chosen.fallback is None:
+        extras = _cards_on_benchmarks(root, set(ARENA_BOARDS), set(premier))
+    cards = {**premier, **extras}
+    card_groups = [premier, extras] if extras else [premier]
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
         str(row["source_url"])
@@ -861,79 +1618,121 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         ))
         boards = [board for board in boards if not board.key.startswith("arena:")]
     queue = Queue(root / "verification")
+    regions = StoredRegions(store, registered, cache_documents=True)
+    extractors = deterministic_extractors()
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]] = {}
     pending_additions: dict[Path, list[dict[str, Any]]] = {}
     claims: list[Claim] = []
 
-    for board in boards:
-        summary = report.board(board.key)
-        if board.source_id not in registered:
-            failure = RowFailure("*", ",".join(sorted(board.benchmark_ids)), board.source_url,
-                                 f"source is not registered: {board.source_id}")
-            report.failures.append(failure)
-            summary["failures"].append(failure.reason)
-            continue
-        models_read: set[str] = set()
-        for model_id, path in cards.items():
-            rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
-            relevant = [row for row in rows
-                        if row.get("benchmark_id") in board.benchmark_ids
-                        and str(row.get("source_url") or "") in
-                        (board.card_urls or frozenset({board.source_url}))]
-            if not relevant:
-                if add_missing:
-                    additions, failures = _new_evidence(
-                        root=root, model_id=model_id, front=fronts[model_id], board=board,
-                    )
-                    report.failures.extend(failures)
-                    summary["failures"].extend(failure.reason for failure in failures)
-                    if additions:
-                        models_read.add(model_id)
-                        pending_additions.setdefault(path, []).extend(additions)
-                        claims.extend(
-                            _claim(model_id, fronts[model_id], row, board) for row in additions
-                        )
-                        report.added += len(additions)
+    unregistered: set[str] = set()
+    for group in card_groups:
+        # Catalogue expansion exists so Arena boards move. The Arena scheduler
+        # owns those boards. A non-premier card keeps every other row as stored.
+        expanded = bool(extras) and group is extras
+        for board in boards:
+            if board.key.startswith("arena:") or expanded:
                 continue
-            for row in relevant:
-                if _match(board, row) is not None:
-                    models_read.add(model_id)
-            observations, failures = _plan_observations(
-                model_id, path.relative_to(root).as_posix(), relevant, board
-            )
-            report.failures.extend(failures)
-            summary["failures"].extend(failure.reason for failure in failures)
+            summary = report.board(board.key)
+            if board.source_id not in registered:
+                if board.key not in unregistered:
+                    unregistered.add(board.key)
+                    failure = RowFailure(
+                        "*", ",".join(sorted(board.benchmark_ids)), board.source_url,
+                        f"source is not registered: {board.source_id}",
+                    )
+                    report.failures.append(failure)
+                    summary["failures"].append(failure.reason)
+                continue
+            models_read: set[str] = set()
             reconfirmed_models: set[str] = set()
-            for observation in observations:
-                old = next(row for row in relevant
-                           if row["benchmark_id"] == observation.benchmark
-                           and row.get("model_id_as_evaluated") == observation.model
-                           and float(row["score"]) == observation.old_value)
-                new = dict(old)
-                new["score"] = observation.new_value
-                new["evidence_date"] = observation.evidence_date
-                new["observed_at"] = observed_at
-                new["verified_at"] = observed_at
-                new = align_observation_dating(new)
-                new["sources"] = [SourceRef(
-                    source_id=board.source_id,
-                    snapshot_ref=board.snapshot_ref,
-                    cited_regions=["rows"],
-                ).model_dump(mode="json")]
-                new["id"] = evidence_id(model_id, new)
-                pending_updates.setdefault(path, []).append((evidence_key(old), new))
-                claims.append(_claim(model_id, fronts[model_id], new, board))
-                if observation.changed:
-                    report.changes.append(observation.score_change())
-                else:
-                    report.reconfirmed.append(observation)
-                    reconfirmed_models.add(model_id)
+            for model_id, path in group.items():
+                rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
+                relevant = [row for row in rows
+                            if row.get("benchmark_id") in board.benchmark_ids
+                            and str(row.get("source_url") or "") in
+                            (board.card_urls or frozenset({board.source_url}))]
+                if not relevant:
+                    if add_missing:
+                        additions, failures = _new_evidence(
+                            root=root, model_id=model_id, front=fronts[model_id], board=board,
+                        )
+                        report.failures.extend(failures)
+                        summary["failures"].extend(failure.reason for failure in failures)
+                        if additions:
+                            models_read.add(model_id)
+                            pending_additions.setdefault(path, []).extend(additions)
+                            claims.extend(
+                                _claim(model_id, fronts[model_id], row, board) for row in additions
+                            )
+                            report.added += len(additions)
+                    continue
+                for row in relevant:
+                    if _match(board, row) is not None:
+                        models_read.add(model_id)
+                observations, failures = _plan_observations(
+                    model_id, path.relative_to(root).as_posix(), relevant, board,
+                    revision=effective,
+                )
+                report.failures.extend(failures)
+                summary["failures"].extend(failure.reason for failure in failures)
+                for observation in observations:
+                    old = next(row for row in relevant
+                               if row["benchmark_id"] == observation.benchmark
+                               and row.get("model_id_as_evaluated") == observation.model
+                               and float(row["score"]) == observation.old_value)
+                    new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
+                    if new is None:
+                        failure = RowFailure(
+                            model_id, observation.benchmark, board.source_url,
+                            reason or "reading was not rewritten",
+                        )
+                        report.failures.append(failure)
+                        summary["failures"].append(failure.reason)
+                        continue
+                    new["evidence_date"] = observation.evidence_date
+                    new["observed_at"] = observed_at
+                    new["verified_at"] = observed_at
+                    new = align_observation_dating(new)
+                    new["sources"] = [SourceRef(
+                        source_id=board.source_id,
+                        snapshot_ref=board.snapshot_ref,
+                        cited_regions=["rows"],
+                    ).model_dump(mode="json")]
+                    new["id"] = evidence_id(model_id, new)
+                    pending_updates.setdefault(path, []).append((evidence_key(old), new))
+                    claims.append(_claim(model_id, fronts[model_id], new, board))
+                    if observation.changed:
+                        report.changes.append(observation.score_change())
+                    else:
+                        report.reconfirmed.append(observation)
+                        reconfirmed_models.add(model_id)
             summary["models_reconfirmed"] += len(reconfirmed_models)
-        summary["models_read"] = len(models_read)
-        summary["values_changed"] = sum(1 for change in report.changes
-                                         if change.source == board.source_url
-                                         and change.benchmark in board.benchmark_ids)
+            summary["models_read"] += len(models_read)
+            summary["values_changed"] = sum(
+                1 for change in report.changes
+                if change.source == board.source_url
+                and change.benchmark in board.benchmark_ids
+            )
+
+    _refresh_arena_boards(
+        root=root,
+        report=report,
+        boards=boards,
+        premier=premier,
+        extras=extras,
+        fronts=fronts,
+        registered=registered,
+        regions=regions,
+        extractors=extractors,
+        observed_at=observed_at,
+        revision=effective,
+        gate=chosen.fallback is None and not conflict,
+        add_missing=add_missing,
+        pending_updates=pending_updates,
+        pending_additions=pending_additions,
+        claims=claims,
+    )
 
     if dry_run or (not pending_updates and not pending_additions):
         return report
@@ -984,6 +1783,7 @@ def _unwritten_arena_reason(report: RefreshReport) -> str | None:
             row.reason.startswith("resolver fallback:")
             or row.reason.startswith("config fallback:")
             or "registry cites a different revision" in row.reason
+            or "benchmark_version still names a revision" in row.reason
         ):
             return row.reason
     return None
@@ -1006,6 +1806,21 @@ def render_report(report: RefreshReport) -> str:
             else:
                 status = "pinned default"
             lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
+    if report.arena_rows_left:
+        lines.extend([
+            f"Arena rows left for the next run: {report.arena_rows_left}",
+            "",
+        ])
+    if report.arena_rows_without_board:
+        lines.extend([
+            f"Arena rows with no board: {report.arena_rows_without_board}",
+            "",
+        ])
+    if report.arena_rows_off_root:
+        lines.extend([
+            f"Arena rows whose source is not the dataset root: {report.arena_rows_off_root}",
+            "",
+        ])
     lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",
@@ -1015,6 +1830,27 @@ def render_report(report: RefreshReport) -> str:
             f"| {board} | {result['models_read']} | {result['models_reconfirmed']} | "
             f"{result['values_changed']} | {len(result['failures'])} |"
         )
+    detailed = [
+        (board, result)
+        for board, result in sorted(report.boards.items())
+        if "rows_rewritten" in result
+    ]
+    if detailed:
+        lines.extend([
+            "",
+            "| Board | Rewritten | Reconfirmed | Left | Skipped |",
+            "|---|---:|---:|---:|---|",
+        ])
+        for board, result in detailed:
+            skipped = result.get("rows_skipped") or {}
+            skipped_cell = (
+                ", ".join(f"{name} {count}" for name, count in sorted(skipped.items()))
+                if skipped else "0"
+            )
+            lines.append(
+                f"| {board} | {result['rows_rewritten']} | {result['rows_reconfirmed']} | "
+                f"{result['rows_left']} | {skipped_cell} |"
+            )
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
     if report.failures:
         lines.extend(["", "## Failures", "",
@@ -1043,14 +1879,22 @@ def _measured_length(text: str, pr_url_budget: int) -> int:
     return len(text) + text.count(_PR_URL_TOKEN) * growth
 
 
-def _omitted_change_rows(count: int) -> str:
+def _omitted_rows(count: int, kind: str) -> str:
     if count == 1:
-        subject = "1 change row was left out"
+        subject = f"1 {kind} row was left out"
     else:
-        subject = f"{count} change rows were left out"
+        subject = f"{count} {kind} rows were left out"
     return (
         f"{subject}. The full report is in the run's {_REPORT_ARTIFACT} artifact."
     )
+
+
+def _omitted_change_rows(count: int) -> str:
+    return _omitted_rows(count, "change")
+
+
+def _omitted_failure_rows(count: int) -> str:
+    return _omitted_rows(count, "failure")
 
 
 def _opening_line(lines: list[str]) -> str:
@@ -1063,17 +1907,22 @@ def _opening_line(lines: list[str]) -> str:
     return ""
 
 
-def _markdown_table(lines: list[str], header_prefix: str) -> list[str]:
-    for index, line in enumerate(lines):
-        if not line.startswith(header_prefix):
+def _board_tables(lines: list[str]) -> list[list[str]]:
+    """Every markdown table whose header starts with ``| Board |``."""
+    tables: list[list[str]] = []
+    index = 0
+    while index < len(lines):
+        if not lines[index].startswith("| Board |"):
+            index += 1
             continue
-        table = [line]
+        table = [lines[index]]
         cursor = index + 1
         while cursor < len(lines) and lines[cursor].startswith("|"):
             table.append(lines[cursor])
             cursor += 1
-        return table
-    return []
+        tables.append(table)
+        index = cursor
+    return tables
 
 
 def _table_in_section(lines: list[str], heading: str) -> list[str]:
@@ -1101,38 +1950,73 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
     lines = body.splitlines()
     opening = _opening_line(lines)
     arena = next((line for line in lines if line.startswith("Arena revision:")), "")
-    board = _markdown_table(lines, "| Board |")
-    failures = _table_in_section(lines, "## Failures")
+    arena_left = next((line for line in lines if line.startswith("Arena rows left")), "")
+    no_board = next((line for line in lines if line.startswith("Arena rows with no board:")), "")
+    off_root = next((
+        line for line in lines
+        if line.startswith("Arena rows whose source is not the dataset root:")
+    ), "")
+    boards = _board_tables(lines)
+    failure_table = _table_in_section(lines, "## Failures")
+    failure_header, failure_rows = (
+        (failure_table[:2], failure_table[2:]) if len(failure_table) >= 2 else (failure_table, [])
+    )
     change_header, change_rows = _change_table(lines)
 
-    def assemble(rows: list[str], omitted: int) -> str:
+    def assemble(
+        changes: list[str], omitted_changes: int,
+        failures: list[str], omitted_failures: int,
+    ) -> str:
         parts: list[str] = []
         if opening:
             parts.append(opening)
-        if arena:
-            parts.extend(["", arena] if parts else [arena])
-        if board:
-            parts.extend(["", *board] if parts else list(board))
-        if failures:
-            block = ["## Failures", "", *failures]
+        for line in (arena, arena_left, no_board, off_root):
+            if line:
+                parts.extend(["", line] if parts else [line])
+        for table in boards:
+            parts.extend(["", *table] if parts else list(table))
+        if failures or omitted_failures:
+            block = ["## Failures", "", *failure_header, *failures]
             parts.extend(["", *block] if parts else block)
-        if rows:
-            block = ["## Score changes", "", *change_header, *rows]
+        if omitted_failures:
+            note = _omitted_failure_rows(omitted_failures)
+            parts.extend(["", note] if parts else [note])
+        if changes:
+            block = ["## Score changes", "", *change_header, *changes]
             parts.extend(["", *block] if parts else block)
-        if omitted:
-            note = _omitted_change_rows(omitted)
+        if omitted_changes:
+            note = _omitted_change_rows(omitted_changes)
             parts.extend(["", note] if parts else [note])
         return "\n".join(parts) + "\n"
 
-    kept: list[str] = []
-    for row in change_rows:
-        trial = kept + [row]
-        candidate = assemble(trial, len(change_rows) - len(trial))
-        if _measured_length(candidate, pr_url_budget) <= limit:
-            kept = trial
-        else:
-            break
-    return assemble(kept, len(change_rows) - len(kept))
+    def fits(changes: list[str], failures: list[str]) -> bool:
+        candidate = assemble(
+            changes, len(change_rows) - len(changes),
+            failures, len(failure_rows) - len(failures),
+        )
+        return _measured_length(candidate, pr_url_budget) <= limit
+
+    kept_changes: list[str] = []
+    kept_failures = list(failure_rows)
+    if fits(kept_changes, kept_failures):
+        for row in change_rows:
+            trial = kept_changes + [row]
+            if fits(trial, kept_failures):
+                kept_changes = trial
+            else:
+                break
+    else:
+        kept_failures = []
+        for row in failure_rows:
+            trial = kept_failures + [row]
+            if fits([], trial):
+                kept_failures = trial
+            else:
+                break
+    return assemble(
+        kept_changes, len(change_rows) - len(kept_changes),
+        kept_failures, len(failure_rows) - len(kept_failures),
+    )
 
 
 def fit_pull_request_body(
@@ -1143,9 +2027,10 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    per-board table and the failures table in full, then as many score-change
-    rows as fit. The cut is on a row boundary. One line says how many change
-    rows were left out and that the full report is in the run's
+    rows-left line, the no-board line, the off-root line, and both per-board
+    tables in full.
+    Score-change rows are cut first, then failure rows, each on a row
+    boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.
     """
     if _measured_length(body, pr_url_budget) <= limit:
@@ -1171,20 +2056,163 @@ def _body(path: Path) -> str:
     return path.read_text(encoding="utf-8").split("---", 2)[2]
 
 
+_REFRESH_SIGNATURE = frozenset({
+    "score", "observed_at", "verified_at", "evidence_date", "id", "sources",
+})
+
+
+def _reading_refreshed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """True when this run rewrote the score-bearing reading."""
+    return any(before.get(key) != after.get(key) for key in _REFRESH_SIGNATURE)
+
+
+def _arena_dataset_root_url(url: object) -> bool:
+    return str(url or "").rstrip("/") == ARENA_DATASET_ROOT
+
+
+def _arena_reading_row(row: Mapping[str, Any]) -> bool:
+    return (
+        str(row.get("benchmark_id") or "").startswith("arena_")
+        and _arena_dataset_root_url(row.get("source_url"))
+    )
+
+
+_MASK_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_MASK_HEX = re.compile(r"(?i)\b[0-9a-f]{7,40}\b")
+_MASK_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def _mask_quoted_figures(text: str) -> str:
+    """Dates, then hex strings, then numbers, so only the wording remains."""
+    masked = _MASK_DATE.sub("0", text)
+    masked = _MASK_HEX.sub("0", masked)
+    return _MASK_NUMBER.sub("0", masked)
+
+
+def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
+    """Numbers outside a date or a hex revision, with the index of each token."""
+    covered = [
+        (match.start(), match.end())
+        for pattern in (_MASK_DATE, _MASK_HEX)
+        for match in pattern.finditer(text)
+    ]
+    found: list[tuple[int, str]] = []
+    for match in _NUMBER_TOKEN.finditer(text):
+        start, end = match.span()
+        if any(left <= start and end <= right for left, right in covered):
+            continue
+        found.append((start, match.group(0)))
+    return found
+
+
+def _printed_forms(literal: str, after: Mapping[str, Any]) -> set[str]:
+    """How the writer would print ``after``'s score, interval bounds and n."""
+    forms: set[str] = set()
+    values: list[float] = []
+    score = after.get("score")
+    if isinstance(score, (int, float)) and not isinstance(score, bool):
+        values.append(float(score))
+    interval = after.get("interval")
+    if isinstance(interval, (list, tuple)) and len(interval) == 2:
+        for bound in interval:
+            if isinstance(bound, (int, float)) and not isinstance(bound, bool):
+                values.append(float(bound))
+    count = after.get("n")
+    if isinstance(count, (int, float)) and not isinstance(count, bool):
+        values.append(float(count))
+    for value in values:
+        forms.add(_format_like(literal, value))
+    return forms
+
+
+def _changed_figures_are_the_reading(
+    before: str, after_text: str, after: Mapping[str, Any],
+) -> bool:
+    """A changed number is the after row's own figure, a rank, or a date on that row."""
+    old_numbers = _uncovered_numbers(before)
+    new_numbers = _uncovered_numbers(after_text)
+    if len(old_numbers) != len(new_numbers):
+        return False
+    for (_old_at, old), (new_at, new) in zip(old_numbers, new_numbers, strict=True):
+        if old == new:
+            continue
+        if re.search(r"(?i)\brank\s+$", after_text[:new_at]):
+            continue
+        if new not in _printed_forms(old, after):
+            return False
+    old_dates = _MASK_DATE.findall(before)
+    new_dates = _MASK_DATE.findall(after_text)
+    if len(old_dates) != len(new_dates):
+        return False
+    allowed = {
+        day for day in (
+            _iso_day(after.get("evidence_date")),
+            _iso_day(after.get("observed_at")),
+            _iso_day(after.get("verified_at")),
+        ) if day
+    }
+    return all(old == new or new in allowed for old, new in zip(old_dates, new_dates, strict=True))
+
+
+def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
+    """The canonical effort ``split_model_cell`` reads on this model id."""
+    text = str(model_id_as_evaluated or "")
+    found = structured_name_effort(text)
+    if found is not None:
+        return split_model_cell(f"({found})")[1]
+    return split_model_cell(text)[1]
+
+
+def _arena_effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Null or empty effort may become the canonical level, and nothing else."""
+    if before.get("model_id_as_evaluated") != after.get("model_id_as_evaluated"):
+        return False
+    old, new = before.get("effort"), after.get("effort")
+    if old == new:
+        return True
+    if old not in (None, ""):
+        return False
+    named = _verifier_named_effort(before.get("model_id_as_evaluated"))
+    return named is not None and new == named
+
+
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    When ``source_publishes_row_date`` is false for the row's source URL and
-    the new evidence day is the observation, it may also replace the standalone
-    word ``read`` plus a date in the configuration, and change date_type from
-    ``published`` to ``evaluated``. ``re-read`` is not that citation. A dated
-    projector keeps both fields, including when this row's date value is
-    missing. An unknown source URL does too.
+    On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
+    ``configuration`` may change only when the two strings match after dates,
+    hex strings and numbers are masked, and every changed number is the after
+    row's score, an interval bound, ``n``, a date on that row, or the number
+    after ``rank``. ``effort`` may change only from null
+    or empty to the canonical level the unchanged ``model_id_as_evaluated``
+    names. ``benchmark_version`` never changes. On every other row, when
+    ``source_publishes_row_date`` is false and the new evidence day is the
+    observation, a row may replace the standalone word ``read`` plus a date
+    in the configuration, and change date_type from ``published`` to
+    ``evaluated``. ``re-read`` is not that citation. A dated projector keeps
+    both fields, including when this row's date value is missing. An unknown
+    source URL does too.
     """
+    refreshed = _reading_refreshed(before, after)
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
+    if refreshed and _arena_reading_row(before) and _arena_reading_row(after):
+        for key in ("interval", "n"):
+            old.pop(key, None)
+            new.pop(key, None)
+        before_configuration = str(before.get("configuration") or "")
+        after_configuration = str(after.get("configuration") or "")
+        if (
+            _mask_quoted_figures(before_configuration) == _mask_quoted_figures(after_configuration)
+            and _changed_figures_are_the_reading(before_configuration, after_configuration, after)
+        ):
+            old.pop("configuration", None)
+            new.pop("configuration", None)
+        if _arena_effort_refresh_allowed(before, after):
+            old.pop("effort", None)
+            new.pop("effort", None)
     dated_by_source = source_publishes_row_date(str(before.get("source_url") or ""))
     if old.get("configuration") != new.get("configuration"):
         if not observation_dated(
@@ -1234,9 +2262,14 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row whose source URL is an
-    observation projector, dated by the observation, may also make its
-    configuration's standalone ``read <date>`` and date_type match that date.
+    date, ID and source-snapshot binding. A refreshed Arena dataset-root row
+    may also change its interval and vote count, a configuration whose wording
+    is unchanged once dates, hex strings and numbers are masked and whose
+    changed numbers are that row's own figures, and its
+    effort from null to the canonical level its model id names.
+    ``benchmark_version`` stays. A row whose source URL is an observation
+    projector, dated by the observation, may also make its configuration's
+    standalone ``read <date>`` and date_type match that date.
     A ``re-read`` phrase is not that edit. A dated projector keeps both fields,
     including when its date value is missing and when the stored evidence day
     already equals ``observed_at``. Verification JSONL files may only grow.
@@ -1296,6 +2329,9 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "arena_revision": report.arena_revision,
         "arena_revision_fallback": report.arena_revision_fallback,
         "arena_revision_latest": report.arena_revision_latest,
+        "arena_rows_left": report.arena_rows_left,
+        "arena_rows_without_board": report.arena_rows_without_board,
+        "arena_rows_off_root": report.arena_rows_off_root,
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
