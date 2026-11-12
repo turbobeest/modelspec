@@ -2068,6 +2068,71 @@ def _mask_quoted_figures(text: str) -> str:
     return _MASK_NUMBER.sub("0", masked)
 
 
+def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
+    """Numbers outside a date or a hex revision, with the index of each token."""
+    covered = [
+        (match.start(), match.end())
+        for pattern in (_MASK_DATE, _MASK_HEX)
+        for match in pattern.finditer(text)
+    ]
+    found: list[tuple[int, str]] = []
+    for match in _NUMBER_TOKEN.finditer(text):
+        start, end = match.span()
+        if any(left <= start and end <= right for left, right in covered):
+            continue
+        found.append((start, match.group(0)))
+    return found
+
+
+def _printed_forms(literal: str, after: Mapping[str, Any]) -> set[str]:
+    """How the writer would print ``after``'s score, interval bounds and n."""
+    forms: set[str] = set()
+    values: list[float] = []
+    score = after.get("score")
+    if isinstance(score, (int, float)) and not isinstance(score, bool):
+        values.append(float(score))
+    interval = after.get("interval")
+    if isinstance(interval, (list, tuple)) and len(interval) == 2:
+        for bound in interval:
+            if isinstance(bound, (int, float)) and not isinstance(bound, bool):
+                values.append(float(bound))
+    count = after.get("n")
+    if isinstance(count, (int, float)) and not isinstance(count, bool):
+        values.append(float(count))
+    for value in values:
+        forms.add(_format_like(literal, value))
+    return forms
+
+
+def _changed_figures_are_the_reading(
+    before: str, after_text: str, after: Mapping[str, Any],
+) -> bool:
+    """A changed number is the after row's own figure, a rank, or a date on that row."""
+    old_numbers = _uncovered_numbers(before)
+    new_numbers = _uncovered_numbers(after_text)
+    if len(old_numbers) != len(new_numbers):
+        return False
+    for (_old_at, old), (new_at, new) in zip(old_numbers, new_numbers, strict=True):
+        if old == new:
+            continue
+        if re.search(r"(?i)\brank\s+$", after_text[:new_at]):
+            continue
+        if new not in _printed_forms(old, after):
+            return False
+    old_dates = _MASK_DATE.findall(before)
+    new_dates = _MASK_DATE.findall(after_text)
+    if len(old_dates) != len(new_dates):
+        return False
+    allowed = {
+        day for day in (
+            _iso_day(after.get("evidence_date")),
+            _iso_day(after.get("observed_at")),
+            _iso_day(after.get("verified_at")),
+        ) if day
+    }
+    return all(old == new or new in allowed for old, new in zip(old_dates, new_dates, strict=True))
+
+
 def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
     """The canonical effort ``split_model_cell`` reads on this model id."""
     text = str(model_id_as_evaluated or "")
@@ -2095,7 +2160,9 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
 
     On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
     ``configuration`` may change only when the two strings match after dates,
-    hex strings and numbers are masked. ``effort`` may change only from null
+    hex strings and numbers are masked, and every changed number is the after
+    row's score, an interval bound, ``n``, a date on that row, or the number
+    after ``rank``. ``effort`` may change only from null
     or empty to the canonical level the unchanged ``model_id_as_evaluated``
     names. ``benchmark_version`` never changes. On every other row, when
     ``source_publishes_row_date`` is false and the new evidence day is the
@@ -2114,8 +2181,11 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
         for key in ("interval", "n"):
             old.pop(key, None)
             new.pop(key, None)
-        if _mask_quoted_figures(str(before.get("configuration") or "")) == _mask_quoted_figures(
-            str(after.get("configuration") or ""),
+        before_configuration = str(before.get("configuration") or "")
+        after_configuration = str(after.get("configuration") or "")
+        if (
+            _mask_quoted_figures(before_configuration) == _mask_quoted_figures(after_configuration)
+            and _changed_figures_are_the_reading(before_configuration, after_configuration, after)
         ):
             old.pop("configuration", None)
             new.pop("configuration", None)
@@ -2173,7 +2243,8 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     Existing evidence rows may change their score, observation/verification
     date, ID and source-snapshot binding. A refreshed Arena dataset-root row
     may also change its interval and vote count, a configuration whose wording
-    is unchanged once dates, hex strings and numbers are masked, and its
+    is unchanged once dates, hex strings and numbers are masked and whose
+    changed numbers are that row's own figures, and its
     effort from null to the canonical level its model id names.
     ``benchmark_version`` stays. A row whose source URL is an observation
     projector, dated by the observation, may also make its configuration's

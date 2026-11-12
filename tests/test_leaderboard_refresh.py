@@ -1109,13 +1109,46 @@ def test_score_only_check_accepts_a_figures_only_configuration_on_an_arena_row(
         "    configuration: rating 1100, CI 1080 to 1120, votes 100, rank 4, "
         "revision aaaaaaa, published 2026-09-01\n",
     )
-    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+    after_text = before_text.replace("score: 72.0", "score: 1200.5").replace(
+        "evidence_date: '2026-09-01'",
+        "evidence_date: '2026-11-12'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1180.0, 1220.0]\n    n: 200\n    id: lab/model#stable\n",
+    ).replace(
         "rating 1100, CI 1080 to 1120, votes 100, rank 4, "
         "revision aaaaaaa, published 2026-09-01",
-        "rating 1200.5, CI 1180 to 1220, votes 200, rank 3, "
+        "rating 1200.50, CI 1180 to 1220, votes 200, rank 3, "
         "revision bbbbbbbbbbbb, published 2026-11-12",
     )
     assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def _arena_sentence(before_sentence: str, after_sentence: str) -> tuple[str, str]:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        before_sentence, after_sentence,
+    )
+    return before_text, after_text
+
+
+@pytest.mark.parametrize("before_sentence, after_sentence", [
+    ("top 10 of 190 at 95%", "top 3 of 20 at 50%"),
+    ("row 12 of the board", "row 17 of the board"),
+    ("see MODEL-100 for the note", "see MODEL-467 for the note"),
+    ("rating 1100", "rating -5"),
+])
+def test_score_only_check_refuses_a_changed_number_that_is_not_the_reading(
+    tmp_path: Path, before_sentence: str, after_sentence: str,
+) -> None:
+    before_text, after_text = _arena_sentence(before_sentence, after_sentence)
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_score_only_check_refuses_a_configuration_wording_change_on_an_arena_row(
