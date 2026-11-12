@@ -167,6 +167,7 @@ def test_a_stripe_pack_sale_pushes_once_with_ttl_5(policy, pushes):
     assert form["user"] == [USER]
     assert form["title"] == ["ModelSpec sale"]
     assert form["priority"] == ["0"]
+    assert form["sound"] == ["cashregister"]
     assert form["ttl"] == ["5"]
     assert form["message"] == ["$5.00 · 250-credit pack · card"]
     assert EMAIL not in raw
@@ -520,12 +521,12 @@ def test_worker_fetch_posts_form_with_a_short_timeout(monkeypatch):
     assert "AbortSignal.timeout" in inspect.getsource(sale_alerts._fetch)
 
 
-def test_sale_alerts_ship_off():
+def test_sale_alerts_are_on_in_production_and_off_in_staging():
     text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
     config = json.loads(live)
-    assert config["vars"]["SALE_ALERTS_ENABLED"] == "0"
-    assert config["vars"]["SALE_ALERT_TTL_SECONDS"] == "5"
+    assert config["vars"]["SALE_ALERTS_ENABLED"] == "1"
+    assert config["vars"]["SALE_ALERT_TTL_SECONDS"] == "900"
     assert config["env"]["staging"]["vars"]["SALE_ALERTS_ENABLED"] == "0"
     assert config["env"]["staging"]["vars"]["SALE_ALERT_TTL_SECONDS"] == "5"
     assert "PUSHOVER_APP_TOKEN" not in live
