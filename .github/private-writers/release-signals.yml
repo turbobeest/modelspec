@@ -432,6 +432,22 @@ jobs:
           python -I -m scripts.recall_run \
             --output-dir "$RUNNER_TEMP/recall" \
             --date "$(date -u +%F)"
+      - name: Compare approved answers on private data
+        if: steps.classify.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          merge_base="$(git merge-base HEAD origin/main)"
+          if git cat-file -e "$merge_base:reports/recall/baseline.json" 2>/dev/null; then
+            git show "$merge_base:reports/recall/baseline.json" \
+              > "$RUNNER_TEMP/approved-private-recall.json"
+          else
+            cp reports/recall/baseline.json "$RUNNER_TEMP/approved-private-recall.json"
+          fi
+          python reports/recall/check.py \
+            --report-dir "$RUNNER_TEMP/recall" \
+            --baseline reports/recall/baseline.json \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --approved-baseline "$RUNNER_TEMP/approved-private-recall.json"
       - name: Commit and push the isolated signal branch
         if: steps.classify.outputs.changed == 'true'
         env:

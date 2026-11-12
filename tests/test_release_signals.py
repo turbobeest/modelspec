@@ -1935,6 +1935,30 @@ def test_the_process_job_cannot_open_issues() -> None:
     assert "gh label create new-model" in review_runs
 
 
+def test_the_process_job_gates_on_approved_private_answers_before_push() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["process"]["steps"]
+    names = [step.get("name") for step in steps]
+    recall_at = names.index("Run the MODEL-160 recall report")
+    gate_at = names.index("Compare approved answers on private data")
+    push_at = names.index("Commit and push the isolated signal branch")
+    assert recall_at < gate_at < push_at
+    step = steps[gate_at]
+    assert step["if"] == "steps.classify.outputs.changed == 'true'"
+    assert "continue-on-error" not in step
+    run = step["run"]
+    assert "python -I -m scripts.recall_run" not in run
+    assert "scripts/recall_run.py" not in run
+    assert "|| true" not in run
+    assert "python reports/recall/check.py" in run
+    assert '--report-dir "$RUNNER_TEMP/recall"' in run
+    assert "--baseline reports/recall/baseline.json" in run
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in run
+    assert '--approved-baseline "$RUNNER_TEMP/approved-private-recall.json"' in run
+
+
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
