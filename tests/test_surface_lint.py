@@ -185,6 +185,26 @@ def test_identity_lines_are_not_copied_outside_the_registry() -> None:
     assert sl.copied_identity(ROOT) == []
 
 
+def test_retired_cost_tail_is_rejected_outside_recorded_history(tmp_path: Path) -> None:
+    retired = "sourced benchmarks and real cost"
+    (tmp_path / "README.md").write_text(retired + "\n", encoding="utf-8")
+    for rel in (
+        "docs/evidence/old.md",
+        "docs/history/old.md",
+        "qa/fixtures/old.json",
+        "tests/old.py",
+    ):
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(retired + "\n", encoding="utf-8")
+    findings = [
+        item for item in sl.copied_identity(tmp_path)
+        if item.check == "presence.superseded"
+    ]
+    assert [item.surface for item in findings] == ["README.md"]
+    assert findings[0].excerpt == retired
+
+
 def test_copied_identity_reports_readme_typescript_and_html(tmp_path: Path) -> None:
     planted = {
         "README.md": "which model, and why\n",

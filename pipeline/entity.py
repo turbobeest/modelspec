@@ -167,4 +167,5 @@ SUPERSEDED = (
     "a decision engine for AI models",
     "decides which AI model a job needs",
     "Decide which model fits a task",
+    "sourced benchmarks and real cost",
 )

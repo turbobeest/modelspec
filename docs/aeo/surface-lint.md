@@ -31,7 +31,7 @@ The weekly workflow also has `workflow_dispatch`. Runs serialize. A closed issue
 | MCP card description | `SHORT`, the registry's length-limited form |
 | Landing `Organization.description` | `ONE_SENTENCE`, exact equality |
 
-HTML comparison decodes entities, removes tags and normalizes whitespace. Superseded one-liners fail anywhere in owned copy. The README remains covered by `tests/test_entity.py`. The copy check reads `git ls-files` at the repository root. Outside a git checkout it walks the tree and skips `node_modules`, `dist`, `.git` and build output.
+HTML comparison decodes entities, removes tags and normalizes whitespace. Superseded one-liners fail anywhere in owned copy. The README remains covered by `tests/test_entity.py`. The copy check reads `git ls-files` at the repository root. Outside a git checkout it walks the tree and skips `node_modules`, `dist`, `.git` and build output. That pass also rejects every `SUPERSEDED` line, including the retired singular cost tail, with the same exemptions. Owned copy still rejects those lines through the lexicon.
 
 ### 2. Banned lexicon
 

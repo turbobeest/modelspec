@@ -130,6 +130,12 @@ def test_the_readme_opens_with_the_sentence() -> None:
     assert prose.startswith(entity.ONE_SENTENCE)
 
 
+def test_the_retired_cost_tail_is_superseded_and_misses_the_revised_sentence() -> None:
+    retired = "sourced benchmarks and real cost"
+    assert retired in entity.SUPERSEDED
+    assert retired.casefold() not in entity.ONE_SENTENCE.casefold()
+
+
 def test_no_superseded_one_liner_survives_on_any_surface(surfaces: dict[str, str]) -> None:
     rendered = {
         **surfaces,

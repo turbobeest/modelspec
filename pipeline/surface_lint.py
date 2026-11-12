@@ -469,11 +469,12 @@ def copied_identity(root: Path | None = None) -> list[Finding]:
     """A typed copy of the tagline or router line outside the registry fails.
 
     Scans git-tracked text files. Outside a git checkout, walks the tree and
-    skips ``node_modules``, ``dist``, ``.git`` and build output. Match ignores
-    case and a trailing full stop. History, evidence, tests and recorded
-    fixtures may quote the lines. Generated files listed in
-    ``_IDENTITY_EXEMPT_FILES`` are copies the generators write from
-    ``pipeline/entity.py``.
+    skips ``node_modules``, ``dist``, ``.git`` and build output. The tagline
+    and the router line match in any case, with or without a trailing full
+    stop. ``entity.SUPERSEDED`` matches the same way the owned-copy lexicon
+    does, by case fold. History, evidence, tests and recorded fixtures may
+    quote either. Generated files listed in ``_IDENTITY_EXEMPT_FILES`` are
+    copies the generators write from ``pipeline/entity.py``.
     """
     root = ROOT if root is None else root
     findings = []
@@ -497,6 +498,9 @@ def copied_identity(root: Path | None = None) -> list[Finding]:
                     Finding(rel, "presence.copied_identity", line, "pipeline/entity.py")
                 )
                 break
+        for old in entity.SUPERSEDED:
+            if old.casefold() in folded:
+                findings.append(Finding(rel, "presence.superseded", old, entity.ONE_SENTENCE))
     return findings
 
 
