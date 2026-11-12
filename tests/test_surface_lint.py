@@ -185,6 +185,33 @@ def test_identity_lines_are_not_copied_outside_the_registry() -> None:
     assert sl.copied_identity(ROOT) == []
 
 
+def test_copied_identity_reports_readme_typescript_and_html(tmp_path: Path) -> None:
+    planted = {
+        "README.md": "which model, and why\n",
+        "src/router.ts": "evidence-backed logic that powers complex model routing.\n",
+        "templates/landing.html": "WHICH MODEL, AND WHY.\n",
+    }
+    for rel, text in planted.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    fixture = tmp_path / "qa/fixtures/recorded.md"
+    fixture.parent.mkdir(parents=True, exist_ok=True)
+    fixture.write_text(entity.TAGLINE + "\n" + entity.ROUTER_LINE + "\n", encoding="utf-8")
+    for rel in (
+        "node_modules/pkg/index.js",
+        "dist/index.html",
+        "build/out.html",
+        ".git/COMMIT_EDITMSG",
+    ):
+        skipped = tmp_path / rel
+        skipped.parent.mkdir(parents=True, exist_ok=True)
+        skipped.write_text(entity.TAGLINE + "\n", encoding="utf-8")
+    findings = sl.copied_identity(tmp_path)
+    assert {item.surface for item in findings} == set(planted)
+    assert all(item.check == "presence.copied_identity" for item in findings)
+
+
 @pytest.mark.parametrize("path", ["index.html", "method/index.html"])
 def test_the_sentence_must_open_the_first_paragraph(texts: dict[str, str], path: str) -> None:
     texts[path] = page(
