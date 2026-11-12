@@ -175,6 +175,15 @@ def _optional_tags(row: dict) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _optional_bases(row: dict) -> tuple[str, ...]:
+    if "base_models" not in row or row["base_models"] is None:
+        return ()
+    value = row["base_models"]
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError("replay base_models must be a list of strings")
+    return tuple(value)
+
+
 def _observation(run: SourceRun, seen: Seen) -> dict:
     """One source row for the run report. Hub fields are omitted when absent."""
     evidence = {
@@ -189,6 +198,8 @@ def _observation(run: SourceRun, seen: Seen) -> dict:
         evidence["tags"] = list(seen.tags)
     if seen.base_model:
         evidence["base_model"] = seen.base_model
+    if len(seen.base_models) > 1:
+        evidence["base_models"] = list(seen.base_models)
     return evidence
 
 
@@ -207,7 +218,10 @@ def _hub_scope_reason(seen: Seen, source: Source) -> str | None:
     )
     if reason:
         return reason
-    return derivative_reason(seen.key, seen.base_model)
+    bases: str | tuple[str, ...] | None = (
+        seen.base_models if seen.base_models else seen.base_model
+    )
+    return derivative_reason(seen.key, bases)
 
 
 def filter_releases(
@@ -285,6 +299,7 @@ def replay_reports(paths: Sequence[Path], registry: Registry) -> tuple[list[Sour
                     pipeline_tag=_optional_text(row, "pipeline_tag"),
                     tags=_optional_tags(row),
                     base_model=_optional_text(row, "base_model"),
+                    base_models=_optional_bases(row),
                 ))
             if seen:
                 runs.append(SourceRun(source, "ok", new=tuple(seen), listed=len(seen)))

@@ -81,6 +81,7 @@ class Seen:
     pipeline_tag: str | None = None
     tags: tuple[str, ...] = ()
     base_model: str | None = None
+    base_models: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -259,10 +260,10 @@ def _huggingface(source: Source, payload: Any, registry: Registry) -> dict[str, 
         if rejected and rejected.search(name):
             continue
         created = _instant(row.get("createdAt"))
-        pipeline_tag, tags, base_model = hub_metadata(row, repo)
+        pipeline_tag, tags, base_model, base_models = hub_metadata(row, repo)
         found[repo] = Seen(
             repo, name, source.provider, f"https://huggingface.co/{repo}", created,
-            pipeline_tag, tags, base_model,
+            pipeline_tag, tags, base_model, base_models,
         )
     return found
 

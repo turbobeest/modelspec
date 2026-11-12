@@ -642,6 +642,10 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
             "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1",
         },
         {
+            "key": "acme-lab/orbit-1-sparse", "name": "orbit-1-sparse",
+            "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1",
+        },
+        {
             "key": "acme-lab/orbit-8", "name": "orbit-8",
             "pipeline_tag": "text-generation", "base_model": "acme-lab/Orbit-1",
         },
@@ -670,14 +674,14 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
     )
     result = filter_releases([SourceRun(source, "ok", new=seen)], NOW)
     assert {signal.model_name for signal in result["signals"]} == {
-        "orbit-8", "orbit-7", "acme-robotics-arm-6", "acme-robotics-arm-5",
+        "orbit-9", "orbit-8", "orbit-7", "acme-robotics-arm-6", "acme-robotics-arm-5",
     }
     reasons = {row["model_name"]: row["reason"] for row in result["rejected"]}
     assert reasons == {
         "walker": "robotics",
         "pong": "reinforcement-learning",
         "acme-robotics-arm": "robotics or embodied checkpoint",
-        "orbit-9": "derivative of other-lab/Orbit-1",
+        "orbit-1-sparse": "derivative of other-lab/Orbit-1",
         "speech": "automatic-speech-recognition",
     }
     text = release_watch.summary({"observed_at": NOW.isoformat(), "sources": [],

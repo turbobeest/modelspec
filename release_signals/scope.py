@@ -163,20 +163,51 @@ class TagDecision:
     tag: str | None = None
 
 
-def derivative_reason(repository_id: str, base_model: str | None) -> str | None:
-    """A fine-tune of another organisation's repository is not this lab's release.
+def _listed_bases(base_model: str | Sequence[str] | None) -> list[str]:
+    if base_model is None:
+        return []
+    raw: Sequence[object] = (base_model,) if isinstance(base_model, str) else base_model
+    found: list[str] = []
+    for item in raw:
+        one = repository_id(item)
+        if one and one not in found:
+            found.append(one)
+    return found
 
-    The same organisation, including a case difference, is this lab's own base.
+
+def _named_after(repository_name: str, base_name: str) -> bool:
+    """`<base-name>` or `<base-name>-<suffix>`, after the same normalisation as names."""
+    repo = normalise(repository_name)
+    base = normalise(base_name)
+    if not repo or not base:
+        return False
+    return repo == base or repo.startswith(f"{base}-")
+
+
+def derivative_reason(
+    repository: str, base_model: str | Sequence[str] | None,
+) -> str | None:
+    """An artefact named after another organisation's model.
+
+    Reject only when no listed base is in this repository's organisation and
+    the repository name is that other model's name plus a suffix. A fine-tune
+    with its own name, or a model that also lists its own base, is filed.
+    A malformed base is ignored. The recorded base is unchanged either way.
     """
-    if not base_model or "/" not in base_model or "/" not in repository_id:
+    repo = repository_id(repository)
+    if repo is None:
         return None
-    owner, _, _name = repository_id.partition("/")
-    base_owner, _, base_name = base_model.partition("/")
-    if not owner or not base_owner or not base_name:
+    owner, _, name = repo.partition("/")
+    bases = _listed_bases(base_model)
+    if not bases:
         return None
-    if owner.casefold() == base_owner.casefold():
+    own = owner.casefold()
+    if any(item.partition("/")[0].casefold() == own for item in bases):
         return None
-    return f"derivative of {base_owner}/{base_name}"
+    for item in bases:
+        if _named_after(name, item.partition("/")[2]):
+            return f"derivative of {item}"
+    return None
 
 
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
@@ -281,11 +312,12 @@ def relevant_hub_tags(
 
 def hub_metadata(
     row: Mapping[str, Any], repository: str,
-) -> tuple[str | None, tuple[str, ...], str | None]:
-    """`pipeline_tag`, the tags that matter, and `base_model` from one listing row.
+) -> tuple[str | None, tuple[str, ...], str | None, tuple[str, ...]]:
+    """`pipeline_tag`, the tags that matter, the recorded base, and every base.
 
     The organisation listing already carries these. `cardData` is read when the
-    row includes it and is not requested on its own.
+    row includes it and is not requested on its own. The recorded base prefers
+    another organisation; the full list is what the derivative rule reads.
     """
     pipeline_tag = _text(row.get("pipeline_tag"))
     tags = relevant_hub_tags(row.get("tags"), row.get("library_name"), pipeline_tag)
@@ -298,4 +330,5 @@ def hub_metadata(
             text = _text(tag)
             if text and text.startswith("base_model:"):
                 bases.extend(_repository_ids(text.split(":", 1)[1]))
-    return pipeline_tag, tags, reported_base_model(repository, bases)
+    listed = tuple(dict.fromkeys(bases))
+    return pipeline_tag, tags, reported_base_model(repository, listed), listed

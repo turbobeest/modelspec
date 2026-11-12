@@ -1064,13 +1064,28 @@ def test_fixture_api_rows_cover_tag_classes_fallback_unknown_and_derivatives() -
         "acme-lab/tuned-tag", pipeline_tag="text-generation",
         tags=["text-generation", "base_model:finetune:other-lab/Orbit-1"],
     ))
-    expect["acme-lab/tuned-tag"] = "derivative of other-lab/Orbit-1"
+    expect["acme-lab/tuned-tag"] = None
     rows.append(_api_row(
         "acme-lab/tuned-card", pipeline_tag="text-generation",
         tags=["text-generation"],
         cardData={"base_model": "other-lab/Orbit-2"},
     ))
-    expect["acme-lab/tuned-card"] = "derivative of other-lab/Orbit-2"
+    expect["acme-lab/tuned-card"] = None
+    rows.append(_api_row(
+        "acme-lab/orbit-1-sparse", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:finetune:other-lab/Orbit-1"],
+    ))
+    expect["acme-lab/orbit-1-sparse"] = "derivative of other-lab/Orbit-1"
+    rows.append(_api_row(
+        "acme-lab/siglip-vl", pipeline_tag="image-text-to-text",
+        tags=[
+            "image-text-to-text",
+            "base_model:finetune:acme-lab/flagship",
+            "base_model:other-lab/siglip",
+        ],
+        cardData={"base_model": ["acme-lab/flagship", "other-lab/siglip"]},
+    ))
+    expect["acme-lab/siglip-vl"] = None
     rows.append(_api_row(
         "acme-lab/own-tune", pipeline_tag="text-generation",
         tags=["text-generation", "base_model:acme-lab/Orbit-1"],
@@ -1103,6 +1118,11 @@ def test_fixture_api_rows_cover_tag_classes_fallback_unknown_and_derivatives() -
     assert "license:mit" not in by_key["acme-lab/in-0"]["tags"]
     assert by_key["acme-lab/tuned-tag"]["base_model"] == "other-lab/Orbit-1"
     assert by_key["acme-lab/tuned-card"]["base_model"] == "other-lab/Orbit-2"
+    assert by_key["acme-lab/orbit-1-sparse"]["base_model"] == "other-lab/Orbit-1"
+    assert by_key["acme-lab/siglip-vl"]["base_model"] == "other-lab/siglip"
+    assert by_key["acme-lab/siglip-vl"]["base_models"] == [
+        "acme-lab/flagship", "other-lab/siglip",
+    ]
     assert by_key["acme-lab/own-tune"]["base_model"] == "acme-lab/Orbit-1"
     assert "base_model" not in by_key["acme-lab/fresh"]
     assert "pipeline_tag" not in by_key["acme-lab/orbit-plain"]
