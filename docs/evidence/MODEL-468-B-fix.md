@@ -49,3 +49,15 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 ## Not observed
 
 No full pytest suite. No site build. No worker memory probe. No production fetch. No Linear write. CI status is not in this file, because the pull request did not exist when this file was committed.
+
+## First CI check
+
+Draft pull request 1049. The first `gh pr checks` call, after three waits of 240 seconds, exited 1.
+
+`pytest shard 5/8` failed `tests/test_ci_workflows.py::test_shard_timings_cover_the_current_suite_and_browser_modules` with `only 362/382 test modules have measured timings`. `tests/test_release_scope.py` had no row in `tests/shard_durations.json`. A serial JUnit run of that file summed to 0.003 seconds, and that value is now the row.
+
+`Run pytest` failed in 3 seconds as the shard aggregator.
+
+`Test decide page (human gate true, visit gate false)` failed `browser-tests/simple-decide.spec.ts` on an old-board link. The page URL kept a `#s=` hash the assertion did not expect. The other three decide-page variants passed. This branch does not change the decide page, the site, the worker, or frozen data. `Build both sites` failed in 5 seconds because that browser result was `failure`.
+
+The second check follows the timing push. Its result is not in this file.
