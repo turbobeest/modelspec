@@ -304,8 +304,10 @@ _HF_REPO_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 def registered_huggingface_orgs(root: Path, provider: str) -> frozenset[str]:
     """Hugging Face orgs whose watch source names this lab. Casefolded.
 
-    Read only from ``kind: huggingface`` rows. The host ``huggingface.co`` is
-    not added to the lab host set. A test root with no watch file has none.
+    The source provider matches this name, or it resolves to this lab slug
+    the way ``resolve_signal`` resolves a provider. Read only from
+    ``kind: huggingface`` rows. The host ``huggingface.co`` is not added to
+    the lab host set. A test root with no watch file has none.
     """
     wanted = attribution.normalise(provider)
     watch = root / "registry" / "release-watch.yaml"
@@ -319,8 +321,11 @@ def registered_huggingface_orgs(root: Path, provider: str) -> frozenset[str]:
     for source in sources:
         if not isinstance(source, Mapping) or str(source.get("kind") or "") != "huggingface":
             continue
-        if attribution.normalise(str(source.get("provider") or "")) != wanted:
-            continue
+        source_provider = str(source.get("provider") or "")
+        if attribution.normalise(source_provider) != wanted:
+            resolved = _provider_slugs(source_provider, root / "models")
+            if len(resolved) != 1 or attribution.normalise(resolved[0]) != wanted:
+                continue
         org = str(source.get("org") or "").strip().casefold()
         if org:
             orgs.add(org)

@@ -3514,6 +3514,77 @@ def test_a_provider_with_two_huggingface_orgs_accepts_both(
     assert outsider not in refused_seen
 
 
+def _write_display_card(
+    root: Path, provider: str, slug: str, *, display_name: str, provider_display: str,
+) -> None:
+    path = root / "models" / provider / f"{slug}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "---\n"
+        f"model_id: {provider}/{slug}\n"
+        f"display_name: {display_name}\n"
+        f"provider: {provider}\n"
+        f"provider_display: {provider_display}\n"
+        f"version: {slug}\n"
+        "---\n",
+        encoding="utf-8",
+    )
+
+
+def test_a_huggingface_org_matches_a_provider_that_resolves_to_the_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_display_card(
+        tmp_path, "beta", "kept",
+        display_name="Kept", provider_display="Alpha / Beta Team",
+    )
+    _huggingface_watch(tmp_path, "BetaLab", provider="Alpha / Beta Team")
+    page = "https://huggingface.co/BetaLab/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            provider="Beta",
+            signal_id="watch:beta:orbit-9",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "beta/orbit-9"
+    assert result["primary_kind"] == "huggingface-org"
+    assert page in seen
+
+
+def test_a_huggingface_org_does_not_match_a_different_lab(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_display_card(
+        tmp_path, "beta", "kept",
+        display_name="Kept", provider_display="Alpha / Beta Team",
+    )
+    _write_card(tmp_path, "gamma", "kept", display="Kept", version="kept")
+    _huggingface_watch(tmp_path, "BetaLab", provider="Alpha / Beta Team")
+    page = "https://huggingface.co/BetaLab/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            provider="Gamma",
+            signal_id="watch:gamma:orbit-9",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert page not in seen
+    assert not (tmp_path / "models" / "gamma" / "orbit-9.md").exists()
+
+
 def test_a_cite_only_huggingface_host_stays_unfetched(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
