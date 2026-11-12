@@ -249,6 +249,35 @@ def failures(result: dict) -> list[str]:
     return lines
 
 
+def _report_reason(reason: str) -> str:
+    if reason == "derivative" or reason.startswith("derivative of "):
+        return "derivative"
+    return reason
+
+
+def _kept_observations(result: dict) -> list[dict]:
+    dropped = {
+        (row.get("source_id"), row.get("source_key"))
+        for row in result.get("rejected", [])
+    }
+    return [
+        row for row in result.get("observations", [])
+        if (row.get("source_id"), row.get("source_key")) not in dropped
+    ]
+
+
+def _built_on_another_labs_base(row: dict) -> bool:
+    base = row.get("base_model")
+    key = row.get("source_key")
+    if not isinstance(base, str) or not isinstance(key, str):
+        return False
+    base_owner, base_slash, _rest = base.partition("/")
+    key_owner, key_slash, _rest = key.partition("/")
+    if not base_slash or not key_slash or not base_owner or not key_owner:
+        return False
+    return base_owner.casefold() != key_owner.casefold()
+
+
 def summary(result: dict) -> str:
     ok = sum(row["status"] == "ok" for row in result["sources"])
     lines = [
@@ -270,11 +299,17 @@ def summary(result: dict) -> str:
         lines.append("Filed with no created time: " + ", ".join(
             f"`{source_id}` {count}" for source_id, count in missing
         ) + ".")
-    reasons = Counter(row["reason"] for row in result.get("rejected", []))
+    reasons = Counter(
+        _report_reason(row["reason"]) for row in result.get("rejected", [])
+    )
+    kept = _kept_observations(result)
+    foreign = sum(_built_on_another_labs_base(row) for row in kept)
+    if foreign:
+        reasons["built on another lab's base"] = foreign
     lines.extend(f"- {reason}: {count}" for reason, count in sorted(reasons.items()))
     unknown = sorted({
         row["pipeline_tag"]
-        for row in result.get("observations", [])
+        for row in kept
         if isinstance(row.get("pipeline_tag"), str)
         and not known_pipeline_tag(row["pipeline_tag"])
     })

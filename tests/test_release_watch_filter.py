@@ -646,6 +646,10 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
             "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1",
         },
         {
+            "key": "acme-lab/orbit-1-graph", "name": "orbit-1-graph",
+            "pipeline_tag": "graph-other", "base_model": "other-lab/Orbit-1",
+        },
+        {
             "key": "acme-lab/orbit-8", "name": "orbit-8",
             "pipeline_tag": "text-generation", "base_model": "acme-lab/Orbit-1",
         },
@@ -691,11 +695,15 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
         "pong": "reinforcement-learning",
         "acme-robotics-arm": "robotics or embodied checkpoint",
         "orbit-1-sparse": "derivative of other-lab/Orbit-1",
+        "orbit-1-graph": "derivative of other-lab/Orbit-1",
         "speech": "automatic-speech-recognition",
     }
     text = release_watch.summary({"observed_at": NOW.isoformat(), "sources": [],
                                   "discoveries": [], "posted": None, **result})
     assert "robotics: 1" in text
     assert "reinforcement-learning: 1" in text
-    assert "derivative of other-lab/Orbit-1: 1" in text
+    assert "- derivative: 2" in text
+    assert "- derivative of " not in text
+    assert "- built on another lab's base: 1" in text
     assert "Unknown pipeline tags kept in scope: `graph-ml`." in text
+    assert "graph-other" not in text
