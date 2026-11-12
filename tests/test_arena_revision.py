@@ -12,6 +12,8 @@ from scripts import refresh_leaderboards as refresh
 PIN = refresh.ARENA_REVISION
 NEW = "0123456789abcdef0123456789abcdef01234567"
 API = "https://huggingface.co/api/datasets/lmarena-ai/leaderboard-dataset"
+DATASET = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+ENV = "MODELSPEC_ARENA_REVISION"
 
 
 def test_resolver_reads_a_40_hex_dataset_sha() -> None:
@@ -68,7 +70,7 @@ def test_flag_off_does_not_ask_the_dataset_api(monkeypatch: pytest.MonkeyPatch) 
     assert got.fallback is None
 
 
-def test_cli_without_the_flag_keeps_the_pin(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_without_the_flag_leaves_the_setting_open(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict = {}
 
     def run(**kwargs):
@@ -78,7 +80,7 @@ def test_cli_without_the_flag_keeps_the_pin(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(refresh, "run", run)
     refresh.main(["--dry-run", "--observed-at", "2026-11-11"])
 
-    assert captured["arena_latest"] is False
+    assert captured["arena_latest"] is None
 
 
 def test_cli_flag_requests_the_latest_revision(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -97,6 +99,8 @@ def test_cli_flag_requests_the_latest_revision(monkeypatch: pytest.MonkeyPatch) 
 def test_run_without_the_flag_reads_the_pin(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
+    monkeypatch.delenv(ENV, raising=False)
+
     def resolve(_fetch):
         raise AssertionError("resolver was called")
 
@@ -243,3 +247,156 @@ def test_rewritten_row_cites_the_revision_that_was_read(
     assert len(changes) == 1
     assert changes[0].source == board.source_url
     assert NEW in changes[0].source
+
+
+def test_run_follows_the_environment_when_the_argument_is_omitted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    seen: dict = {}
+
+    def resolve(_fetch):
+        seen["resolved"] = True
+        return refresh.readers.ArenaRevision(sha=NEW, fallback=None)
+
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
+        seen["revision"] = arena_revision
+        return [], []
+
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    monkeypatch.setattr(refresh, "collect_readings", collect)
+    monkeypatch.delenv(ENV, raising=False)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+    )
+
+    assert seen["revision"] == PIN
+    assert "resolved" not in seen
+    assert report.arena_revision == PIN
+
+    monkeypatch.setenv(ENV, "latest")
+    refresh.run(observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=())
+
+    assert seen["revision"] == NEW
+    assert seen["resolved"] is True
+
+
+def test_explicit_argument_wins_over_the_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    def resolve(_fetch):
+        raise AssertionError("resolver was called")
+
+    seen: dict = {}
+
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
+        seen["revision"] = arena_revision
+        return [], []
+
+    monkeypatch.setenv(ENV, "latest")
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    monkeypatch.setattr(refresh, "collect_readings", collect)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+        arena_latest=False,
+    )
+
+    assert seen["revision"] == PIN
+    assert report.arena_revision == PIN
+
+
+def test_empty_environment_stays_on_the_pin(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    def resolve(_fetch):
+        raise AssertionError("resolver was called")
+
+    seen: dict = {}
+
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
+        seen["revision"] = arena_revision
+        return [], []
+
+    monkeypatch.setenv(ENV, "")
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    monkeypatch.setattr(refresh, "collect_readings", collect)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+    )
+
+    assert seen["revision"] == PIN
+    assert report.arena_revision == PIN
+
+
+def test_an_unknown_environment_value_names_the_variable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setenv(ENV, "head")
+
+    with pytest.raises(ValueError, match="MODELSPEC_ARENA_REVISION"):
+        refresh.run(
+            observed_at="2026-11-11", dry_run=True, root=tmp_path, model_ids=(),
+        )
+
+
+def test_release_signal_follows_the_arena_revision_variable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from release_signals.pipeline import GatherResult, Resolution
+    from scripts import process_release_signals as processor
+
+    root = tmp_path / "repo"
+    card = root / "models" / "acme" / "orbit-1.md"
+    card.parent.mkdir(parents=True)
+    card.write_text("---\nmodel_id: acme/orbit-1\n---\n", encoding="utf-8")
+    (root / "verification").mkdir()
+    pending = tmp_path / "pending.json"
+    pending.write_text(
+        json.dumps({"signals": [{"model_name": "Orbit 1", "provider": "Acme",
+                                 "first_seen_url": "https://x.com/acme/status/123456789",
+                                 "timestamp": "2026-11-11T00:00:00Z", "confidence": 0.9,
+                                 "signal_id": "grok-20261111-123456789"}]}),
+        encoding="utf-8",
+    )
+    seen: list[str | None] = []
+
+    def collect(_observed_at, _store, _tau_urls, arena_revision=None, **_kwargs):
+        seen.append(arena_revision)
+        return [], []
+
+    def resolve(_fetch):
+        return refresh.readers.ArenaRevision(sha=NEW, fallback=None)
+
+    monkeypatch.setattr(
+        processor, "resolve_signal",
+        lambda *_args, **_kwargs: Resolution("existing", "acme/orbit-1"),
+    )
+    monkeypatch.setattr(
+        processor, "gather_signal",
+        lambda *_args, **_kwargs: GatherResult(
+            resolution=Resolution("existing", "acme/orbit-1"),
+        ),
+    )
+    monkeypatch.setattr(processor, "update_existing_card", lambda *_args, **_kwargs: card)
+    monkeypatch.setattr(refresh, "collect_readings", collect)
+    monkeypatch.setattr(refresh.readers, "resolve_arena_revision", resolve)
+    monkeypatch.delenv(ENV, raising=False)
+
+    processor.process(pending, tmp_path / "unset.json", root=root)
+
+    assert seen == [PIN]
+
+    monkeypatch.setenv(ENV, "latest")
+    processor.process(pending, tmp_path / "latest.json", root=root)
+
+    assert seen == [PIN, NEW]
+
+
+def test_weekly_workflow_keeps_the_arena_revision_pinned() -> None:
+    text = Path(".github/private-writers/leaderboard-refresh.yml").read_text(encoding="utf-8")
+
+    assert "MODELSPEC_ARENA_REVISION: pinned" in text
+    assert "revision-free" in text
+    assert "--arena-latest" not in text

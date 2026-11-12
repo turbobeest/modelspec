@@ -94,3 +94,27 @@ No full local suite, site build, Worker memory probe, or workflow edit.
 No ranking floor, legal text, contract, frozen data file, or source-terms
 class was changed. `scripts/premier_slice1.py` and `scripts/premier_live.py`
 were not changed.
+
+## Round 2
+
+Merged `origin/main` (`101a9eed`) before the review fixes. The parent of
+those fixes is `fe09be2d`.
+
+### One setting
+
+`tests/test_arena_revision.py` against the unchanged resolver, the new tests
+only. Exit 1. `5 failed, 2 passed`. A release-signal refresh with
+`MODELSPEC_ARENA_REVISION=latest` still read the pin. `head` did not raise.
+The weekly workflow file had no `MODELSPEC_ARENA_REVISION`. The CLI without
+`--arena-latest` passed `arena_latest=False`.
+
+After `arena_revision_setting` and the workflow variable:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py
+```
+
+Exit 0. `22 passed`. An explicit argument wins. Unset or empty stays on the
+pin. `latest` reads the head. Any other value raises `ValueError` and the
+message names `MODELSPEC_ARENA_REVISION`. The weekly file sets the variable
+to `pinned` and does not pass `--arena-latest`.
