@@ -1691,6 +1691,57 @@ def test_a_fetch_that_failed_in_this_run_is_unreachable_and_logged(store, log) -
     assert queue.pending() == ([], [])
 
 
+def _unretained(entry: dict) -> verify.Claim:
+    src = entry["source"]
+    return verify.Claim(
+        target=TargetRef(kind=entry.get("kind", "evidence"), id=entry["id"]),
+        subject=entry["subject"],
+        names=tuple(entry["names"]),
+        field=entry["field"],
+        label=entry.get("label"),
+        value=entry["value"],
+        unit=entry.get("unit"),
+        conditions=entry.get("conditions", {}),
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id=src["id"], snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=src["regions"]),),
+    )
+
+
+def test_an_empty_cache_skips_claims_and_leaves_them_queued(store, log) -> None:
+    regions = verify.StoredRegions(store, verify.load_sources(FIXTURES / "sources.yaml"))
+    queue = verify.Queue(log.directory)
+    wanted = ("sol-default", "sol-context")
+    for entry in SPEC["claims"]:
+        if entry["id"] in wanted:
+            queue.file(_unretained(entry), at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome, r.verification) for r in report.results] == [
+        ("sol-default", "skipped", None),
+        ("sol-context", "skipped", None),
+    ]
+    assert [r.reason for r in report.results] == [
+        "no retained copy in this cache: seeded-leaderboard#results",
+        "no retained copy in this cache: seeded-model-page#specs",
+    ]
+    assert log.records() == []
+    pending, unknown = queue.pending()
+    assert unknown == []
+    assert [claim.target.id for claim in pending] == ["sol-default", "sol-context"]
+
+
+def test_a_retained_copy_that_matches_is_verified(store, regions, log) -> None:
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-default")
+    queue = verify.Queue(log.directory)
+    queue.file(_claim(entry, store), at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [("sol-default", "verified")]
+    assert log.latest()[("evidence", "sol-default")].outcome == "verified"
+    assert queue.pending() == ([], [])
+
+
 # --- two keys ----------------------------------------------------------------------------------
 
 

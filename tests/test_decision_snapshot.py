@@ -734,6 +734,66 @@ def test_the_gate_fails_on_one_missing_guaranteed_fact():
     assert "no source" in message
 
 
+def test_an_absent_copy_does_not_quarantine_a_verified_fact(tmp_path):
+    """A pending re-collection against an empty cache must not quarantine.
+
+    The latest log row is verified. Recording the missing copy as unreachable
+    would make that newer row win, and the completeness gate would drop the fact.
+    """
+    from datetime import UTC, datetime
+
+    from decision import verify
+    from decision.model import (
+        CitedRegion, Source, SourceRef, TargetRef, Verification, VerificationActor,
+    )
+    from decision.sources import CopyStore
+
+    today = date(2026, 9, 25)
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/alpha#model.context_window"),
+        subject="lab/alpha",
+        names=("Alpha",),
+        field="model.context_window",
+        value=128000,
+        unit="tokens",
+        collector=VerificationActor(agent="collector-a", model_family="family-a", method="read"),
+        sources=(SourceRef(
+            source_id="src-lab-docs",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["r1"],
+        ),),
+    )
+    log = verify.VerificationLog(tmp_path / "verification")
+    log.append(Verification.model_validate(verification(
+        "fact", "lab/alpha#model.context_window", "verified", "2026-09-20", value=128000,
+    )))
+    queue = verify.Queue(log.directory)
+    queue.file(claim, at=datetime(2026, 9, 25, 12, tzinfo=UTC))
+    source = Source(
+        id="src-lab-docs",
+        url="https://lab.example.com/docs/models",
+        normaliser="html-default",
+        cited_regions=[CitedRegion(id="r1", locator={"kind": "page", "value": ""})],
+    )
+    regions = verify.StoredRegions(CopyStore(tmp_path / "copies"), {source.id: source})
+    verify.run(
+        queue, log, regions, verify.deterministic_extractors(), today=today,
+        at=datetime(2026, 9, 25, 12, tzinfo=UTC),
+    )
+    built = build_snapshot(
+        inputs(
+            models=[model("lab/alpha")],
+            offerings=[],
+            evidence=[],
+            verifications=log.records(),
+        ),
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=today,
+    )
+    assert built.snapshot_id
+
+
 def test_the_gate_names_the_source_of_an_unverified_fact():
     facts = model("lab/alpha")["facts"]
     facts[0] = fact("model", "lab/alpha", "model.context_window", 128000, outcome="mismatch")
