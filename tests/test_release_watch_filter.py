@@ -212,7 +212,7 @@ def test_cli_drops_non_model_items_but_keeps_distinct_releases(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize("name", [
-    "ERNIE-5-Docs", "Pixtral-Docs", "client-embed-1", "guide-7b",
+    "ERNIE-5-Docs", "Pixtral-Docs", "Orbit-Doc", "client-embed-1", "guide-7b",
     "Example-LM", "agent-sdk-model-7b",
 ])
 def test_huggingface_model_names_with_artifact_tokens_stay_discoveries(

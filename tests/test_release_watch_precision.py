@@ -29,6 +29,9 @@ def source_run(fixture: dict) -> SourceRun:
                 "url",
                 f"https://release-watch-fixture.example/{source.id}/{case['key']}",
             ),
+            pipeline_tag=case.get("pipeline_tag"),
+            tags=tuple(case.get("tags") or ()),
+            base_model=case.get("base_model"),
         )
         for case in fixture["cases"]
     )
@@ -105,6 +108,21 @@ def test_combined_sources_keep_every_labelled_candidate_under_one_release() -> N
 
     assert actual == expected
     assert sorted(signal.signal_id for signal in result["signals"]) == sorted(expected)
+
+
+def test_time_series_rows_say_why_they_are_not_discoveries() -> None:
+    rows = [
+        case
+        for fixture in FIXTURE["sources"]
+        for case in fixture["cases"]
+        if case["key"] in {"timestral-small", "timestral-large"}
+    ]
+    assert [case["key"] for case in rows] == ["timestral-small", "timestral-large"]
+    for case in rows:
+        assert case["expected_signal_id"] is None
+        label = case["negative_label"]
+        assert "time series" in label.casefold()
+        assert label != FIXTURE["negative_label"]
 
 
 def test_fixture_covers_eligible_sources_and_every_denied_organization() -> None:

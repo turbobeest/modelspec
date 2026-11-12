@@ -149,7 +149,17 @@
         {"key": "blog", "name": "Fixture-Orbit-7-blog-1", "expected_signal_id": "watch:meta:fixture-orbit-7-blog-1"},
         {"key": "non-model-blog", "name": "blog", "expected_signal_id": null},
         {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:meta:fixture-orbit-7-docs-1"},
-        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null}
+        {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
+        {"key": "tag-text", "name": "Fixture-Orbit-Tag-Text", "pipeline_tag": "text-generation", "expected_signal_id": "watch:meta:fixture-orbit-tag-text"},
+        {"key": "tag-embed", "name": "Fixture-Orbit-Tag-Embed", "pipeline_tag": "feature-extraction", "expected_signal_id": "watch:meta:fixture-orbit-tag-embed"},
+        {"key": "tag-vlm", "name": "Fixture-Orbit-Tag-Vlm", "pipeline_tag": "image-text-to-text", "expected_signal_id": "watch:meta:fixture-orbit-tag-vlm"},
+        {"key": "tag-rank", "name": "Fixture-Orbit-Tag-Rank", "pipeline_tag": "text-ranking", "expected_signal_id": "watch:meta:fixture-orbit-tag-rank"},
+        {"key": "tag-unknown", "name": "Fixture-Orbit-Tag-Graph", "pipeline_tag": "graph-ml", "expected_signal_id": "watch:meta:fixture-orbit-tag-graph"},
+        {"key": "tag-robotics", "name": "Fixture-Orbit-Tag-Arm", "pipeline_tag": "robotics", "expected_signal_id": null},
+        {"key": "tag-kept", "name": "Fixture-Orbit-Tag-Heard", "pipeline_tag": "automatic-speech-recognition", "tags": ["text-generation"], "expected_signal_id": "watch:meta:fixture-orbit-tag-heard"},
+        {"key": "tag-free", "name": "Fixture-Orbit-Tag-Free", "tags": ["reinforcement-learning"], "expected_signal_id": null},
+        {"key": "meta-llama/flagship-tag", "name": "Fixture-Orbit-Tag-Own", "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1", "expected_signal_id": "watch:meta:fixture-orbit-tag-own"},
+        {"key": "meta-llama/orbit-1-sparse", "name": "orbit-1-sparse", "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1", "expected_signal_id": null}
       ]
     },
     {
@@ -165,8 +175,8 @@
         {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:mistral:fixture-orbit-7-docs-1"},
         {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "audio-language-model", "name": "LIDstral-Arabic", "expected_signal_id": "watch:mistral:lidstral-arabic", "issue_url": "https://github.com/turbobeest/modelspec/issues/656", "url": "https://huggingface.co/mistralai/LIDstral-Arabic"},
-        {"key": "timestral-small", "name": "Timestral-5M", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/773", "url": "https://huggingface.co/mistralai/Timestral-5M"},
-        {"key": "timestral-large", "name": "Timestral-209M", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/771", "url": "https://huggingface.co/mistralai/Timestral-209M"}
+        {"key": "timestral-small", "name": "Timestral-5M", "expected_signal_id": null, "negative_label": "Time series name. The watcher rejects it and does not file a discovery.", "issue_url": "https://github.com/turbobeest/modelspec/issues/773", "url": "https://huggingface.co/mistralai/Timestral-5M"},
+        {"key": "timestral-large", "name": "Timestral-209M", "expected_signal_id": null, "negative_label": "Time series name. The watcher rejects it and does not file a discovery.", "issue_url": "https://github.com/turbobeest/modelspec/issues/771", "url": "https://huggingface.co/mistralai/Timestral-209M"}
       ]
     },
     {
