@@ -219,6 +219,7 @@ def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
         "sources": [
             {
                 "id": run.source.id,
+                "kind": run.source.kind,
                 "url": run.source.url,
                 "status": run.status,
                 "detail": run.detail,
@@ -257,10 +258,12 @@ def summary(result: dict) -> str:
         + f"{len(result['discoveries'])} discoveries.",
         f"Filtered out: {len(result.get('rejected', []))} observations.",
     ]
+    # OpenRouter and Hugging Face carry a created time. A page source does not,
+    # so its count stays on the row and off this line. A zero count stays off too.
     missing = [
         (row["id"], row["missing_created"])
         for row in result["sources"]
-        if row.get("missing_created")
+        if row.get("missing_created") and row.get("kind") != "page"
     ]
     if missing:
         lines.append("Filed with no created time: " + ", ".join(

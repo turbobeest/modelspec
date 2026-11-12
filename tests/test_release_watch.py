@@ -21,6 +21,7 @@ from release_signals import watch
 from release_signals.watch import (
     Registry,
     Response,
+    Seen,
     Source,
     SourceRun,
     _normalise,
@@ -792,8 +793,27 @@ def test_run_report_counts_filed_ids_whose_created_is_missing() -> None:
     assert "orbit-4" in filed
     result = release_watch.report(runs, discoveries(runs, NOW), None, NOW)
     assert [row["missing_created"] for row in result["sources"]] == [1, 1]
-    assert "`router` 1" in release_watch.summary(result)
-    assert "`page` 1" in release_watch.summary(result)
+    text = release_watch.summary(result)
+    assert "`router` 1" in text
+    assert "`page` 1" not in text
+
+    hub = Source(
+        "hub", "huggingface", "https://huggingface.co/api/models?author=acme",
+        0.7, provider="acme",
+    )
+    hub_run = SourceRun(hub, "ok", "", 1, (
+        Seen("acme/orbit-hub", "orbit-hub", "acme", hub.url),
+    ))
+    mixed = release_watch.report(
+        [runs[0], hub_run, runs[1]], discoveries(runs, NOW), None, NOW,
+    )
+    assert [row["missing_created"] for row in mixed["sources"]] == [1, 1, 1]
+    mixed_text = release_watch.summary(mixed)
+    assert "`router` 1" in mixed_text and "`hub` 1" in mixed_text
+    assert "`page` 1" not in mixed_text
+    page_only = release_watch.report([runs[1]], discoveries(runs, NOW), None, NOW)
+    assert page_only["sources"][0]["missing_created"] == 1
+    assert "Filed with no created time" not in release_watch.summary(page_only)
 
     # A carded id is rejected rather than filed, so its missing created time is not counted.
     from release_signals.watch import Catalogue
@@ -807,6 +827,7 @@ def test_run_report_counts_filed_ids_whose_created_is_missing() -> None:
     burst = SourceRun(router, "burst", "2 new IDs at once, above 1", 2, runs[0].new)
     held = release_watch.report([burst], [], None, NOW)
     assert held["sources"][0]["missing_created"] == 0
+    assert "Filed with no created time" not in release_watch.summary(held)
 
 
 SHIM = '''
