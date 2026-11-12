@@ -14,15 +14,15 @@ A not-listed signal whose identity is new uses its own first-seen page when that
 
 `resolve_signal` matches exact aliases only. A dotted successor such as `Orbit 6.1`, with only `Orbit 6` carded, resolves as `new` and does not write the predecessor's card.
 
-Scope rules read the normalised model name. A lab name is not part of that match. A token `image` is out of scope unless the name also has `vl`, `vlm`, `vision`, `omni`, or `multimodal`.
+Scope rules read the normalised model name. A lab name is not part of that match. A token `image` is out of scope unless the name also has `vl`, `vlm`, `vision`, `omni`, `multimodal`, `embed`, `embedding`, `embeddings`, `captioning`, `clip`, or `text`. The name `text-to-image` stays out of scope through its own rule.
 
 A registered host matches exactly. A subdomain matches only when the registry entry is written as a wildcard (`*.example.com`). Hosts for the signal's provider text are united with hosts for the resolved lab slug.
 
-The pending job reserves up to 7 signals and up to 3 due re-checks, backfills the unused reserve, and keeps the total at `MAX_RELEASE_SIGNAL_WORK_ITEMS`. A group larger than its slots starts at `GITHUB_RUN_NUMBER` modulo the group size and wraps. Per-job artifact names use `strategy.job-index` with a fixed prefix per kind.
+The pending job reserves up to 7 signals and up to 3 due re-checks, backfills the unused reserve, and keeps the total at `MAX_RELEASE_SIGNAL_WORK_ITEMS`. A group larger than its slots starts at `GITHUB_RUN_NUMBER` modulo the group size and wraps. Per-job artifact names use `strategy.job-index` with a fixed prefix per kind. The result, price-copy, and audit uploads set `overwrite` to true.
 
 The review job sets `GH_REPO` to `github.repository`. It opens one issue titled `release signals needing identity review`. Uncertain results stay under "Signals whose identity could not be resolved." A `closed_unmerged` result is listed under "New-model pull requests closed without merge". An empty heading is omitted. The issue still opens when the only results are `closed_unmerged`. `ignored` stays out of the issue.
 
-The process job has `contents: write` and `pull-requests: write`. It does not have `issues: write`. It still runs `gh label create new-model` before `gh pr create --label new-model`. The review job, which keeps `issues: write`, runs after process, so that label step can fail on a repository where the label does not already exist.
+The process job has `contents: write` and `pull-requests: write`. It does not have `issues: write`. No process step runs `gh label` or `gh issue`. The review job has `issues: write` and creates the `new-model` label.
 
 A re-check row stored by `acknowledge` is `signal_id`, `due`, `day`, `pr_url`, and `signal`. The earlier result is on the audit record only. The pending job therefore still gives those re-checks a matrix slot, including when the first result was `ignored` or `out_of_scope`. No worker file was edited.
 
@@ -64,6 +64,34 @@ A re-check row stored by `acknowledge` is `signal_id`, `due`, `day`, `pr_url`, a
 
 The first processing commits on this branch keep an existing card when the source refresh misses the lab, treat zero models.dev rows as not listed, accept a lab page that names the model, ignore `test-` ids, and skip out-of-scope names. The first check of pull request 1049 failed `tests/test_ci_workflows.py::test_shard_timings_cover_the_current_suite_and_browser_modules` because `tests/test_release_scope.py` had no row in `tests/shard_durations.json`. That row is 0.003 seconds. The same check's decide-page browser failure was on an old-board link and a `#s=` hash. This branch does not change the decide page.
 
+## Round 3
+
+The base of this round was `4df22b1852fd0e44741212bfd05d653ee000c407`. The branch was one commit behind `origin/main`. Merge commit `1ef38c16111337cc50e63729910d3eaddc82e3de` brought `8d34a8c44f210b6baf5a4406ad27f47739b04caa` (MODEL-467, pull request 1047). That merge edits `tests/test_release_signals.py` only to accept keyword arguments on the leaderboard stub.
+
+Python 3.14.4. pytest 9.1.1. Git 2.50.1.
+
+### Process label
+
+`test_the_process_job_cannot_open_issues` failed because a process step still ran `gh label create`. 1 failed in 0.55s, exit 1. After that step was removed, that test and `test_review_job_gh_calls_name_the_repository` passed. 2 passed in 0.48s, exit 0. Commit `d9558caac89055990859e80d6fa2bd503c84cf96`.
+
+### Image token
+
+`test_an_image_token_keeps_embedding_captioning_and_text_models` failed with `assert 'image generation' is None` for `amazon.titan-embed-image-v1`. 1 failed in 0.36s, exit 1. After `embed`, `embedding`, `embeddings`, `captioning`, `clip`, and `text` joined the image-token exceptions, that test and the two existing name tests passed. 3 passed in 0.35s, exit 0. Commit `1839db97833593249657508800e2948beeaad09f`.
+
+`amazon.titan-embed-image-v1`, `blip-image-captioning-large`, `nomic-embed-image-v2`, and `image-text-to-text-7b` stay in scope. `flux-3-image-klein`, `gpt-image-2-6`, `minimax-h3-image`, and `text-to-image-xl` stay out of scope.
+
+### Artifact overwrite
+
+`test_per_job_artifact_names_keep_signal_punctuation_out` failed because the result upload had no `overwrite` key. 1 failed in 0.51s, exit 1. After the result, price-copy, and audit uploads set `overwrite` to true, 1 passed in 0.48s, exit 0. Commit `0f76235dca7b02a8d5b4d4bcb283ee0bf6f9614f`. The pending-work upload is unchanged.
+
+### Focused suite
+
+```bash
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_release_signals.py tests/test_release_scope.py
+```
+
+195 passed in 1.78s, exit 0.
+
 ## Not observed
 
-No full pytest suite. No site build. No worker memory probe. No production fetch. No Linear write. The round-2 check is not in this file.
+No full pytest suite. No site build. No worker memory probe. No production fetch. No Linear write. No Ruff run. The round-2 check is not in this file. The check of pull request 1049 after this push is not in this file.
