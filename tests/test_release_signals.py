@@ -2580,6 +2580,78 @@ def _empty_models_dev() -> dict[str, FetchResult]:
     }
 
 
+def test_a_lab_host_matches_exactly_or_a_registered_wildcard() -> None:
+    from release_signals.pipeline import first_seen_host_class
+
+    community = "https://community.openai.com/topic"
+    platform = "https://platform.openai.com/docs"
+    docs = "https://docs.platform.openai.com/docs"
+    assert first_seen_host_class(community, frozenset({"platform.openai.com"})) == "unregistered"
+    assert first_seen_host_class(community, frozenset({"openai.com"})) == "unregistered"
+    assert first_seen_host_class(platform, frozenset({"platform.openai.com"})) == "lab"
+    assert first_seen_host_class(
+        "https://www.platform.openai.com/docs", frozenset({"platform.openai.com"}),
+    ) == "lab"
+    assert first_seen_host_class(docs, frozenset({"platform.openai.com"})) == "unregistered"
+    assert first_seen_host_class(docs, frozenset({"*.platform.openai.com"})) == "lab"
+    assert first_seen_host_class(community, frozenset({"*.openai.com"})) == "lab"
+
+
+def test_a_display_provider_uses_the_resolved_lab_hosts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    card = tmp_path / "models" / "mistral" / "small.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        "---\n"
+        "model_id: mistral/small\n"
+        "display_name: Mistral Small\n"
+        "provider: mistral\n"
+        "provider_display: Mistral AI\n"
+        "version: small\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    page = "https://mistral.ai/news/new-chat"
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="New Chat",
+        provider="Mistral AI",
+        signal_id="watch:mistral:new-chat",
+        first_seen_url=page,
+    )]}))
+    models_dev = "https://models.dev/api.json"
+    replies = {
+        models_dev: FetchResult(models_dev, b"{}", "application/json"),
+        page: FetchResult(page, b"<h1>Mistral AI launches New Chat.</h1>", "text/html"),
+    }
+    seen: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        seen.append(url)
+        if url in replies:
+            return replies[url]
+        if url.startswith("https://huggingface.co/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "mistral/new-chat"
+    assert page in seen
+    assert (tmp_path / "models" / "mistral" / "new-chat.md").is_file()
+
+
 def test_zero_models_dev_rows_are_not_listed_and_several_stay_uncertain() -> None:
     with pytest.raises(ModelsDevNotListed):
         _models_dev_listing(

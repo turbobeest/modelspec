@@ -237,7 +237,25 @@ def _page_host(url: str) -> str:
 
 
 def _host_is(host: str, names: frozenset[str]) -> bool:
-    return any(host == name or host.endswith("." + name) for name in names)
+    """Exact host, or a subdomain when the registry entry is written `*.parent`."""
+    for name in names:
+        if name.startswith("*."):
+            parent = name[2:]
+            if parent and host.endswith("." + parent):
+                return True
+        elif host == name:
+            return True
+    return False
+
+
+def _signal_lab_hosts(root: Path, signal, resolution: Resolution) -> frozenset[str]:
+    """Hosts for the signal's provider text and for the resolved catalogue lab."""
+    hosts = set(registered_lab_hosts(root, signal.provider))
+    model_id = resolution.model_id or ""
+    lab, separator, _rest = model_id.partition("/")
+    if separator and lab:
+        hosts.update(registered_lab_hosts(root, lab))
+    return frozenset(hosts)
 
 
 def registered_lab_hosts(root: Path, provider: str) -> frozenset[str]:
@@ -656,7 +674,7 @@ def _gather_unlisted(
     URL after redirects is classified again. Any other host class stays uncertain
     and is not fetched.
     """
-    lab_hosts = registered_lab_hosts(root, signal.provider)
+    lab_hosts = _signal_lab_hosts(root, signal, resolution)
     kind = first_seen_host_class(signal.first_seen_url, lab_hosts)
     if kind != "lab":
         return GatherResult(Resolution(
@@ -675,7 +693,7 @@ def _gather_unlisted(
     try:
         display_name, release_date = _primary_identity(
             primary, signal.model_name, signal.provider,
-            lab_hosts=registered_lab_hosts(root, signal.provider),
+            lab_hosts=lab_hosts,
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
@@ -774,7 +792,7 @@ def gather_signal(
     try:
         display_name, release_date = _primary_identity(
             primary, signal.model_name, signal.provider,
-            lab_hosts=registered_lab_hosts(root, signal.provider),
+            lab_hosts=_signal_lab_hosts(root, signal, resolution),
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
