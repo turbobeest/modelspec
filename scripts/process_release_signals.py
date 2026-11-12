@@ -210,6 +210,10 @@ def process(
             if drafted.models_dev == "not_listed":
                 result["models_dev"] = drafted.models_dev
                 result["primary_host"] = drafted.primary_host
+                if drafted.primary_kind:
+                    result["primary_kind"] = drafted.primary_kind
+            if drafted.identity_basis:
+                result["identity_basis"] = drafted.identity_basis
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,

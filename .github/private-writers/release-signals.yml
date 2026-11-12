@@ -100,6 +100,7 @@ jobs:
     name: Release signal to card change
     needs: pending
     if: needs.pending.outputs.count != '0'
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       max-parallel: 4
