@@ -16,8 +16,9 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 from decision.excluded import REMOVED_HOSTS
-from release_signals.contract import ReleaseSignal, SignalError
 from release_signals import watch
+from release_signals.contract import ReleaseSignal, SignalError
+from release_signals.scope import IN_SCOPE_PIPELINE_TAGS, OUT_OF_SCOPE_PIPELINE_TAGS
 from release_signals.watch import (
     Registry,
     Response,
@@ -919,3 +920,210 @@ def test_dispatch_still_runs_for_discoveries_when_the_watch_job_fails() -> None:
     condition = workflow["jobs"]["dispatch"]["if"]
     assert condition.startswith("${{ !cancelled() &&")
     assert "needs.watch.outputs.discoveries != ''" in condition
+
+
+def _hf_registry() -> tuple[Source, Registry]:
+    source = Source("hf-acme", "huggingface", HF, 0.7, provider="Acme")
+    return source, Registry("fixture", 30, r"gguf", "", (source,))
+
+
+def test_huggingface_listing_metadata_reaches_the_observation_not_the_filed_signal() -> None:
+    source, registry = _hf_registry()
+    body = json.dumps([
+        {
+            "id": "acme-lab/Orbit-9",
+            "createdAt": "2026-09-29T00:00:00Z",
+            "pipeline_tag": "text-generation",
+            "library_name": "transformers",
+            "tags": [
+                "transformers",
+                "text-generation",
+                "conversational",
+                "base_model:finetune:acme-lab/Orbit-1",
+                "license:mit",
+                "en",
+                "arxiv:1234.5678",
+            ],
+            "cardData": {"base_model": "acme-lab/Orbit-1"},
+        },
+        {
+            "id": "acme-lab/Orbit-8",
+            "createdAt": "2026-09-29T00:00:00Z",
+            "pipeline_tag": "text-generation",
+            "tags": ["text-generation", "base_model:quantized:other-lab/Base-2"],
+        },
+    ]).encode()
+    listed = extract(source, body, registry)
+    orbit9 = listed["acme-lab/Orbit-9"]
+    orbit8 = listed["acme-lab/Orbit-8"]
+    assert orbit9.pipeline_tag == "text-generation"
+    assert orbit9.base_model == "acme-lab/Orbit-1"
+    assert orbit9.tags == (
+        "transformers",
+        "text-generation",
+        "conversational",
+        "base_model:finetune:acme-lab/Orbit-1",
+    )
+    assert orbit8.base_model == "other-lab/Base-2"
+    assert orbit8.tags == (
+        "text-generation",
+        "base_model:quantized:other-lab/Base-2",
+    )
+
+    result = filter_releases([
+        SourceRun(source, "ok", listed=2, new=(orbit9, orbit8)),
+    ], NOW)
+    by_name = {row["model_name"]: row for row in result["observations"]}
+    assert by_name["Orbit-9"]["pipeline_tag"] == "text-generation"
+    assert by_name["Orbit-9"]["base_model"] == "acme-lab/Orbit-1"
+    assert by_name["Orbit-9"]["tags"] == [
+        "transformers", "text-generation", "conversational",
+        "base_model:finetune:acme-lab/Orbit-1",
+    ]
+    assert by_name["Orbit-8"]["base_model"] == "other-lab/Base-2"
+    assert "license:mit" not in json.dumps(result["observations"])
+    for signal in result["signals"]:
+        assert set(signal.to_dict()) == {
+            "model_name", "provider", "first_seen_url", "timestamp",
+            "confidence", "signal_id",
+        }
+        with pytest.raises(SignalError, match="unknown"):
+            ReleaseSignal.parse(
+                {**signal.to_dict(), "pipeline_tag": "text-generation"},
+                discovered=True,
+            )
+
+
+def test_replay_restores_huggingface_metadata(tmp_path: Path) -> None:
+    from scripts.release_watch_filter import replay_reports
+
+    source, registry = _hf_registry()
+    report = tmp_path / "watch.json"
+    report.write_text(json.dumps({
+        "observed_at": "2026-09-29T20:00:00Z",
+        "observations": [{
+            "source_id": source.id,
+            "source_key": "acme-lab/Orbit-9",
+            "model_name": "Orbit-9",
+            "provider": "Acme",
+            "url": "https://huggingface.co/acme-lab/Orbit-9",
+            "created": "2026-09-29T00:00:00+00:00",
+            "confidence": 0.7,
+            "pipeline_tag": "text-generation",
+            "tags": ["transformers", "base_model:finetune:acme-lab/Orbit-1"],
+            "base_model": "acme-lab/Orbit-1",
+        }],
+    }), encoding="utf-8")
+    runs, _stamp = replay_reports([report], registry)
+    seen = runs[0].new[0]
+    assert seen.pipeline_tag == "text-generation"
+    assert seen.tags == ("transformers", "base_model:finetune:acme-lab/Orbit-1")
+    assert seen.base_model == "acme-lab/Orbit-1"
+
+
+def _api_row(repo: str, **fields: object) -> dict:
+    row = {"id": repo, "createdAt": "2026-09-29T00:00:00Z", "private": False}
+    row.update(fields)
+    return row
+
+
+def test_fixture_api_rows_cover_tag_classes_fallback_unknown_and_derivatives() -> None:
+    source, registry = _hf_registry()
+    rows = []
+    expect: dict[str, str | None] = {}
+    for index, tag in enumerate(sorted(IN_SCOPE_PIPELINE_TAGS)):
+        repo = f"acme-lab/in-{index}"
+        rows.append(_api_row(
+            repo, pipeline_tag=tag, library_name="transformers",
+            tags=[tag, "license:mit", "en"],
+        ))
+        expect[repo] = None
+    for index, tag in enumerate(sorted(OUT_OF_SCOPE_PIPELINE_TAGS)):
+        repo = f"acme-lab/out-{index}"
+        rows.append(_api_row(repo, pipeline_tag=tag, tags=[tag, "arxiv:1.2"]))
+        expect[repo] = tag
+    rows.append(_api_row(
+        "acme-lab/audio-extra", pipeline_tag="audio-text-to-text",
+        tags=["audio-text-to-text"],
+    ))
+    expect["acme-lab/audio-extra"] = None
+    rows.append(_api_row(
+        "acme-lab/acme-robotics-arm", pipeline_tag="graph-ml",
+        tags=["graph-ml", "robotics"],
+    ))
+    expect["acme-lab/acme-robotics-arm"] = None
+    rows.append(_api_row("acme-lab/acme-embodied-walker", tags=["en", "lora"]))
+    expect["acme-lab/acme-embodied-walker"] = "robotics or embodied checkpoint"
+    rows.append(_api_row("acme-lab/orbit-plain"))
+    expect["acme-lab/orbit-plain"] = None
+    rows.append(_api_row(
+        "acme-lab/orbit-rl", tags=["table-tennis", "reinforcement-learning"],
+    ))
+    expect["acme-lab/orbit-rl"] = "reinforcement-learning"
+    rows.append(_api_row(
+        "acme-lab/tuned-tag", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:finetune:other-lab/Orbit-1"],
+    ))
+    expect["acme-lab/tuned-tag"] = None
+    rows.append(_api_row(
+        "acme-lab/tuned-card", pipeline_tag="text-generation",
+        tags=["text-generation"],
+        cardData={"base_model": "other-lab/Orbit-2"},
+    ))
+    expect["acme-lab/tuned-card"] = None
+    rows.append(_api_row(
+        "acme-lab/orbit-1-sparse", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:finetune:other-lab/Orbit-1"],
+    ))
+    expect["acme-lab/orbit-1-sparse"] = "derivative of other-lab/Orbit-1"
+    rows.append(_api_row(
+        "acme-lab/siglip-vl", pipeline_tag="image-text-to-text",
+        tags=[
+            "image-text-to-text",
+            "base_model:finetune:acme-lab/flagship",
+            "base_model:other-lab/siglip",
+        ],
+        cardData={"base_model": ["acme-lab/flagship", "other-lab/siglip"]},
+    ))
+    expect["acme-lab/siglip-vl"] = None
+    rows.append(_api_row(
+        "acme-lab/own-tune", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:acme-lab/Orbit-1"],
+        cardData={"base_model": "acme-lab/Orbit-1"},
+    ))
+    expect["acme-lab/own-tune"] = None
+    rows.append(_api_row(
+        "acme-lab/fresh", pipeline_tag="text-generation", tags=["text-generation"],
+    ))
+    expect["acme-lab/fresh"] = None
+
+    listed = extract(source, json.dumps(rows).encode(), registry)
+    result = filter_releases([
+        SourceRun(source, "ok", listed=len(listed), new=tuple(listed.values())),
+    ], NOW)
+    filed = {signal.model_name for signal in result["signals"]}
+    reasons = {row["source_key"]: row["reason"] for row in result["rejected"]}
+    for repo, reason in expect.items():
+        name = repo.split("/", 1)[1]
+        if reason is None:
+            assert name in filed, repo
+            assert repo not in reasons
+        else:
+            assert reasons[repo] == reason, repo
+            assert name not in filed
+    for signal in result["signals"]:
+        assert "pipeline_tag" not in signal.to_dict()
+    by_key = {row["source_key"]: row for row in result["observations"]}
+    assert by_key["acme-lab/in-0"]["tags"][0] == "transformers"
+    assert "license:mit" not in by_key["acme-lab/in-0"]["tags"]
+    assert by_key["acme-lab/tuned-tag"]["base_model"] == "other-lab/Orbit-1"
+    assert by_key["acme-lab/tuned-card"]["base_model"] == "other-lab/Orbit-2"
+    assert by_key["acme-lab/orbit-1-sparse"]["base_model"] == "other-lab/Orbit-1"
+    assert by_key["acme-lab/siglip-vl"]["base_model"] == "other-lab/siglip"
+    assert by_key["acme-lab/siglip-vl"]["base_models"] == [
+        "acme-lab/flagship", "other-lab/siglip",
+    ]
+    assert by_key["acme-lab/own-tune"]["base_model"] == "acme-lab/Orbit-1"
+    assert "base_model" not in by_key["acme-lab/fresh"]
+    assert "pipeline_tag" not in by_key["acme-lab/orbit-plain"]
+    assert by_key["acme-lab/acme-robotics-arm"]["pipeline_tag"] == "graph-ml"
