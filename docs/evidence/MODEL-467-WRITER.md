@@ -4,21 +4,23 @@ A refreshed Arena row states the reading it was refreshed from. Counts only. No 
 
 ## Tests
 
-The score-only write, before the matched reading was copied onto the row, left the real verifier at `mismatch` for a refreshed Arena fixture. That case is still asserted by `test_stale_arena_reading_mismatches_without_the_writer_change`.
+A score-only Arena rewrite, with the matched reading left uncopied, is refused before the row is written. `test_a_score_only_rewrite_is_refused_before_it_is_written` asserts that the card score stays, the failure reason starts with `verifier:`, and no verification log is written.
 
-After the writer, the guard, the all-cards cap, the sentence retell, and the refusal to write a row the verifier would reject:
+After the writer, the guard, the whole-board cap, the sentence retell, and the verifier dry run:
 
 ```sh
-env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
 ```
 
-Exit 0. 142 passed in 7.98s. Serial, no network.
+Exit 0. 157 passed in 8.61s. Serial, no network.
 
 ## Boards
 
-`rating_lower`, `rating_upper`, and `vote_count` are emitted by `project_arena` in `scripts/model_160_evidence.py`. The weekly writer copies interval, vote count, and effort on rows whose benchmark id starts with `arena_`. The historical Arena fillers in `scripts/model_161_data.py` and `scripts/model_191_refinements.py` read the same fields. No other live board projector emits them.
+`rating_lower`, `rating_upper`, and `vote_count` are emitted by `project_arena` in `scripts/model_160_evidence.py`. The weekly writer copies the matched reading only for Arena boards, and only onto rows whose source URL is the Arena dataset root `https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset`. Non-Arena boards are not copied. The historical Arena fillers in `scripts/model_161_data.py` and `scripts/model_191_refinements.py` read the same fields. No other live board projector emits them.
 
-## Live proof
+A hyphen is not an effort separator. `example-model-high` names no effort, and `test_a_hyphenated_dataset_name_keeps_null_effort` keeps effort null and verifies the row. On the round 2 catalogue, effort changed on 2 of 2289 rewritten rows.
+
+## Round 1 live proof
 
 Scratch catalogue, engine at this branch, private data at `origin/main`, `MODELSPEC_ARENA_REVISION=latest`, observation date 2026-11-12. Eight HTTP requests, all to huggingface.co for `lmarena-ai/leaderboard-dataset`, dataset revision `e69cdc26eb7af798d9628215ce45ce353e66d26a`. Later runs reused that cache and made no further requests.
 
@@ -58,5 +60,90 @@ Rows not written, by reason:
 | rating does not agree in the card's unit | 26 |
 
 Recall on that catalogue, date 2026-11-12, against the approved baseline already on `origin/main`: pass 16 (Q01, Q02, Q03, Q04, Q05, Q06, Q08, Q09, Q12, Q13, Q14, Q15, Q16, Q18, Q19, Q20), partial 4 (Q07, Q10, Q11, Q17), fail 0. Regression question ids: none. The baseline was not re-approved.
+
+## Round 2 review
+
+The writer does not write `benchmark_version`. In latest mode, before any Arena row is written, a planned rewrite whose `benchmark_version` names a dataset revision different from the revision read blocks every Arena write. The run reports one failure, `the cards' benchmark_version still names a revision`, and the count. A version with no revision proceeds. The revision that was read stays in the source snapshot, the audit record, and a configuration sentence that already quotes a revision.
+
+Latest mode with no explicit model selection and no resolver fallback includes every catalogue row on each real Arena board, premier and non-premier. `_moving_arena_benchmarks` is not that inclusion rule. It ignores `benchmark_version`, and it ignores `arena_*` ids that are not in `ARENA_BOARDS`. Those rows are reported once as `arena_rows_without_board`. Pinned mode and an explicit model selection do not expand.
+
+Each Arena board is written whole or left whole. Boards are ordered by the oldest stored `observed_at`, missing dates first, then by board key. `ARENA_ROWS_PER_RUN` is 5000 and counts rows actually rewritten, not reconfirmations. When the next whole board would pass the cap, that board and every later board wait. `arena_rows_left` counts rows on boards left whole. Skips and the revision gate are not counted.
+
+## Round 2 live proof
+
+Same scratch shape as round 1. Engine at this branch, private data at `origin/main`, latest mode, observation date 2026-11-12, dataset revision `e69cdc26eb7af798d9628215ce45ce353e66d26a`. Eight huggingface.co requests, the same eight URLs as round 1. The second run reused an in-process cache and added zero requests. The wrapper refused every other host.
+
+First run, before any revision quote was removed. Fallback null. Arena score changes 0. Rows added 0. Quarantined 0. `arena_rows_left` 0. `arena_rows_without_board` 19. One gate failure: `the cards' benchmark_version still names a revision (2240)`. Other failures: not_read 34. The 2240 count is planned would-be writes whose version names a different revision. It is not the count of every stored quote.
+
+The scratch copy then stripped the revision quote from `benchmark_version`, including folded continuation lines indented under that key. The edit ran only inside an evidence item whose `benchmark_id` starts with `arena_` and whose `source_url`, after a trailing slash is removed, is the Arena dataset root. The substitution was `,?\s*revision\s+[0-9a-fA-F]{7,40}\b`. It removed 3279 quotes. Stored ids, computed `evidence_id`, and `value_hash` of `evidence_verification_value` were unchanged on every evidence row. The strip did not change score, interval, n, effort, configuration, `benchmark_id`, or `source_url`. After the writer ran, a comparison with the clone HEAD found no `benchmark_version` edit beyond that quote removal.
+
+Second run, same process and the same cache. Latest true. Fallback null. The gate did not fire.
+
+| Outcome | Count |
+|---|---:|
+| Arena rows rewritten | 2289 |
+| reconfirmed | 0 |
+| left | 0 |
+| added | 0 |
+| quarantined | 0 |
+| writer score changes | 2271 |
+| effort changed | 2 |
+| verified | 2289 |
+| mismatch | 0 |
+| rewritten rows with no new verification log row | 0 |
+
+No board's planned rewrites exceeded 5000. The largest board planned 140. Every collected board was written whole, and planned rewrites equalled rows rewritten on each board. `arena_rows_left` is 0. `arena_rows_without_board` is 19.
+
+Skip classes on the second run, including rows the wrapper did not read: configuration 50, no-unique-row 154, not_read 34, unit 364, verifier 492. The not_read count is outside the board table.
+
+| Board | Rewritten | Reconfirmed | Left | Skipped |
+|---|---:|---:|---:|---|
+| `arena_elo_coding` | 1 | 0 | 0 | unit 15, verifier 3 |
+| `arena_elo_overall` | 2 | 0 | 0 | configuration 1, unit 15, verifier 4 |
+| `arena_elo_style_control` | 140 | 0 | 0 | no-unique-row 10, unit 16, verifier 24 |
+| `arena_elo_vision` | 3 | 0 | 0 | unit 1 |
+| `arena_sc_business` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 15, verifier 24 |
+| `arena_sc_chinese` | 8 | 0 | 0 | configuration 2, unit 5, verifier 7 |
+| `arena_sc_coding` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
+| `arena_sc_creative_writing` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
+| `arena_sc_document` | 5 | 0 | 0 | unit 3, verifier 6 |
+| `arena_sc_english` | 7 | 0 | 0 | configuration 2, unit 5, verifier 9 |
+| `arena_sc_expert` | 132 | 0 | 0 | configuration 3, no-unique-row 10, unit 15, verifier 21 |
+| `arena_sc_factuality` | 6 | 0 | 0 | configuration 2, unit 4, verifier 9 |
+| `arena_sc_french` | 8 | 0 | 0 | configuration 1, unit 5, verifier 6 |
+| `arena_sc_german` | 8 | 0 | 0 | unit 5, verifier 5 |
+| `arena_sc_hard_prompts` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 23 |
+| `arena_sc_industry_entertainment_sports_media` | 7 | 0 | 0 | configuration 2, unit 5, verifier 9 |
+| `arena_sc_industry_mathematical` | 8 | 0 | 0 | configuration 2, unit 5, verifier 7 |
+| `arena_sc_industry_software_it_services` | 8 | 0 | 0 | configuration 1, unit 5, verifier 9 |
+| `arena_sc_instruction_following` | 139 | 0 | 0 | configuration 3, no-unique-row 10, unit 16, verifier 22 |
+| `arena_sc_japanese` | 6 | 0 | 0 | configuration 1, unit 5, verifier 5 |
+| `arena_sc_korean` | 8 | 0 | 0 | unit 5, verifier 5 |
+| `arena_sc_legal` | 134 | 0 | 0 | no-unique-row 10, unit 16, verifier 24 |
+| `arena_sc_longer_query` | 138 | 0 | 0 | configuration 2, no-unique-row 10, unit 15, verifier 24 |
+| `arena_sc_math` | 134 | 0 | 0 | configuration 2, no-unique-row 9, unit 15, verifier 21 |
+| `arena_sc_medicine` | 133 | 0 | 0 | configuration 3, no-unique-row 9, unit 16, verifier 22 |
+| `arena_sc_multi_turn` | 139 | 0 | 0 | configuration 3, no-unique-row 10, unit 15, verifier 23 |
+| `arena_sc_non_english` | 139 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 24 |
+| `arena_sc_polish` | 7 | 0 | 0 | configuration 1, unit 4, verifier 5 |
+| `arena_sc_russian` | 8 | 0 | 0 | unit 5, verifier 10 |
+| `arena_sc_science` | 139 | 0 | 0 | configuration 2, no-unique-row 10, unit 16, verifier 23 |
+| `arena_sc_spanish` | 7 | 0 | 0 | configuration 2, unit 5, verifier 4 |
+| `arena_sc_vision` | 51 | 0 | 0 | configuration 1, no-unique-row 5, unit 11, verifier 15 |
+| `arena_sc_vision_diagram` | 5 | 0 | 0 | configuration 1, unit 5, verifier 4 |
+| `arena_sc_vision_homework` | 5 | 0 | 0 | configuration 1, unit 5, verifier 3 |
+| `arena_sc_vision_ocr` | 4 | 0 | 0 | configuration 2, unit 5, verifier 4 |
+| `arena_sc_writing` | 140 | 0 | 0 | configuration 1, no-unique-row 10, unit 16, verifier 23 |
+| `arena_webdev` | 52 | 0 | 0 | configuration 2, no-unique-row 1, unit 8, verifier 17 |
+
+After that run, 39 Arena benchmark ids were present. The most distinct `benchmark_version` strings on one id was 2. The most capability items with at least two models on one id was 2. The writer added no version string.
+
+These 20 ids already had two version strings after the quote was removed: `arena_elo_overall`, `arena_elo_style_control`, `arena_elo_vision`, `arena_sc_chinese`, `arena_sc_english`, `arena_sc_factuality`, `arena_sc_french`, `arena_sc_german`, `arena_sc_industry_entertainment_sports_media`, `arena_sc_industry_mathematical`, `arena_sc_industry_software_it_services`, `arena_sc_japanese`, `arena_sc_korean`, `arena_sc_polish`, `arena_sc_russian`, `arena_sc_spanish`, `arena_sc_vision_diagram`, `arena_sc_vision_homework`, `arena_sc_vision_ocr`, `arena_webdev`.
+
+These 15 of them have two items with at least two models: `arena_elo_overall`, `arena_elo_style_control`, `arena_sc_chinese`, `arena_sc_english`, `arena_sc_french`, `arena_sc_german`, `arena_sc_industry_entertainment_sports_media`, `arena_sc_industry_mathematical`, `arena_sc_industry_software_it_services`, `arena_sc_japanese`, `arena_sc_korean`, `arena_sc_polish`, `arena_sc_russian`, `arena_sc_spanish`, `arena_webdev`.
+
+The other five have a second version string with fewer than two models, so that item is dropped. `decision/capability.py` was not edited. The writer cannot collapse those strings, because it does not write `benchmark_version`.
+
+Recall on the refreshed catalogue, date 2026-11-12, against the approved baseline on `origin/main`: pass 16 (Q01, Q02, Q03, Q04, Q05, Q06, Q08, Q09, Q12, Q13, Q14, Q15, Q16, Q18, Q19, Q20), partial 4 (Q07, Q10, Q11, Q17), fail 0. Regression question ids: none. The baseline was not re-approved.
 
 The scratch catalogue, the parquet cache, and the recall output were deleted after this file was written. Nothing from that tree was committed or pushed.
