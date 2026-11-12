@@ -55,13 +55,13 @@ COLLECTOR = VerificationActor(
 MODEL_ID = re.compile(r"[a-z0-9][a-z0-9.-]*/[a-z0-9][a-z0-9.-]*\Z")
 # Ownership is code-reviewed. A URL on a card is not proof of first-party status.
 LAB_HOSTS = {
-    "anthropic": ("anthropic.com", "claude.com"),
-    "openai": ("openai.com",),
+    "anthropic": ("anthropic.com", "claude.com", "docs.anthropic.com"),
+    "openai": ("openai.com", "platform.openai.com"),
     "google": ("ai.google.dev", "deepmind.google", "cloud.google.com"),
     "mistral": ("mistral.ai",),
     "xai": ("x.ai",),
     "perplexity": ("perplexity.ai",),
-    "deepseek": ("deepseek.com",),
+    "deepseek": ("deepseek.com", "platform.deepseek.com"),
     "meta": ("ai.meta.com", "ai.developer.meta.com"),
 }
 PRICE_URLS = {

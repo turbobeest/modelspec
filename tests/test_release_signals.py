@@ -3428,3 +3428,86 @@ def test_a_cite_only_huggingface_host_stays_unfetched(
     assert "host class cite-only" in result["reason"]
     assert page not in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_sibling_docs_hosts_identify_the_lab_and_community_openai_is_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    cases = (
+        ("anthropic", "Anthropic", "https://docs.anthropic.com/docs/orbit-9", "docs.anthropic.com"),
+        ("openai", "OpenAI", "https://platform.openai.com/docs/orbit-9", "platform.openai.com"),
+        ("deepseek", "DeepSeek", "https://platform.deepseek.com/docs/orbit-9", "platform.deepseek.com"),
+    )
+    for lab, provider, page, host in cases:
+        root = tmp_path / lab
+        _write_card(root, lab, "orbit-1", display="Orbit 1", version="orbit-1")
+        result, seen = _run_unlisted(
+            monkeypatch, root,
+            signal(
+                model_name="Orbit 9",
+                provider=provider,
+                signal_id=f"watch:{lab}:orbit-9",
+                first_seen_url=page,
+            ),
+            {page: FetchResult(page, b"<h1>Orbit 9</h1>", "text/html")},
+        )
+        assert result["status"] == "new", host
+        assert result["model_id"] == f"{lab}/orbit-9"
+        assert result["primary_host"] == host
+        assert "primary_kind" not in result
+        assert page in seen
+
+    community = tmp_path / "community"
+    _write_card(community, "openai", "orbit-1", display="Orbit 1", version="orbit-1")
+    page = "https://community.openai.com/c/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, community,
+        signal(
+            model_name="Orbit 9",
+            provider="OpenAI",
+            signal_id="watch:openai:community",
+            first_seen_url=page,
+        ),
+        {},
+    )
+    assert result["status"] == "uncertain"
+    assert "host class unregistered" in result["reason"]
+    assert page not in seen
+    assert not (community / "models" / "openai" / "orbit-9.md").exists()
+
+
+def test_a_redirect_between_registered_hosts_records_the_final_host(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "anthropic", "orbit-1", display="Orbit 1", version="orbit-1")
+    _watch_sources(
+        tmp_path,
+        "sources:\n"
+        "- id: anthropic-models\n"
+        "  kind: page\n"
+        "  url: https://platform.claude.com/docs/en/models/overview\n"
+        "  provider: anthropic\n"
+        "  pattern: orbit\n"
+        "  confidence: 0.9\n",
+    )
+    requested = "https://docs.anthropic.com/docs/orbit-9"
+    final = "https://platform.claude.com/docs/en/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            provider="Anthropic",
+            signal_id="watch:anthropic:orbit-9",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "anthropic/orbit-9"
+    assert result["primary_host"] == "platform.claude.com"
+    assert "primary_kind" not in result
+    assert requested in seen
+    assert final not in seen
+    card = (tmp_path / "models" / "anthropic" / "orbit-9.md").read_text(encoding="utf-8")
+    assert final in card
