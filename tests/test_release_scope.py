@@ -13,6 +13,7 @@ from release_signals.scope import (
     IN_SCOPE_PIPELINE_TAGS,
     OUT_OF_SCOPE_PIPELINE_TAGS,
     TagDecision,
+    derivative_reason,
     out_of_scope_reason,
     tag_scope,
 )
@@ -225,3 +226,14 @@ def test_no_pipeline_tag_falls_back_unless_a_task_tag_decides() -> None:
     assert tag_scope("text-generation", ("robotics",)) == TagDecision(
         True, None, "text-generation",
     )
+
+
+def test_a_base_model_from_another_organisation_is_a_derivative() -> None:
+    assert derivative_reason(
+        "acme-lab/orbit-9-sparse", "other-lab/Orbit-1",
+    ) == "derivative of other-lab/Orbit-1"
+    assert derivative_reason("acme-lab/Orbit-9", "acme-lab/Orbit-1") is None
+    assert derivative_reason("Acme-Lab/Orbit-9", "acme-lab/Orbit-1") is None
+    assert derivative_reason("acme-lab/Orbit-9", None) is None
+    assert derivative_reason("acme-lab/Orbit-9", "") is None
+    assert derivative_reason("acme-lab/Orbit-9", "not-a-repository") is None

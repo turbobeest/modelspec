@@ -163,6 +163,22 @@ class TagDecision:
     tag: str | None = None
 
 
+def derivative_reason(repository_id: str, base_model: str | None) -> str | None:
+    """A fine-tune of another organisation's repository is not this lab's release.
+
+    The same organisation, including a case difference, is this lab's own base.
+    """
+    if not base_model or "/" not in base_model or "/" not in repository_id:
+        return None
+    owner, _, _name = repository_id.partition("/")
+    base_owner, _, base_name = base_model.partition("/")
+    if not owner or not base_owner or not base_name:
+        return None
+    if owner.casefold() == base_owner.casefold():
+        return None
+    return f"derivative of {base_owner}/{base_name}"
+
+
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
     """Scope from the pipeline tag, then from task tags. No tag stays undecided.
 
