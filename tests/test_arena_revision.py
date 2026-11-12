@@ -17,6 +17,9 @@ NEW = "0123456789abcdef0123456789abcdef01234567"
 API = "https://huggingface.co/api/datasets/lmarena-ai/leaderboard-dataset"
 DATASET = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
 ENV = "MODELSPEC_ARENA_REVISION"
+ARENA_REVISION_EXPRESSION = "${{ vars.MODELSPEC_ARENA_REVISION || 'pinned' }}"
+PRIVATE_WRITERS = Path(__file__).resolve().parents[1] / ".github" / "private-writers"
+REFRESH_ENTRYPOINTS = ("scripts.refresh_leaderboards", "scripts.process_release_signals")
 
 
 def test_resolver_reads_a_40_hex_dataset_sha() -> None:
@@ -534,11 +537,39 @@ def test_release_signal_follows_the_arena_revision_variable(
     assert seen == [PIN, NEW]
 
 
-def test_weekly_workflow_keeps_the_arena_revision_pinned() -> None:
-    text = Path(".github/private-writers/leaderboard-refresh.yml").read_text(encoding="utf-8")
+def _run_invokes(run: str, module: str) -> bool:
+    return (
+        f"-m {module}" in run
+        or f'run_module("{module}"' in run
+        or f"run_module('{module}'" in run
+    )
 
-    assert "MODELSPEC_ARENA_REVISION: pinned" in text
-    assert "revision-free" in text
+
+def test_every_private_writer_refresh_reads_the_arena_revision_variable() -> None:
+    found = []
+    for path in sorted(PRIVATE_WRITERS.glob("*.yml")):
+        document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for job in (document.get("jobs") or {}).values():
+            for step in job.get("steps") or []:
+                run = step.get("run")
+                if not isinstance(run, str):
+                    continue
+                if not any(_run_invokes(run, module) for module in REFRESH_ENTRYPOINTS):
+                    continue
+                env = step.get("env") or {}
+                found.append((path.name, step.get("name"), env.get(ENV)))
+
+    assert found == [
+        ("leaderboard-refresh.yml", "Re-read every covered board once", ARENA_REVISION_EXPRESSION),
+        ("release-signals.yml", "Process one isolated work item", ARENA_REVISION_EXPRESSION),
+    ]
+
+
+def test_weekly_workflow_keeps_the_arena_revision_pinned() -> None:
+    path = PRIVATE_WRITERS / "leaderboard-refresh.yml"
+    text = path.read_text(encoding="utf-8")
+
+    assert f"{ENV}: {ARENA_REVISION_EXPRESSION}" in text
     assert "--arena-latest" not in text
 
 

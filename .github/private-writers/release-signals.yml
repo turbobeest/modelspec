@@ -336,6 +336,8 @@ jobs:
           PR_URL: ${{ matrix.work.pr_url }}
           SIGNAL_ID: ${{ matrix.work.signal_id }}
           RECHECK_DAY: ${{ matrix.work.recheck_day }}
+          # The mode comes from the repository variable; unset means pinned.
+          MODELSPEC_ARENA_REVISION: ${{ vars.MODELSPEC_ARENA_REVISION || 'pinned' }}
         run: |
           closed_pr=()
           if [ "$PR_MODE" = closed ]; then

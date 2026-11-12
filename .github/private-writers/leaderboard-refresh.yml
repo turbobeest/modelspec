@@ -129,8 +129,8 @@ jobs:
         env:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
           DRY_RUN: ${{ inputs.dry_run }}
-          # latest needs the data repository's source registry to be revision-free first
-          MODELSPEC_ARENA_REVISION: pinned
+          # The mode comes from the repository variable; unset means pinned.
+          MODELSPEC_ARENA_REVISION: ${{ vars.MODELSPEC_ARENA_REVISION || 'pinned' }}
         run: |
           args=(--observed-at "$(date -u +%F)" --audit-json "$RUNNER_TEMP/audit.json" --report-json "$RUNNER_TEMP/report.json")
           if [ "$DRY_RUN" = "true" ]; then
