@@ -580,7 +580,7 @@ sources:
     )
     monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
     monkeypatch.setattr(
-        processor.refresh_leaderboards, "collect_readings", lambda *_: ([board], [])
+        processor.refresh_leaderboards, "collect_readings", lambda *_args, **_kwargs: ([board], [])
     )
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
 

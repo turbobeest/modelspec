@@ -72,8 +72,70 @@ ME = VerificationActor(
 )
 USER_AGENT = "ModelSpec/1.0 (+https://modelspec.dev)"
 ARENA_REVISION = "1880dbebff5ba3e2dd3865ecf6fc43539c2099db"
-ARENA_URL = ("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
-             f"{ARENA_REVISION}/{{config}}/latest-00000-of-00001.parquet")
+ARENA_DATASET_API = "https://huggingface.co/api/datasets/lmarena-ai/leaderboard-dataset"
+_SHA40 = re.compile(r"^[0-9a-f]{40}$")
+
+
+def valid_arena_revision(value: object) -> bool:
+    """A dataset revision is a 40-character lowercase hex SHA, and nothing else."""
+    return isinstance(value, str) and _SHA40.fullmatch(value) is not None
+
+
+@dataclass(frozen=True)
+class ArenaRevision:
+    """The revision a run will read, and why it is not the dataset's current sha."""
+
+    sha: str
+    fallback: str | None = None
+    modified: str | None = None
+
+
+def arena_parquet_url(config: str, revision: str | None = None) -> str:
+    """One Arena config at one revision. The default revision is the pin."""
+    rev = ARENA_REVISION if revision is None else revision
+    if not valid_arena_revision(rev):
+        raise ValueError("arena revision must be a 40-character lowercase hex sha")
+    return (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{rev}/{config}/latest-00000-of-00001.parquet"
+    )
+
+
+ARENA_URL = arena_parquet_url("{config}")
+
+
+def resolve_arena_revision(fetch) -> ArenaRevision:
+    """Read ``sha`` from the Hugging Face dataset API.
+
+    A network error, a non-JSON body, or a sha that is not 40 lowercase hex
+    characters returns the pinned revision and a short reason. The reason does
+    not include the response body.
+    """
+    try:
+        body = fetch(ARENA_DATASET_API)
+        if isinstance(body, str):
+            text = body
+        elif isinstance(body, bytes):
+            text = body.decode("utf-8")
+        else:
+            raise ValueError("response is not text")
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            raise ValueError("malformed JSON") from None
+        if not isinstance(payload, dict):
+            raise ValueError("response is not an object")
+        sha = payload.get("sha")
+        if not valid_arena_revision(sha):
+            raise ValueError("sha is not a 40-character lowercase hex string")
+        modified = payload.get("lastModified")
+        when = modified if isinstance(modified, str) and modified else None
+        return ArenaRevision(sha=sha, modified=when)
+    except Exception as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        if len(reason) > 200:
+            reason = reason[:200]
+        return ArenaRevision(sha=ARENA_REVISION, fallback=reason)
 
 
 # --- projections ------------------------------------------------------------------------------
