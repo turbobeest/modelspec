@@ -111,6 +111,11 @@ SLICE1_BENCHMARK_BOARDS = {
 APPROVED_LINEUP_MINIMUM_ROWS = 1
 STRICT_CLAUSE1_ROWS = 11
 STRICT_BOARD_ROWS = False
+# A live proposal keeps every current top 10 when its group is already full.
+# The approved file (--check, no --data-dir) still applies the quota cut from
+# the 2026-09-26 approval, so that file stays the lineup that was approved.
+# --quota-cuts-top10 applies that same cut to a live proposal.
+KEEP_EVERY_CURRENT_TOP10 = True
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
 VISION_DOMAINS = {"vision", "vision_documents"}
 
@@ -976,6 +981,26 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
     ):
         take(group, grouped[group])
 
+    # Quota seats are already in `selected`. A live run then keeps every other
+    # current top 10, in sort_key order, whatever the group count. Clause 2
+    # still fills a group only while that group is under its quota, and `take`
+    # counts these seats. The approved path leaves this list empty.
+    over_quota_by_group = {name: 0 for name in GROUP_ORDER}
+    if data_dir is not None and KEEP_EVERY_CURRENT_TOP10:
+        extras = [
+            model_id
+            for model_id, entry in by_model.items()
+            if entry["card"]["status"] != "sunset"
+            and 1 in entry["clauses"]
+            and model_id not in selected_set
+        ]
+        extras.sort(key=sort_key)
+        for model_id in extras:
+            selected.append(model_id)
+            selected_set.add(model_id)
+            group = by_model[model_id]["group"]
+            over_quota_by_group[group] = over_quota_by_group.get(group, 0) + 1
+
     # Slice 2 clauses are additions to the balanced frontier cut. Clause 3 is
     # no longer suppressed by a full quota: continued sale by three major
     # providers is the evidence that keeps an older model in the live lineup.
@@ -1184,34 +1209,50 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         seen_missing.add(key)
         missing_unique.append(row)
 
+    rule = [
+        "Top 10 of its class on a slice-1 board, after collapsing effort "
+        "settings of the same model.",
+        "Released on or after the window start by a lab that has a model in the first clause.",
+        "At least three major providers recorded on the card.",
+        "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
+        "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
+        "Verified parameter count, quantised artifact size, and runtime/peak memory "
+        "at the stated quantisation and context all fit the 24 GB consumer-hardware limit.",
+    ]
+    if data_dir is not None and KEEP_EVERY_CURRENT_TOP10:
+        rule[0] = (
+            "Top 10 of its class on a slice-1 board, after collapsing effort "
+            "settings of the same model. A current top 10 stays when its group "
+            "quota is full. The quota limits only seats with no board row."
+        )
+    counts = {
+        "selected": len(models),
+        "clause_1_cards": sum(1 for entry in by_model.values() if 1 in entry["clauses"]),
+        "clause_2_pool": len(clause2_pool),
+        "clause_3_pool": len(clause3_pool),
+        "missing_top10_rows": len(missing_unique),
+    }
+    # The approved document has no over-quota count. Adding the key would
+    # change premier/slice-1.yaml. Live proposals always carry it, including 0
+    # when --quota-cuts-top10 is set.
+    if data_dir is not None:
+        counts["over_quota_top10"] = sum(over_quota_by_group.values())
+        counts["over_quota_top10_by_group"] = {
+            group: count for group, count in over_quota_by_group.items() if count
+        }
     return {
         "schema_version": 1,
         "status": "proposed" if data_dir else "approved",
         "approved_date": None if data_dir else "2026-09-26",
         "read_date": read_date,
         "release_window_start": window_start,
-        "rule": [
-            "Top 10 of its class on a slice-1 board, after collapsing effort "
-            "settings of the same model.",
-            "Released on or after the window start by a lab that has a model in the first clause.",
-            "At least three major providers recorded on the card.",
-            "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
-            "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
-            "Verified parameter count, quantised artifact size, and runtime/peak memory "
-            "at the stated quantisation and context all fit the 24 GB consumer-hardware limit.",
-        ],
+        "rule": rule,
         "quota": QUOTA,
         "models": models,
         "archived": archived,
         "missing_cards": missing_unique,
         "near_misses": near,
-        "counts": {
-            "selected": len(models),
-            "clause_1_cards": sum(1 for entry in by_model.values() if 1 in entry["clauses"]),
-            "clause_2_pool": len(clause2_pool),
-            "clause_3_pool": len(clause3_pool),
-            "missing_top10_rows": len(missing_unique),
-        },
+        "counts": counts,
     }
 
 
@@ -1268,10 +1309,18 @@ def main() -> int:
         action="store_true",
         help="use the strict clause 1 row count instead of the approved lineup default",
     )
+    parser.add_argument(
+        "--quota-cuts-top10",
+        action="store_true",
+        help="let a full group quota cut a current top 10, the approval-time rule",
+    )
     args = parser.parse_args()
     if args.strict_board_rows:
         global STRICT_BOARD_ROWS
         STRICT_BOARD_ROWS = True
+    if args.quota_cuts_top10:
+        global KEEP_EVERY_CURRENT_TOP10
+        KEEP_EVERY_CURRENT_TOP10 = False
     if not args.data_dir and (args.as_of or args.output or args.diff):
         parser.error("--as-of, --output and --diff require --data-dir")
     if args.data_dir:
