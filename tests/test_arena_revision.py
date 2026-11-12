@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1114,3 +1115,7 @@ def test_one_arena_config_error_leaves_the_other_boards(
     assert _scores(card)["frontiercode_v1_1"] == 50.0
     assert "frontiercode" in report.boards
     assert not any(key.startswith("arena:") and "document" in key for key in report.boards)
+
+
+def test_stray_arena_revision_env_is_cleared() -> None:
+    assert os.environ.get(ENV) is None

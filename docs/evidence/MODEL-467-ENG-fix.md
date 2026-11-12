@@ -322,3 +322,23 @@ PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.p
 ```
 
 Exit 0. `112 passed`.
+
+### A stray Arena revision variable
+
+With `MODELSPEC_ARENA_REVISION=latest` in the environment, a test that does
+not set the variable still saw `latest`.
+
+```sh
+MODELSPEC_ARENA_REVISION=latest PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py::test_stray_arena_revision_env_is_cleared
+```
+
+Exit 1. `AssertionError: assert 'latest' is None`.
+
+The autouse fixture in `tests/conftest.py` now deletes the variable. The same
+three files, still with the variable set in the environment:
+
+```sh
+MODELSPEC_ARENA_REVISION=latest PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py
+```
+
+Exit 0. `113 passed`.
