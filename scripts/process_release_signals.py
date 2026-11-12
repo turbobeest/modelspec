@@ -162,8 +162,6 @@ def process(
             "recheck_due": recheck.get("due") if recheck else None,
             "pr_url": recheck.get("pr_url") if recheck else None,
         }
-        if resolution.suffix_stripped:
-            result["suffix_stripped"] = True
         if resolution.status == "uncertain":
             result["reason"] = resolution.reason
         if resolution.status == "new":

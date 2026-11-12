@@ -2649,57 +2649,37 @@ def test_existing_card_stays_existing_when_models_dev_does_not_list_it(
     assert refreshed["model_ids"] == ("acme/orbit-1",)
 
 
-def test_one_trailing_suffix_resolves_to_the_unsuffixed_card(
+def test_a_dotted_successor_stays_new_when_only_the_predecessor_is_carded(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
-    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
-    dotted = resolve_signal(
-        ReleaseSignal.parse(signal(model_name="Orbit 1.1")), tmp_path,
-    )
-    dashed = resolve_signal(
-        ReleaseSignal.parse(signal(model_name="orbit-1-1")), tmp_path,
-    )
-    real_version = resolve_signal(
-        ReleaseSignal.parse(signal(model_name="Orbit 5.1")), tmp_path,
+    card = _write_card(tmp_path, "acme", "orbit-6", display="Orbit 6", version="orbit-6")
+    before = card.read_bytes()
+    found = resolve_signal(
+        ReleaseSignal.parse(signal(model_name="Orbit 6.1")), tmp_path,
     )
 
-    assert (dotted.status, dotted.model_id, dotted.suffix_stripped) == (
-        "existing", "acme/orbit-1", True,
-    )
-    assert (dashed.status, dashed.model_id, dashed.suffix_stripped) == (
-        "existing", "acme/orbit-1", True,
-    )
-    assert (real_version.status, real_version.model_id, real_version.suffix_stripped) == (
-        "new", "acme/orbit-5-1", False,
-    )
+    assert found.status == "new"
+    assert found.model_id == "acme/orbit-6-1"
+    assert found.candidates == ()
 
     pending = tmp_path / "pending.json"
     result_path = tmp_path / "result.json"
-    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1.1")]}))
-    models_dev_url = "https://models.dev/api.json"
-    replies = {
-        models_dev_url: FetchResult(
-            models_dev_url,
-            json.dumps({"acme": {"name": "Acme", "models": {}}}).encode(),
-            "application/json",
-        ),
-    }
-    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 6.1")]}))
     monkeypatch.setattr(
-        processor.refresh_leaderboards, "run",
-        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+        processor, "_fetch",
+        lambda url: _empty_models_dev()["https://models.dev/api.json"],
     )
 
     result = processor.process(pending, result_path, root=tmp_path)
 
-    assert result["status"] == "existing"
-    assert result["model_id"] == "acme/orbit-1"
-    assert result["suffix_stripped"] is True
-    assert not (tmp_path / "models" / "acme" / "orbit-1-1.md").exists()
-    assert not (tmp_path / "models" / "acme" / "orbit-1.1.md").exists()
+    assert result.get("model_id") != "acme/orbit-6"
+    assert result["status"] != "existing"
+    assert "suffix_stripped" not in result
+    assert card.read_bytes() == before
+    assert not (tmp_path / "models" / "acme" / "orbit-6-1.md").exists()
 
 
-def test_a_suffixed_name_that_is_itself_a_card_is_not_stripped(tmp_path: Path) -> None:
+def test_a_suffixed_name_that_is_itself_a_card_resolves_to_that_card(tmp_path: Path) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
     _write_card(tmp_path, "acme", "orbit-1-1", display="Orbit 1.1", version="orbit-1.1")
 
@@ -2707,12 +2687,10 @@ def test_a_suffixed_name_that_is_itself_a_card_is_not_stripped(tmp_path: Path) -
         ReleaseSignal.parse(signal(model_name="Orbit 1.1")), tmp_path,
     )
 
-    assert (found.status, found.model_id, found.suffix_stripped) == (
-        "existing", "acme/orbit-1-1", False,
-    )
+    assert (found.status, found.model_id) == ("existing", "acme/orbit-1-1")
 
 
-def test_a_stripped_name_matching_two_cards_stays_uncertain(tmp_path: Path) -> None:
+def test_a_dotted_name_does_not_attach_to_unsuffixed_cards(tmp_path: Path) -> None:
     _write_card(tmp_path, "acme", "shared-a", display="Shared", version="shared")
     _write_card(tmp_path, "acme", "shared-b", display="Shared", version="shared")
 
@@ -2720,9 +2698,9 @@ def test_a_stripped_name_matching_two_cards_stays_uncertain(tmp_path: Path) -> N
         ReleaseSignal.parse(signal(model_name="Shared.1")), tmp_path,
     )
 
-    assert found.status == "uncertain"
-    assert found.suffix_stripped is False
-    assert found.candidates == ("acme/shared-a", "acme/shared-b")
+    assert found.status == "new"
+    assert found.model_id == "acme/shared-1"
+    assert found.candidates == ()
 
 
 def test_existing_card_stays_existing_when_the_source_refresh_misses_the_lab(
