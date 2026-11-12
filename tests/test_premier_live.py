@@ -652,3 +652,25 @@ def test_quota_cuts_top10_reproduces_the_approval_time_cut(tmp_path, monkeypatch
     assert {row["model_id"] for row in proposed["models"]} == _TOP10 - _QUOTA_CUT
     assert proposed["counts"]["over_quota_top10"] == 0
     assert proposed["rule"][0] == _APPROVED_RULE
+
+
+def test_over_quota_count_skips_a_top10_another_clause_keeps(tmp_path, monkeypatch):
+    """The count is seats this rule keeps. The time window already keeps the new one."""
+    monkeypatch.setitem(premier_slice1.QUOTA, "frontier-generation", 1)
+    root = catalogue(tmp_path)
+    write_card(root, "lab/best", rows=[evidence("lab/best", BENCH, 90)])
+    write_card(root, "lab/old-extra", rows=[evidence("lab/old-extra", BENCH, 80)])
+    write_card(
+        root, "lab/new-top", release="2026-09-20",
+        rows=[evidence("lab/new-top", BENCH, 70)],
+    )
+    kept = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(kept) == {"lab/best", "lab/old-extra", "lab/new-top"}
+    assert kept["counts"]["over_quota_top10"] == 1
+    assert kept["counts"]["over_quota_top10_by_group"] == {"frontier-generation": 1}
+    monkeypatch.setattr(premier_slice1, "KEEP_EVERY_CURRENT_TOP10", False)
+    cut = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(cut) == {"lab/best", "lab/new-top"}
+    assert cut["counts"]["over_quota_top10"] == 0
+    reasons = {row["model_id"]: row["why"] for row in cut["near_misses"]}
+    assert reasons["lab/old-extra"] == _QUOTA_WHY

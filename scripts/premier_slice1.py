@@ -986,20 +986,19 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
     # still fills a group only while that group is under its quota, and `take`
     # counts these seats. The approved path leaves this list empty.
     over_quota_by_group = {name: 0 for name in GROUP_ORDER}
+    extra_ids: list[str] = []
     if data_dir is not None and KEEP_EVERY_CURRENT_TOP10:
-        extras = [
+        extra_ids = [
             model_id
             for model_id, entry in by_model.items()
             if entry["card"]["status"] != "sunset"
             and 1 in entry["clauses"]
             and model_id not in selected_set
         ]
-        extras.sort(key=sort_key)
-        for model_id in extras:
+        extra_ids.sort(key=sort_key)
+        for model_id in extra_ids:
             selected.append(model_id)
             selected_set.add(model_id)
-            group = by_model[model_id]["group"]
-            over_quota_by_group[group] = over_quota_by_group.get(group, 0) + 1
 
     # Slice 2 clauses are additions to the balanced frontier cut. Clause 3 is
     # no longer suppressed by a full quota: continued sale by three major
@@ -1032,6 +1031,15 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         if model_id not in selected_set:
             selected.append(model_id)
             selected_set.add(model_id)
+
+    # Seats this rule keeps that supplemental clauses and the time window would
+    # not. Those other clauses already put their seats in the lineup.
+    already_kept = set(supplemental) | set(protected)
+    for model_id in extra_ids:
+        if model_id in already_kept:
+            continue
+        group = by_model[model_id]["group"]
+        over_quota_by_group[group] = over_quota_by_group.get(group, 0) + 1
 
     # Clause 2 fills a quota that clause 1 left open, newest release first.
     clause2_only = [
