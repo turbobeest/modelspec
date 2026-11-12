@@ -1577,6 +1577,150 @@ def test_matharena_research_boards_are_registered_sources() -> None:
         assert str(registered[source_id].url) == url
 
 
+def _weekly_pull_request_body(report: refresh.RefreshReport) -> str:
+    opening = (
+        "This weekly job re-read the registered live boards for existing models "
+        "in the premier set.\n\n"
+    )
+    closing = (
+        "\nThe diff guard proved that no card, evidence row, identity fact, "
+        "or licence fact was added or removed.\n\n"
+        "Written by GPT-5 Codex.\n"
+    )
+    return opening + refresh.render_report(report) + closing
+
+
+def _refresh_report(*, changes: int, failures: int) -> refresh.RefreshReport:
+    return refresh.RefreshReport(
+        boards={
+            "arena": {
+                "models_read": 4,
+                "models_reconfirmed": 1,
+                "values_changed": changes,
+                "failures": [],
+            },
+        },
+        changes=[
+            refresh.ScoreChange(
+                card=f"models/lab/m{index}.md",
+                model_id=f"lab/m{index}",
+                model=f"Model {index}",
+                benchmark="change_bench",
+                old_value=float(index),
+                new_value=float(index) + 0.5,
+                source="https://example.test/board",
+                observed_date="2026-11-12",
+            )
+            for index in range(changes)
+        ],
+        failures=[
+            refresh.RowFailure(
+                f"lab/f{index}",
+                "fail_bench",
+                "https://example.test/board",
+                f"reason {index}",
+            )
+            for index in range(failures)
+        ],
+        arena_revision="abc123def456",
+    )
+
+
+def _marked_lines(text: str, marker: str) -> list[str]:
+    return [line for line in text.splitlines() if marker in line]
+
+
+def test_pull_request_body_under_the_limit_is_unchanged() -> None:
+    body = _weekly_pull_request_body(_refresh_report(changes=2, failures=1))
+
+    assert len(body) <= 60_000
+    assert refresh.fit_pull_request_body(body) == body
+
+
+def test_pull_request_body_over_the_limit_cuts_on_a_change_row() -> None:
+    body = _weekly_pull_request_body(_refresh_report(changes=40, failures=2))
+    change_rows = _marked_lines(body, "`change_bench`")
+    fitted = refresh.fit_pull_request_body(body, limit=2_500)
+
+    assert len(fitted) <= 2_500
+    kept = _marked_lines(fitted, "`change_bench`")
+    assert kept == change_rows[:len(kept)]
+    assert len(kept) < len(change_rows)
+    omitted = len(change_rows) - len(kept)
+    note = next(line for line in fitted.splitlines() if "left out" in line)
+    assert str(omitted) in note
+    assert "leaderboard-refresh-report" in note
+
+
+def test_pull_request_body_keeps_every_failure_row_when_changes_are_cut() -> None:
+    body = _weekly_pull_request_body(_refresh_report(changes=40, failures=6))
+    failure_rows = _marked_lines(body, "`fail_bench`")
+    fitted = refresh.fit_pull_request_body(body, limit=2_500)
+
+    assert len(fitted) <= 2_500
+    for row in failure_rows:
+        assert row in fitted.splitlines()
+    assert len(_marked_lines(fitted, "`change_bench`")) < 40
+
+
+def test_fitted_body_stays_within_the_limit_after_the_pull_request_url_expands() -> None:
+    body = _weekly_pull_request_body(_refresh_report(changes=80, failures=3))
+    fitted = refresh.fit_pull_request_body(body, limit=4_000)
+    url = "https://github.com/turbobeest/modelspec-data/pull/" + "9" * 10
+
+    filled = fitted.replace("${PR_URL}", url)
+
+    assert "${PR_URL}" not in filled
+    assert len(filled) <= 4_000
+    assert "leaderboard-refresh-report" in filled
+
+
+def test_large_refresh_uploads_the_report_before_a_body_edit_can_fail() -> None:
+    workflow = yaml.safe_load(
+        (Path(__file__).parents[1] / ".github" / "private-writers" /
+         "leaderboard-refresh.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["refresh"]["steps"]
+    read_at = next(
+        index for index, step in enumerate(steps)
+        if step.get("name") == "Re-read every covered board once"
+    )
+    report_upload = steps[read_at + 1]
+
+    assert report_upload["if"] == "always()"
+    assert report_upload["uses"] == "actions/upload-artifact@v4"
+    assert report_upload["with"]["name"] == "leaderboard-refresh-report"
+    assert report_upload["with"]["if-no-files-found"] == "ignore"
+    uploaded = report_upload["with"]["path"]
+    assert "report.md" in uploaded
+    assert "report.json" in uploaded
+    assert "audit.json" in uploaded
+
+    prepare = next(step for step in steps if step.get("name") == "Prepare the pull-request body")
+    assert "fit_pull_request_body" in prepare["run"]
+    assert "pr-body.md" in prepare["run"]
+
+    audit_at = next(
+        index for index, step in enumerate(steps)
+        if str((step.get("with") or {}).get("name", "")).startswith("leaderboard-refresh-audit-")
+    )
+    edit_at = next(index for index, step in enumerate(steps) if "gh pr edit" in step.get("run", ""))
+    assert audit_at < edit_at
+    assert steps[edit_at].get("continue-on-error") is True
+    assert "::warning::" in steps[edit_at]["run"]
+
+    guard = next(step for step in steps if step.get("name") == "Prove the generated diff is score-only")
+    assert "continue-on-error" not in guard
+    assert "raise SystemExit(1)" in guard["run"]
+    no_update = next(
+        step for step in steps
+        if step.get("name") == "Fail a no-update run that could not read every board"
+    )
+    assert "continue-on-error" not in no_update
+    assert no_update["if"] == "steps.result.outputs.updates == '0' && steps.result.outputs.failures != '0'"
+    assert "exit 1" in no_update["run"]
+
+
 def test_the_matharena_index_marks_only_retired_competitions() -> None:
     import gzip
 

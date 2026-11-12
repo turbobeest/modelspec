@@ -1029,6 +1029,130 @@ def render_report(report: RefreshReport) -> str:
     return "\n".join(lines)
 
 
+#: GitHub rejects a pull request body at 65,536 characters. Stay under that.
+_PR_BODY_LIMIT = 60_000
+_PR_URL_TOKEN = "${PR_URL}"
+#: Longest modelspec-data pull request URL this fitter reserves space for.
+_PR_URL_BUDGET = len("https://github.com/turbobeest/modelspec-data/pull/9999999999")
+_REPORT_ARTIFACT = "leaderboard-refresh-report"
+
+
+def _measured_length(text: str, pr_url_budget: int) -> int:
+    """Length after each ``${PR_URL}`` grows to ``pr_url_budget`` characters."""
+    growth = max(0, pr_url_budget - len(_PR_URL_TOKEN))
+    return len(text) + text.count(_PR_URL_TOKEN) * growth
+
+
+def _omitted_change_rows(count: int) -> str:
+    if count == 1:
+        subject = "1 change row was left out"
+    else:
+        subject = f"{count} change rows were left out"
+    return (
+        f"{subject}. The full report is in the run's {_REPORT_ARTIFACT} artifact."
+    )
+
+
+def _opening_line(lines: list[str]) -> str:
+    for line in lines:
+        if not line.strip():
+            continue
+        if line.startswith(("Arena revision:", "|", "#")):
+            return ""
+        return line
+    return ""
+
+
+def _markdown_table(lines: list[str], header_prefix: str) -> list[str]:
+    for index, line in enumerate(lines):
+        if not line.startswith(header_prefix):
+            continue
+        table = [line]
+        cursor = index + 1
+        while cursor < len(lines) and lines[cursor].startswith("|"):
+            table.append(lines[cursor])
+            cursor += 1
+        return table
+    return []
+
+
+def _table_in_section(lines: list[str], heading: str) -> list[str]:
+    try:
+        start = lines.index(heading)
+    except ValueError:
+        return []
+    table: list[str] = []
+    for line in lines[start + 1:]:
+        if line.startswith("## "):
+            break
+        if line.startswith("|"):
+            table.append(line)
+    return table
+
+
+def _change_table(lines: list[str]) -> tuple[list[str], list[str]]:
+    table = _table_in_section(lines, "## Score changes")
+    if len(table) < 2:
+        return table, []
+    return table[:2], table[2:]
+
+
+def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> str:
+    lines = body.splitlines()
+    opening = _opening_line(lines)
+    arena = next((line for line in lines if line.startswith("Arena revision:")), "")
+    board = _markdown_table(lines, "| Board |")
+    failures = _table_in_section(lines, "## Failures")
+    change_header, change_rows = _change_table(lines)
+
+    def assemble(rows: list[str], omitted: int) -> str:
+        parts: list[str] = []
+        if opening:
+            parts.append(opening)
+        if arena:
+            parts.extend(["", arena] if parts else [arena])
+        if board:
+            parts.extend(["", *board] if parts else list(board))
+        if failures:
+            block = ["## Failures", "", *failures]
+            parts.extend(["", *block] if parts else block)
+        if rows:
+            block = ["## Score changes", "", *change_header, *rows]
+            parts.extend(["", *block] if parts else block)
+        if omitted:
+            note = _omitted_change_rows(omitted)
+            parts.extend(["", note] if parts else [note])
+        return "\n".join(parts) + "\n"
+
+    kept: list[str] = []
+    for row in change_rows:
+        trial = kept + [row]
+        candidate = assemble(trial, len(change_rows) - len(trial))
+        if _measured_length(candidate, pr_url_budget) <= limit:
+            kept = trial
+        else:
+            break
+    return assemble(kept, len(change_rows) - len(kept))
+
+
+def fit_pull_request_body(
+    body: str, *, limit: int = _PR_BODY_LIMIT, pr_url_budget: int = _PR_URL_BUDGET,
+) -> str:
+    """Return ``body`` when it fits in ``limit`` characters.
+
+    Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
+    in the pull request URL cannot push a fitted body over the limit. A body
+    that does not fit keeps the opening line, the Arena revision line, the
+    per-board table and the failures table in full, then as many score-change
+    rows as fit. The cut is on a row boundary. One line says how many change
+    rows were left out and that the full report is in the run's
+    ``leaderboard-refresh-report`` artifact.
+    """
+    if _measured_length(body, pr_url_budget) <= limit:
+        return body
+    return _truncate_pull_request_body(body, limit, pr_url_budget)
+
+
 _ALLOWED_EVIDENCE_FIELDS = frozenset({
     "score", "observed_at", "verified_at", "evidence_date", "id", "sources", "verification",
 })
