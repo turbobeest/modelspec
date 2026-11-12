@@ -31,6 +31,7 @@ import yaml
 
 from decision.excluded import excluded_sources
 from release_signals.contract import SIGNAL_ONLY_HOSTS, WATCH_PREFIX, ReleaseSignal
+from release_signals.scope import hub_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "registry" / "release-watch.yaml"
@@ -77,6 +78,9 @@ class Seen:
     provider: str
     url: str
     created: datetime | None = None
+    pipeline_tag: str | None = None
+    tags: tuple[str, ...] = ()
+    base_model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -255,7 +259,11 @@ def _huggingface(source: Source, payload: Any, registry: Registry) -> dict[str, 
         if rejected and rejected.search(name):
             continue
         created = _instant(row.get("createdAt"))
-        found[repo] = Seen(repo, name, source.provider, f"https://huggingface.co/{repo}", created)
+        pipeline_tag, tags, base_model = hub_metadata(row, repo)
+        found[repo] = Seen(
+            repo, name, source.provider, f"https://huggingface.co/{repo}", created,
+            pipeline_tag, tags, base_model,
+        )
     return found
 
 

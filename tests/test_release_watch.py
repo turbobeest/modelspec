@@ -16,8 +16,8 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 from decision.excluded import REMOVED_HOSTS
-from release_signals.contract import ReleaseSignal, SignalError
 from release_signals import watch
+from release_signals.contract import ReleaseSignal, SignalError
 from release_signals.watch import (
     Registry,
     Response,
@@ -919,3 +919,102 @@ def test_dispatch_still_runs_for_discoveries_when_the_watch_job_fails() -> None:
     condition = workflow["jobs"]["dispatch"]["if"]
     assert condition.startswith("${{ !cancelled() &&")
     assert "needs.watch.outputs.discoveries != ''" in condition
+
+
+def _hf_registry() -> tuple[Source, Registry]:
+    source = Source("hf-acme", "huggingface", HF, 0.7, provider="Acme")
+    return source, Registry("fixture", 30, r"gguf", "", (source,))
+
+
+def test_huggingface_listing_metadata_reaches_the_observation_not_the_filed_signal() -> None:
+    source, registry = _hf_registry()
+    body = json.dumps([
+        {
+            "id": "acme-lab/Orbit-9",
+            "createdAt": "2026-09-29T00:00:00Z",
+            "pipeline_tag": "text-generation",
+            "library_name": "transformers",
+            "tags": [
+                "transformers",
+                "text-generation",
+                "conversational",
+                "base_model:finetune:acme-lab/Orbit-1",
+                "license:mit",
+                "en",
+                "arxiv:1234.5678",
+            ],
+            "cardData": {"base_model": "acme-lab/Orbit-1"},
+        },
+        {
+            "id": "acme-lab/Orbit-8",
+            "createdAt": "2026-09-29T00:00:00Z",
+            "pipeline_tag": "text-generation",
+            "tags": ["text-generation", "base_model:quantized:other-lab/Base-2"],
+        },
+    ]).encode()
+    listed = extract(source, body, registry)
+    orbit9 = listed["acme-lab/Orbit-9"]
+    orbit8 = listed["acme-lab/Orbit-8"]
+    assert orbit9.pipeline_tag == "text-generation"
+    assert orbit9.base_model == "acme-lab/Orbit-1"
+    assert orbit9.tags == (
+        "transformers",
+        "text-generation",
+        "conversational",
+        "base_model:finetune:acme-lab/Orbit-1",
+    )
+    assert orbit8.base_model == "other-lab/Base-2"
+    assert orbit8.tags == (
+        "text-generation",
+        "base_model:quantized:other-lab/Base-2",
+    )
+
+    result = filter_releases([
+        SourceRun(source, "ok", listed=2, new=(orbit9, orbit8)),
+    ], NOW)
+    by_name = {row["model_name"]: row for row in result["observations"]}
+    assert by_name["Orbit-9"]["pipeline_tag"] == "text-generation"
+    assert by_name["Orbit-9"]["base_model"] == "acme-lab/Orbit-1"
+    assert by_name["Orbit-9"]["tags"] == [
+        "transformers", "text-generation", "conversational",
+        "base_model:finetune:acme-lab/Orbit-1",
+    ]
+    assert by_name["Orbit-8"]["base_model"] == "other-lab/Base-2"
+    assert "license:mit" not in json.dumps(result["observations"])
+    for signal in result["signals"]:
+        assert set(signal.to_dict()) == {
+            "model_name", "provider", "first_seen_url", "timestamp",
+            "confidence", "signal_id",
+        }
+        with pytest.raises(SignalError, match="unknown"):
+            ReleaseSignal.parse(
+                {**signal.to_dict(), "pipeline_tag": "text-generation"},
+                discovered=True,
+            )
+
+
+def test_replay_restores_huggingface_metadata(tmp_path: Path) -> None:
+    from scripts.release_watch_filter import replay_reports
+
+    source, registry = _hf_registry()
+    report = tmp_path / "watch.json"
+    report.write_text(json.dumps({
+        "observed_at": "2026-09-29T20:00:00Z",
+        "observations": [{
+            "source_id": source.id,
+            "source_key": "acme-lab/Orbit-9",
+            "model_name": "Orbit-9",
+            "provider": "Acme",
+            "url": "https://huggingface.co/acme-lab/Orbit-9",
+            "created": "2026-09-29T00:00:00+00:00",
+            "confidence": 0.7,
+            "pipeline_tag": "text-generation",
+            "tags": ["transformers", "base_model:finetune:acme-lab/Orbit-1"],
+            "base_model": "acme-lab/Orbit-1",
+        }],
+    }), encoding="utf-8")
+    runs, _stamp = replay_reports([report], registry)
+    seen = runs[0].new[0]
+    assert seen.pipeline_tag == "text-generation"
+    assert seen.tags == ("transformers", "base_model:finetune:acme-lab/Orbit-1")
+    assert seen.base_model == "acme-lab/Orbit-1"

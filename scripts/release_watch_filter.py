@@ -156,6 +156,41 @@ def draft_card(signal: ReleaseSignal, evidence: list[dict]) -> dict:
     }
 
 
+def _optional_text(row: dict, field: str) -> str | None:
+    if field not in row or row[field] is None:
+        return None
+    value = row[field]
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"replay {field} must be a string")
+    return value
+
+
+def _optional_tags(row: dict) -> tuple[str, ...]:
+    if "tags" not in row or row["tags"] is None:
+        return ()
+    value = row["tags"]
+    if not isinstance(value, list) or any(not isinstance(tag, str) for tag in value):
+        raise ValueError("replay tags must be a list of strings")
+    return tuple(value)
+
+
+def _observation(run: SourceRun, seen: Seen) -> dict:
+    """One source row for the run report. Hub fields are omitted when absent."""
+    evidence = {
+        "source_id": run.source.id, "source_key": seen.key,
+        "model_name": seen.model_name, "provider": seen.provider, "url": seen.url,
+        "created": seen.created.isoformat() if seen.created else None,
+        "confidence": run.source.confidence,
+    }
+    if seen.pipeline_tag:
+        evidence["pipeline_tag"] = seen.pipeline_tag
+    if seen.tags:
+        evidence["tags"] = list(seen.tags)
+    if seen.base_model:
+        evidence["base_model"] = seen.base_model
+    return evidence
+
+
 def filter_releases(
     runs: Iterable[SourceRun], now: datetime, *, catalogue: Catalogue | None = None,
 ) -> dict:
@@ -169,12 +204,7 @@ def filter_releases(
         if run.status != "ok":
             continue
         for seen in sorted(run.new, key=lambda row: row.key):
-            evidence = {
-                "source_id": run.source.id, "source_key": seen.key,
-                "model_name": seen.model_name, "provider": seen.provider, "url": seen.url,
-                "created": seen.created.isoformat() if seen.created else None,
-                "confidence": run.source.confidence,
-            }
+            evidence = _observation(run, seen)
             observations.append(evidence)
             reason = rejection_reason(seen.provider, seen.model_name, source_url=seen.url)
             if reason is None and card_identity(seen.provider, seen.model_name) in carded:
@@ -231,6 +261,9 @@ def replay_reports(paths: Sequence[Path], registry: Registry) -> tuple[list[Sour
                     key=row["source_key"], model_name=row["model_name"],
                     provider=row["provider"], url=row["url"],
                     created=datetime.fromisoformat(row["created"]) if row["created"] else None,
+                    pipeline_tag=_optional_text(row, "pipeline_tag"),
+                    tags=_optional_tags(row),
+                    base_model=_optional_text(row, "base_model"),
                 ))
             if seen:
                 runs.append(SourceRun(source, "ok", new=tuple(seen), listed=len(seen)))
