@@ -4078,3 +4078,125 @@ def test_a_first_seen_lab_redirect_to_the_org_repository_uses_the_repo_name(
     assert front["sources"]["huggingface_url"] == final
     assert front["sources"]["provider_docs_url"] == ""
     assert requested not in front["sources"].values()
+
+
+def _existing_card_with_urls(
+    root: Path, *, huggingface_url: str = "https://huggingface.co/acme/kept-orbit-1",
+) -> Path:
+    card = _write_card(root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    text = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    sources = {"provider_docs_url": "https://docs.acme.example/orbit-1"}
+    if huggingface_url:
+        sources["huggingface_url"] = huggingface_url
+    front["sources"] = sources
+    card.write_text(
+        "---\n" + yaml.dump(front, sort_keys=False) + "---" + text.split("---", 2)[2],
+        encoding="utf-8",
+    )
+    return card
+
+
+def _process_existing_first_seen(
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+    *,
+    first_seen: str,
+    page: FetchResult,
+    signal_id: str,
+) -> dict:
+    doc = "https://docs.sibling.example/orbit-1"
+    models_dev = "https://models.dev/api.json"
+    payload = _listed_doc_payload(doc).replace(b"orbit-9", b"orbit-1").replace(b"Orbit 9", b"Orbit 1")
+    seen: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        seen.append(url)
+        if url == models_dev:
+            return FetchResult(models_dev, payload, "application/json")
+        if url == first_seen:
+            return page
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+    pending = root / "pending.json"
+    pending.write_text(json.dumps({"signals": [signal(
+        model_name="Orbit 1",
+        signal_id=signal_id,
+        first_seen_url=first_seen,
+    )]}), encoding="utf-8")
+    result = processor.process(
+        pending, root / "result.json", root=root,
+    )
+    result["_seen"] = seen
+    return result
+
+
+@pytest.mark.parametrize(
+    ("where", "first_seen", "body"),
+    [
+        (
+            "repository",
+            "https://huggingface.co/AcmeLab/orbit-1",
+            b"<html><title>weights</title></html>",
+        ),
+        (
+            "changelog",
+            "https://models.acme.example/changelog/orbit-1",
+            b"<h1>Orbit 1</h1>",
+        ),
+    ],
+)
+def test_an_existing_card_keeps_its_urls(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, where: str, first_seen: str, body: bytes,
+) -> None:
+    kept_hf = "https://huggingface.co/acme/kept-orbit-1"
+    kept_docs = "https://docs.acme.example/orbit-1"
+    _existing_card_with_urls(tmp_path, huggingface_url=kept_hf)
+    if where == "repository":
+        _huggingface_watch(tmp_path, "AcmeLab")
+    else:
+        _watch_lab(tmp_path, "models.acme.example")
+    result = _process_existing_first_seen(
+        monkeypatch, tmp_path,
+        first_seen=first_seen,
+        page=FetchResult(first_seen, body, "text/html"),
+        signal_id=f"watch:acme:keep-urls-{where}",
+    )
+
+    assert result["status"] == "existing"
+    assert "identity_error" not in result
+    front = yaml.safe_load(
+        (tmp_path / "models" / "acme" / "orbit-1.md").read_text(encoding="utf-8").split("---", 2)[1]
+    )
+    assert front["sources"]["provider_docs_url"] == kept_docs
+    assert front["sources"]["huggingface_url"] == kept_hf
+
+
+def test_an_existing_huggingface_primary_fills_an_empty_huggingface_url(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    kept_docs = "https://docs.acme.example/orbit-1"
+    _existing_card_with_urls(tmp_path, huggingface_url="")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/orbit-1"
+    result = _process_existing_first_seen(
+        monkeypatch, tmp_path,
+        first_seen=page,
+        page=FetchResult(page, b"<html><title>weights</title></html>", "text/html"),
+        signal_id="watch:acme:fill-huggingface-url",
+    )
+
+    assert result["status"] == "existing"
+    assert "identity_error" not in result
+    front = yaml.safe_load(
+        (tmp_path / "models" / "acme" / "orbit-1.md").read_text(encoding="utf-8").split("---", 2)[1]
+    )
+    assert front["sources"]["provider_docs_url"] == kept_docs
+    assert front["sources"]["huggingface_url"] == page

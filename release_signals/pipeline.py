@@ -112,6 +112,7 @@ class GatherResult:
     models_dev: str = ""
     primary_kind: str = ""
     identity_basis: str = ""
+    preferred_first_seen: bool = False
 
 
 @dataclass(frozen=True)
@@ -994,6 +995,7 @@ def gather_signal(
             else ""
         ),
         identity_basis=identity_basis,
+        preferred_first_seen=preferred_first_seen,
     )
 
 
@@ -1022,10 +1024,20 @@ def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date)
     accessed = read_date.isoformat()
     source_facts = {
         "models_dev_url": f"https://models.dev/{gathered.provider_id}",
-        "provider_docs_url": api_docs_url,
     }
-    if huggingface_url:
-        source_facts["huggingface_url"] = huggingface_url
+    if gathered.primary_kind == "huggingface-org":
+        if not sources.get("huggingface_url"):
+            filled = huggingface_url or gathered.primary_url
+            if filled:
+                source_facts["huggingface_url"] = filled
+    elif gathered.preferred_first_seen and sources.get("provider_docs_url"):
+        source_facts["provider_docs_url"] = sources["provider_docs_url"]
+        if huggingface_url and not sources.get("huggingface_url"):
+            source_facts["huggingface_url"] = huggingface_url
+    else:
+        source_facts["provider_docs_url"] = api_docs_url
+        if huggingface_url:
+            source_facts["huggingface_url"] = huggingface_url
     material_change = any(sources.get(key) != value for key, value in source_facts.items())
     if not material_change:
         return path
