@@ -14,6 +14,10 @@ with permitted independent boards, and reports recall changes without gating
 on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
 The data-pr report builds that linked catalogue with the completeness gate on
 and labels the snapshot line as the linked catalogue.
+
+The compare-approved-answers operation reads one recall report and the
+baselines. It prints counts and question ids. It exits non-zero when those
+inputs cannot be validated, and when a question regresses.
 """
 
 from __future__ import annotations
@@ -1833,6 +1837,68 @@ def run_profile(
     )
 
 
+_APPROVED_LEVEL = {"fail": 0, "partial": 1, "pass": 2}
+_APPROVED_IDS = {f"Q{number:02d}" for number in range(1, 21)}
+
+
+def _approved_verdicts(path: Path, *, report: bool = False) -> dict[str, str]:
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    if report:
+        rows = raw["questions"]
+        result = {row["id"]: row["verdict"] for row in rows}
+        if len(rows) != len(_APPROVED_IDS):
+            raise ValueError("invalid question count")
+    else:
+        if raw["schema_version"] != 1:
+            raise ValueError("invalid baseline schema")
+        result = raw["verdicts"]
+    if set(result) != _APPROVED_IDS or any(
+        value not in _APPROVED_LEVEL for value in result.values()
+    ):
+        raise ValueError("invalid question verdicts")
+    return result
+
+
+def compare_approved_answers(
+    report_dir: Path,
+    baseline: Path,
+    approved_baseline: Path | None,
+    summary: Path,
+) -> list[str]:
+    """Print counts and question ids. Return the regressed question ids."""
+    reports = list(Path(report_dir).glob("*.json"))
+    if len(reports) != 1:
+        raise ValueError("expected one report")
+    current = _approved_verdicts(reports[0], report=True)
+    minima = [_approved_verdicts(baseline)]
+    if approved_baseline is not None:
+        minima.append(_approved_verdicts(approved_baseline))
+    proposed = minima[0]
+    regressions = sorted(
+        question
+        for question in _APPROVED_IDS
+        if any(
+            _APPROVED_LEVEL[current[question]] < _APPROVED_LEVEL[minimum[question]]
+            or _APPROVED_LEVEL[proposed[question]] < _APPROVED_LEVEL[minimum[question]]
+            for minimum in minima
+        )
+    )
+    lines = []
+    for verdict in ("pass", "partial", "fail"):
+        questions = sorted(
+            question for question in _APPROVED_IDS if current[question] == verdict
+        )
+        lines.append(
+            f"{verdict}: {len(questions)}; question ids: {', '.join(questions) or 'none'}"
+        )
+    lines.append("Regression question ids: " + (", ".join(regressions) or "none"))
+    text = "\n".join(lines) + "\n"
+    with Path(summary).open("a", encoding="utf-8") as output:
+        output.write(text)
+    print(text, end="")
+    return regressions
+
+
 STAGED_FAILURE = LayerResult(
     "staged_failure",
     "fail",
@@ -1886,7 +1952,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--changed-files", type=Path)
     parser.add_argument("--labels-json")
+    parser.add_argument(
+        "--compare-approved-answers",
+        action="store_true",
+        help="Compare one recall report with the proposed and approved baselines.",
+    )
+    parser.add_argument("--report-dir", type=Path)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--approved-baseline", type=Path)
+    parser.add_argument("--summary", type=Path)
     args = parser.parse_args(argv)
+    if args.compare_approved_answers and (
+        args.update_recall_baseline or args.check_recall_approval
+    ):
+        parser.error("choose only one maintenance operation")
+    if args.compare_approved_answers:
+        if args.report_dir is None or args.baseline is None or args.summary is None:
+            parser.error(
+                "--compare-approved-answers requires --report-dir, --baseline, and --summary"
+            )
+        try:
+            regressions = compare_approved_answers(
+                args.report_dir,
+                args.baseline,
+                args.approved_baseline,
+                args.summary,
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            print("::error::Private recall inputs could not be validated.")
+            return 1
+        return int(bool(regressions))
     if args.update_recall_baseline and args.check_recall_approval:
         parser.error("choose only one maintenance operation")
     if args.update_recall_baseline:

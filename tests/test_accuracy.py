@@ -1951,3 +1951,152 @@ def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> 
         ("model-205-perplexity-pro", "model-173-openai-pro", "model-173-xai-consumer-pricing"),
         FetchMode.RENDERED,
     )
+
+
+def _approved_ids() -> list[str]:
+    return [f"Q{number:02d}" for number in range(1, 21)]
+
+
+def _approved_verdicts(**overrides: str) -> dict[str, str]:
+    verdicts = {question_id: "pass" for question_id in _approved_ids()}
+    verdicts.update(overrides)
+    return verdicts
+
+
+def _approved_fixture(
+    tmp_path: Path,
+    report: dict[str, str],
+    baseline: dict[str, str],
+    approved: dict[str, str],
+    *,
+    extra_report: bool = False,
+    drop_question: str | None = None,
+) -> tuple[Path, Path, Path, Path]:
+    report_dir = tmp_path / "report"
+    report_dir.mkdir()
+    rows = [
+        {"id": question_id, "verdict": verdict}
+        for question_id, verdict in report.items()
+        if question_id != drop_question
+    ]
+    (report_dir / "recall.json").write_text(
+        json.dumps({"questions": rows}), encoding="utf-8",
+    )
+    if extra_report:
+        (report_dir / "second.json").write_text("{}", encoding="utf-8")
+    baseline_path = tmp_path / "baseline.json"
+    approved_path = tmp_path / "approved.json"
+    baseline_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": baseline}), encoding="utf-8",
+    )
+    approved_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": approved}), encoding="utf-8",
+    )
+    return report_dir, baseline_path, approved_path, tmp_path / "summary.txt"
+
+
+def _compare_approved(paths: tuple[Path, Path, Path, Path]) -> int:
+    report_dir, baseline, approved, summary = paths
+    return accuracy.main([
+        "--compare-approved-answers",
+        "--report-dir", str(report_dir),
+        "--baseline", str(baseline),
+        "--approved-baseline", str(approved),
+        "--summary", str(summary),
+    ])
+
+
+def test_compare_approved_answers_reports_no_change(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    text = capsys.readouterr().out
+    assert text.splitlines() == [
+        "pass: 20; question ids: " + ", ".join(_approved_ids()),
+        "partial: 0; question ids: none",
+        "fail: 0; question ids: none",
+        "Regression question ids: none",
+    ]
+    assert paths[3].read_text(encoding="utf-8") == text
+
+
+def test_compare_approved_answers_allows_an_improvement(tmp_path: Path, capsys) -> None:
+    report = _approved_verdicts()
+    lower = _approved_verdicts(Q01="partial")
+    paths = _approved_fixture(tmp_path, report, lower, lower)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: none"
+
+
+def test_compare_approved_answers_regresses_when_pass_turns_partial(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[1] == "partial: 1; question ids: Q01"
+    assert lines[-1] == "Regression question ids: Q01"
+    assert paths[3].read_text(encoding="utf-8").splitlines()[-1] == lines[-1]
+
+
+def test_compare_approved_answers_regresses_when_partial_turns_fail(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q05="fail")
+    minimum = _approved_verdicts(Q05="partial")
+    paths = _approved_fixture(tmp_path, report, minimum, minimum)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[2] == "fail: 1; question ids: Q05"
+    assert lines[-1] == "Regression question ids: Q05"
+
+
+def test_compare_approved_answers_regresses_when_the_proposed_baseline_drops(
+    tmp_path: Path, capsys,
+) -> None:
+    passing = _approved_verdicts()
+    proposed = _approved_verdicts(Q03="partial")
+    paths = _approved_fixture(tmp_path, passing, proposed, passing)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q03"
+
+
+def test_compare_approved_answers_rejects_a_missing_question(
+    tmp_path: Path, capsys,
+) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, drop_question="Q12")
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out == "::error::Private recall inputs could not be validated.\n"
+    assert not paths[3].exists()
+
+
+def test_compare_approved_answers_rejects_two_report_files(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, extra_report=True)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert "could not be validated" in capsys.readouterr().out
+    assert not paths[3].exists()

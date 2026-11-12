@@ -443,7 +443,7 @@ jobs:
           else
             cp reports/recall/baseline.json "$RUNNER_TEMP/approved-private-recall.json"
           fi
-          python reports/recall/check.py \
+          python -I -m scripts.accuracy --compare-approved-answers \
             --report-dir "$RUNNER_TEMP/recall" \
             --baseline reports/recall/baseline.json \
             --summary "$GITHUB_STEP_SUMMARY" \
