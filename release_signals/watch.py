@@ -181,7 +181,21 @@ def _page(source: Source, text: str, registry: Registry) -> dict[str, Seen]:
     ]
     found: dict[str, Seen] = {}
     for match in token.finditer(text):
-        name = match.group(0).lower()
+        start, end = match.span()
+        raw = match.group(0)
+        # `.$<id>.<digits>:` is a flight key. The pattern swallows the index,
+        # so drop that `.<digits>` and keep the id. Any other match preceded
+        # by `$` is serialisation and is dropped. Other text is kept as matched.
+        flight_key = (
+            text[max(0, start - 2):start] == ".$"
+            and text[end:end + 1] == ":"
+            and re.search(r"\.\d+$", raw) is not None
+        )
+        if flight_key:
+            raw = re.sub(r"\.\d+$", "", raw)
+        elif start > 0 and text[start - 1] == "$":
+            continue
+        name = raw.lower()
         if source.require_digit and not re.search(r"\d", name):
             continue
         if any(rule.search(name) for rule in rejected):
