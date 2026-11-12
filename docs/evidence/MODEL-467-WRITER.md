@@ -9,7 +9,7 @@ A score-only Arena rewrite, with the matched reading left uncopied, is refused b
 After the writer, the guard, the whole-board cap, the sentence retell, and the verifier dry run:
 
 ```sh
-env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_model_160_evidence.py
 ```
 
 Exit 0. 157 passed in 8.61s. Serial, no network.
