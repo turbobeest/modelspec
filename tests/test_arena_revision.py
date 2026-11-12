@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts import refresh_leaderboards as refresh
 
@@ -201,52 +202,188 @@ def test_collect_without_a_revision_stays_on_the_pin(
     assert API not in fetched
 
 
+def _arena_card(root: Path, rows: list[tuple[str, str, str]]) -> Path:
+    """One card. Each tuple is benchmark id, source id, score."""
+    evidence = []
+    for benchmark_id, source_id, score in rows:
+        evidence.append(
+            f"""  - benchmark_id: {benchmark_id}
+    model_id_as_evaluated: Example Model
+    score: {score}
+    unit: Arena score (Elo scale)
+    source_url: {DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    id: lab/model#{benchmark_id}#old
+    sources:
+    - source_id: {source_id}
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+"""
+        )
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        "---\nmodel_id: lab/model\ndisplay_name: Example Model\nversion: example\n"
+        "benchmarks:\n  evidence:\n" + "".join(evidence) + "---\n",
+        encoding="utf-8",
+    )
+    return card
+
+
+def _registry(root: Path, sources: dict[str, str]) -> None:
+    body = ["schema_version: 1", "sources:"]
+    for source_id, url in sources.items():
+        body.append(
+            f"- id: {source_id}\n"
+            f"  url: {url}\n"
+            "  fetch: http\n"
+            "  normaliser: text-default\n"
+            "  cited_regions:\n"
+            "  - id: rows\n"
+            "    locator: {kind: page, value: ''}\n"
+        )
+    path = root / "registry" / "sources.yaml"
+    path.parent.mkdir(parents=True)
+    path.write_text("".join(line if line.endswith("\n") else line + "\n" for line in body),
+                    encoding="utf-8")
+
+
+def _arena_reading(cache: Path, *, source_id: str, benchmark: str, revision: str):
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{revision}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{
+            "model_name": "Example Model",
+            "rating": 1200.0,
+            "leaderboard_publish_date": "2026-11-01",
+        }],
+        url=url, page_ref="sha256:" + "b" * 64, read_date="2026-11-11", note="test",
+    )
+    return refresh._reading_from_projection(
+        key=f"arena:{benchmark}", source_id=source_id, benchmarks=(benchmark,),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(DATASET,),
+    )
+
+
+def _run_latest(monkeypatch: pytest.MonkeyPatch, root: Path, cache: Path, boards) -> refresh.RefreshReport:
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: (boards, []))
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=NEW, fallback=None),
+    )
+    (root / "verification").mkdir(exist_ok=True)
+    return refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/model",), arena_latest=True,
+    )
+
+
 def test_rewritten_row_cites_the_revision_that_was_read(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
-    def fetch(url: str) -> bytes:
-        if "leaderboard-dataset/resolve/" in url and NEW in url:
-            return b"fixture"
-        raise OSError(url)
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_id = "model-160-arena-text"
+    card = _arena_card(root, [("arena_elo_overall", source_id, "1100.0")])
+    _registry(root, {
+        source_id: (
+            "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+            f"{NEW}/text/latest-00000-of-00001.parquet"
+        ),
+    })
+    board = _arena_reading(cache, source_id=source_id, benchmark="arena_elo_overall", revision=NEW)
 
-    def project(_parquet, _config, _category, *, url, page_ref, read_date):
-        assert NEW in url
-        return refresh.readers.document(
-            [{
-                "model_name": "Example Model",
-                "rating": 1200.0,
-                "leaderboard_publish_date": "2026-11-01",
-            }],
-            url=url, page_ref=page_ref, read_date=read_date, note="test",
-        )
+    report = _run_latest(monkeypatch, root, cache, [board])
 
-    monkeypatch.setattr(refresh, "_fetch", fetch)
-    monkeypatch.setattr(refresh.readers, "project_arena", project)
+    assert report.quarantined == []
+    assert len(report.changes) == 1
+    assert report.changes[0].source == board.source_url
+    assert NEW in report.changes[0].source
+    row = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])[
+        "benchmarks"
+    ]["evidence"][0]
+    assert row["source_url"] == DATASET
+    assert row["sources"][0]["source_id"] == source_id
+    cited = str(refresh.load_sources(root / "registry" / "sources.yaml")[source_id].url)
+    assert NEW in cited
+    assert PIN not in cited
+    retained = refresh.CopyStore(cache).path(row["sources"][0]["snapshot_ref"]).read_bytes()
+    assert NEW.encode() in retained
+    assert board.source_url.encode() in retained
 
-    boards, _failures = refresh.collect_readings(
-        "2026-11-11", refresh.CopyStore(tmp_path), (), NEW,
+
+def test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    text_id = "model-160-arena-text"
+    vision_id = "model-160-arena-vision"
+    card = _arena_card(root, [
+        ("arena_elo_overall", text_id, "1100.0"),
+        ("arena_elo_vision", vision_id, "900.0"),
+    ])
+    pinned = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{PIN}/text/latest-00000-of-00001.parquet"
     )
-    board = next(item for item in boards if "arena_elo_overall" in item.benchmark_ids)
-    assert NEW in board.source_url
-    assert PIN not in board.source_url
+    _registry(root, {text_id: pinned, vision_id: pinned.replace("/text/", "/vision/")})
+    boards = [
+        _arena_reading(cache, source_id=text_id, benchmark="arena_elo_overall", revision=NEW),
+        _arena_reading(cache, source_id=vision_id, benchmark="arena_elo_vision", revision=NEW),
+    ]
 
-    changes, failures = refresh.plan_rows(
-        "lab/model",
-        "models/lab/model.md",
-        [{
-            "benchmark_id": "arena_elo_overall",
-            "model_id_as_evaluated": "Example Model",
-            "score": 1100.0,
-            "unit": "Arena score (Elo scale)",
-            "source_url": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
-        }],
-        board,
-    )
+    report = _run_latest(monkeypatch, root, cache, boards)
 
-    assert failures == []
-    assert len(changes) == 1
-    assert changes[0].source == board.source_url
-    assert NEW in changes[0].source
+    text = refresh.render_report(report)
+    conflicts = [row for row in report.failures if "registry cites a different revision" in row.reason]
+    assert len(conflicts) == 1
+    assert text_id in conflicts[0].reason
+    assert vision_id in conflicts[0].reason
+    assert "registry cites a different revision" in text
+    assert report.changes == []
+    written = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert [row["score"] for row in written["benchmarks"]["evidence"]] == [1100.0, 900.0]
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert sum(
+        "registry cites a different revision" in row["reason"] for row in payload["failures"]
+    ) == 1
+
+
+def test_latest_mode_writes_arena_rows_when_the_registry_url_has_no_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_id = "model-160-arena-text"
+    card = _arena_card(root, [("arena_elo_overall", source_id, "1100.0")])
+    _registry(root, {source_id: DATASET})
+    board = _arena_reading(cache, source_id=source_id, benchmark="arena_elo_overall", revision=NEW)
+
+    report = _run_latest(monkeypatch, root, cache, [board])
+
+    assert report.quarantined == []
+    assert len(report.changes) == 1
+    assert NEW in report.changes[0].source
+    row = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])[
+        "benchmarks"
+    ]["evidence"][0]
+    assert row["score"] == 1200.0
+    assert row["sources"][0]["source_id"] == source_id
+    cited = str(refresh.load_sources(root / "registry" / "sources.yaml")[source_id].url)
+    assert cited == DATASET
+    assert PIN not in cited
+    assert NEW not in cited
 
 
 def test_run_follows_the_environment_when_the_argument_is_omitted(

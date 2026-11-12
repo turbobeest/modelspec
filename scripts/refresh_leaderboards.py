@@ -722,6 +722,7 @@ def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Pa
 
 
 ARENA_REVISION_ENV = "MODELSPEC_ARENA_REVISION"
+_SHA_IN_URL = re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])")
 
 
 def arena_revision_setting(explicit: bool | None = None) -> bool:
@@ -742,6 +743,25 @@ def arena_revision_setting(explicit: bool | None = None) -> bool:
     raise ValueError(
         f"{ARENA_REVISION_ENV} must be 'pinned' or 'latest', got {raw!r}"
     )
+
+
+def registry_revision_conflict(registered: Mapping[str, Any], boards: Sequence[BoardReading],
+                              revision: str) -> list[str]:
+    """Arena source ids whose registry URL names a commit other than ``revision``.
+
+    A URL with no commit SHA is not a conflict. The caller writes no Arena
+    rows when this list is not empty.
+    """
+    conflict: list[str] = []
+    source_ids = sorted({board.source_id for board in boards if board.key.startswith("arena:")})
+    for source_id in source_ids:
+        source = registered.get(source_id)
+        if source is None:
+            continue
+        shas = _SHA_IN_URL.findall(str(source.url).lower())
+        if any(sha != revision for sha in shas):
+            conflict.append(source_id)
+    return conflict
 
 
 def choose_arena_revision(latest: bool) -> readers.ArenaRevision:
@@ -785,6 +805,16 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         arena_revision_latest=latest and chosen.fallback is None,
     )
     registered = load_sources(root / "registry" / "sources.yaml")
+    if latest:
+        conflict = registry_revision_conflict(registered, boards, chosen.sha)
+        if conflict:
+            report.failures.append(RowFailure(
+                "*",
+                "arena",
+                readers.ARENA_DATASET_API,
+                "the registry cites a different revision: " + ", ".join(conflict),
+            ))
+            boards = [board for board in boards if not board.key.startswith("arena:")]
     queue = Queue(root / "verification")
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]] = {}

@@ -118,3 +118,20 @@ Exit 0. `22 passed`. An explicit argument wins. Unset or empty stays on the
 pin. `latest` reads the head. Any other value raises `ValueError` and the
 message names `MODELSPEC_ARENA_REVISION`. The weekly file sets the variable
 to `pinned` and does not pass `--arena-latest`.
+
+### Registry citation
+
+`test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revision`
+against the unchanged writer. Exit 1. The failure list did not mention the
+registry, so the run still wrote the Arena rows.
+
+`registry_revision_conflict` then refuses every Arena row in `latest` mode
+when a cited source URL contains a commit SHA other than the revision that
+was read. A URL with no SHA is written. The one failure names the source
+ids. The same file after that change:
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py
+```
+
+Exit 0. `24 passed`. `registry/sources.yaml` was not edited.
