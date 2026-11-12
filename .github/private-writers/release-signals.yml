@@ -108,7 +108,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      issues: write
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
       SIGNALS_ORIGIN: https://api.modelspec.dev
@@ -541,14 +540,27 @@ jobs:
             files+=("$path")
           done < "$RUNNER_TEMP/result-files.txt"
           jq -s 'map(select(.status == "uncertain") | {signal_id, reason})' "${files[@]}" > "$RUNNER_TEMP/uncertain.json"
-          if [ "$(jq 'length' "$RUNNER_TEMP/uncertain.json")" -eq 0 ]; then
+          jq -s 'map(select(.status == "closed_unmerged") | {signal_id, reason, pr_url})' "${files[@]}" > "$RUNNER_TEMP/closed-unmerged.json"
+          uncertain_count="$(jq 'length' "$RUNNER_TEMP/uncertain.json")"
+          closed_count="$(jq 'length' "$RUNNER_TEMP/closed-unmerged.json")"
+          if [ "$uncertain_count" -eq 0 ] && [ "$closed_count" -eq 0 ]; then
             exit 0
           fi
           today="$(date -u +%F)"
           {
-            echo "Signals whose identity could not be resolved."
-            echo
-            jq -r '.[] | "- \(.signal_id): \(.reason)"' "$RUNNER_TEMP/uncertain.json"
+            if [ "$uncertain_count" -ne 0 ]; then
+              echo "Signals whose identity could not be resolved."
+              echo
+              jq -r '.[] | "- \(.signal_id): \(.reason)"' "$RUNNER_TEMP/uncertain.json"
+            fi
+            if [ "$closed_count" -ne 0 ]; then
+              if [ "$uncertain_count" -ne 0 ]; then
+                echo
+              fi
+              echo "New-model pull requests closed without merge"
+              echo
+              jq -r '.[] | "- \(.signal_id): \(.reason)\(if .pr_url then " (\(.pr_url))" else "" end)"' "$RUNNER_TEMP/closed-unmerged.json"
+            fi
           } > "$RUNNER_TEMP/issue-body.md"
           gh issue create \
             --title "release signals needing identity review ($today)" \

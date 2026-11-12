@@ -1782,6 +1782,102 @@ def test_the_roll_up_opens_one_issue_only_for_uncertain_results(tmp_path: Path) 
     assert not (tmp_path / "gh-args").exists()
 
 
+def _run_review_issue_step(tmp_path: Path) -> str:
+    import os
+    import subprocess
+
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["review"]["steps"]
+        if item.get("name") == "Open one issue for uncertain identities"
+    )
+    stub = tmp_path / "bin"
+    stub.mkdir(exist_ok=True)
+    (stub / "gh").write_text(
+        "#!/bin/bash\nprintf '%s\\n' \"$*\" > \"$RUNNER_TEMP/gh-args\"\n",
+        encoding="utf-8",
+    )
+    (stub / "gh").chmod(0o755)
+    env = os.environ | {
+        "RUNNER_TEMP": str(tmp_path),
+        "GH_TOKEN": "offline-fixture",
+        "PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
+    }
+    opened = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env,
+    )
+    assert opened.returncode == 0, opened.stderr
+    return (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+
+
+def test_the_roll_up_lists_a_closed_unmerged_result_under_its_own_heading(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "signal-results"
+    (results / "a").mkdir(parents=True)
+    (results / "b").mkdir()
+    (results / "c").mkdir()
+    pr_url = "https://github.com/example/repo/pull/294"
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (results / "b" / "result.json").write_text(json.dumps({
+        "status": "ignored", "signal_id": "s-b", "reason": "test signal",
+    }), encoding="utf-8")
+    (results / "c" / "result.json").write_text(json.dumps({
+        "status": "closed_unmerged",
+        "signal_id": "s-c",
+        "reason": "the original new-model PR was closed without merge",
+        "pr_url": pr_url,
+    }), encoding="utf-8")
+
+    body = _run_review_issue_step(tmp_path)
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "- s-a: two cards" in body
+    assert "s-b" not in body
+    assert "New-model pull requests closed without merge" in body
+    closed_line = (
+        "- s-c: the original new-model PR was closed without merge "
+        f"({pr_url})"
+    )
+    assert closed_line in body
+
+    (results / "a" / "result.json").write_text(json.dumps({
+        "status": "existing", "signal_id": "s-a", "reason": "",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    (tmp_path / "issue-body.md").unlink()
+    closed_only = _run_review_issue_step(tmp_path)
+    assert "issue create" in (tmp_path / "gh-args").read_text(encoding="utf-8")
+    assert "Signals whose identity could not be resolved." not in closed_only
+    assert "New-model pull requests closed without merge" in closed_only
+    assert "s-a" not in closed_only
+    assert "s-b" not in closed_only
+
+    (results / "c" / "result.json").write_text(json.dumps({
+        "status": "uncertain", "signal_id": "s-a", "reason": "two cards",
+    }), encoding="utf-8")
+    (tmp_path / "gh-args").unlink()
+    uncertain_only = _run_review_issue_step(tmp_path)
+    assert "- s-a: two cards" in uncertain_only
+    assert "New-model pull requests closed without merge" not in uncertain_only
+
+
+def test_the_process_job_cannot_open_issues() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    assert "issues" not in workflow["jobs"]["process"]["permissions"]
+    assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
+    process_runs = "\n".join(
+        step.get("run") or "" for step in workflow["jobs"]["process"]["steps"]
+    )
+    assert "gh label create new-model" in process_runs
+
+
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
