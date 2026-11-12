@@ -357,6 +357,7 @@ jobs:
           name: release-signal-result-${{ strategy.job-index }}
           path: ${{ runner.temp }}/result.json
           if-no-files-found: ignore
+          overwrite: true
       - name: Retain allowed pricing copies and citation metadata for review
         if: always()
         uses: actions/upload-artifact@v4
@@ -365,6 +366,7 @@ jobs:
           path: ${{ runner.temp }}/source-copies
           retention-days: 35
           if-no-files-found: ignore
+          overwrite: true
       - name: Classify the generated change
         id: classify
         run: |
@@ -473,6 +475,7 @@ jobs:
           name: release-signal-audit-${{ strategy.job-index }}
           path: ${{ runner.temp }}/audit.json
           if-no-files-found: error
+          overwrite: true
       - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks
         if: steps.classify.outputs.resolution != 'empty'
         env:

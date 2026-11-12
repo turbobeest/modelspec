@@ -1665,6 +1665,7 @@ def test_per_job_artifact_names_keep_signal_punctuation_out() -> None:
         path = step.get("with", {}).get("path")
         if path not in expected:
             continue
+        assert step["with"].get("overwrite") is True
         template = step["with"]["name"]
         rendered = (
             template
