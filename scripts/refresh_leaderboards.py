@@ -1341,11 +1341,11 @@ def _relevant_rows(front: Mapping[str, Any], board: BoardReading) -> list[Mappin
     ]
 
 
-def _board_age(board: BoardReading, cards: Mapping[str, Path], fronts: Mapping[str, Any]) -> str:
+def _write_age(writes: Sequence[tuple]) -> str:
+    """Oldest stored day among rows this run will write. A missing day sorts first."""
     days = [
-        _iso_day(row.get("observed_at"))
-        for model_id in cards
-        for row in _relevant_rows(fronts[model_id], board)
+        _iso_day(old.get("observed_at"))
+        for _path, _model, old, _prepared, _observation, _kind in writes
     ]
     return min(days) if days else ""
 
@@ -1401,7 +1401,7 @@ def _refresh_arena_boards(
     pending_additions: dict[Path, list[dict[str, Any]]],
     claims: list[Claim],
 ) -> None:
-    """Write each Arena board whole, oldest stored row first, or leave it whole."""
+    """Write each Arena board whole, oldest planned write first, or leave it whole."""
     report.arena_rows_without_board = _arena_rows_without_board(root)
     catalogue = {**premier, **extras}
     arena_boards = [board for board in boards if board.key.startswith("arena:")]
@@ -1411,7 +1411,7 @@ def _refresh_arena_boards(
         list[tuple[str, str, str, tuple[Diff, ...], str]],
         list[tuple[Path, str, dict[str, Any]]],
     ]] = []
-    for board in sorted(arena_boards, key=lambda item: (_board_age(item, catalogue, fronts), item.key)):
+    for board in arena_boards:
         summary = report.board(board.key)
         if board.source_id not in registered:
             failure = RowFailure(
@@ -1466,6 +1466,7 @@ def _refresh_arena_boards(
                 writes.append((path, model_id, old, prepared, observation, kind))
         summary["models_read"] = len(models_read)
         plans.append((board, writes, skips, additions))
+    plans.sort(key=lambda item: (_write_age(item[1]), item[0].key))
 
     blocked = 0
     if gate:
@@ -1495,6 +1496,18 @@ def _refresh_arena_boards(
         board_rewrites = sum(1 for write in writes if write[-1] == "rewrite") + len(additions)
         summary["rows_planned_rewrites"] = board_rewrites
         if blocked:
+            summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0)
+            continue
+        if board_rewrites > ARENA_ROWS_PER_RUN:
+            reason = (
+                f"board is too large for the cap "
+                f"({board_rewrites} rewrites, cap {ARENA_ROWS_PER_RUN})"
+            )
+            failure = RowFailure(
+                "*", ",".join(sorted(board.benchmark_ids)), board.source_url, reason,
+            )
+            report.failures.append(failure)
+            summary["failures"].append(reason)
             summary.update(rows_rewritten=0, rows_reconfirmed=0, rows_left=0)
             continue
         if stopped or rewrites + board_rewrites > ARENA_ROWS_PER_RUN:

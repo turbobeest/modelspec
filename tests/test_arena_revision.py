@@ -1436,7 +1436,7 @@ def test_a_matching_revision_quote_still_refreshes_the_whole_board(
     assert written["benchmark_version"] == before
 
 
-def test_the_arena_row_cap_reports_rows_left(
+def test_a_board_over_the_cap_is_not_saved_as_rows_left(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     root = tmp_path / "repo"
@@ -1477,12 +1477,15 @@ def test_the_arena_row_cap_reports_rows_left(
 
     assert _scores(first)["arena_elo_overall"] == 1100.0
     assert _scores(second)["arena_elo_overall"] == 1100.0
-    assert report.arena_rows_left == 2
+    assert report.arena_rows_left == 0
     assert report.boards["arena:arena_elo_overall"]["rows_planned_rewrites"] == 2
-    assert "Arena rows left for the next run: 2" in refresh.render_report(report)
+    assert report.boards["arena:arena_elo_overall"]["rows_rewritten"] == 0
+    assert any("too large for the cap" in row.reason for row in report.failures)
+    rendered = refresh.render_report(report)
+    assert "Arena rows left" not in rendered
     path = tmp_path / "report.json"
     refresh.write_report_json(path, report)
-    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_left"] == 2
+    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_left"] == 0
 
 
 def test_latest_mode_writes_nothing_when_benchmark_version_names_another_revision(
@@ -1601,10 +1604,123 @@ def test_a_board_that_fits_is_written_and_the_next_board_waits(
     assert _scores(older)["arena_elo_overall"] == 1200.0
     assert _scores(newer)["arena_webdev"] == 1100.0
     assert report.arena_rows_left == 1
+    assert "Arena rows left for the next run: 1" in refresh.render_report(report)
+    left_path = tmp_path / "left.json"
+    refresh.write_report_json(left_path, report)
+    assert json.loads(left_path.read_text(encoding="utf-8"))["arena_rows_left"] == 1
     newer_summary = report.boards["arena:arena_webdev"]
     assert newer_summary["rows_left"] == 1
     assert newer_summary["rows_rewritten"] == 0
     assert newer_summary["rows_planned_rewrites"] == 1
+
+
+def _dated_card(root: Path, model_id: str, benchmark: str, observed_at: str) -> Path:
+    card = _named_arena_card(root, model_id, "1100.0", "")
+    text = card.read_text(encoding="utf-8").replace(
+        "benchmark_id: arena_elo_overall", f"benchmark_id: {benchmark}",
+    ).replace(
+        "verified_at: '2026-11-01'",
+        f"verified_at: '2026-11-01'\n    observed_at: '{observed_at}'",
+    )
+    card.write_text(text, encoding="utf-8")
+    return card
+
+
+def _two_board_run(monkeypatch, root: Path, cache: Path, boards: list) -> refresh.RefreshReport:
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: (boards, []))
+    return refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+    )
+
+
+def _rating_board(cache: Path, benchmark: str, rows: list[dict]):
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{PIN}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        rows, url=url, page_ref="sha256:" + "c" * 64, read_date="2026-11-11", note="test",
+    )
+    return refresh._reading_from_projection(
+        key=f"arena:{benchmark}", source_id="model-160-arena-text",
+        benchmarks=(benchmark,), source_url=url, projected=projection,
+        observed_at="2026-11-11", value_field="rating", store=store, card_urls=(DATASET,),
+    )
+
+
+def test_board_order_uses_the_rows_the_run_will_write(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """A skipped row's old date does not pull its board ahead of a planned write."""
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/ghost\n- model_id: lab/writer\n- model_id: lab/web\n",
+        encoding="utf-8",
+    )
+    _registry(root, {"model-160-arena-text": DATASET})
+    ghost = _dated_card(root, "lab/ghost", "arena_elo_overall", "2020-01-01")
+    writer = _dated_card(root, "lab/writer", "arena_elo_overall", "2026-06-01")
+    web = _dated_card(root, "lab/web", "arena_webdev", "2026-01-01")
+    monkeypatch.setattr(refresh, "ARENA_ROWS_PER_RUN", 1)
+    cache = tmp_path / "copies"
+    boards = [
+        _rating_board(cache, "arena_webdev", [
+            {"model_name": "web", "rating": 1400.0},
+        ]),
+        _rating_board(cache, "arena_elo_overall", [
+            {"model_name": "writer", "rating": 1200.0},
+        ]),
+    ]
+
+    report = _two_board_run(monkeypatch, root, cache, boards)
+
+    assert _scores(web)["arena_webdev"] == 1400.0
+    assert _scores(writer)["arena_elo_overall"] == 1100.0
+    assert _scores(ghost)["arena_elo_overall"] == 1100.0
+    assert report.boards["arena:arena_webdev"]["rows_rewritten"] == 1
+    assert report.boards["arena:arena_elo_overall"]["rows_rewritten"] == 0
+    assert report.boards["arena:arena_elo_overall"]["rows_left"] == 1
+
+
+def test_a_board_larger_than_the_cap_does_not_block_a_later_board(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/one\n- model_id: lab/two\n- model_id: lab/later\n",
+        encoding="utf-8",
+    )
+    _registry(root, {"model-160-arena-text": DATASET})
+    one = _dated_card(root, "lab/one", "arena_elo_overall", "2026-01-01")
+    two = _dated_card(root, "lab/two", "arena_elo_overall", "2026-01-01")
+    later = _dated_card(root, "lab/later", "arena_webdev", "2026-06-01")
+    monkeypatch.setattr(refresh, "ARENA_ROWS_PER_RUN", 1)
+    cache = tmp_path / "copies"
+    boards = [
+        _rating_board(cache, "arena_elo_overall", [
+            {"model_name": "one", "rating": 1200.0},
+            {"model_name": "two", "rating": 1300.0},
+        ]),
+        _rating_board(cache, "arena_webdev", [
+            {"model_name": "later", "rating": 1400.0},
+        ]),
+    ]
+
+    report = _two_board_run(monkeypatch, root, cache, boards)
+
+    assert _scores(one)["arena_elo_overall"] == 1100.0
+    assert _scores(two)["arena_elo_overall"] == 1100.0
+    assert _scores(later)["arena_webdev"] == 1400.0
+    assert report.boards["arena:arena_elo_overall"]["rows_rewritten"] == 0
+    assert report.boards["arena:arena_webdev"]["rows_rewritten"] == 1
+    assert report.arena_rows_left == 0
+    assert any("too large for the cap" in row.reason for row in report.failures)
 
 
 def test_moving_arena_benchmarks_ignore_version_and_boardless_ids(tmp_path: Path) -> None:

@@ -67,7 +67,7 @@ The writer does not write `benchmark_version`. In both revision modes, before an
 
 Latest mode with no explicit model selection and no resolver fallback includes every catalogue row on each real Arena board, premier and non-premier. `_moving_arena_benchmarks` is not that inclusion rule. It ignores `benchmark_version`, and it ignores `arena_*` ids that are not in `ARENA_BOARDS`. Those rows are reported once as `arena_rows_without_board`. Pinned mode and an explicit model selection do not expand.
 
-Each Arena board is written whole or left whole. Boards are ordered by the oldest stored `observed_at`, missing dates first, then by board key. `ARENA_ROWS_PER_RUN` is 5000 and counts rows actually rewritten, not reconfirmations. When the next whole board would pass the cap, that board and every later board wait. `arena_rows_left` counts rows on boards left whole. Skips and the revision gate are not counted.
+Each Arena board is written whole or left whole. Boards are ordered by the oldest stored `observed_at` among the rows the run will write, missing dates first, then by board key. `ARENA_ROWS_PER_RUN` is 5000 and counts rows actually rewritten, not reconfirmations. When the next whole board would pass the cap, that board and every later board wait. A board whose own rewrites exceed the cap is reported as too large for the cap and does not block a later board. `arena_rows_left` counts rows on boards left whole. It does not count a board that cannot fit the cap. Skips and the revision gate are not counted.
 
 ## Round 2 live proof
 
