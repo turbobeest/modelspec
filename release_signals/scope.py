@@ -28,9 +28,13 @@ _RULES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"(?<![a-z0-9])(?:text-to-image|image-generation|imagen|dall-e|"
-            r"stable-diffusion|sdxl|flux|gpt-image|imagine|nano-banana)(?![a-z0-9])"
+            r"stable-diffusion|sdxl|flux|gpt-image|nano-banana)(?![a-z0-9])"
         ),
         "image generation",
+    ),
+    (
+        re.compile(r"(?<![a-z0-9])imagine(?![a-z0-9])"),
+        "image or video generation",
     ),
     (
         re.compile(

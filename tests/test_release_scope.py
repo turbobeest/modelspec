@@ -70,7 +70,7 @@ def test_review_names_follow_the_normalised_model_name() -> None:
         "gemini-nano-banana-2-1": "image generation",
         "timestral-209m": "time series",
         "internvideo2-clip-anomaly-detection": "anomaly detection",
-        "grok-imagine-video-1-5-lite": "image generation",
+        "grok-imagine-video-1-5-lite": "image or video generation",
         "voxtral-mini-tts-3-0": "speech",
         "voxtral-mini-transcribe-realtime-3-0": "speech",
         "grok-voice-3-0": "speech",
@@ -105,6 +105,15 @@ def test_review_names_follow_the_normalised_model_name() -> None:
         "gpt-6-omni",
     ):
         assert out_of_scope_reason("Voice AI", name) is None
+
+
+def test_imagine_is_image_or_video_generation() -> None:
+    assert out_of_scope_reason("Acme", "grok-imagine-video-1-5-lite") == (
+        "image or video generation"
+    )
+    assert out_of_scope_reason("Acme", "acme-imagine") == "image or video generation"
+    assert out_of_scope_reason("Acme", "Stable Diffusion 4") == "image generation"
+    assert out_of_scope_reason("Acme", "acme-flux") == "image generation"
 
 
 def test_an_image_token_keeps_embedding_captioning_and_text_models() -> None:
