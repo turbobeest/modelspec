@@ -3430,6 +3430,53 @@ def test_a_cite_only_huggingface_host_stays_unfetched(
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
+def test_a_huggingface_org_for_another_provider_is_not_fetched(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab", provider="other")
+    page = "https://huggingface.co/AcmeLab/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:other-provider",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert page not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_huggingface_redirect_to_another_owner_stays_unregistered(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    requested = "https://huggingface.co/AcmeLab/orbit-9"
+    final = "https://huggingface.co/other-user/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:redirected-owner",
+            first_seen_url=requested,
+        ),
+        {requested: FetchResult(final, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert requested in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
 def test_sibling_docs_hosts_identify_the_lab_and_community_openai_is_refused(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
