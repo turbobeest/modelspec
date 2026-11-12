@@ -488,6 +488,8 @@ jobs:
     permissions:
       contents: read
       issues: write
+    env:
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Prepare the private review label
         env:

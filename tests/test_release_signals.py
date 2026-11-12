@@ -1642,6 +1642,45 @@ def test_per_job_artifact_names_keep_signal_punctuation_out() -> None:
     assert fnmatch(rendered_names["${{ runner.temp }}/result.json"], pattern)
 
 
+def _gh_invocations(run: str) -> list[str]:
+    lines = run.splitlines()
+    calls: list[str] = []
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if stripped.startswith("#") or not stripped.startswith("gh "):
+            index += 1
+            continue
+        parts = [stripped]
+        while parts[-1].endswith("\\"):
+            index += 1
+            parts.append(lines[index].strip())
+        calls.append(" ".join(part.removesuffix("\\").strip() for part in parts))
+        index += 1
+    return calls
+
+
+def test_review_job_gh_calls_name_the_repository() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    review = workflow["jobs"]["review"]
+    job_env = dict(review.get("env") or {})
+    calls: list[str] = []
+    for step in review["steps"]:
+        step_env = {**job_env, **dict(step.get("env") or {})}
+        for call in _gh_invocations(step.get("run") or ""):
+            calls.append(call)
+            assert "GH_REPO" in step_env or "--repo" in call
+    assert calls == [
+        "gh label create new-model --color 0E8A16 "
+        "--description 'Release identity needs human review' --force",
+        "gh issue create --title \"release signals needing identity review ($today)\" "
+        "--label new-model --body-file \"$RUNNER_TEMP/issue-body.md\"",
+    ]
+    assert review["env"]["GH_REPO"] == "${{ github.repository }}"
+
+
 def test_the_roll_up_opens_one_issue_only_for_uncertain_results(tmp_path: Path) -> None:
     import os
     import subprocess
