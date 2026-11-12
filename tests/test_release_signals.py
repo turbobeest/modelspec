@@ -1878,7 +1878,7 @@ def test_the_process_job_cannot_open_issues() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
     )
-    assert workflow["jobs"]["process"]["timeout-minutes"] == 20
+    assert workflow["jobs"]["process"]["timeout-minutes"] == 30
     assert "issues" not in workflow["jobs"]["process"]["permissions"]
     assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
     for step in workflow["jobs"]["process"]["steps"]:
