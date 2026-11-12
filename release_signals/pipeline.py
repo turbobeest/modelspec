@@ -467,8 +467,10 @@ def _models_dev_listing(
             "models.dev did not identify exactly one model listing"
         )
     listing = matches[0]
-    if provider_row.get("doc"):
-        listing.setdefault("api_docs_url", provider_row["doc"])
+    doc = provider_row.get("doc")
+    if doc and not listing.get("api_docs_url"):
+        listing["api_docs_url"] = doc
+        listing["_provider_doc"] = doc
     return str(provider_id), listing
 
 
@@ -877,6 +879,9 @@ def gather_signal(
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates, str(exc)
         ))
+    lab_hosts = _signal_lab_hosts(root, signal, resolution)
+    hf_orgs = _signal_hf_orgs(root, signal, resolution)
+    provider_doc = listing.pop("_provider_doc", None)
     primary_candidates = []
     for field in PRIMARY_URL_FIELDS:
         value = listing.get(field)
@@ -888,11 +893,21 @@ def gather_signal(
                 continue
         primary_candidates.append(require_allowed_source(str(value)))
     primary_candidates = list(dict.fromkeys(primary_candidates))
-    if not primary_candidates:
-        primary_candidates = [
-            require_allowed_source(str(listing[field]))
-            for field in SUPPORTING_URL_FIELDS if listing.get(field)
-        ]
+    raw_supporting = list(dict.fromkeys(
+        str(listing[field]) for field in SUPPORTING_URL_FIELDS if listing.get(field)
+    ))
+    first_seen_kind = _accepted_page_kind(signal.first_seen_url, lab_hosts, hf_orgs)
+    if (
+        not primary_candidates
+        and provider_doc
+        and raw_supporting[:1] == [str(provider_doc)]
+        and first_seen_kind in {"lab", "huggingface-org"}
+    ):
+        primary_candidates = [require_allowed_source(signal.first_seen_url)]
+        raw_supporting = [url for url in raw_supporting if url != str(provider_doc)]
+    elif not primary_candidates:
+        primary_candidates = [require_allowed_source(url) for url in raw_supporting]
+    supporting_urls = [require_allowed_source(url) for url in raw_supporting]
     if not primary_candidates:
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
@@ -900,17 +915,13 @@ def gather_signal(
     try:
         display_name, release_date, identity_basis = _primary_identity(
             primary, signal.model_name, signal.provider,
-            lab_hosts=_signal_lab_hosts(root, signal, resolution),
-            hf_orgs=_signal_hf_orgs(root, signal, resolution),
+            lab_hosts=lab_hosts,
+            hf_orgs=hf_orgs,
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates, str(exc)
         ))
-    supporting_urls = list(dict.fromkeys(
-        require_allowed_source(str(listing[field]))
-        for field in SUPPORTING_URL_FIELDS if listing.get(field)
-    ))
     for url in supporting_urls:
         _fetch_allowed(fetch, url)
 
@@ -933,6 +944,11 @@ def gather_signal(
         supporting_urls=tuple(supporting_urls),
         evidence_urls=tuple(dict.fromkeys((primary_url, models_dev_url, *supporting_urls))),
         gather_failures=tuple(failures),
+        primary_kind=(
+            "huggingface-org"
+            if _accepted_page_kind(primary_url, lab_hosts, hf_orgs) == "huggingface-org"
+            else ""
+        ),
         identity_basis=identity_basis,
     )
 
