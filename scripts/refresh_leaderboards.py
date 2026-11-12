@@ -512,6 +512,7 @@ def _retell_reading(
     quoted_publish = False
     quoted_revision = False
     old_hex = ""
+    loose_numbers: list[float] = []
 
     def rating(match: re.Match[str]) -> str:
         nonlocal unsafe, quoted_score
@@ -525,13 +526,22 @@ def _retell_reading(
     def bounds(match: re.Match[str]) -> str:
         nonlocal unsafe, quoted_interval
         left, right = match.group(1), match.group(2)
-        if old_interval is None or new_interval is None:
+        if new_interval is None:
             unsafe = True
             return match.group(0)
-        low, high = old_interval
-        if not _numbers_close(float(low), left) or not _numbers_close(float(high), right):
-            unsafe = True
-            return match.group(0)
+        if old_interval is None:
+            # The interval is quoted in the sentence and absent from the field.
+            # Rewrite it only when the quote contains the score it belongs to.
+            low, high = float(left), float(right)
+            if low > high or not (low <= float(old_score) <= high):
+                unsafe = True
+                return match.group(0)
+            loose_numbers.extend((low, high))
+        else:
+            low, high = old_interval
+            if not _numbers_close(float(low), left) or not _numbers_close(float(high), right):
+                unsafe = True
+                return match.group(0)
         quoted_interval = True
         rewritten = match.group(0).replace(left, _format_like(left, new_interval[0]), 1)
         return rewritten.replace(right, _format_like(right, new_interval[1]), 1)
@@ -539,9 +549,14 @@ def _retell_reading(
     def votes(match: re.Match[str]) -> str:
         nonlocal unsafe, quoted_votes
         literal = match.group(1)
-        if old_n is None or new_n is None or not _numbers_close(float(old_n), literal):
+        if new_n is None:
             unsafe = True
             return match.group(0)
+        if old_n is not None and not _numbers_close(float(old_n), literal):
+            unsafe = True
+            return match.group(0)
+        if old_n is None:
+            loose_numbers.append(float(literal))
         quoted_votes = True
         return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
 
@@ -558,6 +573,12 @@ def _retell_reading(
 
     hexes = {item.lower() for item in _REVISION_QUOTE.findall(text)}
     if len(hexes) > 1:
+        return None
+    vote_quotes = {float(value) for value in _VOTES_QUOTE.findall(text)}
+    if len(vote_quotes) > 1:
+        return None
+    bracket_quotes = {(float(low), float(high)) for low, high in _BRACKET_QUOTE.findall(text)}
+    if len(bracket_quotes) > 1:
         return None
     if hexes:
         old_hex = next(iter(hexes))
@@ -593,6 +614,7 @@ def _retell_reading(
             watched.extend(float(item) for item in old_interval)
         if quoted_votes and old_n is not None:
             watched.append(float(old_n))
+        watched.extend(loose_numbers)
         fresh = [float(new_score)]
         if new_interval is not None:
             fresh.extend(new_interval)

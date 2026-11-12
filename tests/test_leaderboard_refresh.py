@@ -1851,9 +1851,15 @@ sources:
 
 def _arena_effort_card(
     root: Path, *, model: str, evaluated: str, display: str,
+    store_reading: bool = True, configuration: str | None = None,
 ) -> Path:
     card = root / "models" / "lab" / "model.md"
     card.parent.mkdir(parents=True)
+    reading = "interval: [1080.0, 1120.0]\n    n: 1000\n    " if store_reading else ""
+    sentence = configuration or (
+        "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 4. Observed 2026-10-01."
+    )
     card.write_text(
         f"""---
 model_id: {model}
@@ -1865,9 +1871,7 @@ benchmarks:
     model_id_as_evaluated: {evaluated}
     score: 1100.0
     unit: Arena score (Elo scale)
-    interval: [1080.0, 1120.0]
-    n: 1000
-    effort: null
+    {reading}effort: null
     source_url: {_ARENA_DATASET}
     source_kind: independent_evaluator
     evidence_date: '2026-10-01'
@@ -1876,8 +1880,7 @@ benchmarks:
     verified_at: '2026-10-01'
     benchmark_version: text / overall, latest split, revision {_ARENA_OLD_REV}
     configuration: >-
-      Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00
-      [1080.00, 1120.00], 1000 votes, rank 4. Observed 2026-10-01.
+      {sentence}
     id: {model}#arena_elo_overall#old
     sources:
     - source_id: fixture-arena
@@ -1891,14 +1894,14 @@ benchmarks:
 
 
 def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
-                              evaluated: str, display: str):
+                              evaluated: str, display: str, **card):
     """Refresh one Arena row from a fixture projection. No network."""
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
     source_id = "fixture-arena"
     model = "lab/example-model"
     card = _arena_effort_card(
-        root, model=model, evaluated=evaluated, display=display,
+        root, model=model, evaluated=evaluated, display=display, **card,
     )
     _arena_registry(root, source_id)
     (root / "verification").mkdir()
@@ -2017,6 +2020,51 @@ def test_a_model_name_without_an_effort_suffix_still_verifies(
     log = _verification_log(root)
     assert log["outcome"] == "verified"
     assert log["diff"] is None
+
+
+def test_a_quoted_interval_is_rewritten_when_the_card_field_is_empty(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        store_reading=False,
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert "1190.50" in row["configuration"]
+    assert "2222 votes" in row["configuration"]
+    assert "1080" not in row["configuration"]
+    assert "1000 votes" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        store_reading=False,
+        configuration=(
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "[1.00, 2.00], 1000 votes, rank 4. Observed 2026-10-01."
+        ),
+    )
+
+    assert report.quarantined == []
+    assert any("configuration" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
 
 
 def test_a_parenthetical_effort_the_card_does_not_name_is_not_written(
