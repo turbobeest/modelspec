@@ -468,7 +468,8 @@ _RANK_QUOTE = re.compile(r"(?i)\brank\s+(\d+)\b")
 _EFFORT_QUOTE = re.compile(
     r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
 )
-_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")
+# A number directly before a full stop is a token. A decimal point is part of the number.
+_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)")
 _TICKET_ID = re.compile(r"[A-Z]+-\d+")
 
 
@@ -2089,6 +2090,24 @@ def _mask_quoted_figures(text: str) -> str:
     return _MASK_NUMBER.sub("0", masked)
 
 
+def _text_outside_checked_figures(text: str) -> str:
+    """Characters that are not an ISO date and not a checked number token."""
+    spans = [match.span() for match in _MASK_DATE.finditer(text)]
+    spans.extend((start, start + len(token)) for start, token in _uncovered_numbers(text))
+    spans.sort()
+    kept: list[str] = []
+    cursor = 0
+    for start, end in spans:
+        if end <= cursor:
+            continue
+        if start < cursor:
+            start = cursor
+        kept.append(text[cursor:start])
+        cursor = end
+    kept.append(text[cursor:])
+    return "".join(kept)
+
+
 def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
     """Numbers outside a date or a hex revision, with the index of each token."""
     covered = [
@@ -2181,10 +2200,12 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
 
     On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
     ``configuration`` may change only when the two strings match after dates,
-    hex strings and numbers are masked, and every changed number is the after
-    row's score, an interval bound, ``n``, a date on that row, or the number
-    after ``rank``. ``effort`` may change only from null
-    or empty to the canonical level the unchanged ``model_id_as_evaluated``
+    hex strings and numbers are masked, every character outside a checked
+    number token and an ISO date is byte-identical, and every changed number
+    is the after row's score, an interval bound, ``n``, a date on that row,
+    or the number after ``rank``. A digit glued to a letter, a hex string,
+    and a run of 7 digits stay in that byte comparison. ``effort`` may change
+    only from null or empty to the canonical level the unchanged ``model_id_as_evaluated``
     names. ``benchmark_version`` never changes. On every other row, when
     ``source_publishes_row_date`` is false and the new evidence day is the
     observation, a row may replace the standalone word ``read`` plus a date
@@ -2206,6 +2227,8 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
         after_configuration = str(after.get("configuration") or "")
         if (
             _mask_quoted_figures(before_configuration) == _mask_quoted_figures(after_configuration)
+            and _text_outside_checked_figures(before_configuration)
+            == _text_outside_checked_figures(after_configuration)
             and _changed_figures_are_the_reading(before_configuration, after_configuration, after)
         ):
             old.pop("configuration", None)
@@ -2264,9 +2287,10 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     Existing evidence rows may change their score, observation/verification
     date, ID and source-snapshot binding. A refreshed Arena dataset-root row
     may also change its interval and vote count, a configuration whose wording
-    is unchanged once dates, hex strings and numbers are masked and whose
-    changed numbers are that row's own figures, and its
-    effort from null to the canonical level its model id names.
+    is unchanged once dates, hex strings and numbers are masked, whose
+    characters outside a checked number token and an ISO date are
+    byte-identical, and whose changed numbers are that row's own figures.
+    Its effort may change from null to the canonical level its model id names.
     ``benchmark_version`` stays. A row whose source URL is an observation
     projector, dated by the observation, may also make its configuration's
     standalone ``read <date>`` and date_type match that date.

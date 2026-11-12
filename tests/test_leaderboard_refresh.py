@@ -1119,9 +1119,56 @@ def test_score_only_check_accepts_a_figures_only_configuration_on_an_arena_row(
         "rating 1100, CI 1080 to 1120, votes 100, rank 4, "
         "revision aaaaaaa, published 2026-09-01",
         "rating 1200.50, CI 1180 to 1220, votes 200, rank 3, "
-        "revision bbbbbbbbbbbb, published 2026-11-12",
+        "revision aaaaaaa, published 2026-11-12",
     )
     assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_accepts_a_writer_shaped_arena_sentence(tmp_path: Path) -> None:
+    """Two-decimal rating, bracket, CI a-b, votes over 1000, rank, and both dates."""
+    before_sentence = (
+        "publication date 2026-10-01; rating 1100.00 [1080.00, 1120.00], "
+        "CI 1080.00-1120.00, 2222 votes, rank 4. Observed 2026-10-01."
+    )
+    after_sentence = (
+        "publication date 2026-11-02; rating 1210.25 [1190.50, 1230.75], "
+        "CI 1190.50-1230.75, 3333 votes, rank 3. Observed 2026-11-11."
+    )
+    before_text = _arena_guard_card("2026-10-01").replace(
+        "score: 72.0", "score: 1100.0",
+    ).replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 1100.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "observed_at: '2026-10-01'", "observed_at: '2026-11-11'",
+    ).replace(
+        "verified_at: '2026-10-01'", "verified_at: '2026-11-11'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 3333\n    id: lab/model#stable\n",
+    ).replace(before_sentence, after_sentence)
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+@pytest.mark.parametrize("before_sentence, after_sentence", [
+    ("context 32k", "context 16k"),
+    ("model v2", "model v3"),
+    ("cutoff 32.", "cutoff 16."),
+    ("serial 1234567", "serial 7654321"),
+    ("revision aaaaaaa", "revision bbbbbbb"),
+])
+def test_score_only_check_refuses_an_unchecked_figure_on_an_arena_row(
+    tmp_path: Path, before_sentence: str, after_sentence: str,
+) -> None:
+    before_text, after_text = _arena_sentence(before_sentence, after_sentence)
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def _arena_sentence(before_sentence: str, after_sentence: str) -> tuple[str, str]:
