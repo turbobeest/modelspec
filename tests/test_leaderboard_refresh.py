@@ -2136,7 +2136,8 @@ benchmarks:
 def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
                               evaluated: str, display: str,
                               dataset_rows: list[dict] | None = None,
-                              model: str = "lab/example-model", **card):
+                              model: str = "lab/example-model",
+                              snapshot: Path | None = None, **card):
     """Refresh one Arena row from a fixture projection. No network."""
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -2173,6 +2174,8 @@ def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
         lambda _fetch: refresh.readers.ArenaRevision(sha=_ARENA_NEW),
     )
     monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+    if snapshot is not None:
+        shutil.copytree(root, snapshot)
     report = refresh.run(
         observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
         model_ids=(model,), arena_latest=True,
@@ -2377,6 +2380,96 @@ def test_an_old_rank_equal_to_a_date_part_or_ticket_id_is_written(
     assert "rank 3" in row["configuration"]
     assert old_rank not in row["configuration"]
     assert kept in row["configuration"]
+
+
+_ARENA_WRITER_FIXTURES = [
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "CI 1080.00-1120.00, 1000 votes, rank 4. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "store_reading": False,
+    },
+    {
+        "dataset_name": "Example Model (High)",
+        "evaluated": "Example Model (High)",
+        "display": "Example Model",
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 11. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 2. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 191. See MODEL-191 for the note. "
+            "Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "dataset_rows": [{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    },
+]
+
+
+@pytest.mark.parametrize("card", _ARENA_WRITER_FIXTURES, ids=[
+    "bracket", "ci", "quoted-interval", "effort", "november-rank", "day-rank",
+    "ticket-rank", "observed-date",
+])
+def test_the_guard_accepts_the_writers_arena_fixture_row(
+    monkeypatch, tmp_path: Path, card: dict,
+) -> None:
+    """The weekly guard sees the sentence this writer actually emits."""
+    before = tmp_path / "before"
+    report, _card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path, snapshot=before, **card,
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    result = refresh.check_score_only(before, root)
+    assert result.ok, result.errors
 
 
 def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
