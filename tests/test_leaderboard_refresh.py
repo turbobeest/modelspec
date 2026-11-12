@@ -1852,6 +1852,7 @@ sources:
 def _arena_effort_card(
     root: Path, *, model: str, evaluated: str, display: str,
     store_reading: bool = True, configuration: str | None = None,
+    effort: str | None = None, unit: str = "Arena score (Elo scale)",
 ) -> Path:
     card = root / "models" / "lab" / "model.md"
     card.parent.mkdir(parents=True)
@@ -1870,8 +1871,8 @@ benchmarks:
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: {evaluated}
     score: 1100.0
-    unit: Arena score (Elo scale)
-    {reading}effort: null
+    unit: {unit}
+    {reading}effort: {"null" if effort is None else effort}
     source_url: {_ARENA_DATASET}
     source_kind: independent_evaluator
     evidence_date: '2026-10-01'
@@ -1894,12 +1895,13 @@ benchmarks:
 
 
 def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
-                              evaluated: str, display: str, **card):
+                              evaluated: str, display: str,
+                              dataset_rows: list[dict] | None = None,
+                              model: str = "lab/example-model", **card):
     """Refresh one Arena row from a fixture projection. No network."""
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
     source_id = "fixture-arena"
-    model = "lab/example-model"
     card = _arena_effort_card(
         root, model=model, evaluated=evaluated, display=display, **card,
     )
@@ -1910,7 +1912,7 @@ def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
     )
     store = refresh.CopyStore(cache)
     projection = refresh.readers.document(
-        [{
+        dataset_rows or [{
             "model_name": dataset_name,
             "rating": 1210.25,
             "rating_lower": 1190.5,
@@ -2079,6 +2081,105 @@ def test_a_parenthetical_effort_the_card_does_not_name_is_not_written(
 
     assert report.quarantined == []
     assert any("effort" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_a_card_effort_the_dataset_does_not_name_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("effort" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] == "high"
+
+
+def test_an_elo_unit_is_not_refreshed(monkeypatch, tmp_path: Path) -> None:
+    """The extractor reads rating as an Arena score. ``elo`` is another dimension."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        unit="elo",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-11-02",
+            "rank": 3,
+        }],
+    )
+
+    assert report.quarantined == []
+    assert any("unit" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["unit"] == "elo"
+
+
+def test_a_token_match_the_verifier_does_not_own_uses_the_owned_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="Beta Alpha",
+        display="Alpha",
+        dataset_rows=[
+            {
+                "model_name": "Alpha Beta",
+                "rating": 1300.0,
+                "rating_lower": 1290.0,
+                "rating_upper": 1310.0,
+                "vote_count": 3333,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 1,
+            },
+            {
+                "model_name": "Alpha",
+                "rating": 1210.25,
+                "rating_lower": 1190.5,
+                "rating_upper": 1230.75,
+                "vote_count": 2222,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 3,
+            },
+        ],
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == 1210.25
+    assert row["n"] == 2222
+    assert "1300" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_match_the_verifier_does_not_own_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example-Model-High",
+        display="Example-Model-High",
+        model="lab/zz-unrelated",
+    )
+
+    assert report.quarantined == []
+    assert any("verifier" in row.reason for row in report.failures)
     assert _evidence_row(card)["score"] == 1100.0
 
 

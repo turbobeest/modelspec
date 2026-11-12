@@ -54,6 +54,7 @@ from decision.verify import (
     numbers_agree,
     parse_quantity,
     reading_effort,
+    split_model_cell,
     structured_name_effort,
 )
 from decision.verify import (
@@ -82,6 +83,10 @@ ARENA_REVISION = readers.ARENA_REVISION
 #: Arena evidence rows written in one run. Premier cards are written first.
 #: Rows past this wait for the next run.
 ARENA_ROWS_PER_RUN = 1200
+#: Unit ``StructuredDataExtractor`` assigns to a rating column. A card unit on
+#: another dimension cannot be refreshed: the guard refuses a unit edit, and the
+#: verifier would record a mismatch.
+_ARENA_RATING_UNIT = "Arena score (Elo scale)"
 ARENA_BOARDS = {
     **readers.ARENA,
     "arena_webdev": ("webdev", "overall"),
@@ -433,6 +438,26 @@ def _matched_votes(row: Mapping[str, Any]) -> int | None:
     return int(value)
 
 
+def _verifier_names(
+    model_id: str, front: Mapping[str, Any], evidence: Mapping[str, Any],
+) -> tuple[str, ...]:
+    """The names ``_claim`` gives the verifier for this evidence row."""
+    return tuple(dict.fromkeys(filter(None, (
+        evidence.get("model_id_as_evaluated"), front.get("display_name"), front.get("version"),
+        model_id.rsplit("/", 1)[-1],
+    ))))
+
+
+def _verifier_owns(subject: str, names: Sequence[str]) -> bool:
+    """Whether the verifier treats ``subject`` as this card's own row."""
+    identity = split_model_cell(subject.replace("+", " plus "))[0]
+    if not identity:
+        return False
+    return any(
+        identity == split_model_cell(str(name).replace("+", " plus "))[0] for name in names
+    )
+
+
 def _dataset_effort(row: Mapping[str, Any]) -> str | None:
     column = row.get("reasoning_effort")
     if column is None:
@@ -649,7 +674,9 @@ def _copy_matched_reading(
     dataset = observation.reading_effort
     named = effort_named_on_card(str(old.get("model_id_as_evaluated") or ""))
     if dataset is None:
-        written_effort = current
+        if current is not None:
+            return None, "matched effort contradicts the card"
+        written_effort = None
     elif current is None:
         if dataset != named:
             return None, "matched effort is not the effort named on model_id_as_evaluated"
@@ -718,6 +745,7 @@ def _plan_observations(
     board: BoardReading,
     *,
     revision: str = "",
+    front: Mapping[str, Any] | None = None,
 ) -> tuple[list[RowObservation], list[RowFailure]]:
     """Plan observations of existing rows; never add one."""
     observations: list[RowObservation] = []
@@ -735,13 +763,42 @@ def _plan_observations(
                 f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
             ))
             continue
-        new = _value(board, match, evidence.get("unit"))
-        if str(evidence.get("benchmark_id", "")).startswith("arena_"):
-            new = round(new, 2)
+        arena = str(evidence.get("benchmark_id", "")).startswith("arena_")
+        if arena and front is not None:
+            names = _verifier_names(model_id, front, evidence)
+            if not _verifier_owns(_subject(match), names):
+                owned = [
+                    row for row in board.rows
+                    if row.get(board.value_field) is not None and _verifier_owns(_subject(row), names)
+                ]
+                if len(owned) == 1:
+                    match = owned[0]
+                else:
+                    failures.append(RowFailure(
+                        model_id, str(evidence.get("benchmark_id")), board.source_url,
+                        "matched row is not a row the verifier reads",
+                    ))
+                    continue
+        raw = _value(board, match, evidence.get("unit"))
         old = float(evidence["score"])
-        if readers.numbers_agree(old, evidence.get("unit"),
-                                 readers.parse_quantity(str(new), evidence.get("unit"))):
-            new = old
+        if arena:
+            found = readers.parse_quantity(str(match.get(board.value_field)), _ARENA_RATING_UNIT)
+            rounded = round(raw, 2)
+            if found is not None and readers.numbers_agree(old, evidence.get("unit"), found):
+                new = old
+            elif found is not None and readers.numbers_agree(rounded, evidence.get("unit"), found):
+                new = rounded
+            else:
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    "matched rating does not agree in the card's unit",
+                ))
+                continue
+        else:
+            new = raw
+            if readers.numbers_agree(old, evidence.get("unit"),
+                                     readers.parse_quantity(str(new), evidence.get("unit"))):
+                new = old
         interval, interval_reason = _matched_interval(match, new)
         if interval_reason:
             failures.append(RowFailure(
@@ -1308,7 +1365,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         models_read.add(model_id)
                 observations, failures = _plan_observations(
                     model_id, path.relative_to(root).as_posix(), relevant, board,
-                    revision=effective,
+                    revision=effective, front=fronts[model_id],
                 )
                 report.failures.extend(failures)
                 summary["failures"].extend(failure.reason for failure in failures)
