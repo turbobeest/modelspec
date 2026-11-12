@@ -469,6 +469,7 @@ _EFFORT_QUOTE = re.compile(
     r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
 )
 _NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")
+_TICKET_ID = re.compile(r"[A-Z]+-\d+")
 
 
 def _format_like(literal: str, value: float) -> str:
@@ -499,8 +500,10 @@ def _retell_reading(
     """Rewrite quoted publish date, rating, interval, votes, rank and revision.
 
     Returns None when a labeled quote cannot be replaced without leaving the
-    previous reading in the sentence. A sentence that quotes none of those
-    is returned unchanged. A quoted rank with no replacement rank is refused.
+    previous reading in the sentence. The stale check reads the sentence with
+    ISO dates and ticket ids removed, and it does not watch the old rank.
+    A sentence that quotes none of those is returned unchanged. A quoted rank
+    with no replacement rank is refused.
     """
     if not isinstance(text, str) or not text:
         return text if isinstance(text, str) else ""
@@ -511,7 +514,6 @@ def _retell_reading(
     quoted_rank = False
     quoted_publish = False
     quoted_revision = False
-    old_rank_number: float | None = None
     old_hex = ""
     loose_numbers: list[float] = []
 
@@ -562,13 +564,12 @@ def _retell_reading(
         return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
 
     def rank(match: re.Match[str]) -> str:
-        nonlocal unsafe, quoted_rank, old_rank_number
+        nonlocal unsafe, quoted_rank
         literal = match.group(1)
         if new_rank is None:
             unsafe = True
             return match.group(0)
         quoted_rank = True
-        old_rank_number = float(literal)
         return match.group(0).replace(literal, str(int(new_rank)), 1)
 
     def published(match: re.Match[str]) -> str:
@@ -629,8 +630,6 @@ def _retell_reading(
             watched.extend(float(item) for item in old_interval)
         if quoted_votes and old_n is not None:
             watched.append(float(old_n))
-        if quoted_rank and old_rank_number is not None:
-            watched.append(old_rank_number)
         watched.extend(loose_numbers)
         fresh = [float(new_score)]
         if new_interval is not None:
@@ -639,7 +638,8 @@ def _retell_reading(
             fresh.append(float(new_n))
         if quoted_rank and new_rank is not None:
             fresh.append(float(new_rank))
-        for token in _NUMBER_TOKEN.findall(text):
+        checked = _TICKET_ID.sub(" ", _MASK_DATE.sub(" ", text))
+        for token in _NUMBER_TOKEN.findall(checked):
             value = float(token)
             stale = any(_numbers_close(old, value) for old in watched)
             current = any(_numbers_close(item, value) for item in fresh)

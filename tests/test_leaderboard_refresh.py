@@ -2290,6 +2290,48 @@ def test_a_quoted_rank_with_no_dataset_rank_is_not_written(
     assert "rank 4" in _evidence_row(card)["configuration"]
 
 
+@pytest.mark.parametrize("configuration, old_rank, kept", [
+    (
+        "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 11. Observed 2026-10-01.",
+        "rank 11",
+        "2026-11-02",
+    ),
+    (
+        "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 2. Observed 2026-10-01.",
+        "rank 2",
+        "2026-11-02",
+    ),
+    (
+        "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 191. See MODEL-191 for the note. "
+        "Observed 2026-10-01.",
+        "rank 191",
+        "MODEL-191",
+    ),
+])
+def test_an_old_rank_equal_to_a_date_part_or_ticket_id_is_written(
+    monkeypatch, tmp_path: Path, configuration: str, old_rank: str, kept: str,
+) -> None:
+    """November, day 02, and MODEL-191 are not the previous rank."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=configuration,
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["score"] == 1210.25
+    assert "rank 3" in row["configuration"]
+    assert old_rank not in row["configuration"]
+    assert kept in row["configuration"]
+
+
 def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
     monkeypatch, tmp_path: Path,
 ) -> None:
