@@ -1431,18 +1431,18 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                         raw, config, category, url=fetch_url, page_ref=raw_ref,
                         read_date=observed_at,
                     )
+                    produced_here.append(_reading_from_projection(
+                        key=f"arena:{benchmark}",
+                        source_id=arena_source_id(config),
+                        benchmarks=(benchmark,), source_url=fetch_url, projected=projected,
+                        observed_at=observed_at, value_field="rating", store=store,
+                        card_urls=("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",),
+                    ))
                 except Exception as exc:
                     error = RowFailure(
                         "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
                     )
                     break
-                produced_here.append(_reading_from_projection(
-                    key=f"arena:{benchmark}",
-                    source_id=arena_source_id(config),
-                    benchmarks=(benchmark,), source_url=fetch_url, projected=projected,
-                    observed_at=observed_at, value_field="rating", store=store,
-                    card_urls=("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",),
-                ))
             if error is None:
                 produced.extend(produced_here)
             else:

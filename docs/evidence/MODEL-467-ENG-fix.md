@@ -301,3 +301,24 @@ PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_leaderboard_refr
 ```
 
 Exit 0. `64 passed`.
+
+### Arena projection error stays inside the run
+
+`_reading_from_projection` sat outside the Arena `try`. A copy-store error
+on the document config aborted the run.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py::test_one_arena_config_error_leaves_the_other_boards
+```
+
+Exit 1. `1 failed, 1 passed`. The copy-store case raised `OSError: copy store full`.
+The projection case already returned one failure.
+
+The call is back inside the `try`. One Arena config error is one failure row.
+The FrontierCode row in the same run still changes.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py
+```
+
+Exit 0. `112 passed`.

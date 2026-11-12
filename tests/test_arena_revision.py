@@ -1056,3 +1056,61 @@ def test_an_abbreviated_sha_that_does_not_match_writes_no_arena_rows(
     ]
     assert len(conflicts) == 1
     assert TEXT_ID in conflicts[0].reason
+
+
+@pytest.mark.parametrize("where", ["projection", "copy-store"])
+def test_one_arena_config_error_leaves_the_other_boards(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, where: str,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    card = _two_board_card(root)
+    _registry(root, {
+        TEXT_ID: (
+            "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+            f"{NEW}/text/latest-00000-of-00001.parquet"
+        ),
+        FRONTIER_ID: refresh.readers.FRONTIERCODE_URL,
+    })
+    (root / "verification").mkdir()
+
+    def fetch(url: str) -> bytes:
+        if url == API:
+            return json.dumps({"sha": NEW}).encode()
+        if "leaderboard-dataset/resolve/" in url:
+            return b"fixture"
+        if url == FRONTIER_DATA:
+            return _frontier_bytes()
+        raise OSError(url)
+
+    def project(_parquet, config, _category, *, url, page_ref, read_date):
+        if where == "projection" and config == "document":
+            raise ValueError("projection failed")
+        return _changed_arena(
+            _parquet, config, _category, url=url, page_ref=page_ref, read_date=read_date,
+        )
+
+    real_reading = refresh._reading_from_projection
+
+    def reading(**kwargs):
+        if where == "copy-store" and "/document/" in kwargs.get("source_url", ""):
+            raise OSError("copy store full")
+        return real_reading(**kwargs)
+
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+    monkeypatch.setattr(refresh.readers, "project_arena", project)
+    monkeypatch.setattr(refresh, "_reading_from_projection", reading)
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/model",), arena_latest=True,
+    )
+
+    marker = "projection failed" if where == "projection" else "copy store full"
+    hits = [row for row in report.failures if marker in row.reason]
+    assert len(hits) == 1
+    assert hits[0].benchmark == "arena:document"
+    assert _scores(card)["frontiercode_v1_1"] == 50.0
+    assert "frontiercode" in report.boards
+    assert not any(key.startswith("arena:") and "document" in key for key in report.boards)
