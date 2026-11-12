@@ -39,8 +39,12 @@ Outcomes are ``verified``, ``mismatch`` (with a structured diff), ``cited``
 (source policy forbids retained bytes; no Verification is logged) and
 ``unreachable`` (the copy, source or region is missing). A claim no
 independent extractor could read is ``skipped``: nothing is logged and it
-stays queued. Anything whose latest logged outcome is not ``verified``, and
-anything never verified, is **quarantined**.
+stays queued. ``StoredRegions`` can be asked to treat a copy that this cache
+does not hold as that same ``skipped``, with reason
+``no retained copy in this cache: <source>#<region>``. The default does not:
+an absent copy stays ``unreachable`` and is logged. Anything whose latest
+logged outcome is not ``verified``, and anything never verified, is
+**quarantined**.
 
 Files, under ``verification/`` at the repository root:
 
@@ -6139,9 +6143,11 @@ class StoredRegions:
     """
 
     def __init__(self, store: CopyStore, sources: Mapping[str, Source], *,
-                 cache_documents: bool = False) -> None:
+                 cache_documents: bool = False,
+                 skip_absent_copies: bool = False) -> None:
         self.store = store
         self.sources = sources
+        self.skip_absent_copies = skip_absent_copies
         self._pdf_copies: dict[str, bool] = {}
         self._documents: dict[tuple[str, RuleSet], Document] | None = \
             {} if cache_documents else None
@@ -6171,6 +6177,36 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def miss_reason(self, source_id: str, copy_ref: str, region_id: str) -> str:
+        """Why ``text`` is ``None``: ``no_copy`` or ``unreachable``.
+
+        ``no_copy`` is returned only when this store was asked to skip a copy
+        the cache does not hold. A corrupt copy, an unreadable citation, and
+        an unregistered source or region stay ``unreachable``.
+        """
+        if not self.skip_absent_copies:
+            return "unreachable"
+        try:
+            citation = self.store.citation(copy_ref)
+        except ValueError:
+            return "unreachable"
+        if citation is not None:
+            return "unreachable"
+        source = self.sources.get(source_id)
+        region = next((item for item in source.cited_regions if item.id == region_id), None) \
+            if source else None
+        if source is None or region is None or self.store.has(copy_ref):
+            return "unreachable"
+        try:
+            slot = self.store.path(copy_ref)
+        except ValueError:
+            return "unreachable"
+        # Bytes at the path that do not hash to the ref were retained and
+        # cannot be read. An absent path was never stored.
+        if os.path.lexists(slot):
+            return "unreachable"
+        return "no_copy"
 
     def is_pdf(self, source_id: str, copy_ref: str) -> bool:
         source = self.sources.get(source_id)
@@ -6539,6 +6575,18 @@ class Result:
     reason: str | None = None
 
 
+def _no_copy_reason(regions: Regions, source_id: str, copy_ref: str, region_id: str) -> str | None:
+    """The skip reason when an opted-in cache holds no copy of this region.
+
+    A regions object that cannot say so (a test double with only ``text``)
+    keeps the unreachable outcome.
+    """
+    classify = getattr(regions, "miss_reason", None)
+    if not callable(classify) or classify(source_id, copy_ref, region_id) != "no_copy":
+        return None
+    return f"no retained copy in this cache: {source_id}#{region_id}"
+
+
 def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: date,
                   diffs: Sequence[Diff] = ()) -> Verification:
     """Raises ``ValidationError`` when ``actor`` is not independent of the collector."""
@@ -6592,6 +6640,7 @@ def _verify_evidence_reading(
     actor: VerificationActor | None = None
     reachable = False
     reasons: list[str] = []
+    no_copy: list[str] = []
     diffs: list[Diff] = []
 
     for source in claim.sources:
@@ -6599,7 +6648,12 @@ def _verify_evidence_reading(
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
             for extractor in [
@@ -6670,6 +6724,8 @@ def _verify_evidence_reading(
             _verification(claim, actor, "mismatch", today, diffs),
             tuple(diffs),
         )
+    if not reachable and no_copy and not reasons:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     if not reachable:
         return Result(
             claim.target,
@@ -6677,7 +6733,7 @@ def _verify_evidence_reading(
             _verification(claim, REGION_LOOKUP, "unreachable", today),
             reason="; ".join(reasons),
         )
-    return Result(claim.target, "skipped", reason="; ".join(reasons))
+    return Result(claim.target, "skipped", reason="; ".join([*reasons, *no_copy]))
 
 
 def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -6698,6 +6754,7 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
     reasons: list[str] = []
     diffs: list[Diff] = []
     unreachable = False
+    no_copy: list[str] = []
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
@@ -6705,8 +6762,13 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                unreachable = True
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    unreachable = True
+                    reasons.append(f"unreachable:{where}")
                 continue
             accepting = _readers_for(ordered, claim, text, kind)
             independent = [item for item in accepting if _independent(claim, item.actor, today)]
@@ -6742,6 +6804,8 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
         return Result(claim.target, "unreachable",
                       _verification(claim, REGION_LOOKUP, "unreachable", today),
                       reason="; ".join(reasons))
+    if no_copy:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     if union == claimed and not diffs and actor is not None:
         return Result(claim.target, "verified",
                       _verification(claim, actor, "verified", today))
@@ -6936,6 +7000,9 @@ def _verify_architecture_fact(
         for region in source.cited_regions:
             text = regions.text(source.source_id, source.snapshot_ref, region)
             if text is None:
+                absent = _no_copy_reason(regions, source.source_id, source.snapshot_ref, region)
+                if absent:
+                    return Result(claim.target, "skipped", reason=absent)
                 return Result(
                     claim.target,
                     "unreachable",
@@ -7025,10 +7092,18 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
         return Result(claim.target, "skipped", reason="no_independent_dated_price_reader")
     reader = getattr(regions, "dated_prices", None)
     reachable = False
+    unreadable = False
+    no_copy: list[str] = []
     diffs = []
     for source in claim.sources:
         for region_id in source.cited_regions:
             if regions.text(source.source_id, source.snapshot_ref, region_id) is None:
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    unreadable = True
                 continue
             reachable = True
             readings = reader(claim, source, region_id) if callable(reader) else []
@@ -7044,10 +7119,12 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
             else:
                 diffs.append(Diff("dated_price_row", dict(claim.conditions),
                                   [dict(row.conditions) for row in readings]))
-    if not reachable:
+    if not reachable and (unreadable or not no_copy):
         return Result(claim.target, "unreachable",
                       _verification(claim, actor, "unreachable", today),
                       reason="cited dated price region is unreachable")
+    if not reachable:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     return Result(claim.target, "mismatch",
                   _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
 
@@ -7104,6 +7181,9 @@ def _verify_xai_matrix(claim: Claim, regions: Regions, extractors: Sequence[Extr
             return drift("source URL, kind or whole-page citation differs")
         text = regions.text(source.source_id, source.snapshot_ref, "page")
         if text is None:
+            absent = _no_copy_reason(regions, source.source_id, source.snapshot_ref, "page")
+            if absent:
+                return Result(claim.target, "skipped", reason=absent)
             return Result(claim.target, "unreachable",
                           _verification(claim, actor, "unreachable", today),
                           reason=f"unreachable:{source.source_id}#page")
@@ -7207,13 +7287,19 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     reachable = False
     mismatch: tuple[VerificationActor, list[Diff]] | None = None
     reasons: list[str] = []
+    no_copy: list[str] = []
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
         for region_id in source.cited_regions:
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
             source_url = url_of(source.source_id) if callable(url_of) else None
@@ -7300,12 +7386,15 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         actor, diffs = mismatch
         return Result(claim.target, "mismatch",
                       _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
-    reason = "; ".join(reasons)
+    if not reachable and no_copy and not reasons:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
+    reason = "; ".join([*reasons, *no_copy])
     if not reachable:
         if not _independent(claim, REGION_LOOKUP, today):
             return Result(claim.target, "skipped", reason="no_independent_extractor")
         return Result(claim.target, "unreachable",
-                      _verification(claim, REGION_LOOKUP, "unreachable", today), reason=reason)
+                      _verification(claim, REGION_LOOKUP, "unreachable", today),
+                      reason="; ".join(reasons))
     return Result(claim.target, "skipped", reason=reason)
 
 
@@ -7511,10 +7600,14 @@ class RunReport:
     @property
     def counts(self) -> dict[str, int]:
         counts = dict.fromkeys(("verified", "mismatch", "unreachable", "skipped"), 0)
+        skipped_no_copy = 0
         for r in self.results:
             if r.outcome == "cited":
                 counts.setdefault("cited", 0)
             counts[r.outcome] += 1
+            if r.outcome == "skipped" and _only_no_copy(r.reason):
+                skipped_no_copy += 1
+        counts["skipped_no_copy"] = skipped_no_copy
         return counts
 
     def to_dict(self) -> dict[str, Any]:
@@ -7529,6 +7622,14 @@ class RunReport:
             ],
             "unknown": [ref_str(t) for t in self.unknown],
         }
+
+
+def _only_no_copy(reason: str | None) -> bool:
+    """True when every segment of ``reason`` is an absent-copy skip."""
+    if not reason:
+        return False
+    parts = [part.strip() for part in reason.split(";")]
+    return all(part.startswith("no retained copy in this cache:") for part in parts)
 
 
 def ref_str(target: TargetRef) -> str:

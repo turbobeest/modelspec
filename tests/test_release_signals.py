@@ -1874,11 +1874,55 @@ def test_the_roll_up_lists_a_closed_unmerged_result_under_its_own_heading(
     assert "New-model pull requests closed without merge" not in uncertain_only
 
 
+def test_only_the_release_signals_verify_step_skips_absent_copies() -> None:
+    roots = [ROOT / ".github" / "private-writers", ROOT / ".github" / "workflows"]
+    hits = []
+    for root in roots:
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "--skip-absent-copies" in text:
+                hits.append(path.relative_to(ROOT).as_posix())
+    assert hits == [".github/private-writers/release-signals.yml"]
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["process"]["steps"]
+    verify_steps = [
+        step for step in steps
+        if step.get("name") == "Validate cards and run two-key verification"
+    ]
+    assert len(verify_steps) == 1
+    assert "--skip-absent-copies" in verify_steps[0]["run"]
+    others = "\n".join(
+        step.get("run") or "" for step in steps if step is not verify_steps[0]
+    )
+    assert "--skip-absent-copies" not in others
+
+
+def test_the_verify_step_writes_outcome_counts_to_the_step_summary() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["process"]["steps"]
+        if item.get("name") == "Validate cards and run two-key verification"
+    )
+    run = step["run"]
+    for label in (
+        "verified:", "mismatch:", "unreachable:", "skipped:",
+        "skipped for no copy:", "GITHUB_STEP_SUMMARY",
+    ):
+        assert label in run
+    assert "results" not in run
+
+
 def test_the_process_job_cannot_open_issues() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
     )
-    assert workflow["jobs"]["process"]["timeout-minutes"] == 20
+    assert workflow["jobs"]["process"]["timeout-minutes"] == 30
     assert "issues" not in workflow["jobs"]["process"]["permissions"]
     assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
     for step in workflow["jobs"]["process"]["steps"]:
@@ -1902,7 +1946,7 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "schedule:" not in workflow
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
     assert "secrets.GITHUB_TOKEN" in workflow
-    assert "python -I -m cli.modelspec.legacy verify --json" in workflow
+    assert "python -I -m cli.modelspec.legacy verify --skip-absent-copies --json" in workflow
     assert "python -I -m scripts.accuracy --profile pr" in workflow
     assert "python -I -m scripts.recall_run" in workflow
     assert "new-model" in workflow
