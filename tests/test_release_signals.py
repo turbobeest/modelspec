@@ -3177,3 +3177,254 @@ def test_a_test_signal_is_ignored_and_writes_no_catalogue_files(
     assert (tmp_path / "models" / "acme" / "orbit-1.md").read_bytes() == before
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
     assert not (tmp_path / "offerings").exists()
+
+
+def _watch_sources(root: Path, body: str) -> None:
+    registry = root / "registry"
+    registry.mkdir(parents=True, exist_ok=True)
+    (registry / "release-watch.yaml").write_text(body, encoding="utf-8")
+
+
+def _huggingface_watch(root: Path, *orgs: str, provider: str = "acme") -> None:
+    lines = ["sources:"]
+    for index, org in enumerate(orgs, start=1):
+        lines.extend([
+            f"- id: hf-{index}",
+            "  kind: huggingface",
+            f"  org: {org}",
+            f"  provider: {provider}",
+            "  confidence: 0.7",
+        ])
+    _watch_sources(root, "\n".join(lines) + "\n")
+
+
+def _run_unlisted(
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+    row: dict[str, object],
+    pages: dict[str, FetchResult],
+) -> tuple[dict, list[str]]:
+    pending = root / "pending.json"
+    result_path = root / "result.json"
+    pending.write_text(json.dumps({"signals": [row]}), encoding="utf-8")
+    seen: list[str] = []
+    models_dev = "https://models.dev/api.json"
+
+    def fetch(url: str) -> FetchResult:
+        seen.append(url)
+        if url in pages:
+            return pages[url]
+        if url == models_dev:
+            return FetchResult(models_dev, b"{}", "application/json")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(processor, "_fetch", fetch)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+    result = processor.process(
+        pending, result_path, root=root, price_fetcher=_PriceFetcher(),
+    )
+    return result, seen
+
+
+def test_a_registered_huggingface_org_is_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    from release_signals.pipeline import first_seen_host_class, registered_lab_hosts
+
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/orbit-9"
+    hosts = registered_lab_hosts(tmp_path, "acme")
+    assert "huggingface.co" not in hosts
+    assert first_seen_host_class(page, hosts) == "unregistered"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:orbit-9",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["models_dev"] == "not_listed"
+    assert result["primary_host"] == "huggingface.co"
+    assert result["primary_kind"] == "huggingface-org"
+    assert page in seen
+    card = (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+    assert page in card
+
+
+def test_another_huggingface_user_is_not_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/other-user/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:other-user",
+            first_seen_url=page,
+        ),
+        {},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert "host class unregistered" in result["reason"]
+    assert page not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_huggingface_spaces_datasets_and_a_bare_org_are_not_the_labs_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    for page, signal_id in (
+        ("https://huggingface.co/spaces/AcmeLab/orbit-9", "watch:acme:spaces"),
+        ("https://huggingface.co/datasets/AcmeLab/orbit-9", "watch:acme:datasets"),
+        ("https://huggingface.co/AcmeLab", "watch:acme:bare-org"),
+    ):
+        drafted = tmp_path / "models" / "acme" / "orbit-9.md"
+        if drafted.exists():
+            drafted.unlink()
+        result, seen = _run_unlisted(
+            monkeypatch, tmp_path,
+            signal(model_name="Orbit 9", signal_id=signal_id, first_seen_url=page),
+            {},
+        )
+        assert result["status"] == "uncertain", page
+        assert "host class unregistered" in result["reason"]
+        assert page not in seen
+        assert not drafted.exists()
+
+
+def test_a_huggingface_org_match_is_case_insensitive(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/aCmElAb/orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:orbit-9-case",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+
+    assert result["status"] == "new"
+    assert result["primary_host"] == "huggingface.co"
+    assert result["primary_kind"] == "huggingface-org"
+    assert page in seen
+
+
+def test_a_huggingface_repository_named_for_another_model_is_uncertain(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    mismatch = "https://huggingface.co/AcmeLab/other-model"
+    result, seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:other-model",
+            first_seen_url=mismatch,
+        ),
+        {mismatch: FetchResult(mismatch, b"<h1>Other Model</h1>", "text/html")},
+    )
+
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert result["reason"] == "the primary source does not identify the stated lab"
+    assert mismatch in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+    named_root = tmp_path / "named"
+    _write_card(named_root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(named_root, "AcmeLab")
+    named_result, named_seen = _run_unlisted(
+        monkeypatch, named_root,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:named-on-page",
+            first_seen_url=mismatch,
+        ),
+        {mismatch: FetchResult(mismatch, b"<h1>Orbit 9</h1>", "text/html")},
+    )
+    assert named_result["status"] == "new"
+    assert named_result["primary_kind"] == "huggingface-org"
+    assert mismatch in named_seen
+
+
+def test_a_provider_with_two_huggingface_orgs_accepts_both(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab", "AcmeResearch")
+    for org, model_name, slug in (
+        ("AcmeLab", "Orbit 9", "orbit-9"),
+        ("AcmeResearch", "Orbit 8", "orbit-8"),
+    ):
+        page = f"https://huggingface.co/{org}/{slug}"
+        result, seen = _run_unlisted(
+            monkeypatch, tmp_path,
+            signal(
+                model_name=model_name,
+                signal_id=f"watch:acme:{slug}",
+                first_seen_url=page,
+            ),
+            {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+        )
+        assert result["status"] == "new", org
+        assert result["model_id"] == f"acme/{slug}"
+        assert result["primary_kind"] == "huggingface-org"
+        assert page in seen
+
+    outsider = "https://huggingface.co/other-user/orbit-7"
+    refused, refused_seen = _run_unlisted(
+        monkeypatch, tmp_path,
+        signal(
+            model_name="Orbit 7",
+            signal_id="watch:acme:orbit-7",
+            first_seen_url=outsider,
+        ),
+        {},
+    )
+    assert refused["status"] == "uncertain"
+    assert "host class unregistered" in refused["reason"]
+    assert outsider not in refused_seen
+
+
+def test_a_cite_only_huggingface_host_stays_unfetched(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/orbit-9"
+    monkeypatch.setattr(
+        "decision.retention.cite_only_hosts", lambda: ("huggingface.co",),
+    )
+    result, seen = _run_unlisted(monkeypatch, tmp_path, signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:cite-only",
+        first_seen_url=page,
+    ), {})
+
+    assert result["status"] == "uncertain"
+    assert "host class cite-only" in result["reason"]
+    assert page not in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()

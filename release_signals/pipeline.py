@@ -95,6 +95,7 @@ class DraftResult:
     price_sources: tuple[dict, ...] = ()
     models_dev: str = ""
     primary_host: str = ""
+    primary_kind: str = ""
 
 
 @dataclass(frozen=True)
@@ -108,6 +109,7 @@ class GatherResult:
     evidence_urls: tuple[str, ...] = ()
     gather_failures: tuple[str, ...] = ()
     models_dev: str = ""
+    primary_kind: str = ""
 
 
 @dataclass(frozen=True)
@@ -291,6 +293,78 @@ def registered_lab_hosts(root: Path, provider: str) -> frozenset[str]:
         if host:
             hosts.add(host)
     return frozenset(hosts)
+
+
+_HUGGINGFACE_NON_REPOS = frozenset({"spaces", "datasets"})
+
+
+def registered_huggingface_orgs(root: Path, provider: str) -> frozenset[str]:
+    """Hugging Face orgs whose watch source names this lab. Casefolded.
+
+    Read only from ``kind: huggingface`` rows. The host ``huggingface.co`` is
+    not added to the lab host set. A test root with no watch file has none.
+    """
+    wanted = attribution.normalise(provider)
+    watch = root / "registry" / "release-watch.yaml"
+    if not watch.is_file():
+        return frozenset()
+    loaded = yaml.safe_load(watch.read_text(encoding="utf-8")) or {}
+    sources = loaded.get("sources") if isinstance(loaded, Mapping) else None
+    if not isinstance(sources, list):
+        return frozenset()
+    orgs: set[str] = set()
+    for source in sources:
+        if not isinstance(source, Mapping) or str(source.get("kind") or "") != "huggingface":
+            continue
+        if attribution.normalise(str(source.get("provider") or "")) != wanted:
+            continue
+        org = str(source.get("org") or "").strip().casefold()
+        if org:
+            orgs.add(org)
+    return frozenset(orgs)
+
+
+def _signal_hf_orgs(root: Path, signal, resolution: Resolution) -> frozenset[str]:
+    """Orgs for the signal's provider text and for the resolved catalogue lab."""
+    orgs = set(registered_huggingface_orgs(root, signal.provider))
+    model_id = resolution.model_id or ""
+    lab, separator, _rest = model_id.partition("/")
+    if separator and lab:
+        orgs.update(registered_huggingface_orgs(root, lab))
+    return frozenset(orgs)
+
+
+def _huggingface_org_repo(url: str, orgs: frozenset[str]) -> tuple[str, str] | None:
+    """``(org, repo)`` when ``url`` is that lab's own model repository.
+
+    The host and the first path segment must both match. ``spaces``,
+    ``datasets``, another user's repository, and an org with no repository
+    do not. Further path segments are ignored.
+    """
+    if not orgs or _page_host(url) != "huggingface.co":
+        return None
+    try:
+        parts = [part for part in urlsplit(url).path.split("/") if part]
+    except ValueError:
+        return None
+    if len(parts) < 2:
+        return None
+    org, repo = parts[0], parts[1]
+    if org.casefold() in _HUGGINGFACE_NON_REPOS or org.casefold() not in orgs:
+        return None
+    return org, repo
+
+
+def _accepted_page_kind(url: str, lab_hosts: frozenset[str], hf_orgs: frozenset[str]) -> str:
+    """Lab host class, or ``huggingface-org`` when only the org repository matches.
+
+    Cite-only, excluded and signal-only hosts stay in that class. A retention
+    rule that already forbids ``huggingface.co`` is not overridden.
+    """
+    kind = first_seen_host_class(url, lab_hosts)
+    if kind == "unregistered" and _huggingface_org_repo(url, hf_orgs):
+        return "huggingface-org"
+    return kind
 
 
 def first_seen_host_class(url: str, lab_hosts: frozenset[str]) -> str:
@@ -502,7 +576,11 @@ def _primary_identity(
     expected_name: str,
     expected_provider: str,
     lab_hosts: frozenset[str] = frozenset(),
+    hf_orgs: frozenset[str] = frozenset(),
 ) -> tuple[str, str]:
+    repo = _huggingface_org_repo(page.url, hf_orgs)
+    if repo is not None and attribution.normalise(repo[1]) == attribution.normalise(expected_name):
+        return expected_name, ""
     parser = _JsonLd()
     html = page.body.decode("utf-8", errors="replace")
     parser.feed(html)
@@ -557,6 +635,8 @@ def _primary_identity(
             )
         host = _page_host(page.url)
         if host and _host_is(host, lab_hosts) and _contains_name(text, expected_name):
+            return expected_name, ""
+        if repo is not None and _contains_name(text, expected_name):
             return expected_name, ""
         raise IdentityUncertainError(
             "the primary source does not identify the stated lab"
@@ -670,21 +750,24 @@ def _gather_unlisted(
 ) -> GatherResult:
     """Use the signal's own first-seen page when models.dev has no row.
 
-    The page is fetched only when its host is a registered lab host. The final
-    URL after redirects is classified again. Any other host class stays uncertain
-    and is not fetched.
+    The page is fetched when its host is a registered lab host, or when it is
+    that lab's own Hugging Face repository. The fetch result's URL is the page
+    after redirects. It is classified again, and the final host is the one
+    recorded. Any other host class stays uncertain. A cite-only Hugging Face
+    host is not fetched.
     """
     lab_hosts = _signal_lab_hosts(root, signal, resolution)
-    kind = first_seen_host_class(signal.first_seen_url, lab_hosts)
-    if kind != "lab":
+    hf_orgs = _signal_hf_orgs(root, signal, resolution)
+    kind = _accepted_page_kind(signal.first_seen_url, lab_hosts, hf_orgs)
+    if kind not in {"lab", "huggingface-org"}:
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates,
             f"models.dev not_listed; host class {kind}",
         ))
     requested = require_allowed_source(signal.first_seen_url)
     primary = fetch(requested)
-    final_kind = first_seen_host_class(primary.url, lab_hosts)
-    if final_kind != "lab":
+    final_kind = _accepted_page_kind(primary.url, lab_hosts, hf_orgs)
+    if final_kind not in {"lab", "huggingface-org"}:
         return GatherResult(Resolution(
             "uncertain", None, resolution.candidates,
             f"models.dev not_listed; host class {final_kind}",
@@ -694,6 +777,7 @@ def _gather_unlisted(
         display_name, release_date = _primary_identity(
             primary, signal.model_name, signal.provider,
             lab_hosts=lab_hosts,
+            hf_orgs=hf_orgs,
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
@@ -721,6 +805,7 @@ def _gather_unlisted(
         evidence_urls=tuple(dict.fromkeys((primary.url, *supporting))),
         gather_failures=tuple(failures),
         models_dev="not_listed",
+        primary_kind="huggingface-org" if final_kind == "huggingface-org" else "",
     )
 
 
@@ -793,6 +878,7 @@ def gather_signal(
         display_name, release_date = _primary_identity(
             primary, signal.model_name, signal.provider,
             lab_hosts=_signal_lab_hosts(root, signal, resolution),
+            hf_orgs=_signal_hf_orgs(root, signal, resolution),
         )
     except IdentityUncertainError as exc:
         return GatherResult(Resolution(
@@ -992,6 +1078,7 @@ def draft_signal(
         tuple(price_report["sources"]),
         gathered.models_dev,
         _page_host(primary_url) if gathered.models_dev == "not_listed" else "",
+        gathered.primary_kind if gathered.models_dev == "not_listed" else "",
     )
 
 
