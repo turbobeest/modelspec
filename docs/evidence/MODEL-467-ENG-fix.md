@@ -207,3 +207,31 @@ The weekly workflow stays on `pinned`. The proof used a scratch root, so it
 did not load that registry.
 `test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revision`
 covers the refusal.
+
+### First-row filing design
+
+`docs/design/first-row-filing.md` now says what `match_index` does. A shared
+key is not omitted. The function picks a survivor, and `slug(strip=True)`
+drops trailing effort and date tokens, so a dated or `thinking` board name
+can land on the base card. First-row filing requires `slug(strip=False)` of
+the board name on exactly one card, display name or model id, and otherwise
+reports the name as unmatched. An Arena first row uses the dataset-root
+`source_url` the refresh matches on. The opening names `add_missing` and
+says this design does not replace it. No filing code was added.
+`scripts/premier_slice1.py` was not edited.
+
+Review commits on `model-467-eng`:
+
+| Item | Commit |
+|---|---|
+| One Arena revision setting | `1befcb9106bac67fe047b4e93b9144007ebac645` |
+| Registry citation | `811c4ae7f9d7794e8e7e560b315b7d54c17ee59f` |
+| One revision for every Arena config | `9d371060f34ae41bde9fa37c3aa8fb018b4a1575` |
+| Seven configs at head | `3a3632e64f9ebbb9ce709c5f8413ae42f910e73d` |
+
+## Not changed in round 2
+
+No full local suite, site build, or Worker memory probe. No ranking floor,
+legal text, contract, or source-terms class. `registry/sources.yaml` was not
+edited. `.github/private-writers/release-signals.yml` was not edited.
+`scripts/premier_slice1.py` and `scripts/premier_live.py` were not edited.
