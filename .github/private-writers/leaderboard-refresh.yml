@@ -138,6 +138,16 @@ jobs:
           fi
           python -I -m scripts.refresh_leaderboards "${args[@]}" > "$RUNNER_TEMP/report.md"
           cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the refresh report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leaderboard-refresh-report
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/report.md
+            ${{ runner.temp }}/report.json
+            ${{ runner.temp }}/audit.json
       - name: Prove the generated diff is score-only
         id: guard
         if: inputs.dry_run != true
@@ -172,15 +182,26 @@ jobs:
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.updates != '0'
         run: |
-          {
-            echo 'This weekly job re-read the registered live boards for existing models in the premier set.'
-            echo
-            cat "$RUNNER_TEMP/report.md"
-            echo
-            echo 'The diff guard proved that no card, evidence row, identity fact, or licence fact was added or removed.'
-            echo
-            echo 'Written by GPT-5 Codex.'
-          } > "$RUNNER_TEMP/pr-body.md"
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.refresh_leaderboards import fit_pull_request_body
+
+          report_path, body_path = sys.argv[1:]
+          report = Path(report_path).read_text(encoding="utf-8")
+          opening = (
+              "This weekly job re-read the registered live boards for existing models "
+              "in the premier set.\n\n"
+          )
+          closing = (
+              "\nThe diff guard proved that no card, evidence row, identity fact, "
+              "or licence fact was added or removed.\n\n"
+              "Written by GPT-5 Codex.\n"
+          )
+          Path(body_path).write_text(
+              fit_pull_request_body(opening + report + closing), encoding="utf-8",
+          )
+          PY
       - name: Open the score-only pull request
         id: pr
         if: inputs.dry_run != true && steps.result.outputs.updates != '0'
@@ -201,27 +222,21 @@ jobs:
           title: 'data: refresh live-board observations (MODEL-124)'
           body-path: ${{ runner.temp }}/pr-body.md
           path: data
-      - name: Put the PR URL in the audit records and body
+      - name: Put the PR URL in the audit records
         if: steps.pr.outputs.pull-request-number
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
-          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
         run: |
-          python -I - "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          python -I - "$RUNNER_TEMP/audit.json" <<'PY'
           import json, os, sys
-          audit_path, body_path = sys.argv[1:]
+          audit_path = sys.argv[1]
           rows = json.load(open(audit_path))
           for row in rows:
               row["pr"] = os.environ["PR_URL"]
           with open(audit_path, "w") as out:
               json.dump(rows, out, indent=2)
               out.write("\n")
-          body = open(body_path).read().replace("${PR_URL}", os.environ["PR_URL"])
-          with open(body_path, "w") as out:
-              out.write(body)
           PY
-          gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/pr-body.md"
       - name: Upload the audit artifact
         if: steps.pr.outputs.pull-request-number
         uses: actions/upload-artifact@v4
@@ -229,6 +244,41 @@ jobs:
           name: leaderboard-refresh-audit-${{ steps.pr.outputs.pull-request-number }}
           path: ${{ runner.temp }}/audit.json
           if-no-files-found: error
+      - name: Fill the pull request URL into the body
+        if: steps.pr.outputs.pull-request-number
+        env:
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          import os, sys
+          from pathlib import Path
+          from scripts.refresh_leaderboards import fit_pull_request_body
+
+          report_path, body_path = sys.argv[1:]
+          report = Path(report_path).read_text(encoding="utf-8")
+          opening = (
+              "This weekly job re-read the registered live boards for existing models "
+              "in the premier set.\n\n"
+          )
+          closing = (
+              "\nThe diff guard proved that no card, evidence row, identity fact, "
+              "or licence fact was added or removed.\n\n"
+              "Written by GPT-5 Codex.\n"
+          )
+          body = (opening + report + closing).replace("${PR_URL}", os.environ["PR_URL"])
+          Path(body_path).write_text(fit_pull_request_body(body), encoding="utf-8")
+          PY
+      - name: Put the PR URL in the pull-request body
+        if: steps.pr.outputs.pull-request-number
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+        run: |
+          if ! gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/pr-body.md"; then
+            echo "::warning::Could not update the pull request body. The full report is in the leaderboard-refresh-report artifact."
+            exit 1
+          fi
       - name: Fail a no-update run that could not read every board
         if: steps.result.outputs.updates == '0' && steps.result.outputs.failures != '0'
         run: |

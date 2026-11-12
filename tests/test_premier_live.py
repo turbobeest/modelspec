@@ -556,3 +556,121 @@ def test_fixture_follows_the_approved_rule(tmp_path):
         assert 1 in clause_numbers(document, f"lab/seat-{number:02d}")
     assert 2 in clause_numbers(document, "lab/fresh")
     assert 3 in clause_numbers(document, "shelf/wide-model")
+
+
+# Frontier quota is 12. Fifteen active clause-1 cards is quota + 3.
+# The three the quota cuts are the worst sort_key: ranks 8, 9 and 10 on
+# the terminal-bench board. Arena ranks 1-5 sort ahead of those.
+_TOP10 = {f"lab/seat-{number:02d}" for number in range(15)}
+_QUOTA_CUT = {"lab/seat-07", "lab/seat-08", "lab/seat-09"}
+_QUOTA_WHY = "clause 1 on frontier-generation; outside that group's slice-1 quota"
+_CLAUSE2_WHY = (
+    "clause 2; among the three newest lab releases in the "
+    "window and not needed to fill a quota"
+)
+_APPROVED_RULE = (
+    "Top 10 of its class on a slice-1 board, after collapsing effort "
+    "settings of the same model."
+)
+_LIVE_RULE = (
+    _APPROVED_RULE
+    + " A current top 10 stays when its group quota is full."
+    + " The quota limits only seats with no board row."
+)
+
+
+def _overfull_frontier(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, "arena_elo_style_control")
+    write_benchmark(root, "swe_bench_pro")
+    for number in range(10):
+        mid = f"lab/seat-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number)])
+    for number in range(10, 15):
+        mid = f"lab/seat-{number:02d}"
+        write_card(
+            root, mid,
+            rows=[evidence(mid, "arena_elo_style_control", 110 - number)],
+        )
+    write_card(
+        root, "lab/retired", status="sunset",
+        rows=[evidence("lab/retired", "swe_bench_pro", 99)],
+    )
+    # 2026-08-15 is inside the 90-day clause 2 window and outside the five-day
+    # protection, so a full frontier quota leaves this card a near-miss.
+    write_card(root, "lab/recent", release="2026-08-15")
+    return root
+
+
+def _ids(document):
+    return {row["model_id"] for row in document["models"]}
+
+
+def test_live_keeps_every_current_top_10_past_a_full_quota(tmp_path):
+    document = premier_slice1.build(data_dir=_overfull_frontier(tmp_path), as_of=TODAY)
+    assert _ids(document) == _TOP10
+    assert "lab/recent" not in _ids(document)
+    assert "lab/retired" not in _ids(document)
+    assert {row["model_id"] for row in document["archived"]} == {"lab/retired"}
+    assert document["counts"]["over_quota_top10"] == 3
+    assert document["counts"]["over_quota_top10_by_group"] == {"frontier-generation": 3}
+    assert document["rule"][0] == _LIVE_RULE
+    assert [row["why"] for row in document["near_misses"]] == [_CLAUSE2_WHY]
+    assert all(_QUOTA_WHY not in row["why"] for row in document["near_misses"])
+    recent = next(row for row in document["near_misses"] if row["model_id"] == "lab/recent")
+    assert recent["why"] == _CLAUSE2_WHY
+    assert recent["slice1_group"] == "frontier-generation"
+
+
+def test_quota_cuts_top10_reproduces_the_approval_time_cut(tmp_path, monkeypatch):
+    monkeypatch.setattr(premier_slice1, "KEEP_EVERY_CURRENT_TOP10", False)
+    root = _overfull_frontier(tmp_path)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == _TOP10 - _QUOTA_CUT
+    reasons = {row["model_id"]: row["why"] for row in document["near_misses"]}
+    assert set(reasons) == _QUOTA_CUT | {"lab/recent"}
+    for model_id in _QUOTA_CUT:
+        assert reasons[model_id] == _QUOTA_WHY
+    assert reasons["lab/recent"] == _CLAUSE2_WHY
+    assert document["counts"]["over_quota_top10"] == 0
+    assert document["counts"]["over_quota_top10_by_group"] == {}
+    assert document["rule"][0] == _APPROVED_RULE
+    assert "lab/retired" not in _ids(document)
+
+    output = tmp_path / "proposal.yaml"
+    diff = tmp_path / "diff.json"
+    result = subprocess.run([
+        sys.executable, str(Path(premier_slice1.__file__)),
+        "--data-dir", str(root),
+        "--as-of", TODAY.isoformat(),
+        "--quota-cuts-top10",
+        "--output", str(output),
+        "--diff", str(diff),
+    ], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    proposed = yaml.safe_load(output.read_text())
+    assert {row["model_id"] for row in proposed["models"]} == _TOP10 - _QUOTA_CUT
+    assert proposed["counts"]["over_quota_top10"] == 0
+    assert proposed["rule"][0] == _APPROVED_RULE
+
+
+def test_over_quota_count_skips_a_top10_another_clause_keeps(tmp_path, monkeypatch):
+    """The count is seats this rule keeps. The time window already keeps the new one."""
+    monkeypatch.setitem(premier_slice1.QUOTA, "frontier-generation", 1)
+    root = catalogue(tmp_path)
+    write_card(root, "lab/best", rows=[evidence("lab/best", BENCH, 90)])
+    write_card(root, "lab/old-extra", rows=[evidence("lab/old-extra", BENCH, 80)])
+    write_card(
+        root, "lab/new-top", release="2026-09-20",
+        rows=[evidence("lab/new-top", BENCH, 70)],
+    )
+    kept = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(kept) == {"lab/best", "lab/old-extra", "lab/new-top"}
+    assert kept["counts"]["over_quota_top10"] == 1
+    assert kept["counts"]["over_quota_top10_by_group"] == {"frontier-generation": 1}
+    monkeypatch.setattr(premier_slice1, "KEEP_EVERY_CURRENT_TOP10", False)
+    cut = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(cut) == {"lab/best", "lab/new-top"}
+    assert cut["counts"]["over_quota_top10"] == 0
+    reasons = {row["model_id"]: row["why"] for row in cut["near_misses"]}
+    assert reasons["lab/old-extra"] == _QUOTA_WHY
