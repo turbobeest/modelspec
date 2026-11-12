@@ -320,10 +320,6 @@ jobs:
       - name: Install pipeline dependencies
         # Browsers belong in read-only jobs. Unreadable HTTP prices remain explicit gaps here.
         run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow
-      - name: Prepare the private review label
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh label create new-model --color 0E8A16 --description 'Release identity needs human review' --force
       - name: Download the pending-work snapshot
         uses: actions/download-artifact@v4
         with:

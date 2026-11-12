@@ -1872,10 +1872,14 @@ def test_the_process_job_cannot_open_issues() -> None:
     )
     assert "issues" not in workflow["jobs"]["process"]["permissions"]
     assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
-    process_runs = "\n".join(
-        step.get("run") or "" for step in workflow["jobs"]["process"]["steps"]
+    for step in workflow["jobs"]["process"]["steps"]:
+        run = step.get("run") or ""
+        assert "gh label" not in run
+        assert "gh issue" not in run
+    review_runs = "\n".join(
+        step.get("run") or "" for step in workflow["jobs"]["review"]["steps"]
     )
-    assert "gh label create new-model" in process_runs
+    assert "gh label create new-model" in review_runs
 
 
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
