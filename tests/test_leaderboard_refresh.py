@@ -1056,6 +1056,24 @@ def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path
     assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
+def test_a_sentence_that_quotes_no_reading_is_left_unchanged() -> None:
+    text = "Text Arena overall, style-controlled"
+    assert refresh._retell_reading(
+        text, old_score=1100, new_score=1200, old_interval=None, new_interval=None,
+        old_n=None, new_n=None, old_dates=(), new_publish=None,
+        new_observed="2026-11-11", new_revision="0123456789abcdef", new_effort=None,
+    ) == text
+
+
+def test_two_revision_quotes_are_not_rewritten() -> None:
+    assert refresh._retell_reading(
+        "revision aaaaaaa and revision bbbbbbb",
+        old_score=1, new_score=2, old_interval=None, new_interval=None,
+        old_n=None, new_n=None, old_dates=(), new_publish=None,
+        new_observed="2026-11-11", new_revision="c" * 40, new_effort=None,
+    ) is None
+
+
 def test_score_only_check_refuses_reread_and_carried_source_date_edits(tmp_path: Path) -> None:
     before_reread = _card("2026-09-24").replace(
         "evidence_date: '2026-09-01'\n",

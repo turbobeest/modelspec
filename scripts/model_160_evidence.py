@@ -60,6 +60,7 @@ from decision.verify import (
     numbers_agree,
     parse_quantity,
     split_model_cell,
+    structured_name_effort,
 )
 from scripts.model_143_evidence import _set_field, evidence_id, evidence_key
 
@@ -720,9 +721,7 @@ def _effort(row: Mapping[str, Any]) -> str | None:
     subject = _subject(row) or ""
     effort = row.get("reasoning_effort")
     if effort is None:
-        m = re.search(r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
-                      subject, re.IGNORECASE)
-        effort = m.group(1) if m else None
+        effort = structured_name_effort(subject)
     return str(effort).casefold() if effort else None
 
 

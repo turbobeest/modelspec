@@ -48,6 +48,10 @@ from decision.verify import (
     StoredRegions,
     VerificationLog,
     deterministic_extractors,
+    numbers_agree,
+    parse_quantity,
+    reading_effort,
+    structured_name_effort,
 )
 from decision.verify import (
     run as verify_claims,
@@ -173,6 +177,13 @@ class RowObservation:
     evidence_date: str
     #: ``source_publishes_row_date`` on the card row's source URL.
     source_dated: bool = False
+    #: The matched dataset row's reading. Empty until ``_plan_observations`` fills it.
+    reading_interval: tuple[float, float] | None = None
+    reading_n: int | None = None
+    reading_effort: str | None = None
+    reading_publish_date: str | None = None
+    reading_revision: str = ""
+    reading_checked: bool = False
 
     @property
     def changed(self) -> bool:
@@ -379,11 +390,304 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _numbers_close(claimed: float, found: object) -> bool:
+    quantity = parse_quantity(str(found))
+    return quantity is not None and numbers_agree(float(claimed), None, quantity)
+
+
+def _matched_interval(
+    row: Mapping[str, Any], score: float,
+) -> tuple[tuple[float, float] | None, str | None]:
+    """Rounded rating bounds that contain ``score``, or a reason not to write."""
+    lower, upper = row.get("rating_lower"), row.get("rating_upper")
+    if lower is None and upper is None:
+        return None, None
+    if lower is None or upper is None:
+        return None, "matched row states only one side of the interval"
+    lo, hi = round(float(lower), 2), round(float(upper), 2)
+    if score < lo:
+        lo = round(float(score), 2)
+    if score > hi:
+        hi = round(float(score), 2)
+    if lo > hi or not (lo <= score <= hi):
+        return None, "matched interval does not contain the score"
+    if not _numbers_close(lo, lower) or not _numbers_close(hi, upper):
+        return None, "matched interval does not contain the score"
+    return (lo, hi), None
+
+
+def _matched_votes(row: Mapping[str, Any]) -> int | None:
+    value = row.get("vote_count")
+    if value is None:
+        value = row.get("n")
+    if value is None:
+        return None
+    return int(value)
+
+
+def _dataset_effort(row: Mapping[str, Any]) -> str | None:
+    column = row.get("reasoning_effort")
+    if column is None:
+        column = row.get("effort")
+    return reading_effort(_subject(row), column)
+
+
+def effort_named_on_card(model_id_as_evaluated: str) -> str | None:
+    """Effort named by the card id, counting a hyphen as a space.
+
+    The verifier's pattern does not treat a hyphen as a separator, so
+    ``example-model-high`` names nothing until the hyphens become spaces.
+    This is the only value a null effort may become.
+    """
+    text = str(model_id_as_evaluated or "")
+    found = structured_name_effort(text)
+    if found is None:
+        found = structured_name_effort(text.replace("-", " "))
+    if found is None:
+        return None
+    return reading_effort("", found)
+
+
+_REVISION_QUOTE = re.compile(r"(?i)\brevision\s+([0-9a-f]{7,40})\b")
+_PUBLISH_QUOTE = re.compile(
+    r"(?i)\b(?:publication date|leaderboard_publish_date)\s+(\d{4}-\d{2}-\d{2})\b"
+)
+_OBSERVED_QUOTE = re.compile(r"(?i)\bObserved\s+(\d{4}-\d{2}-\d{2})\b")
+_RATING_QUOTE = re.compile(r"(?i)\brating\s+(-?\d+(?:\.\d+)?)")
+_BRACKET_QUOTE = re.compile(r"\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]")
+_CI_QUOTE = re.compile(
+    r"(?i)\b(?:ci|interval)\s+(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)"
+)
+_VOTES_QUOTE = re.compile(r"(?i)(?<!\w)(-?\d+(?:\.\d+)?)\s+votes\b")
+_EFFORT_QUOTE = re.compile(
+    r"(?i)(\(effort:\s*)(minimal|low|medium|high|xhigh|max)\b"
+)
+_NUMBER_TOKEN = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")
+
+
+def _format_like(literal: str, value: float) -> str:
+    if "." in literal:
+        return f"{value:.{len(literal.split('.', 1)[1])}f}"
+    rounded = round(value)
+    if abs(value - rounded) < 1e-9:
+        return str(int(rounded))
+    return f"{value:.2f}"
+
+
+def _retell_reading(
+    text: object,
+    *,
+    old_score: float,
+    new_score: float,
+    old_interval: object,
+    new_interval: tuple[float, float] | None,
+    old_n: object,
+    new_n: int | None,
+    old_dates: tuple[str, ...],
+    new_publish: str | None,
+    new_observed: str,
+    new_revision: str,
+    new_effort: str | None,
+) -> str | None:
+    """Rewrite quoted publish date, rating, interval, votes and revision.
+
+    Returns None when a labeled quote cannot be replaced without leaving the
+    previous reading in the sentence. A sentence that quotes none of those
+    is returned unchanged.
+    """
+    if not isinstance(text, str) or not text:
+        return text if isinstance(text, str) else ""
+    unsafe = False
+    quoted_score = False
+    quoted_interval = False
+    quoted_votes = False
+    quoted_publish = False
+    quoted_revision = False
+    old_hex = ""
+
+    def rating(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_score
+        literal = match.group(1)
+        if not _numbers_close(old_score, literal):
+            unsafe = True
+            return match.group(0)
+        quoted_score = True
+        return match.group(0).replace(literal, _format_like(literal, new_score), 1)
+
+    def bounds(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_interval
+        left, right = match.group(1), match.group(2)
+        if old_interval is None or new_interval is None:
+            unsafe = True
+            return match.group(0)
+        low, high = old_interval
+        if not _numbers_close(float(low), left) or not _numbers_close(float(high), right):
+            unsafe = True
+            return match.group(0)
+        quoted_interval = True
+        rewritten = match.group(0).replace(left, _format_like(left, new_interval[0]), 1)
+        return rewritten.replace(right, _format_like(right, new_interval[1]), 1)
+
+    def votes(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_votes
+        literal = match.group(1)
+        if old_n is None or new_n is None or not _numbers_close(float(old_n), literal):
+            unsafe = True
+            return match.group(0)
+        quoted_votes = True
+        return match.group(0).replace(literal, _format_like(literal, float(new_n)), 1)
+
+    def published(match: re.Match[str]) -> str:
+        nonlocal unsafe, quoted_publish
+        if not new_publish:
+            unsafe = True
+            return match.group(0)
+        quoted_publish = True
+        return match.group(0).replace(match.group(1), new_publish, 1)
+
+    def observed(match: re.Match[str]) -> str:
+        return match.group(0).replace(match.group(1), new_observed, 1)
+
+    hexes = {item.lower() for item in _REVISION_QUOTE.findall(text)}
+    if len(hexes) > 1:
+        return None
+    if hexes:
+        old_hex = next(iter(hexes))
+        if not new_revision:
+            return None
+        quoted_revision = True
+        if not new_revision.lower().startswith(old_hex):
+            shortened = new_revision.lower()[:len(old_hex)]
+
+            def revision(match: re.Match[str]) -> str:
+                return match.group(0).replace(match.group(1), shortened, 1)
+
+            text = _REVISION_QUOTE.sub(revision, text)
+
+    text = _RATING_QUOTE.sub(rating, text)
+    text = _BRACKET_QUOTE.sub(bounds, text)
+    text = _CI_QUOTE.sub(bounds, text)
+    text = _VOTES_QUOTE.sub(votes, text)
+    text = _PUBLISH_QUOTE.sub(published, text)
+    text = _OBSERVED_QUOTE.sub(observed, text)
+    if new_effort and _EFFORT_QUOTE.search(text):
+        found_levels = {match.group(2).casefold() for match in _EFFORT_QUOTE.finditer(text)}
+        if len(found_levels) > 1:
+            return None
+        text = _EFFORT_QUOTE.sub(lambda match: f"{match.group(1)}{new_effort}", text)
+    if unsafe:
+        return None
+    if quoted_score or quoted_interval or quoted_votes:
+        watched: list[float] = []
+        if quoted_score:
+            watched.append(float(old_score))
+        if quoted_interval and old_interval is not None:
+            watched.extend(float(item) for item in old_interval)
+        if quoted_votes and old_n is not None:
+            watched.append(float(old_n))
+        fresh = [float(new_score)]
+        if new_interval is not None:
+            fresh.extend(new_interval)
+        if new_n is not None:
+            fresh.append(float(new_n))
+        for token in _NUMBER_TOKEN.findall(text):
+            value = float(token)
+            stale = any(_numbers_close(old, value) for old in watched)
+            current = any(_numbers_close(item, value) for item in fresh)
+            if stale and not current:
+                return None
+    if quoted_publish:
+        allowed = {day for day in (new_publish, new_observed) if day}
+        for day in old_dates:
+            if day and day not in allowed and day in text:
+                return None
+    if quoted_revision and old_hex and old_hex in text:
+        if not new_revision.lower().startswith(old_hex):
+            return None
+    return text
+
+
+def _copy_matched_reading(
+    old: Mapping[str, Any], observation: RowObservation, *, observed_at: str,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Copy the matched reading onto ``old``. None when that would contradict it."""
+    new = dict(old)
+    if not observation.reading_checked:
+        new["score"] = observation.new_value
+        return new, None
+    current = None if old.get("effort") in (None, "") else reading_effort("", old.get("effort"))
+    dataset = observation.reading_effort
+    named = effort_named_on_card(str(old.get("model_id_as_evaluated") or ""))
+    if dataset is None:
+        written_effort = current
+    elif current is None:
+        if dataset != named:
+            return None, "matched effort is not the effort named on model_id_as_evaluated"
+        written_effort = dataset
+    elif current == dataset:
+        written_effort = current
+    else:
+        return None, "matched effort contradicts the card"
+    if old.get("interval") is not None and observation.reading_interval is None:
+        return None, "matched row does not state the interval this row quotes"
+    if old.get("n") is not None and observation.reading_n is None:
+        return None, "matched row does not state the vote count this row quotes"
+    new["score"] = observation.new_value
+    if observation.reading_interval is not None:
+        new["interval"] = [observation.reading_interval[0], observation.reading_interval[1]]
+    if observation.reading_n is not None:
+        new["n"] = observation.reading_n
+    if written_effort != current:
+        new["effort"] = written_effort
+    old_dates = tuple(dict.fromkeys(filter(None, (
+        _iso_day(old.get("evidence_date")), _iso_day(old.get("observed_at")),
+    ))))
+    told = _retell_reading(
+        old.get("configuration") or "",
+        old_score=float(old.get("score")),
+        new_score=float(observation.new_value),
+        old_interval=old.get("interval"),
+        new_interval=observation.reading_interval,
+        old_n=old.get("n"),
+        new_n=observation.reading_n,
+        old_dates=old_dates,
+        new_publish=observation.reading_publish_date,
+        new_observed=_iso_day(observed_at),
+        new_revision=observation.reading_revision,
+        new_effort=written_effort,
+    )
+    if told is None:
+        return None, "configuration still quotes the previous reading"
+    version = _retell_reading(
+        old.get("benchmark_version") or "",
+        old_score=float(old.get("score")),
+        new_score=float(observation.new_value),
+        old_interval=old.get("interval"),
+        new_interval=observation.reading_interval,
+        old_n=old.get("n"),
+        new_n=observation.reading_n,
+        old_dates=old_dates,
+        new_publish=observation.reading_publish_date,
+        new_observed=_iso_day(observed_at),
+        new_revision=observation.reading_revision,
+        new_effort=written_effort,
+    )
+    if version is None:
+        return None, "benchmark_version still quotes the previous reading"
+    if told != (old.get("configuration") or ""):
+        new["configuration"] = told
+    if version != (old.get("benchmark_version") or ""):
+        new["benchmark_version"] = version
+    return new, None
+
+
 def _plan_observations(
     model_id: str,
     card: str,
     evidence_rows: Sequence[Mapping[str, Any]],
     board: BoardReading,
+    *,
+    revision: str = "",
 ) -> tuple[list[RowObservation], list[RowFailure]]:
     """Plan observations of existing rows; never add one."""
     observations: list[RowObservation] = []
@@ -408,7 +712,15 @@ def _plan_observations(
         if readers.numbers_agree(old, evidence.get("unit"),
                                  readers.parse_quantity(str(new), evidence.get("unit"))):
             new = old
+        interval, interval_reason = _matched_interval(match, new)
+        if interval_reason:
+            failures.append(RowFailure(
+                model_id, str(evidence.get("benchmark_id")), board.source_url,
+                interval_reason,
+            ))
+            continue
         source_date = _source_measurement_date(match)
+        cited = _cited_shas(board.source_url)
         observations.append(RowObservation(
             card=card,
             model_id=model_id,
@@ -420,6 +732,12 @@ def _plan_observations(
             observed_date=board.observed_at,
             evidence_date=source_date or board.observed_at,
             source_dated=source_publishes_row_date(str(evidence.get("source_url") or "")),
+            reading_interval=interval,
+            reading_n=_matched_votes(match),
+            reading_effort=_dataset_effort(match),
+            reading_publish_date=source_date,
+            reading_revision=(cited[-1] if cited else revision),
+            reading_checked=True,
         ))
     return observations, failures
 
@@ -475,7 +793,10 @@ def _rewrite_card(
         lines = block.splitlines()
         if fields is None:
             names = [
-                name for name in (*always, "date_type", "configuration")
+                name for name in (
+                    *always, "date_type", "configuration", "interval", "n",
+                    "effort", "benchmark_version",
+                )
                 if name in always or replacement.get(name) != row.get(name)
             ]
         else:
@@ -869,12 +1190,15 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     for board in boards:
         summary = report.board(board.key)
         if board.source_id not in registered:
-            failure = RowFailure("*", ",".join(sorted(board.benchmark_ids)), board.source_url,
-                                 f"source is not registered: {board.source_id}")
+            failure = RowFailure(
+                "*", ",".join(sorted(board.benchmark_ids)), board.source_url,
+                f"source is not registered: {board.source_id}",
+            )
             report.failures.append(failure)
             summary["failures"].append(failure.reason)
             continue
         models_read: set[str] = set()
+        reconfirmed_models: set[str] = set()
         for model_id, path in cards.items():
             rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
             relevant = [row for row in rows
@@ -900,18 +1224,25 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 if _match(board, row) is not None:
                     models_read.add(model_id)
             observations, failures = _plan_observations(
-                model_id, path.relative_to(root).as_posix(), relevant, board
+                model_id, path.relative_to(root).as_posix(), relevant, board,
+                revision=effective,
             )
             report.failures.extend(failures)
             summary["failures"].extend(failure.reason for failure in failures)
-            reconfirmed_models: set[str] = set()
             for observation in observations:
                 old = next(row for row in relevant
                            if row["benchmark_id"] == observation.benchmark
                            and row.get("model_id_as_evaluated") == observation.model
                            and float(row["score"]) == observation.old_value)
-                new = dict(old)
-                new["score"] = observation.new_value
+                new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
+                if new is None:
+                    failure = RowFailure(
+                        model_id, observation.benchmark, board.source_url,
+                        reason or "reading was not rewritten",
+                    )
+                    report.failures.append(failure)
+                    summary["failures"].append(failure.reason)
+                    continue
                 new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
@@ -929,11 +1260,13 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 else:
                     report.reconfirmed.append(observation)
                     reconfirmed_models.add(model_id)
-            summary["models_reconfirmed"] += len(reconfirmed_models)
+        summary["models_reconfirmed"] += len(reconfirmed_models)
         summary["models_read"] = len(models_read)
-        summary["values_changed"] = sum(1 for change in report.changes
-                                         if change.source == board.source_url
-                                         and change.benchmark in board.benchmark_ids)
+        summary["values_changed"] = sum(
+            1 for change in report.changes
+            if change.source == board.source_url
+            and change.benchmark in board.benchmark_ids
+        )
 
     if dry_run or (not pending_updates and not pending_additions):
         return report
@@ -1235,8 +1568,9 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
 
     Existing evidence rows may change their score, observation/verification
     date, ID and source-snapshot binding. A row whose source URL is an
-    observation projector, dated by the observation, may also make its
-    configuration's standalone ``read <date>`` and date_type match that date.
+    observation projector, dated by the observation,
+    may also make its configuration's standalone ``read <date>`` and date_type
+    match that date.
     A ``re-read`` phrase is not that edit. A dated projector keeps both fields,
     including when its date value is missing and when the stored evidence day
     already equals ``observed_at``. Verification JSONL files may only grow.
