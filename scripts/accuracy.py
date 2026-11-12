@@ -3,12 +3,15 @@
 
 The PR profile runs deterministic correctness, frozen-image engine recall, and
 output parity. The data-pr profile is the catalogue check for a release-signal
-card: those same gates, except the vitest half of output parity is reported as
-omitted. That half reads checked-in fixtures and needs Node packages the job
-does not install. The Python parity suites stay a gate because they read the
-catalogue. The nightly profile gates current-data freshness, re-reads verified
-values, compares domain leaders with permitted independent boards, and reports
-recall changes without gating on them.
+card. It gates deterministic correctness and the Python output-parity suites.
+It reports the vitest half as omitted: that half reads checked-in fixtures and
+needs Node packages the job does not install. It reports frozen-image engine
+recall as omitted: that layer scores the engine's committed public image, which
+a data pull request cannot change, and on a linked tree it still reads the
+private registry. The engine's own CI owns that check. The nightly profile
+gates current-data freshness, re-reads verified values, compares domain leaders
+with permitted independent boards, and reports recall changes without gating
+on them.
 """
 
 from __future__ import annotations
@@ -40,16 +43,18 @@ DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
-    "data-pr": (
-        "deterministic_correctness",
-        "frozen_image_engine_recall",
-        "output_parity",
-    ),
+    "data-pr": ("deterministic_correctness", "output_parity"),
     "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
 _DATA_PR_OMITTED_VITEST = (
     "Omitted: the vitest half reads checked-in fixtures and needs Node "
     "packages the job does not install."
+)
+_DATA_PR_OMITTED_RECALL = (
+    "Omitted: frozen-image engine recall scores the engine's committed "
+    "public image, which a data pull request cannot change, and on a "
+    "linked tree it still reads the private registry. The engine's own "
+    "CI owns this check."
 )
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
@@ -798,6 +803,13 @@ def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
             "report",
             False,
             _DATA_PR_OMITTED_VITEST,
+            {"omitted": 1},
+        ),
+        LayerResult(
+            "frozen_image_engine_recall",
+            "report",
+            False,
+            _DATA_PR_OMITTED_RECALL,
             {"omitted": 1},
         ),
     )

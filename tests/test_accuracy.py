@@ -432,12 +432,15 @@ def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) 
         accuracy, "deterministic_correctness",
         lambda *args: accuracy.LayerResult("deterministic_correctness", "pass", True, "ok"),
     )
-    monkeypatch.setattr(
-        accuracy, "run_golden",
-        lambda *args, **kwargs: accuracy.LayerResult(
+    recall_calls = []
+
+    def recall(*args, **kwargs):
+        recall_calls.append(kwargs)
+        return accuracy.LayerResult(
             "frozen_image_engine_recall", "pass", kwargs.get("gating", True), "ok",
-        ),
-    )
+        )
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
 
     report = accuracy.run_profile(profile="data-pr")
     config = accuracy.load_config()
@@ -447,23 +450,33 @@ def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) 
         (sys.executable, "-m", "pytest", "-q", *config.parity.python_test_paths),
     ]
     assert all("vitest" not in command for command in parity_commands)
+    assert recall_calls == []
     assert [row.name for row in report.layers] == [
         "deterministic_correctness",
-        "frozen_image_engine_recall",
         "output_parity",
         "output_parity_web",
+        "frozen_image_engine_recall",
     ]
-    assert report.layers[2].status == "pass"
-    assert report.layers[2].gating is True
-    omitted = report.layers[3]
+    assert report.layers[1].status == "pass"
+    assert report.layers[1].gating is True
+    omitted = report.layers[2]
     assert omitted.status == "report"
     assert omitted.gating is False
     assert omitted.summary == (
         "Omitted: the vitest half reads checked-in fixtures and needs Node "
         "packages the job does not install."
     )
+    recall = report.layers[3]
+    assert recall.status == "report"
+    assert recall.gating is False
+    assert recall.summary == (
+        "Omitted: frozen-image engine recall scores the engine's committed "
+        "public image, which a data pull request cannot change, and on a "
+        "linked tree it still reads the private registry. The engine's own "
+        "CI owns this check."
+    )
     assert report.status == "pass"
-    assert "output_parity" in accuracy.PROFILES["data-pr"]
+    assert accuracy.PROFILES["data-pr"] == ("deterministic_correctness", "output_parity")
 
 
 def _engine_with_linked_models(tmp_path: Path) -> Path:
