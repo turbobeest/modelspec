@@ -14,6 +14,7 @@ from release_signals.scope import (
     OUT_OF_SCOPE_PIPELINE_TAGS,
     TagDecision,
     derivative_reason,
+    known_pipeline_tag,
     out_of_scope_reason,
     tag_scope,
 )
@@ -201,13 +202,30 @@ def test_listed_pipeline_tags_are_out_of_scope_with_the_tag_as_the_reason(tag: s
     assert tag_scope(tag) == TagDecision(True, tag, tag)
 
 
-def test_an_audio_prefix_and_an_unknown_tag_follow_the_tag_rules() -> None:
-    assert "audio-text-to-text" not in OUT_OF_SCOPE_PIPELINE_TAGS
-    assert tag_scope("audio-text-to-text") == TagDecision(
-        True, "audio-text-to-text", "audio-text-to-text",
+def test_multimodal_tags_stay_in_scope_and_can_keep_a_speech_pipeline_tag() -> None:
+    for tag in (
+        "audio-text-to-text",
+        "zero-shot-image-classification",
+        "image-feature-extraction",
+    ):
+        assert tag not in OUT_OF_SCOPE_PIPELINE_TAGS
+        assert tag not in IN_SCOPE_PIPELINE_TAGS
+        assert not known_pipeline_tag(tag)
+        assert tag_scope(tag) == TagDecision(True, None, tag)
+    assert tag_scope("audio-classification") == TagDecision(
+        True, "audio-classification", "audio-classification",
     )
     assert tag_scope("graph-ml", ("robotics",)) == TagDecision(True, None, "graph-ml")
-    assert tag_scope("Robotics", ("text-generation",)) == TagDecision(True, "Robotics", "Robotics")
+    assert tag_scope("Robotics", ("en",)) == TagDecision(True, "Robotics", "Robotics")
+    assert tag_scope("text-to-speech", ("image-text-to-text",)) == TagDecision(
+        True, None, "image-text-to-text",
+    )
+    assert tag_scope("automatic-speech-recognition", ("audio-text-to-text",)) == TagDecision(
+        True, None, "audio-text-to-text",
+    )
+    assert tag_scope("Robotics", ("text-generation", "en")) == TagDecision(
+        True, None, "text-generation",
+    )
 
 
 def test_no_pipeline_tag_falls_back_unless_a_task_tag_decides() -> None:

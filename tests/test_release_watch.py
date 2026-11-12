@@ -1046,7 +1046,7 @@ def test_fixture_api_rows_cover_tag_classes_fallback_unknown_and_derivatives() -
         "acme-lab/audio-extra", pipeline_tag="audio-text-to-text",
         tags=["audio-text-to-text"],
     ))
-    expect["acme-lab/audio-extra"] = "audio-text-to-text"
+    expect["acme-lab/audio-extra"] = None
     rows.append(_api_row(
         "acme-lab/acme-robotics-arm", pipeline_tag="graph-ml",
         tags=["graph-ml", "robotics"],

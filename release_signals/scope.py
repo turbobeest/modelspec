@@ -120,16 +120,25 @@ OUT_OF_SCOPE_PIPELINE_TAGS = frozenset({
     "image-segmentation",
     "depth-estimation",
     "zero-shot-object-detection",
-    "zero-shot-image-classification",
     "mask-generation",
     "video-classification",
     "keypoint-detection",
     "unconditional-image-generation",
-    "image-feature-extraction",
     "text-to-audio",
     "audio-to-audio",
     "audio-classification",
     "voice-activity-detection",
+})
+
+# An out-of-scope pipeline tag is filed when the row also carries one of these.
+_TASK_TAGS_THAT_KEEP = frozenset({
+    "text-generation",
+    "image-text-to-text",
+    "any-to-any",
+    "audio-text-to-text",
+    "feature-extraction",
+    "sentence-similarity",
+    "text-ranking",
 })
 
 
@@ -139,6 +148,8 @@ def _folded(value: str) -> str:
 
 def out_of_scope_pipeline_tag(tag: str) -> bool:
     folded = _folded(tag)
+    if folded == "audio-text-to-text":
+        return False
     return (
         folded in OUT_OF_SCOPE_PIPELINE_TAGS
         or folded == "audio"
@@ -210,15 +221,27 @@ def derivative_reason(
     return None
 
 
+def _keeping_task_tag(tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text and _folded(text) in _TASK_TAGS_THAT_KEEP:
+            return text
+    return None
+
+
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
     """Scope from the pipeline tag, then from task tags. No tag stays undecided.
 
     An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
-    the tag itself. A set pipeline tag wins over the other tags.
+    the tag itself. An out-of-scope pipeline tag is filed when the tag list
+    also names an in-scope task.
     """
     primary = _text(pipeline_tag) or ""
     if primary:
         if out_of_scope_pipeline_tag(primary):
+            keeper = _keeping_task_tag(tags)
+            if keeper:
+                return TagDecision(True, None, keeper)
             return TagDecision(True, primary, primary)
         return TagDecision(True, None, primary)
     for tag in tags:
