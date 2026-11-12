@@ -471,28 +471,6 @@ def structured_name_effort(name: str) -> str | None:
     return match.group(1) if match else None
 
 
-def effort_from_subject(name: str) -> str | None:
-    """Effort ``_diffs`` compares when the row has no effort column.
-
-    The structured-name pattern first, then the effort ``split_model_cell``
-    splits off. The result is the canonical level, or None.
-    """
-    found = structured_name_effort(name)
-    if found is not None:
-        return _condition("effort", found)
-    return split_model_cell(str(name))[1]
-
-
-def reading_effort(subject: str, column: object = None) -> str | None:
-    """Effort the verifier compares for one board row.
-
-    A reasoning-effort or effort column wins. Otherwise ``effort_from_subject``.
-    """
-    if column is not None and str(column).strip():
-        return _condition("effort", str(column))
-    return effort_from_subject(subject)
-
-
 _DATE_FORMATS = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y", "%Y/%m/%d")
 
 

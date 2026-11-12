@@ -2013,7 +2013,7 @@ benchmarks:
     date_type: published
     observed_at: '2026-10-01'
     verified_at: '2026-10-01'
-    benchmark_version: text / overall, latest split, revision {_ARENA_OLD_REV}
+    benchmark_version: text / overall, latest split, rating 1100
     configuration: >-
       {sentence}
     id: {model}#arena_elo_overall#old
@@ -2086,18 +2086,18 @@ def _verification_log(root: Path) -> dict:
 def test_refreshed_arena_row_verifies_against_the_matched_reading(
     monkeypatch, tmp_path: Path,
 ) -> None:
-    """The card id ends in -high. The dataset spells that effort as (High)."""
+    """The model id names High in parentheses, and so does the dataset row."""
     report, card, root = _run_arena_effort_refresh(
         monkeypatch, tmp_path,
         dataset_name="Example Model (High)",
-        evaluated="example-model-high",
+        evaluated="Example Model (High)",
         display="Example Model",
     )
 
     assert report.quarantined == [], report.quarantined
     assert report.failures == [], report.failures
     row = _evidence_row(card)
-    assert row["model_id_as_evaluated"] == "example-model-high"
+    assert row["model_id_as_evaluated"] == "Example Model (High)"
     assert row["score"] == 1210.25
     assert row["interval"] == [1190.5, 1230.75]
     assert row["n"] == 2222
@@ -2112,30 +2112,51 @@ def test_refreshed_arena_row_verifies_against_the_matched_reading(
     assert "rank 4" not in row["configuration"]
     for stale in ("1100", "1080", "1120", "1000", "2026-10-01"):
         assert stale not in row["configuration"]
-    assert _ARENA_NEW[:12] in row["benchmark_version"]
-    assert _ARENA_OLD_REV not in row["benchmark_version"]
+    assert row["benchmark_version"] == "text / overall, latest split, rating 1100"
     log = _verification_log(root)
     assert log["outcome"] == "verified"
     assert log["diff"] is None
 
 
-def test_stale_arena_reading_mismatches_without_the_writer_change(
+def test_a_score_only_rewrite_is_refused_before_it_is_written(
     monkeypatch, tmp_path: Path,
 ) -> None:
     def score_only(old, observation, *, observed_at):
         return {**dict(old), "score": observation.new_value}, None
 
     monkeypatch.setattr(refresh, "_copy_matched_reading", score_only)
-    _report, _card, root = _run_arena_effort_refresh(
+    report, card, root = _run_arena_effort_refresh(
         monkeypatch, tmp_path,
         dataset_name="Example Model (High)",
         evaluated="example-model-high",
         display="Example Model",
     )
 
+    assert report.quarantined == []
+    assert any(row.reason.startswith("verifier:") for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert not (root / "verification" / "log.jsonl").exists()
+
+
+def test_a_hyphenated_dataset_name_keeps_null_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A hyphen is not an effort separator. The verifier leaves effort null."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="example-model-high",
+        evaluated="example-model-high",
+        display="example-model-high",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
     log = _verification_log(root)
-    assert log["outcome"] == "mismatch"
-    assert log["diff"]
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
 
 
 def test_a_model_name_without_an_effort_suffix_still_verifies(

@@ -1175,6 +1175,10 @@ def _named_arena_card(root: Path, model_id: str, score: str, revision: str) -> P
     lab, name = model_id.split("/")
     card = root / "models" / lab / f"{name}.md"
     card.parent.mkdir(parents=True, exist_ok=True)
+    version = (
+        f"text / overall, latest split, revision {revision}"
+        if revision else "text / overall, latest split"
+    )
     card.write_text(
         f"""---
 model_id: {model_id}
@@ -1191,7 +1195,7 @@ benchmarks:
     evidence_date: '2026-11-01'
     date_type: published
     verified_at: '2026-11-01'
-    benchmark_version: text / overall, latest split, revision {revision}
+    benchmark_version: {version}
     id: {model_id}#old
     sources:
     - source_id: model-160-arena-text
@@ -1256,7 +1260,7 @@ def test_latest_mode_refreshes_a_non_premier_card_when_the_revision_moves(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     root = tmp_path / "repo"
-    premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+    premier, other = _catalogue(root, cited="")
 
     report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=True)
 
@@ -1264,7 +1268,8 @@ def test_latest_mode_refreshes_a_non_premier_card_when_the_revision_moves(
     assert _scores(premier)["arena_elo_overall"] == 1200.0
     assert _scores(other)["arena_elo_overall"] == 1300.0
     written = refresh._front(other)["benchmarks"]["evidence"][0]["benchmark_version"]
-    assert NEW[:12] in written
+    assert written == "text / overall, latest split"
+    assert NEW[:12] not in written
 
 
 def test_pinned_mode_does_not_refresh_a_non_premier_card(
@@ -1308,7 +1313,7 @@ def test_latest_mode_leaves_a_non_arena_row_on_an_expanded_card_unchanged(
         "model-160-arena-text": DATASET,
         "fixture-source": "https://example.test/leaderboard.json",
     })
-    _named_arena_card(root, "lab/premier", "1100.0", "aaaaaaaaaaaa")
+    _named_arena_card(root, "lab/premier", "1100.0", "")
     other = root / "models" / "lab" / "other.md"
     fixture_row = """  - benchmark_id: fixture_benchmark
     model_id_as_evaluated: other
@@ -1341,7 +1346,7 @@ benchmarks:
     evidence_date: '2026-11-01'
     date_type: published
     verified_at: '2026-11-01'
-    benchmark_version: text / overall, latest split, revision aaaaaaaaaaaa
+    benchmark_version: text / overall, latest split
     id: lab/other#arena
     sources:
     - source_id: model-160-arena-text
@@ -1417,15 +1422,18 @@ def test_a_non_arena_plan_does_not_inherit_the_arena_revision(tmp_path: Path) ->
     assert observations[0].reading_revision == ""
 
 
-def test_a_cited_revision_that_already_matches_does_not_expand(
+def test_a_matching_revision_quote_still_refreshes_the_whole_board(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     root = tmp_path / "repo"
     _premier, other = _catalogue(root, cited=NEW[:12])
+    before = refresh._front(other)["benchmarks"]["evidence"][0]["benchmark_version"]
 
     _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=True)
 
-    assert _scores(other)["arena_elo_overall"] == 900.0
+    written = refresh._front(other)["benchmarks"]["evidence"][0]
+    assert _scores(other)["arena_elo_overall"] == 1300.0
+    assert written["benchmark_version"] == before
 
 
 def test_the_arena_row_cap_reports_rows_left(
@@ -1467,10 +1475,105 @@ def test_the_arena_row_cap_reports_rows_left(
         observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
     )
 
-    assert _scores(first)["arena_elo_overall"] == 1200.0
+    assert _scores(first)["arena_elo_overall"] == 1100.0
     assert _scores(second)["arena_elo_overall"] == 1100.0
-    assert report.arena_rows_left == 1
-    assert "Arena rows left for the next run: 1" in refresh.render_report(report)
+    assert report.arena_rows_left == 2
+    assert "Arena rows left for the next run: 2" in refresh.render_report(report)
     path = tmp_path / "report.json"
     refresh.write_report_json(path, report)
-    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_left"] == 1
+    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_left"] == 2
+
+
+def test_latest_mode_writes_nothing_when_benchmark_version_names_another_revision(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+
+    report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=True)
+
+    assert _scores(premier)["arena_elo_overall"] == 1100.0
+    assert _scores(other)["arena_elo_overall"] == 900.0
+    reasons = [row.reason for row in report.failures if "benchmark_version still names a revision" in row.reason]
+    assert reasons == ["the cards' benchmark_version still names a revision (2)"]
+    assert report.arena_rows_left == 0
+
+
+def test_a_board_that_fits_is_written_and_the_next_board_waits(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/older\n- model_id: lab/newer\n", encoding="utf-8",
+    )
+    _registry(root, {"model-160-arena-text": DATASET})
+    older = _named_arena_card(root, "lab/older", "1100.0", "")
+    newer = _named_arena_card(root, "lab/newer", "1100.0", "")
+    older.write_text(older.read_text(encoding="utf-8").replace(
+        "benchmark_id: arena_elo_overall", "benchmark_id: arena_elo_overall",
+    ).replace("verified_at: '2026-11-01'", "verified_at: '2026-11-01'\n    observed_at: '2026-01-01'"))
+    newer.write_text(newer.read_text(encoding="utf-8").replace(
+        "benchmark_id: arena_elo_overall", "benchmark_id: arena_webdev",
+    ).replace("verified_at: '2026-11-01'", "verified_at: '2026-11-01'\n    observed_at: '2026-06-01'"))
+    monkeypatch.setattr(refresh, "ARENA_ROWS_PER_RUN", 1)
+    cache = tmp_path / "copies"
+    store = refresh.CopyStore(cache)
+
+    def board_for(benchmark: str, model: str, rating: float) -> object:
+        url = (
+            "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+            f"{PIN}/text/latest-00000-of-00001.parquet"
+        )
+        projection = refresh.readers.document(
+            [{"model_name": model, "rating": rating}],
+            url=url, page_ref="sha256:" + "c" * 64, read_date="2026-11-11", note="test",
+        )
+        return refresh._reading_from_projection(
+            key=f"arena:{benchmark}", source_id="model-160-arena-text",
+            benchmarks=(benchmark,), source_url=url, projected=projection,
+            observed_at="2026-11-11", value_field="rating", store=store, card_urls=(DATASET,),
+        )
+
+    boards = [
+        board_for("arena_webdev", "newer", 1400.0),
+        board_for("arena_elo_overall", "older", 1200.0),
+    ]
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: (boards, []))
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+    )
+
+    assert _scores(older)["arena_elo_overall"] == 1200.0
+    assert _scores(newer)["arena_webdev"] == 1100.0
+    assert report.arena_rows_left == 1
+    newer_summary = report.boards["arena:arena_webdev"]
+    assert newer_summary["rows_left"] == 1
+    assert newer_summary["rows_rewritten"] == 0
+
+
+def test_moving_arena_benchmarks_ignore_version_and_boardless_ids(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        """---
+model_id: lab/model
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    configuration: text overall
+    benchmark_version: revision aaaaaaaaaaaa
+  - benchmark_id: arena_not_a_board
+    configuration: revision bbbbbbbbbbbb
+    benchmark_version: revision cccccccccccc
+---
+""",
+        encoding="utf-8",
+    )
+
+    assert refresh._moving_arena_benchmarks(root, NEW) == set()
+    assert refresh._arena_rows_without_board(root) == 1
