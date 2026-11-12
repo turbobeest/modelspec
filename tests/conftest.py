@@ -9,8 +9,13 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _clear_modelspec_cache_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A leftover MODELSPEC_CACHE would point another CLI test at the same snapshot."""
+    """A leftover MODELSPEC_CACHE would point another CLI test at the same snapshot.
+
+    A leftover MODELSPEC_ARENA_REVISION would switch an unrelated refresh to
+    latest. Tests that need the variable set it themselves.
+    """
     monkeypatch.delenv("MODELSPEC_CACHE", raising=False)
+    monkeypatch.delenv("MODELSPEC_ARENA_REVISION", raising=False)
 
 
 @pytest.fixture

@@ -295,7 +295,7 @@ benchmarks:
         store=store,
         card_urls=("https://example.test/leaderboard.json",),
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-25", dry_run=False, root=root, source_cache=cache
@@ -365,7 +365,7 @@ benchmarks:
         source_url="https://example.test/leaderboard.json", projected=projection,
         observed_at="2026-09-26", value_field="score", store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
@@ -435,7 +435,7 @@ sources:
         source_url="https://example.test/leaderboard.json", projected=projection,
         observed_at="2026-09-26", value_field="score", store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
@@ -505,7 +505,7 @@ sources:
         source_url="https://example.test/leaderboard.json", projected=projection,
         observed_at="2026-09-25", value_field="score", store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
     other_before = other.read_bytes()
 
     report = refresh.run(
@@ -563,7 +563,7 @@ sources:
         value_field="score",
         store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-25", dry_run=False, root=root, source_cache=cache
@@ -682,7 +682,7 @@ benchmarks:
         fraction=True,
         store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
@@ -769,7 +769,7 @@ benchmarks:
         source_url="https://example.test/leaderboard.json", projected=projection,
         observed_at="2026-09-28", value_field="score", store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
@@ -853,7 +853,7 @@ benchmarks:
         source_url=source_url, projected=projection,
         observed_at=refresh_observed_at, value_field="score", store=store,
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
     report = refresh.run(
         observed_at=refresh_observed_at, dry_run=False, root=root, source_cache=cache
     )
@@ -989,7 +989,7 @@ benchmarks:
         store=store,
         card_urls=(source_url,),
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
     before = tmp_path / "before"
     shutil.copytree(root, before)
 
@@ -1267,7 +1267,7 @@ def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path
     card = root / "models" / "lab" / "model.md"
     card.write_text(_card("2026-08-01").replace("prose\n", ""), encoding="utf-8")
     failure = refresh.RowFailure("*", "fixture_benchmark", "https://example.test", "unread")
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([], [failure]))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([], [failure]))
 
     report = refresh.run(observed_at="2026-09-25", dry_run=False, root=root)
 
@@ -1449,7 +1449,7 @@ sources:
         observed_at="2026-09-29", value_field=column, fraction=True, store=store,
         card_urls=(url,), row_template={**refresh.MTEB_ROW, "unit": unit},
     )
-    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
 
     report = refresh.run(
         observed_at="2026-09-29", dry_run=False, root=root, source_cache=cache,

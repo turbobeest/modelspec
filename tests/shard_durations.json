@@ -24,6 +24,7 @@
   "tests/test_architecture_coverage.py": 0.117,
   "tests/test_architecture_extractors.py": 0.809,
   "tests/test_architecture_facts.py": 1.265,
+  "tests/test_arena_revision.py": 0.011,
   "tests/test_attach_evidence.py": 766.304,
   "tests/test_attribution.py": 2.025,
   "tests/test_authoring_guide.py": 7.523,

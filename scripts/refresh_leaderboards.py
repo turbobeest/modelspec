@@ -5,6 +5,10 @@ The weekly premier-set refresh updates existing evidence rows. A release-signal
 run may also add evidence to an explicitly selected existing card when one
 registered board row matches exactly and the board has an unambiguous metadata
 template. The refresh never adds a card or changes identity or licence facts.
+The Arena revision is one setting. An explicit ``arena_latest`` argument
+wins. Otherwise ``MODELSPEC_ARENA_REVISION`` is ``pinned`` when unset or
+empty, or ``latest``. Any other value is an error that names the variable.
+``--arena-latest`` requests ``latest``.
 Board readers produce one retained projection per board observation. New,
 changed and confirmed evidence passes through the normal two-key verification
 queue.
@@ -16,6 +20,7 @@ import argparse
 import copy
 import io
 import json
+import os
 import re
 import tempfile
 import urllib.request
@@ -208,6 +213,9 @@ class RefreshReport:
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
     added: int = 0
+    arena_revision: str = ""
+    arena_revision_fallback: str | None = None
+    arena_revision_latest: bool = False
 
     def board(self, key: str) -> dict[str, Any]:
         return self.boards.setdefault(
@@ -713,11 +721,98 @@ def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Pa
     return cards
 
 
+ARENA_REVISION_ENV = "MODELSPEC_ARENA_REVISION"
+_SHA_IN_URL = re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])")
+_SHA_PATH = re.compile(r"/(?:resolve|tree|blob)/([0-9a-f]{7,40})(?![0-9a-f])")
+
+
+def arena_revision_setting(explicit: bool | None = None) -> bool:
+    """True when this run reads the dataset head.
+
+    An explicit argument wins. Otherwise ``MODELSPEC_ARENA_REVISION`` is
+    ``pinned`` (also the default when unset or empty) or ``latest``.
+    """
+    if explicit is not None:
+        return explicit
+    raw = os.environ.get(ARENA_REVISION_ENV)
+    if raw is None or raw == "":
+        return False
+    if raw == "pinned":
+        return False
+    if raw == "latest":
+        return True
+    raise ValueError(
+        f"{ARENA_REVISION_ENV} must be 'pinned' or 'latest', got {raw!r}"
+    )
+
+
+def _cited_shas(url: str) -> list[str]:
+    """Commit SHAs a registry URL names.
+
+    A 40-character hex string counts anywhere in the URL. A hex path segment
+    of 7 to 40 characters counts after ``/resolve/``, ``/tree/``, or
+    ``/blob/``. ``resolve/main`` and a URL with no revision name none.
+    """
+    lowered = str(url).lower()
+    found: list[str] = []
+    for sha in (*_SHA_IN_URL.findall(lowered), *_SHA_PATH.findall(lowered)):
+        if sha not in found:
+            found.append(sha)
+    return found
+
+
+def _sha_agrees(cited: str, revision: str) -> bool:
+    """True when one SHA is the other, or the shorter one is its prefix."""
+    short, longer = (cited, revision) if len(cited) <= len(revision) else (revision, cited)
+    return longer.startswith(short)
+
+
+def registry_revision_conflict(registered: Mapping[str, Any], boards: Sequence[BoardReading],
+                              revision: str) -> list[str]:
+    """Arena source ids whose registry URL names a commit other than ``revision``.
+
+    An abbreviated SHA matches by prefix. A URL with no commit SHA, including
+    ``resolve/main`` and the dataset root, is not a conflict. The caller
+    writes no Arena rows when this list is not empty. Both revision modes
+    call it.
+    """
+    conflict: list[str] = []
+    wanted = revision.lower()
+    source_ids = sorted({board.source_id for board in boards if board.key.startswith("arena:")})
+    for source_id in source_ids:
+        source = registered.get(source_id)
+        if source is None:
+            continue
+        shas = _cited_shas(str(source.url))
+        if any(not _sha_agrees(sha, wanted) for sha in shas):
+            conflict.append(source_id)
+    return conflict
+
+
+def choose_arena_revision(latest: bool) -> readers.ArenaRevision:
+    """The pinned Arena revision, unless ``latest`` asks the dataset API.
+
+    A failed lookup keeps the pin. The returned fallback text is the report line.
+    """
+    if not latest:
+        return readers.ArenaRevision(sha=readers.ARENA_REVISION)
+    chosen = readers.resolve_arena_revision(_fetch)
+    if not readers.valid_arena_revision(chosen.sha):
+        return readers.ArenaRevision(
+            sha=readers.ARENA_REVISION,
+            fallback=chosen.fallback or "resolved sha failed validation",
+        )
+    return chosen
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         source_cache: Path | None = None,
         model_ids: Iterable[str] | None = None,
-        add_missing: bool = False) -> RefreshReport:
+        add_missing: bool = False,
+        arena_latest: bool | None = None) -> RefreshReport:
     date.fromisoformat(observed_at)
+    latest = arena_revision_setting(arena_latest)
+    chosen = choose_arena_revision(latest)
     cards = _selected_cards(root, model_ids)
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
@@ -727,9 +822,44 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
     store = CopyStore(source_cache)
-    boards, board_failures = collect_readings(observed_at, store, tau_urls)
-    report = RefreshReport(failures=list(board_failures))
+    # Latest mode writes Arena rows only when the head resolved and every
+    # config was read there. A resolver failure, or any failed head fetch,
+    # writes none. The pin stays per config.
+    complete = (
+        latest and chosen.fallback is None and chosen.sha != readers.ARENA_REVISION
+    )
+    boards, board_failures = collect_readings(
+        observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
+        skip_arena=latest and chosen.fallback is not None,
+    )
+    failures = list(board_failures)
+    if chosen.fallback:
+        failures.insert(0, RowFailure(
+            "*", "arena", readers.ARENA_DATASET_API,
+            f"resolver fallback: {chosen.fallback}",
+        ))
+    config_fallback = next(
+        (row.reason for row in failures if row.reason.startswith("config fallback:")),
+        None,
+    )
+    effective = chosen.sha
+    report_fallback = chosen.fallback or config_fallback
+    report = RefreshReport(
+        failures=failures,
+        arena_revision=effective,
+        arena_revision_fallback=report_fallback,
+        arena_revision_latest=latest and report_fallback is None,
+    )
     registered = load_sources(root / "registry" / "sources.yaml")
+    conflict = registry_revision_conflict(registered, boards, effective)
+    if conflict:
+        report.failures.append(RowFailure(
+            "*",
+            "arena",
+            readers.ARENA_DATASET_API,
+            "the registry cites a different revision: " + ", ".join(conflict),
+        ))
+        boards = [board for board in boards if not board.key.startswith("arena:")]
     queue = Queue(root / "verification")
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]] = {}
@@ -847,11 +977,39 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     return report
 
 
+def _unwritten_arena_reason(report: RefreshReport) -> str | None:
+    """The failure that means this run wrote no Arena rows."""
+    for row in report.failures:
+        if (
+            row.reason.startswith("resolver fallback:")
+            or row.reason.startswith("config fallback:")
+            or "registry cites a different revision" in row.reason
+        ):
+            return row.reason
+    return None
+
+
 def render_report(report: RefreshReport) -> str:
-    lines = [
+    lines: list[str] = []
+    if report.arena_revision:
+        withheld = _unwritten_arena_reason(report)
+        if withheld:
+            lines.extend([
+                f"Arena revision: {report.arena_revision} read, no rows written: {withheld}",
+                "",
+            ])
+        else:
+            if report.arena_revision_fallback:
+                status = f"fallback to the pinned default: {report.arena_revision_fallback}"
+            elif report.arena_revision_latest:
+                status = "Hugging Face dataset sha"
+            else:
+                status = "pinned default"
+            lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
+    lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",
-    ]
+    ])
     for board, result in sorted(report.boards.items()):
         lines.append(
             f"| {board} | {result['models_read']} | {result['models_reconfirmed']} | "
@@ -1011,6 +1169,9 @@ def write_audit(path: Path, changes: Sequence[ScoreChange]) -> None:
 def write_report_json(path: Path, report: RefreshReport) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "arena_revision": report.arena_revision,
+        "arena_revision_fallback": report.arena_revision_fallback,
+        "arena_revision_latest": report.arena_revision_latest,
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
@@ -1213,11 +1374,26 @@ def _project_finbenchmark(html: str, *, url: str, page_ref: str,
                                  "harness_version as the finance-benchmark harness")
 
 
-def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]) \
-        -> tuple[list[BoardReading], list[RowFailure]]:
-    """Fetch every terms-compatible live board used by the premier snapshot."""
+def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str],
+                     arena_revision: str | None = None, *,
+                     arena_complete: bool = False,
+                     skip_arena: bool = False,
+                     ) -> tuple[list[BoardReading], list[RowFailure]]:
+    """Fetch every terms-compatible live board used by the premier snapshot.
+
+    ``arena_revision`` selects the Arena dataset commit. An absent or invalid
+    value keeps the pinned revision. The value is checked again before any URL
+    is built. ``arena_complete`` requires every Arena config at that revision.
+    When one of those fetches fails or the config is missing, this run writes
+    no Arena rows and one failure names the gap. It does not read the pin
+    instead. ``skip_arena`` writes no Arena rows; the caller reports why.
+    Pinned mode still writes each config it could read.
+    """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
+    revision = arena_revision or readers.ARENA_REVISION
+    if not readers.valid_arena_revision(revision):
+        revision = readers.ARENA_REVISION
 
     def collect(key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
                 fetch_url: str, projector: Callable[..., bytes], value_field: str,
@@ -1237,33 +1413,78 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
                                        f"{type(exc).__name__}: {exc}"))
 
-    # Arena: only the pinned CC BY 4.0 Hugging Face dataset.
-    for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
-        fetch_url = readers.ARENA_URL.format(config=config)
-        try:
-            raw = _fetch(fetch_url)
-            raw_ref = store.put(raw, source_url=fetch_url)
+    # Arena: the CC BY 4.0 Hugging Face dataset, at one revision for every config.
+    def arena_source_id(config: str) -> str:
+        if config == "webdev":
+            return "model-143-evidence-arena-webdev-json"
+        return readers.arena_source(config)
+
+    def fetch_arena(at: str) -> tuple[dict[str, tuple[bytes, str, str]], list[RowFailure]]:
+        kept: dict[str, tuple[bytes, str, str]] = {}
+        missed: list[RowFailure] = []
+        for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
+            fetch_url = readers.arena_parquet_url(config, at)
+            try:
+                raw = _fetch(fetch_url)
+                raw_ref = store.put(raw, source_url=fetch_url)
+            except Exception as exc:
+                missed.append(RowFailure(
+                    "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                ))
+                continue
+            kept[config] = (raw, raw_ref, fetch_url)
+        return kept, missed
+
+    def project_arena(kept: dict[str, tuple[bytes, str, str]]) \
+            -> tuple[list[BoardReading], list[RowFailure]]:
+        produced: list[BoardReading] = []
+        missed: list[RowFailure] = []
+        for config, (raw, raw_ref, fetch_url) in kept.items():
+            produced_here: list[BoardReading] = []
+            error: RowFailure | None = None
             for benchmark, (cfg, category) in ARENA_BOARDS.items():
                 if cfg != config:
                     continue
-                projected = readers.project_arena(
-                    raw, config, category, url=fetch_url, page_ref=raw_ref,
-                    read_date=observed_at,
-                )
-                readings.append(_reading_from_projection(
-                    key=f"arena:{benchmark}",
-                    source_id=(
-                        "model-143-evidence-arena-webdev-json"
-                        if config == "webdev"
-                        else readers.arena_source(config)
-                    ),
-                    benchmarks=(benchmark,), source_url=fetch_url, projected=projected,
-                    observed_at=observed_at, value_field="rating", store=store,
-                    card_urls=("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",),
-                ))
-        except Exception as exc:
-            failures.append(RowFailure("*", f"arena:{config}", fetch_url,
-                                       f"{type(exc).__name__}: {exc}"))
+                try:
+                    projected = readers.project_arena(
+                        raw, config, category, url=fetch_url, page_ref=raw_ref,
+                        read_date=observed_at,
+                    )
+                    produced_here.append(_reading_from_projection(
+                        key=f"arena:{benchmark}",
+                        source_id=arena_source_id(config),
+                        benchmarks=(benchmark,), source_url=fetch_url, projected=projected,
+                        observed_at=observed_at, value_field="rating", store=store,
+                        card_urls=("https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",),
+                    ))
+                except Exception as exc:
+                    error = RowFailure(
+                        "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                    )
+                    break
+            if error is None:
+                produced.extend(produced_here)
+            else:
+                missed.append(error)
+        return produced, missed
+
+    if not skip_arena:
+        kept, missed = fetch_arena(revision)
+        if arena_complete and missed:
+            missing = ", ".join(sorted(
+                row.benchmark.removeprefix("arena:") for row in missed
+            ))
+            detail = "; ".join(row.reason for row in missed)
+            failures.append(RowFailure(
+                "*", "arena", readers.ARENA_DATASET_API,
+                f"config fallback: revision {revision} is missing {missing}; "
+                f"no Arena rows written ({detail})",
+            ))
+        else:
+            produced, project_errors = project_arena(kept)
+            readings.extend(produced)
+            failures.extend(missed)
+            failures.extend(project_errors)
 
     # Epoch publishes one CC BY 4.0 archive; all files in this block share one fetch.
     try:
@@ -1466,10 +1687,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--observed-at", default=date.today().isoformat())
     parser.add_argument("--audit-json", type=Path)
     parser.add_argument("--report-json", type=Path)
+    parser.add_argument(
+        "--arena-latest",
+        action="store_true",
+        help="Read Arena at the current Hugging Face dataset revision. "
+             "A failure keeps the pinned revision and says so in the report.",
+    )
     args = parser.parse_args(argv)
     # The network collector is wired below; keeping the CLI here makes the pure
     # planning and diff guard independently testable.
-    report = run(observed_at=args.observed_at, dry_run=args.dry_run)
+    report = run(observed_at=args.observed_at, dry_run=args.dry_run,
+                 arena_latest=True if args.arena_latest else None)
     print(render_report(report))
     if args.audit_json:
         write_audit(args.audit_json, report.changes)
