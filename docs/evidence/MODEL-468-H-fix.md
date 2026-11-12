@@ -49,3 +49,55 @@ The same five files then had four failures, all from the name fallback on untagg
 `tests/fixtures/release_watch/precision-recall.json` changed only the two `expected_signal_id` values above. Expectations in `tests/test_release_watch.py` and `tests/test_release_watch_filter.py` changed for the replay count and the `ocr-doc` case. No generator output, contract version, Worker file, or frozen data changed.
 
 ruff still reports a pre-existing line over 100 characters in `release_signals/watch.py` and a pre-existing import-order finding in `tests/test_release_watch_filter.py`. Neither was introduced here.
+
+## Round 2
+
+Round 2 starts at `1eb4ac9c4bf2f0634a450054c423c3a0561e17a2`. `origin/main` merged as `b8ac3e09cc7dc5c3c456d28e25404e076eb70b8b` before the review fixes. The merge did not touch the release-watch files.
+
+Python 3.14.4, pytest 9.1.1, ruff 0.16.6, Git 2.50.1. Each item had a failing test, then the change, then the same five files in serial:
+
+`env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_release_scope.py tests/test_release_watch.py tests/test_release_watch_filter.py tests/test_release_watch_precision.py tests/test_release_watch_triage.py`
+
+No `-n`. Exit codes were read from the shell. No live watch run, Worker deploy, network call, or full local suite. CI is the full run and is checked after the push.
+
+### M1 — derivative only when the artefact is named after the base
+
+`test_a_derivative_is_an_artefact_named_after_another_labs_base` failed first. A flagship fine-tune with its own name was still `derivative of other-lab/Orbit-1`. Exit 1.
+
+`derivative_reason` now rejects only when no listed base is in the repository's own organisation and the repository's normalised name is the normalised base name or that name plus a hyphen and a suffix. Any other repository with a foreign base is filed. A malformed base is ignored. The five files then reported 277 passed. Commit `e5c579257f04e0166be8f423407ebefb57bb5e0b`.
+
+### M2 — three tags stay in scope
+
+`test_multimodal_tags_stay_in_scope_and_can_keep_a_speech_pipeline_tag` failed first. `audio-text-to-text` was still a rejection reason. Exit 1.
+
+`zero-shot-image-classification` and `image-feature-extraction` left the out-of-scope set. `audio-text-to-text` is exempt from the `audio-` prefix. All three stay unknown tags, so a kept row is still reported. An out-of-scope `pipeline_tag` is filed when the tags also contain `text-generation`, `image-text-to-text`, `any-to-any`, `audio-text-to-text`, `feature-extraction`, `sentence-similarity`, or `text-ranking`. The focused test passed, then the five files reported 275 passed. Commit `52c3f6cc7437f6d3f0cad75eb6dce8db1078b595`.
+
+### M3 — no pipeline tag leaves the decision to the name
+
+`test_no_pipeline_tag_lets_the_name_rules_decide` failed first. `tag_scope(None, ("text-generation", "robotics"))` was decided, with reason `robotics`. Exit 1.
+
+With `pipeline_tag` absent, a free-form tag rejects only when it is out of scope and none of those seven task tags is present. The bare `audio` token is no longer a task tag. A set `audio` pipeline tag is unknown and kept. The focused test passed, then the five files reported 275 passed. Commit `c4c4d4989107740432680647a940b5b6e97a2bef`.
+
+### M4 — catalogue replay
+
+`test_catalogue_cards_under_huggingface_labs_stay_in_scope` failed first with an empty allow-list. The three invented shapes were rejected. The catalogue comparison was not. Exit 1. The replay scanned 1097 cards under a registered Hugging Face lab with an in-scope model type and rejected 42.
+
+The allow-list is those 42 card ids, each with the watcher's one-line reason. 28 are named after another lab's base. 14 carry an out-of-scope pipeline tag or an out-of-scope name. The same test then passed in 3.07s, and the five files reported 276 passed. Commit `ee5b7c3fb0404eb181ff1b361b811980d156df8b`.
+
+### M5 — one derivative count, and unknown tags only when kept
+
+`test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_names` failed first. The summary had no `- derivative: 2` line. Exit 1.
+
+Rejected reasons of `derivative` or `derivative of <org>/<repo>` collapse to one `- derivative: N` line. Kept observations whose `base_model` owner differs from the `source_key` owner add `- built on another lab's base: N` when that count is above zero. `Unknown pipeline tags kept in scope` lists pipeline tags of kept rows only. The focused test passed, then the five files reported 276 passed. Commit `57b478d312531886a14db49a27e9f0db8de3c372`.
+
+### M6 — doc token, time-series labels, and the tag path
+
+`test_time_series_rows_say_why_they_are_not_discoveries` failed first with `KeyError: 'negative_label'`. The precision checks for `hf-meta-llama` also failed, because rows that carry `pipeline_tag`, `tags`, or `base_model` were still filed. Three failed, 81 passed. Exit 1.
+
+`Orbit-Doc` covers the singular `doc` token in the stay-discoveries list. The two time-series rows now say they are time-series names and are not discoveries. `source_run` passes `pipeline_tag`, `tags`, and `base_model` into `Seen`. The `hf-meta-llama` fixture adds rows for in-scope tags, an unknown tag, an out-of-scope tag, a speech pipeline tag kept by `text-generation`, a free-form out-of-scope tag, a foreign base on a repository with its own name, and a repository named after another lab's base. Those tests then reported 84 passed, and the five files reported 278 passed. Commit `c818ed36542e8d3c84505a4fd70838172ca0b60e`.
+
+## Round 2 files
+
+The code changes are in `release_signals/scope.py`, `release_signals/watch.py`, `scripts/release_watch.py`, `scripts/release_watch_filter.py`, and the release-watch tests and the precision fixture. The filed signal is still the same six fields. No registry data, Worker file, workflow, frozen data, or `release_signals/pipeline.py` change.
+
+ruff is clean on the lines this round added. The pre-existing `watch.py` line length and the `tests/test_release_watch_filter.py` import order remain.
