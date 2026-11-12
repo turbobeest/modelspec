@@ -123,10 +123,16 @@ def test_business_coverage_quote_cannot_use_a_stale_or_null_claim(tmp_path, valu
     assert result.reason.startswith("template drifted:")
 
 
-@pytest.mark.parametrize("damage", ["corrupt", "missing"])
-def test_missing_or_corrupt_copy_stays_unreachable(tmp_path, damage):
+@pytest.mark.parametrize("damage,outcome", [("corrupt", "unreachable"), ("missing", "skipped")])
+def test_corrupt_copy_stays_unreachable_and_missing_copy_is_skipped(tmp_path, damage, outcome):
     result, _ = check(tmp_path, damage=damage)
-    assert result.outcome == "unreachable"
+    assert result.outcome == outcome
+    if damage == "missing":
+        assert result.verification is None
+        assert result.reason == "no retained copy in this cache: pricing#page"
+    else:
+        assert result.verification is not None
+        assert result.reason == "unreachable:pricing#page"
 
 
 def test_template_drift_quarantines_an_earlier_verified_value(tmp_path):

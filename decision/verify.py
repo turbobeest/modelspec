@@ -6163,8 +6163,9 @@ class StoredRegions:
     def miss_reason(self, source_id: str, copy_ref: str, region_id: str) -> str:
         """Why ``text`` is ``None``: ``no_copy`` or ``unreachable``.
 
-        ``no_copy`` means this cache never fetched the source and retained
-        nothing. A recorded fetch failure, a present copy, an unreadable
+        ``no_copy`` means nothing is retained for this ref and this cache
+        recorded no failed fetch. A recorded fetch failure, a present copy,
+        bytes at the copy path that do not hash to the ref, an unreadable
         citation, or a region that cannot be read is ``unreachable``.
         """
         try:
@@ -6178,6 +6179,14 @@ class StoredRegions:
             if source else None
         if (source is None or region is None or self.store.has(copy_ref)
                 or self.store.fetch_failed(source_id)):
+            return "unreachable"
+        try:
+            slot = self.store.path(copy_ref)
+        except ValueError:
+            return "unreachable"
+        # A path that exists but does not hash to its name was retained and
+        # cannot be read. An absent path, with no failure marker, was not.
+        if os.path.lexists(slot):
             return "unreachable"
         return "no_copy"
 
