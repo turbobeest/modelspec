@@ -20,9 +20,11 @@ def test_named_modalities_are_out_of_scope_and_ordinary_names_stay_in() -> None:
     assert out_of_scope_reason("Acme", "acme-robotics-arm") == (
         "robotics or embodied checkpoint"
     )
-    assert out_of_scope_reason("Embodied", "Orbit 2") == (
-        "robotics or embodied checkpoint"
-    )
+    assert out_of_scope_reason("Embodied", "Orbit 2") is None
+    assert out_of_scope_reason("Voice AI", "Orbit 2") is None
+    assert out_of_scope_reason("Voice AI", "grok-voice-3-0") == "speech"
+    assert out_of_scope_reason("Acme", "Stable Diffusion 4") == "image generation"
+    assert out_of_scope_reason("Acme", "Time Series Transformer") == "time series"
     for name in (
         "acme-text-to-image",
         "acme-image-generation",
@@ -46,6 +48,8 @@ def test_named_modalities_are_out_of_scope_and_ordinary_names_stay_in() -> None:
     assert out_of_scope_reason("Acme", "acme-timeseries") == "time series"
     for name in ("acme-checkpoint-12", "acme-sdg-export", "acme-residual-sae"):
         assert out_of_scope_reason("Acme", name) == "training or dataset artefact"
+    assert out_of_scope_reason("Acme", "image") == "image generation"
+    assert out_of_scope_reason("Acme", "qwen-vl-image") is None
     for name in (
         "Orbit 2",
         "gpt-5.1",
@@ -53,10 +57,54 @@ def test_named_modalities_are_out_of_scope_and_ordinary_names_stay_in() -> None:
         "acme-whisper",
         "invoice",
         "https",
-        "image",
         "video",
     ):
         assert out_of_scope_reason("Acme", name) is None
+
+
+def test_review_names_follow_the_normalised_model_name() -> None:
+    out = {
+        "flux-3-image-klein": "image generation",
+        "gpt-image-2-6": "image generation",
+        "minimax-h3-image": "image generation",
+        "gemini-nano-banana-2-1": "image generation",
+        "timestral-209m": "time series",
+        "internvideo2-clip-anomaly-detection": "anomaly detection",
+        "grok-imagine-video-1-5-lite": "image generation",
+        "voxtral-mini-tts-3-0": "speech",
+        "voxtral-mini-transcribe-realtime-3-0": "speech",
+        "grok-voice-3-0": "speech",
+        "apriel-voice-27b-preview": "speech",
+        "mistral-ocr-4": "ocr",
+        "minicpm-ocr-1-0": "ocr",
+        "cosmos3-nano-libero10-sdg-export-d2-s43": "training or dataset artefact",
+        "gr00t-n1-7-appletoplate-cosine40k-checkpoint-15000": "training or dataset artefact",
+        "qwen3-30b-a3b-moe-sae": "training or dataset artefact",
+    }
+    for name, reason in out.items():
+        assert out_of_scope_reason("Voice AI", name) == reason
+    for name in (
+        "molmo2-4b-tb",
+        "gemini-omni-1-1-flash",
+        "d1-omni-2b",
+        "lfm-3-vl-2b",
+        "mage-vl-cowork",
+        "nemotron-3-5-super-vl-120b-a12b",
+        "wevisone-vl-2b",
+        "embed-v5-0-fast",
+        "rerank-v5-0-pro",
+        "nemotron-3-5-rerank-8b",
+        "gemini-decision-1",
+        "gpt-6-cyber",
+        "hy-simulmt-30b-a3b",
+        "granite-switch-4-1-30b",
+        "glm-5-3-flashx-legal",
+        "qwen3-vl",
+        "minicpm-v",
+        "grok-vision",
+        "gpt-6-omni",
+    ):
+        assert out_of_scope_reason("Voice AI", name) is None
 
 
 def test_an_out_of_scope_alias_writes_nothing_and_does_not_resolve(
