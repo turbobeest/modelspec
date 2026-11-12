@@ -662,6 +662,14 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
             "key": "acme-lab/speech", "name": "speech",
             "tags": ("automatic-speech-recognition",),
         },
+        {
+            "key": "acme-lab/orbit-4", "name": "orbit-4",
+            "tags": ("text-generation", "robotics"),
+        },
+        {
+            "key": "acme-lab/audio-box", "name": "audio-box",
+            "tags": ("audio",),
+        },
     ]
     seen = tuple(
         Seen(
@@ -674,7 +682,8 @@ def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_nam
     )
     result = filter_releases([SourceRun(source, "ok", new=seen)], NOW)
     assert {signal.model_name for signal in result["signals"]} == {
-        "orbit-9", "orbit-8", "orbit-7", "acme-robotics-arm-6", "acme-robotics-arm-5",
+        "orbit-9", "orbit-8", "orbit-7", "orbit-4", "audio-box",
+        "acme-robotics-arm-6", "acme-robotics-arm-5",
     }
     reasons = {row["model_name"]: row["reason"] for row in result["rejected"]}
     assert reasons == {

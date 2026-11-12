@@ -228,19 +228,18 @@ def test_multimodal_tags_stay_in_scope_and_can_keep_a_speech_pipeline_tag() -> N
     )
 
 
-def test_no_pipeline_tag_falls_back_unless_a_task_tag_decides() -> None:
+def test_no_pipeline_tag_lets_the_name_rules_decide() -> None:
     assert tag_scope(None, ()) == TagDecision(False)
     assert tag_scope("", ("en", "license:mit", "transformers")) == TagDecision(False)
     assert tag_scope("  ", ()) == TagDecision(False)
     assert tag_scope(None, ("en", "reinforcement-learning")) == TagDecision(
         True, "reinforcement-learning", "reinforcement-learning",
     )
-    assert tag_scope(None, ("text-generation", "robotics")) == TagDecision(
-        True, "robotics", "robotics",
-    )
-    assert tag_scope(None, ("transformers", "text-generation")) == TagDecision(
-        True, None, "text-generation",
-    )
+    assert tag_scope(None, ("text-generation", "robotics")) == TagDecision(False)
+    assert tag_scope(None, ("transformers", "text-generation")) == TagDecision(False)
+    assert tag_scope(None, ("audio",)) == TagDecision(False)
+    assert tag_scope("audio") == TagDecision(True, None, "audio")
+    assert not known_pipeline_tag("audio")
     assert tag_scope("text-generation", ("robotics",)) == TagDecision(
         True, None, "text-generation",
     )

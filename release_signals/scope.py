@@ -150,11 +150,7 @@ def out_of_scope_pipeline_tag(tag: str) -> bool:
     folded = _folded(tag)
     if folded == "audio-text-to-text":
         return False
-    return (
-        folded in OUT_OF_SCOPE_PIPELINE_TAGS
-        or folded == "audio"
-        or folded.startswith("audio-")
-    )
+    return folded in OUT_OF_SCOPE_PIPELINE_TAGS or folded.startswith("audio-")
 
 
 def in_scope_pipeline_tag(tag: str) -> bool:
@@ -230,11 +226,12 @@ def _keeping_task_tag(tags: Sequence[str]) -> str | None:
 
 
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
-    """Scope from the pipeline tag, then from task tags. No tag stays undecided.
+    """Scope from the pipeline tag. With none, the name rules decide.
 
     An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
     the tag itself. An out-of-scope pipeline tag is filed when the tag list
-    also names an in-scope task.
+    also names an in-scope task. With no pipeline tag, a free-form tag rejects
+    only when it is out of scope and no in-scope task tag is present.
     """
     primary = _text(pipeline_tag) or ""
     if primary:
@@ -244,14 +241,11 @@ def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision
                 return TagDecision(True, None, keeper)
             return TagDecision(True, primary, primary)
         return TagDecision(True, None, primary)
-    for tag in tags:
-        text = _text(tag)
-        if text and out_of_scope_pipeline_tag(text):
-            return TagDecision(True, text, text)
-    for tag in tags:
-        text = _text(tag)
-        if text and in_scope_pipeline_tag(text):
-            return TagDecision(True, None, text)
+    if _keeping_task_tag(tags) is None:
+        for tag in tags:
+            text = _text(tag)
+            if text and out_of_scope_pipeline_tag(text):
+                return TagDecision(True, text, text)
     return TagDecision(False)
 
 
