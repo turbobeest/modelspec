@@ -1,66 +1,68 @@
 # MODEL-468-G release-signals local run
 
-Base `12f04b1b8ebe1aa1b35c0fcf5c3269b9f606f9bb`. The run used this branch. Python 3.14.4. The workflow's Python 3.11 was not used. No npm install. No Firecrawl. No vendor API. Focused serial pytest, cache provider off, exit codes read directly.
+Round 2, on this branch. The round-1 scratch tree and the drafted card were not on disk. This pass linked a copy of the private catalogue into an engine checkout and ran the harness steps with no new card. No new network. Python 3.14.4. The workflow's Python 3.11 was not used. No npm install. No Firecrawl. No vendor API.
 
-The data checkout's engine pin is public commit `3c9bc73abddf2fb0a43f7db7deff742f709a07a7`, an ancestor of this branch. A live data-repo run keeps that pin until the data repo moves it.
+The earlier note's base was public commit `12f04b1b8ebe`. The data checkout's engine pin is public commit `3c9bc73abddf`, an ancestor of this branch. A live data-repo run keeps that pin until the data repo moves it.
 
-## Output parity
+## What `data-pr` gates on
 
-`web/src/decide/__tests__/contract.test.ts` reads the decision-contract schema, the fictional engine, and checked-in templates. `vocabulary.test.ts` reads checked-in vocabulary fixtures and the golden UI specs. The Python parity files read the worker and checked-in vocabulary and registry fixtures. A new card does not change those inputs. With the drafted card present, `tests/test_decide_worker.py` and `tests/test_decide_page_specs.py` passed 681 and skipped 1.
+`--profile data-pr` gates on deterministic correctness and the Python output-parity suites (`tests/test_decide_worker.py`, `tests/test_decide_page_specs.py`). Two layers are recorded and do not gate:
 
-`npm ci` was not run. `--profile data-pr` runs deterministic correctness and frozen-image recall, and appends output parity as a non-gating `report` row: "Omitted: these suites read checked-in contract, vocabulary, and registry fixtures, not the catalogue." The `pr` profile still runs output parity. The release-signals step now calls `python -I -m scripts.accuracy --profile data-pr`.
+Omitted: the vitest half reads checked-in fixtures and needs Node packages the job does not install.
 
-Red, exit 1: `test_data_pr_profile_omits_output_parity_and_records_why` raised `KeyError: 'data-pr'`. `test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender` did not find `--profile data-pr`. Green, exit 0, after the profile and the workflow command landed.
+Omitted: frozen-image engine recall scores the engine's committed public image, which a data pull request cannot change, and on a linked tree it still reads the private registry. The engine's own CI owns this check.
 
-## Frozen-image recall
+`pr` and `nightly` exit non-zero when a data path is a symlink, and the message names `--profile data-pr`. The image-composing helpers are gone. No helper `git commit` remains, so `-c commit.gpgsign=false` does not apply. `cli/modelspec verify accuracy --profile` lists `pr`, `data-pr`, and `nightly`.
 
-Offline bisect of the public image, harness layer `frozen_image_engine_recall`, date 2026-11-12. Each commit: exit 0, improvements 0, fail 1, pass 15, partial 4.
+The data-pr report builds the linked catalogue with the completeness gate on. Its snapshot line ends with `(linked catalogue)`. The always-on test `test_committed_public_image_recall_matches_the_baseline` still scores the engine's committed public image inside Run pytest.
 
-| Commit | Improvements |
-| --- | --- |
-| `58748fec44f4` | 0 |
-| `60de50855500` | 0 |
-| `97fcac45f742` | 0 |
-| `3c9bc73abddf` | 0 |
-| `b2a1f6404f7b` | 0 |
-| `12f04b1b8ebe` | 0 |
+## Harness pass
 
-The same layer on this engine composed with the private checkout exited 1: Q04 fail to pass, one unrecorded improvement. `tests/recall/baseline.json` is not a data-freeze path. It was left unchanged. The shift is the private tree scored against the public baseline.
+Linked tree, no new card. `--profile data-pr` exit 0 in 79s. Overall pass.
 
-The public accuracy workflow scores the public image, is path-filtered, and is not a required check, so a matching public baseline gives it nothing to fail. The data job is where the symlinks meet that baseline. Frozen-image recall and the baseline updater now build from `git archive HEAD` when a data path symlink resolves outside the root. A root whose data stays inside is unchanged. The baseline file stays on the original root. `test_committed_public_image_recall_matches_the_baseline` runs that ratchet inside Run pytest.
+| Layer | Status | Gate | Result |
+| --- | --- | --- | --- |
+| deterministic correctness | pass | yes | 1415 passed in 47.63s |
+| output parity | pass | yes | 681 passed, 1 skipped in 24.04s |
+| output parity web | report | no | vitest omission above |
+| frozen image engine recall | report | no | frozen-image omission above |
 
-Red, exit 1: `test_run_golden_scores_the_committed_image_when_data_is_linked_out` and `test_update_recall_baseline_reads_the_committed_image` both read `private`. Green, exit 0: both read `public`. The public ratchet test passed with improvements 0 and regressions 0.
+The first scratch copy had no git directory. Two decision tests call `git ls-files` and the profile exited 1 in 71s (2 failed, 1413 passed). The job checks out a real engine repository before it links data. Repeated on a checkout of this engine commit, with the linked data paths left in the working tree: exit 0 in 79s.
 
-After the fix, `--profile data-pr` on the linked tree exited 0. Deterministic correctness: 1415 passed. Frozen-image recall: 15 pass, 4 partial, 1 fail, 0 improvements. Output parity: `report`, gate no.
+MODEL-160 `scripts.recall_run` on the same tree: exit 0 in 6s. 16 pass, 4 partial, 0 fail. One JSON report.
 
-`tests/test_accuracy.py` and `tests/test_release_signals.py`: 323 passed.
+The approved-answer step reused that report. It did not run recall again. The data checkout's merge-base with `origin/main` does not contain `reports/recall/baseline.json`, so the step copied the working-tree baseline. That is the workflow's fallback. `reports/recall/check.py` with `--approved-baseline` exited 0 in 0.033s.
 
-## Local job
+```
+pass: 16; question ids: Q01, Q02, Q03, Q04, Q05, Q06, Q08, Q09, Q12, Q13, Q14, Q15, Q16, Q18, Q19, Q20
+partial: 4; question ids: Q07, Q10, Q11, Q17
+fail: 0; question ids: none
+Regression question ids: none
+```
 
-Signal `watch:anthropic:claude-mythos-5-2`. One card drafted. Classify: changed, resolution `new`, human, score-only false, failures 24, quarantined 0.
+The data repository was not modified.
 
-Urllib log: 7 sent, all `huggingface.co`; 23 refused (the Hugging Face CDN and the leaderboard hosts). The httpx client was not wrapped: the path file imports the budget before site-packages are on the path. `models.dev` was consulted (`not_listed`) and 3 citation records were written for the lab host. Those requests are outside the urllib log. One further request to a non-signal host was sent while checking the wrapper. Leaderboard refresh added 0 boards. Its 24 failures are the refused hosts plus one cite-only retention refusal. Refresh was not exercised.
+## Earlier local job
 
-`audit.json` is not written on the new-card path. Score-only is false, so the audit upload does not run. `result.json` and the refresh report are JSON. The dry run would `git add` the four data trees, push a `data/release-signal-*` branch, and `gh pr create --draft --label new-model`. The acknowledgement would POST because the status is non-empty. None of those writes were performed.
+One new-model signal. One card drafted. Classify: changed, resolution `new`, human, score-only false, failures 24, quarantined 0. This round did not repeat that job. The drafted card was gone, and the harness pass above is the measurement for the gates.
 
-`scripts.validate_pr --all`: 1392 valid, 0 invalid. In the job shell, `python -I` could not import typer, so verify did not finish. Re-run with the project interpreter: exit 0, verified 129, mismatch 3, unreachable 0, skipped 21, skipped for no copy 8. The drafted card has no verify row.
+Urllib log from that earlier run: 7 sent, all `huggingface.co`; 23 refused. `models.dev` was consulted (`not_listed`) and 3 citation records were written for the lab host. Leaderboard refresh added 0 boards. `scripts.validate_pr --all`: 1392 valid, 0 invalid. Verify on the project interpreter: exit 0, verified 129, mismatch 3, unreachable 0, skipped 21, skipped for no copy 8. None of the data-repo writes were performed.
 
-Closed mode and recheck rows were not exercised. The review job was not run.
-
-## Steps after the fixes
+## Steps
 
 | Step | Local state | Still needs a live run |
 | --- | --- | --- |
-| Process one isolated work item | pass, 56s, status `new` | runner network and the real httpx path |
-| Upload signal result | dry run, `result.json` present | artifact upload |
+| Process one isolated work item | earlier run, pass, 56s, status `new` | runner network and the real httpx path |
+| Upload signal result | earlier dry run, `result.json` present | artifact upload |
 | Retain pricing copies | 3 citation records present | artifact upload |
-| Classify | pass, `new`, human, not score-only | |
+| Classify | earlier run, `new`, human, not score-only | |
 | Flag closed without merge | not reached | a closed unmerged PR URL |
-| Validate cards | card validation pass; verify pass on the project interpreter | `python -I` on the workflow's Python 3.11 |
-| Accuracy | `--profile data-pr` pass | this profile on the runner |
-| MODEL-160 recall report | pass, 16 pass, 4 partial, 0 fail, on the linked tree | artifact upload |
-| Commit and push | dry run, the four trees exist | push to the data repo |
-| Open or update the PR | dry run, draft `new-model` | `gh pr create` on the data repo |
+| Validate cards | earlier run, validation pass; verify pass on the project interpreter | `python -I` on the workflow's Python 3.11 |
+| Accuracy | `--profile data-pr` pass, 79s, linked tree, no new card | this profile on the runner |
+| MODEL-160 recall report | pass, 6s, 16 pass, 4 partial, 0 fail | artifact upload |
+| Compare approved answers | pass, 0.033s, 0 regressions | this step on the runner |
+| Commit and push | earlier dry run, not repeated | push to the data repo |
+| Open or update the PR | earlier dry run, not repeated | `gh pr create` on the data repo |
 | Upload score-only audit | not reached | a score-only change |
-| Acknowledge | dry run, status non-empty | POST `/v1/signals/ack` |
+| Acknowledge | earlier dry run, status non-empty | POST `/v1/signals/ack` |
 | Closed and recheck | read only | a `pr_url` or a recheck row |

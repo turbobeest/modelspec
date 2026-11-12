@@ -806,6 +806,17 @@ def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     assert raw["layers"][1]["gating"] is False
 
 
+def test_accuracy_profile_help_lists_the_profiles_that_exist() -> None:
+    listed = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--help"])
+    rejected = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--profile", "nope"])
+
+    assert listed.exit_code == 0, listed.output
+    assert rejected.exit_code != 0
+    for profile in accuracy.PROFILES:
+        assert profile in listed.output
+        assert profile in rejected.output
+
+
 def test_modelspect_verify_accuracy_is_a_command_group(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         accuracy,
