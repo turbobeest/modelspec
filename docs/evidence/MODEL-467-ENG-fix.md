@@ -364,3 +364,19 @@ PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.p
 ```
 
 Exit 0. `113 passed`.
+
+### First-row filing names the folds `slug(strip=False)` still makes
+
+`scripts/premier_slice1.slug` with `strip=False` maps
+`Claude Opus 4.1 (thinking)` to `claude-opus-4-1` and `otherlab/Foo-1` to
+`foo-1`. `docs/design/first-row-filing.md` says so. First-row filing refuses
+a board name that contains parentheses, and a board name whose publisher
+prefix is not the card's lab. No filing code was added.
+`scripts/premier_slice1.py` was not edited.
+
+## Not run in round 3
+
+No full local suite, site build, or Worker memory probe. No live network.
+No ranking floor, legal text, contract, frozen data file, or source-terms
+class was changed. `registry/sources.yaml` was not edited.
+`.github/private-writers/release-signals.yml` was not edited.

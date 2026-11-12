@@ -43,11 +43,22 @@ Alias entries then overwrite the key.
 digits, and a trailing year, month, and day. A board row for a dated
 variant or a `thinking` variant can land on the base card.
 
-First-row filing uses a stricter match. Normalise the board name with
-`slug(strip=False)`. File the row only when that key equals
-`slug(strip=False)` of exactly one card, on its display name or its model
-id. Any other result is unmatched. Report it and write nothing. Do not use
-`match_index`. Do not use the refresh matcher's token sort.
+`slug(strip=False)` still deletes text in parentheses and any `org/` prefix.
+`Claude Opus 4.1 (thinking)` becomes `claude-opus-4-1`. `otherlab/Foo-1`
+becomes `foo-1`. The comparison never sees the dropped text.
+
+First-row filing refuses a board name that contains parentheses. It refuses
+a board name whose publisher prefix is not the card's lab. The publisher
+prefix is the text before the first `/` when the name has one and is not a
+URL. The card's lab is the text before the first `/` in its model id. A name
+with no publisher prefix is not refused on this rule. A refused name is
+unmatched. Report it and write nothing.
+
+A name that passes those checks is normalised with `slug(strip=False)`.
+File the row only when that key equals `slug(strip=False)` of exactly one
+card, on its display name or its model id. Any other result is unmatched.
+Report it and write nothing. Do not use `match_index`. Do not use the
+refresh matcher's token sort.
 
 File only when the matched card's status is `active`. Report an inactive card
 and leave it unchanged.
