@@ -837,6 +837,29 @@ class CopyStore:
             return False
         return fingerprint_bytes(target.read_bytes()) == ref
 
+    def _fetch_failure_path(self, source_id: str) -> Path:
+        digest = hashlib.sha256(source_id.encode("utf-8")).hexdigest()
+        return self.root / "fetch-failures" / digest
+
+    def record_fetch_failure(self, source_id: str) -> None:
+        """Remember that this run tried to fetch ``source_id`` and failed.
+
+        The marker is an empty file under the cache root, named by the hash of
+        the source id. It stores no URL and no error text. A copy this cache
+        never fetched has no marker.
+        """
+        target = self._fetch_failure_path(source_id)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if os.path.lexists(target):
+            return
+        fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+        os.close(fd)
+        os.replace(temporary, target)
+
+    def fetch_failed(self, source_id: str) -> bool:
+        """True when this cache recorded a failed fetch of ``source_id``."""
+        return os.path.lexists(self._fetch_failure_path(source_id))
+
 
 def fingerprint_bytes(body: bytes) -> str:
     return "sha256:" + hashlib.sha256(body).hexdigest()
@@ -1052,6 +1075,8 @@ def _check_one(
         return SourceState(source.id, snapshot, 0, False, now)
 
     if result.outcome != "ok":
+        # A failed attempt is not the same as a copy this cache never fetched.
+        store.record_fetch_failure(source.id)
         failures = state.consecutive_failures + 1
         detail = result.error or "HTTP 304 without a baseline"
         for region in source.cited_regions:

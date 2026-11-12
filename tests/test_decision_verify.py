@@ -1638,7 +1638,9 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
     report = verify.run(verify.Queue(log.directory), log, regions,
                         verify.deterministic_extractors(), today=TODAY)
     # Unreadable and unbound claims remain pending, with no fabricated receipt.
-    assert [r.target.id for r in report.results] == ["orion-absent", "sol-prose-no-extractor"]
+    # An absent copy stays pending too: it was skipped, not logged.
+    assert [r.target.id for r in report.results] == [
+        "orion-absent", "sol-copy-missing", "sol-prose-no-extractor"]
     assert log.path.read_text() == before
 
 
