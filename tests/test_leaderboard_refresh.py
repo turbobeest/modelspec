@@ -2284,10 +2284,10 @@ def test_an_elo_unit_is_not_refreshed(monkeypatch, tmp_path: Path) -> None:
     assert _evidence_row(card)["unit"] == "elo"
 
 
-def test_a_token_match_the_verifier_does_not_own_uses_the_owned_row(
+def test_a_token_match_the_verifier_does_not_own_is_not_swapped(
     monkeypatch, tmp_path: Path,
 ) -> None:
-    report, card, root = _run_arena_effort_refresh(
+    report, card, _root = _run_arena_effort_refresh(
         monkeypatch, tmp_path,
         dataset_name="unused",
         evaluated="Beta Alpha",
@@ -2314,15 +2314,12 @@ def test_a_token_match_the_verifier_does_not_own_uses_the_owned_row(
         ],
     )
 
-    assert report.quarantined == [], report.quarantined
-    assert report.failures == [], report.failures
+    assert report.quarantined == []
+    assert any("verifier" in row.reason for row in report.failures)
     row = _evidence_row(card)
-    assert row["score"] == 1210.25
-    assert row["n"] == 2222
-    assert "1300" not in row["configuration"]
-    log = _verification_log(root)
-    assert log["outcome"] == "verified"
-    assert log["diff"] is None
+    assert row["score"] == 1100.0
+    assert "1210.25" not in row.get("configuration", "")
+    assert "1300" not in row.get("configuration", "")
 
 
 def test_a_match_the_verifier_does_not_own_is_not_written(

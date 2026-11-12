@@ -808,18 +808,11 @@ def _plan_observations(
         if arena and front is not None:
             names = _verifier_names(model_id, front, evidence)
             if not _verifier_owns(_subject(match), names):
-                owned = [
-                    row for row in board.rows
-                    if row.get(board.value_field) is not None and _verifier_owns(_subject(row), names)
-                ]
-                if len(owned) == 1:
-                    match = owned[0]
-                else:
-                    failures.append(RowFailure(
-                        model_id, str(evidence.get("benchmark_id")), board.source_url,
-                        "matched row is not a row the verifier reads",
-                    ))
-                    continue
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    "matched row is not a row the verifier reads",
+                ))
+                continue
         raw = _value(board, match, evidence.get("unit"))
         old = float(evidence["score"])
         if arena:
