@@ -1498,7 +1498,9 @@ def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
     asyncio.run(scenario())
 
 
-def _run_pending_matrix(tmp_path: Path, pending: dict, limit: str) -> dict[str, str]:
+def _run_pending_matrix(
+    tmp_path: Path, pending: dict, limit: str, run: str = "0",
+) -> dict[str, str]:
     import os
     import subprocess
 
@@ -1517,6 +1519,7 @@ def _run_pending_matrix(tmp_path: Path, pending: dict, limit: str) -> dict[str, 
             "RUNNER_TEMP": str(tmp_path),
             "GITHUB_OUTPUT": str(output),
             "MAX_RELEASE_SIGNAL_WORK_ITEMS": limit,
+            "GITHUB_RUN_NUMBER": run,
         },
     )
     assert result.returncode == 0, result.stderr
@@ -1557,8 +1560,8 @@ def test_each_run_keeps_at_most_ten_work_items_signals_before_rechecks(tmp_path:
     capped = _run_pending_matrix(tmp_path, {"signals": signals, "rechecks": rechecks}, "2")
     assert capped["count"] == "2"
     capped_work = json.loads(capped["matrix"])["work"]
-    assert [item["signal_id"] for item in capped_work] == ["s01", "s02"]
-    assert [item["recheck_day"] for item in capped_work] == [0, 0]
+    assert [item["signal_id"] for item in capped_work] == ["s01", "r-tie"]
+    assert [item["recheck_day"] for item in capped_work] == [0, 30]
     assert [item["pr_url"] for item in capped_work] == [None, None]
 
     selected = _run_pending_matrix(
@@ -1595,6 +1598,51 @@ def test_each_run_keeps_at_most_ten_work_items_signals_before_rechecks(tmp_path:
     assert "Flag a new-model PR closed without merge" == closed["name"]
     ack = next(step for step in process_steps if "Acknowledge the signal" in step.get("name", ""))
     assert "steps.uncertain.outputs.url" not in ack["env"]["RESULT_URL"]
+
+
+def test_pending_selection_rotates_instead_of_blocking_the_queue(tmp_path: Path) -> None:
+    signals = [
+        {"signal_id": f"s{index:02d}", "timestamp": f"2026-01-{index + 1:02d}T00:00:00Z"}
+        for index in range(12)
+    ]
+    rechecks = [
+        {
+            "day": 1,
+            "due": f"2026-03-{index + 1:02d}",
+            "pr_url": None,
+            "signal": {"signal_id": f"r{index}", "timestamp": "2026-01-01T00:00:00Z"},
+        }
+        for index in range(5)
+    ]
+
+    def selected_ids(name: str, run: str, pending: dict) -> list[str]:
+        directory = tmp_path / name
+        directory.mkdir()
+        parsed = _run_pending_matrix(directory, pending, "10", run)
+        assert parsed["count"] == str(len(json.loads(parsed["matrix"])["work"]))
+        return [item["signal_id"] for item in json.loads(parsed["matrix"])["work"]]
+
+    full = {"signals": signals, "rechecks": rechecks}
+    assert selected_ids("run1", "1", full) == [
+        "s01", "s02", "s03", "s04", "s05", "s06", "s07", "r1", "r2", "r3",
+    ]
+    assert selected_ids("run2", "2", full) == [
+        "s02", "s03", "s04", "s05", "s06", "s07", "s08", "r2", "r3", "r4",
+    ]
+    assert selected_ids("run13", "13", full) == [
+        "s01", "s02", "s03", "s04", "s05", "s06", "s07", "r3", "r4", "r0",
+    ]
+    assert selected_ids("few-signals", "1", {
+        "signals": signals[:2], "rechecks": rechecks,
+    }) == ["s00", "s01", "r0", "r1", "r2", "r3", "r4"]
+    assert selected_ids("few-rechecks", "1", {
+        "signals": signals, "rechecks": rechecks[:1],
+    }) == ["s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "r0"]
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    empty = _run_pending_matrix(empty_dir, {"signals": [], "rechecks": []}, "10", "1")
+    assert empty["count"] == "0"
+    assert json.loads(empty["matrix"])["work"] == []
 
 
 def test_per_job_artifact_names_keep_signal_punctuation_out() -> None:

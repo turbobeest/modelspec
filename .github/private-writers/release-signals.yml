@@ -38,24 +38,51 @@ jobs:
       - name: Build the isolated-work matrix
         id: matrix
         run: |
-          selected="$(jq -c --argjson limit "$MAX_RELEASE_SIGNAL_WORK_ITEMS" '
-            (
-              [.signals[]? | {
-                _sort: [.timestamp, .signal_id],
-                signal_id,
-                recheck_day: 0,
-                pr_url: (.pr_url // null)
-              }] | sort_by(._sort)
-            ) + (
-              [.rechecks[]? | {
-                _sort: [.due // "", .signal.timestamp // "", .signal.signal_id],
-                signal_id: .signal.signal_id,
-                recheck_day: .day,
-                pr_url: (.pr_url // null)
-              }] | sort_by(._sort)
-            )
-            | .[ :$limit]
-            | map(del(._sort))
+          selected="$(jq -c \
+            --argjson limit "$MAX_RELEASE_SIGNAL_WORK_ITEMS" \
+            --argjson run "${GITHUB_RUN_NUMBER:-0}" '
+            def take_window($slots; $run):
+              . as $items
+              | if ($slots <= 0) or (($items | length) == 0) then []
+                elif ($items | length) <= $slots then $items
+                else
+                  ($run % ($items | length)) as $off
+                  | [range(0; $slots) | $items[($off + .) % ($items | length)]]
+                end;
+            def signal_reserve($limit):
+              if $limit >= 10 then 7 else ($limit * 7 / 10 | floor) end;
+            (.signals // []) as $raw_signals
+            | (.rechecks // []) as $raw_rechecks
+            | (signal_reserve($limit)) as $sig_reserve
+            | (if $limit >= 10 then 3 else ($limit - $sig_reserve) end) as $rec_reserve
+            | [
+                $raw_signals[] | {
+                  _sort: [.timestamp, .signal_id],
+                  signal_id,
+                  recheck_day: 0,
+                  pr_url: (.pr_url // null)
+                }
+              ] | sort_by(._sort) | map(del(._sort)) as $signals
+            | [
+                $raw_rechecks[] | {
+                  _sort: [.due // "", .signal.timestamp // "", .signal.signal_id],
+                  signal_id: .signal.signal_id,
+                  recheck_day: .day,
+                  pr_url: (.pr_url // null)
+                }
+              ] | sort_by(._sort) | map(del(._sort)) as $rechecks
+            | ([$sig_reserve, ($signals | length), $limit] | min) as $sig0
+            | ([$rec_reserve, ($rechecks | length), ($limit - $sig0)] | min) as $rec0
+            | ($limit - $sig0 - $rec0) as $left
+            | (if $left > 0 and (($signals | length) > $sig0)
+                then [$left, (($signals | length) - $sig0)] | min else 0 end) as $sig_extra
+            | ($sig0 + $sig_extra) as $sig_slots
+            | ($left - $sig_extra) as $left2
+            | (if $left2 > 0 and (($rechecks | length) > $rec0)
+                then [$left2, (($rechecks | length) - $rec0)] | min else 0 end) as $rec_extra
+            | ($rec0 + $rec_extra) as $rec_slots
+            | ($signals | take_window($sig_slots; $run))
+              + ($rechecks | take_window($rec_slots; $run))
           ' "$RUNNER_TEMP/pending.json")"
           matrix="$(jq -nc --argjson work "$selected" '{work: $work}')"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
