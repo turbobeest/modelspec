@@ -1291,6 +1291,132 @@ def test_an_explicit_model_selection_does_not_expand(
     assert _scores(other)["arena_elo_overall"] == 900.0
 
 
+def test_latest_mode_leaves_a_non_arena_row_on_an_expanded_card_unchanged(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """A non-premier card can carry one Arena row and one other row.
+
+    Latest mode may refresh the Arena row. The other row stays byte-identical.
+    """
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/premier\n", encoding="utf-8",
+    )
+    _registry(root, {
+        "model-160-arena-text": DATASET,
+        "fixture-source": "https://example.test/leaderboard.json",
+    })
+    _named_arena_card(root, "lab/premier", "1100.0", "aaaaaaaaaaaa")
+    other = root / "models" / "lab" / "other.md"
+    fixture_row = """  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: other
+    score: 50.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: benchmark_author
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    id: lab/other#fixture
+    sources:
+    - source_id: fixture-source
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+"""
+    other.write_text(
+        f"""---
+model_id: lab/other
+display_name: other
+version: other
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: other
+    score: 900.0
+    unit: Arena score (Elo scale)
+    source_url: {DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    benchmark_version: text / overall, latest split, revision aaaaaaaaaaaa
+    id: lab/other#arena
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:{"a" * 64}
+      cited_regions: [rows]
+{fixture_row}---
+""",
+        encoding="utf-8",
+    )
+    cache = tmp_path / "copies"
+    arena = _two_model_board(cache)
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "other", "score": "80%", "date": "2026-11-11"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "d" * 64,
+        read_date="2026-11-11",
+        note="fixture",
+    )
+    fixture = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-11-11", value_field="score", store=store,
+        card_urls=("https://example.test/leaderboard.json",),
+    )
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([arena, fixture], []))
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=NEW),
+    )
+
+    refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        arena_latest=True,
+    )
+
+    written = other.read_text(encoding="utf-8")
+    assert _scores(other)["arena_elo_overall"] == 1300.0
+    assert fixture_row in written
+
+
+def test_a_non_arena_plan_does_not_inherit_the_arena_revision(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    store = refresh.CopyStore(cache)
+    url = "https://example.test/leaderboard.json"
+    projection = refresh.readers.document(
+        [{"model": "Example Model", "score": "81%"}],
+        url=url, page_ref="sha256:" + "e" * 64, read_date="2026-11-11", note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="score", store=store, card_urls=(url,),
+    )
+    observations, failures = refresh._plan_observations(
+        "lab/model", "models/lab/model.md",
+        [{
+            "benchmark_id": "fixture_benchmark",
+            "model_id_as_evaluated": "Example Model",
+            "score": 80.0,
+            "unit": "percent",
+            "source_url": url,
+        }],
+        board,
+        revision=NEW,
+    )
+
+    assert failures == []
+    assert len(observations) == 1
+    assert observations[0].reading_checked is False
+    assert observations[0].reading_revision == ""
+
+
 def test_a_cited_revision_that_already_matches_does_not_expand(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:

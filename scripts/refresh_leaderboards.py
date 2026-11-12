@@ -809,6 +809,10 @@ def _plan_observations(
             continue
         source_date = _source_measurement_date(match)
         cited = _cited_shas(board.source_url)
+        arena_board = board.key.startswith("arena:")
+        # The Arena revision belongs to Arena boards. Another board keeps a
+        # commit its own URL cites, and otherwise none.
+        board_revision = (cited[-1] if cited else revision) if arena_board else (cited[-1] if cited else "")
         observations.append(RowObservation(
             card=card,
             model_id=model_id,
@@ -820,12 +824,12 @@ def _plan_observations(
             observed_date=board.observed_at,
             evidence_date=source_date or board.observed_at,
             source_dated=source_publishes_row_date(str(evidence.get("source_url") or "")),
-            reading_interval=interval,
-            reading_n=_matched_votes(match),
-            reading_effort=_dataset_effort(match),
-            reading_publish_date=source_date,
-            reading_revision=(cited[-1] if cited else revision),
-            reading_checked=True,
+            reading_interval=interval if arena_board else None,
+            reading_n=_matched_votes(match) if arena_board else None,
+            reading_effort=_dataset_effort(match) if arena_board else None,
+            reading_publish_date=source_date if arena_board else None,
+            reading_revision=board_revision,
+            reading_checked=arena_board,
         ))
     return observations, failures
 
@@ -1326,7 +1330,12 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     arena_written = 0
     unregistered: set[str] = set()
     for group in card_groups:
+        # Catalogue expansion exists to move Arena boards. A non-premier card
+        # keeps every other row as stored.
+        expanded = extras and group is extras
         for board in boards:
+            if expanded and not board.key.startswith("arena:"):
+                continue
             summary = report.board(board.key)
             if board.source_id not in registered:
                 if board.key not in unregistered:
