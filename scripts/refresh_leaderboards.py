@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Refresh evidence from registered live boards (MODEL-124 and MODEL-113).
 
-The weekly premier-set refresh updates existing evidence rows. A release-signal
+The weekly premier-set refresh updates existing evidence rows. In latest
+mode, when a stored Arena revision is not the revision just read, every
+catalogue card with a row on that benchmark is refreshed too, up to
+``ARENA_ROWS_PER_RUN`` Arena rows. A release-signal
 run may also add evidence to an explicitly selected existing card when one
 registered board row matches exactly and the board has an unambiguous metadata
 template. The refresh never adds a card or changes identity or licence facts.
@@ -76,6 +79,9 @@ ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "ModelSpec-Leaderboard-Refresh/1.0 (+https://modelspec.dev)"
 ARENA_DATASET = "lmarena-ai/leaderboard-dataset"
 ARENA_REVISION = readers.ARENA_REVISION
+#: Arena evidence rows written in one run. Premier cards are written first.
+#: Rows past this wait for the next run.
+ARENA_ROWS_PER_RUN = 1200
 ARENA_BOARDS = {
     **readers.ARENA,
     "arena_webdev": ("webdev", "overall"),
@@ -224,6 +230,8 @@ class RefreshReport:
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
     added: int = 0
+    #: Arena rows past ``ARENA_ROWS_PER_RUN`` in this run.
+    arena_rows_left: int = 0
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
@@ -1088,6 +1096,43 @@ def _sha_agrees(cited: str, revision: str) -> bool:
     return longer.startswith(short)
 
 
+def _moving_arena_benchmarks(root: Path, revision: str) -> set[str]:
+    """Arena benchmarks whose stored rows cite a revision other than ``revision``."""
+    moving: set[str] = set()
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping):
+                continue
+            benchmark = str(row.get("benchmark_id") or "")
+            if not benchmark.startswith("arena_"):
+                continue
+            quoted = f"{row.get('benchmark_version') or ''}\n{row.get('configuration') or ''}"
+            for cited in _REVISION_QUOTE.findall(quoted):
+                if not _sha_agrees(cited.lower(), revision.lower()):
+                    moving.add(benchmark)
+    return moving
+
+
+def _cards_on_benchmarks(root: Path, benchmarks: set[str], skip: set[str]) -> dict[str, Path]:
+    """Catalogue cards, other than ``skip``, that have a row on ``benchmarks``."""
+    found: dict[str, Path] = {}
+    if not benchmarks:
+        return found
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        if not model_id or model_id in skip:
+            continue
+        rows = (front.get("benchmarks") or {}).get("evidence") or []
+        if any(
+            str(row.get("benchmark_id") or "") in benchmarks
+            for row in rows if isinstance(row, Mapping)
+        ):
+            found[model_id] = path
+    return found
+
+
 def registry_revision_conflict(registered: Mapping[str, Any], boards: Sequence[BoardReading],
                               revision: str) -> list[str]:
     """Arena source ids whose registry URL names a commit other than ``revision``.
@@ -1134,7 +1179,18 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     date.fromisoformat(observed_at)
     latest = arena_revision_setting(arena_latest)
     chosen = choose_arena_revision(latest)
-    cards = _selected_cards(root, model_ids)
+    premier = _selected_cards(root, model_ids)
+    extras: dict[str, Path] = {}
+    # Latest mode, and only the weekly path (no explicit model_ids), refreshes
+    # every card on an Arena benchmark whose stored revision is not the one
+    # just read. Pinned mode stays on the premier set. An explicit selection
+    # stays on those cards.
+    if model_ids is None and latest and chosen.fallback is None:
+        moving = _moving_arena_benchmarks(root, chosen.sha)
+        if moving:
+            extras = _cards_on_benchmarks(root, moving, set(premier))
+    cards = {**premier, **extras}
+    card_groups = [premier, extras] if extras else [premier]
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
         str(row["source_url"])
@@ -1187,86 +1243,97 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     pending_additions: dict[Path, list[dict[str, Any]]] = {}
     claims: list[Claim] = []
 
-    for board in boards:
-        summary = report.board(board.key)
-        if board.source_id not in registered:
-            failure = RowFailure(
-                "*", ",".join(sorted(board.benchmark_ids)), board.source_url,
-                f"source is not registered: {board.source_id}",
-            )
-            report.failures.append(failure)
-            summary["failures"].append(failure.reason)
-            continue
-        models_read: set[str] = set()
-        reconfirmed_models: set[str] = set()
-        for model_id, path in cards.items():
-            rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
-            relevant = [row for row in rows
-                        if row.get("benchmark_id") in board.benchmark_ids
-                        and str(row.get("source_url") or "") in
-                        (board.card_urls or frozenset({board.source_url}))]
-            if not relevant:
-                if add_missing:
-                    additions, failures = _new_evidence(
-                        root=root, model_id=model_id, front=fronts[model_id], board=board,
-                    )
-                    report.failures.extend(failures)
-                    summary["failures"].extend(failure.reason for failure in failures)
-                    if additions:
-                        models_read.add(model_id)
-                        pending_additions.setdefault(path, []).extend(additions)
-                        claims.extend(
-                            _claim(model_id, fronts[model_id], row, board) for row in additions
-                        )
-                        report.added += len(additions)
-                continue
-            for row in relevant:
-                if _match(board, row) is not None:
-                    models_read.add(model_id)
-            observations, failures = _plan_observations(
-                model_id, path.relative_to(root).as_posix(), relevant, board,
-                revision=effective,
-            )
-            report.failures.extend(failures)
-            summary["failures"].extend(failure.reason for failure in failures)
-            for observation in observations:
-                old = next(row for row in relevant
-                           if row["benchmark_id"] == observation.benchmark
-                           and row.get("model_id_as_evaluated") == observation.model
-                           and float(row["score"]) == observation.old_value)
-                new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
-                if new is None:
+    arena_written = 0
+    unregistered: set[str] = set()
+    for group in card_groups:
+        for board in boards:
+            summary = report.board(board.key)
+            if board.source_id not in registered:
+                if board.key not in unregistered:
+                    unregistered.add(board.key)
                     failure = RowFailure(
-                        model_id, observation.benchmark, board.source_url,
-                        reason or "reading was not rewritten",
+                        "*", ",".join(sorted(board.benchmark_ids)), board.source_url,
+                        f"source is not registered: {board.source_id}",
                     )
                     report.failures.append(failure)
                     summary["failures"].append(failure.reason)
+                continue
+            models_read: set[str] = set()
+            reconfirmed_models: set[str] = set()
+            for model_id, path in group.items():
+                rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
+                relevant = [row for row in rows
+                            if row.get("benchmark_id") in board.benchmark_ids
+                            and str(row.get("source_url") or "") in
+                            (board.card_urls or frozenset({board.source_url}))]
+                if not relevant:
+                    if add_missing:
+                        additions, failures = _new_evidence(
+                            root=root, model_id=model_id, front=fronts[model_id], board=board,
+                        )
+                        report.failures.extend(failures)
+                        summary["failures"].extend(failure.reason for failure in failures)
+                        if additions:
+                            models_read.add(model_id)
+                            pending_additions.setdefault(path, []).extend(additions)
+                            claims.extend(
+                                _claim(model_id, fronts[model_id], row, board) for row in additions
+                            )
+                            report.added += len(additions)
                     continue
-                new["evidence_date"] = observation.evidence_date
-                new["observed_at"] = observed_at
-                new["verified_at"] = observed_at
-                new = align_observation_dating(new)
-                new["sources"] = [SourceRef(
-                    source_id=board.source_id,
-                    snapshot_ref=board.snapshot_ref,
-                    cited_regions=["rows"],
-                ).model_dump(mode="json")]
-                new["id"] = evidence_id(model_id, new)
-                pending_updates.setdefault(path, []).append((evidence_key(old), new))
-                claims.append(_claim(model_id, fronts[model_id], new, board))
-                if observation.changed:
-                    report.changes.append(observation.score_change())
-                else:
-                    report.reconfirmed.append(observation)
-                    reconfirmed_models.add(model_id)
-        summary["models_reconfirmed"] += len(reconfirmed_models)
-        summary["models_read"] = len(models_read)
-        summary["values_changed"] = sum(
-            1 for change in report.changes
-            if change.source == board.source_url
-            and change.benchmark in board.benchmark_ids
-        )
+                for row in relevant:
+                    if _match(board, row) is not None:
+                        models_read.add(model_id)
+                observations, failures = _plan_observations(
+                    model_id, path.relative_to(root).as_posix(), relevant, board,
+                    revision=effective,
+                )
+                report.failures.extend(failures)
+                summary["failures"].extend(failure.reason for failure in failures)
+                for observation in observations:
+                    arena_row = str(observation.benchmark).startswith("arena_")
+                    if arena_row and arena_written >= ARENA_ROWS_PER_RUN:
+                        report.arena_rows_left += 1
+                        continue
+                    old = next(row for row in relevant
+                               if row["benchmark_id"] == observation.benchmark
+                               and row.get("model_id_as_evaluated") == observation.model
+                               and float(row["score"]) == observation.old_value)
+                    new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
+                    if new is None:
+                        failure = RowFailure(
+                            model_id, observation.benchmark, board.source_url,
+                            reason or "reading was not rewritten",
+                        )
+                        report.failures.append(failure)
+                        summary["failures"].append(failure.reason)
+                        continue
+                    new["evidence_date"] = observation.evidence_date
+                    new["observed_at"] = observed_at
+                    new["verified_at"] = observed_at
+                    new = align_observation_dating(new)
+                    new["sources"] = [SourceRef(
+                        source_id=board.source_id,
+                        snapshot_ref=board.snapshot_ref,
+                        cited_regions=["rows"],
+                    ).model_dump(mode="json")]
+                    new["id"] = evidence_id(model_id, new)
+                    if arena_row:
+                        arena_written += 1
+                    pending_updates.setdefault(path, []).append((evidence_key(old), new))
+                    claims.append(_claim(model_id, fronts[model_id], new, board))
+                    if observation.changed:
+                        report.changes.append(observation.score_change())
+                    else:
+                        report.reconfirmed.append(observation)
+                        reconfirmed_models.add(model_id)
+            summary["models_reconfirmed"] += len(reconfirmed_models)
+            summary["models_read"] += len(models_read)
+            summary["values_changed"] = sum(
+                1 for change in report.changes
+                if change.source == board.source_url
+                and change.benchmark in board.benchmark_ids
+            )
 
     if dry_run or (not pending_updates and not pending_additions):
         return report
@@ -1339,6 +1406,11 @@ def render_report(report: RefreshReport) -> str:
             else:
                 status = "pinned default"
             lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
+    if report.arena_rows_left:
+        lines.extend([
+            f"Arena rows left for the next run: {report.arena_rows_left}",
+            "",
+        ])
     lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",
@@ -1434,6 +1506,7 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
     lines = body.splitlines()
     opening = _opening_line(lines)
     arena = next((line for line in lines if line.startswith("Arena revision:")), "")
+    arena_left = next((line for line in lines if line.startswith("Arena rows left")), "")
     board = _markdown_table(lines, "| Board |")
     failures = _table_in_section(lines, "## Failures")
     change_header, change_rows = _change_table(lines)
@@ -1444,6 +1517,8 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
             parts.append(opening)
         if arena:
             parts.extend(["", arena] if parts else [arena])
+        if arena_left:
+            parts.extend(["", arena_left] if parts else [arena_left])
         if board:
             parts.extend(["", *board] if parts else list(board))
         if failures:
@@ -1669,6 +1744,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "arena_revision": report.arena_revision,
         "arena_revision_fallback": report.arena_revision_fallback,
         "arena_revision_latest": report.arena_revision_latest,
+        "arena_rows_left": report.arena_rows_left,
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],

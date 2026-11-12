@@ -1169,3 +1169,182 @@ def test_one_arena_config_error_leaves_the_other_boards(
 
 def test_stray_arena_revision_env_is_cleared() -> None:
     assert os.environ.get(ENV) is None
+
+
+def _named_arena_card(root: Path, model_id: str, score: str, revision: str) -> Path:
+    lab, name = model_id.split("/")
+    card = root / "models" / lab / f"{name}.md"
+    card.parent.mkdir(parents=True, exist_ok=True)
+    card.write_text(
+        f"""---
+model_id: {model_id}
+display_name: {name}
+version: {name}
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: {name}
+    score: {score}
+    unit: Arena score (Elo scale)
+    source_url: {DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-11-01'
+    date_type: published
+    verified_at: '2026-11-01'
+    benchmark_version: text / overall, latest split, revision {revision}
+    id: {model_id}#old
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    return card
+
+
+def _two_model_board(cache: Path):
+    source_id = "model-160-arena-text"
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{NEW}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [
+            {"model_name": "premier", "rating": 1200.0, "leaderboard_publish_date": "2026-11-01"},
+            {"model_name": "other", "rating": 1300.0, "leaderboard_publish_date": "2026-11-01"},
+        ],
+        url=url, page_ref="sha256:" + "b" * 64, read_date="2026-11-11", note="test",
+    )
+    return refresh._reading_from_projection(
+        key="arena:arena_elo_overall", source_id=source_id, benchmarks=("arena_elo_overall",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(DATASET,),
+    )
+
+
+def _catalogue(root: Path, *, cited: str) -> tuple[Path, Path]:
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/premier\n", encoding="utf-8",
+    )
+    _registry(root, {"model-160-arena-text": DATASET})
+    premier = _named_arena_card(root, "lab/premier", "1100.0", cited)
+    other = _named_arena_card(root, "lab/other", "900.0", cited)
+    return premier, other
+
+
+def _refresh_catalogue(monkeypatch, root: Path, cache: Path, *, latest: bool,
+                       model_ids: tuple[str, ...] | None = None):
+    board = _two_model_board(cache)
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=NEW),
+    )
+    return refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=model_ids, arena_latest=latest,
+    )
+
+
+def test_latest_mode_refreshes_a_non_premier_card_when_the_revision_moves(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+
+    report = _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=True)
+
+    assert report.quarantined == [], report.quarantined
+    assert _scores(premier)["arena_elo_overall"] == 1200.0
+    assert _scores(other)["arena_elo_overall"] == 1300.0
+    written = refresh._front(other)["benchmarks"]["evidence"][0]["benchmark_version"]
+    assert NEW[:12] in written
+
+
+def test_pinned_mode_does_not_refresh_a_non_premier_card(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    _premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+
+    _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=False)
+
+    assert _scores(other)["arena_elo_overall"] == 900.0
+
+
+def test_an_explicit_model_selection_does_not_expand(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    _premier, other = _catalogue(root, cited="aaaaaaaaaaaa")
+
+    _refresh_catalogue(
+        monkeypatch, root, tmp_path / "copies", latest=True, model_ids=("lab/premier",),
+    )
+
+    assert _scores(other)["arena_elo_overall"] == 900.0
+
+
+def test_a_cited_revision_that_already_matches_does_not_expand(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    _premier, other = _catalogue(root, cited=NEW[:12])
+
+    _refresh_catalogue(monkeypatch, root, tmp_path / "copies", latest=True)
+
+    assert _scores(other)["arena_elo_overall"] == 900.0
+
+
+def test_the_arena_row_cap_reports_rows_left(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/first\n- model_id: lab/second\n", encoding="utf-8",
+    )
+    _registry(root, {"model-160-arena-text": DATASET})
+    first = _named_arena_card(root, "lab/first", "1100.0", "aaaaaaaaaaaa")
+    second = _named_arena_card(root, "lab/second", "1100.0", "aaaaaaaaaaaa")
+    monkeypatch.setattr(refresh, "ARENA_ROWS_PER_RUN", 1)
+    cache = tmp_path / "copies"
+    source_id = "model-160-arena-text"
+    url = (
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/"
+        f"{PIN}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [
+            {"model_name": "first", "rating": 1200.0},
+            {"model_name": "second", "rating": 1300.0},
+        ],
+        url=url, page_ref="sha256:" + "c" * 64, read_date="2026-11-11", note="test",
+    )
+    board = refresh._reading_from_projection(
+        key="arena:arena_elo_overall", source_id=source_id, benchmarks=("arena_elo_overall",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(DATASET,),
+    )
+    monkeypatch.delenv(ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+    )
+
+    assert _scores(first)["arena_elo_overall"] == 1200.0
+    assert _scores(second)["arena_elo_overall"] == 1100.0
+    assert report.arena_rows_left == 1
+    assert "Arena rows left for the next run: 1" in refresh.render_report(report)
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_left"] == 1
