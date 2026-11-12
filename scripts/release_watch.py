@@ -34,6 +34,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from release_signals.contract import ReleaseSignal  # noqa: E402
+from release_signals.scope import known_pipeline_tag  # noqa: E402
 from release_signals.watch import (  # noqa: E402
     BASELINE,
     REGISTRY,
@@ -271,6 +272,18 @@ def summary(result: dict) -> str:
         ) + ".")
     reasons = Counter(row["reason"] for row in result.get("rejected", []))
     lines.extend(f"- {reason}: {count}" for reason, count in sorted(reasons.items()))
+    unknown = sorted({
+        row["pipeline_tag"]
+        for row in result.get("observations", [])
+        if isinstance(row.get("pipeline_tag"), str)
+        and not known_pipeline_tag(row["pipeline_tag"])
+    })
+    if unknown:
+        lines.append(
+            "Unknown pipeline tags kept in scope: "
+            + ", ".join(f"`{tag}`" for tag in unknown)
+            + "."
+        )
     if result["discoveries"]:
         lines += ["", "| Signal | Model | Lab | Seen at |", "| --- | --- | --- | --- |"]
         lines += [

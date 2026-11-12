@@ -17,7 +17,8 @@ from urllib.parse import urlsplit
 import yaml
 
 from release_signals.contract import ReleaseSignal
-from release_signals.watch import Catalogue, Registry, Seen, SourceRun, signal_id
+from release_signals.scope import derivative_reason, out_of_scope_reason, tag_scope
+from release_signals.watch import Catalogue, Registry, Seen, Source, SourceRun, signal_id
 
 PROVIDERS = {
     "qwen": "alibaba-qwen-team", "alibaba": "alibaba-qwen-team",
@@ -191,6 +192,24 @@ def _observation(run: SourceRun, seen: Seen) -> dict:
     return evidence
 
 
+def _hub_scope_reason(seen: Seen, source: Source) -> str | None:
+    """Tag first, then the name rules, then another organisation's base model.
+
+    Page and OpenRouter rows have no hub tags. Pending signals without tags
+    still meet the name rules in process.
+    """
+    if source.kind != "huggingface":
+        return None
+    decision = tag_scope(seen.pipeline_tag, seen.tags)
+    reason = (
+        decision.reason if decision.decided
+        else out_of_scope_reason(seen.provider, seen.model_name)
+    )
+    if reason:
+        return reason
+    return derivative_reason(seen.key, seen.base_model)
+
+
 def filter_releases(
     runs: Iterable[SourceRun], now: datetime, *, catalogue: Catalogue | None = None,
 ) -> dict:
@@ -207,6 +226,8 @@ def filter_releases(
             evidence = _observation(run, seen)
             observations.append(evidence)
             reason = rejection_reason(seen.provider, seen.model_name, source_url=seen.url)
+            if reason is None:
+                reason = _hub_scope_reason(seen, run.source)
             if reason is None and card_identity(seen.provider, seen.model_name) in carded:
                 reason = "already carded (normalized release or alias)"
             if reason:

@@ -165,8 +165,8 @@
         {"key": "docs", "name": "Fixture-Orbit-7-docs-1", "expected_signal_id": "watch:mistral:fixture-orbit-7-docs-1"},
         {"key": "non-model-docs", "name": "docs", "expected_signal_id": null},
         {"key": "audio-language-model", "name": "LIDstral-Arabic", "expected_signal_id": "watch:mistral:lidstral-arabic", "issue_url": "https://github.com/turbobeest/modelspec/issues/656", "url": "https://huggingface.co/mistralai/LIDstral-Arabic"},
-        {"key": "timestral-small", "name": "Timestral-5M", "expected_signal_id": "watch:mistral:timestral-5m", "issue_url": "https://github.com/turbobeest/modelspec/issues/773", "url": "https://huggingface.co/mistralai/Timestral-5M"},
-        {"key": "timestral-large", "name": "Timestral-209M", "expected_signal_id": "watch:mistral:timestral-209m", "issue_url": "https://github.com/turbobeest/modelspec/issues/771", "url": "https://huggingface.co/mistralai/Timestral-209M"}
+        {"key": "timestral-small", "name": "Timestral-5M", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/773", "url": "https://huggingface.co/mistralai/Timestral-5M"},
+        {"key": "timestral-large", "name": "Timestral-209M", "expected_signal_id": null, "issue_url": "https://github.com/turbobeest/modelspec/issues/771", "url": "https://huggingface.co/mistralai/Timestral-209M"}
       ]
     },
     {
