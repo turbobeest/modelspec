@@ -6,7 +6,7 @@ Open work and its state live in Linear (`MODEL-*`), not in this repository.
 ## What it is
 
 ModelSpec is an analysis of alternatives for AI models: it decides which models
-fit a job from your requirements, sourced benchmarks and real cost, and shows
+fit a job from your requirements, sourced benchmarks, and real costs, and shows
 its work. (Source: `pipeline/entity.py`.)
 
 ## Architecture

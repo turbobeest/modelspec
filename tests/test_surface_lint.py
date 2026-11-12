@@ -45,18 +45,27 @@ def texts(copy: dict) -> dict[str, str]:
         "description": entity.ONE_SENTENCE,
     }
     return {
-        "index.html": page(f"<p>{entity.ONE_SENTENCE}</p>", org),
+        "index.html": page(
+            f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>", org
+        ),
         "about/index.html": page(
-            f"<h1>{entity.ABOUT_HEADING}</h1><p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>"
+            f"<h1>{entity.ABOUT_HEADING}</h1>"
+            f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p>"
+            f"<p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>"
             + "".join(f"<p>{claim.statement}</p>" for claim in entity.CLAIMS)
         ),
         "method/index.html": page(
             f"<h1>Method</h1><p>{entity.ONE_SENTENCE} {entity.DISAMBIGUATION}</p>"
         ),
-        "llms.txt": entity.ONE_SENTENCE + "\n\n" + entity.DISAMBIGUATION,
-        "index.md": entity.ONE_SENTENCE,
+        "llms.txt": (
+            f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n"
+            f"{entity.ONE_SENTENCE}\n\n{entity.DISAMBIGUATION}"
+        ),
+        "index.md": f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n{entity.ONE_SENTENCE}",
         "brand/index.html": page(entity.ONE_SENTENCE),
-        ".well-known/agent-skills/modelspec/SKILL.md": entity.ONE_SENTENCE,
+        ".well-known/agent-skills/modelspec/SKILL.md": (
+            f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n{entity.ONE_SENTENCE}"
+        ),
         sl.CARD: json.dumps(
             {
                 "description": entity.SHORT,
@@ -164,6 +173,16 @@ def test_an_unregistered_title_fails_even_without_a_superseded_string(
 ) -> None:
     texts["index.html"] = texts["index.html"].replace(entity.TITLE, "A different product title")
     assert [f.check for f in sl.presence(texts)] == ["presence.title"]
+
+
+def test_a_landing_missing_the_tagline_fails(texts: dict[str, str]) -> None:
+    texts["index.html"] = texts["index.html"].replace(entity.TAGLINE, "A different strapline")
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
+def test_identity_lines_are_not_copied_outside_the_registry() -> None:
+    assert sl.copied_identity(ROOT) == []
 
 
 @pytest.mark.parametrize("path", ["index.html", "method/index.html"])
@@ -891,7 +910,9 @@ def test_live_holding_skips_only_files_the_holding_builder_omits(
 ) -> None:
     texts["robots.txt"] = holding.ROBOTS
     del texts["sitemap.xml"]
-    texts["index.html"] = page(f"<p>{entity.ONE_SENTENCE}</p>")
+    texts["index.html"] = page(
+        f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+    )
     for path in live.PAGES:
         rel = path.lstrip("/") + "index.html"
         if sl.holding_serves(rel) and rel not in texts:

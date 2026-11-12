@@ -426,7 +426,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
     return (
         f"# ModelSpec\n\n"
         f"> {MS_BASE}\n\n"
-        f"{brand.POSITIONING}\n\n"
+        f"{brand.agent_opening()}\n\n"
         f"Decision data on AI models, served online. Null means not researched.\n\n"
         f"- models: {len(models)}\n"
         f"- providers: {len(providers)}\n"
@@ -586,7 +586,7 @@ def skill_markdown(root: Path = REPO_ROOT) -> str:
         "\n"
         "# ModelSpec\n"
         "\n"
-        f"{brand.POSITIONING}\n"
+        f"{brand.agent_opening()}\n"
         "\n"
         "Catalogue of AI models and benchmarks at https://modelspec.dev. "
         "The API is https://api.modelspec.dev. "

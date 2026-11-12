@@ -1,11 +1,11 @@
 # ModelSpec agent guide
 
-Guide version: 1-d71e83841e122452.
+Guide version: 1-9135abd62c344ffd.
 Canonical URL: https://modelspec.dev/agents.md
 Full API reference: https://modelspec.dev/openapi.yaml
 Coverage: https://modelspec.dev/api/coverage.json
 
-ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.
+ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks, and real costs, and shows its work.
 
 ## CLI, MCP or HTTP
 

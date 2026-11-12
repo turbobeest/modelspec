@@ -20,9 +20,12 @@ The weekly workflow also has `workflow_dispatch`. Runs serialize. A closed issue
 | Surface | Registry value |
 |---|---|
 | Landing title | `TITLE`, exact equality |
-| Landing first paragraph, meta description, `og:description` | `ONE_SENTENCE` |
+| Landing meta description, `og:description` | `ONE_SENTENCE` |
+| Landing first paragraphs | `TAGLINE`, then `ROUTER_LINE`, then a lead that starts with `ONE_SENTENCE` |
 | `/method/` first paragraph; `/about/`, `llms.txt`, `index.md`, agent skill, brand page | `ONE_SENTENCE` |
-| `/about/` first paragraph | `DISAMBIGUATION`, then `ONE_SENTENCE` |
+| `/about/` first paragraphs | `TAGLINE`, `ROUTER_LINE`, then `DISAMBIGUATION` and `ONE_SENTENCE` |
+| `llms.txt`, `index.md`, agent skill | `TAGLINE`, `ROUTER_LINE`, `ONE_SENTENCE`, in that order |
+| Generators, `web/` and site docs | no typed copy of `TAGLINE` or `ROUTER_LINE` outside `pipeline/entity.py` |
 | `/about/` | each `CLAIMS` statement |
 | `/method/`, `llms.txt`, `/about/` | `DISAMBIGUATION` |
 | MCP card description | `SHORT`, the registry's length-limited form |

@@ -348,6 +348,63 @@ def publisher_subject(path: str, raw: str) -> list[str]:
     return texts
 
 
+IDENTITY_FILES = (
+    "llms.txt",
+    "index.md",
+    ".well-known/agent-skills/modelspec/SKILL.md",
+)
+_IDENTITY_SUFFIXES = {
+    ".py", ".html", ".css", ".md", ".txt", ".ts", ".tsx", ".js", ".mjs", ".json", ".yml", ".yaml",
+}
+_IDENTITY_SKIP = ("docs/history/", "docs/evidence/")
+
+
+def _in_order(text: str, *parts: str) -> bool:
+    start = 0
+    for part in parts:
+        found = text.find(part, start)
+        if found < 0:
+            return False
+        start = found + len(part)
+    return True
+
+
+def _paragraphs(page: Page) -> list[str]:
+    return [normalize(paragraph) for paragraph in page.paragraphs]
+
+
+def copied_identity(root: Path | None = None) -> list[Finding]:
+    """A typed copy of the tagline or router line outside the registry fails.
+
+    Scans the generators, the web source and the docs that ship with the site.
+    History and evidence may quote an older line. The rendered site may carry
+    the strings; its generators must read them from ``pipeline/entity.py``.
+    """
+    root = ROOT if root is None else root
+    findings = []
+    for base in ("pipeline", "web", "docs"):
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in _IDENTITY_SUFFIXES:
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel == "pipeline/entity.py" or rel.startswith(_IDENTITY_SKIP) or "/__pycache__/" in f"/{rel}":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeError:
+                continue
+            for needle in (entity.TAGLINE, entity.ROUTER_LINE):
+                if needle in text:
+                    findings.append(
+                        Finding(rel, "presence.copied_identity", needle, "pipeline/entity.py")
+                    )
+                    break
+    return findings
+
+
 def presence(
     texts: Mapping[str, str], *, absent: frozenset[str] = frozenset(), holding: bool = False
 ) -> list[Finding]:
@@ -359,10 +416,23 @@ def presence(
         actual = normalize(page.meta.get(key, ""))
         if entity.ONE_SENTENCE not in actual:
             findings.append(Finding("index.html", "presence." + key, actual, entity.ONE_SENTENCE))
-    if not page.first_paragraph.startswith(entity.ONE_SENTENCE):
+    landing_paragraphs = _paragraphs(page)
+    if not landing_paragraphs or landing_paragraphs[0] != entity.TAGLINE:
         findings.append(
-            Finding("index.html", "presence.lead", page.first_paragraph[:200], entity.ONE_SENTENCE)
+            Finding("index.html", "presence.tagline", (landing_paragraphs or [""])[0][:200], entity.TAGLINE)
         )
+    if len(landing_paragraphs) < 2 or landing_paragraphs[1] != entity.ROUTER_LINE:
+        findings.append(
+            Finding(
+                "index.html",
+                "presence.router_line",
+                (landing_paragraphs[1] if len(landing_paragraphs) > 1 else "")[:200],
+                entity.ROUTER_LINE,
+            )
+        )
+    lead = landing_paragraphs[2] if len(landing_paragraphs) > 2 else ""
+    if not lead.startswith(entity.ONE_SENTENCE):
+        findings.append(Finding("index.html", "presence.lead", lead[:200], entity.ONE_SENTENCE))
     for path in SENTENCE_FILES:
         if path in absent:
             continue
@@ -373,6 +443,15 @@ def presence(
         )
         if entity.ONE_SENTENCE not in text:
             findings.append(Finding(path, "presence.one_sentence", text[:200], entity.ONE_SENTENCE))
+        if path in IDENTITY_FILES and not _in_order(text, entity.TAGLINE, entity.ROUTER_LINE, entity.ONE_SENTENCE):
+            findings.append(
+                Finding(
+                    path,
+                    "presence.identity",
+                    text[:200],
+                    f"{entity.TAGLINE} / {entity.ROUTER_LINE} / {entity.ONE_SENTENCE}",
+                )
+            )
     if "method/index.html" not in absent:
         first = Page(texts.get("method/index.html", "")).first_paragraph
         if not first.startswith(entity.ONE_SENTENCE):
@@ -395,14 +474,20 @@ def presence(
             )
     if "about/index.html" not in absent:
         about = Page(texts.get("about/index.html", ""))
-        if not about.first_paragraph.startswith(entity.DISAMBIGUATION) or (
-            entity.ONE_SENTENCE not in about.first_paragraph
+        about_paragraphs = _paragraphs(about)
+        about_lead = about_paragraphs[2] if len(about_paragraphs) > 2 else ""
+        if (
+            len(about_paragraphs) < 3
+            or about_paragraphs[0] != entity.TAGLINE
+            or about_paragraphs[1] != entity.ROUTER_LINE
+            or not about_lead.startswith(entity.DISAMBIGUATION)
+            or entity.ONE_SENTENCE not in about_lead
         ):
             findings.append(
                 Finding(
                     "about/index.html",
                     "presence.lead",
-                    about.first_paragraph[:200],
+                    " ".join(about_paragraphs[:3])[:200],
                     entity.DISAMBIGUATION,
                 )
             )
@@ -1030,6 +1115,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if tools is not None:
         findings.extend(tool_descriptions(entity.MCP_ENDPOINT, tools, copy["tools"]))
+    findings.extend(copied_identity(ROOT))
     for finding in findings:
         print(finding.line())
     for note in notes:
