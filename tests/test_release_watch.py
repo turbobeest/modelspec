@@ -18,6 +18,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from decision.excluded import REMOVED_HOSTS
 from release_signals import watch
 from release_signals.contract import ReleaseSignal, SignalError
+from release_signals.scope import IN_SCOPE_PIPELINE_TAGS, OUT_OF_SCOPE_PIPELINE_TAGS
 from release_signals.watch import (
     Registry,
     Response,
@@ -1018,3 +1019,91 @@ def test_replay_restores_huggingface_metadata(tmp_path: Path) -> None:
     assert seen.pipeline_tag == "text-generation"
     assert seen.tags == ("transformers", "base_model:finetune:acme-lab/Orbit-1")
     assert seen.base_model == "acme-lab/Orbit-1"
+
+
+def _api_row(repo: str, **fields: object) -> dict:
+    row = {"id": repo, "createdAt": "2026-09-29T00:00:00Z", "private": False}
+    row.update(fields)
+    return row
+
+
+def test_fixture_api_rows_cover_tag_classes_fallback_unknown_and_derivatives() -> None:
+    source, registry = _hf_registry()
+    rows = []
+    expect: dict[str, str | None] = {}
+    for index, tag in enumerate(sorted(IN_SCOPE_PIPELINE_TAGS)):
+        repo = f"acme-lab/in-{index}"
+        rows.append(_api_row(
+            repo, pipeline_tag=tag, library_name="transformers",
+            tags=[tag, "license:mit", "en"],
+        ))
+        expect[repo] = None
+    for index, tag in enumerate(sorted(OUT_OF_SCOPE_PIPELINE_TAGS)):
+        repo = f"acme-lab/out-{index}"
+        rows.append(_api_row(repo, pipeline_tag=tag, tags=[tag, "arxiv:1.2"]))
+        expect[repo] = tag
+    rows.append(_api_row(
+        "acme-lab/audio-extra", pipeline_tag="audio-text-to-text",
+        tags=["audio-text-to-text"],
+    ))
+    expect["acme-lab/audio-extra"] = "audio-text-to-text"
+    rows.append(_api_row(
+        "acme-lab/acme-robotics-arm", pipeline_tag="graph-ml",
+        tags=["graph-ml", "robotics"],
+    ))
+    expect["acme-lab/acme-robotics-arm"] = None
+    rows.append(_api_row("acme-lab/acme-embodied-walker", tags=["en", "lora"]))
+    expect["acme-lab/acme-embodied-walker"] = "robotics or embodied checkpoint"
+    rows.append(_api_row("acme-lab/orbit-plain"))
+    expect["acme-lab/orbit-plain"] = None
+    rows.append(_api_row(
+        "acme-lab/orbit-rl", tags=["table-tennis", "reinforcement-learning"],
+    ))
+    expect["acme-lab/orbit-rl"] = "reinforcement-learning"
+    rows.append(_api_row(
+        "acme-lab/tuned-tag", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:finetune:other-lab/Orbit-1"],
+    ))
+    expect["acme-lab/tuned-tag"] = "derivative of other-lab/Orbit-1"
+    rows.append(_api_row(
+        "acme-lab/tuned-card", pipeline_tag="text-generation",
+        tags=["text-generation"],
+        cardData={"base_model": "other-lab/Orbit-2"},
+    ))
+    expect["acme-lab/tuned-card"] = "derivative of other-lab/Orbit-2"
+    rows.append(_api_row(
+        "acme-lab/own-tune", pipeline_tag="text-generation",
+        tags=["text-generation", "base_model:acme-lab/Orbit-1"],
+        cardData={"base_model": "acme-lab/Orbit-1"},
+    ))
+    expect["acme-lab/own-tune"] = None
+    rows.append(_api_row(
+        "acme-lab/fresh", pipeline_tag="text-generation", tags=["text-generation"],
+    ))
+    expect["acme-lab/fresh"] = None
+
+    listed = extract(source, json.dumps(rows).encode(), registry)
+    result = filter_releases([
+        SourceRun(source, "ok", listed=len(listed), new=tuple(listed.values())),
+    ], NOW)
+    filed = {signal.model_name for signal in result["signals"]}
+    reasons = {row["source_key"]: row["reason"] for row in result["rejected"]}
+    for repo, reason in expect.items():
+        name = repo.split("/", 1)[1]
+        if reason is None:
+            assert name in filed, repo
+            assert repo not in reasons
+        else:
+            assert reasons[repo] == reason, repo
+            assert name not in filed
+    for signal in result["signals"]:
+        assert "pipeline_tag" not in signal.to_dict()
+    by_key = {row["source_key"]: row for row in result["observations"]}
+    assert by_key["acme-lab/in-0"]["tags"][0] == "transformers"
+    assert "license:mit" not in by_key["acme-lab/in-0"]["tags"]
+    assert by_key["acme-lab/tuned-tag"]["base_model"] == "other-lab/Orbit-1"
+    assert by_key["acme-lab/tuned-card"]["base_model"] == "other-lab/Orbit-2"
+    assert by_key["acme-lab/own-tune"]["base_model"] == "acme-lab/Orbit-1"
+    assert "base_model" not in by_key["acme-lab/fresh"]
+    assert "pipeline_tag" not in by_key["acme-lab/orbit-plain"]
+    assert by_key["acme-lab/acme-robotics-arm"]["pipeline_tag"] == "graph-ml"
