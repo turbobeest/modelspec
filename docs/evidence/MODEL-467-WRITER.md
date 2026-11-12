@@ -65,7 +65,7 @@ Recall on that catalogue, date 2026-11-12, against the approved baseline already
 
 The writer does not write `benchmark_version`. In both revision modes, before any Arena row is written, a planned rewrite whose `benchmark_version` names a dataset revision different from the revision read blocks every Arena write. The run reports one failure, `the cards' benchmark_version still names a revision`, and the count. A version with no revision proceeds. The revision that was read stays in the source snapshot, the audit record, and a configuration sentence that already quotes a revision.
 
-Latest mode with no explicit model selection and no resolver fallback includes every catalogue row on each real Arena board, premier and non-premier. `_moving_arena_benchmarks` is not that inclusion rule. It ignores `benchmark_version`, and it ignores `arena_*` ids that are not in `ARENA_BOARDS`. Those rows are reported once as `arena_rows_without_board`. Pinned mode and an explicit model selection do not expand.
+Latest mode with no explicit model selection and no resolver fallback includes every catalogue row on each real Arena board, premier and non-premier. An `arena_*` id that is not in `ARENA_BOARDS` is reported once as `arena_rows_without_board`. An Arena row whose `source_url` is not the dataset root is reported once as `arena_rows_off_root`. Pinned mode and an explicit model selection do not expand. A refresh that changes only the date inside an existing `Observed <date>` phrase, plus the row's date fields, is a reconfirmation. The score, interval, vote count, and effort stay the reading.
 
 Each Arena board is written whole or left whole. Boards are ordered by the oldest stored `observed_at` among the rows the run will write, missing dates first, then by board key. `ARENA_ROWS_PER_RUN` is 5000 and counts rows actually rewritten, not reconfirmations. When the next whole board would pass the cap, that board and every later board wait. A board whose own rewrites exceed the cap is reported as too large for the cap and does not block a later board. `arena_rows_left` counts rows on boards left whole. It does not count a board that cannot fit the cap. Skips and the revision gate are not counted.
 
@@ -147,3 +147,9 @@ The other five have a second version string with fewer than two models, so that 
 Recall on the refreshed catalogue, date 2026-11-12, against the approved baseline on `origin/main`: pass 16 (Q01, Q02, Q03, Q04, Q05, Q06, Q08, Q09, Q12, Q13, Q14, Q15, Q16, Q18, Q19, Q20), partial 4 (Q07, Q10, Q11, Q17), fail 0. Regression question ids: none. The baseline was not re-approved.
 
 The scratch catalogue, the parquet cache, and the recall output were deleted after this file was written. Nothing from that tree was committed or pushed.
+
+## Round 3
+
+Each new case failed before the change. The three focused files then passed together: 170 tests in `tests/test_leaderboard_refresh.py`, `tests/test_arena_revision.py`, and `tests/test_model_160_evidence.py`.
+
+A row is reconfirmed when the only configuration change is the date inside an existing `Observed <date>` phrase. Arena rows whose `source_url` is not the dataset root are one count, on the report line and in `arena_rows_off_root`. A fitted pull request body keeps that line. The helper that scanned configuration quotes for another revision is removed.

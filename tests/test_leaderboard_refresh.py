@@ -1931,6 +1931,7 @@ def test_pull_request_body_keeps_both_board_tables_when_failures_are_cut() -> No
         rows_rewritten=10, rows_reconfirmed=2, rows_left=0, rows_skipped={"configuration": 3},
     )
     report.arena_rows_without_board = 19
+    report.arena_rows_off_root = 7
     body = _weekly_pull_request_body(report)
     fitted = refresh.fit_pull_request_body(body)
 
@@ -1938,6 +1939,7 @@ def test_pull_request_body_keeps_both_board_tables_when_failures_are_cut() -> No
     assert "| Board | Models read |" in fitted
     assert "| Board | Rewritten |" in fitted
     assert "Arena rows with no board: 19" in fitted
+    assert "Arena rows whose source is not the dataset root: 7" in fitted
     failure_rows = _marked_lines(body, "`fail_bench`")
     kept = _marked_lines(fitted, "`fail_bench`")
     assert kept == failure_rows[:len(kept)]
@@ -2423,6 +2425,91 @@ def test_a_match_the_verifier_does_not_own_is_not_written(
     assert any("verifier" in row.reason for row in report.failures)
     assert _arena_skip_classes(report) == {"not-owned": 1}
     assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_an_observed_date_alone_reconfirms_the_row(monkeypatch, tmp_path: Path) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    )
+
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert "Observed 2026-11-11" in row["configuration"]
+    assert "rating 1100.00" in row["configuration"]
+    summary = report.boards["arena:text"]
+    assert summary["rows_rewritten"] == 0
+    assert summary["rows_reconfirmed"] == 1
+
+
+def test_an_arena_row_off_the_dataset_root_is_one_count(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "registry").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text("models: []\n", encoding="utf-8")
+    (root / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources: []\n", encoding="utf-8",
+    )
+
+    def write_card(name: str, url: str) -> None:
+        (root / "models" / "lab" / f"{name}.md").write_text(
+            f"""---
+model_id: lab/{name}
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    source_url: {url}
+    score: 1.0
+---
+""",
+            encoding="utf-8",
+        )
+
+    write_card("root", _ARENA_DATASET + "/")
+    write_card("off", _ARENA_DATASET + "/resolve/main/text/file.parquet")
+    (root / "models" / "lab" / "plain.md").write_text(
+        """---
+model_id: lab/plain
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    source_url: https://example.test/leaderboard.json
+    score: 1.0
+---
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv(refresh.ARENA_REVISION_ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([], []))
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=root, source_cache=tmp_path / "cache",
+    )
+
+    rendered = [
+        line for line in refresh.render_report(report).splitlines()
+        if "dataset root" in line
+    ]
+    assert rendered == ["Arena rows whose source is not the dataset root: 1"]
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_off_root"] == 1
 
 
 def test_no_unique_dataset_row_is_its_own_skip_class(monkeypatch, tmp_path: Path) -> None:

@@ -237,6 +237,8 @@ class RefreshReport:
     arena_rows_left: int = 0
     #: Arena rows whose benchmark id is not one of ``ARENA_BOARDS``.
     arena_rows_without_board: int = 0
+    #: Arena rows whose ``source_url`` is not the dataset root.
+    arena_rows_off_root: int = 0
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
@@ -1152,28 +1154,6 @@ def _sha_agrees(cited: str, revision: str) -> bool:
     return longer.startswith(short)
 
 
-def _moving_arena_benchmarks(root: Path, revision: str) -> set[str]:
-    """Arena boards whose configuration cites a revision other than ``revision``.
-
-    ``benchmark_version`` is not a signal: the refresh never writes it, so a
-    revision quoted only there would keep the set full. An Arena id with no
-    board is not moving.
-    """
-    moving: set[str] = set()
-    for path in sorted((root / "models").glob("*/*.md")):
-        front = _front(path)
-        for row in (front.get("benchmarks") or {}).get("evidence") or []:
-            if not isinstance(row, Mapping):
-                continue
-            benchmark = str(row.get("benchmark_id") or "")
-            if benchmark not in ARENA_BOARDS:
-                continue
-            for cited in _REVISION_QUOTE.findall(str(row.get("configuration") or "")):
-                if not _sha_agrees(cited.lower(), revision.lower()):
-                    moving.add(benchmark)
-    return moving
-
-
 def _arena_rows_without_board(root: Path) -> int:
     """Rows whose benchmark id starts with ``arena_`` and is not a known board."""
     count = 0
@@ -1188,6 +1168,23 @@ def _arena_rows_without_board(root: Path) -> int:
     return count
 
 
+def _arena_rows_off_root(root: Path) -> int:
+    """Arena rows whose ``source_url`` is not the dataset root."""
+    count = 0
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping):
+                continue
+            benchmark = str(row.get("benchmark_id") or "")
+            if (
+                benchmark.startswith("arena_")
+                and not _arena_dataset_root_url(row.get("source_url"))
+            ):
+                count += 1
+    return count
+
+
 def _version_names_other_revision(version: object, revision: str) -> bool:
     return any(
         not _sha_agrees(quoted.lower(), revision.lower())
@@ -1195,10 +1192,27 @@ def _version_names_other_revision(version: object, revision: str) -> bool:
     )
 
 
+def _configuration_without_observed(value: object) -> object:
+    """The configuration with the date inside each ``Observed <date>`` removed."""
+    if not isinstance(value, str):
+        return value
+    return _OBSERVED_QUOTE.sub(
+        lambda match: match.group(0).replace(match.group(1), ""), value,
+    )
+
+
 def _reading_changed(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
-    return any(old.get(key) != new.get(key) for key in (
-        "score", "interval", "n", "effort", "configuration",
-    ))
+    """True when the reading changed.
+
+    A new date inside an existing ``Observed <date>`` phrase is not a new
+    reading. Adding or removing that phrase still is.
+    """
+    if any(old.get(key) != new.get(key) for key in ("score", "interval", "n", "effort")):
+        return True
+    return (
+        _configuration_without_observed(old.get("configuration"))
+        != _configuration_without_observed(new.get("configuration"))
+    )
 
 
 def _shown_quantity(shown: object):
@@ -1403,6 +1417,7 @@ def _refresh_arena_boards(
 ) -> None:
     """Write each Arena board whole, oldest planned write first, or leave it whole."""
     report.arena_rows_without_board = _arena_rows_without_board(root)
+    report.arena_rows_off_root = _arena_rows_off_root(root)
     catalogue = {**premier, **extras}
     arena_boards = [board for board in boards if board.key.startswith("arena:")]
     plans: list[tuple[
@@ -1550,12 +1565,8 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     premier = _selected_cards(root, model_ids)
     extras: dict[str, Path] = {}
     # Latest mode, and only the weekly path (no explicit model_ids), refreshes
-    # every catalogue card on a real Arena board. The moving-set helper stays
-    # for callers that ask which configurations cite another revision; it is
-    # not the inclusion rule, because benchmark_version is never rewritten and
-    # a configuration often quotes no revision at all. Pinned mode and an
-    # explicit selection stay on the selected cards. A resolver fallback does
-    # not expand.
+    # every catalogue card on a real Arena board. Pinned mode and an explicit
+    # selection stay on the selected cards. A resolver fallback does not expand.
     if model_ids is None and latest and chosen.fallback is None:
         extras = _cards_on_benchmarks(root, set(ARENA_BOARDS), set(premier))
     cards = {**premier, **extras}
@@ -1805,6 +1816,11 @@ def render_report(report: RefreshReport) -> str:
             f"Arena rows with no board: {report.arena_rows_without_board}",
             "",
         ])
+    if report.arena_rows_off_root:
+        lines.extend([
+            f"Arena rows whose source is not the dataset root: {report.arena_rows_off_root}",
+            "",
+        ])
     lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",
@@ -1936,6 +1952,10 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
     arena = next((line for line in lines if line.startswith("Arena revision:")), "")
     arena_left = next((line for line in lines if line.startswith("Arena rows left")), "")
     no_board = next((line for line in lines if line.startswith("Arena rows with no board:")), "")
+    off_root = next((
+        line for line in lines
+        if line.startswith("Arena rows whose source is not the dataset root:")
+    ), "")
     boards = _board_tables(lines)
     failure_table = _table_in_section(lines, "## Failures")
     failure_header, failure_rows = (
@@ -1950,7 +1970,7 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         parts: list[str] = []
         if opening:
             parts.append(opening)
-        for line in (arena, arena_left, no_board):
+        for line in (arena, arena_left, no_board, off_root):
             if line:
                 parts.extend(["", line] if parts else [line])
         for table in boards:
@@ -2007,7 +2027,8 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    rows-left line, the no-board line, and both per-board tables in full.
+    rows-left line, the no-board line, the off-root line, and both per-board
+    tables in full.
     Score-change rows are cut first, then failure rows, each on a row
     boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.
@@ -2310,6 +2331,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "arena_revision_latest": report.arena_revision_latest,
         "arena_rows_left": report.arena_rows_left,
         "arena_rows_without_board": report.arena_rows_without_board,
+        "arena_rows_off_root": report.arena_rows_off_root,
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],

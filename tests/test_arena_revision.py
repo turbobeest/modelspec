@@ -1723,7 +1723,7 @@ def test_a_board_larger_than_the_cap_does_not_block_a_later_board(
     assert any("too large for the cap" in row.reason for row in report.failures)
 
 
-def test_moving_arena_benchmarks_ignore_version_and_boardless_ids(tmp_path: Path) -> None:
+def test_an_arena_id_with_no_board_is_counted_once(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     card = root / "models" / "lab" / "model.md"
     card.parent.mkdir(parents=True)
@@ -1743,5 +1743,4 @@ benchmarks:
         encoding="utf-8",
     )
 
-    assert refresh._moving_arena_benchmarks(root, NEW) == set()
     assert refresh._arena_rows_without_board(root) == 1
