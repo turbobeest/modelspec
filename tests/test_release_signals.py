@@ -3090,7 +3090,7 @@ def test_a_registered_lab_page_that_names_the_model_identifies_the_lab(
         _primary_identity(bare, "Orbit 9", "Acme")
     assert _primary_identity(
         bare, "Orbit 9", "Acme", lab_hosts=frozenset({"models.acme.example"}),
-    ) == ("Orbit 9", "")
+    ) == ("Orbit 9", "", "page-text")
     credited = FetchResult(
         "https://models.acme.example/orbit-9",
         b"<p>Orbit 9 by Other Lab.</p>",
@@ -3365,9 +3365,91 @@ def test_a_huggingface_repository_named_for_another_model_is_uncertain(
         ),
         {mismatch: FetchResult(mismatch, b"<h1>Orbit 9</h1>", "text/html")},
     )
-    assert named_result["status"] == "new"
-    assert named_result["primary_kind"] == "huggingface-org"
+    assert named_result["status"] == "uncertain"
+    assert named_result["model_id"] is None
+    assert named_result["reason"] == "the primary source does not identify the stated lab"
     assert mismatch in named_seen
+    assert not (named_root / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_huggingface_org_identity_is_the_repository_name_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    page_text = (
+        b'<script type="application/ld+json">'
+        b'{"name":"Orbit 9","publisher":{"name":"Acme"}}'
+        b"</script><p>Orbit 9</p>"
+    )
+    for repo in ("Orbit-9-GGUF", "Orbit-9-lora", "comet-1"):
+        root = tmp_path / repo
+        _write_card(root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+        _huggingface_watch(root, "AcmeLab")
+        page = f"https://huggingface.co/AcmeLab/{repo}"
+        result, seen = _run_unlisted(
+            monkeypatch, root,
+            signal(
+                model_name="Orbit 9",
+                signal_id=f"watch:acme:{repo}",
+                first_seen_url=page,
+            ),
+            {page: FetchResult(page, page_text, "text/html")},
+        )
+        assert result["status"] == "uncertain", repo
+        assert result["model_id"] is None
+        assert result["reason"] == "the primary source does not identify the stated lab"
+        assert "identity_basis" not in result
+        assert page in seen
+        assert not (root / "models" / "acme" / "orbit-9.md").exists()
+
+    root = tmp_path / "exact"
+    _write_card(root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(root, "AcmeLab")
+    page = "https://huggingface.co/AcmeLab/Orbit-9"
+    result, seen = _run_unlisted(
+        monkeypatch, root,
+        signal(
+            model_name="Orbit 9",
+            signal_id="watch:acme:orbit-9-exact",
+            first_seen_url=page,
+        ),
+        {page: FetchResult(page, b"<html><title>weights</title></html>", "text/html")},
+    )
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "repo-name"
+    assert page in seen
+
+
+def test_a_lab_page_records_page_text_or_json_ld_identity(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    host = "models.acme.example"
+    visible = f"https://{host}/orbit-9"
+    linked = f"https://{host}/orbit-8"
+    linked_body = (
+        b'<script type="application/ld+json">'
+        b'{"name":"Orbit 8","publisher":{"name":"Acme"},"datePublished":"2026-09-26"}'
+        b"</script>"
+    )
+    for page, model_name, body, basis in (
+        (visible, "Orbit 9", b"<h1>Orbit 9</h1>", "page-text"),
+        (linked, "Orbit 8", linked_body, "json-ld"),
+    ):
+        root = tmp_path / basis
+        _write_card(root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+        _watch_lab(root, host)
+        result, seen = _run_unlisted(
+            monkeypatch, root,
+            signal(
+                model_name=model_name,
+                signal_id=f"watch:acme:{basis}",
+                first_seen_url=page,
+            ),
+            {page: FetchResult(page, body, "text/html")},
+        )
+        assert result["status"] == "new", basis
+        assert result["identity_basis"] == basis
+        assert page in seen
 
 
 def test_a_provider_with_two_huggingface_orgs_accepts_both(

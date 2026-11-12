@@ -96,6 +96,7 @@ class DraftResult:
     models_dev: str = ""
     primary_host: str = ""
     primary_kind: str = ""
+    identity_basis: str = ""
 
 
 @dataclass(frozen=True)
@@ -110,6 +111,7 @@ class GatherResult:
     gather_failures: tuple[str, ...] = ()
     models_dev: str = ""
     primary_kind: str = ""
+    identity_basis: str = ""
 
 
 @dataclass(frozen=True)
@@ -592,8 +594,12 @@ def _primary_identity(
     hf_orgs: frozenset[str] = frozenset(),
 ) -> tuple[str, str]:
     repo = _huggingface_org_repo(page.url, hf_orgs)
-    if repo is not None and attribution.normalise(repo[1]) == attribution.normalise(expected_name):
-        return expected_name, ""
+    if repo is not None:
+        if attribution.normalise(repo[1]) == attribution.normalise(expected_name):
+            return expected_name, "", "repo-name"
+        raise IdentityUncertainError(
+            "the primary source does not identify the stated lab"
+        )
     parser = _JsonLd()
     html = page.body.decode("utf-8", errors="replace")
     parser.feed(html)
@@ -641,16 +647,14 @@ def _primary_identity(
             if attribution.normalise(name) == normalised_name:
                 publishers.add(attribution.normalise(provider))
         if publishers == {normalised_provider}:
-            return expected_name, ""
+            return expected_name, "", "page-text"
         if publishers:
             raise IdentityUncertainError(
                 "the primary source does not identify the stated lab"
             )
         host = _page_host(page.url)
         if host and _host_is(host, lab_hosts) and _contains_name(text, expected_name):
-            return expected_name, ""
-        if repo is not None and _contains_name(text, expected_name):
-            return expected_name, ""
+            return expected_name, "", "page-text"
         raise IdentityUncertainError(
             "the primary source does not identify the stated lab"
         )
@@ -671,7 +675,7 @@ def _primary_identity(
             date.fromisoformat(published)
         except ValueError as exc:
             raise RequiredSourceError(page.url, f"unusable datePublished: {exc}") from exc
-    return str(row["name"]).strip(), published
+    return str(row["name"]).strip(), published, "json-ld"
 
 
 def _attribution_result(
@@ -787,7 +791,7 @@ def _gather_unlisted(
         ))
     require_allowed_source(primary.url)
     try:
-        display_name, release_date = _primary_identity(
+        display_name, release_date, identity_basis = _primary_identity(
             primary, signal.model_name, signal.provider,
             lab_hosts=lab_hosts,
             hf_orgs=hf_orgs,
@@ -819,6 +823,7 @@ def _gather_unlisted(
         gather_failures=tuple(failures),
         models_dev="not_listed",
         primary_kind="huggingface-org" if final_kind == "huggingface-org" else "",
+        identity_basis=identity_basis,
     )
 
 
@@ -888,7 +893,7 @@ def gather_signal(
     primary_url = primary_candidates[0]
     primary = _fetch_allowed(fetch, primary_url)
     try:
-        display_name, release_date = _primary_identity(
+        display_name, release_date, identity_basis = _primary_identity(
             primary, signal.model_name, signal.provider,
             lab_hosts=_signal_lab_hosts(root, signal, resolution),
             hf_orgs=_signal_hf_orgs(root, signal, resolution),
@@ -923,6 +928,7 @@ def gather_signal(
         supporting_urls=tuple(supporting_urls),
         evidence_urls=tuple(dict.fromkeys((primary_url, models_dev_url, *supporting_urls))),
         gather_failures=tuple(failures),
+        identity_basis=identity_basis,
     )
 
 
@@ -1092,6 +1098,7 @@ def draft_signal(
         gathered.models_dev,
         _page_host(primary_url) if gathered.models_dev == "not_listed" else "",
         gathered.primary_kind if gathered.models_dev == "not_listed" else "",
+        gathered.identity_basis,
     )
 
 
