@@ -1739,6 +1739,213 @@ def test_large_refresh_uploads_the_report_before_a_body_edit_can_fail() -> None:
     assert "exit 1" in no_update["run"]
 
 
+_ARENA_DATASET = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+_ARENA_NEW = "0123456789abcdef0123456789abcdef01234567"
+_ARENA_OLD_REV = "aaaaaaaaaaaa"
+
+
+def _arena_registry(root: Path, source_id: str) -> None:
+    (root / "registry").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: {source_id}
+  url: {_ARENA_DATASET}/resolve/{_ARENA_NEW}/text/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+
+
+def _arena_effort_card(
+    root: Path, *, model: str, evaluated: str, display: str,
+) -> Path:
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        f"""---
+model_id: {model}
+display_name: {display}
+version: {evaluated}
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: {evaluated}
+    score: 1100.0
+    unit: Arena score (Elo scale)
+    interval: [1080.0, 1120.0]
+    n: 1000
+    effort: null
+    source_url: {_ARENA_DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-10-01'
+    date_type: published
+    observed_at: '2026-10-01'
+    verified_at: '2026-10-01'
+    benchmark_version: text / overall, latest split, revision {_ARENA_OLD_REV}
+    configuration: >-
+      Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00
+      [1080.00, 1120.00], 1000 votes, rank 4. Observed 2026-10-01.
+    id: {model}#arena_elo_overall#old
+    sources:
+    - source_id: fixture-arena
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    return card
+
+
+def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
+                              evaluated: str, display: str):
+    """Refresh one Arena row from a fixture projection. No network."""
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_id = "fixture-arena"
+    model = "lab/example-model"
+    card = _arena_effort_card(
+        root, model=model, evaluated=evaluated, display=display,
+    )
+    _arena_registry(root, source_id)
+    (root / "verification").mkdir()
+    url = (
+        f"{_ARENA_DATASET}/resolve/{_ARENA_NEW}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{
+            "model_name": dataset_name,
+            "rating": 1210.25,
+            "rating_lower": 1190.5,
+            "rating_upper": 1230.75,
+            "vote_count": 2222,
+            "leaderboard_publish_date": "2026-11-02",
+            "rank": 3,
+        }],
+        url=url, page_ref="sha256:" + "b" * 64, read_date="2026-11-11", note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="arena:text", source_id=source_id, benchmarks=("arena_elo_overall",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(_ARENA_DATASET,),
+    )
+    monkeypatch.delenv(refresh.ARENA_REVISION_ENV, raising=False)
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=_ARENA_NEW),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=(model,), arena_latest=True,
+    )
+    return report, card, root
+
+
+def _evidence_row(card: Path) -> dict:
+    return refresh._front(card)["benchmarks"]["evidence"][0]
+
+
+def _verification_log(root: Path) -> dict:
+    return json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
+
+
+def test_refreshed_arena_row_verifies_against_the_matched_reading(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The card id ends in -high. The dataset spells that effort as (High)."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "example-model-high"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert row["effort"] == "high"
+    assert "1210.25" in row["configuration"]
+    assert "1190.50" in row["configuration"]
+    assert "1230.75" in row["configuration"]
+    assert "2222 votes" in row["configuration"]
+    assert "2026-11-02" in row["configuration"]
+    assert "2026-11-11" in row["configuration"]
+    assert "rank 4" in row["configuration"]
+    for stale in ("1100", "1080", "1120", "1000", "2026-10-01"):
+        assert stale not in row["configuration"]
+    assert _ARENA_NEW[:12] in row["benchmark_version"]
+    assert _ARENA_OLD_REV not in row["benchmark_version"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_stale_arena_reading_mismatches_without_the_writer_change(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    def score_only(old, observation, *, observed_at):
+        return {**dict(old), "score": observation.new_value}, None
+
+    monkeypatch.setattr(refresh, "_copy_matched_reading", score_only)
+    _report, _card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    log = _verification_log(root)
+    assert log["outcome"] == "mismatch"
+    assert log["diff"]
+
+
+def test_a_model_name_without_an_effort_suffix_still_verifies(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_parenthetical_effort_the_card_does_not_name_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert any("effort" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+
+
 def test_the_matharena_index_marks_only_retired_competitions() -> None:
     import gzip
 
