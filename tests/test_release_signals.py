@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import httpx
 import importlib.util
 import json
 import sys
@@ -29,6 +30,7 @@ from release_signals.pipeline import (
     _JsonLd,
     _models_dev_listing,
     _primary_identity,
+    clear_catalogue_cache,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -38,6 +40,11 @@ from scripts import process_release_signals as processor
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "release_signals"
+
+
+@pytest.fixture(autouse=True)
+def _clear_catalogue_index_before_each_test() -> None:
+    clear_catalogue_cache()
 
 
 def signal(**changes: object) -> dict[str, object]:
@@ -4011,14 +4018,19 @@ def test_a_first_seen_org_redirect_to_another_owner_stays_unregistered(
             signal_id="watch:acme:listed-redirect-owner",
             first_seen_url=requested,
         ),
-        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        {
+            requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html"),
+            doc: FetchResult(doc, b"<html><title>weights</title></html>", "text/html"),
+        },
         doc=doc,
     )
 
     assert result["status"] == "uncertain"
     assert result["model_id"] is None
-    assert "host class unregistered" in result["reason"]
-    assert doc not in seen
+    assert result["reason"] == (
+        "host class unregistered; the primary source does not identify the stated lab"
+    )
+    assert doc in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
@@ -4038,14 +4050,19 @@ def test_a_first_seen_lab_redirect_to_an_unregistered_host_stays_unregistered(
             signal_id="watch:acme:listed-redirect-host",
             first_seen_url=requested,
         ),
-        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        {
+            requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html"),
+            doc: FetchResult(doc, b"<html><title>weights</title></html>", "text/html"),
+        },
         doc=doc,
     )
 
     assert result["status"] == "uncertain"
     assert result["model_id"] is None
-    assert "host class unregistered" in result["reason"]
-    assert doc not in seen
+    assert result["reason"] == (
+        "host class unregistered; the primary source does not identify the stated lab"
+    )
+    assert doc in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
@@ -4407,3 +4424,231 @@ def test_a_prohibited_supporting_url_is_refused_after_identity(tmp_path: Path) -
             root=tmp_path,
             fetch=fetch,
         )
+
+
+def _http_error(url: str, status: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("GET", url)
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(str(status), request=request, response=response)
+
+
+def _prepare_job(
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+    row: dict[str, object],
+    fetch,
+) -> tuple[Path, Path, list[str]]:
+    pending = root / "pending.json"
+    result_path = root / "result.json"
+    pending.write_text(json.dumps({"signals": [row]}), encoding="utf-8")
+    seen: list[str] = []
+
+    def wrapped(url: str) -> FetchResult:
+        seen.append(url)
+        return fetch(url)
+
+    monkeypatch.setattr(processor, "_fetch", wrapped)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+    return pending, result_path, seen
+
+
+def test_a_dead_first_seen_page_falls_back_to_the_provider_doc(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:dead-first-seen",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page:
+            raise _http_error(url, 404)
+        if url == doc:
+            return FetchResult(doc, _DOC_IDENTITY, "text/html")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "json-ld"
+    assert result["gather_failures"] == [f"{host}: HTTPStatusError"]
+    assert page in seen
+    assert doc in seen
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    text = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    assert front["sources"]["provider_docs_url"] == doc
+    assert str(front["release_date"]) == "2026-09-26"
+    assert page not in text
+    assert result_path.is_file()
+
+
+def test_a_dead_first_seen_page_and_a_dead_doc_are_uncertain(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    doc_host = "docs.sibling.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = f"https://{doc_host}/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    reason = f"{host}: HTTPStatusError; {doc_host}: HTTPStatusError"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:dead-first-seen-and-doc",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page or url == doc:
+            raise _http_error(url, 404)
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 0
+    output = capsys.readouterr()
+    assert "Traceback" not in output.out
+    assert "Traceback" not in output.err
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert result["reason"] == reason
+    assert page in seen
+    assert doc in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+    from release_signals.pipeline import gather_signal
+
+    clear_catalogue_cache()
+    gathered = gather_signal(
+        ReleaseSignal.from_queue(row),
+        root=tmp_path,
+        fetch=fetch,
+        discover_huggingface=False,
+    )
+    assert gathered.resolution.status == "uncertain"
+    assert gathered.resolution.reason == reason
+    assert gathered.gather_failures == (
+        f"{host}: HTTPStatusError",
+        f"{doc_host}: HTTPStatusError",
+    )
+
+
+def test_a_first_seen_redirect_to_another_owner_falls_back_to_the_provider_doc(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    requested = "https://huggingface.co/AcmeLab/orbit-9"
+    final = "https://huggingface.co/other-user/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:redirect-owner-doc",
+        first_seen_url=requested,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == requested:
+            return FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")
+        if url == doc:
+            return FetchResult(doc, _DOC_IDENTITY, "text/html")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "json-ld"
+    assert result["gather_failures"] == []
+    assert requested in seen
+    assert doc in seen
+    text = (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    assert front["sources"]["provider_docs_url"] == doc
+    assert str(front["release_date"]) == "2026-09-26"
+    assert final not in text
+    assert "other-user" not in text
+
+
+def test_a_gate_refusal_on_the_preferred_first_seen_url_still_raises(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:gated-first-seen",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page:
+            return FetchResult(prohibited, b"<h1>Acme releases Orbit 9</h1>", "text/html")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    with pytest.raises(ValueError, match="excluded source") as caught:
+        processor.process(
+            pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+        )
+
+    assert not isinstance(caught.value, RequiredSourceError)
+    assert page in seen
+    assert doc not in seen
+    assert not result_path.exists()
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_release_signal_test_starts_with_an_empty_catalogue_cache() -> None:
+    from release_signals import pipeline as release_pipeline
+
+    assert release_pipeline._SLUG_INDEX == {}
+    assert release_pipeline._HF_ORG_INDEX == {}

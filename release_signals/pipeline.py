@@ -947,28 +947,55 @@ def gather_signal(
     if not primary_candidates:
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
-    primary = _fetch_allowed(fetch, primary_url)
+    failures: list[str] = []
+    fallback_note = ""
+    primary: FetchResult | None = None
     if preferred_first_seen:
-        final_kind = _accepted_page_kind(primary.url, lab_hosts, hf_orgs)
-        if final_kind not in {"lab", "huggingface-org"}:
-            return GatherResult(Resolution(
-                "uncertain", None, resolution.candidates,
-                f"host class {final_kind}",
-            ))
-        primary_url = primary.url
-    try:
-        display_name, release_date, identity_basis = _primary_identity(
-            primary, signal.model_name, signal.provider,
-            lab_hosts=lab_hosts,
-            hf_orgs=hf_orgs,
-        )
-    except IdentityUncertainError as exc:
-        if not preferred_first_seen:
-            return GatherResult(Resolution(
-                "uncertain", None, resolution.candidates, str(exc)
-            ))
-        primary_url = require_allowed_source(str(provider_doc))
+        try:
+            primary = _fetch_allowed(fetch, primary_url)
+        except ValueError:
+            # A prohibited host is a gate refusal, not a dead page.
+            raise
+        except Exception as exc:
+            fallback_note = f"{_page_host(primary_url)}: {type(exc).__name__}"
+            failures.append(fallback_note)
+        else:
+            final_kind = _accepted_page_kind(primary.url, lab_hosts, hf_orgs)
+            if final_kind not in {"lab", "huggingface-org"}:
+                fallback_note = f"host class {final_kind}"
+                primary = None
+            else:
+                primary_url = primary.url
+    else:
         primary = _fetch_allowed(fetch, primary_url)
+    if primary is not None:
+        try:
+            display_name, release_date, identity_basis = _primary_identity(
+                primary, signal.model_name, signal.provider,
+                lab_hosts=lab_hosts,
+                hf_orgs=hf_orgs,
+            )
+        except IdentityUncertainError as exc:
+            if not preferred_first_seen:
+                return GatherResult(Resolution(
+                    "uncertain", None, resolution.candidates, str(exc)
+                ))
+            primary = None
+    if primary is None:
+        doc_url = require_allowed_source(str(provider_doc))
+        try:
+            primary = _fetch_allowed(fetch, doc_url)
+        except ValueError:
+            raise
+        except Exception as exc:
+            doc_failure = f"{_page_host(doc_url)}: {type(exc).__name__}"
+            failures.append(doc_failure)
+            reason = f"{fallback_note}; {doc_failure}" if fallback_note else doc_failure
+            return GatherResult(
+                Resolution("uncertain", None, resolution.candidates, reason),
+                gather_failures=tuple(failures),
+            )
+        primary_url = doc_url
         try:
             display_name, release_date, identity_basis = _primary_identity(
                 primary, signal.model_name, signal.provider,
@@ -976,9 +1003,11 @@ def gather_signal(
                 hf_orgs=hf_orgs,
             )
         except IdentityUncertainError as doc_exc:
-            return GatherResult(Resolution(
-                "uncertain", None, resolution.candidates, str(doc_exc)
-            ))
+            reason = f"{fallback_note}; {doc_exc}" if fallback_note else str(doc_exc)
+            return GatherResult(
+                Resolution("uncertain", None, resolution.candidates, reason),
+                gather_failures=tuple(failures),
+            )
         preferred_first_seen = False
         if str(provider_doc) not in raw_supporting:
             raw_supporting.append(str(provider_doc))
@@ -988,7 +1017,6 @@ def gather_signal(
     for url in supporting_urls:
         _fetch_allowed(fetch, url)
 
-    failures: list[str] = []
     huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
     if discover_huggingface and not huggingface_url:
         huggingface_url, failure = _huggingface_repo(
