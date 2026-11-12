@@ -1644,6 +1644,53 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
     assert log.path.read_text() == before
 
 
+def test_a_fetch_that_failed_in_this_run_is_unreachable_and_logged(store, log) -> None:
+    from decision.sources import FetchResult, recheck
+
+    source = Source(
+        id="seeded-missing",
+        url="https://gone.example.test/page",
+        normaliser="html-default",
+        cited_regions=[CitedRegion(id="results", locator={"kind": "table", "value": "0"})],
+    )
+
+    class _Down:
+        def fetch(self, url, **kwargs):
+            return FetchResult("unreachable", 503, error="HTTP 503")
+
+    fetched = recheck([source], {}, [], fetcher=_Down(), store=store, now=NOW)
+    state = fetched.states["seeded-missing"]
+    assert state.consecutive_failures == 1
+    assert state.quarantined is False
+    assert store.fetch_failed("seeded-missing")
+    entry = next(row for row in SPEC["claims"] if row["id"] == "sol-copy-missing")
+    src = entry["source"]
+    claim = verify.Claim(
+        target=TargetRef(kind=entry.get("kind", "evidence"), id=entry["id"]),
+        subject=entry["subject"],
+        names=tuple(entry["names"]),
+        field=entry["field"],
+        label=entry.get("label"),
+        value=entry["value"],
+        unit=entry.get("unit"),
+        conditions=entry.get("conditions", {}),
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id=src["id"], snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=src["regions"]),),
+    )
+    queue = verify.Queue(log.directory)
+    queue.file(claim, at=NOW)
+    regions = verify.StoredRegions(store, {source.id: source})
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY,
+                        at=NOW)
+    assert [(r.target.id, r.outcome) for r in report.results] == [
+        ("sol-copy-missing", "unreachable")]
+    assert report.results[0].reason == "unreachable:seeded-missing#results"
+    assert report.results[0].verification is not None
+    assert log.latest()[("evidence", "sol-copy-missing")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+
+
 # --- two keys ----------------------------------------------------------------------------------
 
 
