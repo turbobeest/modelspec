@@ -977,16 +977,35 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     return report
 
 
+def _unwritten_arena_reason(report: RefreshReport) -> str | None:
+    """The failure that means this run wrote no Arena rows."""
+    for row in report.failures:
+        if (
+            row.reason.startswith("resolver fallback:")
+            or row.reason.startswith("config fallback:")
+            or "registry cites a different revision" in row.reason
+        ):
+            return row.reason
+    return None
+
+
 def render_report(report: RefreshReport) -> str:
     lines: list[str] = []
     if report.arena_revision:
-        if report.arena_revision_fallback:
-            status = f"fallback to the pinned default: {report.arena_revision_fallback}"
-        elif report.arena_revision_latest:
-            status = "Hugging Face dataset sha"
+        withheld = _unwritten_arena_reason(report)
+        if withheld:
+            lines.extend([
+                f"Arena revision: {report.arena_revision} read, no rows written: {withheld}",
+                "",
+            ])
         else:
-            status = "pinned default"
-        lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
+            if report.arena_revision_fallback:
+                status = f"fallback to the pinned default: {report.arena_revision_fallback}"
+            elif report.arena_revision_latest:
+                status = "Hugging Face dataset sha"
+            else:
+                status = "pinned default"
+            lines.extend([f"Arena revision: {report.arena_revision} ({status})", ""])
     lines.extend([
         "| Board | Models read | Models re-confirmed | Values changed | Failures |",
         "|---|---:|---:|---:|---:|",

@@ -342,3 +342,25 @@ MODELSPEC_ARENA_REVISION=latest PYTHONPATH=. python -m pytest -q -p no:cacheprov
 ```
 
 Exit 0. `113 passed`.
+
+### The report names a run that wrote no Arena rows
+
+A conflict or a fallback still rendered as a normal read: `fallback to the
+pinned default`, `Hugging Face dataset sha`, or `pinned default`.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py::test_run_with_the_flag_names_a_fallback_and_still_finishes tests/test_arena_revision.py::test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revision tests/test_arena_revision.py::test_latest_resolver_error_writes_no_arena_rows tests/test_arena_revision.py::test_latest_missing_config_writes_no_arena_rows tests/test_arena_revision.py::test_latest_config_timeout_writes_no_arena_rows tests/test_arena_revision.py::test_pinned_mode_writes_no_arena_rows_when_the_registry_cites_another_revision
+```
+
+Exit 1. `6 failed`. Each expected
+`Arena revision: <sha> read, no rows written: <reason>`.
+
+The Arena revision line now uses that sentence when the failure is a
+resolver fallback, a config fallback, or a registry conflict. A run that
+wrote rows still says `pinned default` or `Hugging Face dataset sha`.
+
+```sh
+PYTHONPATH=. python -m pytest -q -p no:cacheprovider tests/test_arena_revision.py tests/test_leaderboard_refresh.py tests/test_model_160_evidence.py
+```
+
+Exit 0. `113 passed`.

@@ -182,8 +182,8 @@ def test_run_with_the_flag_names_a_fallback_and_still_finishes(
 
     assert seen["revision"] == PIN
     text = refresh.render_report(report)
-    assert "fallback to the pinned default" in text
-    assert "OSError: offline" in text
+    assert f"Arena revision: {PIN} read, no rows written: resolver fallback: OSError: offline" in text
+    assert "fallback to the pinned default" not in text
 
 
 def test_collect_without_a_revision_stays_on_the_pin(
@@ -351,6 +351,7 @@ def test_latest_mode_writes_no_arena_rows_when_the_registry_cites_another_revisi
     assert text_id in conflicts[0].reason
     assert vision_id in conflicts[0].reason
     assert "registry cites a different revision" in text
+    _assert_revision_withheld(report, NEW)
     assert report.changes == []
     written = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
     assert [row["score"] for row in written["benchmarks"]["evidence"]] == [1100.0, 900.0]
@@ -707,6 +708,20 @@ def _arena_failures(report: refresh.RefreshReport) -> list[refresh.RowFailure]:
     ]
 
 
+def _assert_revision_withheld(report: refresh.RefreshReport, sha: str) -> None:
+    reason = next(
+        row.reason for row in report.failures
+        if row.reason.startswith("resolver fallback:")
+        or row.reason.startswith("config fallback:")
+        or "registry cites a different revision" in row.reason
+    )
+    lines = [
+        line for line in refresh.render_report(report).splitlines()
+        if line.startswith("Arena revision:")
+    ]
+    assert lines == [f"Arena revision: {sha} read, no rows written: {reason}"]
+
+
 def _latest_with_other_board(monkeypatch, tmp_path, fetch, project):
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -770,6 +785,7 @@ def test_latest_resolver_error_writes_no_arena_rows(
     assert reason.startswith("resolver fallback:")
     assert "OSError" in reason
     assert "offline" in reason
+    _assert_revision_withheld(report, PIN)
 
 
 def test_latest_missing_config_writes_no_arena_rows(
@@ -808,6 +824,7 @@ def test_latest_missing_config_writes_no_arena_rows(
     assert "OSError" in reason
     assert PIN not in reason
     assert report.arena_revision == NEW
+    _assert_revision_withheld(report, NEW)
     path = tmp_path / "report.json"
     refresh.write_report_json(path, report)
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -847,6 +864,7 @@ def test_latest_config_timeout_writes_no_arena_rows(
     assert "TimeoutError" in reason
     assert "no Arena rows written" in reason
     assert report.arena_revision == NEW
+    _assert_revision_withheld(report, NEW)
 
 
 def test_pinned_mode_keeps_the_arena_configs_it_could_read(
@@ -958,6 +976,7 @@ def test_pinned_mode_writes_no_arena_rows_when_the_registry_cites_another_revisi
     ]
     assert len(conflicts) == 1
     assert TEXT_ID in conflicts[0].reason
+    _assert_revision_withheld(report, PIN)
 
 
 def test_todays_registry_matches_the_pin() -> None:
