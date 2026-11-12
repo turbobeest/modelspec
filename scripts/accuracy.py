@@ -12,6 +12,8 @@ private registry. The engine's own CI owns that check. The nightly profile
 gates current-data freshness, re-reads verified values, compares domain leaders
 with permitted independent boards, and reports recall changes without gating
 on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
+The data-pr report builds that linked catalogue with the completeness gate on
+and labels the snapshot line as the linked catalogue.
 """
 
 from __future__ import annotations
@@ -1693,13 +1695,17 @@ def reference_agreement(
 
 
 def _markdown(report: AccuracyReport) -> str:
+    snapshot = report.snapshot or "not used"
+    snapshot_line = f"Snapshot: `{snapshot}`"
+    if report.profile == "data-pr":
+        snapshot_line += " (linked catalogue)"
     lines = [
         "# Decision engine accuracy",
         "",
         f"**Overall: {report.status.upper()}**  ",
         f"Generated: {report.generated_at}  ",
         f"Profile: `{report.profile}`  ",
-        f"Snapshot: `{report.snapshot or 'not used'}`",
+        snapshot_line,
         "",
         "| Layer | Status | Gate | Summary |",
         "| --- | --- | --- | --- |",
@@ -1760,6 +1766,10 @@ def run_profile(
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
     snapshot = None
+    # data-pr scores the linked catalogue. The build's completeness gate stays
+    # on: a card that does not compile fails this profile before the other layers.
+    if profile == "data-pr":
+        snapshot = _load_snapshot(root, snapshot_file, as_of)
     # Load the reference snapshot before fidelity can quarantine a mismatched
     # value in this run. Both nightly layers must assess the same starting state.
     if "reference_agreement" in selected:

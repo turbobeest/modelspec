@@ -727,6 +727,63 @@ def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
     assert result.details == []
 
 
+def test_data_pr_report_labels_the_linked_catalogue_snapshot(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+    loads = []
+
+    def load(root, snapshot_file, as_of):
+        loads.append(root)
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+
+    report = accuracy.run_profile(profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert loads == [accuracy.ROOT.resolve()]
+    assert report.snapshot == "snap_test_accuracy"
+    assert "Snapshot: `snap_test_accuracy` (linked catalogue)" in text
+
+
+def test_data_pr_snapshot_build_failure_fails_before_the_other_layers(monkeypatch) -> None:
+    def boom(*args, **kwargs):
+        raise ValueError("completeness gate")
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", boom)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+
+    with pytest.raises(ValueError, match="completeness gate"):
+        accuracy.run_profile(profile="data-pr")
+
+
+def test_pr_snapshot_line_does_not_claim_the_linked_catalogue() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-09-25T12:00:00Z",
+        profile="pr",
+        snapshot="snap_test_accuracy",
+        layers=(),
+    )
+
+    text = accuracy._markdown(report)
+
+    assert "Snapshot: `snap_test_accuracy`\n" in text
+    assert "linked catalogue" not in text
+
+
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     report = accuracy.AccuracyReport(
         generated_at="2026-09-25T12:00:00Z",
