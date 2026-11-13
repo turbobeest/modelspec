@@ -10,7 +10,17 @@ rule, and writes ``premier/slice-1.yaml``.
     python scripts/premier_slice1.py --report  # print the cut, write nothing
 
 Live proposals read current private records, without fetching sources or changing
-the input checkout. The JSON diff compares membership with its premier list::
+the input checkout. The mixed-date check covers only a board whose every row is
+an Arena dataset-root reading: those boards publish one date for the whole
+board. A board whose rows carry each model's own evaluation date is not
+refused. An Arena top 10 that mixes publish dates exits 3 and names the boards
+on stderr, unless ``--allow-mixed-boards`` is set. ``--check`` still exits 1
+when the proposed membership differs. The approved ``--check`` path, with no
+``--data-dir``, is unchanged. The workflow that runs this proposer fails the
+job on any non-zero exit before it opens a proposal, so exit 3 stops the
+proposal without a workflow change.
+
+The JSON diff compares membership with its premier list::
 
     python scripts/premier_slice1.py --data-dir ../modelspec-data \
         --output proposal.yaml --diff proposal.json --as-of 2026-10-04
@@ -401,6 +411,12 @@ def slice1_board_id(
     return SLICE1_BENCHMARK_BOARDS.get(benchmark_id)
 
 
+# Each slice-1 board id comes from one evidence benchmark id.
+_BOARD_BENCHMARK = {
+    board_id: benchmark_id for benchmark_id, board_id in SLICE1_BENCHMARK_BOARDS.items()
+}
+
+
 def clause1_minimum_rows() -> int:
     """Rows clause 1 requires before a board admits its top 10."""
     if STRICT_BOARD_ROWS:
@@ -777,7 +793,81 @@ def _evidence(hit: dict, read_date: str = READ_DATE) -> dict:
     }
 
 
-def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
+class MixedBoards(Exception):
+    """An Arena dataset-root top 10 holds more than one publish date."""
+
+
+def _as_arena_reading(board: dict, row: dict) -> dict:
+    """The fields ``_arena_reading_row`` reads, from a live slice-1 row."""
+    benchmark_id = str(row.get("benchmark_id") or "")
+    if not benchmark_id:
+        benchmark_id = _BOARD_BENCHMARK.get(str(board.get("id") or ""), "")
+    source_url = row.get("source_url") or row.get("url") or ""
+    return {"benchmark_id": benchmark_id, "source_url": source_url}
+
+
+def _arena_dataset_root_board(board: dict) -> bool:
+    """True when every row is an Arena dataset-root reading.
+
+    The predicate is the refresh writer's ``_arena_reading_row``. A board that
+    publishes one date per model fails it and stays out of the mixed-date check.
+    """
+    from scripts.refresh_leaderboards import _arena_reading_row
+
+    rows = list(board.get("rows") or [])
+    if not rows:
+        return False
+    return all(_arena_reading_row(_as_arena_reading(board, row)) for row in rows)
+
+
+def mixed_publish_dates(board: dict) -> str | None:
+    """``board id: N at date, ...`` when this Arena top 10 mixes publish dates.
+
+    Only a board whose every row is an Arena dataset-root reading is in scope.
+    Fewer than ten rows uses every row. A dateless row occupies a seat and
+    adds no date. Higher scores lead, unless the board says ``lower_is_better``.
+    """
+    if not _arena_dataset_root_board(board):
+        return None
+    scored: list[dict] = []
+    for row in board.get("rows") or []:
+        score = row.get("score")
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            continue
+        scored.append(row)
+    if not scored or not any(str(row.get("date") or "") for row in scored):
+        return None
+    higher = board.get("direction") != "lower_is_better"
+
+    def sort_key(row: dict) -> tuple:
+        score = float(row["score"])
+        primary = -score if higher else score
+        return (primary, str(row.get("model_id") or ""), str(row.get("name") or ""))
+
+    counts: dict[str, int] = {}
+    for row in sorted(scored, key=sort_key)[:10]:
+        day = str(row.get("date") or "")
+        if not day:
+            continue
+        counts[day] = counts.get(day, 0) + 1
+    if len(counts) < 2:
+        return None
+    parts = [f"{counts[day]} at {day}" for day in sorted(counts)]
+    return f"{board['id']}: " + ", ".join(parts)
+
+
+def mixed_slice1_boards(boards: list[dict]) -> list[str]:
+    """Refusal lines for slice-1 boards whose current top 10 mixes dates."""
+    found: list[str] = []
+    for board in boards:
+        line = mixed_publish_dates(board)
+        if line:
+            found.append(line)
+    return found
+
+
+def build(*, data_dir: Path | None = None, as_of: date | None = None,
+          allow_mixed_boards: bool = False) -> dict:
     if data_dir is None:
         aliases = json.loads((INPUTS / "aliases.json").read_text())
         cards = load_cards()
@@ -808,6 +898,10 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         protected_release = (as_of - timedelta(days=5)).isoformat()
         fresh_boards = {board["id"] for board in boards}
         reviewer_clauses = live["reviewer_clauses"]
+        if not allow_mixed_boards:
+            mixed = mixed_slice1_boards(boards)
+            if mixed:
+                raise MixedBoards("refusing a mixed top 10\n" + "\n".join(mixed))
     minimum_rows = clause1_minimum_rows()
     index = match_index(cards, aliases)
 
@@ -1322,6 +1416,11 @@ def main() -> int:
         action="store_true",
         help="let a full group quota cut a current top 10, the approval-time rule",
     )
+    parser.add_argument(
+        "--allow-mixed-boards",
+        action="store_true",
+        help="propose even when an Arena top 10 mixes publish dates",
+    )
     args = parser.parse_args()
     if args.strict_board_rows:
         global STRICT_BOARD_ROWS
@@ -1336,7 +1435,15 @@ def main() -> int:
         if any(path and path.resolve() == baseline_path.resolve()
                for path in (args.output, args.diff)):
             parser.error("output paths must not overwrite the reviewed premier list")
-        document = build(data_dir=args.data_dir, as_of=args.as_of)
+        try:
+            document = build(
+                data_dir=args.data_dir,
+                as_of=args.as_of,
+                allow_mixed_boards=args.allow_mixed_boards,
+            )
+        except MixedBoards as error:
+            print(error, file=sys.stderr)
+            return 3
         changes = membership_diff(document, yaml.safe_load(baseline_path.read_text()))
         text = json.dumps(changes, indent=2, ensure_ascii=False) + "\n"
         for path, content in ((args.output, _dump(document)), (args.diff, text)):

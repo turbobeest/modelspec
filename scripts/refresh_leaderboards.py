@@ -247,6 +247,10 @@ class RefreshReport:
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
+    #: Per Arena board, rows at the publish date this run read, and rows left older.
+    #: A board the run did not read is ``not read`` and is left out of the count.
+    #: None until the run attaches the census. An empty list is a real zero.
+    arena_publish_dates: list[dict[str, Any]] | None = None
 
     def board(self, key: str) -> dict[str, Any]:
         return self.boards.setdefault(
@@ -759,9 +763,11 @@ def _copy_matched_reading(
         return new, None
     stored_effort = old.get("effort")
     named_effort = _verifier_named_effort(old.get("model_id_as_evaluated"))
-    # Null effort may become the level the verifier reads on the model id.
+    # Null effort may become the level the stored name already spells.
     # A stored effort stays. The dry run refuses a level the dataset does not show.
-    if stored_effort in (None, "") and named_effort is not None:
+    if stored_effort in (None, "") and observation.reading_effort:
+        written_effort = observation.reading_effort
+    elif stored_effort in (None, "") and named_effort is not None:
         written_effort = named_effort
     else:
         written_effort = None if stored_effort in (None, "") else stored_effort
@@ -825,7 +831,61 @@ def _plan_observations(
         accepted_urls = board.card_urls or frozenset({board.source_url})
         if str(evidence.get("source_url") or "") not in accepted_urls:
             continue
+        arena_board = board.key.startswith("arena:")
+        stored_name = str(evidence.get("model_id_as_evaluated") or "")
+        hits: list[Mapping[str, Any]] = []
+        spelled_effort: str | None = None
+        adopted: str | None = None
+        if arena_board:
+            hits = _normalised_name_hits(board, stored_name)
+            spelled_effort = _effort_spelled_by_stored_name(stored_name)
+            if len(hits) > 1:
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    "two dataset rows normalise to the stored name",
+                ))
+                continue
         match = _match(board, evidence)
+        if arena_board and len(hits) == 1 and match is hits[0]:
+            subject = _subject(hits[0])
+            dataset_effort = _canonical_structured_effort(subject)
+            card_effort = evidence.get("effort")
+            spelled_match = _parenthetical_effort_for_stored_name(stored_name, subject)
+            if dataset_effort and spelled_match is None:
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    _effort_mismatch_reason(spelled_effort),
+                ))
+                continue
+            if (
+                dataset_effort
+                and card_effort not in (None, "")
+                and str(card_effort) != dataset_effort
+            ):
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    "card effort is already a different level",
+                ))
+                continue
+            if card_effort in (None, "") and spelled_match:
+                adopted = spelled_match
+        elif arena_board and not hits and match is not None:
+            found = _canonical_structured_effort(_subject(match))
+            if found and spelled_effort != found:
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    _effort_mismatch_reason(spelled_effort),
+                ))
+                continue
+        elif (
+            arena_board and not hits and match is None
+            and _names_a_different_effort(board, stored_name, spelled_effort)
+        ):
+            failures.append(RowFailure(
+                model_id, str(evidence.get("benchmark_id")), board.source_url,
+                "stored name spells a different effort than the dataset row",
+            ))
+            continue
         if match is None or match.get(board.value_field) is None:
             failures.append(RowFailure(
                 model_id, str(evidence.get("benchmark_id")), board.source_url,
@@ -850,7 +910,6 @@ def _plan_observations(
             continue
         source_date = _source_measurement_date(match)
         cited = _cited_shas(board.source_url)
-        arena_board = board.key.startswith("arena:")
         # The Arena revision belongs to Arena boards. Another board keeps a
         # commit its own URL cites, and otherwise none.
         board_revision = (cited[-1] if cited else revision) if arena_board else (cited[-1] if cited else "")
@@ -867,6 +926,7 @@ def _plan_observations(
             source_dated=source_publishes_row_date(str(evidence.get("source_url") or "")),
             reading_interval=interval if arena_board else None,
             reading_n=_matched_votes(match) if arena_board else None,
+            reading_effort=adopted,
             reading_publish_date=source_date if arena_board else None,
             reading_revision=board_revision,
             reading_checked=arena_board,
@@ -1393,6 +1453,12 @@ def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> s
     if diffs:
         return _class_from_verifier_diffs(diffs)
     text = reason.lower()
+    if "dataset names an effort the stored name does not" in text:
+        return "effort"
+    if "different effort" in text or "already a different level" in text:
+        return "effort"
+    if "two dataset rows normalise" in text:
+        return "no-unique-row"
     if "no unique row" in text:
         return "no-unique-row"
     if text.startswith("verifier"):
@@ -1853,7 +1919,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     )
 
     if dry_run or (not pending_updates and not pending_additions):
-        return report
+        return _attach_arena_publish_census(report, root, boards)
 
     for path, additions in pending_additions.items():
         _append_evidence(path, additions)
@@ -1891,7 +1957,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
             result.reason or result.outcome,
         )
         report.quarantined.append(failure)
-    return report
+    return _attach_arena_publish_census(report, root, boards)
 
 
 def _unwritten_arena_reason(report: RefreshReport) -> str | None:
@@ -1907,8 +1973,138 @@ def _unwritten_arena_reason(report: RefreshReport) -> str | None:
     return None
 
 
+def _publish_date_this_run(board: BoardReading) -> str | None:
+    """The one publish date on this reading, when the board publishes one."""
+    days = {
+        day for row in board.rows if (day := _source_measurement_date(row))
+    }
+    if len(days) != 1:
+        return None
+    return next(iter(days))
+
+
+def _arena_dates_this_run(boards: Sequence[BoardReading]) -> dict[str, str]:
+    """Benchmark id to the publish date of the Arena reading this run matched."""
+    found: dict[str, str] = {}
+    for board in boards:
+        if not str(board.key).startswith("arena:"):
+            continue
+        day = _publish_date_this_run(board)
+        if day is None:
+            continue
+        for benchmark in board.benchmark_ids:
+            found[str(benchmark)] = day
+    return found
+
+
+def _not_read_census(benchmark: str) -> dict[str, Any]:
+    return {
+        "benchmark": benchmark,
+        "rows_at_new_publish_date": "not read",
+        "rows_at_older_publish_date": "not read",
+        "mixed_top_10": "not read",
+    }
+
+
+def _arena_publish_census(
+    root: Path, read_dates: Mapping[str, str],
+) -> list[dict[str, Any]]:
+    """Rows at the publish date this run read, and whether each top 10 mixes dates.
+
+    ``read_dates`` maps a benchmark id to the publish date of the reading this
+    run matched for that board. A benchmark that is absent was not read: its
+    row says ``not read`` and the mixed-top-10 count leaves it out. ``at the
+    new publish date`` counts card rows on that date. Every other row on the
+    board is left at an older date, including when no card row moved.
+    """
+    models = root / "models"
+    if not models.is_dir():
+        return []
+    grouped: dict[str, list[tuple[str, Mapping[str, Any]]]] = {}
+    for path in sorted(models.glob("*/*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        rows = (front.get("benchmarks") or {}).get("evidence") or []
+        for row in rows:
+            if not isinstance(row, Mapping) or not _arena_reading_row(row):
+                continue
+            bench = str(row.get("benchmark_id") or "")
+            grouped.setdefault(bench, []).append((model_id, row))
+    census: list[dict[str, Any]] = []
+    for bench in sorted(grouped):
+        new_day = read_dates.get(bench)
+        if not new_day:
+            census.append(_not_read_census(bench))
+            continue
+        entries = grouped[bench]
+        days = [_iso_day(row.get("evidence_date")) for _model, row in entries]
+        at_new = sum(1 for day in days if day == new_day)
+        scored = [
+            (model_id, row) for model_id, row in entries
+            if not isinstance(row.get("score"), bool)
+            and isinstance(row.get("score"), (int, float))
+        ]
+        scored.sort(key=lambda item: (
+            -float(item[1]["score"]),
+            item[0],
+            str(item[1].get("model_id_as_evaluated") or ""),
+        ))
+        top_days = {
+            _iso_day(row.get("evidence_date")) for _model, row in scored[:10]
+        }
+        top_days.discard("")
+        census.append({
+            "benchmark": bench,
+            "rows_at_new_publish_date": at_new,
+            "rows_at_older_publish_date": len(entries) - at_new,
+            "mixed_top_10": len(top_days) > 1,
+        })
+    return census
+
+
+def _attach_arena_publish_census(
+    report: RefreshReport, root: Path, boards: Sequence[BoardReading] = (),
+) -> RefreshReport:
+    report.arena_publish_dates = _arena_publish_census(root, _arena_dates_this_run(boards))
+    return report
+
+
+def _read_census_rows(rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return [row for row in rows if row.get("mixed_top_10") != "not read"]
+
+
+def _arena_census_lines(report: RefreshReport) -> list[str]:
+    rows = report.arena_publish_dates
+    if rows is None:
+        return []
+    read = _read_census_rows(rows)
+    mixed = sum(1 for row in read if row["mixed_top_10"] is True)
+    lines = [f"Arena boards with a mixed top 10: {mixed} of {len(read)}"]
+    if not rows:
+        return lines
+    lines.extend([
+        "",
+        "| Arena board | At the new publish date | Left at an older publish date | Mixed top 10 |",
+        "|---|---:|---:|---|",
+    ])
+    for row in rows:
+        if row["mixed_top_10"] == "not read":
+            lines.append(f"| {row['benchmark']} | not read | not read | not read |")
+            continue
+        flag = "yes" if row["mixed_top_10"] else "no"
+        lines.append(
+            f"| {row['benchmark']} | {row['rows_at_new_publish_date']} | "
+            f"{row['rows_at_older_publish_date']} | {flag} |"
+        )
+    return lines
+
+
 def render_report(report: RefreshReport) -> str:
     lines: list[str] = []
+    census = _arena_census_lines(report)
+    if census:
+        lines.extend(census)
+        lines.append("")
     if report.arena_revision:
         withheld = _unwritten_arena_reason(report)
         if withheld:
@@ -2023,10 +2219,26 @@ def _opening_line(lines: list[str]) -> str:
     for line in lines:
         if not line.strip():
             continue
-        if line.startswith(("Arena revision:", "|", "#")):
+        if line.startswith((
+            "Arena revision:", "Arena boards with a mixed top 10:", "|", "#",
+        )):
             return ""
         return line
     return ""
+
+
+def _table_at(lines: list[str], header: str) -> list[str]:
+    """The markdown table whose header starts with ``header``, if there is one."""
+    for index, line in enumerate(lines):
+        if not line.startswith(header):
+            continue
+        table = [line]
+        cursor = index + 1
+        while cursor < len(lines) and lines[cursor].startswith("|"):
+            table.append(lines[cursor])
+            cursor += 1
+        return table
+    return []
 
 
 def _board_tables(lines: list[str]) -> list[list[str]]:
@@ -2114,8 +2326,13 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         line for line in lines
         if line.startswith("Arena rows whose source is not the dataset root:")
     ), "")
+    mixed_line = next((
+        line for line in lines if line.startswith("Arena boards with a mixed top 10:")
+    ), "")
+    mixed_table = _table_at(lines, "| Arena board |")
     boards = _board_tables(lines)
     retell = _section_block(lines, "## Dates the writer cannot retell")
+    keep_mixed_table = bool(mixed_table)
     failure_table = _table_in_section(lines, "## Failures")
     failure_header, failure_rows = (
         (failure_table[:2], failure_table[2:]) if len(failure_table) >= 2 else (failure_table, [])
@@ -2129,9 +2346,11 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         parts: list[str] = []
         if opening:
             parts.append(opening)
-        for line in (arena, arena_left, no_board, off_root):
+        for line in (arena, arena_left, no_board, off_root, mixed_line):
             if line:
                 parts.extend(["", line] if parts else [line])
+        if keep_mixed_table and mixed_table:
+            parts.extend(["", *mixed_table] if parts else list(mixed_table))
         for table in boards:
             parts.extend(["", *table] if parts else list(table))
         if retell:
@@ -2157,6 +2376,8 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         )
         return _measured_length(candidate, pr_url_budget) <= limit
 
+    if keep_mixed_table and not fits([], []):
+        keep_mixed_table = False
     kept_changes: list[str] = []
     kept_failures = list(failure_rows)
     if fits(kept_changes, kept_failures):
@@ -2188,8 +2409,10 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    rows-left line, the no-board line, the off-root line, both per-board
-    tables, and the dates-the-writer-cannot-retell section in full.
+    rows-left line, the no-board line, the off-root line, the mixed-top-10
+    count, both per-board tables, and the dates-the-writer-cannot-retell
+    section in full. The mixed-top-10 table stays when that shortened body
+    still fits, and is dropped before score-change rows when it does not.
     Score-change rows are cut first, then failure rows, each on a row
     boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.
@@ -2404,8 +2627,107 @@ def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
     return split_model_cell(text)[1]
 
 
+#: Tokens ``structured_name_effort`` reads. ``maximum`` and ``default`` are not in that set.
+_SPELLED_EFFORT = frozenset({"minimal", "low", "medium", "high", "xhigh", "max"})
+
+
+def _canonical_structured_effort(name: object) -> str | None:
+    """The effort a parenthesis names, in the verifier's canonical spelling."""
+    found = structured_name_effort(str(name or ""))
+    if found is None:
+        return None
+    return split_model_cell(f"({found})")[1]
+
+
+def _effort_spelled_by_stored_name(model_id_as_evaluated: object) -> str | None:
+    """The effort this stored name already spells.
+
+    A parenthesis is the verifier's reading. A hyphen is not a separator, so
+    only a last token that ``structured_name_effort`` would read counts.
+    ``model-high-32k`` spells nothing.
+    """
+    named = _verifier_named_effort(model_id_as_evaluated)
+    if named is not None:
+        return named
+    tokens = readers.normalise_name(str(model_id_as_evaluated or "")).split()
+    if tokens and tokens[-1] in _SPELLED_EFFORT:
+        return tokens[-1]
+    return None
+
+
+def _parenthetical_effort_for_stored_name(stored: str, dataset_name: str) -> str | None:
+    """The shared effort when the two full names normalise to one row.
+
+    Stem equality is not a match. A stored name that does not spell the
+    dataset's effort, or spells a different one, matches nothing.
+    """
+    if readers.normalise_name(stored) != readers.normalise_name(dataset_name):
+        return None
+    spelled = _effort_spelled_by_stored_name(stored)
+    found = _canonical_structured_effort(dataset_name)
+    if spelled and found and spelled == found:
+        return spelled
+    return None
+
+
+def _effort_mismatch_reason(spelled: str | None) -> str:
+    if spelled is None:
+        return "dataset names an effort the stored name does not"
+    return "stored name spells a different effort than the dataset row"
+
+
+def _normalised_name_hits(
+    board: BoardReading, stored_name: str,
+) -> list[Mapping[str, Any]]:
+    """Dataset rows whose full name normalises to ``stored_name`` itself.
+
+    Claude aliases are not hits. Two hits is not a row.
+    """
+    wanted = readers.normalise_name(stored_name)
+    if not wanted:
+        return []
+    return [
+        row for row in board.rows
+        if readers.normalise_name(_subject(row)) == wanted
+    ]
+
+
+def _stem_without_trailing_effort(name: str) -> str:
+    """Normalised name with one trailing effort token removed.
+
+    Used only to refuse a different-effort sibling. Never to choose a row.
+    """
+    tokens = readers.normalise_name(name).split()
+    if not tokens:
+        return ""
+    canonical = _canonical_structured_effort(name)
+    last = tokens[-1]
+    if last in _SPELLED_EFFORT and (canonical is None or canonical == last):
+        return " ".join(tokens[:-1])
+    return " ".join(tokens)
+
+
+def _names_a_different_effort(
+    board: BoardReading, stored_name: str, spelled: str | None,
+) -> bool:
+    """True when a dataset row spells another level of this same stem."""
+    if not spelled:
+        return False
+    stem = _stem_without_trailing_effort(stored_name)
+    if not stem:
+        return False
+    for row in board.rows:
+        subject = _subject(row)
+        found = _canonical_structured_effort(subject)
+        if not found or found == spelled:
+            continue
+        if _stem_without_trailing_effort(subject) == stem:
+            return True
+    return False
+
+
 def _arena_effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
-    """Null or empty effort may become the canonical level, and nothing else."""
+    """Null or empty effort may become the spelled level, and nothing else."""
     if before.get("model_id_as_evaluated") != after.get("model_id_as_evaluated"):
         return False
     old, new = before.get("effort"), after.get("effort")
@@ -2413,8 +2735,8 @@ def _arena_effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str,
         return True
     if old not in (None, ""):
         return False
-    named = _verifier_named_effort(before.get("model_id_as_evaluated"))
-    return named is not None and new == named
+    spelled = _effort_spelled_by_stored_name(before.get("model_id_as_evaluated"))
+    return spelled is not None and new == spelled
 
 
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
@@ -2432,8 +2754,9 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     counts).`` may be removed when the quoted publish date changed. A changed
     word elsewhere still fails. A digit glued to a letter, a hex string,
     and a run of 7 digits stay in that byte comparison. ``effort`` may change
-    only from null or empty to the canonical level the unchanged ``model_id_as_evaluated``
-    names. ``benchmark_version`` never changes. On every other row, when
+    only from null or empty to the level the unchanged ``model_id_as_evaluated``
+    already spells, in parentheses or as its trailing hyphen token.
+    ``benchmark_version`` never changes. On every other row, when
     ``source_publishes_row_date`` is false and the new evidence day is the
     observation, a row may replace the standalone word ``read`` plus a date
     in the configuration, and change date_type from ``published`` to
@@ -2522,7 +2845,8 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     That configuration may also replace the read date beside its publish date
     with the row's observed date, and drop the sentence that says the live
     board still shows this snapshot when the quoted publish date changed.
-    Its effort may change from null to the canonical level its model id names.
+    Its effort may change from null to the level its model id already spells,
+    in parentheses or as its trailing hyphen token.
     ``benchmark_version`` stays. A row whose source URL is an observation
     projector, dated by the observation, may also make its configuration's
     standalone ``read <date>`` and date_type match that date.
@@ -2588,6 +2912,12 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "arena_rows_left": report.arena_rows_left,
         "arena_rows_without_board": report.arena_rows_without_board,
         "arena_rows_off_root": report.arena_rows_off_root,
+        "arena_boards": len(_read_census_rows(report.arena_publish_dates or [])),
+        "arena_boards_with_mixed_top_10": sum(
+            1 for row in _read_census_rows(report.arena_publish_dates or [])
+            if row["mixed_top_10"] is True
+        ),
+        "arena_publish_dates": report.arena_publish_dates or [],
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
