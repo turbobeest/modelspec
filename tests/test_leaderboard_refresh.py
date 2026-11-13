@@ -1124,6 +1124,58 @@ def test_score_only_check_accepts_a_figures_only_configuration_on_an_arena_row(
     assert _guard_result(tmp_path, before_text, after_text).ok
 
 
+def _arena_sentence_with_token(before_token: str, after_token: str) -> tuple[str, str]:
+    before_sentence = (
+        f"model {before_token}; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], CI 1080.00-1120.00, 2222 votes, rank 4. "
+        "Observed 2026-10-01."
+    )
+    after_sentence = (
+        f"model {after_token}; publication date 2026-11-02; rating 1210.25 "
+        "[1190.50, 1230.75], CI 1190.50-1230.75, 3333 votes, rank 3. "
+        "Observed 2026-11-11."
+    )
+    before_text = _arena_guard_card("2026-10-01").replace(
+        "score: 72.0", "score: 1100.0",
+    ).replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 1100.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "observed_at: '2026-10-01'", "observed_at: '2026-11-11'",
+    ).replace(
+        "verified_at: '2026-10-01'", "verified_at: '2026-11-11'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 3333\n    id: lab/model#stable\n",
+    ).replace(before_sentence, after_sentence)
+    return before_text, after_text
+
+
+def test_score_only_check_accepts_an_unchanged_id_that_contains_a_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_sentence_with_token(
+        "gpt-4o-2024-08-06", "gpt-4o-2024-08-06",
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_changed_id_that_contains_a_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_sentence_with_token(
+        "gpt-4o-2024-08-06", "gpt-4o-2026-11-11",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
 def test_score_only_check_accepts_a_writer_shaped_arena_sentence(tmp_path: Path) -> None:
     """Two-decimal rating, bracket, CI a-b, votes over 1000, rank, and both dates."""
     before_sentence = (
@@ -2897,6 +2949,36 @@ def test_a_configuration_date_the_writer_cannot_retell_is_not_written(
     assert len(matched) == 1
     assert matched[0].model_id == "lab/example-model"
     assert matched[0].benchmark == "arena_elo_overall"
+
+
+@pytest.mark.parametrize("extra", [
+    "model gpt-4o-2024-08-06",
+    "model `gpt-4o-2024-08-06` noted `2024-08-06`",
+    "see https://example.test/cards?id=gpt-4o&on=2024-08-06",
+])
+def test_a_date_inside_an_id_backticks_or_a_url_is_written(
+    monkeypatch, tmp_path: Path, extra: str,
+) -> None:
+    """Those dates are not a date the writer can retell, and the token stays."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=(
+            "LMArena leaderboard dataset, CC BY 4.0, category overall, "
+            "leaderboard_publish_date 2026-10-01, read 2026-09-24. "
+            f"{extra}. "
+            "Rank 4, 1000 votes, interval [1080.00, 1120.00]."
+        ),
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.failures == [], report.failures
+    sentence = _evidence_row(card)["configuration"]
+    assert extra in sentence
+    assert "leaderboard_publish_date 2026-11-02, read 2026-11-11" in sentence
+    assert "2024-08-06" in sentence
 
 
 def test_an_unchanged_publish_date_leaves_the_configuration_sentence_alone(

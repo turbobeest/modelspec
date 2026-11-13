@@ -552,8 +552,9 @@ def _settle_configuration_dates(
     When the quoted publish date is unchanged, ``text`` is returned as received.
     When it changed, ``read <date>`` immediately after that date becomes this
     run's observed date, and the sentence that says the live board still shows
-    this snapshot is removed. An ISO date that is neither the new publish date
-    nor the observed date is refused.
+    this snapshot is removed. A standalone ISO date that is neither the new
+    publish date nor the observed date is refused. A date inside an id, a
+    path, a backticked span, or a URL is left as written.
     """
     quoted = set(_PUBLISH_QUOTE.findall(original))
     if not (new_publish and quoted and any(day != new_publish for day in quoted)):
@@ -561,7 +562,7 @@ def _settle_configuration_dates(
     text = _READ_BESIDE_PUBLISH.sub(lambda match: f"{match.group(1)}{new_observed}", text)
     text = _without_exact_snapshot_sentence(text)
     allowed = {day for day in (new_publish, new_observed) if day}
-    if any(day not in allowed for day in _MASK_DATE.findall(text)):
+    if any(day not in allowed for day in _standalone_date_strings(text)):
         raise ConfigurationDateError(_DATE_THE_WRITER_CANNOT_RETELL)
     return text
 
@@ -586,11 +587,12 @@ def _retell_reading(
 
     Returns None when a labeled quote cannot be replaced without leaving the
     previous reading in the sentence. The stale check reads the sentence with
-    ISO dates and ticket ids removed, and it does not watch the old rank.
+    standalone ISO dates and ticket ids removed, and it does not watch the old rank.
     A sentence that quotes none of those is returned unchanged. A quoted rank
     with no replacement rank is refused. When the quoted publish date changes,
     a ``read <date>`` beside it becomes this run's observed date and the
-    snapshot sentence is removed. A date that is neither of those is refused.
+    snapshot sentence is removed. A standalone date that is neither of those
+    is refused. A date inside an id, a path, a backticked span, or a URL stays.
     """
     if not isinstance(text, str) or not text:
         return text if isinstance(text, str) else ""
@@ -726,7 +728,7 @@ def _retell_reading(
             fresh.append(float(new_n))
         if quoted_rank and new_rank is not None:
             fresh.append(float(new_rank))
-        checked = _TICKET_ID.sub(" ", _MASK_DATE.sub(" ", text))
+        checked = _TICKET_ID.sub(" ", _mask_standalone_dates(text, " "))
         for token in _NUMBER_TOKEN.findall(checked):
             value = float(token)
             stale = any(_numbers_close(old, value) for old in watched)
@@ -2193,26 +2195,61 @@ def _arena_reading_row(row: Mapping[str, Any]) -> bool:
     )
 
 
-_MASK_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# A date glued to a letter, digit, hyphen, slash or underscore is part of a
+# longer token. So is a dot that continues one (file.2024-08-06, 2024-08-06.txt).
+# A sentence period does not: "noted 2026-08-01." is still a date.
+_MASK_DATE = re.compile(
+    r"(?<![A-Za-z0-9_./-])"
+    r"(\d{4}-\d{2}-\d{2})"
+    r"(?![A-Za-z0-9_/-])"
+    r"(?!\.[A-Za-z0-9_./-])"
+)
+_BACKTICK_SPAN = re.compile(r"`[^`\n]*`")
+_URL_SPAN = re.compile(r"https?://[^\s<>)\]]+")
 _MASK_HEX = re.compile(r"(?i)\b[0-9a-f]{7,40}\b")
 _MASK_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 
 
+def _skipped_date_spans(text: str) -> list[tuple[int, int]]:
+    spans = [match.span() for match in _BACKTICK_SPAN.finditer(text)]
+    spans.extend(match.span() for match in _URL_SPAN.finditer(text))
+    return spans
+
+
+def _standalone_date_matches(text: str) -> list[re.Match[str]]:
+    """ISO dates that are not part of an id, a path, backticks, or a URL."""
+    skipped = _skipped_date_spans(text)
+    return [
+        match for match in _MASK_DATE.finditer(text)
+        if not any(left <= match.start() and match.end() <= right for left, right in skipped)
+    ]
+
+
+def _standalone_date_strings(text: str) -> list[str]:
+    return [match.group(1) for match in _standalone_date_matches(text)]
+
+
+def _mask_standalone_dates(text: str, replacement: str) -> str:
+    for match in reversed(_standalone_date_matches(text)):
+        text = text[:match.start()] + replacement + text[match.end():]
+    return text
+
+
 def _mask_quoted_figures(text: str) -> str:
-    """Dates, then hex strings, then numbers, so only the wording remains."""
-    masked = _MASK_DATE.sub("0", text)
+    """Standalone dates, then hex strings, then numbers, so only the wording remains."""
+    masked = _mask_standalone_dates(text, "0")
     masked = _MASK_HEX.sub("0", masked)
     return _MASK_NUMBER.sub("0", masked)
 
 
 def _text_outside_checked_figures(text: str) -> str:
-    """Characters that are not an ISO date and not a checked number token.
+    """Characters that are not a standalone ISO date and not a checked number token.
 
     The exact snapshot sentence is ignored, so removing it is not a wording
     change. A changed word inside that sentence no longer matches and stays.
     """
     text = _without_exact_snapshot_sentence(text)
-    spans = [match.span() for match in _MASK_DATE.finditer(text)]
+    spans = [match.span() for match in _standalone_date_matches(text)]
     spans.extend((start, start + len(token)) for start, token in _uncovered_numbers(text))
     spans.sort()
     kept: list[str] = []
@@ -2230,11 +2267,8 @@ def _text_outside_checked_figures(text: str) -> str:
 
 def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
     """Numbers outside a date or a hex revision, with the index of each token."""
-    covered = [
-        (match.start(), match.end())
-        for pattern in (_MASK_DATE, _MASK_HEX)
-        for match in pattern.finditer(text)
-    ]
+    covered = [match.span() for match in _standalone_date_matches(text)]
+    covered.extend(match.span() for match in _MASK_HEX.finditer(text))
     found: list[tuple[int, str]] = []
     for match in _NUMBER_TOKEN.finditer(text):
         start, end = match.span()
@@ -2285,8 +2319,8 @@ def _changed_figures_are_the_reading(
             continue
         if new not in _printed_forms(old, after):
             return False
-    old_dates = _MASK_DATE.findall(before)
-    new_dates = _MASK_DATE.findall(after_text)
+    old_dates = _standalone_date_strings(before)
+    new_dates = _standalone_date_strings(after_text)
     if len(old_dates) != len(new_dates):
         return False
     allowed = {
@@ -2327,8 +2361,8 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
     ``configuration`` may change only when the two strings match after dates,
     hex strings and numbers are masked, every character outside a checked
-    number token and an ISO date is byte-identical, and every changed number
-    is the after row's score, an interval bound, ``n``, a date on that row,
+    number token and a standalone ISO date is byte-identical, and every
+    changed number is the after row's score, an interval bound, ``n``, a date on that row,
     or the number after ``rank``. The date in ``read <date>`` beside the
     publish date may become the row's observed date, and the sentence ``The
     live arena.ai board read <date> still shows this snapshot (same vote
@@ -2420,7 +2454,7 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     date, ID and source-snapshot binding. A refreshed Arena dataset-root row
     may also change its interval and vote count, a configuration whose wording
     is unchanged once dates, hex strings and numbers are masked, whose
-    characters outside a checked number token and an ISO date are
+    characters outside a checked number token and a standalone ISO date are
     byte-identical, and whose changed numbers are that row's own figures.
     That configuration may also replace the read date beside its publish date
     with the row's observed date, and drop the sentence that says the live
