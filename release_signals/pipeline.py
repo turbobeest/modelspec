@@ -410,6 +410,160 @@ def _huggingface_org_repo(url: str, orgs: frozenset[str]) -> tuple[str, str] | N
     return org, repo
 
 
+@dataclass(frozen=True)
+class HubScope:
+    """The watcher's Hugging Face decision for one signal, read at processing time.
+
+    `reason` is that decision's out-of-scope text. `unread` means the metadata
+    could not be read. A failed or empty read is never out of scope: out of
+    scope is final until the next re-check.
+    """
+
+    reason: str | None = None
+    unread: bool = False
+
+
+def hub_metadata_url(org: str, repo: str) -> str:
+    """One repository on the models API the watcher feeds to `hub_metadata`."""
+    return f"https://huggingface.co/api/models/{org}/{repo}"
+
+
+def _hub_final_url_matches(final_url: str, org: str, repo: str) -> bool:
+    """True when the fetch landed on exactly this repository's models API object.
+
+    The scheme is https. The host is ``huggingface.co``, with no userinfo and
+    no port other than 443. The path is ``/api/models/<org>/<repo>``. Org and
+    repo compare case-insensitively. One trailing slash is allowed. A query
+    string or a fragment is a different URL. Another host, or another
+    repository on this host, is not this read.
+    """
+    try:
+        parsed = urlsplit(final_url)
+        port = parsed.port
+    except ValueError:
+        return False
+    if parsed.scheme != "https" or (parsed.hostname or "").casefold() != "huggingface.co":
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
+    if parsed.query or parsed.fragment:
+        return False
+    if port is not None and port != 443:
+        return False
+    parts = parsed.path.split("/")
+    if parts[-1:] == [""]:
+        parts = parts[:-1]
+    if len(parts) != 5 or parts[:3] != ["", "api", "models"]:
+        return False
+    return parts[3].casefold() == org.casefold() and parts[4].casefold() == repo.casefold()
+
+
+def _hub_payload_names(payload: Mapping, org: str, repo: str) -> bool:
+    """True when ``id``, or ``modelId`` if ``id`` is absent, is this repository.
+
+    Comparison is case-insensitive. A payload with neither is unread. A
+    present ``id`` that names another repository stays unread even when
+    ``modelId`` matches.
+    """
+    if "id" in payload and payload.get("id") is not None:
+        value = payload.get("id")
+    else:
+        value = payload.get("modelId")
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return bool(text) and text.casefold() == f"{org}/{repo}".casefold()
+
+
+def _hub_row_readable(row: Mapping) -> bool:
+    """True when the body carries a pipeline tag or a tag list entry.
+
+    ``tags`` absent or null, with a pipeline tag, stays a valid read. The
+    watcher treats that the same way: ``relevant_hub_tags`` keeps nothing
+    from a missing or null list, and ``tag_scope`` decides from the pipeline
+    tag. A present ``tags`` that is not a list of strings is unread. The
+    watcher would ignore that value and still decide; this read does not,
+    because the value is not the repository's tag list.
+
+    A present ``pipeline_tag`` that is not null and not a string is unread
+    the same way. Absent or null, beside a valid tag list, stays a valid
+    read. The watcher would ignore the odd value and decide from the tags.
+
+    A JSON object with neither a pipeline tag nor a tag-list entry is an
+    empty read, not a decision. Licence-only or other non-empty tag lists
+    are a decision even when no pipeline tag is set.
+    """
+    if "tags" in row and row.get("tags") is not None:
+        tags = row.get("tags")
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            return False
+    pipeline = row.get("pipeline_tag")
+    if "pipeline_tag" in row and pipeline is not None and not isinstance(pipeline, str):
+        return False
+    if isinstance(pipeline, str) and pipeline.strip():
+        return True
+    tags = row.get("tags")
+    if not isinstance(tags, list):
+        return False
+    return any(isinstance(tag, str) and tag.strip() for tag in tags)
+
+
+def hub_scope_for_signal(
+    signal, root: Path, fetch: Callable[[str], FetchResult],
+) -> HubScope | None:
+    """Scope one lab Hugging Face repository with the watcher's own function.
+
+    Returns None when the first-seen URL is not such a repository, and does
+    not fetch. Otherwise reads that repository's models API object and calls
+    `_hub_scope_reason` (tag scope, then the name rules, then a derivative
+    base). The final URL and the payload's ``id`` (or ``modelId``) must name
+    this repository. Any failure to read leaves `unread` set and `reason` empty.
+    """
+    found = _huggingface_org_repo(
+        signal.first_seen_url, registered_huggingface_orgs(root, signal.provider),
+    )
+    if found is None:
+        return None
+    org, repo = found
+    url = hub_metadata_url(org, repo)
+    try:
+        page = fetch(url)
+    except Exception:
+        # Any failure to fetch must not become out of scope.
+        return HubScope(unread=True)
+    try:
+        payload = json.loads(page.body)
+    except (ValueError, RecursionError):
+        return HubScope(unread=True)
+    if (
+        not isinstance(payload, Mapping)
+        or not _hub_final_url_matches(page.url, org, repo)
+        or not _hub_payload_names(payload, org, repo)
+        or not _hub_row_readable(payload)
+    ):
+        return HubScope(unread=True)
+
+    from release_signals.scope import hub_metadata
+    from release_signals.watch import Seen, Source
+    from scripts.release_watch_filter import _hub_scope_reason
+
+    repository = f"{org}/{repo}"
+    pipeline_tag, tags, base_model, base_models = hub_metadata(payload, repository)
+    source = Source(
+        "process", "huggingface", url, float(signal.confidence),
+        provider=signal.provider,
+    )
+    seen = Seen(
+        repository, repo, signal.provider, signal.first_seen_url,
+        pipeline_tag=pipeline_tag, tags=tags,
+        base_model=base_model, base_models=base_models,
+    )
+    reason = _hub_scope_reason(seen, source)
+    if reason:
+        return HubScope(reason=reason)
+    return HubScope()
+
+
 def _accepted_page_kind(url: str, lab_hosts: frozenset[str], hf_orgs: frozenset[str]) -> str:
     """Lab host class, or ``huggingface-org`` when only the org repository matches.
 
