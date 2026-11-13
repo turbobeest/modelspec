@@ -345,6 +345,7 @@
   "tests/test_unranked_candidates.py": 0.053,
   "tests/test_ux_prototypes.py": 0.026,
   "tests/test_validate_pr.py": 75.987,
+  "tests/test_vendor_private_log.py": 0.181,
   "tests/test_visit_gate.py": 0.625,
   "tests/test_visit_gate_off.py": 0.033,
   "tests/test_visitor_id.py": 0.007,

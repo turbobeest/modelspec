@@ -34,6 +34,7 @@ import logging
 import traceback
 import argparse
 import os
+import re
 import subprocess
 import tempfile
 import gzip
@@ -227,12 +228,12 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         stderr = completed.stderr.decode("utf-8", errors="replace").splitlines()
         for line in stderr:
             if line.startswith("premier models:"):
-                print(line, file=sys.stderr)
+                print(_public_log_line(line, data_dir=data_dir), file=sys.stderr)
         if completed.returncode:
             # The child emits only path/category diagnostics in private mode.
             for line in stderr:
                 if line.startswith(("Worker bundle build failed: path=", "uncited policy rows:")):
-                    print(line, file=sys.stderr)
+                    print(_public_log_line(line, data_dir=data_dir), file=sys.stderr)
             raise RuntimeError("private Worker data build failed")
         api = site
         paths = ("rank/candidates.json", "rank/hardware.json", "policy/catalogue.json",
@@ -267,6 +268,68 @@ def bundled_data_source(blobs: dict[str, str], snapshots: dict[str, dict]) -> st
 
 
 _coverage_log_ready = False
+_DETAIL_NAME = "modelspec-private-build-detail.txt"
+_COVERAGE_LINE = re.compile(
+    r"^(premier models: known \d+, explicit null \d+, gap \d+; "
+    r"gap labs outside premier:)(.*)$"
+)
+_UNCITED_LINE = re.compile(r"^uncited policy rows: \d+$")
+_FAILED_LINE = re.compile(
+    r"^Worker bundle build failed: path=(.*); category=([A-Za-z_][A-Za-z0-9_]*)$"
+)
+
+
+def _private_detail_file() -> Path:
+    """A runner temp file. No deploy step uploads it."""
+    raw = os.environ.get("RUNNER_TEMP")
+    directory = Path(raw) if raw else Path(tempfile.gettempdir())
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / _DETAIL_NAME
+
+
+def _stash_private_detail(text: str) -> str:
+    """Keep identifiers off the log. Return the file's name, not its path."""
+    path = _private_detail_file()
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(text.rstrip("\n") + "\n")
+    return path.name
+
+
+def _public_log_line(line: str, *, data_dir: Path | None = None) -> str:
+    """Counts and fixed words. Identifiers from the private directory stay in the detail file."""
+    text = line.strip()
+    coverage = _COVERAGE_LINE.match(text)
+    if coverage:
+        head, tail = coverage.group(1), coverage.group(2).strip()
+        if not tail or tail == _DETAIL_NAME:
+            return f"{head} {tail}".rstrip() if tail else head
+        _stash_private_detail(tail)
+        return f"{head} {_DETAIL_NAME}"
+    if _UNCITED_LINE.fullmatch(text):
+        return text
+    failed = _FAILED_LINE.fullmatch(text)
+    if failed is not None and data_dir is not None:
+        path, category = failed.group(1), failed.group(2)
+        allowed = {str(data_dir), str(data_dir.resolve())}
+        if path in allowed:
+            return text
+        _stash_private_detail(path)
+        shown = f"Worker bundle build failed: path={data_dir}; category={category}"
+        return f"{shown}\n{_DETAIL_NAME}"
+    if text == _DETAIL_NAME:
+        return text
+    _stash_private_detail(text)
+    return _DETAIL_NAME
+
+
+class _PrivateDetailHandler(logging.Handler):
+    """The private export's snapshot log: counts on stderr, identifiers in the detail file."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            print(_public_log_line(record.getMessage()), file=sys.stderr)
+        except Exception:
+            self.handleError(record)
 
 
 def _show_coverage_log() -> None:
@@ -276,9 +339,9 @@ def _show_coverage_log() -> None:
         return
     log = logging.getLogger("decision.snapshot")
     log.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    log.addHandler(handler)
+    # Last-resort handling would write the raw warning, identifiers included.
+    log.propagate = False
+    log.addHandler(_PrivateDetailHandler())
     _coverage_log_ready = True
 
 
@@ -424,6 +487,24 @@ def main() -> int:
                 )
                 return 1
             print("bundle imports cleanly with only declared dependencies")
+    except SystemExit as error:
+        if args.data_dir is None:
+            raise
+        code = error.code
+        if isinstance(code, int):
+            status = code
+        elif code is None:
+            status = 0
+        else:
+            status = 1
+        if status != 0:
+            if isinstance(code, str) and code:
+                print(_stash_private_detail(code), file=sys.stderr)
+            print(
+                f"Worker bundle build failed: path={args.data_dir}; category=SystemExit",
+                file=sys.stderr,
+            )
+        return status
     except Exception as error:
         if args.data_dir is None:
             traceback.print_exc()
@@ -432,8 +513,13 @@ def main() -> int:
             path = getattr(error, "filename", None)
             if path is None and getattr(error, "_modelspec_redacted", False):
                 path = str(error).split(": line ", 1)[0]
-            path = path or str(args.data_dir)
-            print(f"Worker bundle build failed: path={path}; category={type(error).__name__}", file=sys.stderr)
+            shown = str(args.data_dir)
+            if path and path not in {shown, str(args.data_dir.resolve())}:
+                print(_stash_private_detail(str(path)), file=sys.stderr)
+            print(
+                f"Worker bundle build failed: path={shown}; category={type(error).__name__}",
+                file=sys.stderr,
+            )
         return 2
     return 0
 

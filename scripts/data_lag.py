@@ -52,8 +52,20 @@ def _clamp(year: int, month: int, day: int) -> date:
 
 
 def _git(repo: Path, *args: str, binary: bool = False) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True,
-                          text=not binary, check=True)
+    """Run git. A failure prints the subcommand and the exit code, never the arguments."""
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repo), *args], capture_output=True, text=not binary, check=True,
+        )
+    except subprocess.CalledProcessError as error:
+        _git_failed(args[0] if args else "git", error.returncode)
+    except OSError:
+        _git_failed(args[0] if args else "git", 127)
+
+
+def _git_failed(subcommand: str, code: int) -> None:
+    print(f"git {subcommand} failed with exit code {code}", file=sys.stderr)
+    raise SystemExit(code if code else 1) from None
 
 
 def _end_of(cutoff: date) -> int:

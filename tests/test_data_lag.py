@@ -154,3 +154,54 @@ def test_add_paths_in_the_lag_workflow_match_the_data_paths():
 def test_the_automerge_workflow_skips_lag_branches():
     root = Path(__file__).resolve().parent.parent
     assert "github.head_ref != 'data-lag/image'" in (root / ".github/workflows/automerge.yml").read_text()
+
+
+def test_a_failing_git_prints_the_subcommand_and_the_exit_code(tmp_path, monkeypatch, capsys):
+    """A git failure names the subcommand and the exit code. Arguments stay off the log."""
+    marker = "483c" * 10
+    assert len(marker) == 40
+    private = tmp_path / "private"
+    private.mkdir()
+    calls = {"n": 0}
+
+    def fake_run(cmd, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return subprocess.CompletedProcess(cmd, 0, stdout=marker + "\n", stderr="")
+        assert marker in cmd
+        raise subprocess.CalledProcessError(23, cmd, stderr=f"fatal: {marker}")
+
+    monkeypatch.setattr(data_lag.subprocess, "run", fake_run)
+    public = tmp_path / "public"
+    with pytest.raises(SystemExit) as caught:
+        data_lag.main(["--private", str(private), "--public", str(public), "--today", "2027-06-30"])
+
+    assert caught.value.code == 23
+    captured = capsys.readouterr()
+    assert marker not in captured.out
+    assert marker not in captured.err
+    assert captured.err == "git log failed with exit code 23\n"
+    assert captured.out == ""
+
+
+def test_a_missing_git_prints_the_fixed_line_and_exits_non_zero(
+    tmp_path, monkeypatch, capsys,
+):
+    """OSError, the git binary missing, prints the fixed line and exits non-zero."""
+    marker = "git-missing-marker-483c"
+    private = tmp_path / "private"
+    private.mkdir()
+
+    def fake_run(cmd, **kwargs):
+        raise OSError(marker)
+
+    monkeypatch.setattr(data_lag.subprocess, "run", fake_run)
+    public = tmp_path / "public"
+    with pytest.raises(SystemExit) as caught:
+        data_lag.main(["--private", str(private), "--public", str(public), "--today", "2027-06-30"])
+
+    assert caught.value.code not in (0, None)
+    captured = capsys.readouterr()
+    assert captured.err == "git rev-list failed with exit code 127\n"
+    assert captured.out == ""
+    assert marker not in captured.err
