@@ -1303,8 +1303,9 @@ def test_a_current_reading_that_rejects_the_private_correction_keeps_fidelity_re
     )
     markdown, payload = accuracy.write_report(report, tmp_path / "report")
     alert = accuracy_alert.body(report.to_dict(), "https://example.test/run")
-    assert "fact:" + claim.target.id in alert
-    assert "mismatch" in alert
+    assert "fact:" + claim.target.id in markdown.read_text()
+    assert "fact:" + claim.target.id not in alert
+    assert "mismatches 1" in alert
     for text in (markdown.read_text(), payload.read_text(), alert,
                  Queue(public / "verification").path.read_text(),
                  VerificationLog(public / "verification").path.read_text()):
@@ -1489,15 +1490,13 @@ def test_nightly_checks_out_private_verification_for_the_correction_reader() -> 
         Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
     )
     steps = workflow["jobs"]["accuracy"]["steps"]
-    checkouts = [step for step in steps
-                 if step.get("with", {}).get("repository") == "turbobeest/modelspec-data"]
-    assert len(checkouts) == 1
-    checkout = checkouts[0]
-    assert checkout["with"]["token"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
-    assert checkout["with"]["persist-credentials"] == "false"
-    assert checkout["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    fetch = next(step for step in steps if step.get("name") == "Read private verification records")
+    assert fetch["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert "https://github.com/turbobeest/modelspec-data.git" in fetch["run"]
+    assert ".accuracy-private" in fetch["run"]
     command = next(step["run"] for step in steps if step.get("name") == "Run network accuracy layers")
-    assert "--private-data-root " + checkout["with"]["path"] in command
+    assert "--private-data-root .accuracy-private" in command
     assert '"$DATA_SPLIT_ENABLED" = "true"' in command
 
 
@@ -2016,6 +2015,137 @@ def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> 
         ("model-205-perplexity-pro", "model-173-openai-pro", "model-173-xai-consumer-pricing"),
         FetchMode.RENDERED,
     )
+
+
+# Sentinels for the nightly public form. None of these may survive into a public sink.
+_PRIVATE_MODEL = "lab/private-model-sentinel"
+_PRIVATE_FACT = "fact:lab/private-model-sentinel#offering.price"
+_PRIVATE_EVIDENCE = "evidence:lab/private-model-sentinel#mmlu#1"
+_PRIVATE_SOURCE = "private-source-sentinel"
+_PRIVATE_URL = "https://private-sentinel.example/secret"
+_PRIVATE_RESOLVED = "https://cdn.private-sentinel.example/a"
+_PRIVATE_HASH = "sha256:" + ("ab" * 32)
+_PRIVATE_COMMIT = "c0ffee01" * 5
+_PRIVATE_VALUE = "private-filed-value"
+_PRIVATE_FIELDS = (
+    _PRIVATE_MODEL, _PRIVATE_FACT, _PRIVATE_EVIDENCE, _PRIVATE_SOURCE, _PRIVATE_URL,
+    _PRIVATE_RESOLVED, _PRIVATE_HASH, _PRIVATE_COMMIT, _PRIVATE_VALUE,
+)
+
+
+def _private_nightly_report() -> accuracy.AccuracyReport:
+    """One of each private field, inside details and inside the layer summary."""
+    leaked_summary = " ".join(_PRIVATE_FIELDS)
+    sample = {
+        "sample": [
+            {
+                "target": _PRIVATE_FACT,
+                "model": _PRIVATE_MODEL,
+                "outcome": "mismatch",
+                "reason": "value_disagreed",
+                "diff": [{"field": "value", "expected": _PRIVATE_VALUE, "found": "9"}],
+                "source_urls": [_PRIVATE_URL],
+                "sources": [{
+                    "source_id": _PRIVATE_SOURCE,
+                    "url": _PRIVATE_URL,
+                    "declared_fetch": "http",
+                    "resolved_urls": [_PRIVATE_RESOLVED],
+                    "transport": "http",
+                    "http_status": 403,
+                    "error_category": "http_error",
+                    "copy_ref": _PRIVATE_HASH,
+                    "cited_copy_ref": _PRIVATE_HASH,
+                }],
+            },
+            {
+                "target": _PRIVATE_EVIDENCE,
+                "model": _PRIVATE_MODEL,
+                "outcome": "unreachable",
+                "record_id": _PRIVATE_EVIDENCE,
+                "source_urls": [_PRIVATE_URL],
+                "sources": [],
+            },
+        ],
+        "commit": _PRIVATE_COMMIT,
+    }
+    return accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=_PRIVATE_COMMIT,
+        layers=(
+            accuracy.LayerResult(
+                "data_fidelity", "fail", True, leaked_summary,
+                {"verified": 12, "mismatch": 1, "unreachable": 1, "undetermined": 2,
+                 "public_image_lag": 0},
+                sample,
+            ),
+            accuracy.LayerResult(
+                "reference_agreement", "fail", True, leaked_summary,
+                {"pass": 0, "fail": 1, "undetermined": 1},
+                [{
+                    "model": _PRIVATE_MODEL,
+                    "source_url": _PRIVATE_URL,
+                    "responsible_evidence": [{"record_ids": [_PRIVATE_EVIDENCE]}],
+                }],
+            ),
+            accuracy.LayerResult(
+                "freshness", "pass", True, leaked_summary,
+                {"lineup_models": 4, "live_readings": 1, "failures": 0},
+                [{"model": _PRIVATE_MODEL}],
+            ),
+        ),
+    )
+
+
+_PUBLIC_NIGHTLY = """\
+**Overall: FAIL**
+
+| Layer | Status | Gate | Summary |
+| --- | --- | --- | --- |
+| data_fidelity | FAIL | yes | failures 2; mismatches 1; unreachable 1; undetermined 2. |
+| reference_agreement | FAIL | yes | failures 1; mismatches 0; unreachable 0; undetermined 1. |
+| freshness | PASS | yes | failures 0; mismatches 0; unreachable 0; undetermined 0. |
+"""
+
+
+def _assert_public_text(text: str) -> None:
+    import re
+
+    assert text == _PUBLIC_NIGHTLY
+    for secret in _PRIVATE_FIELDS:
+        assert secret not in text
+    assert not re.search(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])", text)
+    assert not re.search(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])", text)
+    assert "sha256:" not in text
+    assert "http" not in text.lower()
+    assert "fact:" not in text
+    assert "evidence:" not in text
+
+
+def test_public_nightly_report_keeps_counts_and_drops_private_fields() -> None:
+    report = _private_nightly_report()
+
+    _assert_public_text(accuracy.public_nightly_report(report))
+    _assert_public_text(accuracy.public_nightly_report(report.to_dict()))
+
+
+def test_a_failing_private_nightly_exits_non_zero_with_a_failing_public_form(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+
+    code = accuracy.main([
+        "--profile", "nightly",
+        "--private-data-root", str(tmp_path / "private"),
+        "--output-dir", str(tmp_path / "out"),
+        "--date", "2026-11-12",
+    ])
+    captured = capsys.readouterr()
+
+    assert code == 1
+    _assert_public_text(captured.out)
+    assert _PRIVATE_FACT in (tmp_path / "out" / "accuracy.json").read_text()
 
 
 def _approved_ids() -> list[str]:

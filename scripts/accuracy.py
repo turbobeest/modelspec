@@ -1742,6 +1742,102 @@ def _markdown(report: AccuracyReport) -> str:
     return "\n".join(lines) + "\n"
 
 
+_PUBLIC_STATUS = {
+    "pass": "PASS",
+    "fail": "FAIL",
+    "report": "REPORT",
+    "undetermined": "UNDETERMINED",
+}
+
+
+def _public_layer_name(name: object) -> str:
+    text = name if isinstance(name, str) else ""
+    allowed = bool(text) and all(
+        character.islower() or character.isdigit() or character == "_" for character in text
+    )
+    return text if allowed else "layer"
+
+
+def _stored_count(counts: Mapping[str, Any], key: str) -> int | None:
+    value = counts.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _public_summary(status: object, counts: Mapping[str, Any] | None) -> str:
+    """Fixed words and integers. The layer's own summary is not copied."""
+    counts = counts or {}
+    mismatch = _stored_count(counts, "mismatch")
+    unreachable = _stored_count(counts, "unreachable")
+    undetermined = _stored_count(counts, "undetermined")
+    failures: int | None = None
+    for key in ("failures", "failed", "fail"):
+        failures = _stored_count(counts, key)
+        if failures is not None:
+            break
+    if failures is None:
+        if mismatch is not None or unreachable is not None:
+            failures = (mismatch or 0) + (unreachable or 0)
+        elif status in ("fail", "undetermined"):
+            failures = 1
+        else:
+            failures = 0
+    return (
+        f"failures {failures}; mismatches {0 if mismatch is None else mismatch}; "
+        f"unreachable {0 if unreachable is None else unreachable}; "
+        f"undetermined {0 if undetermined is None else undetermined}."
+    )
+
+
+def _overall_word(report: AccuracyReport | Mapping[str, Any]) -> str:
+    if isinstance(report, AccuracyReport):
+        return "FAIL" if report.status == "fail" else "PASS"
+    layers = report.get("layers") or []
+    layer_failed = any(
+        isinstance(layer, Mapping)
+        and bool(layer.get("gating"))
+        and layer.get("status") in ("fail", "undetermined")
+        for layer in layers
+    )
+    if layer_failed or report.get("status") == "fail":
+        return "FAIL"
+    return "PASS"
+
+
+def _public_layers(report: AccuracyReport | Mapping[str, Any]):
+    layers = report.layers if isinstance(report, AccuracyReport) else report.get("layers") or []
+    for layer in layers:
+        if isinstance(layer, LayerResult):
+            yield layer.name, layer.status, layer.gating, layer.counts
+        elif isinstance(layer, Mapping):
+            yield (
+                layer.get("name"), layer.get("status"), bool(layer.get("gating")),
+                layer.get("counts") or {},
+            )
+
+
+def public_nightly_report(report: AccuracyReport | Mapping[str, Any]) -> str:
+    """The public form of a nightly report: layer status, the gate flag, and counts.
+
+    A public sink (the job log, a step summary, an uploaded artifact, the alert
+    issue) gets this text when the profile reads private data. It has no model
+    id, fact or evidence id, source id, URL, hash, filed value, or commit SHA.
+    """
+    lines = [
+        f"**Overall: {_overall_word(report)}**",
+        "",
+        "| Layer | Status | Gate | Summary |",
+        "| --- | --- | --- | --- |",
+    ]
+    for name, status, gating, counts in _public_layers(report):
+        lines.append(
+            f"| {_public_layer_name(name)} | {_PUBLIC_STATUS.get(str(status), 'FAIL')} | "
+            f"{'yes' if gating else 'no'} | {_public_summary(status, counts)} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def write_report(report: AccuracyReport, output_dir: str | Path) -> tuple[Path, Path]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -2065,8 +2161,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.stage_failure:
         report = replace(report, layers=(*report.layers, STAGED_FAILURE))
     markdown, payload = write_report(report, args.output_dir)
-    print(markdown.read_text(encoding="utf-8"), end="")
-    print(f"JSON: {payload}")
+    if args.private_data_root is not None:
+        print(public_nightly_report(report), end="")
+    else:
+        print(markdown.read_text(encoding="utf-8"), end="")
+        print(f"JSON: {payload}")
     return 1 if report.status == "fail" else 0
 
 
