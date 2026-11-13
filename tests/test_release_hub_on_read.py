@@ -90,6 +90,8 @@ def _run(
     lab_page: bool = False,
     recheck_day: int | None = None,
     failure: BaseException | None = None,
+    final_url: str | None = None,
+    raw_body: bytes | None = None,
 ) -> tuple[dict, list[str]]:
     _card(root)
     _watch(root, lab_page=lab_page)
@@ -108,19 +110,25 @@ def _run(
         }]}
     (root / "pending.json").write_text(json.dumps(payload), encoding="utf-8")
     seen: list[str] = []
+    unexpected: list[str] = []
 
     def fetch(url: str) -> FetchResult:
         seen.append(url)
         if url == meta:
             if failure is not None:
                 raise failure
-            return FetchResult(url, json.dumps(metadata).encode(), "application/json")
+            landed = final_url or url
+            raw = raw_body if raw_body is not None else json.dumps(metadata).encode()
+            return FetchResult(landed, raw, "application/json")
         if url == page:
             return FetchResult(url, b"<h1>Orbit 9</h1>", "text/html")
         if url == models_dev:
             return FetchResult(url, b"{}", "application/json")
         if url.startswith("https://huggingface.co/api/"):
             return FetchResult(url, b"[]", "application/json")
+        # Every fetch exception is an unread hub read, so raising here would
+        # hide a request for an unexpected URL. Fail after process returns.
+        unexpected.append(url)
         raise AssertionError(url)
 
     monkeypatch.setattr(processor, "_fetch", fetch)
@@ -136,6 +144,8 @@ def _run(
         recheck_day=recheck_day,
         price_fetcher=_PriceFetcher(),
     )
+    if unexpected:
+        raise AssertionError(unexpected[0])
     return result, seen
 
 
@@ -149,19 +159,28 @@ def _meta(repo: str) -> str:
         (
             "canvas-1",
             "Canvas 1",
-            {"pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
+            {
+                "id": f"{ORG}/canvas-1",
+                "pipeline_tag": "text-to-image",
+                "tags": ["text-to-image"],
+            },
             "text-to-image",
         ),
         (
             "policy-1",
             "Policy 1",
-            {"pipeline_tag": "reinforcement-learning", "tags": ["reinforcement-learning"]},
+            {
+                "id": f"{ORG}/policy-1",
+                "pipeline_tag": "reinforcement-learning",
+                "tags": ["reinforcement-learning"],
+            },
             "reinforcement-learning",
         ),
         (
             "probe-1",
             "Probe 1",
             {
+                "id": f"{ORG}/probe-1",
                 "pipeline_tag": "feature-extraction",
                 "library_name": "transformers",
                 "tags": ["transformers", "feature-extraction", "transcoder"],
@@ -206,17 +225,18 @@ def test_the_run_summary_groups_reasons_the_way_the_watcher_does(
     image, _seen = _run(
         monkeypatch, tmp_path / "image",
         _signal("Canvas 1", "canvas-1"),
-        {"pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
+        {"id": f"{ORG}/canvas-1", "pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
     )
     again, _seen = _run(
         monkeypatch, tmp_path / "again",
         _signal("Canvas 2", "canvas-2"),
-        {"pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
+        {"id": f"{ORG}/canvas-2", "pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
     )
     probe, _seen = _run(
         monkeypatch, tmp_path / "probe",
         _signal("Probe 1", "probe-1"),
         {
+            "id": f"{ORG}/probe-1",
             "pipeline_tag": "feature-extraction",
             "tags": ["feature-extraction", "transcoder"],
         },
@@ -225,6 +245,7 @@ def test_the_run_summary_groups_reasons_the_way_the_watcher_does(
         monkeypatch, tmp_path / "derived",
         _signal("orbit-1-sparse", "orbit-1-sparse"),
         {
+            "id": f"{ORG}/orbit-1-sparse",
             "pipeline_tag": "text-generation",
             "tags": ["text-generation", "base_model:other-lab/Orbit-1"],
             "cardData": {"base_model": "other-lab/Orbit-1"},
@@ -257,7 +278,11 @@ def test_a_text_generation_repository_is_processed_as_it_is_today(
     result, seen = _run(
         monkeypatch, tmp_path,
         _signal("Orbit 9", "orbit-9"),
-        {"pipeline_tag": "text-generation", "tags": ["text-generation", "transformers"]},
+        {
+            "id": f"{ORG}/orbit-9",
+            "pipeline_tag": "text-generation",
+            "tags": ["text-generation", "transformers"],
+        },
     )
 
     assert result["status"] == "new"
@@ -274,7 +299,7 @@ def test_a_repository_with_no_pipeline_tag_and_no_artefact_tag_is_processed_as_t
     result, seen = _run(
         monkeypatch, tmp_path,
         _signal("Orbit 9", "orbit-9"),
-        {"tags": ["transformers", "en", "license:mit"]},
+        {"id": f"{ORG}/orbit-9", "tags": ["transformers", "en", "license:mit"]},
     )
 
     assert result["status"] == "new"
@@ -290,6 +315,7 @@ def test_a_chat_model_with_an_interpretability_tag_is_kept(
         monkeypatch, tmp_path,
         _signal("Orbit 9", "orbit-9"),
         {
+            "id": f"{ORG}/orbit-9",
             "pipeline_tag": "text-generation",
             "tags": ["text-generation", "interpretability", "transformers"],
         },
@@ -308,7 +334,7 @@ def test_a_keeping_task_tag_alone_is_kept(
     result, seen = _run(
         monkeypatch, tmp_path,
         _signal("Orbit 9", "orbit-9"),
-        {"tags": ["text-generation"]},
+        {"id": f"{ORG}/orbit-9", "tags": ["text-generation"]},
     )
 
     assert result["status"] == "new"
@@ -324,7 +350,7 @@ def test_a_recheck_row_is_rescoped(
     row = _signal("Canvas 1", "canvas-1")
     result, seen = _run(
         monkeypatch, tmp_path, row,
-        {"pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
+        {"id": f"{ORG}/canvas-1", "pipeline_tag": "text-to-image", "tags": ["text-to-image"]},
         recheck_day=day,
     )
 
@@ -412,3 +438,138 @@ def test_unreadable_metadata_does_not_apply_the_repository_name(
     assert result.get("reason") != "robotics or embodied checkpoint"
     assert result["hub_metadata"] == HUB_UNREAD
     assert result["status"] == "uncertain"
+
+
+def _poison(repo: str = "orbit-9") -> dict[str, object]:
+    """An out-of-scope body that names this repository. Trusting it ends the signal."""
+    return {
+        "id": f"{ORG}/{repo}",
+        "pipeline_tag": "text-to-image",
+        "tags": ["text-to-image"],
+    }
+
+
+def _assert_unread_continues(result: dict, root: Path) -> None:
+    """The end when the hub check does not run, plus the unread note on this row."""
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result.get("reason") is None
+    assert result["hub_metadata"] == HUB_UNREAD
+    assert result["summary"] == f"{HUB_UNREAD}."
+    assert (root / "models" / "acme" / "orbit-9.md").is_file()
+
+
+@pytest.mark.parametrize("shape", [
+    "off-host-redirect",
+    "same-host-other-repository",
+    "id-names-another-repository",
+    "model-id-names-another-repository",
+    "no-id",
+    "string-tags",
+    "tags-list-with-a-non-string",
+    "http-500",
+    "non-json",
+    "json-list",
+    "assertion-error",
+])
+def test_a_read_that_is_not_this_repository_metadata_is_unread(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, shape: str,
+) -> None:
+    row = _signal("Orbit 9", "orbit-9")
+    meta = _meta("orbit-9")
+    metadata: dict[str, object] = _poison()
+    final_url = None
+    raw_body = None
+    failure = None
+    if shape == "off-host-redirect":
+        final_url = f"https://other.example/api/models/{ORG}/orbit-9"
+    elif shape == "same-host-other-repository":
+        final_url = "https://huggingface.co/api/models/other-lab/not-this"
+    elif shape == "id-names-another-repository":
+        metadata["id"] = "other-lab/not-this"
+    elif shape == "model-id-names-another-repository":
+        metadata = {
+            "modelId": "other-lab/not-this",
+            "pipeline_tag": "text-to-image",
+            "tags": ["text-to-image"],
+        }
+    elif shape == "no-id":
+        metadata = {"pipeline_tag": "text-to-image", "tags": ["text-to-image"]}
+    elif shape == "string-tags":
+        metadata["tags"] = "text-generation"
+    elif shape == "tags-list-with-a-non-string":
+        metadata["tags"] = ["text-generation", 1]
+    elif shape == "http-500":
+        failure = _http_error(meta, 500)
+    elif shape == "non-json":
+        raw_body = b"not-json"
+    elif shape == "json-list":
+        raw_body = json.dumps([_poison()]).encode()
+    elif shape == "assertion-error":
+        failure = AssertionError("fetch failed closed")
+    else:
+        raise AssertionError(shape)
+
+    result, seen = _run(
+        monkeypatch, tmp_path, row, metadata,
+        failure=failure, final_url=final_url, raw_body=raw_body,
+    )
+
+    _assert_unread_continues(result, tmp_path)
+    assert meta in seen
+
+
+@pytest.mark.parametrize("identity", ["id", "modelId"])
+def test_a_correct_read_of_this_repository_is_applied(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, identity: str,
+) -> None:
+    """Case and one trailing slash still name this repository. ``modelId`` can."""
+    metadata: dict[str, object] = {
+        "pipeline_tag": "text-to-image",
+        "tags": ["text-to-image"],
+    }
+    if identity == "id":
+        metadata["id"] = f"{ORG.upper()}/CANVAS-1"
+    else:
+        metadata["modelId"] = "Acme-Lab/Canvas-1"
+    result, seen = _run(
+        monkeypatch, tmp_path,
+        _signal("Canvas 1", "canvas-1"),
+        metadata,
+        final_url=f"https://huggingface.co/api/models/{ORG.upper()}/Canvas-1/",
+    )
+
+    assert result["status"] == "out_of_scope"
+    assert result["reason"] == "text-to-image"
+    assert "hub_metadata" not in result
+    assert seen == [_meta("canvas-1")]
+    assert not (tmp_path / "models" / "acme" / "canvas-1.md").exists()
+
+
+@pytest.mark.parametrize("pipeline_tag", ["text-to-image", "text-generation"])
+@pytest.mark.parametrize("tags", ["absent", "null"])
+def test_absent_or_null_tags_with_a_pipeline_tag_stay_a_valid_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, pipeline_tag: str, tags: str,
+) -> None:
+    """Missing or null ``tags`` is a decision from the pipeline tag.
+
+    The watcher does the same: ``relevant_hub_tags`` keeps nothing from a
+    missing or null list, and ``tag_scope`` uses the pipeline tag. A present
+    ``tags`` that is not a list of strings is a different case.
+    """
+    repo = "canvas-1" if pipeline_tag == "text-to-image" else "orbit-9"
+    model_name = "Canvas 1" if repo == "canvas-1" else "Orbit 9"
+    metadata: dict[str, object] = {"id": f"{ORG}/{repo}", "pipeline_tag": pipeline_tag}
+    if tags == "null":
+        metadata["tags"] = None
+    result, seen = _run(monkeypatch, tmp_path, _signal(model_name, repo), metadata)
+
+    assert "hub_metadata" not in result
+    assert seen[0] == _meta(repo)
+    if pipeline_tag == "text-to-image":
+        assert result["status"] == "out_of_scope"
+        assert result["reason"] == "text-to-image"
+        return
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result.get("reason") is None

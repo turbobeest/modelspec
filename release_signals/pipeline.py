@@ -428,12 +428,63 @@ def hub_metadata_url(org: str, repo: str) -> str:
     return f"https://huggingface.co/api/models/{org}/{repo}"
 
 
+def _hub_final_url_matches(final_url: str, org: str, repo: str) -> bool:
+    """True when the fetch landed on this repository's models API object.
+
+    The host is ``huggingface.co`` over https. The path is
+    ``/api/models/<org>/<repo>``. Org and repo compare case-insensitively.
+    One trailing slash is allowed. Another host, or another repository on
+    this host, is not this read.
+    """
+    try:
+        parsed = urlsplit(final_url)
+    except ValueError:
+        return False
+    if parsed.scheme != "https" or (parsed.hostname or "").casefold() != "huggingface.co":
+        return False
+    parts = parsed.path.split("/")
+    if parts[-1:] == [""]:
+        parts = parts[:-1]
+    if len(parts) != 5 or parts[:3] != ["", "api", "models"]:
+        return False
+    return parts[3].casefold() == org.casefold() and parts[4].casefold() == repo.casefold()
+
+
+def _hub_payload_names(payload: Mapping, org: str, repo: str) -> bool:
+    """True when ``id``, or ``modelId`` if ``id`` is absent, is this repository.
+
+    Comparison is case-insensitive. A payload with neither is unread. A
+    present ``id`` that names another repository stays unread even when
+    ``modelId`` matches.
+    """
+    if "id" in payload and payload.get("id") is not None:
+        value = payload.get("id")
+    else:
+        value = payload.get("modelId")
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return bool(text) and text.casefold() == f"{org}/{repo}".casefold()
+
+
 def _hub_row_readable(row: Mapping) -> bool:
     """True when the body carries a pipeline tag or a tag list entry.
 
-    A JSON object with neither is an empty read, not a decision. Licence-only
-    or other non-empty tag lists are a decision even when no pipeline tag is set.
+    ``tags`` absent or null, with a pipeline tag, stays a valid read. The
+    watcher treats that the same way: ``relevant_hub_tags`` keeps nothing
+    from a missing or null list, and ``tag_scope`` decides from the pipeline
+    tag. A present ``tags`` that is not a list of strings is unread. The
+    watcher would ignore that value and still decide; this read does not,
+    because the value is not the repository's tag list.
+
+    A JSON object with neither a pipeline tag nor a tag-list entry is an
+    empty read, not a decision. Licence-only or other non-empty tag lists
+    are a decision even when no pipeline tag is set.
     """
+    if "tags" in row and row.get("tags") is not None:
+        tags = row.get("tags")
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            return False
     pipeline = row.get("pipeline_tag")
     if isinstance(pipeline, str) and pipeline.strip():
         return True
@@ -449,9 +500,10 @@ def hub_scope_for_signal(
     """Scope one lab Hugging Face repository with the watcher's own function.
 
     Returns None when the first-seen URL is not such a repository, and does
-    not fetch. Otherwise reads that repository and calls `_hub_scope_reason`
-    (tag scope, then the name rules, then a derivative base). Any failure to
-    read leaves `unread` set and `reason` empty.
+    not fetch. Otherwise reads that repository's models API object and calls
+    `_hub_scope_reason` (tag scope, then the name rules, then a derivative
+    base). The final URL and the payload's ``id`` (or ``modelId``) must name
+    this repository. Any failure to read leaves `unread` set and `reason` empty.
     """
     found = _huggingface_org_repo(
         signal.first_seen_url, registered_huggingface_orgs(root, signal.provider),
@@ -462,16 +514,19 @@ def hub_scope_for_signal(
     url = hub_metadata_url(org, repo)
     try:
         page = fetch(url)
-    except AssertionError:
-        raise
     except Exception:
-        # A network error, a timeout, a 404, or a 429 must not become out of scope.
+        # Any failure to fetch must not become out of scope.
         return HubScope(unread=True)
     try:
         payload = json.loads(page.body)
     except (ValueError, RecursionError):
         return HubScope(unread=True)
-    if not isinstance(payload, Mapping) or not _hub_row_readable(payload):
+    if (
+        not isinstance(payload, Mapping)
+        or not _hub_final_url_matches(page.url, org, repo)
+        or not _hub_payload_names(payload, org, repo)
+        or not _hub_row_readable(payload)
+    ):
         return HubScope(unread=True)
 
     from release_signals.scope import hub_metadata
