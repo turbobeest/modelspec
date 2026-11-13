@@ -76,6 +76,11 @@ def test_alert_comment_counts_sources_without_cutting_a_row() -> None:
         _fact("both", ("left-source", "right-source"), Status.UNREADABLE, "shell"),
     ]).to_dict()
     counted = price_reread.alert_comment(both, RUN_URL)
+    lines = counted.splitlines()
+    note = "1 alert fact; a fact with several sources is counted under each."
+    assert "| Source | Status | Fact-source pairs |" in lines
+    assert note in lines
+    assert lines.index(note) < lines.index("| Source | Status | Fact-source pairs |")
     assert "| `left-source` | unreadable | 1 |" in counted
     assert "| `right-source` | unreadable | 1 |" in counted
 

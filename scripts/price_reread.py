@@ -1211,6 +1211,8 @@ def alert_comment(
 ) -> str:
     """Short issue comment: run URL, header counts, and counts by source."""
     counts = payload["counts"]
+    fact_count = len(payload.get("alerts") or [])
+    noun = "alert fact" if fact_count == 1 else "alert facts"
     lines = [
         f"Run: {run_url}",
         "",
@@ -1218,7 +1220,9 @@ def alert_comment(
         "|" + "---|" * len(counts),
         "| " + " | ".join(str(counts[key]) for key in counts) + " |",
         "",
-        "| Source | Status | Facts |",
+        f"{fact_count} {noun}; a fact with several sources is counted under each.",
+        "",
+        "| Source | Status | Fact-source pairs |",
         "|---|---|---|",
     ]
     groups: Counter[tuple[str, str]] = Counter()
