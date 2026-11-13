@@ -491,6 +491,26 @@ def test_a_keeping_task_tag_does_not_keep_an_interpretability_artefact() -> None
     assert tag_scope(None, ("feature-extraction", "crosscoder")) == _artefact("crosscoder")
 
 
+def test_a_generation_task_tag_keeps_a_missing_pipeline_the_way_main_did() -> None:
+    """Main left these undecided, so the name rules still run.
+
+    The generation and multimodal members of `_TASK_TAGS_THAT_KEEP` are
+    text-generation, image-text-to-text, any-to-any and audio-text-to-text.
+    feature-extraction, sentence-similarity and text-ranking are in that set
+    and do not keep a missing pipeline.
+    """
+    assert tag_scope(None, ("text-generation", "interpretability")) == TagDecision(False)
+    assert tag_scope(None, ("image-text-to-text", "sae")) == TagDecision(False)
+    assert tag_scope(None, ("any-to-any", "transcoder")) == TagDecision(False)
+    assert tag_scope(None, ("audio-text-to-text", "sae-lens")) == TagDecision(False)
+    assert tag_scope(None, ("interpretability", "transcoder")) == _artefact("interpretability")
+    assert tag_scope(
+        "feature-extraction", ("text-generation", "transcoder"),
+    ) == _artefact("transcoder")
+    assert tag_scope(None, ("sentence-similarity", "transcoder")) == _artefact("transcoder")
+    assert tag_scope(None, ("text-ranking", "sae")) == _artefact("sae")
+
+
 def test_artefact_tags_survive_relevant_hub_tags() -> None:
     raw = [
         "transformers",

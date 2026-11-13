@@ -244,6 +244,24 @@ def _keeping_task_tag(tags: Sequence[str]) -> str | None:
     return None
 
 
+def _generation_or_multimodal_task_tag(tags: Sequence[str]) -> str | None:
+    """A generation or multimodal member of `_TASK_TAGS_THAT_KEEP`, after `_folded`.
+
+    That set also holds feature-extraction, sentence-similarity and
+    text-ranking so an out-of-scope pipeline tag can still be filed. Those
+    three do not skip artefact rejection when the pipeline tag is missing.
+    """
+    not_generation = ("feature-extraction", "sentence-similarity", "text-ranking")
+    for tag in tags:
+        text = _text(tag)
+        if text is None:
+            continue
+        folded = _folded(text)
+        if folded in _TASK_TAGS_THAT_KEEP and folded not in not_generation:
+            return text
+    return None
+
+
 def _artefact_tag(tags: Sequence[str]) -> str | None:
     for tag in tags:
         text = _text(tag)
@@ -256,8 +274,12 @@ def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision
     """Scope from the pipeline tag. With none, the name rules decide.
 
     An interpretability artefact tag is out of scope when the pipeline tag is
-    absent or feature-extraction. That check runs before a keeping task tag
-    can keep the repository. Any other pipeline tag leaves the row in scope.
+    feature-extraction. It is also out of scope when the pipeline tag is
+    absent, unless a generation or multimodal member of `_TASK_TAGS_THAT_KEEP`
+    is present. That case falls through, so the result matches a missing
+    pipeline from before this check. feature-extraction is the stated task, so
+    a generation tag beside it does not keep the repository. Any other
+    pipeline tag leaves the row in scope.
 
     An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
     the tag itself. An out-of-scope pipeline tag is filed when the tag list
@@ -266,12 +288,12 @@ def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision
     """
     primary = _text(pipeline_tag) or ""
     artefact = _artefact_tag(tags)
-    if artefact is not None and (
-        not primary or _artefact_key(primary) == "feature-extraction"
-    ):
-        return TagDecision(
-            True, f"interpretability artefact (tag: {artefact})", artefact,
-        )
+    stated_feature_extraction = _artefact_key(primary) == "feature-extraction"
+    if artefact is not None and (not primary or stated_feature_extraction):
+        if stated_feature_extraction or _generation_or_multimodal_task_tag(tags) is None:
+            return TagDecision(
+                True, f"interpretability artefact (tag: {artefact})", artefact,
+            )
     if primary:
         if out_of_scope_pipeline_tag(primary):
             keeper = _keeping_task_tag(tags)
