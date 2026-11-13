@@ -98,6 +98,7 @@ def _run_sync(tmp_path: Path, *, open_prs: str, behind: str = "0",
         "STUB_OPEN": open_prs,
         "STUB_BEHIND": behind,
         "STUB_PUT_EXIT": str(put_exit),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
     }
     result = subprocess.run(["bash", "-c", step["run"]], env=env, capture_output=True,
                             text=True, check=False)
@@ -130,6 +131,17 @@ def test_sync_merges_main_into_a_branch_that_is_behind(tmp_path: Path) -> None:
         f"api -X PUT repos/owner/data/pulls/99/update-branch -f expected_head_sha={HEAD}"
     )
     assert "Requested a merge of main into #99 (2 commits behind)." in result.stdout
+
+
+def test_sync_names_the_open_branch_for_the_recall_dispatch_and_only_then(tmp_path: Path) -> None:
+    result, _ = _run_sync(tmp_path, open_prs=f"99 {HEAD}", behind="0")
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "github-output").read_text(encoding="utf-8") == "pr_branch=research/daily-models\n"
+    quiet = tmp_path / "none"
+    quiet.mkdir()
+    result, _ = _run_sync(quiet, open_prs="")
+    assert result.returncode == 0, result.stderr
+    assert not (quiet / "github-output").exists() or (quiet / "github-output").read_text() == ""
 
 
 def test_sync_leaves_an_up_to_date_branch_alone(tmp_path: Path) -> None:

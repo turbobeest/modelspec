@@ -106,6 +106,17 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}
     runs-on: ubuntu-latest
+    outputs:
+      branch_0: ${{ strategy.job-index == 0 && steps.recall_branch.outputs.branch || '' }}
+      branch_1: ${{ strategy.job-index == 1 && steps.recall_branch.outputs.branch || '' }}
+      branch_2: ${{ strategy.job-index == 2 && steps.recall_branch.outputs.branch || '' }}
+      branch_3: ${{ strategy.job-index == 3 && steps.recall_branch.outputs.branch || '' }}
+      branch_4: ${{ strategy.job-index == 4 && steps.recall_branch.outputs.branch || '' }}
+      branch_5: ${{ strategy.job-index == 5 && steps.recall_branch.outputs.branch || '' }}
+      branch_6: ${{ strategy.job-index == 6 && steps.recall_branch.outputs.branch || '' }}
+      branch_7: ${{ strategy.job-index == 7 && steps.recall_branch.outputs.branch || '' }}
+      branch_8: ${{ strategy.job-index == 8 && steps.recall_branch.outputs.branch || '' }}
+      branch_9: ${{ strategy.job-index == 9 && steps.recall_branch.outputs.branch || '' }}
     permissions:
       contents: write
       pull-requests: write
@@ -497,7 +508,7 @@ jobs:
             {
               echo "Regressed question ids: $REGRESSION_IDS"
               echo
-              printf '%s\n' "The \"Approved answers on private data\" check does not start by itself on a pull request opened by this workflow. Run it by dispatching \"Private production-data recall\" on this branch (or close and reopen the pull request) and merge only when it passes."
+              printf '%s\n' "A follow-up job of this workflow run starts the \"Approved answers on private data\" check on this branch. A comment on this pull request says it started, or says it could not and how to run it by hand. Merge only when it passes."
               echo
               cat "$RUNNER_TEMP/result.json"
             } > "$RUNNER_TEMP/pr-body.md"
@@ -546,6 +557,16 @@ jobs:
               --body-file "$body_file")"
           fi
           echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+      - name: Name the pushed branch for the recall dispatch
+        id: recall_branch
+        if: steps.pr.outputs.url != ''
+        run: |
+          branch="${BRANCH:-}"
+          if [[ "$branch" =~ ^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$ ]] && [[ "$branch" != *..* ]]; then
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::The pushed branch is not one this workflow names, so no recall check is dispatched for it."
+          fi
       - name: Upload the score-only audit table
         if: steps.classify.outputs.score_only == 'true'
         uses: actions/upload-artifact@v4
@@ -643,5 +664,53 @@ jobs:
             --title "release signals needing identity review ($today)" \
             --label new-model \
             --body-file "$RUNNER_TEMP/issue-body.md"
+  recall-dispatch:
+    # MODEL-476: a pull request opened with the repository token starts no pull_request
+    # workflow, so this job starts the recall check on the branch. It alone holds
+    # the actions write permission. It has no checkout, runs no script from a working tree, and its
+    # only input is the pattern-checked branch name from the writer job's output.
+    name: Start the recall check on the pull request branch
+    needs: process
+    if: ${{ !cancelled() && needs.process.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - name: Dispatch the recall workflow on the pull request branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RECALL_WORKFLOW: recall-private.yml
+          BRANCH_PATTERN: '^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$'
+          BRANCHES: ${{ needs.process.outputs.branch_0 }} ${{ needs.process.outputs.branch_1 }} ${{ needs.process.outputs.branch_2 }} ${{ needs.process.outputs.branch_3 }} ${{ needs.process.outputs.branch_4 }} ${{ needs.process.outputs.branch_5 }} ${{ needs.process.outputs.branch_6 }} ${{ needs.process.outputs.branch_7 }} ${{ needs.process.outputs.branch_8 }} ${{ needs.process.outputs.branch_9 }}
+          STARTED_MESSAGE: 'The "Approved answers on private data" check was started on this branch by the workflow run that opened this pull request. Merge only when it passes.'
+          FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
+        run: |
+          set -u
+          failed=0
+          read -r -a names <<< "$BRANCHES"
+          for branch in "${names[@]}"; do
+            if [ "${#branch}" -gt 200 ] || [[ "$branch" == *..* ]] || ! [[ "$branch" =~ $BRANCH_PATTERN ]]; then
+              echo "::error::A branch name did not match this writer's branch pattern. Nothing was dispatched for it."
+              failed=1
+              continue
+            fi
+            if gh workflow run "$RECALL_WORKFLOW" --ref "$branch"; then
+              echo "Started $RECALL_WORKFLOW on $branch." >> "$GITHUB_STEP_SUMMARY"
+              if [ -n "$STARTED_MESSAGE" ]; then
+                gh pr comment "$branch" --body "$STARTED_MESSAGE" \
+                  || echo "::warning::The check was started but the pull request comment could not be posted."
+              fi
+            else
+              echo "::warning::Could not dispatch $RECALL_WORKFLOW on $branch. The fallback text is posted on the pull request."
+              gh pr comment "$branch" --body "$FALLBACK_MESSAGE" \
+                || echo "::warning::The fallback comment could not be posted either."
+              failed=1
+            fi
+          done
+          exit "$failed"
 'on':
   workflow_dispatch: null

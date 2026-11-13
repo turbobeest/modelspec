@@ -186,6 +186,10 @@ jobs:
 
             ${{ steps.stale.outputs.notices }}
 
+            A follow-up job of this workflow run starts the "Approved answers on private data"
+            check on this branch, and again each time main is merged into it. If it cannot,
+            a comment on this pull request says how to run it by hand.
+
             🤖 Opened by the daily research workflow
           path: data
     env:
@@ -206,11 +210,14 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      pr_branch: ${{ steps.update.outputs.pr_branch }}
     permissions:
       contents: write
       pull-requests: write
     steps:
       - name: Merge main into the open research branch, never force-push
+        id: update
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -229,6 +236,7 @@ jobs:
             exit 1
           fi
           read -r number head <<< "$open"
+          echo "pr_branch=$BRANCH" >> "$GITHUB_OUTPUT"
           behind="$(gh api "repos/$REPO/compare/main...$head" --jq .behind_by)"
           if [ "$behind" = 0 ]; then
             echo "#$number already contains main."
@@ -241,6 +249,54 @@ jobs:
             exit 1
           fi
           echo "Requested a merge of main into #$number ($behind commits behind)."
+  recall-dispatch:
+    # MODEL-476: a pull request opened with the repository token starts no pull_request
+    # workflow, so this job starts the recall check on the branch. It alone holds
+    # the actions write permission. It has no checkout, runs no script from a working tree, and its
+    # only input is the pattern-checked branch name from the writer job's output.
+    name: Start the recall check on the pull request branch
+    needs: sync
+    if: ${{ !cancelled() && needs.sync.outputs.pr_branch != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - name: Dispatch the recall workflow on the pull request branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RECALL_WORKFLOW: recall-private.yml
+          BRANCH_PATTERN: '^research/daily-models$'
+          BRANCHES: ${{ needs.sync.outputs.pr_branch }}
+          STARTED_MESSAGE: ''
+          FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
+        run: |
+          set -u
+          failed=0
+          read -r -a names <<< "$BRANCHES"
+          for branch in "${names[@]}"; do
+            if [ "${#branch}" -gt 200 ] || [[ "$branch" == *..* ]] || ! [[ "$branch" =~ $BRANCH_PATTERN ]]; then
+              echo "::error::A branch name did not match this writer's branch pattern. Nothing was dispatched for it."
+              failed=1
+              continue
+            fi
+            if gh workflow run "$RECALL_WORKFLOW" --ref "$branch"; then
+              echo "Started $RECALL_WORKFLOW on $branch." >> "$GITHUB_STEP_SUMMARY"
+              if [ -n "$STARTED_MESSAGE" ]; then
+                gh pr comment "$branch" --body "$STARTED_MESSAGE" \
+                  || echo "::warning::The check was started but the pull request comment could not be posted."
+              fi
+            else
+              echo "::warning::Could not dispatch $RECALL_WORKFLOW on $branch. The fallback text is posted on the pull request."
+              gh pr comment "$branch" --body "$FALLBACK_MESSAGE" \
+                || echo "::warning::The fallback comment could not be posted either."
+              failed=1
+            fi
+          done
+          exit "$failed"
 'on':
   push:
     branches:
