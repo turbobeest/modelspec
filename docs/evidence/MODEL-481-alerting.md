@@ -74,3 +74,61 @@ The next CI run collected. Shard 5 failed `test_shard_timings_cover_the_current_
 ## Not observed
 
 The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls.
+
+## Round 2
+
+Review fixes on the same branch after `8eeecb64`. `origin/main` was merged first. That merge brought MODEL-477 (`317778b4`). Six review commits follow the merge. This note is the commit after those six.
+
+Environment: Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3. Tests ran serially with `env PYTHONPATH=$PWD` and `/Users/terbeest/dev/modelspec/.venv/bin/python`. No network.
+
+### Builder failure
+
+`test_workflow_pins_the_builder_fallback`, `test_alert_survives_a_builder_import_error`, `test_alert_survives_a_report_without_counts`, and both cases of `test_pull_request_bodies_survive_a_fitter_error` failed before the workflow change. The alert step had no fallback sentence. An import error exited 1 with stderr `ImportError: cannot import name alert_comment` and wrote no issue. A report without `counts` exited 1 with `KeyError: 'counts'`. Each pull-request body step exited 1 with `FileNotFoundError` when `report.md` was missing.
+
+After the change, `tests/test_price_reread_alert.py` passed 13 in 3.76s. `tests/test_writer_isolation.py` passed 296 in 9.74s.
+
+### Fact-source pairs
+
+`test_alert_comment_counts_sources_without_cutting_a_row` failed because the by-source header was still `| Source | Status | Facts |`.
+
+The header is now `Fact-source pairs`. The line above that table is `1 alert fact; a fact with several sources is counted under each.` when there is one alert fact, and `alert facts` when there are more. The same file then passed 13 in 3.39s.
+
+### Refused label
+
+`test_a_refused_label_retries_the_issue_without_one` failed. The warnings were `Could not create the alert label.` and `Could not open the alert issue.` The text `HTTP 403 rate limit` was not in either warning.
+
+A real label failure now puts gh's stderr in the `::warning::`. A labelled `gh issue create` that fails is retried once without `--label`. `tests/test_price_reread_alert.py` and `tests/test_writer_isolation.py` then passed 310 in 12.99s.
+
+### Pipes
+
+`test_middle_shortening_escapes_pipes_after_the_cut` failed. A reason of 400 pipes plus `PIPE-TAIL-41823` rendered a row of 6 cells, and the tail was outside the Why cell.
+
+`_show` cuts to 120 characters and then escapes `|`. `tests/test_price_reread_alert.py` and `tests/test_price_reread.py` passed 112 in 5.50s.
+
+### Missing report upload
+
+`test_the_reread_job_uploads_the_report_and_can_label_issues` failed because `if-no-files-found` on the `always()` report upload was `error`. It is now `warn`. The alert file and writer isolation then passed 311 in 12.71s.
+
+### Token, upload, and list failure
+
+`test_gh_steps_set_a_token_and_a_failed_list_opens_nothing` passed on the first run. Every step whose script calls `gh` already set `GH_TOKEN`. A failed `gh issue list` already warned `Could not list open alert issues.` and did not create or comment. The report upload was already `warn`. The alert file then passed 16 in 4.08s.
+
+### Final check before this note
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_price_reread_alert.py tests/test_writer_isolation.py
+```
+
+Exit 0. 312 passed in 13.15s.
+
+### Install
+
+The installed workflow imports `alert_comment` and `fit_pull_request_body` from the engine at the data repository's `.engine-pin`. The pin must move to this merge in the same change that installs the workflow copy. Only `.github/private-writers/price-reread.yml` needs installing. The rendered re-read's alert sync lives in the private repository and is not changed here.
+
+`tests/shard_durations.json` gained one row in `8eeecb64`, `tests/test_price_reread_alert.py` at 1.857 seconds. The shard timing check had failed because that file had no measured duration. This round does not change that file.
+
+Fail a run with alerts is unchanged. This round does not change what counts as an alert.
+
+### Not observed this round
+
+The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls. CI is checked after the push.
