@@ -43,6 +43,13 @@ from typing import Any, Literal
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts.accuracy_public import (  # noqa: E402
+    public_nightly_report,
+    public_report_location,
+)
+
 DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
@@ -1920,6 +1927,10 @@ STAGED_FAILURE = LayerResult(
     "A synthetic failure that proves the alert path (MODEL-231); not a real regression.",
 )
 
+_PRIVATE_RUN_FAILURE = (
+    "accuracy: the run failed before a report was written; details are not published"
+)
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2048,6 +2059,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in result.details:
             print(path)
         return 1 if result.status == "fail" else 0
+    try:
+        return _publish_profile(args)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as exc:
+        if args.private_data_root is None:
+            raise
+        print(f"{_PRIVATE_RUN_FAILURE} ({type(exc).__name__})", file=sys.stderr)
+        return 1
+
+
+def _publish_profile(args: argparse.Namespace) -> int:
     report = run_profile(
         root=args.root,
         config_path=args.config,
@@ -2065,8 +2088,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.stage_failure:
         report = replace(report, layers=(*report.layers, STAGED_FAILURE))
     markdown, payload = write_report(report, args.output_dir)
-    print(markdown.read_text(encoding="utf-8"), end="")
-    print(f"JSON: {payload}")
+    if args.private_data_root is not None:
+        print(public_nightly_report(report), end="")
+        print(public_report_location(args.output_dir))
+    else:
+        print(markdown.read_text(encoding="utf-8"), end="")
+        print(f"JSON: {payload}")
     return 1 if report.status == "fail" else 0
 
 

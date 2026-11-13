@@ -6,64 +6,46 @@ Actions alone notifies no one, and the coverage report's bundled breach issue
 issue for a failing nightly, comments on it each further failing night, and
 closes it on the next green run. This module only writes the text. The
 workflow makes the `gh` calls.
+
+The issue is public. Its body is the public form of the report (layer status,
+gate, and counts) plus where to read the detail. MODELSPEC_DATA_TOKEN cannot
+open an issue in the private repository.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.accuracy_public import public_nightly_report, public_report_location  # noqa: E402
+
 TITLE = "Accuracy nightly failed"
 LABEL = "alert"
+_UNPUBLISHED = (
+    "details are not published; run the nightly profile locally against the private data"
+)
 
 
-def _failing_values(layer: Mapping[str, Any]) -> list[str]:
-    details = layer.get("details")
-    sample = details.get("sample", []) if isinstance(details, Mapping) else []
-    return [
-        f"- `{row['target']}`: {row['outcome']}"
-        + (f" ({row['reason']})" if row.get("reason") else "")
-        + "".join(f"\n  - {url}" for url in row.get("source_urls", []))
-        + "".join(
-            f"\n  - source `{source['source_id']}`; transport `{source.get('transport')}`; "
-            f"HTTP {source.get('http_status')}; error `{source.get('error_category') or 'none'}`; "
-            f"cited copy `{source.get('cited_copy_ref')}`; "
-            f"current copy `{source.get('copy_ref') or 'none'}`"
-            for source in row.get("sources", [])
-        )
-        for row in sample
-        if row.get("outcome") in ("mismatch", "unreachable")
-    ]
-
-
-def body(report: Mapping[str, Any] | None, run_url: str) -> str:
-    """The issue text: which gating layers failed and which values did not verify.
+def body(
+    report: Mapping[str, Any] | None, run_url: str, *, output_dir: Path | None = None,
+) -> str:
+    """The public issue: the layer table, and no per-draw rows.
 
     A missing report (the script crashed before writing one) is still an alert.
     """
+    location = ""
+    if output_dir is not None:
+        location = public_report_location(output_dir) + "\n\n"
     if report is None:
-        return f"The nightly wrote no report: it failed before or during the run.\n\nRun: {run_url}\n"
-    lines = [
-        f"Snapshot `{report.get('snapshot')}`, generated {report.get('generated_at')}.",
-        "",
-        "| Layer | Status | Gate | Summary |",
-        "| --- | --- | --- | --- |",
-    ]
-    failing: list[str] = []
-    for layer in report.get("layers", []):
-        lines.append(
-            f"| {layer['name']} | {layer['status']} | {'yes' if layer['gating'] else 'no'} "
-            f"| {layer['summary']} |"
-        )
-        if layer["gating"] and layer["status"] != "pass":
-            failing.extend(_failing_values(layer))
-    if failing:
-        lines += ["", "Values that did not verify:", "", *failing]
-    lines += ["", f"Run: {run_url}"]
-    return "\n".join(lines) + "\n"
+        return f"the run failed before a report was written\n\n{location}Run: {run_url}\n"
+    table = public_nightly_report(report).rstrip("\n")
+    return f"{table}\n\n{location}{_UNPUBLISHED}\n\nRun: {run_url}\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -73,7 +55,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     report = json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() else None
-    args.output.write_text(body(report, args.run_url), encoding="utf-8")
+    args.output.write_text(
+        body(report, args.run_url, output_dir=args.report.parent), encoding="utf-8",
+    )
     return 0
 
 
