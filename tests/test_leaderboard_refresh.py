@@ -2687,6 +2687,123 @@ def test_a_hyphenated_dataset_name_is_not_the_hand_set_row(
     assert row["model_id_as_evaluated"] == "some-model"
 
 
+@pytest.mark.parametrize("card_effort", ["high", "max"], ids=["card-high", "card-max"])
+def test_hand_set_effort_refuses_when_a_slug_effort_row_exists(
+    monkeypatch, tmp_path: Path, card_effort: str,
+) -> None:
+    """(High) plus a slug max is two effort rows. The card's level does not choose."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort=card_effort,
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (High)"),
+            _renamed_effort_row(
+                "acme-orbit-9-max", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == card_effort
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+
+
+def test_hand_set_effort_refuses_when_a_double_parenthesis_row_exists(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """(Max) plus (Max) (High) is two effort rows. The single parenthesis is not chosen."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="max",
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (Max)"),
+            _renamed_effort_row(
+                "Acme Orbit 9 (Max) (High)", 1400.0,
+                lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+
+
+def test_hand_set_effort_still_writes_the_single_renamed_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Only Acme Orbit 9 (High), with card high, is written. Identity stays."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Acme Orbit 9 (High)",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="high",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_hand_set_effort_ignores_a_different_model_with_the_same_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Acme Orbit 9.1 is another model. The exact Acme Orbit 9 (High) row is written."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="high",
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (High)"),
+            _renamed_effort_row(
+                "Acme Orbit 9.1 (High)", 1500.0, lower=1480.0, upper=1520.0, votes=4444, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert "1500" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
 def test_a_stored_slug_with_no_parenthesis_in_the_dataset_still_verifies(
     monkeypatch, tmp_path: Path,
 ) -> None:

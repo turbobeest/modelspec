@@ -848,11 +848,17 @@ def _plan_observations(
                 continue
             # No effort token in the stored name. One parenthetical row whose
             # stem is that name, and a card effort already equal to it, is the
-            # same row. Two effort rows are never reduced to the card's level.
+            # same row. Any other row in a spelling the effort helpers already
+            # read — one parenthesis, a trailing hyphen or slug token, or
+            # several parentheses — is a second effort row. The card's level
+            # does not choose among them.
             if spelled_effort is None and not hits:
                 parenthetical = _parenthetical_effort_rows(board, stored_name)
                 benchmark = str(evidence.get("benchmark_id"))
-                if len(parenthetical) > 1:
+                if len(parenthetical) > 1 or (
+                    parenthetical
+                    and len(_same_name_effort_rows(board, stored_name)) > 1
+                ):
                     failures.append(RowFailure(
                         model_id, benchmark, board.source_url,
                         "dataset has several effort rows for this name",
@@ -2726,6 +2732,42 @@ def _name_without_parenthetical_effort(name: str) -> tuple[str, str] | None:
     return stem, level
 
 
+def _effort_stem_for_count(name: str) -> str | None:
+    """Normalised stem when ``name`` is that model plus an effort already recognised.
+
+    One effort parenthesis uses ``_name_without_parenthetical_effort``. A trailing
+    hyphen or slug token uses ``_stem_without_trailing_effort``. Several effort
+    parentheses are removed with ``_PARENTHETICAL_EFFORT``. ``(Preview)`` is not an
+    effort token, so it stays in the name. ``(maximum)`` and ``(max effort)`` are
+    outside the token set, so neither is a stem.
+    """
+    parsed = _name_without_parenthetical_effort(name)
+    if parsed is not None:
+        return parsed[0]
+    if len(list(_PARENTHETICAL_EFFORT.finditer(name))) >= 2:
+        return readers.normalise_name(_PARENTHETICAL_EFFORT.sub(" ", name)) or None
+    stem = _stem_without_trailing_effort(name)
+    if stem and stem != readers.normalise_name(name):
+        return stem
+    return None
+
+
+def _same_name_effort_rows(
+    board: BoardReading, stored_name: str,
+) -> list[Mapping[str, Any]]:
+    """Rows that spell ``stored_name`` plus an effort, in any recognised spelling.
+
+    The list is every such row. It does not pick the card's level out of them.
+    """
+    wanted = readers.normalise_name(stored_name)
+    if not wanted:
+        return []
+    return [
+        row for row in board.rows
+        if _effort_stem_for_count(_subject(row)) == wanted
+    ]
+
+
 def _parenthetical_effort_rows(
     board: BoardReading, stored_name: str,
 ) -> list[tuple[Mapping[str, Any], str]]:
@@ -2780,7 +2822,8 @@ def _normalised_name_hits(
 def _stem_without_trailing_effort(name: str) -> str:
     """Normalised name with one trailing effort token removed.
 
-    Used only to refuse a different-effort sibling. Never to choose a row.
+    Used only to refuse a different-effort sibling, including when the hand-set
+    count asks whether a slug spells one. Never to choose a row.
     """
     tokens = readers.normalise_name(name).split()
     if not tokens:
