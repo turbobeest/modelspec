@@ -640,7 +640,8 @@ jobs:
             if grep -q "already exists" "$RUNNER_TEMP/label-create.txt"; then
               true
             else
-              echo "::warning::Could not create the alert label."
+              detail="$(tr '\n' ' ' < "$RUNNER_TEMP/label-create.txt" | tr -d '\r')"
+              echo "::warning::${detail}"
             fi
           fi
           number=""
@@ -650,7 +651,14 @@ jobs:
             gh issue comment "$number" --repo "$REPO" --body-file "$RUNNER_TEMP/issue-body.md" || echo "::warning::Could not comment on the alert issue."
             gh issue edit "$number" --repo "$REPO" --add-label alert || echo "::warning::Could not add the alert label."
           else
-            gh issue create --repo "$REPO" --title "$TITLE" --label alert --body-file "$RUNNER_TEMP/issue-body.md" || echo "::warning::Could not open the alert issue."
+            if ! gh issue create --repo "$REPO" --title "$TITLE" --label alert --body-file "$RUNNER_TEMP/issue-body.md" >"$RUNNER_TEMP/issue-create.txt" 2>&1; then
+              detail="$(tr '\n' ' ' < "$RUNNER_TEMP/issue-create.txt" | tr -d '\r')"
+              echo "::warning::${detail}"
+              if ! gh issue create --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/issue-body.md" >"$RUNNER_TEMP/issue-create-plain.txt" 2>&1; then
+                detail="$(tr '\n' ' ' < "$RUNNER_TEMP/issue-create-plain.txt" | tr -d '\r')"
+                echo "::warning::${detail}"
+              fi
+            fi
           fi
       - name: Fail a run with alerts
         if: steps.result.outputs.alerts != '0'

@@ -260,6 +260,14 @@ gh() {{
     echo 'issue is closed' >&2
     return 1
   fi
+  if [ "$1" = issue ] && [ "$2" = create ] && [ "{mode}" = rate ]; then
+    for arg in "$@"; do
+      if [ "$arg" = --label ]; then
+        echo 'HTTP 403 rate limit' >&2
+        return 1
+      fi
+    done
+  fi
   return 0
 }}
 """
@@ -341,6 +349,16 @@ def test_alert_issue_step_labels_create_and_an_existing_issue(tmp_path: Path, ex
         create = next(call for call in calls if call[:2] == ["issue", "create"])
         assert create[create.index("--label") + 1] == "alert"
         assert not any(call[:2] == ["issue", "edit"] for call in calls)
+
+
+def test_a_refused_label_retries_the_issue_without_one(tmp_path: Path) -> None:
+    result = _run_alert(tmp_path, existing="", mode="rate")
+    assert result.returncode == 0, result.stderr
+    assert "HTTP 403 rate limit" in result.stdout
+    creates = [call for call in _calls(tmp_path) if call[:2] == ["issue", "create"]]
+    assert len(creates) == 2
+    assert "--label" in creates[0]
+    assert "--label" not in creates[1]
 
 
 def test_a_label_failure_warns_and_leaves_the_alert_step_green(tmp_path: Path) -> None:
