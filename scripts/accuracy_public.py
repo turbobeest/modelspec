@@ -7,6 +7,7 @@ the run failed before third-party packages were installed.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 _PUBLIC_STATUS = {
@@ -127,6 +128,14 @@ def _public_layers(report: object):
                 getattr(layer, "counts", None) or {},
                 getattr(layer, "details", None),
             )
+
+
+def public_report_location(output_dir: str | Path) -> str:
+    """Where the full report is, naming the output directory and nothing above it."""
+    return (
+        "The full report is on the machine that ran it, in the output directory "
+        f"{Path(output_dir).name}."
+    )
 
 
 def public_nightly_report(report: object) -> str:

@@ -59,7 +59,7 @@ def test_the_alert_publishes_counts_for_values_that_did_not_verify() -> None:
         "verified": 1, "mismatch": 0, "unreachable": 1, "undetermined": 1,
     }
 
-    text = accuracy_alert.body(report, RUN)
+    text = accuracy_alert.body(report, RUN, output_dir=Path("accuracy-report"))
 
     assert text == (
         "**Overall: FAIL**\n"
@@ -72,12 +72,42 @@ def test_the_alert_publishes_counts_for_values_that_did_not_verify() -> None:
         "undetermined 0; over the undetermined limit: no; "
         "verdicts that differ from the baseline: 0. |\n"
         "\n"
+        "The full report is on the machine that ran it, in the output directory "
+        "accuracy-report.\n"
+        "\n"
         "details are not published; run the nightly profile locally against the private data\n"
         "\n"
         f"Run: {RUN}\n"
     )
     assert "fact:" not in text
     assert "https://x.ai/pricing" not in text
+
+
+def test_the_public_issue_names_only_the_output_directory(tmp_path: Path) -> None:
+    folder = tmp_path / "private-path-sentinel" / "accuracy-report"
+    folder.mkdir(parents=True)
+    report_path = folder / "accuracy.json"
+    report_path.write_text(json.dumps(_report("fail", [])), encoding="utf-8")
+    present = tmp_path / "present.md"
+    missing = tmp_path / "missing.md"
+
+    assert accuracy_alert.main(
+        ["--report", str(report_path), "--run-url", RUN, "--output", str(present)]
+    ) == 0
+    assert accuracy_alert.main(
+        ["--report", str(folder / "missing.json"), "--run-url", RUN, "--output", str(missing)]
+    ) == 0
+
+    for text in (present.read_text(encoding="utf-8"), missing.read_text(encoding="utf-8")):
+        assert "private-path-sentinel" not in text
+        assert str(folder.parent) not in text
+        assert (
+            "The full report is on the machine that ran it, in the output directory "
+            "accuracy-report.\n"
+        ) in text
+    assert missing.read_text(encoding="utf-8").startswith(
+        "the run failed before a report was written\n"
+    )
 
 
 def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
@@ -87,7 +117,12 @@ def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
         ["--report", str(tmp_path / "missing.json"), "--run-url", RUN, "--output", str(out)]
     ) == 0
     assert out.read_text() == (
-        f"the run failed before a report was written\n\nRun: {RUN}\n"
+        "the run failed before a report was written\n"
+        "\n"
+        "The full report is on the machine that ran it, in the output directory "
+        f"{tmp_path.name}.\n"
+        "\n"
+        f"Run: {RUN}\n"
     )
 
 
@@ -153,7 +188,12 @@ def test_the_alert_builder_runs_when_yaml_cannot_be_imported(tmp_path: Path) -> 
     assert "FAIL" in present_text
     assert present_text.endswith(f"Run: {RUN}\n")
     assert missing.read_text(encoding="utf-8") == (
-        f"the run failed before a report was written\n\nRun: {RUN}\n"
+        "the run failed before a report was written\n"
+        "\n"
+        "The full report is on the machine that ran it, in the output directory "
+        f"{tmp_path.name}.\n"
+        "\n"
+        f"Run: {RUN}\n"
     )
 
 
@@ -285,7 +325,7 @@ def test_the_public_issue_lists_mismatch_and_unreachable_counts_only() -> None:
         ],
     }
 
-    text = accuracy_alert.body(report, RUN)
+    text = accuracy_alert.body(report, RUN, output_dir=Path("accuracy-report"))
 
     assert text == (
         "**Overall: FAIL**\n"
@@ -294,6 +334,9 @@ def test_the_public_issue_lists_mismatch_and_unreachable_counts_only() -> None:
         "| --- | --- | --- | --- |\n"
         "| data_fidelity | FAIL | yes | failures 3; mismatches 1; unreachable 2; undetermined 3; "
         "over the undetermined limit: no. |\n"
+        "\n"
+        "The full report is on the machine that ran it, in the output directory "
+        "accuracy-report.\n"
         "\n"
         "details are not published; run the nightly profile locally against the private data\n"
         "\n"

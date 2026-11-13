@@ -45,7 +45,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from scripts.accuracy_public import public_nightly_report  # noqa: E402
+from scripts.accuracy_public import (  # noqa: E402
+    public_nightly_report,
+    public_report_location,
+)
 
 DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
@@ -2087,6 +2090,7 @@ def _publish_profile(args: argparse.Namespace) -> int:
     markdown, payload = write_report(report, args.output_dir)
     if args.private_data_root is not None:
         print(public_nightly_report(report), end="")
+        print(public_report_location(args.output_dir))
     else:
         print(markdown.read_text(encoding="utf-8"), end="")
         print(f"JSON: {payload}")

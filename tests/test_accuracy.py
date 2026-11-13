@@ -2244,8 +2244,39 @@ def test_a_failing_private_nightly_exits_non_zero_with_a_failing_public_form(
     captured = capsys.readouterr()
 
     assert code == 1
-    _assert_public_text(captured.out)
+    location = (
+        "The full report is on the machine that ran it, in the output directory out.\n"
+    )
+    assert captured.out == _PUBLIC_NIGHTLY + location
+    _assert_public_text(_PUBLIC_NIGHTLY)
+    for secret in _PRIVATE_FIELDS:
+        assert secret not in captured.out
     assert _PRIVATE_FACT in (tmp_path / "out" / "accuracy.json").read_text()
+
+
+def test_private_stdout_names_only_the_output_directory(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+    output = tmp_path / "private-path-sentinel" / "accuracy-report"
+
+    code = accuracy.main([
+        "--profile", "nightly",
+        "--private-data-root", str(tmp_path / "private"),
+        "--output-dir", str(output),
+        "--date", "2026-11-12",
+    ])
+    text = capsys.readouterr().out
+
+    assert code == 1
+    assert "private-path-sentinel" not in text
+    assert str(output.parent) not in text
+    assert text.endswith(
+        "The full report is on the machine that ran it, in the output directory "
+        "accuracy-report.\n"
+    )
+    _assert_public_text(text[: text.index("The full report is")])
 
 
 _TRACEBACK_SENTINEL = "private-traceback-sentinel-483"

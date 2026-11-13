@@ -23,7 +23,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.accuracy_public import public_nightly_report  # noqa: E402
+from scripts.accuracy_public import public_nightly_report, public_report_location  # noqa: E402
 
 TITLE = "Accuracy nightly failed"
 LABEL = "alert"
@@ -32,15 +32,20 @@ _UNPUBLISHED = (
 )
 
 
-def body(report: Mapping[str, Any] | None, run_url: str) -> str:
+def body(
+    report: Mapping[str, Any] | None, run_url: str, *, output_dir: Path | None = None,
+) -> str:
     """The public issue: the layer table, and no per-draw rows.
 
     A missing report (the script crashed before writing one) is still an alert.
     """
+    location = ""
+    if output_dir is not None:
+        location = public_report_location(output_dir) + "\n\n"
     if report is None:
-        return f"the run failed before a report was written\n\nRun: {run_url}\n"
+        return f"the run failed before a report was written\n\n{location}Run: {run_url}\n"
     table = public_nightly_report(report).rstrip("\n")
-    return f"{table}\n\n{_UNPUBLISHED}\n\nRun: {run_url}\n"
+    return f"{table}\n\n{location}{_UNPUBLISHED}\n\nRun: {run_url}\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,7 +55,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     report = json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() else None
-    args.output.write_text(body(report, args.run_url), encoding="utf-8")
+    args.output.write_text(
+        body(report, args.run_url, output_dir=args.report.parent), encoding="utf-8",
+    )
     return 0
 
 
