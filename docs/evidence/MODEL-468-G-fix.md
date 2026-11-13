@@ -78,3 +78,33 @@ Serial pytest on the project interpreter, no xdist, each exit 0:
 | tests/test_writer_isolation.py | 296 passed in 8.82s |
 | tests/test_accuracy.py | 105 passed in 8.98s |
 | tests/test_release_signals.py | 241 passed in 2.37s |
+
+## Round 4
+
+Started from `ece7ec87`, then merged `origin/main` at `2a1fb352`. Python 3.14.4. pytest 9.1.1. No Firecrawl. No vendor API.
+
+`data-pr` gates on deterministic correctness and the Python output-parity suites `tests/test_decide_worker.py` and `tests/test_decide_page_specs.py`. A data change is scored by those suites. Vitest output parity is recorded and does not gate. Frozen-image engine recall is recorded and does not gate. The engine CI scores the committed public image. Approved-answer comparison runs after the MODEL-160 report and before the push.
+
+A regression with `--step-output` exits 0 and writes `regressed` and `regression_ids`. A regression without `--step-output` exits 1. The workflow passes `--step-output`, so the job still exits 0 and the signal is acknowledged.
+
+On an open pull request, a regression runs `gh pr ready --undo`, reads the title with `gh pr view --json title`, adds the `ANSWERS REGRESS: ` prefix when the title does not already start with it, then comments. If one of those `gh` calls fails, the step exits non-zero and prints `::error::` naming the pull request. The branch push has already happened. A recheck that did not regress only comments. It leaves draft state and the title alone.
+
+The regress body says the "Approved answers on private data" check does not start by itself on a pull request this workflow opens. Run it by dispatching "Private production-data recall" on this branch, or close and reopen the pull request, and merge only when it passes.
+
+Two JSON reports in the recall directory exit non-zero. The message is `::error::Private recall inputs could not be validated: expected one report.`
+
+`test_run_golden_reads_data_that_stays_inside_the_root` still calls `run_golden`, which reads the catalogue inside the root. The test stays.
+
+### Red, then green
+
+| Item | Red | Green |
+| --- | --- | --- |
+| Open regression | 7 failed, 1 passed. Open mode only ran `gh pr comment`. | The open-mode tests passed, including four `gh` failure cases. `tests/test_release_signals.py` then 249 passed. |
+| Step outputs | The comparison step id was already `approved`. The pull-request env already read `steps.approved.outputs.regressed` and `steps.approved.outputs.regression_ids`. The new pin passed on that wiring. | Same test, 1 passed. |
+| No listener | Four tests expected exit 1 and got 0. The `--step-output` test still passed. | Nine `compare_approved` tests passed. |
+| Check text | Four tests still saw the line that the check must pass before merge. | Those tests passed after the body line changed. |
+| Two reports | The message was the generic validation line, without `expected one report`. | The two-report test and the other compare tests passed. |
+
+Final serial run, no xdist, exit 0: `tests/test_writer_isolation.py`, `tests/test_accuracy.py`, and `tests/test_release_signals.py`. 652 passed in 20.22s.
+
+Not observed: a live run of the private release-signals workflow, a dispatch of "Private production-data recall", or `gh pr ready --undo` against a real data-repository pull request.
