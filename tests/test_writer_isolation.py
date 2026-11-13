@@ -160,7 +160,7 @@ _COMMANDS = frozenset({
     "git", "gh", "jq", "curl", "echo", "printf", "test", "[", "[[",
     "mkdir", "cat", "cp", "rm", "ln", "date", "base64", "grep", "head",
     "tee", "find", "realpath", "openssl", "sed", "awk", "wc", "sort",
-    "tr", "cut", "basename", "dirname", "npm",
+    "tr", "cut", "basename", "dirname", "npm", "sleep",
 })
 _FIND_RUN = frozenset({"-exec", "-execdir", "-ok", "-okdir", "-delete"})
 _GIT_SUBS = frozenset({

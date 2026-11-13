@@ -49,6 +49,7 @@
   "tests/test_card_stats_workflow.py": 0.016,
   "tests/test_card_yaml_roundtrip.py": 0.134,
   "tests/test_cdp_auth.py": 0.173,
+  "tests/test_cf_move.py": 0.37,
   "tests/test_chart_check_pr.py": 10.679,
   "tests/test_chart_fixtures.py": 175.195,
   "tests/test_ci_workflows.py": 1.171,
@@ -278,6 +279,7 @@
   "tests/test_read_refunds.py": 0.056,
   "tests/test_reader_regressions.py": 0.302,
   "tests/test_reader_table_boundaries.py": 0.01,
+  "tests/test_recall_dispatch.py": 3.611,
   "tests/test_redact_json.py": 0.005,
   "tests/test_reference_access.py": 0.015,
   "tests/test_reference_agent_entry.py": 0.004,
@@ -367,5 +369,6 @@
   "tests/test_xai_capture_retired.py": 0.135,
   "tests/test_xai_consumer_citations.py": 0.171,
   "tests/test_xai_consumer_lineup.py": 1.338,
-  "tests/test_xai_matrix_reader.py": 0.903
+  "tests/test_xai_matrix_reader.py": 0.903,
+  "tests/test_yaml_loading.py": 2.428
 }

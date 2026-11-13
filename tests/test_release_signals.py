@@ -2133,9 +2133,9 @@ def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, 
 
 _OPEN_PR_URL = "https://github.com/turbobeest/modelspec-data/pull/41"
 _REGRESS_CHECK_LINE = (
-    'The "Approved answers on private data" check does not start by itself on a pull request '
-    'opened by this workflow. Run it by dispatching "Private production-data recall" on this '
-    "branch (or close and reopen the pull request) and merge only when it passes.\n"
+    'A follow-up job of this workflow run starts the "Approved answers on private data" check '
+    'on this branch. A comment on this pull request says it started, or says it could not and '
+    "how to run it by hand. Merge only when it passes.\n"
 )
 
 
