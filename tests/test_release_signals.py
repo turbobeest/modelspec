@@ -1951,7 +1951,7 @@ def test_the_process_job_gates_on_approved_private_answers_before_push() -> None
     run = step["run"]
     assert "python -I -m scripts.recall_run" not in run
     assert "scripts/recall_run.py" not in run
-    assert "|| true" not in run
+    assert "||" not in run
     assert "python -I -m scripts.accuracy --compare-approved-answers" in run
     assert "reports/recall/check.py" not in run
     assert '--report-dir "$RUNNER_TEMP/recall"' in run
