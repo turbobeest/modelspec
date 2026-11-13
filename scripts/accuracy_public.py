@@ -16,13 +16,23 @@ _PUBLIC_STATUS = {
     "undetermined": "UNDETERMINED",
 }
 
+PUBLIC_LAYER_NAMES = frozenset({
+    "data_fidelity",
+    "deterministic_correctness",
+    "freshness",
+    "frozen_image_engine_recall",
+    "output_parity",
+    "output_parity_web",
+    "recall_approval",
+    "reference_agreement",
+    "staged_failure",
+})
+
 
 def _public_layer_name(name: object) -> str:
-    text = name if isinstance(name, str) else ""
-    allowed = bool(text) and all(
-        character.islower() or character.isdigit() or character == "_" for character in text
-    )
-    return text if allowed else "layer"
+    if isinstance(name, str) and name in PUBLIC_LAYER_NAMES:
+        return name
+    return "layer"
 
 
 def _stored_count(counts: Mapping[str, Any], key: str) -> int | None:

@@ -2122,6 +2122,35 @@ def _assert_public_text(text: str) -> None:
     assert "evidence:" not in text
 
 
+def test_a_hex_layer_name_is_printed_as_layer() -> None:
+    digest_40 = "ab" * 20
+    digest_64 = "cd" * 32
+    report = {
+        "status": "pass",
+        "layers": [
+            {"name": digest_40, "status": "pass", "gating": False, "counts": {}},
+            {"name": digest_64, "status": "pass", "gating": False, "counts": {}},
+            {"name": "data_fidelity", "status": "pass", "gating": True, "counts": {}},
+        ],
+    }
+
+    text = accuracy.public_nightly_report(report)
+
+    assert digest_40 not in text
+    assert digest_64 not in text
+    assert "| data_fidelity |" in text
+    assert text.count("| layer |") == 2
+
+
+def test_public_layer_names_are_the_names_the_code_defines() -> None:
+    from scripts import accuracy_public
+
+    defined = {name for names in accuracy.PROFILES.values() for name in names}
+    defined.update({"output_parity_web", "recall_approval", "staged_failure"})
+
+    assert accuracy_public.PUBLIC_LAYER_NAMES == defined
+
+
 def test_public_nightly_report_keeps_counts_and_drops_private_fields() -> None:
     report = _private_nightly_report()
 
