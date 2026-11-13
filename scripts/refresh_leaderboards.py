@@ -2346,6 +2346,9 @@ def _changed_figures_are_the_reading(
 ) -> bool:
     """A changed number is the after row's own figure, a rank, or a date on that row.
 
+    A date after the standalone word ``read`` may change only to the row's
+    observed date. ``re-read`` is not that word. Any other changed date may
+    become the row's evidence date, observed date, or verified date.
     Removing the snapshot sentence counts only when the quoted publish date
     changed. The same removal with the publish date left in place does not.
     """
@@ -2362,18 +2365,34 @@ def _changed_figures_are_the_reading(
             continue
         if new not in _printed_forms(old, after):
             return False
-    old_dates = _standalone_date_strings(before)
-    new_dates = _standalone_date_strings(after_text)
+    old_dates = _standalone_date_matches(before)
+    new_dates = _standalone_date_matches(after_text)
     if len(old_dates) != len(new_dates):
         return False
+    read_spans = [match.span() for match in _READ_DATE.finditer(before)]
+    observed = _iso_day(after.get("observed_at"))
     allowed = {
         day for day in (
             _iso_day(after.get("evidence_date")),
-            _iso_day(after.get("observed_at")),
+            observed,
             _iso_day(after.get("verified_at")),
         ) if day
     }
-    return all(old == new or new in allowed for old, new in zip(old_dates, new_dates, strict=True))
+    for old_match, new_match in zip(old_dates, new_dates, strict=True):
+        old, new = old_match.group(1), new_match.group(1)
+        if old == new:
+            continue
+        follows_read = any(
+            left <= old_match.start() and old_match.end() <= right
+            for left, right in read_spans
+        )
+        if follows_read:
+            if new != observed:
+                return False
+            continue
+        if new not in allowed:
+            return False
+    return True
 
 
 def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
@@ -2405,9 +2424,10 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     ``configuration`` may change only when the two strings match after dates,
     hex strings and numbers are masked, every character outside a checked
     number token and a standalone ISO date is byte-identical, and every
-    changed number is the after row's score, an interval bound, ``n``, a date on that row,
-    or the number after ``rank``. The date in ``read <date>`` beside the
-    publish date may become the row's observed date, and the sentence ``The
+    changed number is the after row's score, an interval bound, ``n``, or the
+    number after ``rank``. A date after the standalone word ``read`` may
+    become only the row's observed date. Any other changed date may become
+    the row's evidence date, observed date, or verified date. The sentence ``The
     live arena.ai board read <date> still shows this snapshot (same vote
     counts).`` may be removed when the quoted publish date changed. A changed
     word elsewhere still fails. A digit glued to a letter, a hex string,

@@ -3220,12 +3220,15 @@ benchmarks:
 
 
 def _arena_read_date_cards(tmp_path: Path, after_sentence: str, *, evidence_date: str,
-                           observed_at: str) -> tuple[str, str]:
+                           observed_at: str, snapshot: bool = True) -> tuple[str, str]:
     before_sentence = (
-        "leaderboard_publish_date 2026-09-13, read 2026-09-24. Rank 4, 1000 votes. "
-        "The live arena.ai board read 2026-09-24 still shows this snapshot "
-        "(same vote counts)."
+        "leaderboard_publish_date 2026-09-13, read 2026-09-24. Rank 4, 1000 votes."
     )
+    if snapshot:
+        before_sentence += (
+            " The live arena.ai board read 2026-09-24 still shows this snapshot "
+            "(same vote counts)."
+        )
     before_text = _arena_guard_card("2026-09-13").replace(
         "    date_type: published\n",
         f"    date_type: published\n    configuration: {before_sentence}\n",
@@ -3241,6 +3244,36 @@ def _arena_read_date_cards(tmp_path: Path, after_sentence: str, *, evidence_date
         "    n: 2222\n    id: lab/model#stable\n",
     ).replace(before_sentence, after_sentence)
     return before_text, after_text
+
+
+def test_score_only_check_accepts_a_read_date_that_becomes_the_observed_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+        snapshot=False,
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_read_date_that_becomes_the_evidence_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path / "evidence-date",
+        "leaderboard_publish_date 2026-11-02, read 2026-11-02. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+        snapshot=False,
+    )
+    result = _guard_result(tmp_path / "evidence-date", before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_score_only_check_accepts_a_retold_read_date_and_a_removed_snapshot_sentence(
