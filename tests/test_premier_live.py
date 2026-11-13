@@ -15,6 +15,8 @@ from tests.snapshot_records import SOURCES, evidence, fact
 
 TODAY = date(2026, 10, 4)
 BENCH = "terminal_bench_v4_0"
+ARENA_ROOT = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+ARENA_BENCH = "arena_elo_style_control"
 
 
 def write_yaml(path, value):
@@ -674,3 +676,197 @@ def test_over_quota_count_skips_a_top10_another_clause_keeps(tmp_path, monkeypat
     assert cut["counts"]["over_quota_top10"] == 0
     reasons = {row["model_id"]: row["why"] for row in cut["near_misses"]}
     assert reasons["lab/old-extra"] == _QUOTA_WHY
+
+
+def arena_evidence(mid, score, day, *, bench=ARENA_BENCH):
+    """One Arena dataset-root reading on a slice-1 Arena board."""
+    return evidence(mid, bench, score, day=day, source_url=ARENA_ROOT)
+
+
+def _arena_board_row(model_id, score, day, *, name=None):
+    return {
+        "model_id": model_id,
+        "name": name or model_id,
+        "score": score,
+        "date": day,
+        "benchmark_id": ARENA_BENCH,
+        "source_url": ARENA_ROOT,
+    }
+
+
+def _propose(root, *extra):
+    output, diff = root.parent / "proposal.yaml", root.parent / "diff.json"
+    command = [
+        sys.executable, str(Path(premier_slice1.__file__)),
+        "--data-dir", str(root), "--as-of", TODAY.isoformat(),
+        "--output", str(output), "--diff", str(diff), *extra,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result, output, diff
+
+
+def test_the_proposer_refuses_an_arena_mixed_top_10(tmp_path):
+    """Arena rows that mix in the top 10 exit 3 and name that board's counts."""
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    write_card(root, "lab/arena-a", rows=[arena_evidence("lab/arena-a", 90, "2026-09-13")])
+    write_card(root, "lab/arena-b", rows=[arena_evidence("lab/arena-b", 80, "2026-10-01")])
+    for number in range(10):
+        mid = f"lab/eval-{number:02d}"
+        write_card(
+            root, mid,
+            rows=[evidence(mid, BENCH, 70 - number, day=f"2026-01-{number + 1:02d}")],
+        )
+    result, output, diff = _propose(root)
+
+    assert result.returncode == 3
+    assert "refusing a mixed top 10" in result.stderr
+    assert "arena-text: 1 at 2026-09-13, 1 at 2026-10-01" in result.stderr
+    assert "terminal-bench-4.0" not in result.stderr
+    for board_id in (
+        "epoch-frontiermath-tiers-1-3-v2",
+        "epoch-gpqa-diamond",
+        "epoch-swe-bench-verified",
+        "scale-hle",
+        "swe-bench-pro",
+    ):
+        assert board_id not in result.stderr
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+    assert not output.exists()
+    assert not diff.exists()
+
+
+def test_a_non_arena_board_with_ten_evaluation_dates_does_not_block(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(10):
+        mid = f"lab/eval-{number:02d}"
+        write_card(
+            root, mid,
+            rows=[evidence(mid, BENCH, 100 - number, day=f"2026-01-{number + 1:02d}")],
+        )
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert "lab/eval-00" in {row["model_id"] for row in document["models"]}
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    assert "refusing" not in result.stderr
+    assert "terminal-bench-4.0" not in result.stderr
+    assert output.exists()
+    assert diff.exists()
+
+
+def test_a_changed_membership_check_still_exits_1(tmp_path):
+    """``--check`` keeps exit 1 for a membership change. Mixed boards use 3."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    result, _output, _diff = _propose(root, "--check")
+
+    assert result.returncode == 1
+    assert "refusing" not in result.stderr
+
+
+def test_the_proposer_accepts_a_uniform_top_10(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    write_card(root, "lab/other", rows=[evidence("lab/other", BENCH, 80, day="2026-09-13")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert {row["model_id"] for row in document["models"]} >= {"lab/leader", "lab/other"}
+
+
+def test_allow_mixed_boards_still_proposes(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    write_card(root, "lab/arena-a", rows=[arena_evidence("lab/arena-a", 90, "2026-09-13")])
+    write_card(root, "lab/arena-b", rows=[arena_evidence("lab/arena-b", 80, "2026-10-01")])
+    result, output, diff = _propose(root, "--allow-mixed-boards")
+
+    assert result.returncode == 0, result.stderr
+    assert output.exists()
+    assert diff.exists()
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+
+
+def test_an_arena_board_with_older_dates_only_below_the_top_10_does_not_block(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, "2026-09-13")])
+    for number in range(2):
+        mid = f"lab/tail-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, number, "2026-10-01")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert "lab/top-00" in {row["model_id"] for row in document["models"]}
+    assert "lab/tail-00" not in {row["model_id"] for row in document["models"]}
+
+
+def test_a_mixed_date_inside_the_top_10_refuses(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        day = "2026-10-01" if number == 0 else "2026-09-13"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, day)])
+    write_card(root, "lab/tail", rows=[arena_evidence("lab/tail", 1, "2026-09-13")])
+
+    with pytest.raises(premier_slice1.MixedBoards, match="arena-text"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_lower_is_better_top_10_uses_the_low_scores(tmp_path):
+    """The ten highest scores share a date. The ten lowest do not."""
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH, direction="lower_is_better")
+    for number in range(10):
+        mid = f"lab/high-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, "2026-09-13")])
+    write_card(root, "lab/low-a", rows=[arena_evidence("lab/low-a", 1, "2026-09-13")])
+    write_card(root, "lab/low-b", rows=[arena_evidence("lab/low-b", 2, "2026-10-01")])
+
+    with pytest.raises(premier_slice1.MixedBoards, match="arena-text"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_dateless_seat_does_not_count_as_a_second_publish_date():
+    rows = [
+        _arena_board_row(f"lab/{number:02d}", 100 - number, "2026-09-13")
+        for number in range(9)
+    ]
+    rows.append(_arena_board_row("lab/blank", 50, ""))
+    rows.append(_arena_board_row("lab/tail", 1, "2026-10-01"))
+    board = {"id": "arena-text", "direction": "higher_is_better", "rows": rows}
+
+    assert premier_slice1.mixed_publish_dates(board) is None
+
+
+def test_mixed_publish_dates_names_the_arena_board_and_the_counts():
+    board = {
+        "id": "arena-text",
+        "direction": "higher_is_better",
+        "rows": [
+            _arena_board_row("lab/a", 3, "2026-09-13"),
+            _arena_board_row("lab/b", 2, "2026-09-13"),
+            _arena_board_row("lab/c", 1, "2026-10-01"),
+        ],
+    }
+    other = {
+        "id": "terminal-bench-4.0",
+        "direction": "higher_is_better",
+        "rows": [
+            {"model_id": "lab/a", "score": 3, "date": "2026-09-13"},
+            {"model_id": "lab/b", "score": 2, "date": "2026-09-13"},
+            {"model_id": "lab/c", "score": 1, "date": "2026-10-01"},
+        ],
+    }
+
+    assert premier_slice1.mixed_publish_dates(board) == (
+        "arena-text: 2 at 2026-09-13, 1 at 2026-10-01"
+    )
+    assert premier_slice1.mixed_publish_dates(other) is None
