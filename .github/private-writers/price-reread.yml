@@ -522,8 +522,10 @@ jobs:
           if-no-files-found: ignore
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          if ! python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY' 2>"$RUNNER_TEMP/pr-body.err"
           import sys
           from pathlib import Path
           from scripts.price_reread import fit_pull_request_body
@@ -539,6 +541,11 @@ jobs:
           )
           Path(body_path).write_text(fit_pull_request_body(opening + report), encoding="utf-8")
           PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/pr-body.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/pr-body.md"
+          fi
       - name: Open the re-read pull request
         if: inputs.dry_run != true && steps.result.outputs.changes != '0'
         uses: peter-evans/create-pull-request@v7
@@ -568,8 +575,10 @@ jobs:
           echo "log_only=true" >> "$GITHUB_OUTPUT"
       - name: Fit the reconfirmation pull-request body
         if: steps.reconfirm.outputs.log_only == 'true'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/reconfirm-body.md" <<'PY'
+          if ! python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/reconfirm-body.md" <<'PY' 2>"$RUNNER_TEMP/reconfirm-body.err"
           import sys
           from pathlib import Path
           from scripts.price_reread import fit_pull_request_body
@@ -578,6 +587,11 @@ jobs:
           report = Path(report_path).read_text(encoding="utf-8")
           Path(body_path).write_text(fit_pull_request_body(report), encoding="utf-8")
           PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/reconfirm-body.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/reconfirm-body.md"
+          fi
       - name: Open the reconfirmation pull request
         if: steps.reconfirm.outputs.log_only == 'true'
         uses: peter-evans/create-pull-request@v7
@@ -607,7 +621,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          python -I - "$RUNNER_TEMP/report.json" "$RUNNER_TEMP/issue-body.md" "$RUN_URL" <<'PY'
+          if ! python -I - "$RUNNER_TEMP/report.json" "$RUNNER_TEMP/issue-body.md" "$RUN_URL" <<'PY' 2>"$RUNNER_TEMP/alert-build.err"
           import json
           import sys
           from pathlib import Path
@@ -617,6 +631,11 @@ jobs:
           payload = json.loads(Path(report_path).read_text(encoding="utf-8"))
           Path(body_path).write_text(alert_comment(payload, run_url), encoding="utf-8")
           PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/alert-build.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nthe alert summary could not be built\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
+          fi
           if ! gh label create alert --repo "$REPO" --color B60205 --description "A scheduled re-read needs a person" >"$RUNNER_TEMP/label-create.txt" 2>&1; then
             if grep -q "already exists" "$RUNNER_TEMP/label-create.txt"; then
               true

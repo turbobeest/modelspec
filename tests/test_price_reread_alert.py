@@ -223,6 +223,10 @@ def test_the_reread_job_uploads_the_report_and_can_label_issues() -> None:
 def _gh_stub(mode: str) -> str:
     return f"""\
 python() {{
+  if [ "{mode}" = builder ]; then
+    echo 'ImportError: cannot import name alert_comment' >&2
+    return 1
+  fi
   if [ "$1" = "-I" ]; then
     shift
   fi
@@ -289,6 +293,25 @@ def _calls(tmp_path: Path) -> list[list[str]]:
     return [json.loads(line) for line in lines if line]
 
 
+def _run_step(name: str, tmp_path: Path, mode: str) -> subprocess.CompletedProcess[str]:
+    (tmp_path / "gh-calls").write_text("", encoding="utf-8")
+    step = _step(name)
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(ROOT),
+        "RUNNER_TEMP": str(tmp_path),
+        "REPO": "example/repo",
+        "TITLE": TITLE,
+        "RUN_URL": RUN_URL,
+        "GH_TOKEN": "fixture",
+        "EXISTING_ISSUE": "",
+    }
+    return subprocess.run(
+        ["bash", "-c", _gh_stub(mode) + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+
 @pytest.mark.parametrize("existing", ["", "17"])
 def test_alert_issue_step_labels_create_and_an_existing_issue(tmp_path: Path, existing: str) -> None:
     result = _run_alert(tmp_path, existing=existing, mode="ok")
@@ -328,3 +351,59 @@ def test_a_label_failure_warns_and_leaves_the_alert_step_green(tmp_path: Path) -
     assert closed.returncode == 0, closed.stderr
     assert "::warning::" in closed.stdout
     assert any(call[:2] == ["issue", "comment"] for call in _calls(tmp_path))
+
+
+def test_workflow_pins_the_builder_fallback() -> None:
+    alert = _step("Open or update the alert issue")["run"]
+    assert "the alert summary could not be built" in alert
+    assert "price-reread-report" in alert
+    assert "::warning::" in alert
+    for name in ("Prepare the pull-request body", "Fit the reconfirmation pull-request body"):
+        step = _step(name)
+        assert "::warning::" in step["run"]
+        assert "price-reread-report" in step["run"]
+        assert "RUN_URL" in step["run"]
+        assert step["env"]["RUN_URL"]
+
+
+def test_alert_survives_a_builder_import_error(tmp_path: Path) -> None:
+    (tmp_path / "report.json").write_text("{}", encoding="utf-8")
+    result = _run_step("Open or update the alert issue", tmp_path, "builder")
+    assert result.returncode == 0, result.stderr
+    text = (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+    assert f"Run: {RUN_URL}" in text
+    assert "the alert summary could not be built" in text
+    assert "price-reread-report" in text
+    assert "ImportError: cannot import name alert_comment" in result.stdout
+    assert any(call[:2] == ["issue", "create"] for call in _calls(tmp_path))
+
+
+def test_alert_survives_a_report_without_counts(tmp_path: Path) -> None:
+    (tmp_path / "report.json").write_text(
+        json.dumps({"alerts": [{"sources": ["source-a"], "status": "unreadable"}]}),
+        encoding="utf-8",
+    )
+    result = _run_step("Open or update the alert issue", tmp_path, "ok")
+    assert result.returncode == 0, result.stderr
+    text = (tmp_path / "issue-body.md").read_text(encoding="utf-8")
+    assert f"Run: {RUN_URL}" in text
+    assert "the alert summary could not be built" in text
+    assert "price-reread-report" in text
+    assert "KeyError" in result.stdout
+    assert any(call[:2] == ["issue", "create"] for call in _calls(tmp_path))
+
+
+@pytest.mark.parametrize("name,body_name", [
+    ("Prepare the pull-request body", "pr-body.md"),
+    ("Fit the reconfirmation pull-request body", "reconfirm-body.md"),
+])
+def test_pull_request_bodies_survive_a_fitter_error(
+    tmp_path: Path, name: str, body_name: str,
+) -> None:
+    result = _run_step(name, tmp_path, "ok")
+    assert result.returncode == 0, result.stderr
+    text = (tmp_path / body_name).read_text(encoding="utf-8")
+    assert f"Run: {RUN_URL}" in text
+    assert "price-reread-report" in text
+    assert "::warning::" in result.stdout
+    assert "FileNotFoundError" in result.stdout
