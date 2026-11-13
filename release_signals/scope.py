@@ -141,9 +141,28 @@ _TASK_TAGS_THAT_KEEP = frozenset({
     "text-ranking",
 })
 
+# Whole tags for an interpretability tool. Matched after `_artefact_key`.
+_ARTEFACT_TAGS = frozenset({
+    "interpretability",
+    "mechanistic-interpretability",
+    "transcoder",
+    "cross-layer-transcoder",
+    "sparse-autoencoder",
+    "sparse-autoencoders",
+    "sae",
+    "saelens",
+    "sae-lens",
+    "crosscoder",
+})
+
 
 def _folded(value: str) -> str:
     return value.strip().casefold()
+
+
+def _artefact_key(value: str) -> str:
+    """The existing fold, then an underscore is the same mark as a hyphen."""
+    return _folded(value).replace("_", "-")
 
 
 def out_of_scope_pipeline_tag(tag: str) -> bool:
@@ -225,8 +244,20 @@ def _keeping_task_tag(tags: Sequence[str]) -> str | None:
     return None
 
 
+def _artefact_tag(tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text and _artefact_key(text) in _ARTEFACT_TAGS:
+            return text
+    return None
+
+
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
     """Scope from the pipeline tag. With none, the name rules decide.
+
+    An interpretability artefact tag is out of scope when the pipeline tag is
+    absent or feature-extraction. That check runs before a keeping task tag
+    can keep the repository. Any other pipeline tag leaves the row in scope.
 
     An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
     the tag itself. An out-of-scope pipeline tag is filed when the tag list
@@ -234,6 +265,13 @@ def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision
     only when it is out of scope and no in-scope task tag is present.
     """
     primary = _text(pipeline_tag) or ""
+    artefact = _artefact_tag(tags)
+    if artefact is not None and (
+        not primary or _artefact_key(primary) == "feature-extraction"
+    ):
+        return TagDecision(
+            True, f"interpretability artefact (tag: {artefact})", artefact,
+        )
     if primary:
         if out_of_scope_pipeline_tag(primary):
             keeper = _keeping_task_tag(tags)
@@ -305,7 +343,10 @@ def reported_base_model(repository: str, candidates: Sequence[str]) -> str | Non
 def relevant_hub_tags(
     tags: object, library_name: object, pipeline_tag: str | None,
 ) -> tuple[str, ...]:
-    """Library, `base_model:*` tags, and task tags. Licence and language tags stay off."""
+    """Library, base-model tags, task tags, and interpretability artefact tags.
+
+    Licence and language tags stay off.
+    """
     kept: list[str] = []
 
     def add(value: str) -> None:
@@ -322,7 +363,12 @@ def relevant_hub_tags(
         text = _text(tag)
         if text is None:
             continue
-        if text.startswith("base_model:") or known_pipeline_tag(text) or _folded(text) == declared:
+        if (
+            text.startswith("base_model:")
+            or known_pipeline_tag(text)
+            or _folded(text) == declared
+            or _artefact_key(text) in _ARTEFACT_TAGS
+        ):
             add(text)
     return tuple(kept)
 

@@ -16,8 +16,10 @@ from release_signals.scope import (
     OUT_OF_SCOPE_PIPELINE_TAGS,
     TagDecision,
     derivative_reason,
+    hub_metadata,
     known_pipeline_tag,
     out_of_scope_reason,
+    relevant_hub_tags,
     tag_scope,
 )
 from release_signals.watch import ROOT, Seen, Source, load_registry
@@ -409,3 +411,143 @@ def test_catalogue_cards_under_huggingface_labs_stay_in_scope() -> None:
         "acme-lab/pong", "pong", pipeline_tag="reinforcement-learning",
     ) == "reinforcement-learning"
     assert _catalogue_scope_rejections() == _CATALOGUE_SCOPE_EXCEPTIONS
+
+
+# Whole tags only. Matched after the same fold the scope module already uses.
+_INTERPRETABILITY_ARTEFACT_TAGS = (
+    "interpretability",
+    "mechanistic-interpretability",
+    "transcoder",
+    "cross-layer-transcoder",
+    "sparse-autoencoder",
+    "sparse-autoencoders",
+    "sae",
+    "saelens",
+    "sae-lens",
+    "crosscoder",
+)
+
+
+def _artefact(tag: str) -> TagDecision:
+    return TagDecision(True, f"interpretability artefact (tag: {tag})", tag)
+
+
+@pytest.mark.parametrize("tag", _INTERPRETABILITY_ARTEFACT_TAGS)
+def test_interpretability_artefact_tags_are_out_of_scope(tag: str) -> None:
+    decision = _artefact(tag)
+    assert tag_scope("feature-extraction", (tag,)) == decision
+    assert tag_scope(None, (tag,)) == decision
+    assert tag_scope("", (tag,)) == decision
+    assert tag_scope("  ", (tag,)) == decision
+
+
+def test_an_in_scope_pipeline_tag_keeps_a_card_that_mentions_interpretability() -> None:
+    assert tag_scope("text-generation", ("interpretability",)) == TagDecision(
+        True, None, "text-generation",
+    )
+    assert tag_scope("image-text-to-text", ("transcoder", "sae")) == TagDecision(
+        True, None, "image-text-to-text",
+    )
+    assert tag_scope("text_generation", ("interpretability",)) == TagDecision(
+        True, None, "text_generation",
+    )
+    assert tag_scope("text-to-speech", ("feature-extraction", "transcoder")) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+def test_feature_extraction_without_an_artefact_tag_stays_in_scope() -> None:
+    assert tag_scope("feature-extraction") == TagDecision(True, None, "feature-extraction")
+    assert tag_scope("feature-extraction", ("en", "transformers", "license:mit")) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+@pytest.mark.parametrize("tag", ("sae-j3016", "disaese", "my-sae-lens", "transcoder-v2"))
+def test_a_tag_that_only_contains_an_artefact_word_stays_in_scope(tag: str) -> None:
+    assert tag_scope("feature-extraction", (tag,)) == TagDecision(
+        True, None, "feature-extraction",
+    )
+    assert tag_scope(None, (tag,)) == TagDecision(False)
+
+
+def test_artefact_tags_fold_case_and_underscores() -> None:
+    assert tag_scope("Feature-Extraction", ("Transcoder",)) == _artefact("Transcoder")
+    assert tag_scope("Feature_Extraction", ("interpretability",)) == _artefact("interpretability")
+    assert tag_scope(None, ("SPARSE_AUTOENCODER",)) == _artefact("SPARSE_AUTOENCODER")
+    assert tag_scope("feature-extraction", ("  SAE-Lens  ",)) == _artefact("SAE-Lens")
+    assert tag_scope(None, ("feature-extraction", "cross_layer_transcoder")) == _artefact(
+        "cross_layer_transcoder",
+    )
+    assert tag_scope("feature-extraction", ("cross_coder",)) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+def test_a_keeping_task_tag_does_not_keep_an_interpretability_artefact() -> None:
+    assert tag_scope(
+        "feature-extraction", ("text-generation", "transcoder"),
+    ) == _artefact("transcoder")
+    assert tag_scope(None, ("feature-extraction", "crosscoder")) == _artefact("crosscoder")
+
+
+def test_artefact_tags_survive_relevant_hub_tags() -> None:
+    raw = [
+        "transformers",
+        "license:mit",
+        "en",
+        "arxiv:1234.5678",
+        "feature-extraction",
+        "base_model:finetune:other-lab/Orbit-1",
+        *_INTERPRETABILITY_ARTEFACT_TAGS,
+        "SPARSE_AUTOENCODER",
+    ]
+    kept = relevant_hub_tags(raw, "transformers", "feature-extraction")
+    for tag in (*_INTERPRETABILITY_ARTEFACT_TAGS, "SPARSE_AUTOENCODER"):
+        assert tag in kept
+    assert "license:mit" not in kept
+    assert "en" not in kept
+    assert "arxiv:1234.5678" not in kept
+    pipeline, tags, base, bases = hub_metadata(
+        {
+            "pipeline_tag": "feature-extraction",
+            "library_name": "transformers",
+            "tags": [
+                "transformers",
+                "feature-extraction",
+                "interpretability",
+                "transcoder",
+                "license:mit",
+                "en",
+                "arxiv:1234.5678",
+                "base_model:other-lab/Orbit-1",
+                "base_model:finetune:other-lab/Orbit-1",
+            ],
+        },
+        "acme-lab/probe",
+    )
+    assert pipeline == "feature-extraction"
+    assert "transcoder" in tags
+    assert "license:mit" not in tags
+    assert base == "other-lab/Orbit-1"
+    assert bases == ("other-lab/Orbit-1",)
+    assert tag_scope(pipeline, tags) == _artefact("interpretability")
+
+
+def test_the_watcher_reports_an_interpretability_artefact() -> None:
+    source = Source(
+        "hf-acme", "huggingface",
+        "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+    )
+    assert _hub_scope_reason(Seen(
+        "acme-lab/probe", "probe", "Acme", "https://huggingface.co/acme-lab/probe",
+        pipeline_tag="feature-extraction", tags=("transformers", "transcoder"),
+    ), source) == "interpretability artefact (tag: transcoder)"
+    assert _hub_scope_reason(Seen(
+        "acme-lab/orbit", "orbit", "Acme", "https://huggingface.co/acme-lab/orbit",
+        pipeline_tag="text-generation", tags=("text-generation", "interpretability"),
+    ), source) is None
+    assert _hub_scope_reason(Seen(
+        "acme-lab/embed", "embed", "Acme", "https://huggingface.co/acme-lab/embed",
+        pipeline_tag="feature-extraction", tags=("transformers", "feature-extraction"),
+    ), source) is None
