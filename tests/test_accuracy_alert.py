@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -382,3 +383,147 @@ def test_nightly_fetch_does_not_print_the_private_commit_or_the_report(tmp_path:
     assert failed.returncode == 7
     assert failed.stdout == ""
     assert token not in failed.stderr
+
+
+_NIGHTLY_REVIEW = (
+    "this workflow runs in a public repository against private data; "
+    "a reviewer must check every output of a changed step"
+)
+
+_FETCH_RUN = """\
+set -euo pipefail
+dest=.accuracy-private
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch --depth=1 origin '+refs/heads/main:refs/remotes/origin/main' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_LAYERS_RUN = """\
+stage=()
+if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
+corrections=()
+if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
+  corrections=(--private-data-root .accuracy-private)
+fi
+python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}" "${corrections[@]}"
+"""
+
+_ALERT_RUN = """\
+python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \\
+  --run-url "$RUN_URL" --output alert.md
+gh label create alert --color B60205 \\
+  --description "Read by the orchestrator heartbeat" --force
+number=$(gh issue list --label alert --state open \\
+  --search 'in:title "Accuracy nightly failed"' --json number --jq '.[0].number // empty')
+if [ -n "$number" ]; then
+  gh issue comment "$number" --body-file alert.md
+else
+  gh issue create --title "Accuracy nightly failed" --label alert --body-file alert.md
+fi
+"""
+
+_CLOSE_RUN = """\
+set -o pipefail
+gh issue list --label alert --state open \\
+  --search 'in:title "Accuracy nightly failed"' --json number --jq '.[].number' |
+while read -r number; do
+  gh issue close "$number" --comment "Green again: $RUN_URL"
+done
+"""
+
+# Every step the nightly job may run, and the exact command text of each run block.
+_NIGHTLY_STEPS = (
+    {
+        "name": "Checkout",
+        "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    },
+    {
+        "name": "Set up Python",
+        "uses": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+    },
+    {"name": "Install dependencies", "run": "python -m pip install -e '.[dev]'"},
+    {"name": "Require the private checkout credential", "run": 'test -n "$DATA_TOKEN"'},
+    {"name": "Read private verification records", "run": _FETCH_RUN},
+    {"name": "Run network accuracy layers", "run": _LAYERS_RUN},
+    {"name": "Alert the orchestrator", "run": _ALERT_RUN},
+    {"name": "Close the alert after a green night", "run": _CLOSE_RUN},
+)
+
+_UNLISTED_COMMANDS = (
+    "git -C .accuracy-private log -1",
+    "git -C .accuracy-private rev-parse HEAD",
+    "cat .accuracy-private/.git/HEAD",
+    "cat accuracy-report/*",
+    "head accuracy-report/accuracy.md",
+    "gh issue create --body-file accuracy-report/accuracy.md",
+    'python -c "print(open(\'accuracy-report/accuracy.md\'))"',
+)
+
+
+def _normalise_run(script: str) -> str:
+    return "\n".join(line.rstrip() for line in script.strip("\n").splitlines())
+
+
+def nightly_allowance_problems(steps) -> list[str]:
+    """Allow-list for accuracy-nightly. Any other step or command is a review."""
+    pinned = list(_NIGHTLY_STEPS)
+    if len(steps) != len(pinned) or [step.get("name") for step in steps] != [
+        row["name"] for row in pinned
+    ]:
+        return [_NIGHTLY_REVIEW]
+    problems = []
+    for step, row in zip(steps, pinned):
+        if step.get("uses") != row.get("uses"):
+            problems.append(_NIGHTLY_REVIEW)
+        expected = row.get("run")
+        actual = step.get("run")
+        if expected is None:
+            if actual not in (None, ""):
+                problems.append(_NIGHTLY_REVIEW)
+        elif _normalise_run(actual or "") != _normalise_run(expected):
+            problems.append(_NIGHTLY_REVIEW)
+    return problems
+
+
+def _nightly_steps() -> list[dict]:
+    workflow = yaml.load(
+        Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    return workflow["jobs"]["accuracy"]["steps"]
+
+
+def test_accuracy_nightly_steps_match_the_allow_list() -> None:
+    assert nightly_allowance_problems(_nightly_steps()) == [], _NIGHTLY_REVIEW
+
+
+@pytest.mark.parametrize("command", _UNLISTED_COMMANDS)
+def test_an_unlisted_command_fails_the_nightly_allow_list(command: str) -> None:
+    steps = deepcopy(_nightly_steps())
+    fetch = next(step for step in steps if step["name"] == "Read private verification records")
+    fetch["run"] = fetch["run"] + command + "\n"
+
+    problems = nightly_allowance_problems(steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert problems == [_NIGHTLY_REVIEW]
+
+
+def test_a_new_nightly_step_fails_the_allow_list() -> None:
+    steps = deepcopy(_nightly_steps())
+    steps.append({"name": "Show the private commit", "run": "git -C .accuracy-private log -1"})
+
+    assert nightly_allowance_problems(steps) == [_NIGHTLY_REVIEW], _NIGHTLY_REVIEW
+
+
+def test_a_new_nightly_action_fails_the_allow_list() -> None:
+    steps = deepcopy(_nightly_steps())
+    steps.append({"name": "Upload the report", "uses": "actions/upload-artifact@v4"})
+
+    assert nightly_allowance_problems(steps) == [_NIGHTLY_REVIEW], _NIGHTLY_REVIEW
