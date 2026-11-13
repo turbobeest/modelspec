@@ -127,7 +127,11 @@ env PYTHONPATH=$PWD PATH="/home/turbobeest/dev/04-modelspec/modelspec/.venv/bin:
   tests/test_worker_memory.py::test_private_deploy_requires_memory_for_both_periods
 ```
 
-This file is committed with the workflow change. `git log -1 --format=%H -- docs/evidence/MODEL-483-other-public-workflows.md` is that commit.
+The workflow change recorded above is `618b0a8a34b778829b409e570eb63bc455072083`.
+
+## MODEL-483-C
+
+The coverage sentence on the vendor step no longer prints lab slugs. The three counts stay. When that sentence would have named labs, the log names `modelspec-private-build-detail.txt` instead. That file is under the runner temp directory, and no step uploads it. A git failure in `scripts/data_lag.py` prints the subcommand name and the exit code. The allow-list pins every step from the private fetch through the end of `data-lag.yml` job `lag` and of `rank-api.yml` jobs `deploy-staging` and `deploy`. What those steps still print is in `docs/evidence/MODEL-483-C-fix.md`. The observations above are unchanged.
 
 ## Not observed
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -578,7 +579,8 @@ def test_a_new_nightly_action_fails_the_allow_list() -> None:
 
 # data-lag.yml and rank-api.yml fetch the private repository the same way the
 # nightly does. There is no composite action in this repository, so each job
-# repeats the snippet. The pin is the step name and the normalised run text.
+# repeats the snippet. From that fetch to the end of the job, every step is
+# pinned: name, uses, id, working-directory, and a hash of run, if, env, and with.
 _RANK_FETCH_RUN = """\
 set -euo pipefail
 dest=modelspec-data
@@ -629,11 +631,6 @@ _PRIVATE_DIR_COMMANDS = (
     "jq . modelspec-data/x.json",
 )
 
-_READS_PRIVATE_DIR = re.compile(
-    r"\bgit\b[^\n]*\b(?:log|rev-parse)\b|\bcat\b|\bhead\b|\bjq\b"
-)
-
-
 def _workflow_steps(filename: str, job: str) -> list[dict]:
     workflow = yaml.load(
         Path(f".github/workflows/{filename}").read_text(), Loader=yaml.BaseLoader
@@ -641,38 +638,185 @@ def _workflow_steps(filename: str, job: str) -> list[dict]:
     return workflow["jobs"][job]["steps"]
 
 
-def _reads_private_directory(step: dict) -> bool:
-    uses = step.get("uses") or ""
-    if "upload-artifact" in uses or "upload-pages-artifact" in uses:
-        return True
-    for line in (step.get("run") or "").splitlines():
-        names_dir = "modelspec-data" in line or "$dest" in line
-        if names_dir and _READS_PRIVATE_DIR.search(line):
-            return True
-    return False
+_HASHED_STEP_KEYS = {"run", "if", "env", "with"}
+_FETCH_NAMES = {
+    "data-lag.yml": "Read the private data with its history",
+    "rank-api.yml": "Read the private data",
+}
+
+
+def _freeze(value):
+    if isinstance(value, dict):
+        return tuple((key, _freeze(value[key])) for key in sorted(value))
+    if isinstance(value, list):
+        return tuple(_freeze(item) for item in value)
+    return value
+
+
+def _step_pin(step: dict) -> tuple:
+    """Name, uses, id, and working-directory, plus a hash of run, if, env, and with."""
+    pinned = []
+    for key in sorted(step):
+        if key in _HASHED_STEP_KEYS:
+            text = _normalise_run(step[key]) if key == "run" else repr(_freeze(step[key]))
+            digest = hashlib.sha256(text.encode()).hexdigest()
+            pinned.append((f"{key}_sha256", digest))
+        else:
+            pinned.append((key, step[key]))
+    return tuple(pinned)
+
+
+def _private_tail(filename: str, steps: list[dict]) -> list[dict] | None:
+    name = _FETCH_NAMES.get(filename)
+    if name is None:
+        return None
+    indexes = [index for index, step in enumerate(steps) if step.get("name") == name]
+    if len(indexes) != 1:
+        return None
+    return steps[indexes[0]:]
+
+
+_PRIVATE_JOB_TAILS = {
+    ('data-lag.yml', 'lag'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('name', 'Read the private data with its history'),
+            ('run_sha256', '1cf5aeb51a4dadaec2275d7367b81b3f1cf12d4ee4cf0d1cf304acfaac28256b'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', 'bea4bc3e67d4faae28bbb7424225e23369fa71676b9fbcd26d984e7ce6a960bd'),
+        ),
+        (
+            ('id', 'lag'),
+            ('name', 'Publish the image as of today minus nine months'),
+            ('run_sha256', '7502418de50c4f54c20d91ef7a66b22edfce05de5c4ca8eec8a039a421a32681'),
+        ),
+        (
+            ('if_sha256', 'e06dbccd0ce1f95e8cadda83388b9acdf1d1761362cda48a8fe8dda9f570bd75'),
+            ('name', 'Open the pull request'),
+            ('uses', 'peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676'),
+            ('with_sha256', '13dcfb9261eeae0f8b37e44c6bb211a5fba753b1a2de2e6aacf1039944ba00df'),
+        ),
+    ),
+    ('rank-api.yml', 'deploy-staging'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('if_sha256', 'a36c564c97d8e5767258ee1d2d62c2d1870cf789e3b747a8fdc21c211c1548da'),
+            ('name', 'Read the private data'),
+            ('run_sha256', 'eeb9d387bdf89a7bcaedb2ea273dc18dba85579b9f6628d17a66fba3ba5f6140'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', '0533878eac284b0d887f17074801067043bac0da5e1fd30caab7b3a83217571d'),
+        ),
+        (
+            ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
+            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+        ),
+        (
+            ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
+            ('with_sha256', '6fb296a6aa140e73597d106493abb9b1e5dc166a9b067dd6efe7befcf9ba4491'),
+        ),
+        (
+            ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
+            ('name', 'Vendor the scorer into the Worker bundle'),
+            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+        ),
+        (
+            ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
+            ('if_sha256', 'c520997cd2844ab801f22bc05e1b1e3f90cc0fd2f314c0798bcd465f0572dc6c'),
+            ('name', 'Check private steady bundle memory against 120 MiB'),
+            ('run_sha256', '7b0431e32a788c7ff15df75ec931020af30ca14c6c492c5e6430cab497f377d1'),
+        ),
+        (
+            ('name', "Resolve the Worker's Python dependencies"),
+            ('run_sha256', 'c01a3e8693bed4bcc29050ac5d7ef1512f99a510850360144d18f1b496b1ae40'),
+        ),
+        (
+            ('name', 'Deploy staging'),
+            ('run_sha256', '5961bd0ed7cb08956d495b111f0aa199b6992622a1dabb207100cd36f131c78c'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('name', 'Sync the staging decision snapshot verification key'),
+            ('run_sha256', 'dcab67333c1d72e23674af0b63f0e765459e632976c8854f40689b675a2a0322'),
+            ('working-directory', 'api/worker'),
+        ),
+    ),
+    ('rank-api.yml', 'deploy'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('if_sha256', 'a36c564c97d8e5767258ee1d2d62c2d1870cf789e3b747a8fdc21c211c1548da'),
+            ('name', 'Read the private data'),
+            ('run_sha256', 'eeb9d387bdf89a7bcaedb2ea273dc18dba85579b9f6628d17a66fba3ba5f6140'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', '0533878eac284b0d887f17074801067043bac0da5e1fd30caab7b3a83217571d'),
+        ),
+        (
+            ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
+            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+        ),
+        (
+            ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
+            ('with_sha256', '6fb296a6aa140e73597d106493abb9b1e5dc166a9b067dd6efe7befcf9ba4491'),
+        ),
+        (
+            ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
+            ('name', 'Vendor the scorer into the Worker bundle'),
+            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+        ),
+        (
+            ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
+            ('if_sha256', 'c520997cd2844ab801f22bc05e1b1e3f90cc0fd2f314c0798bcd465f0572dc6c'),
+            ('name', 'Check private steady bundle memory against 120 MiB'),
+            ('run_sha256', '7b0431e32a788c7ff15df75ec931020af30ca14c6c492c5e6430cab497f377d1'),
+        ),
+        (
+            ('name', "Resolve the Worker's Python dependencies"),
+            ('run_sha256', 'c01a3e8693bed4bcc29050ac5d7ef1512f99a510850360144d18f1b496b1ae40'),
+        ),
+        (
+            ('name', 'Dependencies for the post-deploy spec probe'),
+            ('run_sha256', '6d2ebf8eb8552c869dec8b1fb2b8bca3a4f427f1d5ed3cf40714465a484fcf99'),
+        ),
+        (
+            ('name', 'Deploy'),
+            ('run_sha256', '65400d86de8051fa07d870529fbafee01ee5d4f727fb9c2898e3b0d347e7d95c'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('name', 'Sync the decision snapshot verification key'),
+            ('run_sha256', 'e36e1488e7278733eab79649ffc94b0c17760c1f9f16f5efa87f0ce27caf578a'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('env_sha256', '973f661e5b10b052db946ba89c40d9e1601a9a08b85c7bf03339d8b5efc4e76b'),
+            ('name', 'Smoke-test api.modelspec.dev'),
+            ('run_sha256', 'c5c855a7647f13a4a8ee408b01567c1b1cb4c16bbb520a6aa117d33a8ac16da7'),
+        ),
+        (
+            ('name', 'Decision latency smoke (warning only)'),
+            ('run_sha256', '231d3e95dc3751abc7c36f7fbf0e90ab1cf906b710fd7aca5388a1404d8ea1fa'),
+        ),
+    ),
+}
 
 
 def private_fetch_problems(filename: str, job: str, steps: list[dict]) -> list[str]:
-    """Pin each private fetch. A step that reads that directory aloud is a review."""
-    row = next(item for item in _PRIVATE_FETCHES if item[0] == filename and item[1] == job)
-    _, _, name, run, guard = row
-    problems = []
+    """Allow-list every step from the private fetch through the end of the job."""
+    expected = _PRIVATE_JOB_TAILS.get((filename, job))
+    tail = _private_tail(filename, steps)
+    if expected is None or tail is None or tuple(_step_pin(step) for step in tail) != expected:
+        return [_JOB_REVIEW]
     if any(
         (step.get("with") or {}).get("repository") == "turbobeest/modelspec-data"
         for step in steps
     ):
-        problems.append(_NIGHTLY_REVIEW)
-    matches = [step for step in steps if step.get("name") == name]
-    if (
-        len(matches) != 1
-        or _normalise_run(matches[0].get("run") or "") != _normalise_run(run)
-        or (guard is not None and matches[0].get("if") != guard)
-    ):
-        problems.append(_NIGHTLY_REVIEW)
-    for step in steps:
-        if _reads_private_directory(step):
-            problems.append(_NIGHTLY_REVIEW)
-    return problems
+        return [_JOB_REVIEW]
+    return []
 
 
 def test_data_lag_and_rank_private_fetches_match_the_allow_list() -> None:
@@ -694,7 +838,7 @@ def test_an_unlisted_command_fails_the_private_fetch_allow_list(command: str) ->
     problems = private_fetch_problems(filename, job, steps)
 
     assert problems, _NIGHTLY_REVIEW
-    assert set(problems) == {_NIGHTLY_REVIEW}
+    assert problems == [_JOB_REVIEW]
 
 
 @pytest.mark.parametrize("command", _PRIVATE_DIR_COMMANDS)
@@ -706,7 +850,7 @@ def test_a_new_step_that_reads_the_private_directory_fails(command: str) -> None
     problems = private_fetch_problems(filename, job, steps)
 
     assert problems, _NIGHTLY_REVIEW
-    assert set(problems) == {_NIGHTLY_REVIEW}
+    assert problems == [_JOB_REVIEW]
 
 
 def test_a_new_upload_of_the_private_checkout_fails() -> None:
@@ -717,7 +861,7 @@ def test_a_new_upload_of_the_private_checkout_fails() -> None:
     problems = private_fetch_problems(filename, job, steps)
 
     assert problems, _NIGHTLY_REVIEW
-    assert set(problems) == {_NIGHTLY_REVIEW}
+    assert problems == [_JOB_REVIEW]
 
 
 def test_private_fetches_fail_closed_before_publish_or_deploy() -> None:
@@ -811,3 +955,79 @@ def test_private_fetch_discards_output_and_fails_when_git_fetch_fails(
     assert failed.returncode == 7
     assert failed.stdout == ""
     assert token not in failed.stderr
+
+
+# From the private fetch to the end of the job, every step is pinned. A deny
+# pattern on a few commands misses a dropped redirect, a working-directory, and
+# git show / tail / grep.
+_JOB_REVIEW = (
+    "this job runs in a public repository against private data; "
+    "a reviewer must check every output of a changed step"
+)
+
+
+def _run_step(steps: list[dict], filename: str) -> dict:
+    """A step after the fetch, so a command edit is not the fetch pin itself."""
+    if filename == "data-lag.yml":
+        return next(
+            step for step in steps
+            if (step.get("name") or "").startswith("Publish the image")
+        )
+    return next(
+        step for step in steps
+        if step.get("name") == "Vendor the scorer into the Worker bundle"
+    )
+
+
+def _changed_private_steps(case: str, filename: str, steps: list[dict]) -> None:
+    if case == "dropped-redirect":
+        step = _run_step(steps, filename)
+        assert '> "$RUNNER_TEMP/lag-status.json"' in step["run"]
+        step["run"] = step["run"].replace('> "$RUNNER_TEMP/lag-status.json"', "", 1)
+        return
+    if case == "working-directory-git-log":
+        steps.append({
+            "name": "Inspect the private checkout",
+            "working-directory": "modelspec-data",
+            "run": "git log\n",
+        })
+        return
+    if case == "git-show":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "git -C modelspec-data show HEAD\n"
+        return
+    if case == "tail":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "tail modelspec-data/data-image.json\n"
+        return
+    if case == "grep":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "grep -R . modelspec-data\n"
+        return
+    if case == "upload":
+        steps.append({
+            "name": "Upload the private checkout",
+            "uses": "actions/upload-artifact@v4",
+        })
+        return
+    raise AssertionError(case)
+
+
+_PRIVATE_JOB_CHANGES = [
+    ("data-lag.yml", "lag", "dropped-redirect"),
+    *[
+        (filename, job, case)
+        for filename, job, _, _, _ in _PRIVATE_FETCHES
+        for case in ("working-directory-git-log", "git-show", "tail", "grep", "upload")
+    ],
+]
+
+
+@pytest.mark.parametrize("filename,job,case", _PRIVATE_JOB_CHANGES)
+def test_a_changed_private_job_step_needs_a_review(filename: str, job: str, case: str) -> None:
+    steps = deepcopy(_workflow_steps(filename, job))
+    _changed_private_steps(case, filename, steps)
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems == [_JOB_REVIEW]
