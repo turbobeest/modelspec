@@ -11,6 +11,8 @@ import argparse
 import json
 import os
 import sys
+from collections import Counter
+from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
 from datetime import date
 from pathlib import Path
@@ -25,6 +27,7 @@ from release_signals.pipeline import (
     RequiredSourceError,
     draft_signal,
     gather_signal,
+    hub_scope_for_signal,
     require_allowed_source,
     resolve_signal,
     update_existing_card,
@@ -32,6 +35,32 @@ from release_signals.pipeline import (
 from scripts import refresh_leaderboards
 
 ROOT = Path(__file__).resolve().parents[1]
+#: An empty or failed Hub read. Out of scope is never inferred from this.
+HUB_METADATA_UNREAD = "Hub metadata could not be read"
+
+
+def summary(results: Sequence[Mapping[str, object]]) -> str:
+    """Group out-of-scope reasons the way the watcher summary groups them.
+
+    `_report_reason` folds a derivative and an interpretability artefact to
+    one count each. A row that names an unread Hub stays on today's path and
+    is not counted as out of scope. The unread note is one line for the run.
+    """
+    from scripts.release_watch import _report_reason
+
+    reasons: Counter[str] = Counter()
+    for row in results:
+        if row.get("status") != "out_of_scope":
+            continue
+        reason = row.get("reason")
+        if isinstance(reason, str):
+            reasons[_report_reason(reason)] += 1
+    lines = [f"- {reason}: {count}" for reason, count in sorted(reasons.items())]
+    if any(row.get("hub_metadata") == HUB_METADATA_UNREAD for row in results):
+        lines.append(f"{HUB_METADATA_UNREAD}.")
+    if not lines:
+        return ""
+    return "\n".join(lines) + "\n"
 
 
 def _fetch(url: str) -> FetchResult:
@@ -114,6 +143,14 @@ def process(
     signal, recheck = _select_signal(
         payload, signal_id=signal_id, recheck_day=recheck_day
     )
+    hub = None
+
+    def finish(result: dict) -> dict:
+        if hub is not None and (hub.reason or hub.unread):
+            result["summary"] = summary([result]).rstrip("\n")
+        result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        return result
+
     if signal is None:
         result = {"status": "empty"}
     elif closed_unmerged_pr:
@@ -152,124 +189,137 @@ def process(
             "reason": reason,
         }
     else:
-        resolution = resolve_signal(signal, root)
-        result = {
-            "status": resolution.status,
-            "signal_id": signal.signal_id,
-            "model_id": resolution.model_id,
-            "candidates": list(resolution.candidates),
-            "recheck_day": recheck.get("day") if recheck else None,
-            "recheck_due": recheck.get("due") if recheck else None,
-            "pr_url": recheck.get("pr_url") if recheck else None,
-        }
-        if resolution.status == "uncertain":
-            result["reason"] = resolution.reason
-        if resolution.status == "new":
-            from decision.sources import load_sources
-            from scripts.admission_drafter import load_source_terms
-            from scripts.offering_fetch import OfferingFetcher, OfferingHTTPFetcher
+        hub = hub_scope_for_signal(signal, root, _fetch)
+        if hub is not None and hub.reason:
+            result = {
+                "status": "out_of_scope",
+                "signal_id": signal.signal_id,
+                "model_id": None,
+                "candidates": [],
+                "recheck_day": recheck.get("day") if recheck else None,
+                "recheck_due": recheck.get("due") if recheck else None,
+                "pr_url": recheck.get("pr_url") if recheck else None,
+                "reason": hub.reason,
+            }
+        else:
+            resolution = resolve_signal(signal, root)
+            result = {
+                "status": resolution.status,
+                "signal_id": signal.signal_id,
+                "model_id": resolution.model_id,
+                "candidates": list(resolution.candidates),
+                "recheck_day": recheck.get("day") if recheck else None,
+                "recheck_due": recheck.get("due") if recheck else None,
+                "pr_url": recheck.get("pr_url") if recheck else None,
+            }
+            if hub is not None and hub.unread:
+                result["hub_metadata"] = HUB_METADATA_UNREAD
+            if resolution.status == "uncertain":
+                result["reason"] = resolution.reason
+            if result["status"] == "new":
+                from decision.sources import load_sources
+                from scripts.admission_drafter import load_source_terms
+                from scripts.offering_fetch import OfferingFetcher, OfferingHTTPFetcher
 
-            with ExitStack() as resources:
-                if price_fetcher is None:
-                    terms = load_source_terms(root)
-                    lab = resolution.model_id.split("/", 1)[0]
-                    client = resources.enter_context(httpx.Client())
-                    price_fetcher = resources.enter_context(OfferingFetcher(
-                        OfferingHTTPFetcher(client, lab=lab, terms=terms),
-                        lab=lab, terms=terms,
-                        sources=load_sources(root / "registry/sources.yaml"),
-                    ))
-                drafted = draft_signal(
+                with ExitStack() as resources:
+                    if price_fetcher is None:
+                        terms = load_source_terms(root)
+                        lab = resolution.model_id.split("/", 1)[0]
+                        client = resources.enter_context(httpx.Client())
+                        price_fetcher = resources.enter_context(OfferingFetcher(
+                            OfferingHTTPFetcher(client, lab=lab, terms=terms),
+                            lab=lab, terms=terms,
+                            sources=load_sources(root / "registry/sources.yaml"),
+                        ))
+                    drafted = draft_signal(
+                        signal,
+                        root=root,
+                        fetch=_fetch,
+                        read_date=date.today(),
+                        discover_huggingface=True,
+                        price_fetcher=price_fetcher,
+                    )
+                if drafted.resolution.status == "uncertain":
+                    result.update({
+                        "status": "uncertain",
+                        "model_id": None,
+                        "candidates": list(drafted.resolution.candidates),
+                        "reason": drafted.resolution.reason,
+                    })
+                    return finish(result)
+                result["card"] = (
+                    str(drafted.card_path.relative_to(root)) if drafted.card_path else None
+                )
+                result["sources"] = list(drafted.evidence_urls)
+                result["firecrawl_credits"] = drafted.firecrawl_credits
+                result["gather_failures"] = list(drafted.gather_failures)
+                result["offering"] = (
+                    str(drafted.offering_path.relative_to(root)) if drafted.offering_path else None
+                )
+                result["price_gaps"] = list(drafted.price_gaps)
+                result["price_sources"] = list(drafted.price_sources)
+                if drafted.models_dev == "not_listed":
+                    result["models_dev"] = drafted.models_dev
+                    result["primary_host"] = drafted.primary_host
+                    if drafted.primary_kind:
+                        result["primary_kind"] = drafted.primary_kind
+                if drafted.identity_basis:
+                    result["identity_basis"] = drafted.identity_basis
+                report = refresh_leaderboards.run(
+                    observed_at=date.today().isoformat(),
+                    dry_run=False,
+                    root=root,
+                    source_cache=Path(os.environ.get(
+                        "MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies"
+                    )),
+                    model_ids=(resolution.model_id,),
+                    add_missing=True,
+                )
+                if report_path:
+                    refresh_leaderboards.write_report_json(report_path, report)
+                result.update({
+                    "evidence_added": report.added,
+                    "failures": len(report.failures),
+                    "quarantined": len(report.quarantined),
+                })
+            elif result["status"] == "existing":
+                gathered = gather_signal(
                     signal,
                     root=root,
                     fetch=_fetch,
-                    read_date=date.today(),
                     discover_huggingface=True,
-                    price_fetcher=price_fetcher,
                 )
-            if drafted.resolution.status == "uncertain":
+                if gathered.resolution.status != "existing":
+                    # The catalogue match stands. A later source that cannot
+                    # restate the lab is logged, and the score refresh still runs.
+                    result["identity_error"] = gathered.resolution.reason
+                    result["gather_failures"] = list(gathered.gather_failures)
+                else:
+                    result["sources"] = list(gathered.evidence_urls)
+                    result["gather_failures"] = list(gathered.gather_failures)
+                    result["card"] = str(update_existing_card(
+                        gathered, root=root, read_date=date.today()
+                    ).relative_to(root))
+                report = refresh_leaderboards.run(
+                    observed_at=date.today().isoformat(),
+                    dry_run=False,
+                    root=root,
+                    source_cache=Path(
+                        os.environ.get("MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies")
+                    ),
+                    model_ids=(resolution.model_id,),
+                )
+                if audit_path:
+                    refresh_leaderboards.write_audit(audit_path, report.changes)
+                if report_path:
+                    refresh_leaderboards.write_report_json(report_path, report)
                 result.update({
-                    "status": "uncertain",
-                    "model_id": None,
-                    "candidates": list(drafted.resolution.candidates),
-                    "reason": drafted.resolution.reason,
+                    "score_changes": len(report.changes),
+                    "reconfirmed": len(report.reconfirmed),
+                    "failures": len(report.failures),
+                    "quarantined": len(report.quarantined),
                 })
-                result_path.write_text(
-                    json.dumps(result, indent=2) + "\n", encoding="utf-8"
-                )
-                return result
-            result["card"] = str(drafted.card_path.relative_to(root)) if drafted.card_path else None
-            result["sources"] = list(drafted.evidence_urls)
-            result["firecrawl_credits"] = drafted.firecrawl_credits
-            result["gather_failures"] = list(drafted.gather_failures)
-            result["offering"] = (
-                str(drafted.offering_path.relative_to(root)) if drafted.offering_path else None
-            )
-            result["price_gaps"] = list(drafted.price_gaps)
-            result["price_sources"] = list(drafted.price_sources)
-            if drafted.models_dev == "not_listed":
-                result["models_dev"] = drafted.models_dev
-                result["primary_host"] = drafted.primary_host
-                if drafted.primary_kind:
-                    result["primary_kind"] = drafted.primary_kind
-            if drafted.identity_basis:
-                result["identity_basis"] = drafted.identity_basis
-            report = refresh_leaderboards.run(
-                observed_at=date.today().isoformat(),
-                dry_run=False,
-                root=root,
-                source_cache=Path(os.environ.get(
-                    "MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies"
-                )),
-                model_ids=(resolution.model_id,),
-                add_missing=True,
-            )
-            if report_path:
-                refresh_leaderboards.write_report_json(report_path, report)
-            result.update({
-                "evidence_added": report.added,
-                "failures": len(report.failures),
-                "quarantined": len(report.quarantined),
-            })
-        elif resolution.status == "existing":
-            gathered = gather_signal(
-                signal,
-                root=root,
-                fetch=_fetch,
-                discover_huggingface=True,
-            )
-            if gathered.resolution.status != "existing":
-                # The catalogue match stands. A later source that cannot
-                # restate the lab is logged, and the score refresh still runs.
-                result["identity_error"] = gathered.resolution.reason
-                result["gather_failures"] = list(gathered.gather_failures)
-            else:
-                result["sources"] = list(gathered.evidence_urls)
-                result["gather_failures"] = list(gathered.gather_failures)
-                result["card"] = str(update_existing_card(
-                    gathered, root=root, read_date=date.today()
-                ).relative_to(root))
-            report = refresh_leaderboards.run(
-                observed_at=date.today().isoformat(),
-                dry_run=False,
-                root=root,
-                source_cache=Path(
-                    os.environ.get("MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies")
-                ),
-                model_ids=(resolution.model_id,),
-            )
-            if audit_path:
-                refresh_leaderboards.write_audit(audit_path, report.changes)
-            if report_path:
-                refresh_leaderboards.write_report_json(report_path, report)
-            result.update({
-                "score_changes": len(report.changes),
-                "reconfirmed": len(report.reconfirmed),
-                "failures": len(report.failures),
-                "quarantined": len(report.quarantined),
-            })
-    result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    return result
+    return finish(result)
 
 
 def main() -> int:
