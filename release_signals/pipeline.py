@@ -410,6 +410,91 @@ def _huggingface_org_repo(url: str, orgs: frozenset[str]) -> tuple[str, str] | N
     return org, repo
 
 
+@dataclass(frozen=True)
+class HubScope:
+    """The watcher's Hugging Face decision for one signal, read at processing time.
+
+    `reason` is that decision's out-of-scope text. `unread` means the metadata
+    could not be read. A failed or empty read is never out of scope: out of
+    scope is final until the next re-check.
+    """
+
+    reason: str | None = None
+    unread: bool = False
+
+
+def hub_metadata_url(org: str, repo: str) -> str:
+    """One repository on the models API the watcher feeds to `hub_metadata`."""
+    return f"https://huggingface.co/api/models/{org}/{repo}"
+
+
+def _hub_row_readable(row: Mapping) -> bool:
+    """True when the body carries a pipeline tag or a tag list entry.
+
+    A JSON object with neither is an empty read, not a decision. Licence-only
+    or other non-empty tag lists are a decision even when no pipeline tag is set.
+    """
+    pipeline = row.get("pipeline_tag")
+    if isinstance(pipeline, str) and pipeline.strip():
+        return True
+    tags = row.get("tags")
+    if not isinstance(tags, list):
+        return False
+    return any(isinstance(tag, str) and tag.strip() for tag in tags)
+
+
+def hub_scope_for_signal(
+    signal, root: Path, fetch: Callable[[str], FetchResult],
+) -> HubScope | None:
+    """Scope one lab Hugging Face repository with the watcher's own function.
+
+    Returns None when the first-seen URL is not such a repository, and does
+    not fetch. Otherwise reads that repository and calls `_hub_scope_reason`
+    (tag scope, then the name rules, then a derivative base). Any failure to
+    read leaves `unread` set and `reason` empty.
+    """
+    found = _huggingface_org_repo(
+        signal.first_seen_url, registered_huggingface_orgs(root, signal.provider),
+    )
+    if found is None:
+        return None
+    org, repo = found
+    url = hub_metadata_url(org, repo)
+    try:
+        page = fetch(url)
+    except AssertionError:
+        raise
+    except Exception:
+        # A network error, a timeout, a 404, or a 429 must not become out of scope.
+        return HubScope(unread=True)
+    try:
+        payload = json.loads(page.body)
+    except (ValueError, RecursionError):
+        return HubScope(unread=True)
+    if not isinstance(payload, Mapping) or not _hub_row_readable(payload):
+        return HubScope(unread=True)
+
+    from release_signals.scope import hub_metadata
+    from release_signals.watch import Seen, Source
+    from scripts.release_watch_filter import _hub_scope_reason
+
+    repository = f"{org}/{repo}"
+    pipeline_tag, tags, base_model, base_models = hub_metadata(payload, repository)
+    source = Source(
+        "process", "huggingface", url, float(signal.confidence),
+        provider=signal.provider,
+    )
+    seen = Seen(
+        repository, repo, signal.provider, signal.first_seen_url,
+        pipeline_tag=pipeline_tag, tags=tags,
+        base_model=base_model, base_models=base_models,
+    )
+    reason = _hub_scope_reason(seen, source)
+    if reason:
+        return HubScope(reason=reason)
+    return HubScope()
+
+
 def _accepted_page_kind(url: str, lab_hosts: frozenset[str], hf_orgs: frozenset[str]) -> str:
     """Lab host class, or ``huggingface-org`` when only the org repository matches.
 
