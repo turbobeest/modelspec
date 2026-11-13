@@ -279,6 +279,8 @@ def _live_observation_date(
     observation date.
     """
     record = _evidence_record(snapshot, row)
+    if record.get("not_published_since") not in (None, ""):
+        return False, None
     date_type = getattr(row, "date_type", None) or record.get("date_type")
     source_kind = getattr(row, "source_kind", None) or record.get("source_kind")
     source_ids = set(getattr(row, "source_ids", ()) or ())
@@ -314,6 +316,7 @@ def check_freshness(
     problems: list[dict[str, Any]] = []
     models = _model_candidates(snapshot)
     seen_records: set[str] = set()
+    marked_rows: set[str] = set()
     cited_records: set[tuple[str, str]] = set()
     cited_only_models = 0
     live_rows = 0
@@ -344,6 +347,9 @@ def check_freshness(
             key = row.record_id or f"{model_id}:{row.benchmark_id}:{row.date}:{row.value}"
             if getattr(row, "cited", False):
                 cited_records.add((model_id, key))
+            record = _evidence_record(snapshot, row)
+            if record.get("not_published_since") not in (None, ""):
+                marked_rows.add(key)
             live, observed = _live_observation_date(snapshot, row, sources)
             if key in seen_records or not live:
                 continue
@@ -368,17 +374,22 @@ def check_freshness(
                     }
                 )
     status: Status = "fail" if problems else "pass"
+    summary = (
+        f"{len(models)} lineup models and {live_rows} dated live readings checked; "
+        f"{len(cited_records)} domain records are cited, not machine-verified "
+        f"({cited_only_models} models have only cited domain evidence); "
+        f"{len(problems)} freshness failure(s)."
+    )
+    if marked_rows:
+        summary += f" {len(marked_rows)} reading(s) are marked no longer published."
     return LayerResult(
         "freshness",
         status,
         True,
-        f"{len(models)} lineup models and {live_rows} dated live readings checked; "
-        f"{len(cited_records)} domain records are cited, not machine-verified "
-        f"({cited_only_models} models have only cited domain evidence); "
-        f"{len(problems)} freshness failure(s).",
+        summary,
         {"lineup_models": len(models), "live_readings": live_rows,
          "cited_domain_records": len(cited_records), "cited_only_models": cited_only_models,
-         "failures": len(problems)},
+         "failures": len(problems), "not_published_since": len(marked_rows)},
         problems,
     )
 

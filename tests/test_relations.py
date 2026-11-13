@@ -222,6 +222,67 @@ def test_verified_evidence_renders_apart_from_legacy_scores() -> None:
     assert "56.0%" in html
 
 
+def test_not_published_since_renders_on_the_score() -> None:
+    from pipeline.load import Model
+    from pipeline.render import evidence_section
+
+    model = Model("lab/orbit", Path("models/lab/orbit.md"), {"benchmarks": {"evidence": [
+        {
+            "benchmark_id": "fixture_benchmark",
+            "model_id_as_evaluated": "Orbit 9",
+            "score": 61.5,
+            "unit": "percent",
+            "source_url": "https://example.test/leaderboard.json",
+            "source_kind": "benchmark_author",
+            "evidence_date": "2026-09-01",
+            "date_type": "evaluated",
+            "observed_at": "2026-10-12",
+            "verified_at": "2026-10-12",
+            "not_published_since": "2026-11-13",
+        },
+        {
+            "benchmark_id": "other_benchmark",
+            "model_id_as_evaluated": "Orbit 9",
+            "score": 40,
+            "unit": "percent",
+            "source_url": "https://example.test/leaderboard.json",
+            "source_kind": "benchmark_author",
+            "evidence_date": "2026-09-01",
+            "date_type": "evaluated",
+            "verified_at": "2026-10-12",
+        },
+    ]}}, "")
+
+    html = evidence_section(model)
+
+    assert "61.5%" in html
+    assert "no longer published by the source; last seen 2026-10-12" in html
+    assert html.count("no longer published") == 1
+
+
+def test_not_published_since_renders_the_evidence_date_when_unobserved() -> None:
+    from pipeline.load import Model
+    from pipeline.render import evidence_section
+
+    model = Model("lab/orbit", Path("models/lab/orbit.md"), {"benchmarks": {"evidence": [{
+        "benchmark_id": "fixture_benchmark",
+        "model_id_as_evaluated": "Orbit 9",
+        "score": 61.5,
+        "unit": "percent",
+        "source_url": "https://example.test/leaderboard.json",
+        "source_kind": "benchmark_author",
+        "evidence_date": "2026-09-01",
+        "date_type": "evaluated",
+        "verified_at": "2026-10-12",
+        "not_published_since": "2026-11-13",
+    }]}}, "")
+
+    html = evidence_section(model)
+
+    assert "61.5%" in html
+    assert "no longer published by the source; last seen 2026-09-01" in html
+
+
 def test_no_evidence_renders_nothing() -> None:
     from pipeline.render import evidence_section
 

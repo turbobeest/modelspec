@@ -397,6 +397,7 @@ def evidence_verification_value(evidence: object) -> JsonValue:
     Evidence without structured uncertainty or quality metadata keeps the v1
     score-only identity. Once any decision-affecting metadata is present, the
     verification binds all of it, including the absence of the other fields.
+    ``not_published_since`` is not bound: a withdrawn cell is still the same reading.
     """
     get = evidence.get if isinstance(evidence, dict) else lambda key, default=None: getattr(
         evidence, key, default

@@ -1403,7 +1403,7 @@ def test_a_non_arena_plan_does_not_inherit_the_arena_revision(tmp_path: Path) ->
         source_url=url, projected=projection, observed_at="2026-11-11",
         value_field="score", store=store, card_urls=(url,),
     )
-    observations, failures = refresh._plan_observations(
+    observations, failures, marks = refresh._plan_observations(
         "lab/model", "models/lab/model.md",
         [{
             "benchmark_id": "fixture_benchmark",
@@ -1417,6 +1417,7 @@ def test_a_non_arena_plan_does_not_inherit_the_arena_revision(tmp_path: Path) ->
     )
 
     assert failures == []
+    assert marks == []
     assert len(observations) == 1
     assert observations[0].reading_checked is False
     assert observations[0].reading_revision == ""

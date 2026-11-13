@@ -39,6 +39,7 @@ class FakeEvidence:
         verified_at=None,
         verified=True,
         cited=False,
+        not_published_since=None,
     ):
         self.benchmark_id = benchmark
         self.value = value
@@ -49,6 +50,7 @@ class FakeEvidence:
         self.verified_at = verified_at
         self.verified = verified
         self.cited = cited
+        self.not_published_since = not_published_since
         self.record_id = f"evidence:{benchmark}"
 
 
@@ -88,12 +90,15 @@ class FakeSnapshot:
 
     def record(self, record_id):
         row = next(row for row in self._evidence if row.record_id == record_id)
-        return {
+        stored = {
             "source_kind": row.source_kind,
             "evidence_date": row.date.isoformat(),
             "date_type": row.date_type,
             "verified_at": row.verified_at.isoformat() if row.verified_at else None,
         }
+        if row.not_published_since is not None:
+            stored["not_published_since"] = row.not_published_since
+        return stored
 
 
 def test_thresholds_and_budgets_live_in_one_config() -> None:
@@ -266,6 +271,73 @@ def test_freshness_uses_registered_source_volatility() -> None:
     assert result.counts["live_readings"] == 1
     assert [row["benchmark"] for row in result.details] == ["live_benchmark"]
     assert result.details[0]["reason"] == "stale_live_leaderboard"
+
+
+def test_not_published_since_is_not_a_live_reading() -> None:
+    live = Source(id="live-board", url="https://example.test/live", volatility="live")
+    marked = FakeEvidence(
+        "fixture_benchmark", 61.5, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+        not_published_since="2026-10-01",
+    )
+    undated = FakeEvidence(
+        "undated_benchmark", 40, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=None,
+        not_published_since="2026-10-01",
+    )
+    sibling = FakeEvidence(
+        "sibling_benchmark", 70, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(marked, undated, sibling)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+        sources={live.id: live},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["not_published_since"] == 2
+    assert result.counts["live_readings"] == 1
+    assert [(row["benchmark"], row["reason"]) for row in result.details] == [
+        ("sibling_benchmark", "stale_live_leaderboard"),
+    ]
+    assert "undated_live_leaderboard" not in {row["reason"] for row in result.details}
+    assert "2 reading(s) are marked no longer published." in result.summary
+
+
+def test_not_published_since_blank_still_ages() -> None:
+    live = Source(id="live-board", url="https://example.test/live", volatility="live")
+    blank = FakeEvidence(
+        "fixture_benchmark", 61.5, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+        not_published_since="",
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(blank,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+        sources={live.id: live},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["not_published_since"] == 0
+    assert result.details[0]["reason"] == "stale_live_leaderboard"
+    assert "no longer published" not in result.summary
+
+
+def test_not_published_since_stays_out_of_the_public_freshness_summary() -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "freshness", "pass", {"failures": 0, "not_published_since": 4}, {},
+    )
+
+    assert "not_published" not in text
+    assert "no longer published" not in text
+    assert "4" not in text
 
 
 @pytest.mark.parametrize("age,expected", [(3, "pass"), (30, "pass"), (31, "fail"), (None, "fail")])

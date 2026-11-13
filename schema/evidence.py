@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_serializer, model_validator
 
 
 class BenchmarkEvidence(BaseModel):
@@ -18,7 +18,8 @@ class BenchmarkEvidence(BaseModel):
 
     Every field here is required. A record that cannot say where a number came
     from or when is not evidence, and admitting a partial one would quietly
-    reintroduce exactly the problem this replaces.
+    reintroduce exactly the problem this replaces. ``not_published_since`` is
+    the exception: absent until a live refresh sees the row listed with no value.
     """
 
     benchmark_id: str
@@ -45,6 +46,9 @@ class BenchmarkEvidence(BaseModel):
     quality_flags: list[Literal["deprecated", "contamination_warning"]] = Field(
         default_factory=list
     )
+    #: The day a live refresh first saw this row listed with no value.
+    #: Absent means the source was still publishing the score.
+    not_published_since: str | None = None
 
     @field_validator("source_url")
     @classmethod
@@ -62,6 +66,25 @@ class BenchmarkEvidence(BaseModel):
         except ValueError as exc:
             raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
         return value
+
+    @field_validator("not_published_since")
+    @classmethod
+    def _publication_day_must_be_iso(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
+        return value
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_publication(self, handler):
+        data = handler(self)
+        if isinstance(data, dict) and data.get("not_published_since") is None:
+            data.pop("not_published_since", None)
+        return data
 
     @model_validator(mode="after")
     def _valid_uncertainty_and_quality(self) -> BenchmarkEvidence:
