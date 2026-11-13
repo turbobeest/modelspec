@@ -574,3 +574,240 @@ def test_a_new_nightly_action_fails_the_allow_list() -> None:
     steps.append({"name": "Upload the report", "uses": "actions/upload-artifact@v4"})
 
     assert nightly_allowance_problems(steps) == [_NIGHTLY_REVIEW], _NIGHTLY_REVIEW
+
+
+# data-lag.yml and rank-api.yml fetch the private repository the same way the
+# nightly does. There is no composite action in this repository, so each job
+# repeats the snippet. The pin is the step name and the normalised run text.
+_RANK_FETCH_RUN = """\
+set -euo pipefail
+dest=modelspec-data
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch --depth=1 origin '+refs/heads/main:refs/remotes/origin/main' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_LAG_FETCH_RUN = """\
+set -euo pipefail
+dest=modelspec-data
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch origin '+refs/heads/*:refs/remotes/origin/*' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_PRIVATE_FETCHES = (
+    ("data-lag.yml", "lag", "Read the private data with its history", _LAG_FETCH_RUN, None),
+    ("rank-api.yml", "deploy-staging", "Read the private data", _RANK_FETCH_RUN,
+     "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && "
+     "(github.event_name == 'push' || github.event_name == 'workflow_dispatch' || "
+     "github.event_name == 'schedule')"),
+    ("rank-api.yml", "deploy", "Read the private data", _RANK_FETCH_RUN,
+     "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && "
+     "(github.event_name == 'push' || github.event_name == 'workflow_dispatch' || "
+     "github.event_name == 'schedule')"),
+)
+
+_PRIVATE_DIR_COMMANDS = (
+    "git -C modelspec-data log -1",
+    "git -C modelspec-data rev-parse HEAD",
+    "cat modelspec-data/models/a.md",
+    "head modelspec-data/models/a.md",
+    "jq . modelspec-data/x.json",
+)
+
+_READS_PRIVATE_DIR = re.compile(
+    r"\bgit\b[^\n]*\b(?:log|rev-parse)\b|\bcat\b|\bhead\b|\bjq\b"
+)
+
+
+def _workflow_steps(filename: str, job: str) -> list[dict]:
+    workflow = yaml.load(
+        Path(f".github/workflows/{filename}").read_text(), Loader=yaml.BaseLoader
+    )
+    return workflow["jobs"][job]["steps"]
+
+
+def _reads_private_directory(step: dict) -> bool:
+    uses = step.get("uses") or ""
+    if "upload-artifact" in uses or "upload-pages-artifact" in uses:
+        return True
+    for line in (step.get("run") or "").splitlines():
+        names_dir = "modelspec-data" in line or "$dest" in line
+        if names_dir and _READS_PRIVATE_DIR.search(line):
+            return True
+    return False
+
+
+def private_fetch_problems(filename: str, job: str, steps: list[dict]) -> list[str]:
+    """Pin each private fetch. A step that reads that directory aloud is a review."""
+    row = next(item for item in _PRIVATE_FETCHES if item[0] == filename and item[1] == job)
+    _, _, name, run, guard = row
+    problems = []
+    if any(
+        (step.get("with") or {}).get("repository") == "turbobeest/modelspec-data"
+        for step in steps
+    ):
+        problems.append(_NIGHTLY_REVIEW)
+    matches = [step for step in steps if step.get("name") == name]
+    if (
+        len(matches) != 1
+        or _normalise_run(matches[0].get("run") or "") != _normalise_run(run)
+        or (guard is not None and matches[0].get("if") != guard)
+    ):
+        problems.append(_NIGHTLY_REVIEW)
+    for step in steps:
+        if _reads_private_directory(step):
+            problems.append(_NIGHTLY_REVIEW)
+    return problems
+
+
+def test_data_lag_and_rank_private_fetches_match_the_allow_list() -> None:
+    problems = [
+        f"{filename}:{job}"
+        for filename, job, _, _, _ in _PRIVATE_FETCHES
+        if private_fetch_problems(filename, job, _workflow_steps(filename, job))
+    ]
+    assert problems == [], _NIGHTLY_REVIEW
+
+
+@pytest.mark.parametrize("command", _PRIVATE_DIR_COMMANDS)
+def test_an_unlisted_command_fails_the_private_fetch_allow_list(command: str) -> None:
+    filename, job, name, _, _ = _PRIVATE_FETCHES[0]
+    steps = deepcopy(_workflow_steps(filename, job))
+    fetch = next(step for step in steps if step.get("name") == name)
+    fetch["run"] = fetch["run"] + command + "\n"
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert set(problems) == {_NIGHTLY_REVIEW}
+
+
+@pytest.mark.parametrize("command", _PRIVATE_DIR_COMMANDS)
+def test_a_new_step_that_reads_the_private_directory_fails(command: str) -> None:
+    filename, job, _, _, _ = _PRIVATE_FETCHES[0]
+    steps = deepcopy(_workflow_steps(filename, job))
+    steps.append({"name": "Show private data", "run": command + "\n"})
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert set(problems) == {_NIGHTLY_REVIEW}
+
+
+def test_a_new_upload_of_the_private_checkout_fails() -> None:
+    filename, job, _, _, _ = _PRIVATE_FETCHES[2]
+    steps = deepcopy(_workflow_steps(filename, job))
+    steps.append({"name": "Upload the private checkout", "uses": "actions/upload-artifact@v4"})
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert set(problems) == {_NIGHTLY_REVIEW}
+
+
+def test_private_fetches_fail_closed_before_publish_or_deploy() -> None:
+    lag = _workflow_steps("data-lag.yml", "lag")
+    fetch = next(step for step in lag if step.get("name") == "Read the private data with its history")
+    publish = next(step for step in lag if step.get("name") == "Publish the image as of today minus nine months")
+    assert lag.index(fetch) < lag.index(publish)
+    assert not fetch.get("continue-on-error")
+    assert "set -euo pipefail" in fetch["run"]
+    assert "|| true" not in fetch["run"]
+    assert "--depth" not in fetch["run"]
+    assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert fetch["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+    for job_name, deploy_name in (
+        ("deploy-staging", "Deploy staging"),
+        ("deploy", "Deploy"),
+    ):
+        steps = _workflow_steps("rank-api.yml", job_name)
+        fetch = next(step for step in steps if step.get("name") == "Read the private data")
+        vendor = next(step for step in steps if step.get("name") == "Vendor the scorer into the Worker bundle")
+        deploy = next(step for step in steps if step.get("name") == deploy_name)
+        assert steps.index(fetch) < steps.index(vendor) < steps.index(deploy)
+        assert not fetch.get("continue-on-error") and not deploy.get("continue-on-error")
+        assert "set -euo pipefail" in fetch["run"]
+        assert "|| true" not in fetch["run"]
+        assert "--depth=1" in fetch["run"]
+        assert "if" not in deploy
+        assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+
+
+@pytest.mark.parametrize(
+    "filename,job,name",
+    [(item[0], item[1], item[2]) for item in _PRIVATE_FETCHES],
+)
+def test_private_fetch_discards_output_and_fails_when_git_fetch_fails(
+    filename: str, job: str, name: str, tmp_path: Path,
+) -> None:
+    fetch = next(step for step in _workflow_steps(filename, job) if step.get("name") == name)
+    run = fetch["run"]
+    assert "echo" not in run
+    assert "set -x" not in run and "xtrace" not in run
+    git_lines = [line.strip() for line in run.splitlines() if re.search(r"\bgit\b", line)]
+    assert git_lines
+    for line in git_lines:
+        assert ">/dev/null" in line and "2>&1" in line
+        assert re.search(r"\b(log|rev-parse)\b", line) is None
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    recorded = tmp_path / "git-args"
+    git = bindir / "git"
+    git.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$*\" >> {recorded}\n"
+        "cmd=$1\n"
+        "if [ \"$cmd\" = \"-C\" ]; then shift 2; cmd=$1; fi\n"
+        "while [ \"$cmd\" = \"-c\" ]; do shift 2; cmd=$1; done\n"
+        "if [ \"$cmd\" = fetch ]; then exit \"${FETCH_STATUS:-0}\"; fi\n"
+        "exit 0\n"
+    )
+    git.chmod(0o755)
+    token = "secret-token-sentinel"
+    result = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert token not in result.stdout + result.stderr
+    log = recorded.read_text()
+    assert token not in log
+    assert " fetch " in f" {log}" or "\nfetch " in f"\n{log}"
+    assert re.search(r"(^|\s)(log|rev-parse)(\s|$)", log) is None
+
+    failed = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "7",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert failed.returncode == 7
+    assert failed.stdout == ""
+    assert token not in failed.stderr

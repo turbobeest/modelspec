@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gzip
 import importlib.util
+import re
 import shutil
 from pathlib import Path
 
@@ -144,20 +145,42 @@ def test_private_bundle_contains_the_model_and_private_registry(private, tmp_pat
 
 
 def test_private_workflow_jobs_have_main_event_gates_and_no_artifacts():
+    """Private data is fetched without actions/checkout, which prints the commit.
+
+    The token stays on the fetch command. It is not written with git config.
+    """
     for filename in ("deploy-sites.yml", "rank-api.yml"):
         jobs = yaml.safe_load((ROOT / ".github/workflows" / filename).read_text())["jobs"]
         for job in jobs.values():
             steps = job.get("steps", [])
-            checkouts = [s for s in steps if s.get("with", {}).get("repository") == "turbobeest/modelspec-data"]
-            if not checkouts:
+            checkouts = [
+                s for s in steps
+                if (s.get("with") or {}).get("repository") == "turbobeest/modelspec-data"
+            ]
+            fetches = [
+                s for s in steps
+                if "github.com/turbobeest/modelspec-data" in str(s.get("run") or "")
+            ]
+            assert not checkouts, filename
+            if not fetches:
                 continue
+            assert filename == "rank-api.yml"
             assert not any("upload-artifact" in s.get("uses", "") for s in steps)
-            for checkout in checkouts:
-                gate = job.get("if", "") + checkout.get("if", "")
+            for fetch in fetches:
+                gate = str(job.get("if") or "") + str(fetch.get("if") or "")
                 assert "refs/heads/main" in gate
                 assert "DATA_SPLIT_ENABLED" in gate
                 assert "push" in gate and "workflow_dispatch" in gate
-                assert checkout["with"]["persist-credentials"] is False
+                assert not fetch.get("continue-on-error")
+                run = fetch["run"]
+                assert "set -euo pipefail" in run
+                assert "|| true" not in run
+                assert "http.extraheader" in run
+                assert "git config" not in run
+                git_lines = [line for line in run.splitlines() if re.search(r"\bgit\b", line)]
+                assert git_lines
+                for line in git_lines:
+                    assert ">/dev/null" in line and "2>&1" in line
 
 
 def test_worker_reads_bundled_bytes_without_any_public_fetch(monkeypatch):

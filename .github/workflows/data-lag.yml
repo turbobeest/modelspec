@@ -41,13 +41,25 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Check out the private data with its history
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          repository: turbobeest/modelspec-data
-          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
-          path: modelspec-data
-          fetch-depth: 0
+      # actions/checkout logs `git log -1 --format=%H` and, at fetch-depth 0,
+      # every remote branch name. Fetch with git and discard the output.
+      # No shared composite action exists; accuracy-nightly.yml repeats this shape.
+      # Full history of every branch (the old fetch-depth 0), then main, which
+      # is the ref the action checked out. The token is on this fetch only.
+      - name: Read the private data with its history
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          dest=modelspec-data
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          git -C "$dest" init -q >/dev/null 2>&1
+          git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+          header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\n')
+          git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" fetch origin '+refs/heads/*:refs/remotes/origin/*' >/dev/null 2>&1
+          git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
