@@ -32,15 +32,17 @@ declaration is `BoardReading.explicit_empty_cells`, default off, set from
 A mark is written only when that same read parsed the table, exactly one
 row matches the stored name, the value key is present on that row with a
 value of None (a missing key is a re-shaped read, not an empty cell), at
-least three other rows carry a number, and at least half of the board's
-other rows carry a number. The written day is the run's observation day. It is quoted so
+least three other rows carry a number, the board has at least two tracked
+card rows, and every tracked card row of the board is present in the same
+read (the completeness rule below). The written day is the run's observation day. It is quoted so
 the next YAML load stays a string. If the key is already set, the stored
 day is left as it is and the file is not rewritten.
 
 These reads mark nothing and stay the existing failure:
 
-- the board has no numeric value, fewer than three scored neighbours, or
-  fewer than half of its other rows scored
+- the board has no numeric value or fewer than three scored neighbours
+- a tracked row of the board is missing from the read, or the board has a
+  single tracked row
 - the value key is missing on the matched row
 - the board is not declared
 - the stored name matches no row
@@ -150,9 +152,66 @@ the stored day stays.
 (g) Two rows match the stored name and one cell is empty: `no unique row`,
 no key, including when the other row's score agrees with the stored score.
 
-(h) The value key is missing, the board is undeclared, one scored
-neighbour, 3 scored of 10 others: `no unique row`, no key. 5 of 10, 6 of 10
-and all scored: marked.
+(h) The value key is missing: `no unique row`, no key. The board is
+undeclared, fewer than three scored neighbours, a tracked row missing, a
+single tracked row: no key, each with its own reason (below). 3 of 10, 5 of
+10, 6 of 10 and all scored: marked, when the read is complete.
+
+(MODEL-482-C replaced the half rule of the first version; (b) now reads
+"fewer than three scored neighbours" and is not `no unique row`.)
+
+## The completeness rule (MODEL-482-C)
+
+The first version also required at least half of a board's other rows to be
+numeric. The first live run marked nothing: each MathArena board has 24 rows,
+8 with a number, and that is its normal state. The half rule tested how full
+a board is, not whether the read is complete, and it was refused under the
+same text as a name that matches nothing.
+
+A row on a declared board is marked only when all hold in one read: (a) the
+stored name matches exactly one row, whose value key is present and None;
+(b) at least three other rows carry a number; (c) every card row the
+catalogue tracks on that board matches exactly one row of the read, with or
+without a value; (d) the board has at least two tracked rows. "Tracked" is
+the set of card evidence rows the run plans for that board (the same filter
+`_plan_observations` applies: benchmark id on the board, source URL accepted
+by it), taken over every card in the run and decided for the whole board
+before any row is marked, so the order of processing cannot change the
+outcome. If one tracked row matches no row or several, no row of that board
+is marked in that run.
+
+Each refusal has its own text, all counted in the report class
+`empty-cell-not-marked` (`no-unique-row` stays for a name that matches no row
+or several, and for a missing value key):
+
+- `empty cell for '<name>' on a board that does not declare empty cells; not marked`
+- `empty cell for '<name>' with fewer than 3 other rows scored; not marked`
+- `empty cell for '<name>' while the tracked row of <card id> (<benchmark>) is missing from the read; not marked`
+- `empty cell for '<name>' on a board with a single tracked row; not marked`
+
+The card id appears in the failure table of the private report only. The
+workflow log keeps counts.
+
+On a declared board a value the projector dropped is restored as None, so
+"missing" and "empty" are the same thing there. What protects a read is (b),
+(c) and (d): a page that served only some rows, lost a tracked row, or no
+longer prints any number marks nothing. What the rule does not protect
+against is a page change that empties the cells while keeping every tracked
+row present and three other rows numeric. That read marks. The report lists
+every newly marked row, and a person reads it before the refresh merges.
+
+The weakest read that still marks: two or more tracked rows, all present once
+each, three other rows numeric, and the row's own cell empty. That is
+acceptable because the mark is reversible (a later value removes it, the
+score stays, ranking is unchanged) and every newly marked row is listed.
+
+The parser: `project_matharena` splits the table by `<tr` and reads table 0.
+On the recorded 2026-09-29 pages the `<tr` count is the row count plus one
+(the header row in `thead`), `model-name` cells equal the projected rows, and
+there is one table. A row is dropped only when its cell count differs from the
+header's, which the recorded pages do not have. A live page with about 50
+`<tr` against 24 rows was not re-read here and is not explained by these
+fixtures.
 
 ## Not observed
 

@@ -69,6 +69,21 @@ def board_of(
     )
 
 
+#: The refusal texts MODEL-482-C gives each case that used to read "no unique row".
+UNDECLARED = (
+    "empty cell for 'Orbit 9' on a board that does not declare empty cells; not marked"
+)
+FEW_SCORED = "empty cell for 'Orbit 9' with fewer than 3 other rows scored; not marked"
+SINGLE_TRACKED = "empty cell for 'Orbit 9' on a board with a single tracked row; not marked"
+
+
+def missing_tracked(card: str, name: str = "Orbit 9") -> str:
+    return (
+        f"empty cell for {name!r} while the tracked row of {card} "
+        "(fixture_benchmark) is missing from the read; not marked"
+    )
+
+
 #: Three scored neighbours: the least a read may show before an empty cell counts.
 SCORED = [{"model": f"Rival {n}", "score": 70 + n} for n in (1, 2, 3)]
 SCORED_PCT = [{"model": f"Rival {n}", "score": f"{70 + n}%"} for n in (1, 2, 3)]
@@ -80,12 +95,19 @@ def plan(
     *,
     key: str = "fixture",
     declared: bool = True,
+    tracked_extra: tuple[str, ...] = ("Rival 1",),
 ):
+    """Plan one card's rows. The board also tracks the rows named in ``tracked_extra``."""
+    own = evidence_rows or [stored()]
+    tracked = [("lab/orbit", row) for row in own] + [
+        (f"lab/{name.lower().replace(' ', '-')}", stored(name)) for name in tracked_extra
+    ]
     return refresh._plan_observations(
         "lab/orbit",
         "models/lab/orbit.md",
-        evidence_rows or [stored()],
+        own,
         board_of(rows, key=key, declared=declared),
+        tracked=tracked,
     )
 
 
@@ -96,8 +118,28 @@ def card_text(
     name: str = "Orbit 9",
     effort: bool = True,
     flags: bool = True,
+    extra: tuple[str, ...] = (),
 ) -> str:
     mark = f"    not_published_since: '{marked}'\n" if marked is not None else ""
+    more = "".join(
+        f"""  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: {other}
+    score: 55.0
+    unit: percent
+    source_url: {SOURCE_URL}
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: evaluated
+    observed_at: '{LAST_SEEN}'
+    verified_at: '{LAST_SEEN}'
+{mark}    id: lab/orbit#fixture_benchmark#extra{n}
+    sources:
+    - source_id: fixture-source
+      snapshot_ref: sha256:{"a" * 64}
+      cited_regions: [rows]
+"""
+        for n, other in enumerate(extra)
+    )
     effort_line = "    effort: high\n" if effort else ""
     flag_line = "    quality_flags:\n    - contamination_warning\n" if flags else ""
     return f"""---
@@ -121,7 +163,7 @@ benchmarks:
     - source_id: fixture-source
       snapshot_ref: sha256:{"a" * 64}
       cited_regions: [rows]
----
+{more}---
 prose stays
 """
 
@@ -326,20 +368,21 @@ def test_not_published_since_arena_path_never_sets_the_key() -> None:
 
 def test_not_published_since_writes_only_the_key(monkeypatch, tmp_path: Path) -> None:
     """(a) A sound read writes the observation day and leaves the reading alone."""
-    root, cache, card = setup_repo(tmp_path, card_text())
+    root, cache, card = setup_repo(tmp_path, card_text(extra=("Quill 3",)))
     before = card.read_text(encoding="utf-8").splitlines()
     before_row = front_row(card)
 
     report = run_boards(
         monkeypatch, root, cache,
-        [{"model": "Orbit 9", "score": None}, *SCORED_PCT],
+        [{"model": "Orbit 9", "score": None}, {"model": "Quill 3", "score": None}, *SCORED_PCT],
     )
 
     after = card.read_text(encoding="utf-8").splitlines()
     added = [line for line in after if line not in before]
     removed = [line for line in before if line not in after]
     row = front_row(card)
-    assert added == [f"    not_published_since: '{OBSERVED}'"]
+    # Both tracked rows are empty on the board, so both are marked, one line each.
+    assert added == [f"    not_published_since: '{OBSERVED}'"] * 2
     assert removed == []
     assert isinstance(row["not_published_since"], str)
     assert row["not_published_since"] == OBSERVED
@@ -354,10 +397,10 @@ def test_not_published_since_writes_only_the_key(monkeypatch, tmp_path: Path) ->
     assert report.failures == []
     assert [(mark.kind, mark.last_seen) for mark in report.not_published] == [
         ("newly_marked", LAST_SEEN),
-    ]
+    ] * 2
     text = refresh.render_report(report)
     assert "## No longer published" in text
-    assert "1 newly marked, 0 still marked, 0 unmarked this run." in text
+    assert "2 newly marked, 0 still marked, 0 unmarked this run." in text
     assert "models/lab/orbit.md" in text
     assert "fixture_benchmark" in text
     assert LAST_SEEN in text
@@ -375,7 +418,8 @@ def test_not_published_since_empty_board_and_missing_row_write_nothing(
     empty = run_boards(monkeypatch, root, cache, [{"model": "Orbit 9"}, {"model": "Harbor 2"}])
     assert card.read_bytes() == before
     assert empty.not_published == []
-    assert [failure.reason for failure in empty.failures] == ["no unique row for 'Orbit 9'"]
+    # Every cell is empty: the page's rows have no number, so fewer than 3 are scored.
+    assert [failure.reason for failure in empty.failures] == [FEW_SCORED]
 
     missing = run_boards(monkeypatch, root, cache, [{"model": "Harbor 2", "score": "70%"}])
     assert card.read_bytes() == before
@@ -435,12 +479,14 @@ def test_not_published_since_later_empty_read_keeps_the_stored_day(
     monkeypatch, tmp_path: Path,
 ) -> None:
     """(f) The cell is still empty, so the stored day does not move and nothing is written."""
-    root, cache, card = setup_repo(tmp_path, card_text(marked="2026-10-01"))
+    root, cache, card = setup_repo(
+        tmp_path, card_text(marked="2026-10-01", extra=("Quill 3",)),
+    )
     before = card.read_bytes()
 
     report = run_boards(
         monkeypatch, root, cache,
-        [{"model": "Orbit 9", "score": None}, *SCORED_PCT],
+        [{"model": "Orbit 9", "score": None}, {"model": "Quill 3", "score": None}, *SCORED_PCT],
     )
 
     assert card.read_bytes() == before
@@ -450,7 +496,7 @@ def test_not_published_since_later_empty_read_keeps_the_stored_day(
     assert report.failures == []
     assert [(mark.kind, mark.day, mark.last_seen) for mark in report.not_published] == [
         ("still_marked", "2026-10-01", LAST_SEEN),
-    ]
+    ] * 2
 
 
 def test_not_published_since_report_names_cards_outside_failures(tmp_path: Path) -> None:
@@ -610,7 +656,7 @@ def test_only_declared_boards_can_mark() -> None:
 
         assert observations == []
         assert marks == []
-        assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
+        assert [failure.reason for failure in failures] == [UNDECLARED]
 
 
 def test_matharena_boards_are_the_only_declared_boards() -> None:
@@ -625,11 +671,14 @@ def test_one_scored_neighbour_is_not_enough() -> None:
     )
 
     assert marks == []
-    assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
+    assert [failure.reason for failure in failures] == [FEW_SCORED]
 
 
 def test_mostly_empty_board_marks_nothing() -> None:
-    """3 scored of 10 other rows is below half; 6 of 10 and all scored mark."""
+    """MODEL-482-C: a mostly empty board is the normal state, not a reason to refuse.
+
+    The half rule is gone: 3 scored of 10 other rows marks, as do 5, 6 and 10.
+    Only fewer than three scored rows refuse."""
     def board(scored: int, others: int = 10) -> list[dict]:
         return [
             {"model": "Orbit 9", "score": None},
@@ -638,8 +687,8 @@ def test_mostly_empty_board_marks_nothing() -> None:
         ]
 
     _o, failures, marks = plan(board(3))
-    assert marks == []
-    assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
+    assert failures == []
+    assert [mark.kind for mark in marks] == ["newly_marked"]
 
     _o, failures, marks = plan(board(6))
     assert failures == []
@@ -649,7 +698,7 @@ def test_mostly_empty_board_marks_nothing() -> None:
     assert failures == []
     assert [mark.kind for mark in marks] == ["newly_marked"]
 
-    # Exactly half of the other rows scored: allowed.
+    # Exactly half of the other rows scored.
     _o, failures, marks = plan(board(5))
     assert failures == []
     assert [mark.kind for mark in marks] == ["newly_marked"]
@@ -657,7 +706,7 @@ def test_mostly_empty_board_marks_nothing() -> None:
     # Fewer than three scored rows, though they are every other row.
     _o, failures, marks = plan(board(2, others=2))
     assert marks == []
-    assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
+    assert [failure.reason for failure in failures] == [FEW_SCORED]
 
 
 def test_matharena_predicted_cell_is_treated_like_an_empty_one(tmp_path: Path) -> None:
@@ -685,9 +734,11 @@ def test_matharena_predicted_cell_is_treated_like_an_empty_one(tmp_path: Path) -
 
     neighbours = "".join(cell(n + 2, f"Rival {n}", f"{70 + n}% ± 4.00%") for n in (1, 2, 3))
     stored_row = [stored()]
+    tracked = [("lab/orbit", stored_row[0]), ("lab/rival-1", stored("Rival 1"))]
     for empty in (cell(1, "Orbit 9", "N/A"), cell(1, "Orbit 9", "42.00% ± 5.00%", "yes")):
         observations, failures, marks = refresh._plan_observations(
             "lab/orbit", "models/lab/orbit.md", stored_row, reading(empty + neighbours),
+            tracked=tracked,
         )
         assert observations == []
         assert failures == []
@@ -697,6 +748,7 @@ def test_matharena_predicted_cell_is_treated_like_an_empty_one(tmp_path: Path) -
     observations, failures, marks = refresh._plan_observations(
         "lab/orbit", "models/lab/orbit.md", stored_row,
         reading(cell(1, "Orbit 9", "62.00% ± 5.00%") + neighbours),
+        tracked=tracked,
     )
     assert marks == [] and failures == []
     assert [o.new_value for o in observations] == [62.0]
@@ -727,3 +779,177 @@ def test_guard_refuses_a_changed_mark_date(tmp_path: Path) -> None:
         assert not result.ok
         assert result.errors == ("non-score card data changed: models/lab/orbit.md",)
         assert result.classes == {}
+
+
+# --- MODEL-482-C: the mark floor tests that the read is complete, not that the board is full ---
+
+#: Tracked on the real-shape board: one scored, seven empty. Invented names.
+TRACKED_EMPTY = ("Orbit 9", "Orbit 8", "Harbor 2", "Harbor 3", "Quill 1", "Quill 2", "Vale 4")
+TRACKED_SCORED = "Vale 5"
+
+
+def real_shape_rows() -> list[tuple[str, float | None]]:
+    """24 rows, 8 with a number, 16 empty: the state of a real MathArena board.
+
+    Eight rows are tracked by the card (seven empty, ``Vale 5`` scored)."""
+    rows: list[tuple[str, float | None]] = [(name, None) for name in TRACKED_EMPTY]
+    rows.append((TRACKED_SCORED, 55.0))
+    rows += [(f"Rival {n}", 70.0 + n) for n in range(1, 8)]
+    rows += [(f"Idle {n}", None) for n in range(1, 10)]
+    assert len(rows) == 24 and sum(1 for _n, v in rows if v is not None) == 8
+    return rows
+
+
+def matharena_table(rows: list[tuple[str, float | None]]) -> bytes:
+    def cell(rank: int, name: str, accuracy: float | None) -> str:
+        shown = "N/A" if accuracy is None else f"{accuracy:.2f}% ± 1.00%"
+        return (
+            f'<tr><td>{rank}</td><td class="model-name"><a>{name}</a></td><td>Lab</td>'
+            f'<td data-predicted="no">{shown}</td></tr>'
+        )
+
+    table = (
+        "<table><thead><tr><th>Rank</th><th>Model Name</th><th>Provider</th>"
+        "<th>Accuracy (± 95% CI)</th></tr></thead><tbody>"
+        + "".join(cell(n + 1, name, value) for n, (name, value) in enumerate(rows))
+        + "</tbody></table>"
+    )
+    return refresh.readers.project_matharena(
+        json.dumps({"table": table}).encode(),
+        url=SOURCE_URL, page_ref="sha256:" + "b" * 64, read_date=OBSERVED,
+    )
+
+
+def run_matharena(monkeypatch, root: Path, cache: Path, rows: list[tuple[str, float | None]]):
+    """The real ``run()`` over a MathArena-shaped read: the page's table, projected."""
+    monkeypatch.setenv("MODELSPEC_ARENA_REVISION", "pinned")
+    board = refresh._reading_from_projection(
+        key="matharena", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url=SOURCE_URL, projected=matharena_table(rows), observed_at=OBSERVED,
+        value_field="accuracy", store=refresh.CopyStore(cache), card_urls=(SOURCE_URL,),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_a, **_k: ([board], []))
+    return refresh.run(
+        observed_at=OBSERVED, dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/orbit",),
+    )
+
+
+def evidence_rows(card: Path) -> dict[str, dict]:
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    return {row["model_id_as_evaluated"]: row for row in front["benchmarks"]["evidence"]}
+
+
+def real_shape_card(tmp_path: Path) -> tuple[Path, Path, Path]:
+    text = card_text(extra=(*TRACKED_EMPTY[1:], TRACKED_SCORED))
+    return setup_repo(tmp_path, text)
+
+
+def test_sparse_board_marks_when_every_tracked_row_is_present(monkeypatch, tmp_path: Path) -> None:
+    root, cache, card = real_shape_card(tmp_path)
+
+    report = run_matharena(monkeypatch, root, cache, real_shape_rows())
+
+    rows = evidence_rows(card)
+    assert report.failures == []
+    assert sorted(mark.model for mark in report.not_published) == sorted(TRACKED_EMPTY)
+    assert {mark.kind for mark in report.not_published} == {"newly_marked"}
+    for name in TRACKED_EMPTY:
+        assert rows[name]["not_published_since"] == OBSERVED
+    assert "not_published_since" not in rows[TRACKED_SCORED]
+    assert rows[TRACKED_SCORED]["score"] == 55.0
+
+
+def test_missing_tracked_row_blocks_every_mark_on_the_board(monkeypatch, tmp_path: Path) -> None:
+    root, cache, card = real_shape_card(tmp_path)
+    board = [(name, value) for name, value in real_shape_rows() if name != "Quill 2"]
+    assert len(board) == 23
+
+    report = run_matharena(monkeypatch, root, cache, board)
+
+    assert report.not_published == []
+    assert "not_published_since" not in card.read_text(encoding="utf-8")
+    reasons = sorted(failure.reason for failure in report.failures)
+    expected = [missing_tracked("lab/orbit", name) for name in TRACKED_EMPTY if name != "Quill 2"]
+    expected.append("no unique row for 'Quill 2'")
+    assert reasons == sorted(expected)
+
+
+def test_truncated_board_marks_nothing(monkeypatch, tmp_path: Path) -> None:
+    root, cache, card = real_shape_card(tmp_path)
+    ordered = [
+        ("Orbit 9", None), ("Rival 1", 71.0), ("Rival 2", 72.0), ("Rival 3", 73.0),
+        ("Orbit 8", None), ("Idle 1", None),
+    ]
+    assert len(ordered) == 6
+
+    report = run_matharena(monkeypatch, root, cache, ordered)
+
+    assert report.not_published == []
+    assert "not_published_since" not in card.read_text(encoding="utf-8")
+    reasons = {failure.reason for failure in report.failures}
+    assert missing_tracked("lab/orbit") in reasons
+    assert missing_tracked("lab/orbit", "Orbit 8") in reasons
+
+
+def test_single_tracked_row_is_never_marked(monkeypatch, tmp_path: Path) -> None:
+    root, cache, card = setup_repo(tmp_path, card_text())
+    before = card.read_bytes()
+
+    report = run_matharena(monkeypatch, root, cache, real_shape_rows())
+
+    assert card.read_bytes() == before
+    assert report.not_published == []
+    assert [failure.reason for failure in report.failures] == [SINGLE_TRACKED]
+
+
+def test_fewer_than_three_scored_neighbours_marks_nothing(monkeypatch, tmp_path: Path) -> None:
+    both = [("Orbit 9", None), ("Orbit 8", None)]
+    for scored in (
+        [("Rival 1", 71.0), ("Rival 2", 72.0)],  # two numeric neighbours
+        [],  # every value gone
+    ):
+        root, cache, card = setup_repo(tmp_path / f"n{len(scored)}", card_text(extra=("Orbit 8",)))
+        before = card.read_bytes()
+
+        report = run_matharena(monkeypatch, root, cache, both + scored)
+
+        assert card.read_bytes() == before
+        assert report.not_published == []
+        assert sorted(failure.reason for failure in report.failures) == sorted([
+            FEW_SCORED, FEW_SCORED.replace("'Orbit 9'", "'Orbit 8'"),
+        ])
+
+
+def test_a_renamed_value_column_is_a_failed_read_not_a_mark(monkeypatch, tmp_path: Path) -> None:
+    table = (
+        "<table><thead><tr><th>Rank</th><th>Model Name</th><th>Provider</th>"
+        "<th>Score</th></tr></thead><tbody></tbody></table>"
+    )
+    with pytest.raises(ValueError):
+        refresh.readers.project_matharena(
+            json.dumps({"table": table}).encode(),
+            url=SOURCE_URL, page_ref="sha256:" + "b" * 64, read_date=OBSERVED,
+        )
+
+
+def test_refused_mark_reasons_are_distinct_from_no_unique_row() -> None:
+    rows = [{"model": "Orbit 9", "score": None}, *SCORED]
+    cases = {
+        UNDECLARED: plan(rows, declared=False),
+        FEW_SCORED: plan([{"model": "Orbit 9", "score": None}, SCORED[0], SCORED[1]]),
+        missing_tracked("lab/quill-3"): plan(rows, tracked_extra=("Quill 3",)),
+        SINGLE_TRACKED: plan(rows, tracked_extra=()),
+    }
+    seen = set()
+    for reason, (_observations, failures, marks) in cases.items():
+        assert marks == []
+        assert [failure.reason for failure in failures] == [reason]
+        assert "no unique row" not in reason
+        assert refresh._skip_class(reason) == "empty-cell-not-marked"
+        seen.add(reason)
+    assert len(seen) == 4
+
+    _o, failures, _m = plan([{"model": "Harbor 2", "score": 70}])
+    assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
+    assert refresh._skip_class(failures[0].reason) == "no-unique-row"

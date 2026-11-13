@@ -469,24 +469,57 @@ def _cell_numeric(value: object) -> bool:
 
 #: The least scored rows beside a row with an empty cell before that cell counts.
 MARK_MIN_SCORED_NEIGHBOURS = 3
+#: The fewest tracked card rows a board needs before "every tracked row is present"
+#: proves anything. One tracked row is trivially present.
+MARK_MIN_TRACKED_ROWS = 2
+
+#: One card evidence row the refresh plans for a board in this run: its model id and the row.
+TrackedRow = tuple[str, Mapping[str, Any]]
 
 
-def _empty_cell_is_evidence(board: BoardReading, match: Mapping[str, Any]) -> bool:
-    """The read was sound and this row's cell is explicitly empty.
+def _row_is_tracked(board: BoardReading, evidence: Mapping[str, Any]) -> bool:
+    """A card evidence row the refresh plans for this board (the one filter both callers use)."""
+    return (
+        evidence.get("benchmark_id") in board.benchmark_ids
+        and str(evidence.get("source_url") or "") in (board.card_urls or frozenset({board.source_url}))
+    )
 
-    Only a declared board may mark. The matched row carries the value key with
-    a None value (a missing key is a re-shaped read). In the same read, at
-    least ``MARK_MIN_SCORED_NEIGHBOURS`` other rows are numeric and at least
-    half of the other rows are numeric, so a page that served only its first
-    rows cannot mark.
+
+def _empty_cell_refusal(
+    board: BoardReading,
+    match: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    tracked: Sequence[TrackedRow],
+) -> str | None:
+    """Why an empty cell on a matched row is not evidence, or None when it is.
+
+    Only a declared board may mark. The matched row carries the value key with a
+    None value (a missing key is a re-shaped read). In the same read at least
+    ``MARK_MIN_SCORED_NEIGHBOURS`` other rows are numeric, the board has at least
+    ``MARK_MIN_TRACKED_ROWS`` tracked card rows, and every tracked row matches
+    exactly one row of the read, so a page that served only its first rows, or
+    lost a row, marks nothing. The test reads the board and the tracked set, never
+    the order the rows are processed in. The empty string is "no unique row".
     """
+    name = repr(evidence.get("model_id_as_evaluated"))
     if not board.explicit_empty_cells:
-        return False
+        return (
+            f"empty cell for {name} on a board that does not declare empty cells; not marked"
+        )
     if board.value_field not in match or match[board.value_field] is not None:
-        return False
+        return ""
     others = [row for row in board.rows if row is not match]
-    numeric = sum(1 for row in others if _cell_numeric(row.get(board.value_field)))
-    return numeric >= MARK_MIN_SCORED_NEIGHBOURS and numeric * 2 >= len(others)
+    if sum(1 for row in others if _cell_numeric(row.get(board.value_field))) < MARK_MIN_SCORED_NEIGHBOURS:
+        return f"empty cell for {name} with fewer than {MARK_MIN_SCORED_NEIGHBOURS} other rows scored; not marked"
+    if len(tracked) < MARK_MIN_TRACKED_ROWS:
+        return f"empty cell for {name} on a board with a single tracked row; not marked"
+    for model_id, row in tracked:
+        if len(_name_candidates(board, row)) != 1:
+            return (
+                f"empty cell for {name} while the tracked row of {model_id} "
+                f"({row.get('benchmark_id')}) is missing from the read; not marked"
+            )
+    return None
 
 
 def _publication_marked(row: Mapping[str, Any]) -> bool:
@@ -931,22 +964,23 @@ def _plan_observations(
     board: BoardReading,
     *,
     revision: str = "",
+    tracked: Sequence[TrackedRow] | None = None,
 ) -> tuple[list[RowObservation], list[RowFailure], list[PublicationMark]]:
     """Plan observations of existing rows; never add one.
 
-    An empty cell is a publication mark only when this same board parsed and
-    another row carries a number. Arena boards, a missing row, several name
-    matches, and a board with no numbers stay the existing ``no unique row``
-    failure and are not marked.
+    An empty cell is a publication mark only when this same read passes
+    ``_empty_cell_refusal``. ``tracked`` is every card row planned for this board
+    in the run (all cards); left out, it is this card's rows alone. Arena boards,
+    a missing row, several name matches and a missing value key stay the existing
+    ``no unique row`` failure; the other refusals have their own reason.
     """
+    if tracked is None:
+        tracked = [(model_id, row) for row in evidence_rows if _row_is_tracked(board, row)]
     observations: list[RowObservation] = []
     failures: list[RowFailure] = []
     marks: list[PublicationMark] = []
     for evidence in evidence_rows:
-        if evidence.get("benchmark_id") not in board.benchmark_ids:
-            continue
-        accepted_urls = board.card_urls or frozenset({board.source_url})
-        if str(evidence.get("source_url") or "") not in accepted_urls:
+        if not _row_is_tracked(board, evidence):
             continue
         arena_board = board.key.startswith("arena:")
         stored_name = str(evidence.get("model_id_as_evaluated") or "")
@@ -1007,12 +1041,13 @@ def _plan_observations(
                 ))
                 continue
             if len(named) == 1 and absent:
-                if _empty_cell_is_evidence(board, named[0]):
+                refusal = _empty_cell_refusal(board, named[0], evidence, tracked)
+                if refusal is None:
                     marks.append(_empty_cell_mark(model_id, card, evidence, board))
                 else:
                     failures.append(RowFailure(
                         model_id, str(evidence.get("benchmark_id")), board.source_url,
-                        f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
+                        refusal or f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
                     ))
                 continue
         match = pinned if pinned is not None else _match(board, evidence)
@@ -1687,6 +1722,8 @@ def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> s
         return "no-unique-row"
     if "no unique row" in text:
         return "no-unique-row"
+    if text.startswith("empty cell for ") and text.endswith("; not marked"):
+        return "empty-cell-not-marked"
     if text.startswith("verifier"):
         return "verifier"
     if "interval" in text:
@@ -2056,12 +2093,17 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 continue
             models_read: set[str] = set()
             reconfirmed_models: set[str] = set()
+            # Every card row this run plans for the board, decided before any row is
+            # marked: the completeness of the read does not depend on processing order.
+            tracked = [
+                (model_id, row)
+                for model_id in group
+                for row in (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
+                if _row_is_tracked(board, row)
+            ]
             for model_id, path in group.items():
                 rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
-                relevant = [row for row in rows
-                            if row.get("benchmark_id") in board.benchmark_ids
-                            and str(row.get("source_url") or "") in
-                            (board.card_urls or frozenset({board.source_url}))]
+                relevant = [row for row in rows if _row_is_tracked(board, row)]
                 if not relevant:
                     if add_missing:
                         additions, failures = _new_evidence(
@@ -2082,7 +2124,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         models_read.add(model_id)
                 observations, failures, marks = _plan_observations(
                     model_id, path.relative_to(root).as_posix(), relevant, board,
-                    revision=effective,
+                    revision=effective, tracked=tracked,
                 )
                 report.failures.extend(failures)
                 summary["failures"].extend(failure.reason for failure in failures)
