@@ -4,10 +4,11 @@ import json
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 
 from scripts import accuracy_alert
 
@@ -82,7 +83,73 @@ def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
         ["--report", str(tmp_path / "missing.json"), "--run-url", RUN, "--output", str(out)]
     ) == 0
     assert out.read_text() == (
-        f"The nightly wrote no report: it failed before or during the run.\n\nRun: {RUN}\n"
+        f"the run failed before a report was written\n\nRun: {RUN}\n"
+    )
+
+
+def test_python_is_installed_before_the_private_fetch() -> None:
+    workflow = yaml.load(
+        Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    names = [step.get("name") for step in workflow["jobs"]["accuracy"]["steps"]]
+    fetch = names.index("Read private verification records")
+    assert names.index("Set up Python") < fetch
+    assert names.index("Install dependencies") < fetch
+
+
+def test_the_alert_builder_runs_when_yaml_cannot_be_imported(tmp_path: Path) -> None:
+    report = {
+        "status": "fail",
+        "layers": [{
+            "name": "data_fidelity",
+            "status": "fail",
+            "gating": True,
+            "counts": {"mismatch": 1, "unreachable": 0, "undetermined": 0},
+            "details": {"sample": [{"target": "fact:yaml-block-sentinel"}]},
+        }],
+    }
+    report_path = tmp_path / "accuracy.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    present = tmp_path / "present.md"
+    missing = tmp_path / "missing.md"
+    driver = tmp_path / "driver.py"
+    root = str(Path(__file__).resolve().parents[1])
+    driver.write_text(
+        "import sys\n"
+        "class BlockYaml:\n"
+        "    def find_spec(self, fullname, path, target=None):\n"
+        "        if fullname == 'yaml' or fullname.startswith('yaml.'):\n"
+        "            raise ModuleNotFoundError(fullname)\n"
+        "        return None\n"
+        "sys.meta_path.insert(0, BlockYaml())\n"
+        "try:\n"
+        "    import yaml\n"
+        "except ModuleNotFoundError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise SystemExit('yaml imported')\n"
+        "from scripts.accuracy_alert import main\n"
+        f"present_code = main(['--report', {str(report_path)!r}, '--run-url', {RUN!r},"
+        f" '--output', {str(present)!r}])\n"
+        f"missing_code = main(['--report', {str(tmp_path / 'no-report.json')!r},"
+        f" '--run-url', {RUN!r}, '--output', {str(missing)!r}])\n"
+        "if present_code != 0 or missing_code != 0:\n"
+        "    raise SystemExit(f'codes {present_code} {missing_code}')\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["PYTHONPATH"] = root
+    result = subprocess.run(
+        [sys.executable, str(driver)], cwd=root, capture_output=True, text=True, env=env,
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    present_text = present.read_text(encoding="utf-8")
+    assert "fact:yaml-block-sentinel" not in present_text
+    assert "FAIL" in present_text
+    assert present_text.endswith(f"Run: {RUN}\n")
+    assert missing.read_text(encoding="utf-8") == (
+        f"the run failed before a report was written\n\nRun: {RUN}\n"
     )
 
 

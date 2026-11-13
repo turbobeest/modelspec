@@ -23,7 +23,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.accuracy import public_nightly_report  # noqa: E402
+from scripts.accuracy_public import public_nightly_report  # noqa: E402
 
 TITLE = "Accuracy nightly failed"
 LABEL = "alert"
@@ -38,7 +38,7 @@ def body(report: Mapping[str, Any] | None, run_url: str) -> str:
     A missing report (the script crashed before writing one) is still an alert.
     """
     if report is None:
-        return f"The nightly wrote no report: it failed before or during the run.\n\nRun: {run_url}\n"
+        return f"the run failed before a report was written\n\nRun: {run_url}\n"
     table = public_nightly_report(report).rstrip("\n")
     return f"{table}\n\n{_UNPUBLISHED}\n\nRun: {run_url}\n"
 
