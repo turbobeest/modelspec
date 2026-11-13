@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from scripts.price_reread import FactResult, Status
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "private-writers" / "price-reread.yml"
 TODAY = date(2026, 10, 6)
-PYTHON = "/Users/terbeest/dev/modelspec/.venv/bin/python"
+PYTHON = sys.executable
 RUN_URL = "https://github.com/example/repo/actions/runs/481"
 TITLE = "Price and plan re-read needs a person"
 

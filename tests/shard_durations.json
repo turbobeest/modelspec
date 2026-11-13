@@ -263,6 +263,7 @@
   "tests/test_premier_slice1.py": 276.994,
   "tests/test_prepare_data_writer.py": 0.183,
   "tests/test_price_reread.py": 3.523,
+  "tests/test_price_reread_alert.py": 1.857,
   "tests/test_price_reread_fallback.py": 2.629,
   "tests/test_pricing_page.py": 0.141,
   "tests/test_pricing_v2.py": 0.288,

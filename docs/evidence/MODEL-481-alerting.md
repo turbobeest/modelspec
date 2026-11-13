@@ -69,6 +69,8 @@ The first push, `6c5a164bc1e961d999dc4479602ce3ef04a25a06`, failed "pytest perf 
 
 Exit 0. The same three price re-read test files then passed again, 258 in 4.45s.
 
+The next CI run collected. Shard 5 failed `test_shard_timings_cover_the_current_suite_and_browser_modules` because `tests/test_price_reread_alert.py` had no row in `tests/shard_durations.json`. The eight testcase times in a local JUnit file sum to 1.857 seconds, and that row is now in the durations file. Shard 8 failed the three alert shell tests because they called `/Users/terbeest/dev/modelspec/.venv/bin/python`. They now call `sys.executable`. Those eight tests and the timing test then passed, 9 in 2.23s.
+
 ## Not observed
 
 The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls.
