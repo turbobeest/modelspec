@@ -139,6 +139,10 @@ class BoardReading:
     #: ``unit`` and ``source_kind`` for a row the board adds. A board that declares
     #: them can seed a benchmark no card carries yet; otherwise a card row is the template.
     row_template: Mapping[str, str] | None = None
+    #: The board's projector puts the value key on every listed row, with an
+    #: explicit None where the source lists the model and prints no measured value.
+    #: Default off: only a board declared in ``UNPUBLISHED_CELL_BOARDS`` may mark.
+    explicit_empty_cells: bool = False
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.observed_at)
@@ -295,6 +299,7 @@ def json_board(
     value_field: str,
     fraction: bool = False,
     snapshot_ref: str | None = None,
+    explicit_empty_cells: bool = False,
 ) -> BoardReading:
     payload = json.loads(body)
     rows = payload["rows"] if isinstance(payload, Mapping) else payload
@@ -308,6 +313,7 @@ def json_board(
         value_field=value_field,
         fraction=fraction,
         snapshot_ref=snapshot_ref,
+        explicit_empty_cells=explicit_empty_cells,
     )
 
 
@@ -461,12 +467,26 @@ def _cell_numeric(value: object) -> bool:
     return False
 
 
-def _another_row_numeric(board: BoardReading, match: Mapping[str, Any]) -> bool:
-    """The same read parsed, and some other row on this board has a number."""
-    return any(
-        row is not match and _cell_numeric(row.get(board.value_field))
-        for row in board.rows
-    )
+#: The least scored rows beside a row with an empty cell before that cell counts.
+MARK_MIN_SCORED_NEIGHBOURS = 3
+
+
+def _empty_cell_is_evidence(board: BoardReading, match: Mapping[str, Any]) -> bool:
+    """The read was sound and this row's cell is explicitly empty.
+
+    Only a declared board may mark. The matched row carries the value key with
+    a None value (a missing key is a re-shaped read). In the same read, at
+    least ``MARK_MIN_SCORED_NEIGHBOURS`` other rows are numeric and at least
+    half of the other rows are numeric, so a page that served only its first
+    rows cannot mark.
+    """
+    if not board.explicit_empty_cells:
+        return False
+    if board.value_field not in match or match[board.value_field] is not None:
+        return False
+    others = [row for row in board.rows if row is not match]
+    numeric = sum(1 for row in others if _cell_numeric(row.get(board.value_field)))
+    return numeric >= MARK_MIN_SCORED_NEIGHBOURS and numeric * 2 >= len(others)
 
 
 def _publication_marked(row: Mapping[str, Any]) -> bool:
@@ -987,7 +1007,7 @@ def _plan_observations(
                 ))
                 continue
             if len(named) == 1 and absent:
-                if _another_row_numeric(board, named[0]):
+                if _empty_cell_is_evidence(board, named[0]):
                     marks.append(_empty_cell_mark(model_id, card, evidence, board))
                 else:
                     failures.append(RowFailure(
@@ -1135,8 +1155,10 @@ def _without_publication(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _publication_only(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """The key alone was added or removed. One date replaced by another is neither."""
+    was, now = before.get("not_published_since"), after.get("not_published_since")
     return _without_publication(before) == _without_publication(after) and (
-        before.get("not_published_since") != after.get("not_published_since")
+        (was in (None, "")) != (now in (None, ""))
     )
 
 
@@ -3116,6 +3138,9 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     both fields, including when this row's date value is missing. An unknown
     source URL does too.
     """
+    was, now = before.get("not_published_since"), after.get("not_published_since")
+    if was not in (None, "") and now not in (None, "") and was != now:
+        return False
     refreshed = _reading_refreshed(before, after)
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
@@ -3208,7 +3233,8 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     including when its date value is missing and when the stored evidence day
     already equals ``observed_at``. A row may also gain or lose
     ``not_published_since`` and nothing else; that change is its own class.
-    The key beside any other changed field is judged as that other field.
+    One date replaced by another is refused. The key beside any other changed
+    field is judged as that other field.
     Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
@@ -3302,6 +3328,16 @@ def _fetch(url: str) -> bytes:
         return response.read()
 
 
+#: Boards whose projector puts the value key on every listed row and an explicit
+#: None where the source lists the model with no measured value. Only these may
+#: mark a row ``not_published_since``. MathArena's projector emits None for an
+#: empty cell and for a cell the site estimated (``data-predicted``), so the
+#: key means "listed without a measured value", not only "blank".
+UNPUBLISHED_CELL_BOARDS = frozenset({
+    "matharena", "matharena:brokenarxiv", "matharena:arxivmath",
+})
+
+
 def _reading_from_projection(
     *, key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
     projected: bytes, observed_at: str, value_field: str, store: CopyStore,
@@ -3309,10 +3345,20 @@ def _reading_from_projection(
     row_template: Mapping[str, str] | None = None,
 ) -> BoardReading:
     payload = json.loads(projected)
-    rows = tuple({**row, "observed_at": observed_at} for row in payload["rows"])
+    declared = key in UNPUBLISHED_CELL_BOARDS
+    # ``document`` drops a None, so a declared projector's empty cell arrives with
+    # no value key. The board declares that a named row without one is listed with
+    # no measured value, and the key is put back here, where the declaration is.
+    rows = tuple(
+        {**(
+            {value_field: None} if declared and value_field not in row and _subject(row) else {}
+        ), **row, "observed_at": observed_at}
+        for row in payload["rows"]
+    )
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
         value_field, fraction, store.put(projected, source_url=source_url), frozenset(card_urls), row_template,
+        key in UNPUBLISHED_CELL_BOARDS,
     )
 
 

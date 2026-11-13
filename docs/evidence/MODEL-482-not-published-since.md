@@ -26,16 +26,23 @@ was widened.
 
 ## Who sets it
 
-`scripts/refresh_leaderboards.py`, on a non-Arena board only. A mark is
-written only when that same read parsed the table, exactly one row matches
-the stored name, that row's value is missing, and at least one other row
-carries a number. The written day is the run's observation day, quoted so
+`scripts/refresh_leaderboards.py`, on a declared board only. The
+declaration is `BoardReading.explicit_empty_cells`, default off, set from
+`UNPUBLISHED_CELL_BOARDS`, which names the MathArena boards and no other.
+A mark is written only when that same read parsed the table, exactly one
+row matches the stored name, the value key is present on that row with a
+value of None (a missing key is a re-shaped read, not an empty cell), at
+least three other rows carry a number, and at least half of the board's
+other rows carry a number. The written day is the run's observation day. It is quoted so
 the next YAML load stays a string. If the key is already set, the stored
 day is left as it is and the file is not rewritten.
 
 These reads mark nothing and stay the existing failure:
 
-- the board has no numeric value
+- the board has no numeric value, fewer than three scored neighbours, or
+  fewer than half of its other rows scored
+- the value key is missing on the matched row
+- the board is not declared
 - the stored name matches no row
 - the stored name matches several rows, including when one cell is empty
   (a sibling whose score agrees is not used)
@@ -44,9 +51,16 @@ These reads mark nothing and stay the existing failure:
 When a later read finds a value, the key is removed and the reading is
 written like any other reading. The Arena dataset path never sets the key.
 
-A MathArena cell that is not a percentage, including a predicted cell, is
-projected with no accuracy. That missing value is the empty cell this rule
-sees. A non-empty string is not treated as absent.
+On MathArena the key means the source lists the model without a measured
+value: an empty cell, or a cell the site estimated (`data-predicted`). The
+projector drops both, because `document` drops a None. Reading a declared
+board therefore puts the value key back as None on a named row that has
+none, in `_reading_from_projection`; an undeclared board gets no such
+help. A predicted cell on a row that already holds a stored measured score
+is treated like an empty one. A non-empty string is not treated as absent.
+
+The guard accepts the key added, or removed, and nothing else on the row.
+One date replaced by another is refused, with or without other changes.
 
 The markdown report and `report.json` have their own section and key:
 newly marked, still marked, and unmarked this run, by card and benchmark,
@@ -135,6 +149,10 @@ is written as any other. Last seen is the old `observed_at`.
 the stored day stays.
 (g) Two rows match the stored name and one cell is empty: `no unique row`,
 no key, including when the other row's score agrees with the stored score.
+
+(h) The value key is missing, the board is undeclared, one scored
+neighbour, 3 scored of 10 others: `no unique row`, no key. 5 of 10, 6 of 10
+and all scored: marked.
 
 ## Not observed
 
