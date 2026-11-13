@@ -2016,6 +2016,10 @@ STAGED_FAILURE = LayerResult(
     "A synthetic failure that proves the alert path (MODEL-231); not a real regression.",
 )
 
+_PRIVATE_RUN_FAILURE = (
+    "accuracy: the run failed before a report was written; details are not published"
+)
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2144,6 +2148,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in result.details:
             print(path)
         return 1 if result.status == "fail" else 0
+    try:
+        return _publish_profile(args)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as exc:
+        if args.private_data_root is None:
+            raise
+        print(f"{_PRIVATE_RUN_FAILURE} ({type(exc).__name__})", file=sys.stderr)
+        return 1
+
+
+def _publish_profile(args: argparse.Namespace) -> int:
     report = run_profile(
         root=args.root,
         config_path=args.config,

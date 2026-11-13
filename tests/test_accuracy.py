@@ -2148,6 +2148,107 @@ def test_a_failing_private_nightly_exits_non_zero_with_a_failing_public_form(
     assert _PRIVATE_FACT in (tmp_path / "out" / "accuracy.json").read_text()
 
 
+_TRACEBACK_SENTINEL = "private-traceback-sentinel-483"
+_FIXED_RUN_FAILURE = (
+    "accuracy: the run failed before a report was written; details are not published"
+)
+
+
+def _private_main_argv(tmp_path: Path, *, private: bool) -> list[str]:
+    argv = [
+        "--profile", "nightly",
+        "--output-dir", str(tmp_path / "out"),
+        "--date", "2026-11-12",
+    ]
+    if private:
+        argv[2:2] = ["--private-data-root", str(tmp_path / "private")]
+    return argv
+
+
+def test_a_private_layer_exception_prints_a_fixed_line(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    def boom(**kwargs):
+        raise RuntimeError(_TRACEBACK_SENTINEL)
+
+    monkeypatch.setattr(accuracy, "run_profile", boom)
+
+    code = accuracy.main(_private_main_argv(tmp_path, private=True))
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert captured.err == f"{_FIXED_RUN_FAILURE} (RuntimeError)\n"
+    assert _TRACEBACK_SENTINEL not in captured.out
+    assert _TRACEBACK_SENTINEL not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_a_private_public_form_exception_prints_a_fixed_line(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+
+    def boom(report):
+        raise ValueError(_TRACEBACK_SENTINEL)
+
+    monkeypatch.setattr(accuracy, "public_nightly_report", boom)
+
+    code = accuracy.main(_private_main_argv(tmp_path, private=True))
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert captured.err == f"{_FIXED_RUN_FAILURE} (ValueError)\n"
+    assert _TRACEBACK_SENTINEL not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_without_the_private_flag_a_layer_exception_still_prints_a_traceback(
+    tmp_path: Path,
+) -> None:
+    import subprocess
+
+    driver = tmp_path / "driver.py"
+    driver.write_text(
+        "import scripts.accuracy as accuracy\n"
+        "def boom(**kwargs):\n"
+        f"    raise RuntimeError({_TRACEBACK_SENTINEL!r})\n"
+        "accuracy.run_profile = boom\n"
+        f"accuracy.main({_private_main_argv(tmp_path, private=False)!r})\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(driver)],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback (most recent call last):" in result.stderr
+    assert _TRACEBACK_SENTINEL in result.stderr
+
+
+@pytest.mark.parametrize("exc_type", [KeyboardInterrupt, SystemExit])
+def test_a_private_run_lets_interrupt_and_system_exit_through(
+    tmp_path: Path, monkeypatch, exc_type,
+) -> None:
+    def boom(**kwargs):
+        raise exc_type(7)
+
+    monkeypatch.setattr(accuracy, "run_profile", boom)
+
+    with pytest.raises(exc_type) as caught:
+        accuracy.main(_private_main_argv(tmp_path, private=True))
+    if exc_type is SystemExit:
+        assert caught.value.code == 7
+    else:
+        assert caught.value.args == (7,)
+
+
 def _approved_ids() -> list[str]:
     return [f"Q{number:02d}" for number in range(1, 21)]
 
