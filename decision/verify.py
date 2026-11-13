@@ -388,6 +388,73 @@ def normalise_name(name: str) -> str:
     return re.sub(r"[^0-9a-z]+", " ", name.casefold()).strip()
 
 
+#: Effort words ``structured_name_effort`` reads. A hyphenated slug is not in this set.
+_COMPOUND_EFFORT = frozenset({"minimal", "low", "medium", "high", "xhigh", "max"})
+
+
+def _compound_token(part: str) -> bool:
+    token = part.casefold()
+    if token in _COMPOUND_EFFORT or token == "thinking":
+        return True
+    if re.fullmatch(r"\d+k", token):
+        return True
+    return re.fullmatch(r"\d{8}", part) is not None
+
+
+def _compound_parts(qualifier: str) -> list[str] | None:
+    """Tokens inside one compound qualifier, or None when the paren is not one.
+
+    A compound qualifier is a comma- or space-separated list of at least two
+    tokens. Each token is an effort word, ``Thinking``, a context size such as
+    ``32K``, or an eight-digit date. ``Thinking`` counts only with a context
+    size. A single effort word is not compound: ``(High)`` stays the old split.
+    """
+    parts = [part for part in re.split(r"[\s,]+", qualifier.strip()) if part]
+    if len(parts) < 2 or not all(_compound_token(part) for part in parts):
+        return None
+    thinking = any(part.casefold() == "thinking" for part in parts)
+    sized = any(re.fullmatch(r"\d+k", part.casefold()) for part in parts)
+    if thinking and not sized:
+        return None
+    return parts
+
+
+def _compound_qualifier(text: str) -> str | None:
+    """The inside of the one compound parenthesis, or None."""
+    groups = _QUALIFIER.findall(text)
+    if len(groups) != 1 or _compound_parts(groups[0]) is None:
+        return None
+    return groups[0]
+
+
+def _effort_word_in_compound(qualifier: str) -> str | None:
+    """The one effort word in a compound qualifier, canonical, or None.
+
+    ``Thinking`` is not an effort word. Two effort words is not one level.
+    """
+    parts = _compound_parts(qualifier)
+    if parts is None:
+        return None
+    levels = [
+        _EFFORT_ALIASES.get(part.casefold(), part.casefold())
+        for part in parts
+        if part.casefold() in _COMPOUND_EFFORT
+    ]
+    if len(levels) != 1:
+        return None
+    return levels[0]
+
+
+def _compound_effort_stays_in_identity(text: str) -> bool:
+    """True when a compound parenthesis names an effort and the tokens stay."""
+    qualifier = _compound_qualifier(text)
+    return qualifier is not None and _effort_word_in_compound(qualifier) is not None
+
+
+def _name_tokens(text: str) -> frozenset[str]:
+    return frozenset(normalise_name(text.replace("+", " plus ")).split())
+
+
 def _published_subject(published: str, names: Sequence[str]) -> str | None:
     """Match a whole published name to a registered name, retaining its spelling.
 
@@ -415,15 +482,21 @@ def split_model_cell(cell: str) -> tuple[str, str | None]:
 
     Only an effort qualifier is split off: "GPT-6 Sol (max effort)" is GPT-6 Sol at
     max effort, but "GPT-6 Sol (thinking)" stays a different identity.
+    A compound parenthesis names its effort word and keeps every token, High
+    included, in the identity. ``Thinking 16K`` is not an effort level.
     """
     effort = None
 
     def take(m: re.Match[str]) -> str:
         nonlocal effort
-        q = _EFFORT_QUALIFIER.match(m.group(1).strip().casefold())
+        raw = m.group(1).strip()
+        q = _EFFORT_QUALIFIER.match(raw.casefold())
         if q and q.group(1) in EFFORT_LEVELS:
             effort = _EFFORT_ALIASES.get(q.group(1), q.group(1))
             return " "
+        named = _effort_word_in_compound(raw)
+        if named is not None and effort is None:
+            effort = named
         return m.group(0)
 
     return normalise_name(_QUALIFIER.sub(take, cell)), effort
@@ -6518,6 +6591,18 @@ def _diffs(claim: Claim, reading: Reading) -> list[Diff]:
         found = _condition(key, reading.conditions.get(key))
         if key == "effort" and found is None:
             found = name_effort
+        # High in "(High, 32K, date)" stays in the identity. A claim that names
+        # no effort is not contradicted by that token. A claim that names one
+        # still has to match it. "(High)" alone is stripped, so this does not apply.
+        if (
+            key == "effort"
+            and claimed is None
+            and found is not None
+            and _condition(key, reading.conditions.get(key)) is None
+            and reading.subject
+            and _compound_effort_stays_in_identity(reading.subject)
+        ):
+            continue
         if key == "date" and claimed is None:
             continue  # a date the claim does not carry is not checked
         if key == "harness" and claimed == UNREGISTERED and found is not None \
@@ -6535,7 +6620,33 @@ def _reading_subject_matches(subject: str, names: Sequence[str], *, field: str |
     # Effort is a separate condition. Other qualifiers and '+' remain identity.
     identity = split_model_cell(subject.replace("+", " plus "))[0]
     aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in names)
-    return _published_subject(identity, aliases) is not None
+    if _published_subject(identity, aliases) is not None:
+        return True
+    # A compound parenthesis matches only the full token set, never a subset.
+    if _compound_qualifier(subject) is None:
+        return False
+    subject_tokens = _name_tokens(subject)
+    return any(subject_tokens == _name_tokens(name) for name in names)
+
+
+def _colliding_compound_token_sets(
+    readings: Sequence[Reading], names: Sequence[str],
+) -> set[frozenset[str]]:
+    """Token sets of two compound rows that both equal one claim name.
+
+    One of them is not "the" row. The caller refuses the claim.
+    """
+    name_sets = {_name_tokens(name) for name in names}
+    counts: dict[frozenset[str], int] = {}
+    for reading in readings:
+        subject = reading.subject or ""
+        if _compound_qualifier(subject) is None:
+            continue
+        tokens = _name_tokens(subject)
+        if tokens not in name_sets:
+            continue
+        counts[tokens] = counts.get(tokens, 0) + 1
+    return {tokens for tokens, count in counts.items() if count > 1}
 
 
 def compare(claim: Claim, readings: Sequence[Reading]) -> list[Diff]:
@@ -6665,6 +6776,10 @@ def _verify_evidence_reading(
                     readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
+                    continue
+                if _colliding_compound_token_sets(readings, claim.names):
+                    actor = actor or extractor.actor
+                    diffs.append(Diff("model", claim.names[0], None))
                     continue
                 for reading in readings:
                     if not isinstance(reading.value, dict) or not reading.subject:
