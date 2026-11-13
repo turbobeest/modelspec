@@ -69,6 +69,8 @@ case "$*" in
   *"pulls?state=open"*) printf '%s' "$STUB_OPEN" ;;
   *"/compare/main..."*) printf '%s\\n' "$STUB_BEHIND" ;;
   *"-X PUT"*) exit "$STUB_PUT_EXIT" ;;
+  "pr view"*) printf '%s\\n' "$STUB_HEAD_AFTER" ;;
+  "pr comment"*) exit 0 ;;
   *) exit 99 ;;
 esac
 """
@@ -98,6 +100,8 @@ def _run_sync(tmp_path: Path, *, open_prs: str, behind: str = "0",
         "STUB_OPEN": open_prs,
         "STUB_BEHIND": behind,
         "STUB_PUT_EXIT": str(put_exit),
+        "STUB_HEAD_AFTER": "b" * 40,  # the head moves as soon as the update is requested
+        "POLL_SECONDS": "0",
         "GITHUB_OUTPUT": str(tmp_path / "github-output"),
     }
     result = subprocess.run(["bash", "-c", step["run"]], env=env, capture_output=True,
@@ -127,9 +131,11 @@ def test_research_runs_on_its_schedule_and_the_sync_also_runs_on_every_push_to_m
 def test_sync_merges_main_into_a_branch_that_is_behind(tmp_path: Path) -> None:
     result, calls = _run_sync(tmp_path, open_prs=f"99 {HEAD}", behind="2")
     assert result.returncode == 0, result.stderr
-    assert calls[-1] == (
-        f"api -X PUT repos/owner/data/pulls/99/update-branch -f expected_head_sha={HEAD}"
-    )
+    put = f"api -X PUT repos/owner/data/pulls/99/update-branch -f expected_head_sha={HEAD}"
+    assert put in calls
+    # The update is requested first; the head is then read (once, since the stub moves it at once).
+    assert calls[-1] == "pr view 99 -R owner/data --json headRefOid --jq .headRefOid"
+    assert calls.index(put) < calls.index(calls[-1])
     assert "Requested a merge of main into #99 (2 commits behind)." in result.stdout
 
 

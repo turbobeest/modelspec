@@ -223,6 +223,10 @@ jobs:
           REPO: ${{ github.repository }}
           OWNER: ${{ github.repository_owner }}
           BRANCH: research/daily-models
+          # update-branch is asynchronous: wait up to 12 looks, POLL_SECONDS (5) apart, about a
+          # minute, for the pull request head to move before the branch goes to the recall dispatch.
+          POLL_SECONDS: '5'
+          FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
         run: |
           set -euo pipefail
           open="$(gh api "repos/$REPO/pulls?state=open&base=main&head=$OWNER:$BRANCH" \
@@ -236,19 +240,37 @@ jobs:
             exit 1
           fi
           read -r number head <<< "$open"
-          echo "pr_branch=$BRANCH" >> "$GITHUB_OUTPUT"
           behind="$(gh api "repos/$REPO/compare/main...$head" --jq .behind_by)"
           if [ "$behind" = 0 ]; then
+            # Nothing to update: the head is already current, so the recall check may start now.
+            echo "pr_branch=$BRANCH" >> "$GITHUB_OUTPUT"
             echo "#$number already contains main."
             exit 0
           fi
           # update-branch merges and refuses a conflict or a head that moved.
           if ! gh api -X PUT "repos/$REPO/pulls/$number/update-branch" \
             -f expected_head_sha="$head" > /dev/null; then
+            # The update was refused, so the head did not change. Start the check on it.
+            echo "pr_branch=$BRANCH" >> "$GITHUB_OUTPUT"
             echo "::error::Could not merge main into $BRANCH (#$number). Nothing was pushed; resolve it by hand."
             exit 1
           fi
           echo "Requested a merge of main into #$number ($behind commits behind)."
+          # The merge lands asynchronously. A dispatch before it would test the old head, so the
+          # branch is written only once the head differs from the one seen before the call.
+          for look in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            sleep "$POLL_SECONDS"
+            current="$(gh pr view "$number" -R "$REPO" --json headRefOid --jq .headRefOid)" || current=""
+            if [ -n "$current" ] && [ "$current" != "$head" ]; then
+              echo "pr_branch=$BRANCH" >> "$GITHUB_OUTPUT"
+              echo "#$number head moved after $look look(s)."
+              exit 0
+            fi
+          done
+          # The head never changed in time: write no branch, so no recall run starts on the old head.
+          echo "::warning::#$number head did not change within the wait. The fallback text is posted on the pull request."
+          gh pr comment "$number" -R "$REPO" --body "$FALLBACK_MESSAGE" \
+            || echo "::warning::The fallback comment could not be posted either."
   recall-dispatch:
     # MODEL-476: a pull request opened with the repository token starts no pull_request
     # workflow, so this job starts the recall check on the branch. It alone holds

@@ -107,14 +107,25 @@ no `repository_dispatch`, and no secret other than the default token it uses to 
 repository. A run started by `GITHUB_TOKEN` through `workflow_dispatch` is the documented
 exception that does start a run, and the run it starts cannot start another.
 
-One difference to name: on `pull_request` the recall check compares private baselines with
-the merge-base baseline (`--approved-baseline`). A dispatched run takes `github.event_name
-== workflow_dispatch`, skips that step and compares with the branch's own
-`reports/recall/baseline.json`. The writers add only the paths listed in their
-`add-paths`, none of which is `reports/recall/baseline.json`, and `release-signals` makes its
-own approved-answers comparison before it pushes, so the dispatched check still catches a
-regression. A human who edits the baseline on a pull request still gets the stricter check
-on that pull request.
+Three differences between a dispatched run and the `pull_request` run it stands in for:
+
+1. **Baseline.** On `pull_request` the recall check compares private baselines with the
+   merge-base baseline (`--approved-baseline`). A dispatched run takes `github.event_name ==
+   workflow_dispatch`, skips that step and compares with the branch's own
+   `reports/recall/baseline.json`.
+2. **Base-pin check.** The check that the branch's `.engine-pin` still matches the base
+   branch's runs on `pull_request` only. A dispatched run skips it.
+3. **What is tested.** A `pull_request` run tests the merge of the branch with `main`. A
+   dispatched run tests the branch head alone, so a change on `main` that conflicts in meaning
+   with the branch is not seen.
+
+Why that is acceptable for writer branches: no writer changes `.engine-pin`,
+`reports/recall/` or anything under `.github/` (the `add-paths` of each writer list data
+files only, and `release-signals` makes its own approved-answers comparison before it
+pushes). So the skipped baseline comparison and the skipped base-pin check have nothing to
+compare, and `daily-research` merges `main` into its branch before the dispatch, so the
+branch head it tests already contains `main`. A human who edits the baseline or the pin on a
+pull request still gets the stricter `pull_request` run on that pull request.
 
 ## Behaviour per writer (what the runner does)
 
@@ -125,10 +136,17 @@ on that pull request.
   `pull-request-operation` and `pull-request-branch` outputs. A run with no diff, a dry run
   or a closed pull request leaves the output empty and the dispatch job is skipped.
 - **`daily-research`**: the dispatch waits for `sync`, which already finds the one open pull
-  request from the branch. `sync` now writes `pr_branch` to its step output right after it
-  finds that pull request, so the dispatch also runs after a push to `main` merged `main`
-  into the branch. This is the only change to an existing step (one `echo` line, one
-  `id`). `STARTED_MESSAGE` is empty there, so a push to `main` does not add a comment each
+  request from the branch, so the dispatch also runs after a push to `main` merged `main`
+  into the branch. `update-branch` is asynchronous, so `sync` writes `pr_branch` only once the
+  pull request head is current. It polls `gh pr view --json headRefOid` up to 12 times, 5
+  seconds apart (about a minute), until the head differs from the one it saw before the
+  call. Three outcomes: the branch is already up to date (`behind_by` is 0), the head is
+  current and the branch is written at once; the head moves within the bound, the branch is
+  written after the move; the head never moves, no branch is written (so no run starts on the
+  old head), `sync` posts the fallback text on the pull request itself with its own
+  `pull-requests: write`, and the job stays green. If `update-branch` is refused the head did
+  not change, the branch is written and the job fails as before. This is the only change to
+  an existing step, and the poll uses the token `sync` already had. `STARTED_MESSAGE` is empty there, so a push to `main` does not add a comment each
   time; the pull request body states that a follow-up job starts the check.
 - **`curation-benchmarks`**: one run can open several pull requests, so a step after the
   existing "Open draft PRs" step (`continue-on-error`) writes a space-separated list of
@@ -137,6 +155,11 @@ on that pull request.
   each leg writes one of ten fixed names, `branch_0` to `branch_9`, selected by
   `strategy.job-index`, equal to `MAX_RELEASE_SIGNAL_WORK_ITEMS`. A test ties the two
   numbers together. The dispatch job joins the ten outputs into one line.
+- **A refused name in `release-signals`**: the matrix step `recall_branch` drops a branch name
+  that fails the pattern, so the dispatch job never sees it. That step now posts the fallback
+  text on the pull request itself (`gh pr comment` by URL, with the `pull-requests: write` the
+  `process` job already has) and no branch is written. A pull request therefore gets either
+  a started check or the fallback text, never silence.
 - **The PR body line in `release-signals`** that said the check does not start by itself now
   says a follow-up job starts it and a comment reports the result. The text "close and
   reopen" remains only in the dispatch job's fallback message.
@@ -182,22 +205,32 @@ build host, so the YAML was read as the runner would:
   documentation, not seen.
 - That an empty job output from one matrix leg does not overwrite a value from another leg
   (`release-signals`) is documented behaviour of Actions that was not exercised.
-- `update-branch` in `daily-research` is asynchronous. The dispatch job usually starts after
-  the merge commit lands, but a dispatch before it would test the earlier head.
+- The poll in `daily-research` and the refused-name comment in `release-signals` were run
+  against a stub `gh` and checked with `shellcheck`, not on a runner.
+- The three things nobody has seen run: a dispatched run showing as the pull request's check
+  (the supervised first runs below prove it); `gh workflow run` and `gh pr comment <branch>`
+  working with only `actions: write` and `pull-requests: write` in the dispatch job; and the
+  runner dropping empty job outputs from matrix legs instead of overwriting a value from
+  another leg (`release-signals`).
 
 ## Install in the data repository
 
+**Order matters. The data repository's mirror step compares its workflow copies with this
+repository's `main`, so from the moment this merges, every recall run in the data repository
+fails that step until the pin and all eleven copies are installed in one data pull request.
+Merge only when no data pull request is waiting on its check, and install immediately.**
+
 One pull request in `turbobeest/modelspec-data`:
 
-1. Merge this pull request to the public repository first.
+1. Merge this pull request to the public repository (only at a quiet moment, see above).
 2. Move `.engine-pin` to a commit of public `main` that contains the merge.
 3. Copy the eleven changed files from `.github/private-writers/` to
    `.github/workflows/` byte for byte. `.github/scripts/check_writer_mirrors.py` fails the
    pull request if a copy differs from its public source, and checks the pin.
-4. Supervise the first run of each writer you care about, starting with the cheapest
-   (`lineup-proposer` or `model-week` by hand-dispatch): see that the job
-   `recall-dispatch` starts, that "Private production-data recall" runs on the branch,
-   that the check appears on the pull request, and that one comment is posted. Then watch
-   one scheduled `release-signals` run for the matrix outputs.
+4. Supervise the first runs. First `lineup-proposer` (cheapest): see that the job
+   `recall-dispatch` starts, that "Private production-data recall" runs on the branch, that
+   the check appears on the pull request, and that one comment is posted. Then one
+   `release-signals` run that opens at least two pull requests, to prove that every matrix
+   leg's branch reaches the dispatch job.
 5. Do not add a personal access token or change a workflow permission when it fails: the
    fallback comment already says how to run the check by hand.

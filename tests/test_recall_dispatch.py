@@ -528,10 +528,185 @@ def test_the_close_and_reopen_text_survives_only_as_the_dispatch_job_fallback() 
             document = yaml.safe_load(text)
             for job_name, job in document['jobs'].items():
                 if job_name != JOB:
-                    assert 'close and reopen' not in str(job), (path.name, job_name)
+                    # MODEL-476 round 2: two steps post the fallback themselves because the dispatch
+                    # job never runs for them: release-signals `recall_branch` (a refused name) and
+                    # daily-research `update` (a head that did not change in time).
+                    steps = [x for x in job.get('steps', []) if x.get('id') not in {'recall_branch', 'update'}]
+                    assert 'close and reopen' not in str({**job, 'steps': steps}), (path.name, job_name)
 
 
 def test_daily_research_body_says_the_check_is_started_by_a_follow_up_job() -> None:
     job = _load("daily-research")["jobs"]["research"]
     step = next(s for s in job["steps"] if s.get("uses", "").startswith("peter-evans/create-pull-request@"))
     assert "A follow-up job of this workflow run starts the" in step["with"]["body"]
+
+
+def _sync_step() -> dict:
+    steps = _load("daily-research")["jobs"]["sync"]["steps"]
+    assert [s.get("id") for s in steps] == ["update"]
+    return steps[0]
+
+
+def _run_sync(tmp_path: Path, *, behind: str, change_at: int, fail_update: bool = False,
+              fail_view: bool = False) -> tuple[subprocess.CompletedProcess[str], list[str], str]:
+    """Run the sync step against a stub gh. The pull request head changes at poll `change_at` (0 = never)."""
+    step = _sync_step()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log = tmp_path / "gh.log"
+    log.touch()
+    counter = tmp_path / "views"
+    counter.write_text("0", encoding="utf-8")
+    output = tmp_path / "output"
+    output.touch()
+    gh = bin_dir / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'printf "%s\\n" "$*" >> "$GH_LOG"\n'
+        'case "$1 $2" in\n'
+        '  "api repos/o/d/pulls?state=open&base=main&head=o:research/daily-models") echo "7 oldhead"; exit 0;;\n'
+        '  "api repos/o/d/compare/main...oldhead") echo "$BEHIND"; exit 0;;\n'
+        '  "api -X") [ -n "${FAIL_UPDATE:-}" ] && exit 1; exit 0;;\n'
+        '  "pr view")\n'
+        '    [ -n "${FAIL_VIEW:-}" ] && exit 1\n'
+        '    n=$(( $(cat "$VIEWS") + 1 )); echo "$n" > "$VIEWS"\n'
+        '    if [ "$CHANGE_AT" -gt 0 ] && [ "$n" -ge "$CHANGE_AT" ]; then echo newhead; else echo oldhead; fi\n'
+        "    exit 0;;\n"
+        '  "pr comment") exit 0;;\n'
+        "esac\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    gh.chmod(gh.stat().st_mode | stat.S_IXUSR)
+    env = {
+        **os.environ,
+        **{k: v for k, v in step["env"].items() if "${{" not in str(v)},
+        "REPO": "o/d",
+        "OWNER": "o",
+        "GH_TOKEN": "test-token",
+        "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+        "GH_LOG": str(log),
+        "GITHUB_OUTPUT": str(output),
+        "VIEWS": str(counter),
+        "BEHIND": behind,
+        "CHANGE_AT": str(change_at),
+        "POLL_SECONDS": "0",
+    }
+    if fail_update:
+        env["FAIL_UPDATE"] = "1"
+    if fail_view:
+        env["FAIL_VIEW"] = "1"
+    result = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=env, cwd=tmp_path,
+                            capture_output=True, text=True, check=False)
+    return result, log.read_text(encoding="utf-8").splitlines(), output.read_text(encoding="utf-8")
+
+
+def test_daily_research_waits_for_the_updated_head_before_dispatch(tmp_path: Path) -> None:
+    step = _sync_step()
+    run = step["run"]
+    env = step["env"]
+    # The poll and its bound are pinned: 12 looks, 5 seconds apart, about a minute.
+    assert env["POLL_SECONDS"] == "5"
+    assert "for look in 1 2 3 4 5 6 7 8 9 10 11 12; do" in run  # a fixed bound: 12 x 5s
+    assert "pr view" in run and "headRefOid" in run
+    assert run.index("update-branch") < run.index("headRefOid")
+    assert run.count("pr_branch=$BRANCH") == 3  # already current, update refused, head moved
+    assert run.index("headRefOid") < run.rindex("pr_branch=$BRANCH")
+    assert "while true" not in run and "until " not in run
+    assert env["FALLBACK_MESSAGE"] == FALLBACK_TEXT
+    assert "actions" not in str(_load("daily-research")["jobs"]["sync"]["permissions"])
+
+    # (i) nothing to update: the head is already current, the branch is written, no update, no poll.
+    (tmp_path / "a").mkdir()
+    result, calls, out = _run_sync(tmp_path / "a", behind="0", change_at=0)
+    assert result.returncode == 0, result.stderr
+    assert out == "pr_branch=research/daily-models\n"
+    assert not any(c.startswith("api -X PUT") or c.startswith("pr view") for c in calls)
+
+    # (ii) the head changes on the third look: the branch is written, and only after the change.
+    (tmp_path / "b").mkdir()
+    result, calls, out = _run_sync(tmp_path / "b", behind="3", change_at=3)
+    assert result.returncode == 0, result.stderr
+    assert out == "pr_branch=research/daily-models\n"
+    assert [c.split()[0:2] for c in calls].count(["pr", "view"]) == 3
+    assert not any(c.startswith("pr comment") for c in calls)
+
+    # (iii) the head never changes: the branch is not written, the fallback text is posted, the job is green,
+    # and the loop stops at the bound.
+    (tmp_path / "c").mkdir()
+    result, calls, out = _run_sync(tmp_path / "c", behind="3", change_at=0)
+    assert result.returncode == 0, result.stderr
+    assert out == ""
+    assert [c.split()[0:2] for c in calls].count(["pr", "view"]) == 12
+    assert calls[-1] == f"pr comment 7 -R o/d --body {FALLBACK_TEXT}"
+
+    # A failing look counts as no change and cannot end the step early under set -e.
+    (tmp_path / "d").mkdir()
+    result, calls, out = _run_sync(tmp_path / "d", behind="3", change_at=0, fail_view=True)
+    assert result.returncode == 0, result.stderr
+    assert out == ""
+    assert [c.split()[0:2] for c in calls].count(["pr", "view"]) == 12
+
+    # A refused update-branch still fails the job, as before; the head did not move, so the branch is written.
+    (tmp_path / "e").mkdir()
+    result, calls, out = _run_sync(tmp_path / "e", behind="3", change_at=0, fail_update=True)
+    assert result.returncode != 0
+    assert out == "pr_branch=research/daily-models\n"
+    assert not any(c.startswith("pr view") for c in calls)
+
+
+def test_release_signals_refused_branch_gets_the_fallback_text(tmp_path: Path) -> None:
+    steps = _load("release-signals")["jobs"]["process"]["steps"]
+    step = next(s for s in steps if s.get("id") == "recall_branch")
+    env = step["env"]
+    assert env["FALLBACK_MESSAGE"] == FALLBACK_TEXT
+    assert env["PR_URL"] == "${{ steps.pr.outputs.url }}"
+    assert env["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
+    assert "${{" not in step["run"] and "actions" not in str(step).replace("actions/", "")
+    too_long = "data/release-signal-" + "a" * 151 + "-1"
+    for index, bad in enumerate((too_long, "main", "data/release-signal-a;id-1", "")):
+        case = tmp_path / f"bad{index}"
+        case.mkdir()
+        bin_dir = case / "bin"
+        bin_dir.mkdir()
+        log = case / "gh.log"
+        log.touch()
+        gh = bin_dir / "gh"
+        gh.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$GH_LOG"\n', encoding="utf-8")
+        gh.chmod(gh.stat().st_mode | stat.S_IXUSR)
+        out = case / "out"
+        out.touch()
+        run_env = {
+            **os.environ, "BRANCH": bad, "GITHUB_OUTPUT": str(out), "GH_LOG": str(log),
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "GH_TOKEN": "t",
+            "PR_URL": "https://github.com/o/d/pull/9", "FALLBACK_MESSAGE": FALLBACK_TEXT,
+        }
+        result = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env=run_env,
+                                capture_output=True, text=True, check=False)
+        assert result.returncode == 0, result.stderr
+        assert out.read_text(encoding="utf-8") == "", bad
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            f"pr comment https://github.com/o/d/pull/9 --body {FALLBACK_TEXT}"
+        ], bad
+        assert bad not in result.stdout + result.stderr or not bad, bad
+    # A failed comment is a warning only, and a good name posts nothing.
+    good = tmp_path / "good"
+    good.mkdir()
+    (good / "bin").mkdir()
+    glog = good / "gh.log"
+    glog.touch()
+    gout = good / "out"
+    gout.touch()
+    gh = good / "bin" / "gh"
+    gh.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$GH_LOG"\nexit 1\n', encoding="utf-8")
+    gh.chmod(gh.stat().st_mode | stat.S_IXUSR)
+    base = {**os.environ, "GITHUB_OUTPUT": str(gout), "GH_LOG": str(glog), "GH_TOKEN": "t",
+            "PATH": f"{good / 'bin'}{os.pathsep}{os.environ['PATH']}",
+            "PR_URL": "https://github.com/o/d/pull/9", "FALLBACK_MESSAGE": FALLBACK_TEXT}
+    ok = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env={**base, "BRANCH": "data/release-signal-a-1"},
+                        capture_output=True, text=True, check=False)
+    assert ok.returncode == 0 and glog.read_text(encoding="utf-8") == ""
+    assert gout.read_text(encoding="utf-8") == "branch=data/release-signal-a-1\n"
+    refused = subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env={**base, "BRANCH": "main"},
+                             capture_output=True, text=True, check=False)
+    assert refused.returncode == 0 and "::warning::" in refused.stdout

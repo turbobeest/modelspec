@@ -560,12 +560,19 @@ jobs:
       - name: Name the pushed branch for the recall dispatch
         id: recall_branch
         if: steps.pr.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+          FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
         run: |
           branch="${BRANCH:-}"
           if [[ "$branch" =~ ^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$ ]] && [[ "$branch" != *..* ]]; then
             echo "branch=$branch" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::The pushed branch is not one this workflow names, so no recall check is dispatched for it."
+            # The dispatch job never sees this name, so say here that the check was not started.
+            echo "::warning::The pushed branch is not one this workflow names, so no recall check is dispatched for it. The fallback text is posted on the pull request."
+            gh pr comment "$PR_URL" --body "$FALLBACK_MESSAGE" \
+              || echo "::warning::The fallback comment could not be posted either."
           fi
       - name: Upload the score-only audit table
         if: steps.classify.outputs.score_only == 'true'
