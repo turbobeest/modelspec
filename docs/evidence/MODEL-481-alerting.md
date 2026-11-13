@@ -59,6 +59,16 @@ The alert issue is created with label `alert`. An open issue with the same title
 - The job uploads `report.json` as `rendered-reread-ledger` and source copies as `rendered-reread-copies`. There is no markdown report artifact.
 - The job already has `issues: write`.
 
+## CI collection
+
+The first push, `6c5a164bc1e961d999dc4479602ce3ef04a25a06`, failed "pytest perf and collection" and pytest shards 5 through 8. Collection on Python 3.11 reported `SyntaxError: f-string expression part cannot include a backslash` at the source cell in `alert_comment`. The escape now happens before the f-string.
+
+```sh
+/Users/terbeest/.local/bin/python3.11 -m py_compile scripts/price_reread.py
+```
+
+Exit 0. The same three price re-read test files then passed again, 258 in 4.45s.
+
 ## Not observed
 
 The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls.

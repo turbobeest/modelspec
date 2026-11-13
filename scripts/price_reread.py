@@ -1229,7 +1229,9 @@ def alert_comment(
             groups[(source_id, status)] += 1
     ranked = sorted(groups.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))
     for (source_id, status), count in ranked[:row_limit]:
-        lines.append(f"| `{source_id.replace('|', '\\|')}` | {status} | {count} |")
+        # Python 3.11 rejects a backslash inside an f-string expression.
+        shown = source_id.replace("|", "\\|")
+        lines.append(f"| `{shown}` | {status} | {count} |")
     left = len(ranked) - min(len(ranked), row_limit)
     lines.append("")
     if left == 1:
