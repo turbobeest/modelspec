@@ -2,9 +2,24 @@
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
 The PR profile runs deterministic correctness, frozen-image engine recall, and
-output parity. The nightly profile gates current-data freshness, re-reads verified
-values, compares domain leaders with permitted independent boards, and reports
-recall changes without gating on them.
+output parity. The data-pr profile is the catalogue check for a release-signal
+card. It gates deterministic correctness and the Python output-parity suites.
+It reports the vitest half as omitted: that half reads checked-in fixtures and
+needs Node packages the job does not install. It reports frozen-image engine
+recall as omitted: that layer scores the engine's committed public image, which
+a data pull request cannot change, and on a linked tree it still reads the
+private registry. The engine's own CI owns that check. The nightly profile
+gates current-data freshness, re-reads verified values, compares domain leaders
+with permitted independent boards, and reports recall changes without gating
+on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
+The recall baseline update refuses that tree before it reads the catalogue.
+The data-pr report builds that linked catalogue with the completeness gate on.
+The snapshot line says "(linked catalogue)" when the linked-tree check finds
+a symlink. Naming an omitted data-pr layer is an error.
+
+The compare-approved-answers operation reads one recall report and the
+baselines. It prints counts and question ids. A regression exits 0. It exits
+non-zero only when those inputs cannot be validated.
 """
 
 from __future__ import annotations
@@ -33,8 +48,19 @@ DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
+    "data-pr": ("deterministic_correctness", "output_parity"),
     "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
+_DATA_PR_OMITTED_VITEST = (
+    "Omitted: the vitest half reads checked-in fixtures and needs Node "
+    "packages the job does not install."
+)
+_DATA_PR_OMITTED_RECALL = (
+    "Omitted: frozen-image engine recall scores the engine's committed "
+    "public image, which a data pull request cannot change, and on a "
+    "linked tree it still reads the private registry. The engine's own "
+    "CI owns this check."
+)
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
 
@@ -105,6 +131,7 @@ class AccuracyReport:
     profile: str
     snapshot: str | None
     layers: tuple[LayerResult, ...]
+    linked_catalogue: bool = False
 
     @property
     def status(self) -> Literal["pass", "fail"]:
@@ -583,12 +610,25 @@ def deterministic_correctness(root: Path, config: SuiteConfig) -> LayerResult:
     )
 
 
-def output_parity(root: Path, config: SuiteConfig) -> LayerResult:
+def output_parity(root: Path, config: SuiteConfig, include_web: bool = True) -> LayerResult:
     python_result = _run_command(
         "output_parity",
         (sys.executable, "-m", "pytest", "-q", *config.python_test_paths),
         cwd=root,
     )
+    if not include_web:
+        failed = python_result.status == "fail"
+        return LayerResult(
+            "output_parity",
+            "fail" if failed else "pass",
+            True,
+            "Python output-parity suites passed."
+            if not failed
+            else "At least one output-parity suite failed.",
+            {"commands": 1, "failed": int(failed)},
+            [python_result.details],
+            round(python_result.duration_seconds or 0, 3),
+        )
     web_command = (
         "npm",
         "exec",
@@ -662,6 +702,49 @@ def _recall_update_command(as_of: date) -> str:
     )
 
 
+def linked_data_path(root: Path) -> str | None:
+    """The first data path that is a symlink, or None on an ordinary checkout."""
+    from pipeline.data_source import DATA_PATHS
+
+    root = Path(root)
+    for relative in DATA_PATHS:
+        current = root
+        for part in Path(relative).parts:
+            current = current / part
+            if current.is_symlink():
+                return current.relative_to(root).as_posix()
+    return None
+
+
+def _refuse_linked_profile(root: Path, profile: str) -> None:
+    if profile not in ("pr", "nightly"):
+        return
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
+
+
+def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
+    if profile != "data-pr":
+        return ()
+    return (
+        LayerResult(
+            "output_parity_web",
+            "report",
+            False,
+            _DATA_PR_OMITTED_VITEST,
+            {"omitted": 1},
+        ),
+        LayerResult(
+            "frozen_image_engine_recall",
+            "report",
+            False,
+            _DATA_PR_OMITTED_RECALL,
+            {"omitted": 1},
+        ),
+    )
+
+
 def run_golden(
     root: Path,
     snapshot_file: Path | None,
@@ -679,21 +762,21 @@ def run_golden(
             output_dir=Path(temporary),
             report_date=as_of,
         )
-        baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
-        approved = (
-            load_recall_baseline(approved_baseline_path)
-            if approved_baseline_path is not None
-            else None
-        )
-        return recall_ratchet(
-            baseline.verdicts,
-            result.questions,
-            gating=gating,
-            update_command=_recall_update_command(as_of),
-            approved_baseline=None if approved is None else approved.verdicts,
-            frozen_image_reason=baseline.frozen_image_reason,
-            approved_frozen_image_reason=None if approved is None else approved.frozen_image_reason,
-        )
+    baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
+    approved = (
+        load_recall_baseline(approved_baseline_path)
+        if approved_baseline_path is not None
+        else None
+    )
+    return recall_ratchet(
+        baseline.verdicts,
+        result.questions,
+        gating=gating,
+        update_command=_recall_update_command(as_of),
+        approved_baseline=None if approved is None else approved.verdicts,
+        frozen_image_reason=baseline.frozen_image_reason,
+        approved_frozen_image_reason=None if approved is None else approved.frozen_image_reason,
+    )
 
 
 def update_recall_baseline(
@@ -703,6 +786,9 @@ def update_recall_baseline(
     as_of: date,
     frozen_image_reason: Mapping[str, str] | None = None,
 ) -> RecallBaseline:
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
     from scripts.recall_run import run
 
     path = root / "tests" / "recall" / "baseline.json"
@@ -1619,13 +1705,17 @@ def reference_agreement(
 
 
 def _markdown(report: AccuracyReport) -> str:
+    snapshot = report.snapshot or "not used"
+    snapshot_line = f"Snapshot: `{snapshot}`"
+    if report.linked_catalogue:
+        snapshot_line += " (linked catalogue)"
     lines = [
         "# Decision engine accuracy",
         "",
         f"**Overall: {report.status.upper()}**  ",
         f"Generated: {report.generated_at}  ",
         f"Profile: `{report.profile}`  ",
-        f"Snapshot: `{report.snapshot or 'not used'}`",
+        snapshot_line,
         "",
         "| Layer | Status | Gate | Summary |",
         "| --- | --- | --- | --- |",
@@ -1681,10 +1771,22 @@ def run_profile(
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
+    _refuse_linked_profile(root, profile)
     as_of = as_of or date.today()
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
+    if profile == "data-pr":
+        omitted = [
+            name for name in selected
+            if name in {"frozen_image_engine_recall", "output_parity_web"}
+        ]
+        if omitted:
+            raise SystemExit(f"omitted from --profile data-pr: {', '.join(omitted)}")
     snapshot = None
+    # data-pr scores the linked catalogue. The build's completeness gate stays
+    # on: a card that does not compile fails this profile before the other layers.
+    if profile == "data-pr":
+        snapshot = _load_snapshot(root, snapshot_file, as_of)
     # Load the reference snapshot before fidelity can quarantine a mismatched
     # value in this run. Both nightly layers must assess the same starting state.
     if "reference_agreement" in selected:
@@ -1718,7 +1820,7 @@ def run_profile(
                 )
             )
         elif layer == "output_parity":
-            results.append(output_parity(root, config.parity))
+            results.append(output_parity(root, config.parity, profile != "data-pr"))
         elif layer == "data_fidelity":
             results.append(
                 data_fidelity(
@@ -1738,12 +1840,77 @@ def run_profile(
             )
         else:
             raise ValueError(f"unknown accuracy layer: {layer}")
+    if layers is None:
+        results.extend(omitted_layers(profile))
     return AccuracyReport(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         profile=profile,
         snapshot=getattr(snapshot, "snapshot_id", None),
         layers=tuple(results),
+        linked_catalogue=linked_data_path(root) is not None,
     )
+
+
+_APPROVED_LEVEL = {"fail": 0, "partial": 1, "pass": 2}
+_APPROVED_IDS = {f"Q{number:02d}" for number in range(1, 21)}
+
+
+def _approved_verdicts(path: Path, *, report: bool = False) -> dict[str, str]:
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    if report:
+        rows = raw["questions"]
+        result = {row["id"]: row["verdict"] for row in rows}
+        if len(rows) != len(_APPROVED_IDS):
+            raise ValueError("invalid question count")
+    else:
+        if raw["schema_version"] != 1:
+            raise ValueError("invalid baseline schema")
+        result = raw["verdicts"]
+    if set(result) != _APPROVED_IDS or any(
+        value not in _APPROVED_LEVEL for value in result.values()
+    ):
+        raise ValueError("invalid question verdicts")
+    return result
+
+
+def compare_approved_answers(
+    report_dir: Path,
+    baseline: Path,
+    approved_baseline: Path | None,
+    summary: Path,
+) -> list[str]:
+    """Print counts and question ids. Return the regressed question ids."""
+    reports = list(Path(report_dir).glob("*.json"))
+    if len(reports) != 1:
+        raise ValueError("expected one report")
+    current = _approved_verdicts(reports[0], report=True)
+    minima = [_approved_verdicts(baseline)]
+    if approved_baseline is not None:
+        minima.append(_approved_verdicts(approved_baseline))
+    proposed = minima[0]
+    regressions = sorted(
+        question
+        for question in _APPROVED_IDS
+        if any(
+            _APPROVED_LEVEL[current[question]] < _APPROVED_LEVEL[minimum[question]]
+            or _APPROVED_LEVEL[proposed[question]] < _APPROVED_LEVEL[minimum[question]]
+            for minimum in minima
+        )
+    )
+    lines = []
+    for verdict in ("pass", "partial", "fail"):
+        questions = sorted(
+            question for question in _APPROVED_IDS if current[question] == verdict
+        )
+        lines.append(
+            f"{verdict}: {len(questions)}; question ids: {', '.join(questions) or 'none'}"
+        )
+    lines.append("Regression question ids: " + (", ".join(regressions) or "none"))
+    text = "\n".join(lines) + "\n"
+    with Path(summary).open("a", encoding="utf-8") as output:
+        output.write(text)
+    print(text, end="")
+    return regressions
 
 
 STAGED_FAILURE = LayerResult(
@@ -1799,7 +1966,48 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--changed-files", type=Path)
     parser.add_argument("--labels-json")
+    parser.add_argument(
+        "--compare-approved-answers",
+        action="store_true",
+        help="Compare one recall report with the proposed and approved baselines.",
+    )
+    parser.add_argument("--report-dir", type=Path)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--approved-baseline", type=Path)
+    parser.add_argument("--summary", type=Path)
+    parser.add_argument("--step-output", type=Path)
     args = parser.parse_args(argv)
+    if args.compare_approved_answers and (
+        args.update_recall_baseline or args.check_recall_approval
+    ):
+        parser.error("choose only one maintenance operation")
+    if args.compare_approved_answers:
+        if args.report_dir is None or args.baseline is None or args.summary is None:
+            parser.error(
+                "--compare-approved-answers requires --report-dir, --baseline, and --summary"
+            )
+        try:
+            regressions = compare_approved_answers(
+                args.report_dir,
+                args.baseline,
+                args.approved_baseline,
+                args.summary,
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            if str(exc) == "expected one report":
+                print(
+                    "::error::Private recall inputs could not be validated: "
+                    "expected one report."
+                )
+            else:
+                print("::error::Private recall inputs could not be validated.")
+            return 1
+        if args.step_output is not None:
+            with args.step_output.open("a", encoding="utf-8") as handle:
+                handle.write(f"regressed={'true' if regressions else 'false'}\n")
+                handle.write(f"regression_ids={', '.join(regressions)}\n")
+            return 0
+        return 1 if regressions else 0
     if args.update_recall_baseline and args.check_recall_approval:
         parser.error("choose only one maintenance operation")
     if args.update_recall_baseline:

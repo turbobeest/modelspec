@@ -111,7 +111,7 @@ def verify(
 
 
 def accuracy(
-    profile: str = typer.Option("pr", "--profile", help="pr or nightly."),
+    profile: str = typer.Option("pr", "--profile", help="pr, data-pr, or nightly."),
     output_dir: Path = typer.Option(Path("accuracy-report"), "--output-dir"),
     root: Path = typer.Option(v.REPO_ROOT, "--root", help="Repository root."),
     config: Path | None = typer.Option(None, "--config", help="Accuracy config YAML."),
@@ -125,7 +125,10 @@ def accuracy(
     from scripts import accuracy as harness
 
     if profile not in harness.PROFILES:
-        raise typer.BadParameter("supported profiles: pr, nightly", param_hint="--profile")
+        raise typer.BadParameter(
+            "supported profiles: " + ", ".join(harness.PROFILES),
+            param_hint="--profile",
+        )
     try:
         day = date.fromisoformat(report_date) if report_date else date.today()
     except ValueError as exc:

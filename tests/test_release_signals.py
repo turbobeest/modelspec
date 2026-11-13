@@ -1935,6 +1935,359 @@ def test_the_process_job_cannot_open_issues() -> None:
     assert "gh label create new-model" in review_runs
 
 
+def test_the_process_job_gates_on_approved_private_answers_before_push() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["process"]["steps"]
+    names = [step.get("name") for step in steps]
+    recall_at = names.index("Run the MODEL-160 recall report")
+    gate_at = names.index("Compare approved answers on private data")
+    push_at = names.index("Commit and push the isolated signal branch")
+    assert recall_at < gate_at < push_at
+    step = steps[gate_at]
+    assert step["if"] == "steps.classify.outputs.changed == 'true'"
+    assert "continue-on-error" not in step
+    run = step["run"]
+    assert "python -I -m scripts.recall_run" not in run
+    assert "scripts/recall_run.py" not in run
+    assert "||" not in run
+    assert "python -I -m scripts.accuracy --compare-approved-answers" in run
+    assert "reports/recall/check.py" not in run
+    assert '--report-dir "$RUNNER_TEMP/recall"' in run
+    assert "--baseline reports/recall/baseline.json" in run
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in run
+    assert '--approved-baseline "$RUNNER_TEMP/approved-private-recall.json"' in run
+
+
+def test_the_approved_answer_outputs_wire_the_pull_request_step() -> None:
+    gate = _process_step("Compare approved answers on private data")
+    opened = _process_step("Open or update the pull request")
+    writer = (ROOT / "scripts" / "accuracy.py").read_text(encoding="utf-8")
+    step_id = gate["id"]
+
+    assert step_id == "approved"
+    assert '--step-output "$GITHUB_OUTPUT"' in gate["run"]
+    assert 'handle.write(f"regressed=' in writer
+    assert 'handle.write(f"regression_ids=' in writer
+    assert opened["env"]["REGRESSED"] == f"${{{{ steps.{step_id}.outputs.regressed }}}}"
+    assert opened["env"]["REGRESSION_IDS"] == (
+        f"${{{{ steps.{step_id}.outputs.regression_ids }}}}"
+    )
+
+
+def _process_step(name: str) -> dict:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    return next(
+        step for step in workflow["jobs"]["process"]["steps"] if step.get("name") == name
+    )
+
+
+def _engine_python(tmp_path: Path) -> Path:
+    """A `python` on PATH that loads this worktree, as the runner's .pth file does."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    launcher = bindir / "launch.py"
+    launcher.write_text(
+        "import sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "args = sys.argv[1:]\n"
+        "if args and args[0] == '-I':\n"
+        "    args = args[1:]\n"
+        "if len(args) >= 2 and args[0] == '-m':\n"
+        "    sys.argv = [args[1], *args[2:]]\n"
+        "    module = __import__(args[1], fromlist=['main'])\n"
+        "    raise SystemExit(module.main())\n"
+        "if args and args[0] == '-c':\n"
+        "    exec(compile(args[1], '<workflow>', 'exec'), {'__name__': '__main__'})\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit('unexpected python arguments')\n",
+        encoding="utf-8",
+    )
+    wrapper = bindir / "python"
+    wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {launcher} \"$@\"\n", encoding="utf-8")
+    wrapper.chmod(0o755)
+    return bindir
+
+
+def _approved_data_repo(tmp_path: Path) -> Path:
+    import subprocess
+
+    data = tmp_path / "data"
+    recall = data / "reports" / "recall"
+    recall.mkdir(parents=True)
+    verdicts = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    (recall / "baseline.json").write_text(
+        json.dumps({"schema_version": 1, "verdicts": verdicts}), encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.email", "signals@example.com"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.name", "signals"], cwd=data, check=True)
+    subprocess.run(["git", "add", "reports"], cwd=data, check=True)
+    subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "baseline"],
+        cwd=data, check=True,
+    )
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=data, check=True)
+    return data
+
+
+def _run_approved_step(tmp_path: Path, *, report: dict | None) -> subprocess.CompletedProcess[str]:
+    import os
+    import subprocess
+
+    data = _approved_data_repo(tmp_path)
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    if report is not None:
+        recall = runner / "recall"
+        recall.mkdir()
+        (recall / "recall.json").write_text(json.dumps({"questions": [
+            {"id": question_id, "verdict": verdict}
+            for question_id, verdict in report.items()
+        ]}), encoding="utf-8")
+    step = _process_step("Compare approved answers on private data")
+    env = os.environ | {
+        "PATH": f"{_engine_python(tmp_path)}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(runner),
+        "GITHUB_OUTPUT": str(runner / "github-output"),
+        "GITHUB_STEP_SUMMARY": str(runner / "summary"),
+    }
+    return subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=data, capture_output=True, text=True, env=env, check=False,
+    )
+
+
+def test_a_regression_exits_zero_and_acknowledgement_still_runs(tmp_path: Path) -> None:
+    report = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    report["Q01"] = "partial"
+    result = _run_approved_step(tmp_path, report=report)
+    ack = _process_step("Acknowledge the signal and schedule its 1, 7, and 30 day re-checks")
+    commit = _process_step("Commit and push the isolated signal branch")
+    opened = _process_step("Open or update the pull request")
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "runner" / "github-output").read_text(encoding="utf-8")
+    assert "regressed=true\n" in recorded
+    assert "regression_ids=Q01\n" in recorded
+    assert ack["if"] == "steps.classify.outputs.resolution != 'empty'"
+    assert "approved" not in ack["if"]
+    assert commit["if"] == "steps.classify.outputs.changed == 'true'"
+    assert opened["if"] == "steps.classify.outputs.changed == 'true'"
+
+
+def test_an_unreadable_approved_answer_input_fails_the_job(tmp_path: Path) -> None:
+    step = _process_step("Compare approved answers on private data")
+    result = _run_approved_step(tmp_path, report=None)
+
+    assert "continue-on-error" not in step
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize("human", ["true", "false"])
+def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, human: str) -> None:
+    import os
+    import subprocess
+
+    step = _process_step("Open or update the pull request")
+    (tmp_path / "result.json").write_text(
+        json.dumps({"model_id": "acme/orbit"}), encoding="utf-8",
+    )
+    env = os.environ | {
+        "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        "BRANCH": "data/release-signal-fixture-initial",
+        "PR_MODE": "initial",
+        "HUMAN": human,
+        "REGRESSED": "true",
+        "REGRESSION_IDS": "Q01, Q05",
+        "EXISTING_PR_URL": "",
+    }
+    stub = (
+        'gh() { printf "%s\\n" "$*" >> "$RUNNER_TEMP/calls"; '
+        'echo "https://github.com/turbobeest/modelspec-data/pull/9"; }\n'
+    )
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "calls").read_text(encoding="utf-8")
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert recorded.splitlines()[0].startswith("pr create --draft ")
+    assert "ANSWERS REGRESS: " in recorded
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+    if human == "true":
+        assert "--label new-model" in recorded
+        assert "data: add or identify acme/orbit (MODEL-113)" in recorded
+    else:
+        assert "--label" not in recorded
+        assert "data: refresh acme/orbit release evidence (MODEL-113)" in recorded
+
+
+_OPEN_PR_URL = "https://github.com/turbobeest/modelspec-data/pull/41"
+_REGRESS_CHECK_LINE = (
+    'The "Approved answers on private data" check does not start by itself on a pull request '
+    'opened by this workflow. Run it by dispatching "Private production-data recall" on this '
+    "branch (or close and reopen the pull request) and merge only when it passes.\n"
+)
+
+
+def _run_open_pr_step(
+    tmp_path: Path,
+    *,
+    human: str,
+    regressed: str,
+    title: str,
+    fail: str = "",
+) -> subprocess.CompletedProcess[str]:
+    import os
+    import subprocess
+
+    step = _process_step("Open or update the pull request")
+    (tmp_path / "result.json").write_text(
+        json.dumps({"model_id": "acme/orbit"}), encoding="utf-8",
+    )
+    env = os.environ | {
+        "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        "BRANCH": "data/release-signal-fixture-recheck",
+        "PR_MODE": "open",
+        "HUMAN": human,
+        "REGRESSED": regressed,
+        "REGRESSION_IDS": "Q01, Q05",
+        "EXISTING_PR_URL": _OPEN_PR_URL,
+        "EXISTING_TITLE": title,
+        "GH_FAIL": fail,
+    }
+    stub = """\
+gh() {
+  printf '%s\\n' "$*" >> "$RUNNER_TEMP/calls"
+  if [ -n "${GH_FAIL:-}" ] && [ "$2" = "$GH_FAIL" ]; then
+    echo "gh failed" >&2
+    return 1
+  fi
+  if [ "$1 $2" = "pr view" ]; then
+    printf '%s\\n' "{\\"title\\":\\"$EXISTING_TITLE\\"}"
+    return 0
+  fi
+  printf '%s\\n' "https://github.com/turbobeest/modelspec-data/pull/9"
+}
+"""
+    return subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+
+def _open_pr_calls(tmp_path: Path) -> list[str]:
+    return (tmp_path / "calls").read_text(encoding="utf-8").splitlines()
+
+
+def test_an_open_score_only_regression_converts_the_pull_request_to_a_draft(
+    tmp_path: Path,
+) -> None:
+    title = "data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2] == f"pr edit {_OPEN_PR_URL} --title ANSWERS REGRESS: {title}"
+    assert recorded[3].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 4
+    assert "pr create" not in "\n".join(recorded)
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+
+
+def test_an_open_new_model_regression_converts_the_pull_request_to_a_draft(
+    tmp_path: Path,
+) -> None:
+    title = "data: add or identify acme/orbit (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="true", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2] == f"pr edit {_OPEN_PR_URL} --title ANSWERS REGRESS: {title}"
+    assert recorded[3].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 4
+    assert "pr create" not in "\n".join(recorded)
+    assert "--label" not in "\n".join(recorded)
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+
+
+def test_an_open_regression_keeps_a_title_that_already_has_the_prefix(
+    tmp_path: Path,
+) -> None:
+    title = "ANSWERS REGRESS: data: add or identify acme/orbit (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="true", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 3
+    assert "pr edit" not in "\n".join(recorded)
+
+
+def test_an_open_pull_request_that_did_not_regress_is_only_commented(
+    tmp_path: Path,
+) -> None:
+    title = "ANSWERS REGRESS: data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="false", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded == [
+        f"pr comment {_OPEN_PR_URL} --body-file {tmp_path / 'result.json'}",
+    ]
+    assert not (tmp_path / "pr-body.md").exists()
+
+
+@pytest.mark.parametrize("fail", ["ready", "view", "edit", "comment"])
+def test_an_open_regression_names_the_pull_request_when_gh_fails(
+    tmp_path: Path, fail: str,
+) -> None:
+    title = "data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="true", title=title, fail=fail,
+    )
+
+    assert result.returncode != 0
+    assert (
+        "::error::The signal branch is already pushed. "
+        f"Updating {_OPEN_PR_URL} failed."
+    ) in result.stdout
+    recorded = "\n".join(_open_pr_calls(tmp_path))
+    if fail == "comment":
+        assert "pr comment" in recorded
+    else:
+        assert "pr comment" not in recorded
+
+
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
@@ -1947,7 +2300,7 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
     assert "secrets.GITHUB_TOKEN" in workflow
     assert "python -I -m cli.modelspec.legacy verify --skip-absent-copies --json" in workflow
-    assert "python -I -m scripts.accuracy --profile pr" in workflow
+    assert "python -I -m scripts.accuracy --profile data-pr" in workflow
     assert "python -I -m scripts.recall_run" in workflow
     assert "new-model" in workflow
     assert "--draft" in workflow

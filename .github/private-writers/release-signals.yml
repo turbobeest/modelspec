@@ -425,13 +425,31 @@ jobs:
           PY
       - name: Run the MODEL-111 accuracy harness
         if: steps.classify.outputs.changed == 'true'
-        run: python -I -m scripts.accuracy --profile pr --output-dir "$RUNNER_TEMP/accuracy"
+        run: python -I -m scripts.accuracy --profile data-pr --output-dir "$RUNNER_TEMP/accuracy"
       - name: Run the MODEL-160 recall report
         if: steps.classify.outputs.changed == 'true'
         run: |
           python -I -m scripts.recall_run \
             --output-dir "$RUNNER_TEMP/recall" \
             --date "$(date -u +%F)"
+      - name: Compare approved answers on private data
+        id: approved
+        if: steps.classify.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          merge_base="$(git merge-base HEAD origin/main)"
+          if git cat-file -e "$merge_base:reports/recall/baseline.json" 2>/dev/null; then
+            git show "$merge_base:reports/recall/baseline.json" \
+              > "$RUNNER_TEMP/approved-private-recall.json"
+          else
+            cp reports/recall/baseline.json "$RUNNER_TEMP/approved-private-recall.json"
+          fi
+          python -I -m scripts.accuracy --compare-approved-answers \
+            --report-dir "$RUNNER_TEMP/recall" \
+            --baseline reports/recall/baseline.json \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --approved-baseline "$RUNNER_TEMP/approved-private-recall.json" \
+            --step-output "$GITHUB_OUTPUT"
       - name: Commit and push the isolated signal branch
         if: steps.classify.outputs.changed == 'true'
         env:
@@ -471,19 +489,61 @@ jobs:
           PR_MODE: ${{ steps.recheck.outputs.mode }}
           EXISTING_PR_URL: ${{ matrix.work.pr_url }}
           HUMAN: ${{ steps.classify.outputs.human }}
+          REGRESSED: ${{ steps.approved.outputs.regressed }}
+          REGRESSION_IDS: ${{ steps.approved.outputs.regression_ids }}
         run: |
           model_id="$(python -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
+          if [ "$REGRESSED" = true ]; then
+            {
+              echo "Regressed question ids: $REGRESSION_IDS"
+              echo
+              printf '%s\n' "The \"Approved answers on private data\" check does not start by itself on a pull request opened by this workflow. Run it by dispatching \"Private production-data recall\" on this branch (or close and reopen the pull request) and merge only when it passes."
+              echo
+              cat "$RUNNER_TEMP/result.json"
+            } > "$RUNNER_TEMP/pr-body.md"
+            body_file="$RUNNER_TEMP/pr-body.md"
+            title_prefix="ANSWERS REGRESS: "
+          else
+            body_file="$RUNNER_TEMP/result.json"
+            title_prefix=
+          fi
           if [ "$PR_MODE" = open ]; then
-            gh pr comment "$EXISTING_PR_URL" --body-file "$RUNNER_TEMP/result.json"
+            if [ "$REGRESSED" = true ]; then
+              if ! gh pr ready --undo "$EXISTING_PR_URL"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+              if ! title_json="$(gh pr view "$EXISTING_PR_URL" --json title)"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+              decision="$(printf '%s\n' "$title_json" | python -I -c 'import json,sys; title=json.load(sys.stdin)["title"]; prefix="ANSWERS REGRESS: "; print("keep" if title.startswith(prefix) else prefix + title)')"
+              if [ "$decision" != keep ]; then
+                if ! gh pr edit "$EXISTING_PR_URL" --title "$decision"; then
+                  echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                  exit 1
+                fi
+              fi
+              if ! gh pr comment "$EXISTING_PR_URL" --body-file "$body_file"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+            else
+              gh pr comment "$EXISTING_PR_URL" --body-file "$body_file"
+            fi
             pr_url="$EXISTING_PR_URL"
-          elif [ "$HUMAN" = "true" ]; then
+          elif [ "$HUMAN" = true ]; then
             pr_url="$(gh pr create --draft --head "$BRANCH" --label new-model \
-              --title "data: add or identify $model_id (MODEL-113)" \
-              --body-file "$RUNNER_TEMP/result.json")"
+              --title "${title_prefix}data: add or identify $model_id (MODEL-113)" \
+              --body-file "$body_file")"
+          elif [ "$REGRESSED" = true ]; then
+            pr_url="$(gh pr create --draft --head "$BRANCH" \
+              --title "${title_prefix}data: refresh $model_id release evidence (MODEL-113)" \
+              --body-file "$body_file")"
           else
             pr_url="$(gh pr create --head "$BRANCH" \
               --title "data: refresh $model_id release evidence (MODEL-113)" \
-              --body-file "$RUNNER_TEMP/result.json")"
+              --body-file "$body_file")"
           fi
           echo "url=$pr_url" >> "$GITHUB_OUTPUT"
       - name: Upload the score-only audit table

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -414,6 +415,193 @@ def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path,
     assert report.snapshot == snapshot.snapshot_id
 
 
+def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: snapshot)
+    commands = []
+
+    def run_command(name, command, cwd):
+        commands.append((name, tuple(command), Path(cwd)))
+        return accuracy.LayerResult(name, "pass", True, "ok", duration_seconds=0.1)
+
+    monkeypatch.setattr(accuracy, "_run_command", run_command)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args: accuracy.LayerResult("deterministic_correctness", "pass", True, "ok"),
+    )
+    recall_calls = []
+
+    def recall(*args, **kwargs):
+        recall_calls.append(kwargs)
+        return accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", kwargs.get("gating", True), "ok",
+        )
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+
+    report = accuracy.run_profile(profile="data-pr")
+    config = accuracy.load_config()
+    parity_commands = [command for name, command, _cwd in commands if name == "output_parity"]
+
+    assert parity_commands == [
+        (sys.executable, "-m", "pytest", "-q", *config.parity.python_test_paths),
+    ]
+    assert all("vitest" not in command for command in parity_commands)
+    assert recall_calls == []
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness",
+        "output_parity",
+        "output_parity_web",
+        "frozen_image_engine_recall",
+    ]
+    assert report.layers[1].status == "pass"
+    assert report.layers[1].gating is True
+    omitted = report.layers[2]
+    assert omitted.status == "report"
+    assert omitted.gating is False
+    assert omitted.summary == (
+        "Omitted: the vitest half reads checked-in fixtures and needs Node "
+        "packages the job does not install."
+    )
+    recall = report.layers[3]
+    assert recall.status == "report"
+    assert recall.gating is False
+    assert recall.summary == (
+        "Omitted: frozen-image engine recall scores the engine's committed "
+        "public image, which a data pull request cannot change, and on a "
+        "linked tree it still reads the private registry. The engine's own "
+        "CI owns this check."
+    )
+    assert report.status == "pass"
+    assert accuracy.PROFILES["data-pr"] == ("deterministic_correctness", "output_parity")
+
+
+def _linked_engine(tmp_path: Path) -> Path:
+    repo = tmp_path / "engine"
+    private = tmp_path / "private-models"
+    repo.mkdir()
+    private.mkdir()
+    (repo / "models").symlink_to(private)
+    return repo
+
+
+def test_pr_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "run_golden", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo), "--profile", "pr", "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_nightly_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.run_profile(root=repo, profile="nightly")
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_an_ordinary_directory_still_runs_the_pr_profile(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "output_parity",
+        lambda *args, **kwargs: accuracy.LayerResult("output_parity", "pass", True, "ok"),
+    )
+    monkeypatch.setattr(
+        accuracy, "run_golden",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    report = accuracy.run_profile(root=repo, profile="pr")
+
+    assert report.status == "pass"
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness", "frozen_image_engine_recall", "output_parity",
+    ]
+
+
+def test_data_pr_profile_runs_on_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+
+    assert report.status == "pass"
+    assert report.profile == "data-pr"
+
+
+def test_run_golden_reads_data_that_stays_inside_the_root(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    (repo / "models" / "marker.txt").write_text("local\n", encoding="utf-8")
+    seen = {}
+
+    def fake_run(*, root, snapshot_file, output_dir, report_date):
+        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
+        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
+
+    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+    monkeypatch.setattr(
+        accuracy, "load_recall_baseline",
+        lambda path: accuracy.RecallBaseline(
+            snapshot="snap", as_of=date(2026, 11, 12), verdicts={},
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "recall_ratchet",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+
+    accuracy.run_golden(repo, None, date(2026, 11, 12), gating=True)
+
+    assert seen["marker"] == "local\n"
+
+
+def test_committed_public_image_recall_matches_the_baseline() -> None:
+    result = accuracy.run_golden(accuracy.ROOT, None, date.today(), gating=True)
+
+    assert result.status == "pass"
+    assert result.gating is True
+    assert result.counts["improvements"] == 0
+    assert result.counts["regressions"] == 0
+
+
 def _recall_question(
     question_id: str, verdict: str, cause: str = "engine_behavior"
 ) -> QuestionResult:
@@ -539,6 +727,106 @@ def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
     assert result.details == []
 
 
+def _stub_data_pr_layers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+
+
+def test_data_pr_report_labels_the_linked_catalogue_snapshot(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    snapshot = FakeSnapshot()
+    loads = []
+
+    def load(root, snapshot_file, as_of):
+        loads.append(root)
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert loads == [repo.resolve()]
+    assert report.snapshot == "snap_test_accuracy"
+    assert "linked_catalogue" not in report.to_dict()
+    assert "Snapshot: `snap_test_accuracy` (linked catalogue)" in text
+
+
+def test_data_pr_report_without_a_link_omits_the_catalogue_label(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+
+    def load(root, snapshot_file, as_of):
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
+    report = accuracy.run_profile(profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert "linked catalogue" not in text
+
+
+@pytest.mark.parametrize("layer", ["frozen_image_engine_recall", "output_parity_web"])
+def test_data_pr_rejects_an_omitted_layer(layer: str, tmp_path: Path, monkeypatch) -> None:
+    def recall(*args, **kwargs):
+        raise AssertionError(f"ran gating={kwargs.get('gating')}")
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--profile", "data-pr",
+            "--layers", layer,
+            "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == f"omitted from --profile data-pr: {layer}"
+
+
+def test_data_pr_snapshot_build_failure_fails_before_the_other_layers(monkeypatch) -> None:
+    def boom(*args, **kwargs):
+        raise ValueError("completeness gate")
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", boom)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+
+    with pytest.raises(ValueError, match="completeness gate"):
+        accuracy.run_profile(profile="data-pr")
+
+
+def test_pr_snapshot_line_does_not_claim_the_linked_catalogue() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-09-25T12:00:00Z",
+        profile="pr",
+        snapshot="snap_test_accuracy",
+        layers=(),
+    )
+
+    text = accuracy._markdown(report)
+
+    assert "Snapshot: `snap_test_accuracy`\n" in text
+    assert "linked catalogue" not in text
+
+
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     report = accuracy.AccuracyReport(
         generated_at="2026-09-25T12:00:00Z",
@@ -559,6 +847,17 @@ def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     raw = json.loads(payload.read_text())
     assert raw["status"] == "pass"
     assert raw["layers"][1]["gating"] is False
+
+
+def test_accuracy_profile_help_lists_the_profiles_that_exist() -> None:
+    listed = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--help"])
+    rejected = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--profile", "nope"])
+
+    assert listed.exit_code == 0, listed.output
+    assert rejected.exit_code != 0
+    for profile in accuracy.PROFILES:
+        assert profile in listed.output
+        assert profile in rejected.output
 
 
 def test_modelspect_verify_accuracy_is_a_command_group(monkeypatch, tmp_path: Path) -> None:
@@ -1676,6 +1975,28 @@ def test_baseline_update_refuses_unexplained_drop_and_preserves_reasons(
     }
 
 
+def test_update_recall_baseline_refuses_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    baseline = repo / "tests" / "recall" / "baseline.json"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("sentinel\n", encoding="utf-8")
+
+    def ran(**kwargs):
+        raise AssertionError("recall ran on a linked tree")
+
+    monkeypatch.setattr("scripts.recall_run.run", ran)
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo),
+            "--update-recall-baseline",
+            "--date", "2026-10-01",
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+    assert baseline.read_text(encoding="utf-8") == "sentinel\n"
+
+
 def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> None:
     """MODEL-335: runs 36975426430 (10-02) and 37426044223 (10-06) failed on 403s
     from these pages. Declared rendered, a 403 is render_required, not a failure."""
@@ -1695,3 +2016,195 @@ def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> 
         ("model-205-perplexity-pro", "model-173-openai-pro", "model-173-xai-consumer-pricing"),
         FetchMode.RENDERED,
     )
+
+
+def _approved_ids() -> list[str]:
+    return [f"Q{number:02d}" for number in range(1, 21)]
+
+
+def _approved_verdicts(**overrides: str) -> dict[str, str]:
+    verdicts = {question_id: "pass" for question_id in _approved_ids()}
+    verdicts.update(overrides)
+    return verdicts
+
+
+def _approved_fixture(
+    tmp_path: Path,
+    report: dict[str, str],
+    baseline: dict[str, str],
+    approved: dict[str, str],
+    *,
+    extra_report: bool = False,
+    drop_question: str | None = None,
+) -> tuple[Path, Path, Path, Path]:
+    report_dir = tmp_path / "report"
+    report_dir.mkdir()
+    rows = [
+        {"id": question_id, "verdict": verdict}
+        for question_id, verdict in report.items()
+        if question_id != drop_question
+    ]
+    (report_dir / "recall.json").write_text(
+        json.dumps({"questions": rows}), encoding="utf-8",
+    )
+    if extra_report:
+        (report_dir / "second.json").write_text("{}", encoding="utf-8")
+    baseline_path = tmp_path / "baseline.json"
+    approved_path = tmp_path / "approved.json"
+    baseline_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": baseline}), encoding="utf-8",
+    )
+    approved_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": approved}), encoding="utf-8",
+    )
+    return report_dir, baseline_path, approved_path, tmp_path / "summary.txt"
+
+
+def _compare_approved(paths: tuple[Path, Path, Path, Path]) -> int:
+    report_dir, baseline, approved, summary = paths
+    return accuracy.main([
+        "--compare-approved-answers",
+        "--report-dir", str(report_dir),
+        "--baseline", str(baseline),
+        "--approved-baseline", str(approved),
+        "--summary", str(summary),
+    ])
+
+
+def test_compare_approved_answers_reports_no_change(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    text = capsys.readouterr().out
+    assert text.splitlines() == [
+        "pass: 20; question ids: " + ", ".join(_approved_ids()),
+        "partial: 0; question ids: none",
+        "fail: 0; question ids: none",
+        "Regression question ids: none",
+    ]
+    assert paths[3].read_text(encoding="utf-8") == text
+
+
+def test_compare_approved_answers_allows_an_improvement(tmp_path: Path, capsys) -> None:
+    report = _approved_verdicts()
+    lower = _approved_verdicts(Q01="partial")
+    paths = _approved_fixture(tmp_path, report, lower, lower)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: none"
+
+
+def test_compare_approved_answers_regresses_when_pass_turns_partial(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[1] == "partial: 1; question ids: Q01"
+    assert lines[-1] == "Regression question ids: Q01"
+    assert paths[3].read_text(encoding="utf-8").splitlines()[-1] == lines[-1]
+
+
+def test_compare_approved_answers_regresses_when_partial_turns_fail(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q05="fail")
+    minimum = _approved_verdicts(Q05="partial")
+    paths = _approved_fixture(tmp_path, report, minimum, minimum)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[2] == "fail: 1; question ids: Q05"
+    assert lines[-1] == "Regression question ids: Q05"
+
+
+def test_compare_approved_answers_regresses_when_the_proposed_baseline_drops(
+    tmp_path: Path, capsys,
+) -> None:
+    passing = _approved_verdicts()
+    proposed = _approved_verdicts(Q03="partial")
+    paths = _approved_fixture(tmp_path, passing, proposed, passing)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q03"
+
+
+def test_compare_approved_answers_rejects_a_missing_question(
+    tmp_path: Path, capsys,
+) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, drop_question="Q12")
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out == "::error::Private recall inputs could not be validated.\n"
+    assert not paths[3].exists()
+
+
+def test_compare_approved_answers_exits_nonzero_without_a_step_output(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q01"
+    assert not (tmp_path / "step-output").exists()
+
+
+def test_compare_approved_answers_records_a_regression_and_exits_zero(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial", Q05="fail")
+    minimum = _approved_verdicts(Q05="partial")
+    report_dir, baseline, approved, summary = _approved_fixture(
+        tmp_path, report, minimum, minimum,
+    )
+    step_output = tmp_path / "step-output"
+
+    code = accuracy.main([
+        "--compare-approved-answers",
+        "--report-dir", str(report_dir),
+        "--baseline", str(baseline),
+        "--approved-baseline", str(approved),
+        "--summary", str(summary),
+        "--step-output", str(step_output),
+    ])
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q01, Q05"
+    assert step_output.read_text(encoding="utf-8") == (
+        "regressed=true\nregression_ids=Q01, Q05\n"
+    )
+
+
+def test_compare_approved_answers_rejects_two_report_files(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, extra_report=True)
+
+    code = _compare_approved(paths)
+
+    assert len(list(paths[0].glob("*.json"))) == 2
+    assert code != 0
+    assert capsys.readouterr().out == (
+        "::error::Private recall inputs could not be validated: expected one report.\n"
+    )
+    assert not paths[3].exists()
