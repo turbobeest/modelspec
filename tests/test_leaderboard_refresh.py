@@ -2317,7 +2317,8 @@ def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
                               dataset_rows: list[dict] | None = None,
                               model: str = "lab/example-model",
                               snapshot: Path | None = None,
-                              siblings: list[dict] | None = None, **card):
+                              siblings: list[dict] | None = None,
+                              dry_run: bool = False, **card):
     """Refresh one Arena row from a fixture projection. No network."""
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -2359,7 +2360,7 @@ def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
     if snapshot is not None:
         shutil.copytree(root, snapshot)
     report = refresh.run(
-        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        observed_at="2026-11-11", dry_run=dry_run, root=root, source_cache=cache,
         model_ids=(model,), arena_latest=True,
     )
     return report, card, root
@@ -2658,21 +2659,22 @@ def test_the_report_counts_rows_left_on_an_older_publish_date(
 
     assert report.failures == [], report.failures
     rendered = refresh.render_report(report)
-    assert "Arena boards with a mixed top 10: 1 of 2" in rendered
-    assert "| arena_elo_coding | 1 | 0 | no |" in rendered
+    assert "Arena boards with a mixed top 10: 1 of 1" in rendered
+    assert "| arena_elo_coding | not read | not read | not read |" in rendered
     assert "| arena_elo_overall | 1 | 1 | yes |" in rendered
+    assert "of 2" not in rendered
     assert refresh.fit_pull_request_body(rendered) == rendered
     path = tmp_path / "report.json"
     refresh.write_report_json(path, report)
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["arena_boards"] == 2
+    assert payload["arena_boards"] == 1
     assert payload["arena_boards_with_mixed_top_10"] == 1
     assert payload["arena_publish_dates"] == [
         {
             "benchmark": "arena_elo_coding",
-            "rows_at_new_publish_date": 1,
-            "rows_at_older_publish_date": 0,
-            "mixed_top_10": False,
+            "rows_at_new_publish_date": "not read",
+            "rows_at_older_publish_date": "not read",
+            "mixed_top_10": "not read",
         },
         {
             "benchmark": "arena_elo_overall",
@@ -2681,6 +2683,35 @@ def test_the_report_counts_rows_left_on_an_older_publish_date(
             "mixed_top_10": True,
         },
     ]
+
+
+def test_an_unmoved_board_is_all_older_and_an_unread_board_is_not_read(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The new date is the date this run read. A board left out of the run is not read."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dry_run=True,
+        siblings=[
+            {
+                "model": "lab/coding",
+                "benchmark": "arena_elo_coding",
+                "score": 1000.0,
+                "day": "2026-10-01",
+                "evaluated": "Coding Model",
+            },
+        ],
+    )
+
+    assert str(_evidence_row(card)["evidence_date"]) == "2026-10-01"
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 0 of 1" in rendered
+    assert "| arena_elo_overall | 0 | 1 | no |" in rendered
+    assert "| arena_elo_coding | not read | not read | not read |" in rendered
+    assert "of 2" not in rendered
 
 
 def test_the_pull_request_body_keeps_the_mixed_board_line() -> None:

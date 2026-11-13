@@ -10,8 +10,16 @@ rule, and writes ``premier/slice-1.yaml``.
     python scripts/premier_slice1.py --report  # print the cut, write nothing
 
 Live proposals read current private records, without fetching sources or changing
-the input checkout. A slice-1 board whose top 10 mixes publish dates is refused
-unless ``--allow-mixed-boards`` is set. The approved ``--check`` path is unchanged.
+the input checkout. The mixed-date check covers only a board whose every row is
+an Arena dataset-root reading: those boards publish one date for the whole
+board. A board whose rows carry each model's own evaluation date is not
+refused. An Arena top 10 that mixes publish dates exits 3 and names the boards
+on stderr, unless ``--allow-mixed-boards`` is set. ``--check`` still exits 1
+when the proposed membership differs. The approved ``--check`` path, with no
+``--data-dir``, is unchanged. The workflow that runs this proposer fails the
+job on any non-zero exit before it opens a proposal, so exit 3 stops the
+proposal without a workflow change.
+
 The JSON diff compares membership with its premier list::
 
     python scripts/premier_slice1.py --data-dir ../modelspec-data \
@@ -403,6 +411,12 @@ def slice1_board_id(
     return SLICE1_BENCHMARK_BOARDS.get(benchmark_id)
 
 
+# Each slice-1 board id comes from one evidence benchmark id.
+_BOARD_BENCHMARK = {
+    board_id: benchmark_id for benchmark_id, board_id in SLICE1_BENCHMARK_BOARDS.items()
+}
+
+
 def clause1_minimum_rows() -> int:
     """Rows clause 1 requires before a board admits its top 10."""
     if STRICT_BOARD_ROWS:
@@ -780,16 +794,41 @@ def _evidence(hit: dict, read_date: str = READ_DATE) -> dict:
 
 
 class MixedBoards(Exception):
-    """A live slice-1 top 10 holds more than one publish date."""
+    """An Arena dataset-root top 10 holds more than one publish date."""
+
+
+def _as_arena_reading(board: dict, row: dict) -> dict:
+    """The fields ``_arena_reading_row`` reads, from a live slice-1 row."""
+    benchmark_id = str(row.get("benchmark_id") or "")
+    if not benchmark_id:
+        benchmark_id = _BOARD_BENCHMARK.get(str(board.get("id") or ""), "")
+    source_url = row.get("source_url") or row.get("url") or ""
+    return {"benchmark_id": benchmark_id, "source_url": source_url}
+
+
+def _arena_dataset_root_board(board: dict) -> bool:
+    """True when every row is an Arena dataset-root reading.
+
+    The predicate is the refresh writer's ``_arena_reading_row``. A board that
+    publishes one date per model fails it and stays out of the mixed-date check.
+    """
+    from scripts.refresh_leaderboards import _arena_reading_row
+
+    rows = list(board.get("rows") or [])
+    if not rows:
+        return False
+    return all(_arena_reading_row(_as_arena_reading(board, row)) for row in rows)
 
 
 def mixed_publish_dates(board: dict) -> str | None:
-    """``board id: N at date, ...`` when this top 10 mixes publish dates.
+    """``board id: N at date, ...`` when this Arena top 10 mixes publish dates.
 
-    A board whose rows carry no publish date is out of scope. Fewer than ten
-    rows uses every row. A dateless row occupies a seat and adds no date.
-    Higher scores lead, unless the board says ``lower_is_better``.
+    Only a board whose every row is an Arena dataset-root reading is in scope.
+    Fewer than ten rows uses every row. A dateless row occupies a seat and
+    adds no date. Higher scores lead, unless the board says ``lower_is_better``.
     """
+    if not _arena_dataset_root_board(board):
+        return None
     scored: list[dict] = []
     for row in board.get("rows") or []:
         score = row.get("score")
@@ -1380,7 +1419,7 @@ def main() -> int:
     parser.add_argument(
         "--allow-mixed-boards",
         action="store_true",
-        help="propose even when a slice-1 top 10 mixes publish dates",
+        help="propose even when an Arena top 10 mixes publish dates",
     )
     args = parser.parse_args()
     if args.strict_board_rows:
@@ -1404,7 +1443,7 @@ def main() -> int:
             )
         except MixedBoards as error:
             print(error, file=sys.stderr)
-            return 1
+            return 3
         changes = membership_diff(document, yaml.safe_load(baseline_path.read_text()))
         text = json.dumps(changes, indent=2, ensure_ascii=False) + "\n"
         for path, content in ((args.output, _dump(document)), (args.diff, text)):

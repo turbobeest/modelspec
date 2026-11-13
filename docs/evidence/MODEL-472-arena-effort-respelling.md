@@ -1,7 +1,8 @@
 # MODEL-472 Arena effort respelling
 
 Base `618b0a8a34b778829b409e570eb63bc455072083`. Branch `model-472-fix`.
-The commit that adds this file is the change. Read it with
+Round 2 merged `origin/main` through `95f169da4b3288225497a56ed379fe5428c2ca9d`.
+The latest commit that touches this file is the change. Read it with
 `git log -1 --format=%H -- docs/evidence/MODEL-472-arena-effort-respelling.md`.
 
 The November Arena revision spells effort in parentheses. The writer already
@@ -33,28 +34,46 @@ Arena dataset-root row, with that row's own figures.
 `mixed_top_10`. The fitter keeps the count line. It keeps the table when the
 shortened body still fits.
 
-`scripts/premier_slice1.py` checks a live slice-1 top 10 before ranking.
-More than one `evidence_date` in that top 10 exits non-zero and names the
-board and the counts. `--allow-mixed-boards` continues. `--check` does not
-run the check. `.github/private-writers/lineup-proposer.yml` was not edited.
-Its `set -euo pipefail` already stops the proposal step on a non-zero exit.
-The workflow checks out the pinned engine, so the refusal applies when that
-pin moves.
+"At the new publish date" is the publish date of the Arena reading this run
+matched for that board, not the newest date already on the cards. A row whose
+publish date equals that day is at the new date. Every other row on the board
+is left at an older date, including when no card row moved. A board the run
+did not read is `not read` in each of the three fields and is left out of
+`N` and `M`.
+
+The first version of `scripts/premier_slice1.py` checked every live slice-1
+board whose rows carry a date. That was wrong. The brief said "whose rows
+carry a publish date". Against the data clone that version exits 1 on 9
+boards. Six of them are not Arena, and their rows carry each model's own
+evaluation date, so they always mix: `epoch-frontiermath-tiers-1-3-v2`,
+`epoch-gpqa-diamond`, `epoch-swe-bench-verified`, `scale-hle`,
+`swe-bench-pro`, `terminal-bench-4.0`. Once the data repository's engine pin
+moves, the lineup proposer would fail on every push.
+
+The check now covers only a board whose every row is an Arena dataset-root
+reading. The predicate is the refresh writer's `_arena_reading_row`, imported
+once, not copied. A mixed Arena top 10 exits 3 and names those boards and the
+counts per date on stderr. `--allow-mixed-boards` still proposes. `--check`
+still exits 1 when the proposed membership differs. The approved `--check`
+path, with no `--data-dir`, is unchanged. `.github/private-writers/lineup-proposer.yml`
+was not edited. Its `set -euo pipefail` already stops the proposal step on
+any non-zero exit, before a proposal is opened. The workflow checks out the
+pinned engine, so the refusal applies when that pin moves.
 
 Not done: an atomic whole-board skip, card edits, and deleting date sentences.
 
 ## Tests
 
-Python 3.12.3 and pytest 9.2.0 from
-`/home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python`. Git 2.43.0.
-Serial, `-q -p no:cacheprovider`, no `-n`. Exit codes read directly. No full
-local suite.
+Python 3.12.3, pytest 9.2.0, Git 2.43.0. Serial, `-q -p no:cacheprovider`,
+no `-n`. Exit codes read directly. No full local suite. The interpreter path
+is omitted.
 
-Red, from the worktree, before the production change. Exit 1. 16 failed,
-14 passed, in 2.26s.
+### First commit
+
+Red, before the production change. Exit 1. 16 failed, 14 passed, in 2.26s.
 
 ```bash
-env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_leaderboard_refresh.py::test_score_only_check_accepts_a_hyphenated_effort_the_stored_name_spells \
   tests/test_leaderboard_refresh.py::test_a_hyphenated_stored_name_adopts_the_parenthetical_effort \
   tests/test_leaderboard_refresh.py::test_a_stored_name_without_the_effort_token_is_left_for_a_person \
@@ -88,7 +107,7 @@ Green, same interpreter, after the change. The new tests: 22 passed in
 in 92.61s, exit 0.
 
 ```bash
-env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_leaderboard_refresh.py tests/test_arena_revision.py \
   tests/test_premier_slice1.py tests/test_premier_live.py \
   tests/test_writer_isolation.py
@@ -97,9 +116,55 @@ env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python
 The 8 skips were already in those files. `tests/test_premier_slice1.py`
 includes the approved `--check` comparison and passed.
 
+### Round 2
+
+Red, before this round's production change. Exit 1. 5 failed, 6 passed, in
+2.53s. The Arena mixed top 10 still exited 1 and also named
+`terminal-bench-4.0`. Ten evaluation dates on a non-Arena board raised
+`MixedBoards`. `mixed_publish_dates` still named `terminal-bench-4.0`. The
+census counted an unread sibling, so the lines were `1 of 2` and `0 of 2`.
+
+```bash
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
+  tests/test_premier_live.py::test_the_proposer_refuses_an_arena_mixed_top_10 \
+  tests/test_premier_live.py::test_a_non_arena_board_with_ten_evaluation_dates_does_not_block \
+  tests/test_premier_live.py::test_a_changed_membership_check_still_exits_1 \
+  tests/test_premier_live.py::test_allow_mixed_boards_still_proposes \
+  tests/test_premier_live.py::test_an_arena_board_with_older_dates_only_below_the_top_10_does_not_block \
+  tests/test_premier_live.py::test_a_mixed_date_inside_the_top_10_refuses \
+  tests/test_premier_live.py::test_a_lower_is_better_top_10_uses_the_low_scores \
+  tests/test_premier_live.py::test_a_dateless_seat_does_not_count_as_a_second_publish_date \
+  tests/test_premier_live.py::test_mixed_publish_dates_names_the_arena_board_and_the_counts \
+  tests/test_leaderboard_refresh.py::test_the_report_counts_rows_left_on_an_older_publish_date \
+  tests/test_leaderboard_refresh.py::test_an_unmoved_board_is_all_older_and_an_unread_board_is_not_read
+```
+
+Green, that selector plus
+`test_a_hyphenated_stored_name_adopts_the_parenthetical_effort`: 12 passed
+in 2.72s, exit 0. Focused files plus writer isolation, the same command as
+above: 544 passed, 8 skipped, in 91.19s, exit 0.
+
+## Acceptance
+
+Read-only data clone. These two commands, and no command output:
+
+```bash
+env PYTHONPATH=$PWD python scripts/premier_slice1.py --data-dir /home/turbobeest/dev/04-modelspec/modelspec-data
+env PYTHONPATH=$PWD python scripts/premier_slice1.py --data-dir /home/turbobeest/dev/04-modelspec/modelspec-data --allow-mixed-boards
+```
+
+The first command exited 3. Its message named only `arena-text`,
+`arena-vision`, and `arena-webdev`. It named none of
+`epoch-frontiermath-tiers-1-3-v2`, `epoch-gpqa-diamond`,
+`epoch-swe-bench-verified`, `scale-hle`, `swe-bench-pro`,
+`terminal-bench-4.0`. The second command exited 0. The same command on
+`origin/main` at `95f169da4b3288225497a56ed379fe5428c2ca9d` also exited 0.
+The two membership documents were equal: `changed` true, 1 added, 1 removed.
+
 ## Not observed
 
 - No live Arena fetch and no refresh of the private catalogue.
 - No edit of ranking floors, `decision/verify.py`, registry files, or frozen data.
+- No edit under `.github/private-writers/`.
 - No run of `.github/private-writers/lineup-proposer.yml`.
 - Pull-request checks were not read at the time of this commit.

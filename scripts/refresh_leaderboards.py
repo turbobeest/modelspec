@@ -247,7 +247,8 @@ class RefreshReport:
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
-    #: Per Arena board, rows at the newest publish date and rows left older.
+    #: Per Arena board, rows at the publish date this run read, and rows left older.
+    #: A board the run did not read is ``not read`` and is left out of the count.
     #: None until the run attaches the census. An empty list is a real zero.
     arena_publish_dates: list[dict[str, Any]] | None = None
 
@@ -1918,7 +1919,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     )
 
     if dry_run or (not pending_updates and not pending_additions):
-        return _attach_arena_publish_census(report, root)
+        return _attach_arena_publish_census(report, root, boards)
 
     for path, additions in pending_additions.items():
         _append_evidence(path, additions)
@@ -1956,7 +1957,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
             result.reason or result.outcome,
         )
         report.quarantined.append(failure)
-    return _attach_arena_publish_census(report, root)
+    return _attach_arena_publish_census(report, root, boards)
 
 
 def _unwritten_arena_reason(report: RefreshReport) -> str | None:
@@ -1972,8 +1973,50 @@ def _unwritten_arena_reason(report: RefreshReport) -> str | None:
     return None
 
 
-def _arena_publish_census(root: Path) -> list[dict[str, Any]]:
-    """Rows at the newest Arena publish date, and whether each top 10 mixes dates."""
+def _publish_date_this_run(board: BoardReading) -> str | None:
+    """The one publish date on this reading, when the board publishes one."""
+    days = {
+        day for row in board.rows if (day := _source_measurement_date(row))
+    }
+    if len(days) != 1:
+        return None
+    return next(iter(days))
+
+
+def _arena_dates_this_run(boards: Sequence[BoardReading]) -> dict[str, str]:
+    """Benchmark id to the publish date of the Arena reading this run matched."""
+    found: dict[str, str] = {}
+    for board in boards:
+        if not str(board.key).startswith("arena:"):
+            continue
+        day = _publish_date_this_run(board)
+        if day is None:
+            continue
+        for benchmark in board.benchmark_ids:
+            found[str(benchmark)] = day
+    return found
+
+
+def _not_read_census(benchmark: str) -> dict[str, Any]:
+    return {
+        "benchmark": benchmark,
+        "rows_at_new_publish_date": "not read",
+        "rows_at_older_publish_date": "not read",
+        "mixed_top_10": "not read",
+    }
+
+
+def _arena_publish_census(
+    root: Path, read_dates: Mapping[str, str],
+) -> list[dict[str, Any]]:
+    """Rows at the publish date this run read, and whether each top 10 mixes dates.
+
+    ``read_dates`` maps a benchmark id to the publish date of the reading this
+    run matched for that board. A benchmark that is absent was not read: its
+    row says ``not read`` and the mixed-top-10 count leaves it out. ``at the
+    new publish date`` counts card rows on that date. Every other row on the
+    board is left at an older date, including when no card row moved.
+    """
     models = root / "models"
     if not models.is_dir():
         return []
@@ -1989,12 +2032,13 @@ def _arena_publish_census(root: Path) -> list[dict[str, Any]]:
             grouped.setdefault(bench, []).append((model_id, row))
     census: list[dict[str, Any]] = []
     for bench in sorted(grouped):
+        new_day = read_dates.get(bench)
+        if not new_day:
+            census.append(_not_read_census(bench))
+            continue
         entries = grouped[bench]
         days = [_iso_day(row.get("evidence_date")) for _model, row in entries]
-        present = [day for day in days if day]
-        newest = max(present) if present else ""
-        at_new = sum(1 for day in days if day and day == newest)
-        at_older = sum(1 for day in days if day and newest and day < newest)
+        at_new = sum(1 for day in days if day == new_day)
         scored = [
             (model_id, row) for model_id, row in entries
             if not isinstance(row.get("score"), bool)
@@ -2012,23 +2056,30 @@ def _arena_publish_census(root: Path) -> list[dict[str, Any]]:
         census.append({
             "benchmark": bench,
             "rows_at_new_publish_date": at_new,
-            "rows_at_older_publish_date": at_older,
+            "rows_at_older_publish_date": len(entries) - at_new,
             "mixed_top_10": len(top_days) > 1,
         })
     return census
 
 
-def _attach_arena_publish_census(report: RefreshReport, root: Path) -> RefreshReport:
-    report.arena_publish_dates = _arena_publish_census(root)
+def _attach_arena_publish_census(
+    report: RefreshReport, root: Path, boards: Sequence[BoardReading] = (),
+) -> RefreshReport:
+    report.arena_publish_dates = _arena_publish_census(root, _arena_dates_this_run(boards))
     return report
+
+
+def _read_census_rows(rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return [row for row in rows if row.get("mixed_top_10") != "not read"]
 
 
 def _arena_census_lines(report: RefreshReport) -> list[str]:
     rows = report.arena_publish_dates
     if rows is None:
         return []
-    mixed = sum(1 for row in rows if row["mixed_top_10"])
-    lines = [f"Arena boards with a mixed top 10: {mixed} of {len(rows)}"]
+    read = _read_census_rows(rows)
+    mixed = sum(1 for row in read if row["mixed_top_10"] is True)
+    lines = [f"Arena boards with a mixed top 10: {mixed} of {len(read)}"]
     if not rows:
         return lines
     lines.extend([
@@ -2037,6 +2088,9 @@ def _arena_census_lines(report: RefreshReport) -> list[str]:
         "|---|---:|---:|---|",
     ])
     for row in rows:
+        if row["mixed_top_10"] == "not read":
+            lines.append(f"| {row['benchmark']} | not read | not read | not read |")
+            continue
         flag = "yes" if row["mixed_top_10"] else "no"
         lines.append(
             f"| {row['benchmark']} | {row['rows_at_new_publish_date']} | "
@@ -2858,9 +2912,10 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "arena_rows_left": report.arena_rows_left,
         "arena_rows_without_board": report.arena_rows_without_board,
         "arena_rows_off_root": report.arena_rows_off_root,
-        "arena_boards": len(report.arena_publish_dates or []),
+        "arena_boards": len(_read_census_rows(report.arena_publish_dates or [])),
         "arena_boards_with_mixed_top_10": sum(
-            1 for row in (report.arena_publish_dates or []) if row["mixed_top_10"]
+            1 for row in _read_census_rows(report.arena_publish_dates or [])
+            if row["mixed_top_10"] is True
         ),
         "arena_publish_dates": report.arena_publish_dates or [],
         "boards": report.boards,
