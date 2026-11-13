@@ -1932,6 +1932,28 @@ def test_baseline_update_refuses_unexplained_drop_and_preserves_reasons(
     }
 
 
+def test_update_recall_baseline_refuses_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    baseline = repo / "tests" / "recall" / "baseline.json"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("sentinel\n", encoding="utf-8")
+
+    def ran(**kwargs):
+        raise AssertionError("recall ran on a linked tree")
+
+    monkeypatch.setattr("scripts.recall_run.run", ran)
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo),
+            "--update-recall-baseline",
+            "--date", "2026-10-01",
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+    assert baseline.read_text(encoding="utf-8") == "sentinel\n"
+
+
 def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> None:
     """MODEL-335: runs 36975426430 (10-02) and 37426044223 (10-06) failed on 403s
     from these pages. Declared rendered, a 403 is render_required, not a failure."""

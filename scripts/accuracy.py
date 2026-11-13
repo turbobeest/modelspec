@@ -12,6 +12,7 @@ private registry. The engine's own CI owns that check. The nightly profile
 gates current-data freshness, re-reads verified values, compares domain leaders
 with permitted independent boards, and reports recall changes without gating
 on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
+The recall baseline update refuses that tree before it reads the catalogue.
 The data-pr report builds that linked catalogue with the completeness gate on
 and labels the snapshot line as the linked catalogue.
 
@@ -783,6 +784,9 @@ def update_recall_baseline(
     as_of: date,
     frozen_image_reason: Mapping[str, str] | None = None,
 ) -> RecallBaseline:
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
     from scripts.recall_run import run
 
     path = root / "tests" / "recall" / "baseline.json"
