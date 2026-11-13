@@ -1112,10 +1112,17 @@ def evidence_section(model: Model) -> str:
     rows = []
     for rec in records:
         kind = str(rec.get("source_kind") or "")
+        score = esc(format_score(rec.get("score"), rec.get("unit")))
+        # The key means the source lists the model without a measured value: an
+        # empty cell, or a value the site estimated. The score above stays the
+        # last measured one.
+        if rec.get("not_published_since") not in (None, ""):
+            last_seen = rec.get("observed_at") or rec.get("evidence_date")
+            score += f" no longer published by the source; last seen {esc(last_seen)}"
         rows.append(
             f'<tr><td>{esc(rec.get("benchmark_id"))}</td>'
             f'<td>{esc(rec.get("model_id_as_evaluated"))}</td>'
-            f'<td class="num">{esc(format_score(rec.get("score"), rec.get("unit")))}</td>'
+            f'<td class="num">{score}</td>'
             f'<td>{esc(rec.get("evidence_date"))} '
             f'<span class="pill">{esc(rec.get("date_type"))}</span></td>'
             f'<td><span class="pill">{esc(kind.replace("_", " "))}</span>'

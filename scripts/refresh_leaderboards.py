@@ -23,6 +23,7 @@ import argparse
 import copy
 import io
 import json
+import math
 import os
 import re
 import tempfile
@@ -138,6 +139,10 @@ class BoardReading:
     #: ``unit`` and ``source_kind`` for a row the board adds. A board that declares
     #: them can seed a benchmark no card carries yet; otherwise a card row is the template.
     row_template: Mapping[str, str] | None = None
+    #: The board's projector puts the value key on every listed row, with an
+    #: explicit None where the source lists the model and prints no measured value.
+    #: Default off: only a board declared in ``UNPUBLISHED_CELL_BOARDS`` may mark.
+    explicit_empty_cells: bool = False
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.observed_at)
@@ -225,9 +230,30 @@ class RowFailure:
 
 
 @dataclass(frozen=True)
+class PublicationMark:
+    """A row the live board listed with no value, or listed with a value again.
+
+    ``day`` is the stored ``not_published_since`` for a row that stays marked,
+    and the run's observation day for a row this run marks. ``last_seen`` is
+    the row's ``observed_at``, or its ``evidence_date`` when that is absent.
+    """
+
+    kind: str
+    card: str
+    model_id: str
+    benchmark: str
+    model: str
+    source: str
+    score: float
+    last_seen: str
+    day: str
+
+
+@dataclass(frozen=True)
 class ScoreOnlyResult:
     ok: bool
     errors: tuple[str, ...] = ()
+    classes: Mapping[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -237,6 +263,8 @@ class RefreshReport:
     reconfirmed: list[RowObservation] = field(default_factory=list)
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
+    #: Rows whose source listed them with no value, or listed a value again.
+    not_published: list[PublicationMark] = field(default_factory=list)
     added: int = 0
     #: Arena rows on boards this run left whole. Skips and a revision gate are not counted.
     arena_rows_left: int = 0
@@ -271,6 +299,7 @@ def json_board(
     value_field: str,
     fraction: bool = False,
     snapshot_ref: str | None = None,
+    explicit_empty_cells: bool = False,
 ) -> BoardReading:
     payload = json.loads(body)
     rows = payload["rows"] if isinstance(payload, Mapping) else payload
@@ -284,6 +313,7 @@ def json_board(
         value_field=value_field,
         fraction=fraction,
         snapshot_ref=snapshot_ref,
+        explicit_empty_cells=explicit_empty_cells,
     )
 
 
@@ -373,7 +403,8 @@ def align_observation_dating(row: Mapping[str, Any]) -> dict[str, Any]:
     return updated
 
 
-def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any] | None:
+def _name_candidates(board: BoardReading, evidence: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """Rows whose name matches, before a versioned board narrows them by score."""
     wanted = str(evidence.get("model_id_as_evaluated") or "")
     effort = evidence.get("effort")
     without_claude = re.sub(r"^Claude[ -]", "", wanted)
@@ -384,7 +415,7 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
         for alias in aliases
     )]
     if len(candidates) != 1:
-        identity, named_effort = readers.split_model_cell(wanted)
+        _identity, named_effort = readers.split_model_cell(wanted)
         wanted_effort = effort or named_effort
         candidates = [
             row for row in board.rows
@@ -397,6 +428,11 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
         candidates = [row for row in board.rows
                       if sorted(readers.normalise_name(_subject(row)).split()) == wanted_tokens
                       and (effort is None or readers._effort(row) in (None, effort))]
+    return candidates
+
+
+def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    candidates = _name_candidates(board, evidence)
     if len(candidates) > 1:
         # Versioned boards can publish several immutable releases under one benchmark
         # name. Re-confirm the version already named by the card only when exactly one
@@ -412,6 +448,79 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
                 pass
         candidates = agreeing
     return candidates[0] if len(candidates) == 1 else None
+
+
+def _cell_numeric(value: object) -> bool:
+    """True for a real measurement, not an empty cell or a boolean."""
+    if isinstance(value, bool) or value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return math.isfinite(value)
+    if isinstance(value, str) and value.strip():
+        quantity = readers.parse_quantity(value)
+        number = quantity.number if quantity is not None else None
+        return (
+            not isinstance(number, bool)
+            and isinstance(number, (int, float))
+            and math.isfinite(number)
+        )
+    return False
+
+
+#: The least scored rows beside a row with an empty cell before that cell counts.
+MARK_MIN_SCORED_NEIGHBOURS = 3
+
+
+def _empty_cell_is_evidence(board: BoardReading, match: Mapping[str, Any]) -> bool:
+    """The read was sound and this row's cell is explicitly empty.
+
+    Only a declared board may mark. The matched row carries the value key with
+    a None value (a missing key is a re-shaped read). In the same read, at
+    least ``MARK_MIN_SCORED_NEIGHBOURS`` other rows are numeric and at least
+    half of the other rows are numeric, so a page that served only its first
+    rows cannot mark.
+    """
+    if not board.explicit_empty_cells:
+        return False
+    if board.value_field not in match or match[board.value_field] is not None:
+        return False
+    others = [row for row in board.rows if row is not match]
+    numeric = sum(1 for row in others if _cell_numeric(row.get(board.value_field)))
+    return numeric >= MARK_MIN_SCORED_NEIGHBOURS and numeric * 2 >= len(others)
+
+
+def _publication_marked(row: Mapping[str, Any]) -> bool:
+    return row.get("not_published_since") not in (None, "")
+
+
+def _last_seen(row: Mapping[str, Any]) -> str:
+    observed = row.get("observed_at")
+    if observed not in (None, ""):
+        return _iso_day(observed)
+    return _iso_day(row.get("evidence_date"))
+
+
+def _empty_cell_mark(
+    model_id: str,
+    card: str,
+    evidence: Mapping[str, Any],
+    board: BoardReading,
+) -> PublicationMark:
+    if _publication_marked(evidence):
+        kind, day = "still_marked", _iso_day(evidence.get("not_published_since"))
+    else:
+        kind, day = "newly_marked", board.observed_at
+    return PublicationMark(
+        kind=kind,
+        card=card,
+        model_id=model_id,
+        benchmark=str(evidence.get("benchmark_id")),
+        model=str(evidence.get("model_id_as_evaluated")),
+        source=board.source_url,
+        score=float(evidence["score"]),
+        last_seen=_last_seen(evidence),
+        day=day,
+    )
 
 
 def _numbers_close(claimed: float, found: object) -> bool:
@@ -758,6 +867,7 @@ def _copy_matched_reading(
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Copy the matched reading onto ``old``. None when that would contradict it."""
     new = dict(old)
+    new.pop("not_published_since", None)
     if not observation.reading_checked:
         new["score"] = observation.new_value
         return new, None
@@ -821,10 +931,17 @@ def _plan_observations(
     board: BoardReading,
     *,
     revision: str = "",
-) -> tuple[list[RowObservation], list[RowFailure]]:
-    """Plan observations of existing rows; never add one."""
+) -> tuple[list[RowObservation], list[RowFailure], list[PublicationMark]]:
+    """Plan observations of existing rows; never add one.
+
+    An empty cell is a publication mark only when this same board parsed and
+    another row carries a number. Arena boards, a missing row, several name
+    matches, and a board with no numbers stay the existing ``no unique row``
+    failure and are not marked.
+    """
     observations: list[RowObservation] = []
     failures: list[RowFailure] = []
+    marks: list[PublicationMark] = []
     for evidence in evidence_rows:
         if evidence.get("benchmark_id") not in board.benchmark_ids:
             continue
@@ -879,6 +996,25 @@ def _plan_observations(
                         ))
                         continue
                     pinned = only_row
+        if not arena_board:
+            named = _name_candidates(board, evidence)
+            absent = [row for row in named if row.get(board.value_field) is None]
+            # An empty cell must not be rescued by a sibling whose score agrees.
+            if len(named) > 1 and absent:
+                failures.append(RowFailure(
+                    model_id, str(evidence.get("benchmark_id")), board.source_url,
+                    f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
+                ))
+                continue
+            if len(named) == 1 and absent:
+                if _empty_cell_is_evidence(board, named[0]):
+                    marks.append(_empty_cell_mark(model_id, card, evidence, board))
+                else:
+                    failures.append(RowFailure(
+                        model_id, str(evidence.get("benchmark_id")), board.source_url,
+                        f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
+                    ))
+                continue
         match = pinned if pinned is not None else _match(board, evidence)
         if pinned is None and arena_board and len(hits) == 1 and match is hits[0]:
             subject = _subject(hits[0])
@@ -968,7 +1104,19 @@ def _plan_observations(
             reading_rank=_matched_rank(match) if arena_board else None,
             score_repair=score_repair,
         ))
-    return observations, failures
+        if not arena_board and _publication_marked(evidence):
+            marks.append(PublicationMark(
+                kind="unmarked",
+                card=card,
+                model_id=model_id,
+                benchmark=str(evidence["benchmark_id"]),
+                model=str(evidence.get("model_id_as_evaluated")),
+                source=board.source_url,
+                score=old,
+                last_seen=_last_seen(evidence),
+                day="",
+            ))
+    return observations, failures, marks
 
 
 def plan_rows(
@@ -978,7 +1126,7 @@ def plan_rows(
     board: BoardReading,
 ) -> tuple[list[ScoreChange], list[RowFailure]]:
     """Plan value changes for existing rows; never add one."""
-    observations, failures = _plan_observations(model_id, card, evidence_rows, board)
+    observations, failures, _marks = _plan_observations(model_id, card, evidence_rows, board)
     return [observation.score_change() for observation in observations
             if observation.changed], failures
 
@@ -998,6 +1146,36 @@ def _patch_configuration_read_date(lines: list[str], day: str) -> list[str]:
         end += 1
     chunk = _replace_folded_read_date("\n".join(lines[start:end]), day)
     return [*lines[:start], *chunk.split("\n"), *lines[end:]]
+
+
+def _without_publication(row: Mapping[str, Any]) -> dict[str, Any]:
+    copied = dict(row)
+    copied.pop("not_published_since", None)
+    return copied
+
+
+def _publication_only(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """The key alone was added or removed. One date replaced by another is neither."""
+    was, now = before.get("not_published_since"), after.get("not_published_since")
+    return _without_publication(before) == _without_publication(after) and (
+        (was in (None, "")) != (now in (None, ""))
+    )
+
+
+def _drop_yaml_field(lines: list[str], key: str) -> list[str]:
+    start = next((index for index, line in enumerate(lines) if line.startswith(f"    {key}:")), None)
+    if start is None:
+        return lines
+    end = start + 1
+    while end < len(lines) and not re.match(r"^    [a-z][a-z0-9_]*:", lines[end]):
+        end += 1
+    return [*lines[:start], *lines[end:]]
+
+
+def _write_publication_day(lines: list[str], day: object) -> list[str]:
+    """Quote the day so the next YAML load keeps a string, not a date."""
+    quoted = f"    not_published_since: '{_iso_day(day)}'"
+    return [*_drop_yaml_field(lines, "not_published_since"), quoted]
 
 
 def _rewrite_card(
@@ -1020,6 +1198,12 @@ def _rewrite_card(
         if replacement is None:
             return match.group(0)
         lines = block.splitlines()
+        if fields is None and _publication_only(row, replacement):
+            if replacement.get("not_published_since") in (None, ""):
+                lines = _drop_yaml_field(lines, "not_published_since")
+            else:
+                lines = _write_publication_day(lines, replacement.get("not_published_since"))
+            return "\n".join(lines) + "\n"
         if fields is None:
             names = [
                 name for name in (
@@ -1043,6 +1227,11 @@ def _rewrite_card(
             lines = readers._set_field(lines, name, replacement.get(name))
         if patch_read_date:
             lines = _patch_configuration_read_date(lines, day)
+        if (
+            row.get("not_published_since") not in (None, "")
+            and replacement.get("not_published_since") in (None, "")
+        ):
+            lines = _drop_yaml_field(lines, "not_published_since")
         return "\n".join(lines) + "\n"
 
     changed = re.sub(
@@ -1678,7 +1867,7 @@ def _refresh_arena_boards(
             for row in relevant:
                 if _match(board, row) is not None:
                     models_read.add(model_id)
-            observations, failures = _plan_observations(
+            observations, failures, _marks = _plan_observations(
                 model_id, path.relative_to(root).as_posix(), relevant, board, revision=revision,
             )
             for failure in failures:
@@ -1891,12 +2080,23 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 for row in relevant:
                     if _match(board, row) is not None:
                         models_read.add(model_id)
-                observations, failures = _plan_observations(
+                observations, failures, marks = _plan_observations(
                     model_id, path.relative_to(root).as_posix(), relevant, board,
                     revision=effective,
                 )
                 report.failures.extend(failures)
                 summary["failures"].extend(failure.reason for failure in failures)
+                report.not_published.extend(marks)
+                for mark in marks:
+                    if mark.kind != "newly_marked":
+                        continue
+                    old = next(row for row in relevant
+                               if row.get("benchmark_id") == mark.benchmark
+                               and row.get("model_id_as_evaluated") == mark.model
+                               and float(row["score"]) == mark.score)
+                    updated = dict(old)
+                    updated["not_published_since"] = mark.day
+                    pending_updates.setdefault(path, []).append((evidence_key(old), updated))
                 for observation in observations:
                     old = next(row for row in relevant
                                if row["benchmark_id"] == observation.benchmark
@@ -2136,6 +2336,49 @@ def _arena_census_lines(report: RefreshReport) -> list[str]:
     return lines
 
 
+def _publication_lines(report: RefreshReport) -> list[str]:
+    rows = report.not_published
+    if not rows:
+        return []
+    labels = {
+        "newly_marked": "newly marked",
+        "still_marked": "still marked",
+        "unmarked": "unmarked this run",
+    }
+    counts = {kind: sum(row.kind == kind for row in rows) for kind in labels}
+    lines = [
+        "## No longer published",
+        "",
+        (
+            f"{counts['newly_marked']} newly marked, {counts['still_marked']} still marked, "
+            f"{counts['unmarked']} unmarked this run."
+        ),
+        "",
+        "| Card | Benchmark | Last seen | |",
+        "|---|---|---|---|",
+    ]
+    lines.extend(
+        f"| {row.card} | `{row.benchmark}` | {row.last_seen} | {labels[row.kind]} |"
+        for row in rows
+    )
+    return lines
+
+
+def _publication_payload(report: RefreshReport) -> dict[str, list[dict[str, str]]]:
+    grouped: dict[str, list[dict[str, str]]] = {
+        "newly_marked": [],
+        "still_marked": [],
+        "unmarked": [],
+    }
+    for mark in report.not_published:
+        grouped[mark.kind].append({
+            "card": mark.card,
+            "benchmark": mark.benchmark,
+            "last_seen": mark.last_seen,
+        })
+    return grouped
+
+
 def render_report(report: RefreshReport) -> str:
     lines: list[str] = []
     census = _arena_census_lines(report)
@@ -2204,6 +2447,9 @@ def render_report(report: RefreshReport) -> str:
             )
     lines.extend(_dates_a_person_must_rewrite(report.failures))
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
+    publication = _publication_lines(report)
+    if publication:
+        lines.extend(["", *publication])
     other_failures = [
         row for row in report.failures if row.reason != _DATE_THE_WRITER_CANNOT_RETELL
     ]
@@ -2892,6 +3138,9 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     both fields, including when this row's date value is missing. An unknown
     source URL does too.
     """
+    was, now = before.get("not_published_since"), after.get("not_published_since")
+    if was not in (None, "") and now not in (None, "") and was != now:
+        return False
     refreshed = _reading_refreshed(before, after)
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
@@ -2941,6 +3190,8 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
             return False
         old.pop("date_type", None)
         new.pop("date_type", None)
+    old.pop("not_published_since", None)
+    new.pop("not_published_since", None)
     return old == new
 
 
@@ -2980,10 +3231,15 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     standalone ``read <date>`` and date_type match that date.
     A ``re-read`` phrase is not that edit. A dated projector keeps both fields,
     including when its date value is missing and when the stored evidence day
-    already equals ``observed_at``. Verification JSONL files may only grow.
+    already equals ``observed_at``. A row may also gain or lose
+    ``not_published_since`` and nothing else; that change is its own class.
+    One date replaced by another is refused. The key beside any other changed
+    field is judged as that other field.
+    Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
     errors: list[str] = []
+    classes: dict[str, int] = {}
     for rel in sorted(new.keys() - old.keys()):
         if rel.startswith("models/") and rel.endswith(".md"):
             errors.append(f"card created: {rel}")
@@ -3002,6 +3258,12 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
                 errors.append(f"evidence row count changed: {rel}")
             elif not _fronts_match_after_refresh(before_front, after_front):
                 errors.append(f"non-score card data changed: {rel}")
+            only = sum(
+                1 for left, right in zip(before_rows, after_rows)
+                if _publication_only(left, right)
+            )
+            if only:
+                classes["not_published_since"] = classes.get("not_published_since", 0) + only
             if _body(old[rel]) != _body(new[rel]):
                 errors.append(f"card prose changed: {rel}")
         elif rel in {"verification/log.jsonl", "verification/queue/events.jsonl"}:
@@ -3009,7 +3271,7 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
                 errors.append(f"append-only file rewritten: {rel}")
         else:
             errors.append(f"file changed outside refresh outputs: {rel}")
-    return ScoreOnlyResult(not errors, tuple(errors))
+    return ScoreOnlyResult(not errors, tuple(errors), classes)
 
 
 def audit_markdown(changes: Sequence[ScoreChange]) -> str:
@@ -3051,6 +3313,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
+        "not_published_since": _publication_payload(report),
         "added": report.added,
     }
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -3065,6 +3328,16 @@ def _fetch(url: str) -> bytes:
         return response.read()
 
 
+#: Boards whose projector puts the value key on every listed row and an explicit
+#: None where the source lists the model with no measured value. Only these may
+#: mark a row ``not_published_since``. MathArena's projector emits None for an
+#: empty cell and for a cell the site estimated (``data-predicted``), so the
+#: key means "listed without a measured value", not only "blank".
+UNPUBLISHED_CELL_BOARDS = frozenset({
+    "matharena", "matharena:brokenarxiv", "matharena:arxivmath",
+})
+
+
 def _reading_from_projection(
     *, key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
     projected: bytes, observed_at: str, value_field: str, store: CopyStore,
@@ -3072,10 +3345,20 @@ def _reading_from_projection(
     row_template: Mapping[str, str] | None = None,
 ) -> BoardReading:
     payload = json.loads(projected)
-    rows = tuple({**row, "observed_at": observed_at} for row in payload["rows"])
+    declared = key in UNPUBLISHED_CELL_BOARDS
+    # ``document`` drops a None, so a declared projector's empty cell arrives with
+    # no value key. The board declares that a named row without one is listed with
+    # no measured value, and the key is put back here, where the declaration is.
+    rows = tuple(
+        {**(
+            {value_field: None} if declared and value_field not in row and _subject(row) else {}
+        ), **row, "observed_at": observed_at}
+        for row in payload["rows"]
+    )
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
         value_field, fraction, store.put(projected, source_url=source_url), frozenset(card_urls), row_template,
+        key in UNPUBLISHED_CELL_BOARDS,
     )
 
 
