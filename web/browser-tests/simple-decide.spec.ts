@@ -61,9 +61,16 @@ test("a keyboard job pick changes the request, focuses the verdict and carries t
 });
 
 for (const state of ["?template=coding-balanced&source=old", "?source=old#s=preserved-state"]) {
-  test(`old board links retain query and hash: ${state}`, async ({ page }) => {
-    await page.goto(`/decide/${state}`);
-    await expect(page).toHaveURL(`http://127.0.0.1:${new URL(page.url()).port}/decide/details/${state}`);
+  test(`old board links retain query and hash: ${state}`, async ({ page, baseURL }) => {
+    // decide.html redirects before its module loads. The details board can
+    // replaceState its own hash before the load event page.goto waits for, so
+    // arm the assertion first and record the redirect's URL.
+    if (!baseURL) throw new Error("The decide suite requires baseURL");
+    const expected = `${new URL(baseURL).origin}/decide/details/${state}`;
+    await Promise.all([
+      expect(page).toHaveURL(expected),
+      page.goto(`/decide/${state}`),
+    ]);
     await expect(page.getByText("Example: Everyday help. Pick a job if this isn't yours.", { exact: true })).toHaveCount(0);
   });
 }
